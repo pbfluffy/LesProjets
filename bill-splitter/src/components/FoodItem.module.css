@@ -1,0 +1,17 @@
+.card { border: 0.5px solid var(--color-border); border-radius: var(--radius-md); padding: 10px; margin-bottom: 8px; background: var(--color-surface); transition: border-color 0.15s; }
+.card:focus-within { border-color: var(--color-border-strong); }
+.topRow { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.nameInput { flex: 1; min-width: 0; font-size: 14px; }
+.priceWrap { position: relative; flex-shrink: 0; width: 80px; }
+.baht { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--color-text-muted); pointer-events: none; }
+.priceInput { width: 100%; padding-left: 20px; text-align: right; }
+.removeBtn { background: none; border: none; color: var(--color-text-faint); font-size: 20px; line-height: 1; padding: 0 4px; flex-shrink: 0; transition: color 0.1s; }
+.removeBtn:hover { color: var(--color-red); }
+.whoRow { display: flex; align-items: flex-start; gap: 8px; }
+.whoLabel { font-size: 11px; color: var(--color-text-faint); padding-top: 5px; white-space: nowrap; flex-shrink: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { padding: 3px 10px; border-radius: var(--radius-pill); font-size: 12px; font-family: var(--font-body); background: none; border: 0.5px solid var(--color-border-strong); color: var(--color-text-muted); transition: all 0.1s; }
+.chipOn { background: var(--color-accent); color: var(--color-accent-text); border-color: var(--color-accent); }
+.chipAll { background: var(--color-accent); color: var(--color-accent-text); border-color: var(--color-accent); font-weight: 500; }
+.chipAllOff { background: var(--color-surface-alt); }
+.hint { margin-top: 6px; font-size: 11px; color: var(--color-text-faint); font-family: var(--font-mono); text-align: right; }

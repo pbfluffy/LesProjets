@@ -1,0 +1,35 @@
+.section { background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 1rem 1.1rem; margin-bottom: 12px; }
+.sectionHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.title { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); }
+.resetBtn { background: none; border: 0.5px solid var(--color-border-strong); border-radius: var(--radius-sm); font-size: 12px; padding: 3px 10px; color: var(--color-text-muted); transition: all 0.15s; }
+.resetBtn:hover { background: var(--color-red-bg); color: var(--color-red); border-color: var(--color-red); }
+.plateList { display: flex; flex-direction: column; gap: 4px; }
+.plateRow { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 0.5px solid var(--color-border); }
+.plateRow:last-child { border-bottom: none; }
+.dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.12); }
+.dotSmall { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; border: 1px solid rgba(0,0,0,0.1); vertical-align: middle; }
+.plateName { flex: 1; font-size: 14px; }
+.platePriceTag { font-size: 12px; color: var(--color-text-muted); font-family: var(--font-mono); width: 42px; text-align: right; flex-shrink: 0; }
+.plateSubtotal { font-size: 13px; font-family: var(--font-mono); color: var(--color-text-muted); width: 52px; text-align: right; flex-shrink: 0; }
+.counter { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.cntBtn { width: 28px; height: 28px; border-radius: 50%; border: 0.5px solid var(--color-border-strong); background: var(--color-surface-alt); color: var(--color-text); font-size: 17px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: all 0.1s; }
+.cntBtn:hover { background: var(--color-accent); color: var(--color-accent-text); border-color: var(--color-accent); }
+.cntVal { font-size: 16px; font-weight: 500; font-family: var(--font-mono); min-width: 22px; text-align: center; }
+.optRow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.optLabel { font-size: 14px; }
+.toggles { display: flex; flex-direction: column; gap: 8px; }
+.toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: var(--radius-pill); }
+.blue { background: var(--color-blue-bg); color: var(--color-blue); }
+.green { background: var(--color-green-bg); color: var(--color-green); }
+.empty { font-size: 13px; color: var(--color-text-faint); }
+.summary { background: var(--color-surface-alt); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 12px; }
+.summaryRow { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+.summaryLabel { display: flex; align-items: center; color: var(--color-text-muted); }
+.summaryVal { font-family: var(--font-mono); }
+.totalRow { display: flex; justify-content: space-between; font-weight: 500; font-size: 14px; border-top: 0.5px solid var(--color-border); margin-top: 6px; padding-top: 8px; }
+.totalAmt { font-family: var(--font-mono); font-size: 18px; }
+.perPerson { text-align: center; background: var(--color-surface-alt); border-radius: var(--radius-md); padding: 16px; }
+.perPersonLabel { font-size: 12px; color: var(--color-text-muted); margin-bottom: 4px; }
+.perPersonAmt { font-size: 36px; font-weight: 600; font-family: var(--font-mono); line-height: 1.1; }
+.perPersonSub { font-size: 12px; color: var(--color-text-faint); margin-top: 4px; }

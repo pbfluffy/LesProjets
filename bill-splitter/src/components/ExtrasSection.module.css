@@ -1,0 +1,17 @@
+.section { background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 1rem 1.1rem; margin-bottom: 12px; }
+.title { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 10px; }
+.toggles { display: flex; flex-direction: column; gap: 8px; }
+.toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: var(--radius-pill); }
+.badgeBlue { background: var(--color-blue-bg); color: var(--color-blue); }
+.badgeGreen { background: var(--color-green-bg); color: var(--color-green); }
+.divider { height: 0.5px; background: var(--color-border); margin: 12px 0; }
+.ppHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.ppLabel { font-size: 14px; font-weight: 500; }
+.toggleBtn { background: none; border: 0.5px solid var(--color-border-strong); border-radius: var(--radius-sm); font-size: 12px; padding: 3px 10px; color: var(--color-text-muted); transition: all 0.15s; }
+.ppDisplay { display: flex; align-items: center; justify-content: space-between; background: var(--color-surface-alt); border: 0.5px solid var(--color-border); border-radius: var(--radius-sm); padding: 8px 12px; }
+.ppNumber { font-family: var(--font-mono); font-size: 14px; }
+.copyBtn { background: none; border: none; font-size: 12px; color: var(--color-blue); }
+.ppEmpty { font-size: 13px; color: var(--color-text-faint); }
+.fieldLabel { display: block; font-size: 12px; color: var(--color-text-muted); margin-bottom: 4px; }
+.textarea { resize: vertical; font-size: 13px; line-height: 1.6; }
