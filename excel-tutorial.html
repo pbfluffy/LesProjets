@@ -11,9 +11,696 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:"IBM Plex Sans Thai","Noto Sans Thai",sans-serif;background:#f1f5f9;min-height:100vh}
+@keyframes popIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+input:focus,select:focus{border-color:#93c5fd!important;outline:none;box-shadow:0 0 0 3px #eff6ff}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
 </style>
 </head>
 <body>
 <div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const FORMULAS = [
+  {
+    id: "sum", label: "SUM", emoji: "Σ", tagline: "บวกตัวเลขทั้งหมดใน range",
+    accent: "#10b981", accentLight: "#d1fae5",
+    intro: "SUM คือสูตรที่ใช้บ่อยที่สุดใน Excel — รวม (บวก) ตัวเลขทุกตัวใน range ที่กำหนด แทนที่จะพิมพ์ =A1+A2+A3+... ทีละ cell เพียง =SUM(A1:A100) ก็ได้ผลลัพธ์เดียวกัน",
+    parts: [
+      { text: "=SUM", type: "fn", color: "#10b981", title: "ชื่อฟังก์ชัน", desc: "บอก Excel ว่า 'ฉันอยากรวมตัวเลข' — เครื่องหมาย = ต้องมีเสมอ เพื่อบอกว่านี่คือสูตร ไม่ใช่ข้อความ" },
+      { text: "(", type: "bracket" },
+      { text: "B2:B8", type: "arg", color: "#f59e0b", argLabel: "range", title: "Range ที่จะรวม", desc: "ระบุช่วง cell — B2:B8 = B2 ถึง B8 (7 ค่า) ใส่หลาย range ได้ เช่น =SUM(B2:B8, D2:D8)" },
+      { text: ")", type: "bracket" },
+    ],
+    steps: [
+      { n: 1, text: "Excel เห็น =SUM → รู้ว่าจะต้องรวมตัวเลข" },
+      { n: 2, text: "ขยาย B2:B8 กลายเป็น B2, B3, B4, B5, B6, B7, B8 (7 cells)" },
+      { n: 3, text: "บวกทีละค่า: 500 + 320 + 780 + 450 + 210 + 630 + 290" },
+      { n: 4, text: "แสดงผลรวมใน cell ที่พิมพ์สูตร" },
+    ],
+    mistakes: [
+      { wrong: "=SUM(B2+B3+B4)", right: "=SUM(B2:B4)", why: "ใช้ : เพื่อระบุ range แทน + จะสั้นและง่ายกว่ามาก" },
+      { wrong: "=SUM(B2:B8,)", right: "=SUM(B2:B8)", why: "คอมม่าท้าย argument สุดท้ายทำให้ error — ลบออก" },
+    ],
+    usecases: ["รวมยอดขายรายเดือน", "คำนวณค่าใช้จ่ายรวม", "รวมชั่วโมงทำงาน", "บวกคะแนนทุกวิชา"],
+  },
+  {
+    id: "if", label: "IF", emoji: "?", tagline: "ถ้า... แล้ว... มิฉะนั้น...",
+    accent: "#8b5cf6", accentLight: "#ede9fe",
+    intro: "IF ให้ Excel 'ตัดสินใจ' — ตรวจเงื่อนไข ถ้าจริงให้แสดงค่าหนึ่ง ถ้าเท็จให้แสดงอีกค่า คิดแบบนี้: 'ถ้าคะแนน ≥ 50 ให้แสดง ผ่าน มิฉะนั้นให้แสดง ไม่ผ่าน'",
+    parts: [
+      { text: "=IF", type: "fn", color: "#8b5cf6", title: "ชื่อฟังก์ชัน", desc: "สั่ง Excel ให้ตรวจเงื่อนไข — ต้องมี argument ครบ 3 ตัวเสมอ ขาดไม่ได้" },
+      { text: "(", type: "bracket" },
+      { text: "B2>=50", type: "arg", color: "#ef4444", argLabel: "① เงื่อนไข", title: "Logical Test — สิ่งที่จะตรวจ", desc: "เงื่อนไขที่ Excel จะตรวจว่าจริงหรือเท็จ — ใช้ได้: >= (≥), <= (≤), = (เท่ากับ), <> (ไม่เท่ากับ), > (มากกว่า), < (น้อยกว่า)" },
+      { text: ",", type: "sep" },
+      { text: '"ผ่าน"', type: "arg", color: "#10b981", argLabel: "② ถ้าจริง", title: "Value if True — แสดงเมื่อเงื่อนไขถูก", desc: 'ค่าที่แสดงเมื่อเงื่อนไขเป็นจริง — ข้อความต้องอยู่ใน " " เสมอ ตัวเลขไม่ต้องใส่ เช่น =IF(A1>0, 100, 0)' },
+      { text: ",", type: "sep" },
+      { text: '"ไม่ผ่าน"', type: "arg", color: "#f59e0b", argLabel: "③ ถ้าเท็จ", title: "Value if False — แสดงเมื่อเงื่อนไขผิด", desc: 'ค่าที่แสดงเมื่อเงื่อนไขเป็นเท็จ — สามารถซ้อน IF อีกตัวตรงนี้ได้ เพื่อทำหลายเงื่อนไข' },
+      { text: ")", type: "bracket" },
+    ],
+    steps: [
+      { n: 1, text: "Excel ดูค่าใน B2 (สมมติ = 72)" },
+      { n: 2, text: "ตรวจ: 72 >= 50 → จริง หรือ เท็จ?" },
+      { n: 3, text: "72 >= 50 → จริง ✓ เลือก argument ที่ 2" },
+      { n: 4, text: 'แสดง "ผ่าน" ใน cell นั้น' },
+    ],
+    mistakes: [
+      { wrong: '=IF(B2>=50,ผ่าน,ไม่ผ่าน)', right: '=IF(B2>=50,"ผ่าน","ไม่ผ่าน")', why: 'ข้อความต้องครอบด้วย " " เสมอ ขาดไม่ได้' },
+      { wrong: "=IF(B2>=50)", right: '=IF(B2>=50,"ผ่าน","ไม่ผ่าน")', why: "ต้องมี argument ครบ 3 ตัว: เงื่อนไข, ถ้าจริง, ถ้าเท็จ" },
+    ],
+    usecases: ["ตรวจผ่าน/ไม่ผ่าน", "ตัดเกรด A–F", "เช็คสินค้าหมดสต็อก", "แสดง status ต่างๆ"],
+    bonus: { label: "Nested IF — ซ้อนหลายเงื่อนไข", formula: '=IF(B2>=80,"A",IF(B2>=70,"B",IF(B2>=60,"C","F")))', desc: "ตัดเกรด — ซ้อน IF ใน argument ที่ 3 ได้เรื่อยๆ" },
+  },
+  {
+    id: "vlookup", label: "VLOOKUP", emoji: "⟳", tagline: "ค้นหาข้อมูลในตาราง",
+    accent: "#0ea5e9", accentLight: "#e0f2fe",
+    intro: "VLOOKUP ใช้ค้นหาข้อมูลในตาราง — บอกค่าที่ต้องการค้น Excel จะวิ่งลงคอลัมน์แรกของตาราง พอเจอค่าที่ตรงก็จะเดินไปดึงข้อมูลจากคอลัมน์ที่ต้องการ เหมือนค้นพจนานุกรม",
+    parts: [
+      { text: "=VLOOKUP", type: "fn", color: "#0ea5e9", title: "ชื่อฟังก์ชัน", desc: "V = Vertical (แนวตั้ง) — Excel ค้นหาในคอลัมน์แรกจากบนลงล่าง แล้วดึงข้อมูลจากคอลัมน์ที่ระบุ" },
+      { text: "(", type: "bracket" },
+      { text: "A10", type: "arg", color: "#ef4444", argLabel: "① ค่าที่ค้น", title: "Lookup Value — บอก Excel ว่าค้นหาอะไร", desc: "cell หรือค่าที่ต้องการค้น — Excel จะเอาค่านี้ไปวิ่งหาในคอลัมน์แรกของตาราง เช่น รหัสสินค้า, รหัสพนักงาน" },
+      { text: ",", type: "sep" },
+      { text: "$A$2:$D$100", type: "arg", color: "#f59e0b", argLabel: "② ตาราง", title: "Table Array — ตารางข้อมูลทั้งหมด", desc: "ช่วงของตารางที่จะค้น — คอลัมน์แรกต้องมีค่าที่ค้น ใส่ $ เพื่อ lock range เมื่อ copy สูตร เช่น $A$2:$D$100" },
+      { text: ",", type: "sep" },
+      { text: "3", type: "arg", color: "#10b981", argLabel: "③ คอลัมน์ที่", title: "Col Index — ดึงข้อมูลจากคอลัมน์ที่เท่าไหร่", desc: "นับจากซ้ายของตาราง — 1 = คอลัมน์แรก, 2 = คอลัมน์ที่สอง, 3 = คอลัมน์ที่สาม ฯลฯ" },
+      { text: ",", type: "sep" },
+      { text: "FALSE", type: "arg", color: "#6366f1", argLabel: "④ วิธีค้น", title: "Range Lookup — FALSE = ค้นแบบตรงๆ เสมอ!", desc: "FALSE = Exact Match ค้นหาแบบตรงตัว (ใส่เสมอ!) — TRUE = Approximate ค้นใกล้เคียง ใช้กับตารางเกรดเท่านั้น" },
+      { text: ")", type: "bracket" },
+    ],
+    steps: [
+      { n: 1, text: "Excel รับค่าจาก A10 เช่น 'P003'" },
+      { n: 2, text: "วิ่งลงคอลัมน์แรกของตาราง $A$2:$D$100 ทีละ row" },
+      { n: 3, text: "เจอ row ที่คอลัมน์แรกมีค่า = 'P003' → หยุด!" },
+      { n: 4, text: "เดินไปทางขวา ดึงค่าจากคอลัมน์ที่ 3 กลับมา" },
+    ],
+    mistakes: [
+      { wrong: "=VLOOKUP(A10,A2:D100,3,TRUE)", right: "=VLOOKUP(A10,A2:D100,3,FALSE)", why: "ใส่ FALSE เสมอ TRUE ทำให้อาจได้ผลผิด" },
+      { wrong: "=VLOOKUP(A10,B2:D100,3,FALSE)", right: "=VLOOKUP(A10,A2:D100,3,FALSE)", why: "ตารางต้องเริ่มจากคอลัมน์ที่มีค่าที่ค้น" },
+    ],
+    usecases: ["ดึงราคาจากรหัสสินค้า", "ค้นชื่อจาก Employee ID", "หาเกรดจากคะแนน", "ดึงรายละเอียดออเดอร์"],
+  },
+  {
+    id: "sumif", label: "SUMIF", emoji: "Σ?", tagline: "รวมเฉพาะ row ที่ตรงเงื่อนไข",
+    accent: "#f59e0b", accentLight: "#fef3c7",
+    intro: "SUMIF = SUM + IF รวมกัน — รวมตัวเลขเฉพาะ row ที่ตรงตามเงื่อนไข เช่น รวมยอดขายเฉพาะสาขา A หรือรวมเฉพาะสินค้าที่ราคา > 100 บาท",
+    parts: [
+      { text: "=SUMIF", type: "fn", color: "#f59e0b", title: "ชื่อฟังก์ชัน", desc: "รวมตัวเลขแบบมีเงื่อนไข — ใช้ 3 argument: คอลัมน์ที่ตรวจ, เงื่อนไข, คอลัมน์ที่รวม" },
+      { text: "(", type: "bracket" },
+      { text: "A2:A100", type: "arg", color: "#ef4444", argLabel: "① ตรวจที่", title: "Range — คอลัมน์ที่ใช้ตรวจเงื่อนไข", desc: "คอลัมน์ที่ Excel จะตรวจว่า row ไหนตรงเงื่อนไข เช่น คอลัมน์ 'สาขา' หรือ 'ประเภท'" },
+      { text: ",", type: "sep" },
+      { text: '"สาขา A"', type: "arg", color: "#10b981", argLabel: "② เงื่อนไข", title: "Criteria — เงื่อนไขที่ต้องการกรอง", desc: 'บอกว่ากรองเอาอะไร — ข้อความใส่ "" เช่น "สาขา A", ตัวเลขพิมพ์ตรงๆ, หรือใช้ ">100" สำหรับเปรียบเทียบ' },
+      { text: ",", type: "sep" },
+      { text: "C2:C100", type: "arg", color: "#8b5cf6", argLabel: "③ รวมที่", title: "Sum Range — คอลัมน์ที่มีตัวเลขที่ต้องการรวม", desc: "คอลัมน์ที่มีตัวเลข — ต้องมีขนาด (จำนวน row) เท่ากับ Range ที่ตรวจ" },
+      { text: ")", type: "bracket" },
+    ],
+    steps: [
+      { n: 1, text: "Excel ดู A2:A100 ทีละ row" },
+      { n: 2, text: 'ถ้าค่าใน A = "สาขา A" → ✓ เลือก row นี้' },
+      { n: 3, text: "ดูตัวเลขในคอลัมน์ C ของ row ที่เลือกไว้" },
+      { n: 4, text: "รวมตัวเลขทุก row ที่ผ่านเงื่อนไข แล้วแสดงผล" },
+    ],
+    mistakes: [
+      { wrong: '=SUMIF(A2:A100,"สาขา A")', right: '=SUMIF(A2:A100,"สาขา A",C2:C100)', why: "ต้องระบุ sum_range ด้วยว่าจะรวมคอลัมน์ไหน" },
+      { wrong: '=SUMIF(A2:A100,"สาขา A",C2:C50)', right: '=SUMIF(A2:A100,"สาขา A",C2:C100)', why: "Range ทั้งสองต้องมีขนาดเท่ากัน" },
+    ],
+    usecases: ["รวมยอดขายแยกสาขา", "รวมค่าใช้จ่ายแยกหมวด", "รวมสินค้าราคา > 100", "รวมเฉพาะเดือนที่เลือก"],
+    bonus: { label: "SUMIFS — หลายเงื่อนไข", formula: '=SUMIFS(C2:C100,A2:A100,"สาขา A",B2:B100,"ม.ค.")', desc: "รวมเฉพาะสาขา A และเดือน ม.ค. พร้อมกัน" },
+  },
+  {
+    id: "countif", label: "COUNTIF", emoji: "#?", tagline: "นับ row ที่ตรงเงื่อนไข",
+    accent: "#ec4899", accentLight: "#fce7f3",
+    intro: "COUNTIF นับจำนวน cell ที่ตรงตามเงื่อนไข — ต่างจาก COUNT ตรงที่สามารถกรองได้ เช่น นับว่ามีคนผ่านกี่คน หรือมีสินค้าที่ราคา > 500 กี่รายการ",
+    parts: [
+      { text: "=COUNTIF", type: "fn", color: "#ec4899", title: "ชื่อฟังก์ชัน", desc: "นับจำนวนแบบมีเงื่อนไข — ใช้แค่ 2 argument เท่านั้น ง่ายกว่า SUMIF" },
+      { text: "(", type: "bracket" },
+      { text: "C2:C100", type: "arg", color: "#ef4444", argLabel: "① นับที่", title: "Range — ช่วงที่ต้องการนับ", desc: "คอลัมน์หรือช่วงที่ Excel จะตรวจและนับ — ควรครอบคลุมข้อมูลทั้งหมด" },
+      { text: ",", type: "sep" },
+      { text: '"ผ่าน"', type: "arg", color: "#10b981", argLabel: "② เงื่อนไข", title: "Criteria — เงื่อนไขที่ต้องการนับ", desc: 'ค่าที่ต้องการนับ — ข้อความใส่ "" เช่น "ผ่าน", ตัวเลขพิมพ์ตรงๆ, หรือใช้ ">50" สำหรับเปรียบเทียบ' },
+      { text: ")", type: "bracket" },
+    ],
+    steps: [
+      { n: 1, text: "Excel ดูทุก cell ใน C2:C100" },
+      { n: 2, text: 'cell ไหนมีค่า = "ผ่าน" → นับ +1' },
+      { n: 3, text: "ข้ามทุก cell ที่ไม่ตรงเงื่อนไข" },
+      { n: 4, text: "แสดงจำนวนทั้งหมดที่นับได้" },
+    ],
+    mistakes: [
+      { wrong: "=COUNTIF(C2:C100,ผ่าน)", right: '=COUNTIF(C2:C100,"ผ่าน")', why: 'ข้อความต้องอยู่ใน " " เสมอ' },
+      { wrong: '=COUNTIF(C2:C100,>50)', right: '=COUNTIF(C2:C100,">50")', why: 'เงื่อนไขเปรียบเทียบก็ต้องใส่ใน " " ด้วย' },
+    ],
+    usecases: ["นับนักเรียนที่ผ่าน/ไม่ผ่าน", "นับสินค้าหมดสต็อก", "นับพนักงานแต่ละสาขา", "นับ order ที่ยังค้าง"],
+  },
+  {
+    id: "iferror", label: "IFERROR", emoji: "!", tagline: "จัดการ error ให้สวยงาม",
+    accent: "#6366f1", accentLight: "#e0e7ff",
+    intro: "IFERROR จัดการกรณีที่สูตรเกิด error — เช่น VLOOKUP ไม่เจอข้อมูล (#N/A) หรือหารด้วยศูนย์ (#DIV/0!) แทนที่จะแสดง error น่าเกลียด ให้แสดงข้อความที่เราต้องการแทน",
+    parts: [
+      { text: "=IFERROR", type: "fn", color: "#6366f1", title: "ชื่อฟังก์ชัน", desc: "ห่อสูตรอื่นไว้ข้างใน — ถ้าสูตรข้างในเกิด error ทุกชนิด (#N/A, #DIV/0!, #VALUE!, #REF!) จะแสดงค่าที่เรากำหนดแทน" },
+      { text: "(", type: "bracket" },
+      { text: "VLOOKUP(A1,...)", type: "arg", color: "#f59e0b", argLabel: "① สูตรหลัก", title: "Value — สูตรที่ต้องการรัน", desc: "ใส่สูตรทั้งหมดที่นี่ — ถ้ารันได้ปกติจะแสดงผลปกติ ถ้าเกิด error จะแสดงค่าใน argument ที่ 2 แทน" },
+      { text: ",", type: "sep" },
+      { text: '"ไม่พบข้อมูล"', type: "arg", color: "#10b981", argLabel: "② ถ้า error", title: "Value if Error — แสดงอะไรถ้า error", desc: 'ค่าที่แสดงแทน error — นิยมใช้ "" (ว่างเปล่า), "ไม่พบ", 0, หรือ "-" ตามความเหมาะสม' },
+      { text: ")", type: "bracket" },
+    ],
+    steps: [
+      { n: 1, text: "Excel รัน VLOOKUP(A1,...) ก่อนเลย" },
+      { n: 2, text: "ถ้าได้ผลปกติ → แสดงผลนั้น เสร็จ ✓" },
+      { n: 3, text: "ถ้าเกิด error ใดๆ → ข้ามไปดู argument ที่ 2" },
+      { n: 4, text: 'แสดง "ไม่พบข้อมูล" สวยงาม ไม่น่าเกลียด' },
+    ],
+    mistakes: [
+      { wrong: "=VLOOKUP(A1,B:D,2,FALSE)", right: '=IFERROR(VLOOKUP(A1,B:D,2,FALSE),"ไม่พบ")', why: "ควรห่อ VLOOKUP ด้วย IFERROR เสมอ" },
+      { wrong: '=IFERROR("ไม่พบ",VLOOKUP(...))', right: '=IFERROR(VLOOKUP(...),"ไม่พบ")', why: "สูตรหลักต้องอยู่ก่อน ค่า error อยู่หลัง" },
+    ],
+    usecases: ["ป้องกัน #N/A จาก VLOOKUP", "ป้องกัน #DIV/0!", "ทำ report ดูสะอาด", "แสดง 0 แทน error ใน chart"],
+  },
+];
+
+// ── Formula Anatomy ──────────────────────────────────────────────────────────
+
+function FormulaAnatomy({ parts, accent }) {
+  const [active, setActive] = useState(null);
+  return (
+    <div>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 3, marginBottom: 18, padding: "10px 0 20px" }}>
+        {parts.map((p, i) => {
+          if (p.type === "bracket" || p.type === "sep") {
+            return <span key={i} style={{ fontFamily: "monospace", fontSize: 20, color: "#94a3b8", fontWeight: 700, lineHeight: 1 }}>{p.text}</span>;
+          }
+          const isActive = active?.text === p.text;
+          return (
+            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              {p.argLabel && (
+                <span style={{ fontSize: 9, fontWeight: 800, color: isActive ? p.color : "#cbd5e1", letterSpacing: 0.5, textTransform: "uppercase", transition: "color 0.15s" }}>
+                  {p.argLabel}
+                </span>
+              )}
+              <button
+                onClick={() => setActive(isActive ? null : p)}
+                style={{
+                  fontFamily: "monospace",
+                  fontSize: p.type === "fn" ? 17 : 14,
+                  fontWeight: p.type === "fn" ? 800 : 600,
+                  color: isActive ? "white" : p.color,
+                  background: isActive ? p.color : p.color + "15",
+                  border: `2px solid ${isActive ? p.color : p.color + "50"}`,
+                  borderRadius: 8, padding: p.type === "fn" ? "5px 10px" : "4px 8px",
+                  cursor: "pointer", transition: "all 0.15s", lineHeight: 1,
+                }}
+              >{p.text}</button>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ minHeight: 90 }}>
+        {active ? (
+          <div style={{ background: active.color + "0c", border: `1.5px solid ${active.color}40`, borderLeft: `4px solid ${active.color}`, borderRadius: 10, padding: "14px 16px", animation: "popIn 0.15s ease" }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: active.color, marginBottom: 6, letterSpacing: 0.3 }}>
+              {active.argLabel ? `[${active.argLabel}]` : "[FUNCTION]"} — {active.title}
+            </div>
+            <div style={{ fontSize: 14, color: "#1e293b", lineHeight: 1.7 }}>{active.desc}</div>
+          </div>
+        ) : (
+          <div style={{ background: "#f8fafc", border: "1.5px dashed #e2e8f0", borderRadius: 10, padding: "14px 16px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+            👆 แตะแต่ละส่วนของสูตรเพื่อดูคำอธิบาย
+          </div>
+        )}
+      </div>
+
+      {/* Legend */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+        {parts.filter(p => p.type === "arg").map((p, i) => (
+          <button key={i} onClick={() => setActive(active?.text === p.text ? null : p)} style={{
+            display: "flex", alignItems: "center", gap: 5,
+            background: active?.text === p.text ? p.color + "15" : "#f1f5f9",
+            border: `1.5px solid ${active?.text === p.text ? p.color : "#e2e8f0"}`,
+            borderRadius: 20, padding: "4px 10px", cursor: "pointer",
+            fontSize: 11, color: active?.text === p.text ? p.color : "#64748b",
+            fontWeight: 700, transition: "all 0.15s", fontFamily: "inherit",
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: p.color, flexShrink: 0 }} />
+            {p.argLabel || p.title}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Steps ────────────────────────────────────────────────────────────────────
+
+function Steps({ steps, accent }) {
+  const [cur, setCur] = useState(0);
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+        {steps.map((_, i) => (
+          <button key={i} onClick={() => setCur(i)} style={{
+            width: 32, height: 32, borderRadius: "50%", border: "none",
+            background: i === cur ? accent : i < cur ? accent + "40" : "#f1f5f9",
+            color: i === cur ? "white" : i < cur ? accent : "#94a3b8",
+            fontWeight: 800, fontSize: 13, cursor: "pointer", transition: "all 0.2s",
+            fontFamily: "inherit",
+          }}>{i + 1}</button>
+        ))}
+      </div>
+      <div style={{ background: accent + "08", border: `1.5px solid ${accent}25`, borderRadius: 12, padding: "16px 18px", minHeight: 70 }}>
+        <div style={{ fontSize: 13, color: "#64748b", marginBottom: 6 }}>ขั้นตอนที่ {steps[cur].n}</div>
+        <div style={{ fontSize: 15, color: "#1e293b", lineHeight: 1.7, fontWeight: 500 }}>{steps[cur].text}</div>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <Btn onClick={() => setCur(c => Math.max(0, c - 1))} disabled={cur === 0}>← ก่อนหน้า</Btn>
+        <Btn onClick={() => setCur(c => Math.min(steps.length - 1, c + 1))} disabled={cur === steps.length - 1}>ถัดไป →</Btn>
+      </div>
+    </div>
+  );
+}
+
+function Btn({ onClick, disabled, children }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      background: disabled ? "#f8fafc" : "#0f172a", color: disabled ? "#cbd5e1" : "white",
+      border: `1.5px solid ${disabled ? "#e2e8f0" : "#0f172a"}`, borderRadius: 8, padding: "7px 14px",
+      fontSize: 13, cursor: disabled ? "default" : "pointer", fontFamily: "inherit",
+    }}>{children}</button>
+  );
+}
+
+// ── Mistakes ─────────────────────────────────────────────────────────────────
+
+function Mistakes({ list }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {list.map((m, i) => (
+        <div key={i} style={{ border: "1.5px solid #e2e8f0", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+            <div style={{ background: "#fff5f5", padding: "10px 14px", borderRight: "1px solid #fecaca" }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: "#ef4444", marginBottom: 5, letterSpacing: 1 }}>✗ ผิด</div>
+              <code style={{ fontSize: 11, color: "#dc2626", wordBreak: "break-all", lineHeight: 1.6 }}>{m.wrong}</code>
+            </div>
+            <div style={{ background: "#f0fdf4", padding: "10px 14px" }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: "#16a34a", marginBottom: 5, letterSpacing: 1 }}>✓ ถูก</div>
+              <code style={{ fontSize: 11, color: "#15803d", wordBreak: "break-all", lineHeight: 1.6 }}>{m.right}</code>
+            </div>
+          </div>
+          <div style={{ background: "#fffbeb", padding: "8px 14px", borderTop: "1px solid #fde68a" }}>
+            <span style={{ fontSize: 12, color: "#92400e" }}>💡 {m.why}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Demos ─────────────────────────────────────────────────────────────────────
+
+const IS = { background: "white", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "7px 10px", fontSize: 13, outline: "none", fontFamily: "inherit", width: "100%", color: "#1e293b" };
+
+function FormulaBar({ formula, accent }) {
+  const [ok, setOk] = useState(false);
+  return (
+    <div style={{ background: "#0f172a", borderRadius: 10, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+      <code style={{ fontFamily: "monospace", fontSize: 13, color: "#4ade80", wordBreak: "break-all" }}>{formula}</code>
+      <button onClick={() => { navigator.clipboard?.writeText(formula); setOk(true); setTimeout(() => setOk(false), 1500); }}
+        style={{ flexShrink: 0, background: "#1e293b", border: "none", borderRadius: 6, padding: "4px 10px", color: ok ? "#4ade80" : "#64748b", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
+        {ok ? "✓ คัดลอก" : "คัดลอก"}
+      </button>
+    </div>
+  );
+}
+
+function ResultChip({ label, accent }) {
+  return (
+    <div style={{ marginTop: 10, background: accent + "0f", border: `1.5px solid ${accent}30`, borderRadius: 8, padding: "9px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+      <span style={{ fontSize: 12, color: "#64748b" }}>ผลลัพธ์ →</span>
+      <span style={{ fontFamily: "monospace", fontSize: 16, fontWeight: 800, color: accent }}>{label}</span>
+    </div>
+  );
+}
+
+function SumDemo() {
+  const [vals, setVals] = useState([350, 120, 800, 200]);
+  const labels = ["ค่าอาหาร", "ค่าเดินทาง", "ค่าที่พัก", "ค่าอื่นๆ"];
+  const total = vals.reduce((a, v) => a + (parseFloat(v) || 0), 0);
+  return (
+    <div>
+      <FormulaBar formula="=SUM(B2:B5)" accent="#10b981" />
+      <div style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "30px 1fr 1fr", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", fontSize: 11, color: "#94a3b8", fontWeight: 700, padding: "6px 10px", gap: 8 }}>
+          <span></span><span>A (รายการ)</span><span>B (จำนวนเงิน)</span>
+        </div>
+        {labels.map((lb, i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "30px 1fr 1fr", borderBottom: "1px solid #f8fafc", padding: "4px 10px", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: "#94a3b8" }}>{i + 2}</span>
+            <span style={{ fontSize: 13, color: "#374151" }}>{lb}</span>
+            <input type="number" value={vals[i]} onChange={e => { const n = [...vals]; n[i] = e.target.value; setVals(n); }} style={{ ...IS, fontFamily: "monospace" }} />
+          </div>
+        ))}
+        <div style={{ display: "grid", gridTemplateColumns: "30px 1fr 1fr", background: "#f0fdf4", padding: "6px 10px", gap: 8, borderTop: "2px solid #bbf7d0", alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: "#94a3b8" }}>6</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>รวมทั้งหมด</span>
+          <span style={{ fontFamily: "monospace", fontSize: 14, fontWeight: 800, color: "#10b981" }}>฿{total.toLocaleString()}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IFDemo() {
+  const [score, setScore] = useState(65);
+  const [pass, setPass] = useState(50);
+  const result = parseFloat(score) >= parseFloat(pass);
+  return (
+    <div>
+      <FormulaBar formula={`=IF(B1>=${pass},"ผ่าน","ไม่ผ่าน")`} accent="#8b5cf6" />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+        <div>
+          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>คะแนนที่ได้ (B1)</div>
+          <input type="number" value={score} min={0} max={100} onChange={e => setScore(e.target.value)} style={IS} />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>เกณฑ์ผ่าน</div>
+          <input type="number" value={pass} min={0} max={100} onChange={e => setPass(e.target.value)} style={IS} />
+        </div>
+      </div>
+      {/* Flow diagram */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <div style={{ flex: 1, border: `2px solid ${result ? "#10b981" : "#e2e8f0"}`, background: result ? "#f0fdf4" : "#f8fafc", borderRadius: 10, padding: "10px 12px", transition: "all 0.2s" }}>
+          <div style={{ fontSize: 11, color: result ? "#16a34a" : "#94a3b8", fontWeight: 700, marginBottom: 3 }}>① เงื่อนไขจริง ✓</div>
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>score ≥ {pass}</div>
+          <div style={{ fontFamily: "monospace", fontSize: 15, fontWeight: 800, color: result ? "#10b981" : "#cbd5e1" }}>"ผ่าน"</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", color: "#94a3b8", fontSize: 18 }}>↔</div>
+        <div style={{ flex: 1, border: `2px solid ${!result ? "#ef4444" : "#e2e8f0"}`, background: !result ? "#fff5f5" : "#f8fafc", borderRadius: 10, padding: "10px 12px", transition: "all 0.2s" }}>
+          <div style={{ fontSize: 11, color: !result ? "#ef4444" : "#94a3b8", fontWeight: 700, marginBottom: 3 }}>② เงื่อนไขเท็จ ✗</div>
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>score &lt; {pass}</div>
+          <div style={{ fontFamily: "monospace", fontSize: 15, fontWeight: 800, color: !result ? "#ef4444" : "#cbd5e1" }}>"ไม่ผ่าน"</div>
+        </div>
+      </div>
+      <ResultChip label={result ? "✓ ผ่าน" : "✗ ไม่ผ่าน"} accent={result ? "#10b981" : "#ef4444"} />
+    </div>
+  );
+}
+
+const PRODS = [
+  { code: "P001", name: "แล็ปท็อป", price: 25900, stock: 12 },
+  { code: "P002", name: "เมาส์ไร้สาย", price: 890, stock: 45 },
+  { code: "P003", name: "คีย์บอร์ด", price: 1290, stock: 28 },
+  { code: "P004", name: "หูฟัง", price: 2500, stock: 0 },
+  { code: "P005", name: "เว็บแคม", price: 1800, stock: 7 },
+];
+
+function VlookupDemo() {
+  const [q, setQ] = useState("P002");
+  const [col, setCol] = useState(2);
+  const found = PRODS.find(p => p.code === q.toUpperCase().trim());
+  const colMap = { 1: found?.code, 2: found?.name, 3: found ? `฿${found.price.toLocaleString()}` : null, 4: found?.stock !== undefined ? `${found.stock} ชิ้น` : null };
+  const result = found ? colMap[col] : null;
+  return (
+    <div>
+      <FormulaBar formula={`=VLOOKUP(G1,$A$2:$D$6,${col},FALSE)`} accent="#0ea5e9" />
+      <div style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, overflow: "hidden", marginBottom: 12, fontSize: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "70px 1fr 80px 65px", background: "#f8fafc", padding: "6px 10px", color: "#94a3b8", fontWeight: 700, gap: 8 }}>
+          <span>รหัส (1)</span><span>ชื่อ (2)</span><span>ราคา (3)</span><span>สต็อก (4)</span>
+        </div>
+        {PRODS.map(p => (
+          <div key={p.code} style={{ display: "grid", gridTemplateColumns: "70px 1fr 80px 65px", padding: "6px 10px", gap: 8, borderTop: "1px solid #f1f5f9", background: found?.code === p.code ? "#eff6ff" : "white", fontWeight: found?.code === p.code ? 700 : 400, color: found?.code === p.code ? "#1d4ed8" : "#374151", transition: "all 0.2s" }}>
+            <span style={{ fontFamily: "monospace" }}>{p.code}</span>
+            <span>{p.name}</span>
+            <span>฿{p.price.toLocaleString()}</span>
+            <span>{p.stock}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+        <div>
+          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>รหัสที่ค้นหา (G1)</div>
+          <input value={q} onChange={e => setQ(e.target.value)} style={{ ...IS, textTransform: "uppercase", fontFamily: "monospace" }} placeholder="P001–P005" />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+            {PRODS.map(p => <button key={p.code} onClick={() => setQ(p.code)} style={{ padding: "3px 8px", borderRadius: 6, border: `1px solid ${q.toUpperCase() === p.code ? "#0ea5e9" : "#e2e8f0"}`, background: q.toUpperCase() === p.code ? "#eff6ff" : "white", color: q.toUpperCase() === p.code ? "#0ea5e9" : "#64748b", fontSize: 11, fontFamily: "monospace", cursor: "pointer" }}>{p.code}</button>)}
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>ดึงคอลัมน์ที่ (Col Index)</div>
+          <select value={col} onChange={e => setCol(Number(e.target.value))} style={IS}>
+            <option value={1}>1 — รหัสสินค้า</option>
+            <option value={2}>2 — ชื่อสินค้า</option>
+            <option value={3}>3 — ราคา</option>
+            <option value={4}>4 — จำนวนสต็อก</option>
+          </select>
+        </div>
+      </div>
+      <ResultChip label={result || "❌ #N/A (ไม่พบข้อมูล)"} accent={result ? "#0ea5e9" : "#ef4444"} />
+    </div>
+  );
+}
+
+const SALES = [
+  { branch: "สาขา A", cat: "อาหาร", amt: 12000 },
+  { branch: "สาขา B", cat: "เครื่องดื่ม", amt: 8500 },
+  { branch: "สาขา A", cat: "เครื่องดื่ม", amt: 5000 },
+  { branch: "สาขา B", cat: "อาหาร", amt: 9200 },
+  { branch: "สาขา A", cat: "อาหาร", amt: 7500 },
+  { branch: "สาขา C", cat: "อาหาร", amt: 11000 },
+  { branch: "สาขา B", cat: "เครื่องดื่ม", amt: 4300 },
+  { branch: "สาขา C", cat: "เครื่องดื่ม", amt: 6800 },
+];
+
+function SumifDemo() {
+  const [br, setBr] = useState("สาขา A");
+  const total = SALES.filter(s => s.branch === br).reduce((a, b) => a + b.amt, 0);
+  return (
+    <div>
+      <FormulaBar formula={`=SUMIF(A2:A9,"${br}",C2:C9)`} accent="#f59e0b" />
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>เลือกเงื่อนไข (criteria)</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {["สาขา A", "สาขา B", "สาขา C"].map(b => (
+            <button key={b} onClick={() => setBr(b)} style={{ padding: "6px 14px", borderRadius: 8, border: `1.5px solid ${br === b ? "#f59e0b" : "#e2e8f0"}`, background: br === b ? "#fffbeb" : "white", color: br === b ? "#d97706" : "#64748b", fontWeight: br === b ? 700 : 400, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>{b}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, overflow: "hidden", marginBottom: 10, fontSize: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px", background: "#f8fafc", padding: "6px 10px", color: "#94a3b8", fontWeight: 700, gap: 8 }}>
+          <span>A — สาขา</span><span>B — หมวด</span><span>C — ยอดขาย</span>
+        </div>
+        {SALES.map((s, i) => {
+          const match = s.branch === br;
+          return (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px", padding: "5px 10px", gap: 8, borderTop: "1px solid #f8fafc", background: match ? "#fffbeb" : "white", color: match ? "#92400e" : "#374151", fontWeight: match ? 700 : 400, transition: "all 0.2s" }}>
+              <span>{s.branch}</span><span>{s.cat}</span><span>฿{s.amt.toLocaleString()}</span>
+            </div>
+          );
+        })}
+      </div>
+      <ResultChip label={`฿${total.toLocaleString()}`} accent="#f59e0b" />
+    </div>
+  );
+}
+
+const PEOPLE = [
+  { name: "สมชาย", score: 82, res: "ผ่าน" },
+  { name: "สมหญิง", score: 45, res: "ไม่ผ่าน" },
+  { name: "วิชัย", score: 91, res: "ผ่าน" },
+  { name: "มาลี", score: 38, res: "ไม่ผ่าน" },
+  { name: "กานต์", score: 67, res: "ผ่าน" },
+  { name: "ปาล์ม", score: 55, res: "ผ่าน" },
+];
+
+function CountifDemo() {
+  const [crit, setCrit] = useState("ผ่าน");
+  const count = PEOPLE.filter(p => p.res === crit).length;
+  return (
+    <div>
+      <FormulaBar formula={`=COUNTIF(C2:C7,"${crit}")`} accent="#ec4899" />
+      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+        {["ผ่าน", "ไม่ผ่าน"].map(c => (
+          <button key={c} onClick={() => setCrit(c)} style={{ padding: "6px 14px", borderRadius: 8, border: `1.5px solid ${crit === c ? "#ec4899" : "#e2e8f0"}`, background: crit === c ? "#fdf2f8" : "white", color: crit === c ? "#be185d" : "#64748b", fontWeight: crit === c ? 700 : 400, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>{c}</button>
+        ))}
+      </div>
+      <div style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, overflow: "hidden", marginBottom: 10, fontSize: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 90px", background: "#f8fafc", padding: "6px 10px", color: "#94a3b8", fontWeight: 700, gap: 8 }}>
+          <span>A — ชื่อ</span><span>B — คะแนน</span><span>C — ผล ← นับที่นี่</span>
+        </div>
+        {PEOPLE.map((p, i) => {
+          const match = p.res === crit;
+          return (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 70px 90px", padding: "5px 10px", gap: 8, borderTop: "1px solid #f8fafc", background: match ? "#fdf2f8" : "white", transition: "all 0.2s" }}>
+              <span style={{ color: "#374151" }}>{p.name}</span>
+              <span style={{ fontFamily: "monospace", color: "#374151" }}>{p.score}</span>
+              <span style={{ fontWeight: 700, color: p.res === "ผ่าน" ? "#16a34a" : "#ef4444", ...(match ? { background: crit === "ผ่าน" ? "#dcfce7" : "#fee2e2", borderRadius: 4, padding: "1px 6px", display: "inline-block" } : {}) }}>{p.res}</span>
+            </div>
+          );
+        })}
+      </div>
+      <ResultChip label={`${count} คน`} accent="#ec4899" />
+    </div>
+  );
+}
+
+function IferrDemo() {
+  const [code, setCode] = useState("P099");
+  const found = PRODS.find(p => p.code === code.toUpperCase().trim());
+  return (
+    <div>
+      <FormulaBar formula={`=IFERROR(VLOOKUP(G1,$A$2:$D$6,2,FALSE),"ไม่พบสินค้า")`} accent="#6366f1" />
+      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>ลองใส่รหัสที่มี (P001–P005) หรือรหัสที่ไม่มีในระบบ</div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+        {["P002", "P099", "ABC", "P004"].map(c => (
+          <button key={c} onClick={() => setCode(c)} style={{ padding: "5px 12px", borderRadius: 6, border: `1.5px solid ${code === c ? "#6366f1" : "#e2e8f0"}`, background: code === c ? "#eef2ff" : "white", color: code === c ? "#6366f1" : "#64748b", fontSize: 12, fontFamily: "monospace", cursor: "pointer", fontWeight: 600 }}>{c}</button>
+        ))}
+        <input value={code} onChange={e => setCode(e.target.value)} style={{ ...IS, width: 90, textTransform: "uppercase", fontFamily: "monospace", fontSize: 13 }} placeholder="พิมพ์เอง" />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+        <div style={{ background: "#fff5f5", border: "1.5px solid #fecaca", borderRadius: 10, padding: "12px 14px", opacity: found ? 0.35 : 1, transition: "opacity 0.25s" }}>
+          <div style={{ fontSize: 11, color: "#ef4444", fontWeight: 800, marginBottom: 6 }}>❌ ถ้าไม่มี IFERROR</div>
+          <code style={{ fontSize: 18, color: "#dc2626", fontWeight: 800 }}>#N/A</code>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>error น่าเกลียด</div>
+        </div>
+        <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 10, padding: "12px 14px", opacity: found ? 0.35 : 1, transition: "opacity 0.25s" }}>
+          <div style={{ fontSize: 11, color: "#16a34a", fontWeight: 800, marginBottom: 6 }}>✅ มี IFERROR</div>
+          <code style={{ fontSize: 14, color: "#15803d", fontWeight: 700 }}>"ไม่พบสินค้า"</code>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>สวยงาม เข้าใจง่าย</div>
+        </div>
+      </div>
+      {found && (
+        <div style={{ background: "#eef2ff", border: "1.5px solid #c7d2fe", borderRadius: 10, padding: "12px 14px" }}>
+          <div style={{ fontSize: 11, color: "#6366f1", fontWeight: 800, marginBottom: 4 }}>✓ เจอข้อมูล → แสดงผลปกติจาก VLOOKUP</div>
+          <code style={{ fontSize: 15, color: "#4338ca", fontWeight: 700 }}>{found.name}</code>
+        </div>
+      )}
+      {!found && <ResultChip label={'"ไม่พบสินค้า"'} accent="#6366f1" />}
+    </div>
+  );
+}
+
+function Demo({ id }) {
+  if (id === "sum") return <SumDemo />;
+  if (id === "if") return <IFDemo />;
+  if (id === "vlookup") return <VlookupDemo />;
+  if (id === "sumif") return <SumifDemo />;
+  if (id === "countif") return <CountifDemo />;
+  if (id === "iferror") return <IferrDemo />;
+  return null;
+}
+
+// ── Section Card ──────────────────────────────────────────────────────────────
+
+function Card({ icon, title, children }) {
+  return (
+    <div style={{ background: "white", border: "1.5px solid #e2e8f0", borderRadius: 14, padding: "18px 20px" }}>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: "#94a3b8", textTransform: "uppercase", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
+        {icon && <span>{icon}</span>}{title}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+
+function App() {
+  const [active, setActive] = useState(0);
+  const f = FORMULAS[active];
+  return (
+    <div style={{ fontFamily: "'Sarabun','Noto Sans Thai',sans-serif", background: "#f1f5f9", minHeight: "100vh" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        @keyframes popIn { from { opacity:0; transform:translateY(3px) } to { opacity:1; transform:translateY(0) } }
+        input:focus, select:focus { border-color: #93c5fd !important; outline: none; box-shadow: 0 0 0 3px #eff6ff; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+      `}</style>
+
+      {/* Header */}
+      <div style={{ background: "white", borderBottom: "1.5px solid #e2e8f0", padding: "13px 20px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 50 }}>
+        <div style={{ width: 36, height: 36, background: "linear-gradient(135deg,#217346,#34d399)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 16, flexShrink: 0 }}>X</div>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>Excel สำหรับมือใหม่</div>
+          <div style={{ fontSize: 11, color: "#94a3b8" }}>แตะแต่ละส่วนของสูตรเพื่อดูคำอธิบาย · ทดลองแก้ค่าได้</div>
+        </div>
+        <div style={{ marginLeft: "auto", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 20, padding: "4px 12px", fontSize: 12, color: "#64748b" }}>{active + 1}/{FORMULAS.length}</div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ background: "white", borderBottom: "1.5px solid #e2e8f0", display: "flex", overflowX: "auto", padding: "0 10px" }}>
+        {FORMULAS.map((fm, i) => (
+          <button key={fm.id} onClick={() => setActive(i)} style={{
+            padding: "10px 13px", border: "none", background: "transparent", cursor: "pointer",
+            fontFamily: "inherit", fontSize: 13, fontWeight: active === i ? 700 : 500,
+            color: active === i ? fm.accent : "#64748b",
+            borderBottom: `3px solid ${active === i ? fm.accent : "transparent"}`,
+            whiteSpace: "nowrap", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 5,
+          }}>
+            <span style={{ fontFamily: "monospace", fontSize: 13 }}>{fm.emoji}</span>{fm.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div style={{ maxWidth: 780, margin: "0 auto", padding: "16px", display: "flex", flexDirection: "column", gap: 14 }}>
+
+        {/* Hero */}
+        <div style={{ background: f.accent, borderRadius: 14, padding: "18px 20px", color: "white" }}>
+          <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 4, fontWeight: 600 }}>={f.label}()</div>
+          <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.4, marginBottom: 8 }}>{f.tagline}</div>
+          <div style={{ fontSize: 13, lineHeight: 1.75, opacity: 0.9 }}>{f.intro}</div>
+        </div>
+
+        {/* Use cases */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {f.usecases.map((u, i) => <span key={i} style={{ background: f.accentLight, color: f.accent, borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700 }}>{u}</span>)}
+        </div>
+
+        {/* Anatomy */}
+        <Card icon="🔬" title="กายวิภาคของสูตร — แตะแต่ละส่วนเพื่อดูคำอธิบาย">
+          <FormulaAnatomy parts={f.parts} accent={f.accent} />
+        </Card>
+
+        {/* Steps */}
+        <Card icon="⚙️" title="ขั้นตอนการทำงานทีละ step">
+          <Steps steps={f.steps} accent={f.accent} />
+        </Card>
+
+        {/* Live demo */}
+        <Card icon="🧪" title="ทดลองใช้งาน — แก้ค่าได้เลย">
+          <Demo id={f.id} />
+        </Card>
+
+        {/* Mistakes */}
+        <Card icon="⚠️" title="ข้อผิดพลาดที่มือใหม่มักทำ">
+          <Mistakes list={f.mistakes} />
+        </Card>
+
+        {/* Bonus */}
+        {f.bonus && (
+          <div style={{ background: "#0f172a", borderRadius: 14, padding: "16px 18px" }}>
+            <div style={{ fontSize: 11, color: "#4ade80", fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>⭐ ขั้นต่อไป — {f.bonus.label}</div>
+            <code style={{ display: "block", fontFamily: "monospace", fontSize: 13, color: "#a5f3fc", marginBottom: 8, wordBreak: "break-all", lineHeight: 1.7 }}>{f.bonus.formula}</code>
+            <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>{f.bonus.desc}</div>
+          </div>
+        )}
+
+        {/* Nav */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 24 }}>
+          <Btn onClick={() => setActive(a => Math.max(0, a - 1))} disabled={active === 0}>← ก่อนหน้า</Btn>
+          <div style={{ display: "flex", gap: 5 }}>
+            {FORMULAS.map((fm, i) => (
+              <div key={i} onClick={() => setActive(i)} style={{ width: 8, height: 8, borderRadius: "50%", cursor: "pointer", transition: "all 0.2s", background: i === active ? fm.accent : "#cbd5e1", transform: i === active ? "scale(1.5)" : "scale(1)" }} />
+            ))}
+          </div>
+          <Btn onClick={() => setActive(a => Math.min(FORMULAS.length - 1, a + 1))} disabled={active === FORMULAS.length - 1}>ถัดไป →</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
 </body>
 </html>
