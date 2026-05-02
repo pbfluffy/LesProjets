@@ -34,7 +34,7 @@ jobs:
         run: |
           mkdir -p _site/bill-splitter
           cp index.html _site/index.html
-          cp NutrititionsInThailand.html _site/NutrititionsInThailand.html
+          cp NutritionsInThailand.html _site/NutritionsInThailand.html
           cp excel-tutorial.html _site/excel-tutorial.html
           cp -r bill-splitter/dist/. _site/bill-splitter/
 

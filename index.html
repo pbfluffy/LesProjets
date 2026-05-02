@@ -8,14 +8,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #f7f6f2; --surface: #fff; --border: #e4e1db;
-      --text: #1a1916; --muted: #6b6862; --faint: #a09d98;
-      --accent: #1a1916; --radius: 14px;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root { --bg: #161614; --surface: #1e1e1b; --border: #2e2e2a; --text: #f0ede8; --muted: #8a8780; --faint: #55534e; --accent: #f0ede8; }
-    }
+    :root { --bg: #f7f6f2; --surface: #fff; --border: #e4e1db; --text: #1a1916; --muted: #6b6862; --faint: #a09d98; --accent: #1a1916; --radius: 14px; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #161614; --surface: #1e1e1b; --border: #2e2e2a; --text: #f0ede8; --muted: #8a8780; --faint: #55534e; --accent: #f0ede8; } }
     body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: var(--text); min-height: 100dvh; }
     header { padding: 48px 24px 24px; max-width: 600px; margin: 0 auto; }
     h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
@@ -37,47 +31,32 @@
     <h1>LesProjets</h1>
     <p class="sub">pbfluffy — รวม apps &amp; เครื่องมือ</p>
   </header>
-
   <div class="grid">
-
     <a class="card" href="./bill-splitter/">
       <div class="card-header">
         <div class="icon">🍽️</div>
-        <div>
-          <div class="card-name">หารบิล</div>
-          <div class="card-type">React App</div>
-        </div>
+        <div><div class="card-name">หารบิล</div><div class="card-type">React App</div></div>
         <span class="arrow">→</span>
       </div>
       <p class="card-desc">หารบิลอาหาร + Sushiro calculator รองรับ VAT, Service Charge, PromptPay และแชร์สรุปไปกลุ่ม Line</p>
     </a>
-
-    <a class="card" href="./NutrititionsInThailand.html">
+    <a class="card" href="./NutritionsInThailand.html">
       <div class="card-header">
         <div class="icon">🥗</div>
-        <div>
-          <div class="card-name">Nutritions in Thailand</div>
-          <div class="card-type">HTML Page</div>
-        </div>
+        <div><div class="card-name">Nutritions in Thailand</div><div class="card-type">HTML Page</div></div>
         <span class="arrow">→</span>
       </div>
       <p class="card-desc">ข้อมูลโภชนาการอาหารไทย</p>
     </a>
-
     <a class="card" href="./excel-tutorial.html">
       <div class="card-header">
         <div class="icon">📊</div>
-        <div>
-          <div class="card-name">Excel Tutorial</div>
-          <div class="card-type">HTML Page</div>
-        </div>
+        <div><div class="card-name">Excel Tutorial</div><div class="card-type">HTML Page</div></div>
         <span class="arrow">→</span>
       </div>
       <p class="card-desc">คู่มือการใช้งาน Excel</p>
     </a>
-
   </div>
-
   <footer>pbfluffy.github.io/LesProjets</footer>
 </body>
 </html>
