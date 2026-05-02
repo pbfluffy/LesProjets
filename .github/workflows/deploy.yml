@@ -19,16 +19,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+
+      - name: Build bill-splitter
         working-directory: bill-splitter
-      - run: npm run build
-        working-directory: bill-splitter
+        run: |
+          npm install
+          npm run build
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site/bill-splitter
+          cp index.html _site/index.html
+          cp NutrititionsInThailand.html _site/NutrititionsInThailand.html
+          cp excel-tutorial.html _site/excel-tutorial.html
+          cp -r bill-splitter/dist/. _site/bill-splitter/
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: bill-splitter/dist
+          path: _site
 
   deploy:
     needs: build
