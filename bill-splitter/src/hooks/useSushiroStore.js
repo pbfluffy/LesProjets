@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react'
 
 export const PLATES = [
-  { id: 'silver', label: 'Silver',      color: '#B0B0B0', price: 40  },
-  { id: 'gold',   label: 'Gold',        color: '#D4AF37', price: 60  },
-  { id: 'black',  label: 'Black',       color: '#3C3C3C', price: 80  },
-  { id: 'red',    label: 'Red',         color: '#CC3333', price: 120 },
-  { id: 'blue',   label: 'Blue (พิเศษ)', color: '#2266CC', price: 160 },
+  { id: 'white',  label: 'White',  color: '#EEEEEE', border: '#BBBBBB', price: 30  },
+  { id: 'red',    label: 'Red',    color: '#D63A3A', border: '#D63A3A', price: 40  },
+  { id: 'silver', label: 'Silver', color: '#A8A8A8', border: '#888888', price: 60  },
+  { id: 'gold',   label: 'Gold',   color: '#D4AF37', border: '#B8941E', price: 80  },
+  { id: 'black',  label: 'Black',  color: '#2C2C2C', border: '#555555', price: 100 },
 ]
 
 function emptyPersonCounts() {

@@ -28,8 +28,6 @@ export default function SushiroCalculator() {
 
   return (
     <div>
-
-      {/* ── Add people ─────────────────────────────────────── */}
       <section className={styles.section}>
         <h2 className={styles.title}>คนที่กิน</h2>
         <div className={styles.inputRow}>
@@ -44,7 +42,6 @@ export default function SushiroCalculator() {
           <button className={styles.addBtn} onClick={handleAdd}>+ เพิ่ม</button>
         </div>
         {error && <p className={styles.error}>{error}</p>}
-
         {store.people.length > 0 && (
           <div className={styles.personTabs}>
             {store.people.map(name => (
@@ -63,13 +60,11 @@ export default function SushiroCalculator() {
             ))}
           </div>
         )}
-
         {store.people.length === 0 && (
           <p className={styles.empty}>เพิ่มชื่อคนก่อน แล้วค่อยนับจานให้แต่ละคน</p>
         )}
       </section>
 
-      {/* ── Plate counter for active person ────────────────── */}
       {store.activePerson && (
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
@@ -79,13 +74,12 @@ export default function SushiroCalculator() {
             </h2>
             <button className={styles.resetBtn} onClick={store.resetAll}>รีเซ็ตทุกคน</button>
           </div>
-
           <div className={styles.plateList}>
             {PLATES.map(plate => {
               const count = store.counts[store.activePerson]?.[plate.id] ?? 0
               return (
                 <div key={plate.id} className={styles.plateRow}>
-                  <span className={styles.dot} style={{ background: plate.color }} />
+                  <span className={styles.dot} style={{ background: plate.color, border: `1px solid ${plate.border}` }} />
                   <span className={styles.plateName}>{plate.label}</span>
                   <span className={styles.platePriceTag}>฿{plate.price}</span>
                   <Counter
@@ -100,7 +94,6 @@ export default function SushiroCalculator() {
               )
             })}
           </div>
-
           {(() => {
             const sub = result.personSubtotals[store.activePerson] ?? 0
             return sub > 0 ? (
@@ -125,7 +118,7 @@ export default function SushiroCalculator() {
             <label className={styles.toggle}>
               <input type="checkbox" checked={store.serviceChargeEnabled} onChange={e => store.setServiceChargeEnabled(e.target.checked)} />
               <span>Service Charge</span>
-              <span className={`${styles.badge} ${styles.green}`}>10%</span>
+              <span className={`${styles.badge} ${styles.green}`}>10</span>
             </label>
           </div>
         </section>
@@ -138,7 +131,7 @@ export default function SushiroCalculator() {
             {store.people.map(name => {
               const total = result.personTotals[name] ?? 0
               const pct   = result.grandTotal > 0 ? (total / result.grandTotal) * 100 : 0
-              const plateCounts = PLATES.filter(p => (store.counts[name]?.[p.id] ?? 0) > 0)
+              const plateCounts = PLATEQ.filter(p => (store.counts[name]?.[p.id] ?? 0) > 0)
               return (
                 <div key={name} className={styles.personSummaryCard}>
                   <div className={styles.personSummaryHeader}>
@@ -149,7 +142,7 @@ export default function SushiroCalculator() {
                         {plateCounts.length > 0 && (
                           <div className={styles.personPlateDots}>
                             {plateCounts.map(p => (
-                              <span key={p.id} className={styles.plateDotSmall} style={{ background: p.color }} title={p.label} />
+                              <span key={p.id} className={styles.plateDotSmall} style={{ background: p.color, border: `1px solid ${p.border}` }} title={p.label} />
                             ))}
                             <span className={styles.personPlateCount}>
                               {PLATES.reduce((s, p) => s + (store.counts[name]?.[p.id] ?? 0), 0)} จาน
@@ -185,13 +178,12 @@ export default function SushiroCalculator() {
               </div>
             )}
             <div className={`${styles.grandTotalRow} ${styles.grandTotalFinal}`}>
-              <span>รวมทั้งหมด ({result.totalPlates} จาน)</span>
+              <span>รวฑทนคนคษมด ({result.totalPlates} จาน)</span>
               <span>฿{fmt(result.grandTotal)}</span>
             </div>
           </div>
         </section>
       )}
-
     </div>
   )
 }
