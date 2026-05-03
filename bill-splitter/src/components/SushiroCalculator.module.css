@@ -1,8 +1,47 @@
-.section { background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 1rem 1.1rem; margin-bottom: 12px; }
-.sectionHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.title { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-.activePersonBadge { background: var(--color-accent); color: var(--color-accent-text); border-radius: var(--radius-pill); padding: 2px 10px; font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; }
-.resetBtn { background: none; border: 0.5px solid var(--color-border-strong); border-radius: var(--radius-sm); font-size: 12px; padding: 3px 10px; color: var(--color-text-muted); cursor: pointer; transition: all 0.15s; }
+.section {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 1rem 1.1rem;
+  margin-bottom: 12px;
+}
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.activePersonBadge {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.resetBtn {
+  background: none;
+  border: 0.5px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  padding: 3px 10px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
 .resetBtn:hover { background: var(--color-red-bg); color: var(--color-red); border-color: var(--color-red); }
 .inputRow { display: flex; gap: 8px; }
 .inputRow input { flex: 1; }
@@ -36,9 +75,10 @@
 .toggles { display: flex; flex-direction: column; gap: 8px; }
 .toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
 .badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: var(--radius-pill); }
-.blue { background: var(--color-blue-bg); color: var(--color-blue); }
+.blue  { background: var(--color-blue-bg); color: var(--color-blue); }
 .green { background: var(--color-green-bg); color: var(--color-green); }
 .personSummaryList { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.personSummaryCard {}
 .personSummaryHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
 .personSummaryLeft { display: flex; align-items: center; gap: 8px; }
 .personSummaryName { font-size: 14px; font-weight: 500; }

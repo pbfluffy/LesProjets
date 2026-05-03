@@ -5,7 +5,7 @@ export const PLATES = [
   { id: 'gold',   label: 'Gold',        color: '#D4AF37', price: 60  },
   { id: 'black',  label: 'Black',       color: '#3C3C3C', price: 80  },
   { id: 'red',    label: 'Red',         color: '#CC3333', price: 120 },
-  { id: 'blue',   label: 'Blue (\u0e1e\u0e34\u0e40\u0e28\u0e29)', color: '#2266CC', price: 160 },
+  { id: 'blue',   label: 'Blue (พิเศษ)', color: '#2266CC', price: 160 },
 ]
 
 function emptyPersonCounts() {
@@ -57,19 +57,34 @@ export function useSushiroStore() {
     let multiplier = 1
     if (serviceChargeEnabled) multiplier *= 1.10
     if (vatEnabled)           multiplier *= 1.07
+
     const personSubtotals = Object.fromEntries(
-      people.map(name => [name, PLATES.reduce((sum, p) => sum + (counts[name]?.[p.id] ?? 0) * p.price, 0)])
+      people.map(name => [
+        name,
+        PLATES.reduce((sum, p) => sum + (counts[name]?.[p.id] ?? 0) * p.price, 0),
+      ])
     )
     const subtotal   = Object.values(personSubtotals).reduce((a, b) => a + b, 0)
     const grandTotal = subtotal * multiplier
-    const personTotals = Object.fromEntries(people.map(name => [name, personSubtotals[name] * multiplier]))
-    const totalPlates = people.reduce((sum, name) => sum + PLATES.reduce((s, p) => s + (counts[name]?.[p.id] ?? 0), 0), 0)
-    return { personSubtotals, personTotals, subtotal, grandTotal, totalPlates,
+    const personTotals = Object.fromEntries(
+      people.map(name => [name, personSubtotals[name] * multiplier])
+    )
+    const totalPlates = people.reduce(
+      (sum, name) => sum + PLATES.reduce((s, p) => s + (counts[name]?.[p.id] ?? 0), 0), 0
+    )
+    return {
+      personSubtotals, personTotals, subtotal, grandTotal, totalPlates,
       serviceCharge: serviceChargeEnabled ? subtotal * 0.10 : 0,
-      vat: vatEnabled ? subtotal * (serviceChargeEnabled ? 1.10 : 1) * 0.07 : 0 }
+      vat: vatEnabled ? subtotal * (serviceChargeEnabled ? 1.10 : 1) * 0.07 : 0,
+    }
   }, [people, counts, vatEnabled, serviceChargeEnabled])
 
-  return { people, addPerson, removePerson, activePerson, setActivePerson,
-    counts, changePlate, resetAll, vatEnabled, setVatEnabled,
-    serviceChargeEnabled, setServiceChargeEnabled, calculate }
+  return {
+    people, addPerson, removePerson,
+    activePerson, setActivePerson,
+    counts, changePlate, resetAll,
+    vatEnabled, setVatEnabled,
+    serviceChargeEnabled, setServiceChargeEnabled,
+    calculate,
+  }
 }
