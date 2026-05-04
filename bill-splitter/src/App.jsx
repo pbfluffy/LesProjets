@@ -28,17 +28,17 @@ function AppInner() {
               type="button"
               className={styles.iconBtn}
               onClick={toggleLang}
-              title={lang === 'th' ? 'Switch to English' : 'เพ่มเหมามธอกil'}
+              title={lang === 'en' ? 'Switch to Thai' : 'Switch to English'}
             >
-              {lang === 'th' ? 'EN' : 'TH'}
+              {lang === 'en' ? 'TH' : 'EN'}
             </button>
             <button
               type="button"
               className={styles.iconBtn}
-              onClick={() => setDark(t => !t)}
+              onClick={() => setDark(d => !d)}
               title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {dark ? '☀��' : '🌙'}
+              {dark ? '\u{1F31E}' : '\u{1F319}'}
             </button>
           </div>
         </div>
