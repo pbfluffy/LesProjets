@@ -24,22 +24,38 @@ function AppInner() {
         <div className={styles.headerInner}>
           <span className={styles.logo}>{t.appName}</span>
           <div className={styles.headerControls}>
-            <button type="button" className={styles.iconBtn} onClick={toggleLang} title={lang === 'en' ? 'Switch to Thai' : 'Switch to English'}>
-              {lang === 'en' ? 'TH' : 'EN'}
+            {/* Language toggle */}
+            <button
+              className={styles.iconBtn}
+              onClick={toggleLang}
+              title={lang === 'th' ? 'Switch to English' : 'เปลี่ยนเป็นภาษาไทย'}
+            >
+              {lang === 'th' ? 'EN' : 'TH'}
             </button>
-            <button type="button" className={styles.iconBtn} onClick={() => setDark(d => !d)} title={dark ? 'Light mode' : 'Dark mode'}>
-              {dark ? '\uD83C\uDF1E' : '\uD83C\uDF19'}
+            {/* Dark/Light toggle */}
+            <button
+              className={styles.iconBtn}
+              onClick={() => setDark(d => !d)}
+              title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {dark ? '🌞' : '🌙'}
             </button>
           </div>
         </div>
       </header>
+
       <div className={styles.tabBar}>
         {TABS.map(tab => (
-          <button key={tab.id} className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`} onClick={() => setActiveTab(tab.id)}>
+          <button
+            key={tab.id}
+            className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
             {tab.label}
           </button>
         ))}
       </div>
+
       <main className={styles.content}>
         {activeTab === 'split' && <BillSplitter />}
         {activeTab === 'sushi' && <SushiroCalculator />}
