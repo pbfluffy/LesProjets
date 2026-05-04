@@ -3,5 +3,5 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/LesProjets/bill-splitter/',
+  base: '/bill-splitter/', // 👈 MUST match your subpath exactly
 })
