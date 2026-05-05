@@ -14,11 +14,14 @@ const emptyPlates = () => Object.fromEntries(PLATES.map(p => [p.id, 0]))
 export function useSushiroStore() {
   const [people, setPeople]             = useState([])
   const [activePerson, setActivePerson] = useState(null)
+  // plates[personName][plateId] = count
   const [plates, setPlates]             = useState({})
+  // snacks[personName] = [{id, name, price}]
   const [snacks, setSnacks]             = useState({})
   const [vatEnabled, setVatEnabled]               = useState(false)
   const [serviceChargeEnabled, setServiceChargeEnabled] = useState(false)
 
+  // ── People ─────────────────────────────────────────────────────
   const addPerson = useCallback((name) => {
     const t = name.trim()
     if (!t) return false
@@ -40,6 +43,7 @@ export function useSushiroStore() {
     setSnacks(prev => { const n = {...prev}; delete n[name]; return n })
   }, [])
 
+  // ── Plates ─────────────────────────────────────────────────────
   const changePlate = useCallback((person, plateId, delta) => {
     setPlates(prev => ({
       ...prev,
@@ -50,12 +54,13 @@ export function useSushiroStore() {
     }))
   }, [])
 
+  // ── Snacks ─────────────────────────────────────────────────────
   const addSnack = useCallback((person, name, price) => {
     const p = parseFloat(price)
     if (!p || p <= 0) return false
     setSnacks(prev => ({
       ...prev,
-      [person]: [...(prev[person] ?? []), { id: uuid(), name: name.trim() || 'ของกินเล่น', price: p }],
+      [person]: [...(prev[person] ?? []), { id: uuid(), name: name.trim() || 'Snack', price: p }],
     }))
     return true
   }, [])
@@ -72,6 +77,7 @@ export function useSushiroStore() {
     setSnacks(prev => Object.fromEntries(Object.keys(prev).map(n => [n, []])))
   }, [])
 
+  // ── Calculate ──────────────────────────────────────────────────
   const calculate = useCallback(() => {
     let mul = 1
     if (serviceChargeEnabled) mul *= 1.10
