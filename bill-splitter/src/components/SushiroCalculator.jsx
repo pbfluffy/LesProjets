@@ -31,7 +31,6 @@ function SnackAdder({ person, onAdd }) {
     </div>
   )
 }
-
 export default function SushiroCalculator() {
   const store = useSushiroStore()
   const result = store.calculate()
@@ -60,7 +59,7 @@ export default function SushiroCalculator() {
               <button type="button" key={name} className={`${styles.personTab} ${store.activePerson === name ? styles.personTabActive : ''}`} onClick={() => store.setActivePerson(name)}>
                 <span className={styles.avatar}>{name.charAt(0).toUpperCase()}</span>
                 {name}
-                <span className={styles.removePersonBtn} onClick={e => { e.stopPropagation(); store.removePerson(name) }}>×</pan>
+                <span className={styles.removePersonBtn} onClick={e => { e.stopPropagation(); store.removePerson(name) }}>×</span>
               </button>
             ))}
           </div>
