@@ -116,7 +116,7 @@ export const STRINGS = {
 }
 
 export function LangProvider({ children }) {
-  const [lang, setLang] = useState('en')
+  const [lang, setLang] = useState('th')
   const t = STRINGS[lang]
   const toggle = () => setLang(l => l === 'th' ? 'en' : 'th')
   return (
