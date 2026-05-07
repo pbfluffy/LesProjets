@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="th" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,104 +8,179 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #080810; font-family: Georgia, serif; color: #F0EEE8; }
-    input[type=range] { accent-color: #FF6B35; width: 100%; cursor: pointer; }
-    button { cursor: pointer; }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: #13131E; }
-    ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+    :root {
+      --bg: #080810; --bg2: #13131E; --bg3: #1A1A2A;
+      --border: #2A2A3A; --text: #F0EEE8; --muted: #888; --subtle: #555;
+      --accent: #FF6B35; --green: #06D6A0; --blue: #4FC3F7;
+      --yellow: #FFD166; --red: #EF476F;
+      --card-bg: #13131E; --input-bg: #1A1A2A;
+    }
+    [data-theme="light"] {
+      --bg: #F5F5F0; --bg2: #FFFFFF; --bg3: #EBEBEB;
+      --border: #DDDDDD; --text: #1A1A2A; --muted: #666; --subtle: #AAA;
+      --card-bg: #FFFFFF; --input-bg: #F0F0F0;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+    .app { max-width: 600px; margin: 0 auto; padding: 0 0 80px; }
+
+    /* HEADER */
+    .header { position: sticky; top: 0; z-index: 50; background: var(--bg); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .header-title { font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
+    .header-controls { display: flex; gap: 8px; }
+    .icon-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 6px 10px; font-size: 14px; cursor: pointer; transition: opacity .2s; }
+    .icon-btn:hover { opacity: .7; }
+
+    /* TABS */
+    .tab-bar { display: flex; gap: 6px; padding: 12px 16px 0; }
+    .tab-btn { flex: 1; padding: 8px 4px; border: 1px solid var(--border); background: var(--bg2); color: var(--muted); border-radius: 10px; font-size: 12px; cursor: pointer; transition: all .2s; font-weight: 500; }
+    .tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* CARDS */
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin: 12px 16px 0; }
+    .card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 16px 0; }
+    .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+    .stat-label { font-size: 9px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+    .stat-value { font-size: 22px; font-weight: 900; line-height: 1; }
+    .stat-unit { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+    /* PROGRESS */
+    .progress-bar { background: var(--bg3); border-radius: 6px; height: 10px; overflow: hidden; margin: 8px 0; }
+    .progress-fill { height: 100%; border-radius: 6px; transition: width .4s ease; }
+
+    /* SEARCH */
+    .search-wrap { padding: 12px 16px 0; }
+    .search-input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 10px 14px; font-size: 14px; outline: none; transition: border-color .2s; }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--subtle); }
+
+    /* FILTER CHIPS */
+    .filter-chips { display: flex; gap: 6px; padding: 10px 16px 0; overflow-x: auto; scrollbar-width: none; }
+    .filter-chips::-webkit-scrollbar { display: none; }
+    .chip { white-space: nowrap; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg2); color: var(--muted); font-size: 12px; cursor: pointer; transition: all .2s; flex-shrink: 0; }
+    .chip.active { border-color: var(--accent); color: var(--accent); background: rgba(255,107,53,.12); }
+
+    /* FOOD ITEMS */
+    .category-header { padding: 14px 16px 6px; display: flex; align-items: center; gap: 8px; }
+    .category-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .category-name { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+    .food-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; cursor: pointer; transition: background .15s; border-radius: 0; }
+    .food-item:hover { background: var(--bg3); }
+    .food-info { flex: 1; min-width: 0; }
+    .food-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .food-macros { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: monospace; }
+    .food-note { font-size: 11px; color: var(--subtle); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .food-kcal { font-size: 15px; font-weight: 700; color: var(--accent); font-family: monospace; flex-shrink: 0; }
+    .food-added { background: rgba(6,214,160,.15) !important; }
+
+    /* MACROS ROW */
+    .macro-row { display: flex; gap: 8px; margin-top: 10px; }
+    .macro-pill { flex: 1; background: var(--bg3); border-radius: 8px; padding: 8px; text-align: center; }
+    .macro-pill-val { font-size: 14px; font-weight: 700; font-family: monospace; }
+    .macro-pill-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 2px; }
+
+    /* CUSTOM FOOD */
+    .custom-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .custom-form .full-width { grid-column: 1 / -1; }
+    .form-input { background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 12px; font-size: 13px; width: 100%; outline: none; }
+    .form-input:focus { border-color: var(--accent); }
+    .form-input::placeholder { color: var(--subtle); }
+    .btn { padding: 10px 16px; border-radius: 10px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity .2s; }
+    .btn:hover { opacity: .8; }
+    .btn-primary { background: var(--accent); color: #fff; width: 100%; margin-top: 8px; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+    .btn-danger { background: rgba(239,71,111,.15); color: var(--red); border: 1px solid rgba(239,71,111,.3); }
+    .btn-green { background: rgba(6,214,160,.15); color: var(--green); border: 1px solid rgba(6,214,160,.3); }
+
+    /* SLIDER */
+    .slider-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+    select { background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 12px; font-size: 13px; width: 100%; outline: none; }
+
+    /* LOG */
+    .log-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .log-item:last-child { border-bottom: none; }
+    .log-name { font-size: 13px; }
+    .log-kcal { font-size: 13px; font-weight: 700; color: var(--accent); font-family: monospace; }
+    .empty-state { text-align: center; padding: 32px 16px; color: var(--muted); font-size: 13px; }
+
+    /* SECTION TITLE */
+    .section-title { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; font-weight: 700; }
+
+    /* WATER */
+    .water-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+    .water-drop { font-size: 22px; cursor: pointer; opacity: .3; transition: all .2s; }
+    .water-drop.filled { opacity: 1; }
+
+    @media (max-width: 400px) {
+      .card-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .stat-value { font-size: 18px; }
+      .food-name { font-size: 13px; }
+    }
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState } = React;
+const { useState, useMemo, useCallback } = React;
 
-const DEFAULTS = { height: 173, weight: 75, age: 25, gender: "male", activity: 1.375 };
-
-const activityLevels = [
-  { label: "🛋️ นั่งทำงาน", sub: "แทบไม่ขยับ", val: 1.2 },
-  { label: "🚶 เบา", sub: "ออกกำลัง 1–3x/สัปดาห์", val: 1.375 },
-  { label: "🏃 ปานกลาง", sub: "ออกกำลัง 3–5x/สัปดาห์", val: 1.55 },
-  { label: "💪 หนัก", sub: "ออกกำลัง 6–7x/สัปดาห์", val: 1.725 },
-];
-
-const thaiFoods = [
+const MEALS = [
   {
-    category: "🍳 มื้อเช้า", color: "#FF9F1C",
+    category: "🌅 มื้อเช้า", color: "#FF6B35", id: "morning",
     items: [
-      { name: "ไข่ต้ม 2 ฟอง", kcal: 140, protein: 12, fat: 10, note: "โปรตีนดี ไขมันดี" },
-      { name: "ไข่ดาว 2 ฟอง + ข้าว", kcal: 380, protein: 14, fat: 14, note: "หาง่ายทุกที่" },
-      { name: "ไข่เจียวหมูสับ + ข้าว", kcal: 450, protein: 20, fat: 18, note: "อิ่มนาน" },
-      { name: "โจ๊กไก่ (ชามเล็ก)", kcal: 210, protein: 14, fat: 4, note: "ย่อยง่าย โปรตีนดี" },
-      { name: "โจ๊กหมู (ชามเล็ก)", kcal: 220, protein: 13, fat: 5, note: "ย่อยง่าย" },
-      { name: "ข้าวต้มปลา", kcal: 230, protein: 16, fat: 4, note: "โปรตีนดี แคลต่ำ" },
-      { name: "ข้าวไข่พะโล้", kcal: 420, protein: 18, fat: 12, note: "หวานนิดหน่อย" },
-      { name: "นมจืด 250ml", kcal: 150, protein: 8, fat: 8, note: "เพิ่มโปรตีนได้ง่าย" },
-      { name: "โยเกิร์ตกรีก 150g", kcal: 130, protein: 15, fat: 3, note: "โปรตีนสูง คลีน ⭐" },
-      { name: "ขนมปังโฮลวีต + ไข่ต้ม 2 ฟอง", kcal: 310, protein: 18, fat: 10, note: "อาหารเช้าคลีน" },
+      { name: "ไข่ต้ม 2 ฟอง", kcal: 140, protein: 12, fat: 10, carbs: 0, note: "โปรตีนดี ไขมันดี" },
+      { name: "ไข่ดาว 2 ฟอง + ข้าว", kcal: 380, protein: 14, fat: 14, carbs: 45, note: "หาง่ายทุกที่" },
+      { name: "ไข่เจียวหมูสับ + ข้าว", kcal: 450, protein: 20, fat: 18, carbs: 42, note: "อิ่มนาน" },
+      { name: "โจ๊กไก่ (ชามเล็ก)", kcal: 210, protein: 14, fat: 4, carbs: 28, note: "ย่อยง่าย โปรตีนดี" },
+      { name: "โจ๊กหมู (ชามเล็ก)", kcal: 220, protein: 13, fat: 5, carbs: 27, note: "ย่อยง่าย" },
+      { name: "ข้าวต้มปลา", kcal: 230, protein: 16, fat: 4, carbs: 30, note: "โปรตีนดี แคลต่ำ" },
+      { name: "ข้าวไข่พะโล้", kcal: 420, protein: 18, fat: 12, carbs: 52, note: "หวานนิดหน่อย" },
+      { name: "นมจืด 250ml", kcal: 150, protein: 8, fat: 8, carbs: 12, note: "เพิ่มโปรตีนได้ง่าย" },
+      { name: "โยเกิร์ตกรีก 150g", kcal: 130, protein: 15, fat: 3, carbs: 7, note: "โปรตีนสูง คลีน 🌟" },
+      { name: "ขนมปังโฮลวีต + ไข่ต้ม 2 ฟอง", kcal: 310, protein: 18, fat: 10, carbs: 34, note: "อาหารเช้าคลีน" },
     ],
   },
   {
-    category: "🍱 มื้อกลางวัน", color: "#06D6A0",
+    category: "☀️ มื้อกลางวัน", color: "#06D6A0", id: "lunch",
     items: [
-      { name: "ข้าวหน้าไก่ย่าง", kcal: 480, protein: 35, fat: 10, note: "โปรตีนสูง ✅" },
-      { name: "ข้าวมันไก่ (ไม่เอาหนัง)", kcal: 420, protein: 30, fat: 8, note: "ตัดหนังออก ไขมันลด" },
-      { name: "ส้มตำ + ไก่ย่าง", kcal: 350, protein: 32, fat: 8, note: "คลีนมาก ⭐" },
-      { name: "ข้าวหมูแดง (ไม่เอาหมูกรอบ)", kcal: 460, protein: 28, fat: 12, note: "ขอไม่เอาหมูกรอบ" },
-      { name: "ข้าวราดแกงเขียวหวานไก่", kcal: 520, protein: 28, fat: 18, note: "ระวังกะทิ" },
-      { name: "ก๋วยเตี๋ยวไก่น้ำใส", kcal: 320, protein: 22, fat: 5, note: "แคลต่ำ โปรตีนพอใช้" },
-      { name: "ก๋วยเตี๋ยวหมูน้ำตก", kcal: 380, protein: 24, fat: 10, note: "ระวังน้ำมัน" },
-      { name: "ข้าวกะเพราไก่ไข่ดาว", kcal: 550, protein: 32, fat: 16, note: "โปรตีนดี แต่แคลสูง" },
-      { name: "ข้าวราดหมูกระเทียม", kcal: 490, protein: 30, fat: 14, note: "โปรตีนดี" },
-      { name: "สลัดไก่ย่าง (ไม่ราดน้ำสลัด)", kcal: 250, protein: 28, fat: 6, note: "คลีนสุด ⭐" },
-      { name: "ข้าวหน้าปลาแซลมอนย่าง", kcal: 500, protein: 34, fat: 14, note: "โอเมก้า 3 ดี" },
-      { name: "ข้าวราดเต้าหู้ผัดผัก", kcal: 380, protein: 18, fat: 10, note: "มังสวิรัติ โปรตีนพอใช้" },
+      { name: "ข้าวหน้าไก่ย่าง", kcal: 480, protein: 35, fat: 10, carbs: 52, note: "โปรตีนสูง ✅" },
+      { name: "ข้าวมันไก่ (ไม่เอาหนัง)", kcal: 420, protein: 30, fat: 8, carbs: 48, note: "ตัดหนังออก ไขมันลด" },
+      { name: "ส้มตำ + ไก่ย่าง", kcal: 350, protein: 32, fat: 8, carbs: 22, note: "คลีนมาก 🌟" },
+      { name: "ข้าวหมูแดง (ไม่เอามันกรอบ)", kcal: 460, protein: 28, fat: 12, carbs: 50, note: "ขอไม่เอามันกรอบ" },
+      { name: "ข้าวราดแกงเขียวหวานไก่", kcal: 520, protein: 28, fat: 18, carbs: 55, note: "ระวังกะทิ" },
+      { name: "ก๋วยเตี๋ยวไก่น้ำใส", kcal: 320, protein: 22, fat: 5, carbs: 42, note: "แคลต่ำ โปรตีนพอใช้" },
+      { name: "ก๋วยเตี๋ยวหมูตก", kcal: 380, protein: 24, fat: 10, carbs: 44, note: "ระวังน้ำมัน" },
+      { name: "ข้าวกะเพราไก่น้ำดาว", kcal: 550, protein: 32, fat: 16, carbs: 52, note: "โปรตีนดี แต่แคลสูง" },
+      { name: "ข้าวราดมังกุระเทียม", kcal: 490, protein: 30, fat: 14, carbs: 48, note: "โปรตีนดี" },
+      { name: "สลัดไก่ย่าง (ไม่ราดน้ำสลัด)", kcal: 250, protein: 28, fat: 6, carbs: 12, note: "คลีนสุด 🌟" },
+      { name: "ข้าวหน้าปลานึ่งซอสมะนาวย่าง", kcal: 500, protein: 34, fat: 14, carbs: 50, note: "โอเมก้า 3 ดี" },
+      { name: "ข้าวราดเต้าหู้ผัดผัก", kcal: 380, protein: 18, fat: 10, carbs: 45, note: "มังสวิรัติ โปรตีนพอใช้" },
     ],
   },
   {
-    category: "🌙 มื้อเย็น", color: "#118AB2",
+    category: "🌙 มื้อเย็น", color: "#4FC3F7", id: "dinner",
     items: [
-      { name: "ปลาทูนึ่ง + ข้าว", kcal: 360, protein: 30, fat: 8, note: "โปรตีนสูงมาก ⭐" },
-      { name: "ต้มจืดเต้าหู้หมูสับ", kcal: 180, protein: 18, fat: 8, note: "แคลต่ำ โปรตีนดี" },
-      { name: "ลาบไก่ + ข้าวเหนียว", kcal: 430, protein: 33, fat: 9, note: "โปรตีนสูง" },
-      { name: "ผัดผักรวม + ไข่ 2 ฟอง + ข้าว", kcal: 400, protein: 18, fat: 10, note: "เพิ่มไข่เป็น 2 ฟอง" },
-      { name: "ต้มยำกุ้งน้ำใส", kcal: 180, protein: 22, fat: 4, note: "แคลต่ำมาก โปรตีนดี ⭐" },
-      { name: "ปลานึ่งซีอิ๊ว + ข้าว", kcal: 380, protein: 32, fat: 7, note: "โปรตีนสูง คลีน" },
-      { name: "ไก่อบสมุนไพร + ผัก", kcal: 320, protein: 36, fat: 10, note: "คลีนสุด ⭐" },
-      { name: "ต้มข่าไก่ (ไม่กินกะทิมาก)", kcal: 280, protein: 24, fat: 14, note: "ระวังกะทิ" },
-      { name: "หมูอบกระเทียมพริกไทย + ผัก", kcal: 350, protein: 30, fat: 14, note: "โปรตีนดี" },
-      { name: "กุ้งผัดพริกเกลือ + ข้าว", kcal: 380, protein: 28, fat: 8, note: "โปรตีนสูง" },
-      { name: "แกงจืดวุ้นเส้นหมูสับ", kcal: 200, protein: 16, fat: 6, note: "แคลต่ำ อิ่มง่าย" },
+      { name: "ไข่ขาวต้ม 3 ฟอง", kcal: 50, protein: 11, fat: 0, carbs: 1, note: "โปรตีนล้วน" },
+      { name: "กล้วย 1 ผล", kcal: 90, protein: 1, fat: 0, carbs: 23, note: "คาร์บก่อนออกกำลัง" },
+      { name: "นมไข่ขาว (egg white)", kcal: 60, protein: 13, fat: 0, carbs: 1, note: "โปรตีนเกือบ 100%" },
+      { name: "ลูกชิ้นปลาต้ม 5 ลูก", kcal: 100, protein: 10, fat: 3, carbs: 5, note: "หาง่าย ราคาถูก" },
+      { name: "ปลาหมึกย่าง (ตัวเล็ก)", kcal: 120, protein: 16, fat: 2, carbs: 4, note: "โปรตีนสูง ไขมันต่ำ" },
+      { name: "เต้าหู้ขาวนึ่ง 100g", kcal: 70, protein: 8, fat: 4, carbs: 2, note: "โปรตีนพืช ราคาถูก" },
+      { name: "นมโปรตีนสูง (Hi-Pro)", kcal: 160, protein: 18, fat: 5, carbs: 10, note: "หาได้ตาม 7-11" },
     ],
   },
   {
-    category: "🥤 ของว่าง / เสริม", color: "#FFBF69",
+    category: "🏪 ร้านสะดวกซื้อ (7-11)", color: "#EF476F", id: "seven",
     items: [
-      { name: "กุ้งสดต้ม 100g", kcal: 85, protein: 20, fat: 1, note: "โปรตีนสูง แคลต่ำมาก ⭐" },
-      { name: "ถั่วต้ม 1 ถ้วย", kcal: 180, protein: 12, fat: 6, note: "กินระหว่างวันได้" },
-      { name: "โยเกิร์ตกรีกไม่หวาน 200g", kcal: 170, protein: 20, fat: 4, note: "โปรตีนสูง ⭐" },
-      { name: "ไข่ขาวต้ม 3 ฟอง", kcal: 50, protein: 11, fat: 0, note: "โปรตีนล้วน" },
-      { name: "กล้วย 1 ผล", kcal: 90, protein: 1, fat: 0, note: "คาร์บก่อนออกกำลัง" },
-      { name: "นมไข่ขาว (egg white)", kcal: 60, protein: 13, fat: 0, note: "โปรตีนเกือบ 100%" },
-      { name: "ลูกชิ้นปลาต้ม 5 ลูก", kcal: 100, protein: 10, fat: 3, note: "หาง่าย ราคาถูก" },
-      { name: "ปลาหมึกย่าง (ตัวเล็ก)", kcal: 120, protein: 16, fat: 2, note: "โปรตีนสูง ไขมันต่ำ" },
-      { name: "เต้าหู้ขาวนึ่ง 100g", kcal: 70, protein: 8, fat: 4, note: "โปรตีนพืช ราคาถูก" },
-      { name: "นมโปรตีนสูง (Hi-Pro)", kcal: 160, protein: 18, fat: 5, note: "หาได้ตาม 7-11" },
-    ],
-  },
-  {
-    category: "🏪 ร้านสะดวกซื้อ (7-11)", color: "#EF476F",
-    items: [
-      { name: "ไข่ต้ม 7-11 (2 ฟอง)", kcal: 140, protein: 12, fat: 10, note: "สะดวก ราคาถูก ⭐" },
-      { name: "อกไก่อบ 7-11", kcal: 120, protein: 22, fat: 3, note: "โปรตีนสูงมาก ⭐" },
-      { name: "ทูน่ากระป๋องในน้ำ", kcal: 100, protein: 22, fat: 1, note: "โปรตีนสูง แคลต่ำ ⭐" },
-      { name: "ข้าวกล้องกล่อง 7-11", kcal: 280, protein: 6, fat: 2, note: "คาร์บดี ไฟเบอร์สูง" },
-      { name: "สลัดผักรวม 7-11", kcal: 80, protein: 3, fat: 2, note: "เพิ่มผักได้ง่าย" },
-      { name: "นมถั่วเหลืองไม่หวาน", kcal: 100, protein: 7, fat: 4, note: "โปรตีนพืช" },
-      { name: "โปรตีนบาร์ (ยี่ห้อทั่วไป)", kcal: 200, protein: 20, fat: 7, note: "ของว่างฉุกเฉิน" },
-      { name: "ลูกชิ้นเสียบไม้ต้ม (5 ไม้)", kcal: 150, protein: 12, fat: 5, note: "หน้าร้าน สะดวก" },
+      { name: "ไข่ต้ม 7-11 (2 ฟอง)", kcal: 140, protein: 12, fat: 10, carbs: 0, note: "สะดวก ราคาถูก 🌟" },
+      { name: "อกไก่ 7-11", kcal: 120, protein: 22, fat: 3, carbs: 2, note: "โปรตีนสูงมาก 🌟" },
+      { name: "ทูน่ากระป๋องในน้ำ", kcal: 100, protein: 22, fat: 1, carbs: 0, note: "โปรตีนสูง แคลต่ำ 🌟" },
+      { name: "ข้าวกล่อง 7-11", kcal: 280, protein: 6, fat: 2, carbs: 58, note: "คาร์บดี ไฟเบอร์สูง" },
+      { name: "สลัดผักรวม 7-11", kcal: 80, protein: 3, fat: 2, carbs: 12, note: "เพิ่มผักได้ง่าย" },
+      { name: "นมถั่วเหลืองไม่หวาน", kcal: 100, protein: 7, fat: 4, carbs: 8, note: "โปรตีนพืช" },
+      { name: "โปรตีนบาร์ (ยี่ห้อทั่วไป)", kcal: 200, protein: 20, fat: 7, carbs: 15, note: "ของว่างฉุกเฉิน" },
+      { name: "ลูกชิ้นเสียบไม้ต้ม (5 ไม้)", kcal: 150, protein: 12, fat: 5, carbs: 10, note: "หน้าร้าน สะดวก" },
     ],
   },
 ];
@@ -113,285 +188,346 @@ const thaiFoods = [
 function calcBMR(w, h, a, g) {
   return g === "male" ? 10*w + 6.25*h - 5*a + 5 : 10*w + 6.25*h - 5*a - 161;
 }
-function calcBMI(w, h) { return (w / ((h/100)**2)).toFixed(1); }
-function bmiLabel(bmi) {
-  if (bmi < 18.5) return { text: "ผอมเกิน", color: "#118AB2" };
-  if (bmi < 25)   return { text: "ปกติ", color: "#06D6A0" };
-  if (bmi < 30)   return { text: "น้ำหนักเกิน", color: "#FF9F1C" };
-  return { text: "อ้วน", color: "#FF6B35" };
-}
+const ACTIVITY = [
+  { k: "sedentary", label: "นั่งทำงาน", mult: 1.2 },
+  { k: "light", label: "ออกกำลัง 1-3วัน/อาทิตย์", mult: 1.375 },
+  { k: "moderate", label: "ออกกำลัง 3-5วัน/อาทิตย์", mult: 1.55 },
+  { k: "active", label: "ออกกำลัง 6-7วัน/อาทิตย์", mult: 1.725 },
+];
+const BMI_INFO = [
+  { max: 18.5, text: "น้ำหนักน้อย", color: "#4FC3F7" },
+  { max: 23, text: "ปกติ", color: "#06D6A0" },
+  { max: 25, text: "น้ำหนักเกิน", color: "#FFD166" },
+  { max: 30, text: "อ้วน", color: "#EF476F" },
+  { max: 999, text: "อ้วนมาก", color: "#C41E3A" },
+];
+function getBMI(bmi) { return BMI_INFO.find(b => bmi < b.max) || BMI_INFO[BMI_INFO.length-1]; }
 
-function App() {
-  const [stats, setStats] = useState(DEFAULTS);
+export default function App() {
+  const [theme, setTheme] = useState("dark");
   const [tab, setTab] = useState("overview");
-  const [openCat, setOpenCat] = useState("🍱 มื้อกลางวัน");
-  const [checked, setChecked] = useState({});
+  const [search, setSearch] = useState("");
+  const [filterCat, setFilterCat] = useState("all");
 
-  const toggleFood = (key) => setChecked(c => ({ ...c, [key]: !c[key] }));
-  const allItems = thaiFoods.flatMap(cat => cat.items.map(item => ({ ...item, key: `${cat.category}-${item.name}` })));
-  const totalCalEaten = allItems.filter(f => checked[f.key]).reduce((s,f) => s+f.kcal, 0);
-  const totalProteinEaten = allItems.filter(f => checked[f.key]).reduce((s,f) => s+f.protein, 0);
+  // Stats
+  const [stats, setStats] = useState({ weight: 75, height: 170, age: 25, gender: "male", activity: "moderate", deficit: 400 });
+  const updateStat = (k, v) => setStats(s => ({ ...s, [k]: v }));
 
-  const bmr = calcBMR(stats.weight, stats.height, stats.age, stats.gender);
-  const tdee = Math.round(bmr * stats.activity);
-  const targetCals = Math.round(tdee * 0.85);
-  const protein = Math.round(stats.weight * 2.2);
-  const fat = Math.round(stats.weight * 1);
-  const fatCals = fat * 9;
-  const proteinCals = protein * 4;
-  const carbCals = targetCals - fatCals - proteinCals;
-  const carbs = Math.round(carbCals / 4);
-  const bmi = calcBMI(stats.weight, stats.height);
-  const bmiInfo = bmiLabel(parseFloat(bmi));
-  const estBF = stats.gender === "male"
-    ? Math.round(1.2*parseFloat(bmi) + 0.23*stats.age - 16.2)
-    : Math.round(1.2*parseFloat(bmi) + 0.23*stats.age - 5.4);
-  const leanMass = Math.round(stats.weight * (1 - estBF/100));
-  const fatMass = Math.round(stats.weight * (estBF/100));
+  // Log
+  const [log, setLog] = useState([]);
+  const addToLog = useCallback(item => {
+    setLog(l => [...l, { ...item, id: Date.now() + Math.random() }]);
+  }, []);
+  const removeFromLog = useCallback(id => setLog(l => l.filter(x => x.id !== id)), []);
 
-  const S = {
-    wrap: { minHeight:"100vh", background:"#080810", color:"#F0EEE8", padding:"24px 16px", maxWidth:480, margin:"0 auto" },
-    card: { background:"#13131E", borderRadius:12, padding:16, marginBottom:12 },
-    mono: { fontFamily:"monospace" },
-    tabBtn: (active) => ({ flex:1, padding:"8px 4px", borderRadius:8, border:"none", fontFamily:"monospace", fontSize:10, fontWeight:700, background:active?"#FF6B35":"#13131E", color:active?"#fff":"#555", cursor:"pointer", transition:"all 0.2s" }),
-    bar: (pct, color) => ({ width:`${Math.min(100,pct)}%`, height:"100%", background:color, borderRadius:4 }),
+  // Custom foods
+  const [customFoods, setCustomFoods] = useState([]);
+  const [customForm, setCustomForm] = useState({ name: "", kcal: "", protein: "", fat: "", carbs: "", note: "" });
+
+  // Water
+  const [water, setWater] = useState(0);
+
+  // Toggle theme
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.setAttribute("data-theme", next);
   };
 
+  const bmr = calcBMR(stats.weight, stats.height, stats.age, stats.gender);
+  const act = ACTIVITY.find(a => a.k === stats.activity);
+  const tdee = Math.round(bmr * act.mult);
+  const targetCals = tdee - stats.deficit;
+  const bmi = stats.weight / ((stats.height/100) ** 2);
+  const bmiInfo = getBMI(bmi);
+  const leanMass = Math.round(stats.weight * (1 - (bmi > 25 ? 0.22 : bmi > 23 ? 0.17 : 0.13)));
+  const estBF = bmi > 25 ? 22 : bmi > 23 ? 17 : 13;
+
+  const totalCalEaten = log.reduce((s, x) => s + (x.kcal || 0), 0);
+  const totalProtein = log.reduce((s, x) => s + (x.protein || 0), 0);
+  const totalFat = log.reduce((s, x) => s + (x.fat || 0), 0);
+  const totalCarbs = log.reduce((s, x) => s + (x.carbs || 0), 0);
+
+  // All foods including custom
+  const allFoods = useMemo(() => {
+    const cats = [...MEALS];
+    if (customFoods.length > 0) cats.push({ category: "⭐ ของฉัน", color: "#FFD166", id: "custom", items: customFoods });
+    return cats;
+  }, [customFoods]);
+
+  // Filtered foods
+  const filteredFoods = useMemo(() => {
+    return allFoods.map(cat => ({
+      ...cat,
+      items: cat.items.filter(item => {
+        const matchSearch = !search || item.name.toLowerCase().includes(search.toLowerCase());
+        const matchCat = filterCat === "all" || cat.id === filterCat;
+        return matchSearch && matchCat;
+      })
+    })).filter(cat => cat.items.length > 0);
+  }, [allFoods, search, filterCat]);
+
+  const addCustomFood = () => {
+    if (!customForm.name || !customForm.kcal) return;
+    setCustomFoods(f => [...f, {
+      name: customForm.name,
+      kcal: Number(customForm.kcal), protein: Number(customForm.protein||0),
+      fat: Number(customForm.fat||0), carbs: Number(customForm.carbs||0),
+      note: customForm.note || "อาหารของฉัน"
+    }]);
+    setCustomForm({ name: "", kcal: "", protein: "", fat: "", carbs: "", note: "" });
+  };
+
+  const pct = Math.min(100, (totalCalEaten / targetCals) * 100);
+  const progColor = totalCalEaten > targetCals ? "var(--red)" : totalCalEaten > targetCals * 0.9 ? "var(--yellow)" : "var(--green)";
+
   return (
-    <div style={S.wrap}>
+    <div className="app">
       {/* Header */}
-      <div style={{marginBottom:24}}>
-        <div style={{fontSize:10,letterSpacing:5,color:"#FF6B35",fontFamily:"monospace",textTransform:"uppercase",marginBottom:6}}>ลดไขมัน · รักษากล้ามเนื้อ</div>
-        <div style={{fontSize:30,fontWeight:900,lineHeight:1.1,letterSpacing:-1}}>ปรับสัดส่วน<br/><span style={{color:"#FF6B35"}}>ร่างกาย</span></div>
-        <div style={{fontFamily:"monospace",fontSize:11,color:"#555",marginTop:6}}>{stats.height}cm · {stats.weight}kg · อายุ {stats.age}</div>
+      <div className="header">
+        <span className="header-title">🔥 ลดไขมัน · รักษากล้ามเนื้อ</span>
+        <div className="header-controls">
+          <button className="icon-btn" onClick={toggleTheme}>{theme === "dark" ? "🌞" : "🌙"}</button>
+          <button className="icon-btn" onClick={() => { setLog([]); setWater(0); }}>↺</button>
+        </div>
       </div>
 
       {/* Tabs */}
-      <div style={{display:"flex",gap:6,marginBottom:20}}>
-        {[["overview","📊 ภาพรวม"],["thai","🍛 อาหารไทย"],["adjust","⚙️ ปรับค่า"]].map(([k,l]) => (
-          <button key={k} style={S.tabBtn(tab===k)} onClick={() => setTab(k)}>{l}</button>
+      <div className="tab-bar">
+        {[["overview","📊 ภาพรวม"],["food","🍱 อาหาร"],["adjust","⚙️ ปรับค่า"],["custom","➕ เพิ่มเอง"]].map(([k,l]) => (
+          <button key={k} className={`tab-btn ${tab===k?"active":""}`} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
 
-      {/* OVERVIEW */}
-      {tab==="overview" && <>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+      {/* OVERVIEW TAB */}
+      {tab === "overview" && <>
+        {/* Stat cards */}
+        <div className="card-row">
           {[
-            {label:"TDEE",value:`${tdee}`,unit:"kcal/วัน",color:"#FF9F1C"},
-            {label:"เป้าหมาย",value:`${targetCals}`,unit:"kcal/วัน",color:"#FF6B35"},
-            {label:"BMI",value:bmi,unit:bmiInfo.text,color:bmiInfo.color},
-            {label:"กล้ามเนื้อ",value:`${leanMass}kg`,unit:`ไขมัน ~${estBF}%`,color:"#06D6A0"},
+            { label: "TDEE", value: tdee, unit: "kcal/วัน", color: "var(--yellow)" },
+            { label: "เป้าหมาย", value: targetCals, unit: "kcal/วัน", color: "var(--accent)" },
+            { label: "BMI", value: bmi.toFixed(1), unit: bmiInfo.text, color: bmiInfo.color },
+            { label: "กล้ามเนื้อ", value: `${leanMass}kg`, unit: `ไขมัน ~${estBF}%`, color: "var(--green)" },
           ].map((c,i) => (
-            <div key={i} style={{background:"#13131E",borderRadius:12,padding:14,borderTop:`3px solid ${c.color}`}}>
-              <div style={{fontSize:9,letterSpacing:3,color:"#555",fontFamily:"monospace",textTransform:"uppercase",marginBottom:6}}>{c.label}</div>
-              <div style={{fontSize:24,fontWeight:900,color:c.color,lineHeight:1}}>{c.value}</div>
-              <div style={{fontSize:10,color:"#888",fontFamily:"monospace",marginTop:4}}>{c.unit}</div>
+            <div className="stat-card" key={i} style={{ borderTop: `3px solid ${c.color}` }}>
+              <div className="stat-label">{c.label}</div>
+              <div className="stat-value" style={{ color: c.color }}>{c.value}</div>
+              <div className="stat-unit">{c.unit}</div>
             </div>
           ))}
         </div>
 
-        <div style={S.card}>
-          <div style={{fontSize:10,letterSpacing:3,color:"#888",fontFamily:"monospace",marginBottom:12}}>MACROS ต่อวัน</div>
-          {[
-            {label:"💪 โปรตีน",g:protein,color:"#06D6A0",pct:Math.round(proteinCals/targetCals*100)},
-            {label:"⚡ คาร์บ",g:carbs,color:"#FF9F1C",pct:Math.round(carbCals/targetCals*100)},
-            {label:"🫀 ไขมัน",g:fat,color:"#118AB2",pct:Math.round(fatCals/targetCals*100)},
-          ].map((m,i) => (
-            <div key={i} style={{marginBottom:i<2?12:0}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5,fontFamily:"monospace",fontSize:12}}>
-                <span style={{color:"#aaa"}}>{m.label}</span>
-                <span style={{color:m.color,fontWeight:700}}>{m.g}g <span style={{color:"#555",fontWeight:400}}>({m.pct}%)</span></span>
+        {/* Calorie progress */}
+        <div className="card">
+          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+            <span style={{ fontSize:12, color:"var(--muted)", fontFamily:"monospace" }}>🔥 แคลอรี่วันนี้</span>
+            <span style={{ fontSize:12, fontFamily:"monospace" }}>
+              <span style={{ color: progColor, fontWeight:700 }}>{totalCalEaten}</span>
+              <span style={{ color:"var(--muted)" }}> / {targetCals} kcal</span>
+            </span>
+          </div>
+          <div className="progress-bar">
+            <div className="progress-fill" style={{ width:`${pct}%`, background: progColor }} />
+          </div>
+          <div style={{ fontSize:11, color:"var(--muted)", textAlign:"right", marginTop:4 }}>
+            {totalCalEaten > targetCals
+              ? `⚠️ เกิน ${totalCalEaten - targetCals} kcal`
+              : `✅ เหลือ ${targetCals - totalCalEaten} kcal`}
+          </div>
+
+          {/* Macros */}
+          <div className="macro-row">
+            {[
+              { label:"โปรตีน", val: totalProtein, unit:"g", color:"var(--green)" },
+              { label:"ไขมัน", val: totalFat, unit:"g", color:"var(--yellow)" },
+              { label:"คาร์บ", val: totalCarbs, unit:"g", color:"var(--blue)" },
+            ].map(m => (
+              <div className="macro-pill" key={m.label}>
+                <div className="macro-pill-val" style={{ color: m.color }}>{m.val}{m.unit}</div>
+                <div className="macro-pill-label">{m.label}</div>
               </div>
-              <div style={{background:"#1E1E2E",borderRadius:4,height:5}}>
-                <div style={S.bar(m.pct,m.color)}/>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{...S.card,border:"1px solid #FF6B3530",background:"linear-gradient(135deg,#1a1025,#13131E)"}}>
-          <div style={{fontSize:10,letterSpacing:3,color:"#FF6B35",fontFamily:"monospace",marginBottom:10}}>แผนปรับสัดส่วน</div>
-          {[
-            {icon:"🔥",text:`กิน ${targetCals} kcal/วัน`,sub:`ขาดดุล ${tdee-targetCals} kcal (15%)`},
-            {icon:"💪",text:`โปรตีน ${protein}g/วัน`,sub:"2.2g/kg — รักษากล้ามเนื้อขณะลดไขมัน"},
-            {icon:"🏋️",text:"ยกเวท 3–4x/สัปดาห์",sub:"กระตุ้นกล้ามเนื้อไม่ให้สลาย"},
-            {icon:"🚶",text:"เดิน 8,000+ ก้าว/วัน",sub:"เผาไขมันโดยไม่เสียกล้ามเนื้อ"},
-          ].map((item,i) => (
-            <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",paddingBottom:i<3?10:0,borderBottom:i<3?"1px solid #1E1E2E":"none",marginBottom:i<3?10:0}}>
-              <div style={{fontSize:20}}>{item.icon}</div>
-              <div>
-                <div style={{fontWeight:700,fontSize:13}}>{item.text}</div>
-                <div style={{fontSize:11,color:"#777",fontFamily:"monospace",marginTop:2}}>{item.sub}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div style={S.card}>
-          <div style={{fontSize:10,letterSpacing:3,color:"#888",fontFamily:"monospace",marginBottom:12}}>สัดส่วนร่างกาย (ประมาณ)</div>
-          <div style={{display:"flex",height:40,borderRadius:8,overflow:"hidden",marginBottom:10}}>
-            <div style={{width:`${100-estBF}%`,background:"linear-gradient(90deg,#06D6A0,#06D6A088)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700}}>💪 {leanMass}kg</div>
-            <div style={{width:`${estBF}%`,background:"linear-gradient(90deg,#FF6B3588,#FF6B35)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700}}>🔥 {fatMass}kg</div>
-          </div>
-          <div style={{display:"flex",gap:16,fontFamily:"monospace",fontSize:11}}>
-            <span style={{color:"#06D6A0"}}>● กล้ามเนื้อ {100-estBF}%</span>
-            <span style={{color:"#FF6B35"}}>● ไขมัน ~{estBF}%</span>
-          </div>
-        </div>
-      </>}
-
-      {/* THAI FOOD */}
-      {tab==="thai" && <>
-        {/* Progress card */}
-        <div style={{...S.card,border:totalCalEaten>targetCals?"1px solid #FF6B3560":"1px solid #1E1E2E"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-            <div style={{fontSize:10,letterSpacing:3,color:"#888",fontFamily:"monospace"}}>วันนี้กินไปแล้ว</div>
-            <button onClick={() => setChecked({})} style={{background:"none",border:"1px solid #333",borderRadius:6,color:"#555",fontFamily:"monospace",fontSize:9,padding:"3px 8px",cursor:"pointer",letterSpacing:1}}>รีเซ็ต</button>
-          </div>
-          {/* Cal bar */}
-          <div style={{marginBottom:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-              <span style={{fontFamily:"monospace",fontSize:11,color:"#aaa"}}>🔥 แคลอรี่</span>
-              <span style={{fontFamily:"monospace",fontSize:11}}>
-                <span style={{color:totalCalEaten>targetCals?"#FF6B35":"#F0EEE8",fontWeight:700}}>{totalCalEaten}</span>
-                <span style={{color:"#444"}}> / {targetCals} kcal</span>
-              </span>
-            </div>
-            <div style={{background:"#1E1E2E",borderRadius:6,height:10,overflow:"hidden"}}>
-              <div style={{width:`${Math.min(100,(totalCalEaten/targetCals)*100)}%`,height:"100%",borderRadius:6,transition:"width 0.4s ease",background:totalCalEaten>targetCals?"linear-gradient(90deg,#FF6B35,#FF3A00)":totalCalEaten>targetCals*0.8?"linear-gradient(90deg,#FF9F1C,#FF6B35)":"linear-gradient(90deg,#06D6A0,#06D6A088)"}}/>
-            </div>
-            <div style={{fontFamily:"monospace",fontSize:9,color:"#444",marginTop:4,textAlign:"right"}}>
-              {totalCalEaten>targetCals ? `⚠️ เกิน ${totalCalEaten-targetCals} kcal` : `เหลือ ${targetCals-totalCalEaten} kcal`}
-            </div>
-          </div>
-          {/* Protein bar */}
-          <div>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-              <span style={{fontFamily:"monospace",fontSize:11,color:"#aaa"}}>💪 โปรตีน</span>
-              <span style={{fontFamily:"monospace",fontSize:11}}>
-                <span style={{color:totalProteinEaten>=protein?"#06D6A0":"#F0EEE8",fontWeight:700}}>{totalProteinEaten}g</span>
-                <span style={{color:"#444"}}> / {protein}g</span>
-              </span>
-            </div>
-            <div style={{background:"#1E1E2E",borderRadius:6,height:10,overflow:"hidden"}}>
-              <div style={{width:`${Math.min(100,(totalProteinEaten/protein)*100)}%`,height:"100%",borderRadius:6,transition:"width 0.4s ease",background:totalProteinEaten>=protein?"linear-gradient(90deg,#06D6A0,#06D6A0bb)":"linear-gradient(90deg,#06D6A066,#06D6A033)"}}/>
-            </div>
-            <div style={{fontFamily:"monospace",fontSize:9,color:"#444",marginTop:4,textAlign:"right"}}>
-              {totalProteinEaten>=protein ? "✅ ถึงเป้าแล้ว!" : `ขาดอีก ${protein-totalProteinEaten}g`}
-            </div>
-          </div>
-        </div>
-
-        {thaiFoods.map(cat => (
-          <div key={cat.category} style={{marginBottom:10}}>
-            <button onClick={() => setOpenCat(openCat===cat.category?null:cat.category)} style={{width:"100%",padding:"12px 16px",borderRadius:openCat===cat.category?"12px 12px 0 0":12,border:"none",cursor:"pointer",textAlign:"left",background:openCat===cat.category?cat.color:"#13131E",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all 0.2s"}}>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <span style={{fontWeight:700,fontSize:14,color:openCat===cat.category?"#fff":"#aaa"}}>{cat.category}</span>
-                {cat.items.some(item => checked[`${cat.category}-${item.name}`]) && (
-                  <span style={{fontSize:9,fontFamily:"monospace",background:"rgba(0,0,0,0.25)",color:"#fff",padding:"2px 7px",borderRadius:10,letterSpacing:1}}>
-                    {cat.items.filter(item => checked[`${cat.category}-${item.name}`]).length} รายการ
-                  </span>
-                )}
-              </div>
-              <span style={{color:openCat===cat.category?"#fff":"#555",fontSize:12}}>{openCat===cat.category?"▲":"▼"}</span>
-            </button>
-
-            {openCat===cat.category && (
-              <div style={{background:"#13131E",borderRadius:"0 0 12px 12px",overflow:"hidden"}}>
-                <div style={{display:"grid",gridTemplateColumns:"28px 1fr 50px 56px 44px",padding:"8px 14px",borderBottom:"1px solid #1E1E2E",fontFamily:"monospace",fontSize:9,color:"#444",letterSpacing:1}}>
-                  <span/><span>เมนู</span><span style={{textAlign:"center"}}>KCAL</span><span style={{textAlign:"center"}}>PROTEIN</span><span style={{textAlign:"center"}}>FAT</span>
-                </div>
-                {cat.items.map((item,i) => {
-                  const key = `${cat.category}-${item.name}`;
-                  const isChecked = !!checked[key];
-                  const pPct = Math.round((item.protein/protein)*100);
-                  return (
-                    <div key={i} onClick={() => toggleFood(key)} style={{padding:"12px 14px",borderBottom:i<cat.items.length-1?"1px solid #1E1E2E":"none",background:isChecked?`${cat.color}15`:"transparent",cursor:"pointer",transition:"background 0.2s"}}>
-                      <div style={{display:"grid",gridTemplateColumns:"28px 1fr 50px 56px 44px",alignItems:"center",marginBottom:6}}>
-                        <div style={{width:20,height:20,borderRadius:6,border:`2px solid ${isChecked?cat.color:"#333"}`,background:isChecked?cat.color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>
-                          {isChecked && <span style={{fontSize:11,color:"#fff",lineHeight:1}}>✓</span>}
-                        </div>
-                        <span style={{fontSize:13,fontWeight:700,color:isChecked?"#F0EEE8":"#ccc"}}>{item.name}</span>
-                        <span style={{fontFamily:"monospace",fontSize:12,color:"#FF9F1C",textAlign:"center"}}>{item.kcal}</span>
-                        <span style={{fontFamily:"monospace",fontSize:12,color:"#06D6A0",textAlign:"center",fontWeight:700}}>{item.protein}g</span>
-                        <span style={{fontFamily:"monospace",fontSize:12,color:"#888",textAlign:"center"}}>{item.fat}g</span>
-                      </div>
-                      <div style={{paddingLeft:28}}>
-                        <div style={{display:"flex",alignItems:"center",gap:8}}>
-                          <div style={{flex:1,background:"#1E1E2E",borderRadius:3,height:4}}>
-                            <div style={{width:`${Math.min(100,pPct)}%`,height:"100%",background:cat.color,borderRadius:3}}/>
-                          </div>
-                          <span style={{fontFamily:"monospace",fontSize:9,color:"#555",whiteSpace:"nowrap"}}>{pPct}% ของเป้า</span>
-                        </div>
-                        <div style={{fontSize:10,color:"#555",fontFamily:"monospace",marginTop:4}}>{item.note}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
-
-        <div style={{background:"#13131E",borderRadius:12,padding:14,border:"1px dashed #333",marginTop:4}}>
-          <div style={{fontSize:10,letterSpacing:3,color:"#FF6B35",fontFamily:"monospace",marginBottom:8}}>💡 TIPS</div>
-          {["ขอเพิ่มไข่ดาวหรือหมูสับได้เสมอ → โปรตีนเพิ่ม","ข้าวน้อยลง แล้วขอโปรตีนเพิ่มแทน","หลีกเลี่ยงของทอด กะทิเยอะ น้ำตาลเยอะ","ปลาทู / กุ้ง = โปรตีนสูงสุด แคลต่ำสุด"].map((tip,i,arr) => (
-            <div key={i} style={{fontSize:11,color:"#888",fontFamily:"monospace",paddingBottom:i<arr.length-1?6:0,borderBottom:i<arr.length-1?"1px solid #1a1a1a":"none",marginBottom:i<arr.length-1?6:0,lineHeight:1.5}}>→ {tip}</div>
-          ))}
-        </div>
-      </>}
-
-      {/* ADJUST */}
-      {tab==="adjust" && <>
-        <div style={{fontSize:11,color:"#888",fontFamily:"monospace",letterSpacing:3,marginBottom:16,textTransform:"uppercase"}}>ปรับค่าของคุณ</div>
-        {[
-          {label:"น้ำหนัก (kg)",key:"weight",min:40,max:150},
-          {label:"ส่วนสูง (cm)",key:"height",min:140,max:220},
-          {label:"อายุ",key:"age",min:15,max:80},
-        ].map(field => (
-          <div key={field.key} style={S.card}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-              <span style={{fontFamily:"monospace",fontSize:12,color:"#aaa"}}>{field.label}</span>
-              <span style={{fontFamily:"monospace",fontSize:16,fontWeight:900,color:"#FF6B35"}}>{stats[field.key]}</span>
-            </div>
-            <input type="range" min={field.min} max={field.max} value={stats[field.key]} onChange={e => setStats(s => ({...s,[field.key]:+e.target.value}))} />
-            <div style={{display:"flex",justifyContent:"space-between",fontFamily:"monospace",fontSize:10,color:"#444",marginTop:4}}>
-              <span>{field.min}</span><span>{field.max}</span>
-            </div>
-          </div>
-        ))}
-
-        <div style={S.card}>
-          <div style={{fontFamily:"monospace",fontSize:12,color:"#aaa",marginBottom:10}}>เพศ (ใช้คำนวณ BMR)</div>
-          <div style={{display:"flex",gap:8}}>
-            {[["male","♂ ชาย"],["female","♀ หญิง"]].map(([g,l]) => (
-              <button key={g} onClick={() => setStats(s => ({...s,gender:g}))} style={{flex:1,padding:10,borderRadius:8,border:"none",background:stats.gender===g?"#FF6B35":"#1E1E2E",color:stats.gender===g?"#fff":"#666",fontFamily:"monospace",fontSize:12,fontWeight:700,cursor:"pointer"}}>{l}</button>
             ))}
           </div>
         </div>
 
-        <div style={S.card}>
-          <div style={{fontFamily:"monospace",fontSize:12,color:"#aaa",marginBottom:10}}>ระดับกิจกรรม</div>
-          {activityLevels.map(a => (
-            <button key={a.val} onClick={() => setStats(s => ({...s,activity:a.val}))} style={{width:"100%",padding:"10px 14px",borderRadius:8,border:"none",cursor:"pointer",textAlign:"left",marginBottom:6,background:stats.activity===a.val?"#FF6B3520":"#1E1E2E",borderLeft:stats.activity===a.val?"3px solid #FF6B35":"3px solid transparent",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        {/* Water tracker */}
+        <div className="card">
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+            <span style={{ fontSize:13, fontWeight:600 }}>💧 น้ำวันนี้</span>
+            <span style={{ fontSize:12, color:"var(--blue)", fontFamily:"monospace" }}>{water * 250}ml / 2000ml</span>
+          </div>
+          <div className="water-grid">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <span key={i} className={`water-drop ${i < water ? "filled" : ""}`}
+                onClick={() => setWater(i < water ? i : i + 1)}>💧</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Food log */}
+        <div className="card">
+          <div className="section-title">บันทึกอาหารวันนี้</div>
+          {log.length === 0 ? (
+            <div className="empty-state">ยังไม่มีอาหาร — เลือกจากแท็บ 🍱 อาหาร</div>
+          ) : log.map(item => (
+            <div className="log-item" key={item.id}>
               <div>
-                <div style={{color:stats.activity===a.val?"#FF6B35":"#aaa",fontWeight:700,fontSize:13}}>{a.label}</div>
-                <div style={{color:"#555",fontFamily:"monospace",fontSize:10,marginTop:2}}>{a.sub}</div>
+                <div className="log-name">{item.name}</div>
+                <div style={{ fontSize:11, color:"var(--muted)", fontFamily:"monospace" }}>
+                  P:{item.protein}g F:{item.fat}g C:{item.carbs}g
+                </div>
               </div>
-              <div style={{fontFamily:"monospace",fontSize:10,color:"#555"}}>×{a.val}</div>
-            </button>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <span className="log-kcal">{item.kcal}</span>
+                <button className="btn btn-sm btn-danger" onClick={() => removeFromLog(item.id)}>✕</button>
+              </div>
+            </div>
           ))}
         </div>
       </>}
 
-      <div style={{marginTop:28,textAlign:"center",fontFamily:"monospace",fontSize:9,color:"#333",letterSpacing:2}}>
-        คำนวณตามสูตร Mifflin-St Jeor
-      </div>
+      {/* FOOD TAB */}
+      {tab === "food" && <>
+        <div className="search-wrap">
+          <input className="search-input" placeholder="🔍 ค้นหาอาหาร..." value={search}
+            onChange={e => setSearch(e.target.value)} />
+        </div>
+        <div className="filter-chips">
+          <div className={`chip ${filterCat==="all"?"active":""}`} onClick={() => setFilterCat("all")}>ทั้งหมด</div>
+          {MEALS.map(m => (
+            <div key={m.id} className={`chip ${filterCat===m.id?"active":""}`}
+              onClick={() => setFilterCat(m.id)}>{m.category}</div>
+          ))}
+          {customFoods.length > 0 && (
+            <div className={`chip ${filterCat==="custom"?"active":""}`} onClick={() => setFilterCat("custom")}>⭐ ของฉัน</div>
+          )}
+        </div>
+
+        {filteredFoods.length === 0 && (
+          <div className="empty-state">ไม่พบอาหารที่ค้นหา</div>
+        )}
+
+        {filteredFoods.map(cat => (
+          <div key={cat.id}>
+            <div className="category-header">
+              <div className="category-dot" style={{ background: cat.color }} />
+              <span className="category-name">{cat.category}</span>
+            </div>
+            {cat.items.map((item, i) => {
+              const isAdded = log.some(x => x.name === item.name);
+              return (
+                <div key={i} className={`food-item ${isAdded?"food-added":""}`} onClick={() => addToLog(item)}>
+                  <div className="food-info">
+                    <div className="food-name">{item.name}</div>
+                    <div className="food-macros">P:{item.protein}g · F:{item.fat}g · C:{item.carbs}g</div>
+                    {item.note && <div className="food-note">{item.note}</div>}
+                  </div>
+                  <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}>
+                    <span className="food-kcal">{item.kcal}</span>
+                    <span style={{ fontSize:9, color:"var(--muted)", fontFamily:"monospace" }}>kcal</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </>}
+
+      {/* ADJUST TAB */}
+      {tab === "adjust" && <>
+        <div className="card">
+          <div className="section-title">ข้อมูลร่างกาย</div>
+          {[
+            { label: `น้ำหนัก: ${stats.weight} kg`, key: "weight", min: 40, max: 150, step: 0.5 },
+            { label: `ส่วนสูง: ${stats.height} cm`, key: "height", min: 140, max: 210, step: 1 },
+            { label: `อายุ: ${stats.age} ปี`, key: "age", min: 15, max: 80, step: 1 },
+          ].map(s => (
+            <div key={s.key} style={{ marginBottom: 16 }}>
+              <div className="slider-label"><span>{s.label}</span></div>
+              <input type="range" min={s.min} max={s.max} step={s.step} value={stats[s.key]}
+                onChange={e => updateStat(s.key, Number(e.target.value))} />
+            </div>
+          ))}
+          <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+            {[["male","♂ ชาย"],["female","♀ หญิง"]].map(([v,l]) => (
+              <button key={v} className="btn" style={{ flex:1,
+                background: stats.gender===v ? "var(--accent)" : "var(--bg3)",
+                color: stats.gender===v ? "#fff" : "var(--muted)",
+                border: `1px solid ${stats.gender===v ? "var(--accent)" : "var(--border)"}` }}
+                onClick={() => updateStat("gender", v)}>{l}</button>
+            ))}
+          </div>
+          <select value={stats.activity} onChange={e => updateStat("activity", e.target.value)}>
+            {ACTIVITY.map(a => <option key={a.k} value={a.k}>{a.label} (×{a.mult})</option>)}
+          </select>
+        </div>
+
+        <div className="card" style={{ marginTop: 12 }}>
+          <div className="section-title">เป้าหมาย Deficit</div>
+          <div className="slider-label">
+            <span>ลดแคลอรี่: <strong style={{ color:"var(--accent)" }}>{stats.deficit} kcal/วัน</strong></span>
+            <span style={{ color:"var(--muted)", fontSize:11 }}>~{Math.round(stats.deficit*7/7700*10)/10} kg/อาทิตย์</span>
+          </div>
+          <input type="range" min={0} max={800} step={50} value={stats.deficit}
+            onChange={e => updateStat("deficit", Number(e.target.value))} />
+          <div style={{ display:"flex", gap:8, marginTop:12 }}>
+            {[[0,"維持"],[300,"ลดน้อย"],[400,"ลดปานกลาง"],[600,"ลดเร็ว"]].map(([v,l]) => (
+              <button key={v} className="btn btn-sm" style={{ flex:1, fontSize:10,
+                background: stats.deficit===v ? "rgba(255,107,53,.2)" : "var(--bg3)",
+                color: stats.deficit===v ? "var(--accent)" : "var(--muted)",
+                border: `1px solid ${stats.deficit===v ? "var(--accent)" : "var(--border)"}` }}
+                onClick={() => updateStat("deficit", v)}>{l}</button>
+            ))}
+          </div>
+        </div>
+      </>}
+
+      {/* CUSTOM FOOD TAB */}
+      {tab === "custom" && <>
+        <div className="card">
+          <div className="section-title">เพิ่มอาหารของฉัน</div>
+          <div className="custom-form">
+            <input className={`form-input full-width`} placeholder="ชื่ออาหาร *" value={customForm.name}
+              onChange={e => setCustomForm(f=>({...f,name:e.target.value}))} />
+            <input className="form-input" placeholder="แคลอรี่ (kcal) *" type="number" value={customForm.kcal}
+              onChange={e => setCustomForm(f=>({...f,kcal:e.target.value}))} />
+            <input className="form-input" placeholder="โปรตีน (g)" type="number" value={customForm.protein}
+              onChange={e => setCustomForm(f=>({...f,protein:e.target.value}))} />
+            <input className="form-input" placeholder="ไขมัน (g)" type="number" value={customForm.fat}
+              onChange={e => setCustomForm(f=>({...f,fat:e.target.value}))} />
+            <input className="form-input" placeholder="คาร์บ (g)" type="number" value={customForm.carbs}
+              onChange={e => setCustomForm(f=>({...f,carbs:e.target.value}))} />
+            <input className="form-input" placeholder="หมายเหตุ" value={customForm.note}
+              onChange={e => setCustomForm(f=>({...f,note:e.target.value}))} />
+          </div>
+          <button className="btn btn-primary" onClick={addCustomFood}>+ เพิ่มอาหาร</button>
+        </div>
+
+        {customFoods.length > 0 && (
+          <div className="card" style={{ marginTop: 12 }}>
+            <div className="section-title">อาหารของฉัน ({customFoods.length} รายการ)</div>
+            {customFoods.map((item, i) => (
+              <div className="log-item" key={i}>
+                <div>
+                  <div className="log-name">{item.name}</div>
+                  <div style={{ fontSize:11, color:"var(--muted)", fontFamily:"monospace" }}>
+                    {item.kcal}kcal · P:{item.protein}g · F:{item.fat}g · C:{item.carbs}g
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:6 }}>
+                  <button className="btn btn-sm btn-green" onClick={() => addToLog(item)}>+ บันทึก</button>
+                  <button className="btn btn-sm btn-danger" onClick={() => setCustomFoods(f => f.filter((_,j)=>j!==i))}>✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </>}
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 </body>
 </html>
