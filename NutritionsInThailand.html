@@ -203,7 +203,7 @@ const BMI_INFO = [
 ];
 function getBMI(bmi) { return BMI_INFO.find(b => bmi < b.max) || BMI_INFO[BMI_INFO.length-1]; }
 
-export default function App() {
+function App() {
   const [theme, setTheme] = useState("dark");
   const [tab, setTab] = useState("overview");
   const [search, setSearch] = useState("");
