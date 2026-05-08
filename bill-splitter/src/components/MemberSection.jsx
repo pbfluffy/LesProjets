@@ -30,7 +30,7 @@ export default function MemberSection({ members, onAdd, onRemove }) {
             <span key={m} className={styles.tag}>
               <span className={styles.avatar}>{m.charAt(0).toUpperCase()}</span>
               {m}
-              <button className={styles.removeBtn} onClick={() => onRemove(m)} aria-label={`${t.removeLabel} ${m}`}>Ì7</button>
+              <button className={styles.removeBtn} onClick={() => onRemove(m)} aria-label={`${t.removeLabel} ${m}`}>X</button>
             </span>
           ))}
         </div>
