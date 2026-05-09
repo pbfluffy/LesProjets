@@ -15,7 +15,7 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
     setTimeout(() => setToast(''), 2000)
   }
 
-  const handleShare = async () => {
+  const buildSummaryText = () => {
     const lines = [t.sharePrefix, '']
     members.forEach(m => lines.push(`${m}: ฿${fmt(result.totals[m] ?? 0)}`))
     lines.push('')
@@ -23,7 +23,19 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
     if (promptPay) lines.push(`PromptPay: ${promptPay}`)
     if (bankInfo) lines.push(bankInfo)
     if (notes) lines.push(`📝 ${notes}`)
-    const text = lines.join('\n')
+    return lines.join('\n')
+  }
+
+  const handleCopyText = async () => {
+    const text = buildSummaryText()
+    try {
+      await navigator.clipboard.writeText(text)
+      showToast(t.summaryCopied)
+    } catch {}
+  }
+
+  const handleShareLink = async () => {
+    const text = buildSummaryText()
     const url = buildShareUrl(tab || 'split', snapshot)
 
     if (navigator.share) {
@@ -44,7 +56,12 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
     <section className={styles.section}>
       <div className={styles.header}>
         <h2 className={styles.title}>{t.result}</h2>
-        {hasData && <button className={styles.shareBtn} onClick={handleShare}>{t.shareLink}</button>}
+        {hasData && (
+          <div className={styles.shareBtnGroup}>
+            <button className={styles.shareBtn} onClick={handleCopyText} title={t.copySummary}>📋 {t.copy}</button>
+            <button className={styles.shareBtn} onClick={handleShareLink}>{t.shareLink}</button>
+          </div>
+        )}
       </div>
       {toast && <div className={styles.toast}>{toast}</div>}
       {!hasData && <p className={styles.empty}>{t.noData}</p>}
