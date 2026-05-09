@@ -1,12 +1,21 @@
+import { useState } from 'react'
 import { useLang } from '../LangContext'
+import { buildShareUrl } from '../share'
 import styles from './ResultSection.module.css'
 
 function fmt(n) { return n.toFixed(2) }
 
-export default function ResultSection({ result, members, promptPay, bankInfo, notes }) {
+export default function ResultSection({ result, members, promptPay, bankInfo, notes, snapshot, tab }) {
   const { t } = useLang()
+  const [toast, setToast] = useState('')
   const hasData = members.length > 0 && result.subtotal > 0
-  const handleShare = () => {
+
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(''), 2000)
+  }
+
+  const handleShare = async () => {
     const lines = [t.sharePrefix, '']
     members.forEach(m => lines.push(`${m}: ฿${fmt(result.totals[m] ?? 0)}`))
     lines.push('')
@@ -15,15 +24,29 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
     if (bankInfo) lines.push(bankInfo)
     if (notes) lines.push(`📝 ${notes}`)
     const text = lines.join('\n')
-    if (navigator.share) { navigator.share({ text }).catch(() => navigator.clipboard?.writeText(text)) }
-    else { navigator.clipboard?.writeText(text) }
+    const url = buildShareUrl(tab || 'split', snapshot)
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: t.appName, text, url })
+        return
+      } catch (e) {
+        if (e && e.name === 'AbortError') return
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      showToast(t.linkCopied)
+    } catch {}
   }
+
   return (
     <section className={styles.section}>
       <div className={styles.header}>
         <h2 className={styles.title}>{t.result}</h2>
-        {hasData && <button className={styles.shareBtn} onClick={handleShare}>{t.share}</button>}
+        {hasData && <button className={styles.shareBtn} onClick={handleShare}>{t.shareLink}</button>}
       </div>
+      {toast && <div className={styles.toast}>{toast}</div>}
       {!hasData && <p className={styles.empty}>{t.noData}</p>}
       {hasData && (
         <>
