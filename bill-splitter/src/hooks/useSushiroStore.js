@@ -12,6 +12,7 @@ export const PLATES = [
 const emptyPlates = () => Object.fromEntries(PLATES.map(p => [p.id, 0]))
 
 export function useSushiroStore(initial) {
+  const [billName, setBillName]         = useState(initial?.billName ?? '')
   const [people, setPeople]             = useState(initial?.people ?? [])
   const [activePerson, setActivePerson] = useState(initial?.activePerson ?? (initial?.people?.[0] ?? null))
   // plates[personName][plateId] = count
@@ -104,6 +105,7 @@ export function useSushiroStore(initial) {
   }, [people, plates, snacks, vatEnabled, serviceChargeEnabled])
 
   return {
+    billName, setBillName,
     people, addPerson, removePerson,
     activePerson, setActivePerson,
     plates, changePlate,
