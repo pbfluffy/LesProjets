@@ -121,3 +121,4 @@
 .snackPrice { width: 100%; padding-left: 18px; text-align: right; font-size: 13px; }
 .snackAddBtn { width: 32px; height: 32px; border-radius: 50%; border: 0.5px solid var(--color-border-strong); background: var(--color-accent); color: var(--color-accent-text); font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: opacity 0.15s; }
 .snackAddBtn:hover { opacity: 0.8; }
+.shareBtnGroup { display: flex; gap: 6px; align-items: center; }
