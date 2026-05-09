@@ -11,15 +11,15 @@ export const PLATES = [
 
 const emptyPlates = () => Object.fromEntries(PLATES.map(p => [p.id, 0]))
 
-export function useSushiroStore() {
-  const [people, setPeople]             = useState([])
-  const [activePerson, setActivePerson] = useState(null)
+export function useSushiroStore(initial) {
+  const [people, setPeople]             = useState(initial?.people ?? [])
+  const [activePerson, setActivePerson] = useState(initial?.activePerson ?? (initial?.people?.[0] ?? null))
   // plates[personName][plateId] = count
-  const [plates, setPlates]             = useState({})
+  const [plates, setPlates]             = useState(initial?.plates ?? {})
   // snacks[personName] = [{id, name, price}]
-  const [snacks, setSnacks]             = useState({})
-  const [vatEnabled, setVatEnabled]               = useState(false)
-  const [serviceChargeEnabled, setServiceChargeEnabled] = useState(false)
+  const [snacks, setSnacks]             = useState(initial?.snacks ?? {})
+  const [vatEnabled, setVatEnabled]               = useState(initial?.vatEnabled ?? false)
+  const [serviceChargeEnabled, setServiceChargeEnabled] = useState(initial?.serviceChargeEnabled ?? false)
 
   // ── People ─────────────────────────────────────────────────────
   const addPerson = useCallback((name) => {
