@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { v4 as uuid } from 'uuid'
 
 export function useBillStore(initial) {
+  const [billName, setBillName] = useState(initial?.billName ?? '')
   const [members, setMembers] = useState(initial?.members ?? [])
   const [foods, setFoods] = useState(initial?.foods ?? [])
   const [vatEnabled, setVatEnabled] = useState(initial?.vatEnabled ?? false)
@@ -68,5 +69,5 @@ export function useBillStore(initial) {
     }
   }, [members, foods, vatEnabled, serviceChargeEnabled])
 
-  return { members, addMember, removeMember, foods, addFood, updateFood, toggleFoodMember, removeFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, calculate }
+  return { billName, setBillName, members, addMember, removeMember, foods, addFood, updateFood, toggleFoodMember, removeFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, calculate }
 }
