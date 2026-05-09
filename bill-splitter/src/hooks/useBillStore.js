@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react'
 import { v4 as uuid } from 'uuid'
 
-export function useBillStore() {
-  const [members, setMembers] = useState([])
-  const [foods, setFoods] = useState([])
-  const [vatEnabled, setVatEnabled] = useState(false)
-  const [serviceChargeEnabled, setServiceChargeEnabled] = useState(false)
-  const [promptPay, setPromptPay] = useState('')
-  const [bankInfo, setBankInfo] = useState('')
-  const [notes, setNotes] = useState('')
+export function useBillStore(initial) {
+  const [members, setMembers] = useState(initial?.members ?? [])
+  const [foods, setFoods] = useState(initial?.foods ?? [])
+  const [vatEnabled, setVatEnabled] = useState(initial?.vatEnabled ?? false)
+  const [serviceChargeEnabled, setServiceChargeEnabled] = useState(initial?.serviceChargeEnabled ?? false)
+  const [promptPay, setPromptPay] = useState(initial?.promptPay ?? '')
+  const [bankInfo, setBankInfo] = useState(initial?.bankInfo ?? '')
+  const [notes, setNotes] = useState(initial?.notes ?? '')
 
   const addMember = useCallback((name) => {
     const trimmed = name.trim()
