@@ -53,15 +53,16 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
     setTimeout(() => setToast(''), 2000)
   }
 
-  const handleShare = async () => {
-    const snapshot = {
-      people: store.people,
-      activePerson: store.activePerson,
-      plates: store.plates,
-      snacks: store.snacks,
-      vatEnabled: store.vatEnabled,
-      serviceChargeEnabled: store.serviceChargeEnabled,
-    }
+  const buildSnapshot = () => ({
+    people: store.people,
+    activePerson: store.activePerson,
+    plates: store.plates,
+    snacks: store.snacks,
+    vatEnabled: store.vatEnabled,
+    serviceChargeEnabled: store.serviceChargeEnabled,
+  })
+
+  const buildSummaryText = () => {
     const lines = [t.sharePrefix, '']
     store.people.forEach(name => {
       const total = result.personTotals[name] ?? 0
@@ -69,8 +70,20 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
     })
     lines.push('')
     lines.push(`${t.shareTotal} ฿${fmt(result.grandTotal)}`)
-    const text = lines.join('\n')
-    const url = buildShareUrl('sushi', snapshot)
+    return lines.join('\n')
+  }
+
+  const handleCopyText = async () => {
+    const text = buildSummaryText()
+    try {
+      await navigator.clipboard.writeText(text)
+      showToast(t.summaryCopied)
+    } catch {}
+  }
+
+  const handleShareLink = async () => {
+    const text = buildSummaryText()
+    const url = buildShareUrl('sushi', buildSnapshot())
 
     if (navigator.share) {
       try {
@@ -160,7 +173,10 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.title}>{t.summary}</h2>
-            <button type="button" className={styles.shareBtn} onClick={handleShare}>{t.shareLink}</button>
+            <div className={styles.shareBtnGroup}>
+              <button type="button" className={styles.shareBtn} onClick={handleCopyText} title={t.copySummary}>📋 {t.copy}</button>
+              <button type="button" className={styles.shareBtn} onClick={handleShareLink}>{t.shareLink}</button>
+            </div>
           </div>
           {toast && <div className={styles.toast}>{toast}</div>}
           <div className={styles.personSummaryList}>
