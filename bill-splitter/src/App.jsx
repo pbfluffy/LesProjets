@@ -5,23 +5,18 @@ import { LangProvider, useLang } from './LangContext'
 import { readShareFromHash, clearShareHash } from './share'
 import styles from './App.module.css'
 
+// Read share data once at module load (before any component renders)
+const initialShare = readShareFromHash()
+
 function AppInner() {
-  const [activeTab, setActiveTab] = useState('split')
+  const [shared, setShared] = useState(initialShare)
+  const [activeTab, setActiveTab] = useState(initialShare?.t || 'split')
   const [dark, setDark] = useState(false)
-  const [shared, setShared] = useState(null)
   const { lang, toggle: toggleLang, t } = useLang()
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
   }, [dark])
-
-  useEffect(() => {
-    const data = readShareFromHash()
-    if (data) {
-      setShared(data)
-      setActiveTab(data.t)
-    }
-  }, [])
 
   const exitShared = () => {
     setShared(null)
@@ -43,7 +38,7 @@ function AppInner() {
             <button
               className={styles.iconBtn}
               onClick={toggleLang}
-              title={lang === 'th' ? 'Switch to English' : 'เปลี่ยนเป็นภาษาไทย'}
+              title={lang === 'th' ? 'Switch to English' : '\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E20\u0E32\u0E29\u0E32\u0E44\u0E17\u0E22'}
             >
               {lang === 'th' ? 'EN' : 'TH'}
             </button>
@@ -53,7 +48,7 @@ function AppInner() {
               onClick={() => setDark(d => !d)}
               title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {dark ? '🌞' : '🌙'}
+              {dark ? '\uD83C\uDF1E' : '\uD83C\uDF19'}
             </button>
           </div>
         </div>
@@ -61,7 +56,7 @@ function AppInner() {
 
       {shared && (
         <div className={styles.sharedBanner}>
-          <span className={styles.sharedBannerText}>👁️ {t.viewingShared}</span>
+          <span className={styles.sharedBannerText}>\uD83D\uDC41\uFE0F {t.viewingShared}</span>
           <button className={styles.sharedBannerBtn} onClick={exitShared}>{t.startYourOwn}</button>
         </div>
       )}
