@@ -36,7 +36,7 @@ function AppInner() {
         <div className={styles.headerInner}>
           <span className={styles.logo}>{t.appName}</span>
           <div className={styles.headerControls}>
-            {*/* Language toggle */}
+            { /* Language toggle */ }
             <button
               className={styles.iconBtn}
               onClick={toggleLang}
@@ -44,7 +44,7 @@ function AppInner() {
             >
               {lang === 'th' ? 'EN' : 'TH'}
             </button>
-            {*/* Dark/Light toggle */}
+            { /* Dark/Light toggle */ }
             <button
               className={styles.iconBtn}
               onClick={() => setDark(d => !d)}
