@@ -1,9 +1,9 @@
 # PROPOSED workflow update — review before replacing .github/workflows/deploy.yml
 #
 # Diff vs current deploy.yml: adds a second `npm install && npm run build` step
-# for excel-tutorial, and copies excel-tutorial/dist/ into _site/excel-tutorial/.
+# for Excel-tutorial, and copies Excel-tutorial/dist/ into _site/Excel-tutorial/.
 # The existing excel-tutorial.html copy is left in place as a static fallback;
-# the new app lives at /excel-tutorial/ (with trailing slash, no .html), so they
+# the new app lives at /Excel-tutorial/ (with trailing slash, no .html), so they
 # do not collide. Once you're confident the new app is good, you can drop the
 # excel-tutorial.html copy line.
 #
@@ -41,8 +41,8 @@ jobs:
           npm install
           npm run build
 
-      - name: Build excel-tutorial
-        working-directory: excel-tutorial
+      - name: Build Excel-tutorial
+        working-directory: Excel-tutorial
         run: |
           npm install
           npm run build
@@ -50,12 +50,12 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p _site/bill-splitter
-          mkdir -p _site/excel-tutorial
+          mkdir -p _site/Excel-tutorial
           cp index.html _site/index.html
           cp NutritionsInThailand.html _site/NutritionsInThailand.html
           cp excel-tutorial.html _site/excel-tutorial.html
           cp -r bill-splitter/dist/. _site/bill-splitter/
-          cp -r excel-tutorial/dist/. _site/excel-tutorial/
+          cp -r Excel-tutorial/dist/. _site/Excel-tutorial/
           cp pumba.png _site/pumba.png
           cp apple-touch-icon.png _site/apple-touch-icon.png
           cp icon-192.png _site/icon-192.png
