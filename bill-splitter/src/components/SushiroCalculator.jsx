@@ -126,7 +126,7 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
                 <button type="button" key={name} className={`${styles.personTab} ${store.activePerson === name ? styles.personTabActive : ''}`} onClick={() => store.setActivePerson(name)}>
                   <span className={styles.avatar}>{name.charAt(0).toUpperCase()}</span>
                   {name}
-                  <span className={styles.removePersonBtn} onClick={e => { e.stopPropagation(); store.removePerson(name) }}>×</button>
+                  <span className={styles.removePersonBtn} onClick={e => { e.stopPropagation(); store.removePerson(name) }}>×</span>
                 </button>
               ))}
             </div>
@@ -160,7 +160,7 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
                 <div key={snack.id} className={styles.snackRow}>
                   <span className={styles.snackRowName}>{snack.name}</span>
                   <span className={styles.snackRowPrice}>฿{snack.price % 1 === 0 ? snack.price : fmt(snack.price)}</span>
-                  <button type="button" className={styles.snackRemove} onClick={() => store.removeSnack(store.activePerson, snack.id)}>×</span>
+                  <button type="button" className={styles.snackRemove} onClick={() => store.removeSnack(store.activePerson, snack.id)}>×</button>
                 </div>
               ))}
               <SnackAdder person={store.activePerson} onAdd={store.addSnack} />
