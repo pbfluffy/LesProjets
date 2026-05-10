@@ -5,7 +5,7 @@ import styles from './ResultSection.module.css'
 
 function fmt(n) { return n.toFixed(2) }
 
-export default function ResultSection({ result, members, promptPay, bankInfo, notes, snapshot, tab }) {
+export default function ResultSection({ result, members, promptPay, bankInfo, notes, billName, snapshot, tab }) {
   const { t } = useLang()
   const [toast, setToast] = useState('')
   const hasData = members.length > 0 && result.subtotal > 0
@@ -16,7 +16,8 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   }
 
   const buildSummaryText = () => {
-    const lines = [t.sharePrefix, '']
+    const prefix = billName && billName.trim() ? `\u{1F374} ${billName.trim()}` : t.sharePrefix
+    const lines = [prefix, '']
     members.forEach(m => lines.push(`${m}: ฿${fmt(result.totals[m] ?? 0)}`))
     lines.push('')
     lines.push(`${t.shareTotal} ฿${fmt(result.grandTotal)}`)
@@ -40,7 +41,7 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: t.appName, text, url })
+        await navigator.share({ title: (billName && billName.trim()) || t.appName, text, url })
         return
       } catch (e) {
         if (e && e.name === 'AbortError') return
@@ -79,7 +80,7 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
                 <div className={styles.personHeader}><div className={styles.personLeft}><span className={styles.personAvatar}>{m.charAt(0).toUpperCase()}</span><span className={styles.personName}>{m}</span></div><span className={styles.personAmount}>฿{fmt(amount)}</span></div>
                 <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
               </div>
-             )})}
+              )})}
           </div>
           {(promptPay||bankInfo) && <div className={styles.payInfo}>{promptPay && <p className={styles.payLine}><span className={styles.payIcon}>📱</span>PromptPay: <strong>{promptPay}</strong></p>}{bankInfo && <p className={styles.payLine} style={{whiteSpace:'pre-line'}}><span className={styles.payIcon}>🏦</span>{bankInfo}</p>}</div>}
           {notes && <div className={styles.notes}><span className={styles.notesIcon}>📝 </span><span>{notes}</span></div>}
