@@ -28,13 +28,15 @@ function AppInner() {
     { id: 'sushi', label: t.tabSushi },
   ]
 
+  const sharedBillName = shared?.s/?.billName?.trim()
+
   return (
     <div className={styles.app}>
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <span className={styles.logo}>{t.appName}</span>
           <div className={styles.headerControls}>
-            {/* Language toggle */}
+            {*/* Language toggle */}
             <button
               className={styles.iconBtn}
               onClick={toggleLang}
@@ -42,13 +44,13 @@ function AppInner() {
             >
               {lang === 'th' ? 'EN' : 'TH'}
             </button>
-            {/* Dark/Light toggle */}
+            {*/* Dark/Light toggle */}
             <button
               className={styles.iconBtn}
               onClick={() => setDark(d => !d)}
               title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {dark ? '\uD83C\uDF1E' : '\uD83C\uDF19'}
+              {dark ? '\u{1F31E}' : '\u{1F319}'}
             </button>
           </div>
         </div>
@@ -56,7 +58,11 @@ function AppInner() {
 
       {shared && (
         <div className={styles.sharedBanner}>
-          <span className={styles.sharedBannerText}>\uD83D\uDC41\uFE0F {t.viewingShared}</span>
+          <span className={styles.sharedBannerText}>
+            {sharedBillName
+              ? `\u{1F374} ${sharedBillName}`
+              : `\u{1F441}\u{FE0F} ${t.viewingShared}`}
+          </span>
           <button className={styles.sharedBannerBtn} onClick={exitShared}>{t.startYourOwn}</button>
         </div>
       )}
