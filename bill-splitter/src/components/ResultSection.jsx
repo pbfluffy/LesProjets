@@ -38,7 +38,6 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const handleShareLink = async () => {
     const text = buildSummaryText()
     const url = buildShareUrl(tab || 'split', snapshot)
-
     if (navigator.share) {
       try {
         await navigator.share({ title: (billName && billName.trim()) || t.appName, text, url })
@@ -82,7 +81,7 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
               </div>
               )})}
           </div>
-          {(promptPay||bankInfo) && <div className={styles.payInfo}>{promptPay && <p className={styles.payLine}><span className={styles.payIcon}>📱</span>PromptPay: <strong>{promptPay}</strong></p>}{bankInfo && <p className={styles.payLine} style={{whiteSpace:'pre-line'}}><span className={styles.payIcon}>🏦</span>{bankInfo}</p>}</div>}
+          {promptPay||bankInfo) && <div className={styles.payInfo}>{promptPay && <p className={styles.payLine}><span className={styles.payIcon}>📱</span>PromptPay: <strong>{promptPay}</strong></p>}{bankInfo && <p className={styles.payLine} style={{whiteSpace:'pre-line'}}><span className={styles.payIcon}>🏦</span>{bankInfo}</p>}</div>}
           {notes && <div className={styles.notes}><span className={styles.notesIcon}>📝 </span><span>{notes}</span></div>}
         </>
       )}
