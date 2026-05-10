@@ -126,7 +126,7 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
                 <button type="button" key={name} className={`${styles.personTab} ${store.activePerson === name ? styles.personTabActive : ''}`} onClick={() => store.setActivePerson(name)}>
                   <span className={styles.avatar}>{name.charAt(0).toUpperCase()}</span>
                   {name}
-                  <span className={styles.removePersonBtn} onClick={e => { e.stopPropagation(); store.removePerson(name) }}>×</span>
+                  <span className={styles.removePersonBtn} onClick={e => { e.stopPropagation(); store.removePerson(name) }}>×</button>
                 </button>
               ))}
             </div>
