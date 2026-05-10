@@ -3,7 +3,6 @@ import { useSushiroStore, PLATES } from '../hooks/useSushiroStore'
 import { useLang } from '../LangContext'
 import { buildShareUrl } from '../share'
 import styles from './SushiroCalculator.module.css'
-import appStyles from '../App.module.css'
 
 const fmt = n => n.toFixed(2)
 const fieldsetReset = { border: 0, padding: 0, margin: 0, minInlineSize: 'auto' }
@@ -55,7 +54,6 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
   }
 
   const buildSnapshot = () => ({
-    billName: store.billName,
     people: store.people,
     activePerson: store.activePerson,
     plates: store.plates,
@@ -65,7 +63,7 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
   })
 
   const buildSummaryText = () => {
-    const prefix = store.billName && store.billName.trim() ? `\u{1F374} ${store.billName.trim()}` : t.sharePrefix
+    const prefix = t.sushiroSharePrefix
     const lines = [prefix, '']
     store.people.forEach(name => {
       const total = result.personTotals[name] ?? 0
@@ -90,7 +88,7 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: (store.billName && store.billName.trim()) || t.appName, text, url })
+        await navigator.share({ title: t.sushiroSharePrefix, text, url })
         return
       } catch (e) {
         if (e && e.name === 'AbortError') return
@@ -105,14 +103,6 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
   return (
     <div>
       <fieldset disabled={readOnly} style={fieldsetReset}>
-        <input
-          type="text"
-          className={appStyles.billNameInput}
-          value={store.billName}
-          onChange={e => store.setBillName(e.target.value)}
-          placeholder={t.billNamePlaceholder}
-          maxLength={60}
-        />
         <section className={styles.section}>
           <h2 className={styles.title}>{t.people}</h2>
           <div className={styles.inputRow}>
