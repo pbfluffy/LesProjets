@@ -3,6 +3,7 @@ import { useSushiroStore, PLATES } from '../hooks/useSushiroStore'
 import { useLang } from '../LangContext'
 import { buildShareUrl } from '../share'
 import styles from './SushiroCalculator.module.css'
+import appStyles from '../App.module.css'
 
 const fmt = n => n.toFixed(2)
 const fieldsetReset = { border: 0, padding: 0, margin: 0, minInlineSize: 'auto' }
@@ -54,6 +55,7 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
   }
 
   const buildSnapshot = () => ({
+    billName: store.billName,
     people: store.people,
     activePerson: store.activePerson,
     plates: store.plates,
@@ -63,13 +65,14 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
   })
 
   const buildSummaryText = () => {
-    const lines = [t.sharePrefix, '']
+    const prefix = store.billName && store.billName.trim() ? `\u{1F374} ${store.billName.trim()}` : t.sharePrefix
+    const lines = [prefix, '']
     store.people.forEach(name => {
       const total = result.personTotals[name] ?? 0
       lines.push(`${name}: ฿${fmt(total)}`)
     })
     lines.push('')
-    lines.push(`${t.shareTotal} ฿${fmt(result.grandTotal)}`)
+    lines.push(`${t.shareTotal} ฿{fmt(result.grandTotal)}`)
     return lines.join('\n')
   }
 
@@ -87,7 +90,7 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: t.appName, text, url })
+        await navigator.share({ title: (store.billName && store.billName.trim()) || t.appName, text, url })
         return
       } catch (e) {
         if (e && e.name === 'AbortError') return
@@ -102,6 +105,14 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
   return (
     <div>
       <fieldset disabled={readOnly} style={fieldsetReset}>
+        <input
+          type="text"
+          className={appStyles.billNameInput}
+          value={store.billName}
+          onChange={e => store.setBillName(e.target.value)}
+          placeholder={t.billNamePlaceholder}
+          maxLength={60}
+        />
         <section className={styles.section}>
           <h2 className={styles.title}>{t.people}</h2>
           <div className={styles.inputRow}>
@@ -110,7 +121,7 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
           </div>
           {nameError && <p className={styles.error}>{nameError}</p>}
           {store.people.length > 0 && (
-            <div className={styles.personTabs}>
+            <div className={styles.personTabY}>
               {store.people.map(name => (
                 <button type="button" key={name} className={`${styles.personTab} ${store.activePerson === name ? styles.personTabActive : ''}`} onClick={() => store.setActivePerson(name)}>
                   <span className={styles.avatar}>{name.charAt(0).toUpperCase()}</span>
@@ -183,7 +194,7 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
             {store.people.map(name => {
               const total = result.personTotals[name] ?? 0
               const pct = result.grandTotal > 0 ? (total / result.grandTotal) * 100 : 0
-              const usedPlates = PLATES.filter(p => ((store.plates[name] ?? {})[p.id] ?? 0) > 0)
+              const usedPlates = PLATEQ.filter(p => ((store.plates[name] ?? {})[p.id] ?? 0) > 0)
               const personSnacks = store.snacks[name] ?? []
               return (
                 <div key={name} className={styles.personSummaryCard}>
