@@ -63,7 +63,7 @@ export const STRINGS = {
     linkCopied: '\u2713 Link copied',
     copySummary: 'Copy summary',
     summaryCopied: '\u2713 Summary copied',
-    billNamePlaceholder: 'Bill name (optional)',
+    billNamePlaceholder: 'Bill name',
     sushiroSharePrefix: '\uD83C\uDF63 Sushiro Bill',
   },
   th: {
@@ -126,7 +126,7 @@ export const STRINGS = {
     linkCopied: '\u2713 \u0E04\u0E31\u0E14\u0E25\u0E2D\u0E01\u0E25\u0E34\u0E07\u0E01\u0E4C\u0E41\u0E25\u0E49\u0E27',
     copySummary: '\u0E04\u0E31\u0E14\u0E25\u0E2D\u0E01\u0E2A\u0E23\u0E38\u0E1B',
     summaryCopied: '\u2713 \u0E04\u0E31\u0E14\u0E25\u0E2D\u0E01\u0E2A\u0E23\u0E38\u0E1B\u0E41\u0E25\u0E49\u0E27',
-    billNamePlaceholder: '\u0E40\u0E0A\u0E48\u0E19 \u0E0B\u0E39\u0E0A\u0E34\u0E42\u0E23\u0E48 \u0E40\u0E0B\u0E47\u0E19\u0E17\u0E23\u0E31\u0E25',
+    billNamePlaceholder: '\u0E0A\u0E37\u0E48\u0E2D\u0E1A\u0E34\u0E25',
     sushiroSharePrefix: '\uD83C\uDF63 \u0E0B\u0E39\u0E0A\u0E34\u0E42\u0E23\u0E48',
   },
 }
