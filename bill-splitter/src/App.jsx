@@ -11,11 +11,16 @@ const initialShare = readShareFromHash()
 function AppInner() {
   const [shared, setShared] = useState(initialShare)
   const [activeTab, setActiveTab] = useState(initialShare?.t || 'split')
-  const [dark, setDark] = useState(false)
+  const [dark, setDark] = useState(() => {
+    const saved = localStorage.getItem('theme')
+    if (saved) return saved === 'dark'
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
   const { lang, toggle: toggleLang, t } = useLang()
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
+    localStorage.setItem('theme', dark ? 'dark' : 'light')
   }, [dark])
 
   const exitShared = () => {
@@ -36,6 +41,15 @@ function AppInner() {
         <div className={styles.headerInner}>
           <span className={styles.logo}>{t.appName}</span>
           <div className={styles.headerControls}>
+            {/* Home */}
+            <button
+              className={styles.iconBtn}
+              onClick={() => { window.location.href = '../' }}
+              title={lang === 'th' ? 'กลับสู่หน้าแรก' : 'Back to home'}
+              aria-label="Home"
+            >
+              🏠
+            </button>
             {/* Language toggle */}
             <button
               className={styles.iconBtn}
