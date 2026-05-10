@@ -37,6 +37,7 @@ jobs:
           cp NutritionsInThailand.html _site/NutritionsInThailand.html
           cp excel-tutorial.html _site/excel-tutorial.html
           cp -r bill-splitter/dist/. _site/bill-splitter/
+          cp pumba.png _site/pumba.png
 
       - uses: actions/upload-pages-artifact@v3
         with:
