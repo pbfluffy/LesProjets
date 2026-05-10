@@ -154,11 +154,12 @@
     }
 
     let lang = "th"
-    let dark = window.matchMedia("(prefers-color-scheme: dark)").matches
+    let dark = (localStorage.getItem("theme") ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark"
 
     function applyTheme() {
       document.documentElement.setAttribute("data-theme", dark ? "dark" : "light")
       document.getElementById("themeBtn").textContent = dark ? "🌞" : "🌙"
+      localStorage.setItem("theme", dark ? "dark" : "light")
     }
 
     function applyLang() {
