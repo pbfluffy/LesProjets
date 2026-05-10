@@ -38,6 +38,10 @@ jobs:
           cp excel-tutorial.html _site/excel-tutorial.html
           cp -r bill-splitter/dist/. _site/bill-splitter/
           cp pumba.png _site/pumba.png
+          cp apple-touch-icon.png _site/apple-touch-icon.png
+          cp icon-192.png _site/icon-192.png
+          cp icon-512.png _site/icon-512.png
+          cp manifest.json _site/manifest.json
 
       - uses: actions/upload-pages-artifact@v3
         with:
