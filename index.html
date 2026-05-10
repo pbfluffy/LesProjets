@@ -42,8 +42,7 @@
       --radius: 16px;
     }
 
-    @media (prefers-color-scheme: dark) {
-      :root {
+    [data-theme="dark"] {
         --bg: #161614;
         --surface: #1e1e1b;
         --surface-alt: #272723;
@@ -54,20 +53,43 @@
         --accent: #e8924a;
         --accent-light: #2a1e10;
       }
+    } transition: background 0.2s, color 0.2s;
     }
 
-    body {
-      font-family: 'Noto Sans Thai', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100dvh;
+    /* ── Top bar ── */
+    .topbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      padding: 14px 20px 0;
+      max-width: 600px;
+      margin: 0 auto;
     }
+
+    .ctrl-btn {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'IBM Plex Mono', monospace;
+      padding: 4px 11px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.15s;
+      letter-spacing: 0.03em;
+    }
+
+    .ctrl-btn:hover { background: var(--surface-alt); border-color: var(--faint); }
 
     /* ── Hero ── */
     .hero {
       max-width: 600px;
       margin: 0 auto;
-      padding: 48px 24px 20px;
+      padding: 24px 24px 20px;
       display: flex;
       align-items: center;
       gap: 24px;
@@ -220,33 +242,38 @@
 </head>
 <body>
 
+  <div class="topbar">
+    <button class="ctrl-btn" id="langBtn" onclick="toggleLang()">EN</button>
+    <button class="ctrl-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+  </div>
+
   <div class="hero">
     <div class="mascot-wrap">
       <img src="./pumba.png" alt="พุมบ้า pixel corgi" />
     </div>
     <div class="hero-text">
       <h1>พุมบ้า's<br>Projects</h1>
-      <p class="tagline">Apps &amp; เครื่องมือโดย pbfluffy</p>
+      <p class="tagline" id="tagline">Apps &amp; เครื่องมือโดย pbfluffy</p>
       <span class="dog-badge">🐾 corgi-powered</span>
     </div>
   </div>
 
   <div class="grid">
-    <p class="section-label">apps</p>
+    <p class="section-label" id="label-apps">แอป</p>
 
     <a class="card" href="./bill-splitter/">
       <div class="card-header">
         <div class="icon">🍽️</div>
         <div>
-          <div class="card-name">หารบิล</div>
+          <div class="card-name" id="app1-name">หารบิล</div>
           <div class="card-type">React App</div>
         </div>
         <span class="arrow">→</span>
       </div>
-      <p class="card-desc">หารบิลอาหาร + Sushiro calculator รองรับ VAT, Service Charge, PromptPay และแชร์สรุปไปกลุ่ม Line</p>
+      <p class="card-desc" id="app1-desc">หารบิลอาหาร + Sushiro calculator รองรับ VAT, Service Charge, PromptPay และแชร์สรุปไปกลุ่ม Line</p>
     </a>
 
-    <p class="section-label">pages</p>
+    <p class="section-label" id="label-pages">หน้า</p>
 
     <a class="card" href="./NutritionsInThailand.html">
       <div class="card-header">
@@ -257,7 +284,7 @@
         </div>
         <span class="arrow">→</span>
       </div>
-      <p class="card-desc">ข้อมูลโภชนาการอาหารไทย</p>
+      <p class="card-desc" id="app3-desc">ข้อมูลโภชนาการอาหารไทย</p>
     </a>
 
     <a class="card" href="./excel-tutorial.html">
@@ -269,7 +296,7 @@
         </div>
         <span class="arrow">→</span>
       </div>
-      <p class="card-desc">คู่มือการใช้งาน Excel</p>
+      <p class="card-desc" id="app2-desc">คู่มือการใช้งาน Excel</p>
     </a>
   </div>
 
@@ -277,6 +304,29 @@
     <span class="paw">🐾</span>
     pumbafluffycorgi.com
   </footer>
+
+  <script>
+    const S={
+      th:{tagline:'Apps & เครื่องมือโดย pbfluffy',apps:'แอป',pages:'หน้า',n1:'หารบิล',d1:'หารบิลอาหาร + Sushiro calculator รองรับ VAT, Service Charge, PromptPay และแชร์สรุปไปกลุ่ม Line',d2:'ข้อมูลโภชนาการอาหารไทย',d3:'คู่มือการใช้งาน Excel'},
+      en:{tagline:'Apps & tools by pbfluffy',apps:'apps',pages:'pages',n1:'Bill Splitter',d1:'Split bills with friends + Sushiro plate calculator. Supports VAT, Service Charge, PromptPay, and share summary to Line.',d2:'Nutritional information for Thai food',d3:'Excel usage guide'}
+    };
+    let lang='th', dark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if(dark){document.documentElement.setAttribute('data-theme','dark');document.getElementById('themeBtn').textContent='🌞';}
+    function applyLang(){
+      const s=S[lang];
+      document.getElementById('tagline').textContent=s.tagline;
+      document.getElementById('label-apps').textContent=s.apps;
+      document.getElementById('label-pages').textContent=s.pages;
+      document.getElementById('app1-name').textContent=s.n1;
+      document.getElementById('app1-desc').textContent=s.d1;
+      document.getElementById('app2-desc').textContent=s.d2;
+      document.getElementById('app3-desc').textContent=s.d3;
+      document.getElementById('langBtn').textContent=lang==='th'?'EN':'TH';
+      document.documentElement.lang=lang;
+    }
+    function toggleLang(){lang=lang==='th'?'en':'th';applyLang();}
+    function toggleTheme(){dark=!dark;document.documentElement.setAttribute('data-theme',dark?'dark':'light');document.getElementById('themeBtn').textContent=dark?'🌞':'🌙';}
+  </script>
 
 </body>
 </html>
