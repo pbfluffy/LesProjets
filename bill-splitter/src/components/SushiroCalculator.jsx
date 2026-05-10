@@ -70,7 +70,7 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
       lines.push(`${name}: ฿${fmt(total)}`)
     })
     lines.push('')
-    lines.push(`${t.shareTotal} ฿{fmt(result.grandTotal)}`)
+    lines.push(`${t.shareTotal} ฿${fmt(result.grandTotal)}`)
     return lines.join('\n')
   }
 
@@ -184,7 +184,7 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
             {store.people.map(name => {
               const total = result.personTotals[name] ?? 0
               const pct = result.grandTotal > 0 ? (total / result.grandTotal) * 100 : 0
-              const usedPlates = PLATEQ.filter(p => ((store.plates[name] ?? {})[p.id] ?? 0) > 0)
+              const usedPlates = PLATES.filter(p => ((store.plates[name] ?? {})[p.id] ?? 0) > 0)
               const personSnacks = store.snacks[name] ?? []
               return (
                 <div key={name} className={styles.personSummaryCard}>
