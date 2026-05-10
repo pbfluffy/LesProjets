@@ -1,0 +1,32 @@
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 0 30px;
+}
+
+.tierWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.connector {
+  width: 2px;
+  height: 28px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--border-strong) 0,
+    var(--border-strong) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+.tier {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  padding: 4px 2px;
+}
