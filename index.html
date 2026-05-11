@@ -97,19 +97,19 @@
       <p class="card-desc" id="app1-desc">หารบิลอาหาร + Sushiro calculator รองรับ VAT, Service Charge, PromptPay และแชร์สรุปไปกลุ่ม Line</p>
     </a>
 
-    <p class="section-label" id="label-pages">หน้า</p>
-
-    <a class="card" href="./NutritionsInThailand.html">
+    <a class="card" href="./nutritions-thailand/">
       <div class="card-header">
         <div class="icon">🥗</div>
         <div>
-          <div class="card-name">Nutritions in Thailand</div>
-          <div class="card-type">HTML Page</div>
+          <div class="card-name" id="app2-name">โภชนาการไทย</div>
+          <div class="card-type">React App</div>
         </div>
         <span class="arrow">→</span>
       </div>
-      <p class="card-desc" id="app2-desc">ข้อมูลโภชนาการอาหารไทย</p>
+      <p class="card-desc" id="app2-desc">ติดตามแคลอรี่ TDEE BMI และมาโครจากอาหารไทย พร้อมบันทึกย้อนหลังและน้ำดื่ม</p>
     </a>
+
+    <p class="section-label" id="label-pages">หน้า</p>
 
     <a class="card" href="./excel-tutorial.html">
       <div class="card-header">
@@ -137,8 +137,9 @@
         tagline: "Apps & เครื่องมือโดย pbfluffy",
         apps: "แอป", pages: "หน้า",
         n1: "หารบิล",
+        n2: "โภชนาการไทย",
         d1: "หารบิลอาหาร + Sushiro calculator รองรับ VAT, Service Charge, PromptPay และแชร์สรุปไปกลุ่ม Line",
-        d2: "ข้อมูลโภชนาการอาหารไทย",
+        d2: "ติดตามแคลอรี่ TDEE BMI และมาโครจากอาหารไทย พร้อมบันทึกย้อนหลังและน้ำดื่ม",
         d3: "คู่มือการใช้งาน Excel",
       },
       en: {
@@ -147,8 +148,9 @@
         tagline: "Apps & tools by pbfluffy",
         apps: "apps", pages: "pages",
         n1: "Bill Splitter",
+        n2: "Thai Nutrition",
         d1: "Split bills with friends + Sushiro plate calculator. Supports VAT, Service Charge, PromptPay, and share summary to Line.",
-        d2: "Nutritional information for Thai food",
+        d2: "Track calories, TDEE, BMI and macros from Thai food, with history and water logging.",
         d3: "Excel usage guide",
       }
     }
@@ -170,6 +172,7 @@
       document.getElementById("label-apps").textContent = s.apps
       document.getElementById("label-pages").textContent = s.pages
       document.getElementById("app1-name").textContent = s.n1
+      document.getElementById("app2-name").textContent = s.n2
       document.getElementById("app1-desc").textContent = s.d1
       document.getElementById("app2-desc").textContent = s.d2
       document.getElementById("app3-desc").textContent = s.d3
