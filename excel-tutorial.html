@@ -624,7 +624,10 @@ function App() {
           <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>Excel สำหรับมือใหม่</div>
           <div style={{ fontSize: 11, color: "#94a3b8" }}>แตะแต่ละส่วนของสูตรเพื่อดูคำอธิบาย · ทดลองแก้ค่าได้</div>
         </div>
-        <div style={{ marginLeft: "auto", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 20, padding: "4px 12px", fontSize: 12, color: "#64748b" }}>{active + 1}/{FORMULAS.length}</div>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => { window.location.href = '../' }} title="กลับสู่หน้าแรก" aria-label="Home" style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "4px 10px", height: 30, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>🏠</button>
+          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 20, padding: "4px 12px", fontSize: 12, color: "#64748b" }}>{active + 1}/{FORMULAS.length}</div>
+        </div>
       </div>
 
       {/* Tabs */}
