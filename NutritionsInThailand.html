@@ -288,6 +288,7 @@ function App() {
       <div className="header">
         <span className="header-title">🔥 ลดไขมัน · รักษากล้ามเนื้อ</span>
         <div className="header-controls">
+          <button className="icon-btn" onClick={() => { window.location.href = './' }} title="กลับสู่หน้าแรก" aria-label="Home">🏠</button>
           <button className="icon-btn" onClick={toggleTheme}>{theme === "dark" ? "🌞" : "🌙"}</button>
           <button className="icon-btn" onClick={() => { setLog([]); setWater(0); }}>↺</button>
         </div>
