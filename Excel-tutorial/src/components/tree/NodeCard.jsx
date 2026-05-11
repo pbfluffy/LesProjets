@@ -14,7 +14,7 @@ export default function NodeCard({ node, formula, locked, onSelect }) {
       >
         <div className={styles.bossIcon}>⚔</div>
         <div className={styles.bossLabel}>{node.label}</div>
-        <div className={styles.bossNote}>Phase 3</div>
+        <div className={styles.bossNote}>{lang === 'th' ? 'อยู่ระหว่างพัฒนา' : 'Under development'}</div>
       </div>
     )
   }
