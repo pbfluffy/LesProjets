@@ -30,21 +30,13 @@ jobs:
           npm install
           npm run build
 
-      - name: Build Excel-tutorial
-        working-directory: Excel-tutorial
-        run: |
-          npm install
-          npm run build
-
       - name: Assemble site
         run: |
           mkdir -p _site/bill-splitter
-          mkdir -p _site/Excel-tutorial
           cp index.html _site/index.html
           cp NutritionsInThailand.html _site/NutritionsInThailand.html
           cp excel-tutorial.html _site/excel-tutorial.html
           cp -r bill-splitter/dist/. _site/bill-splitter/
-          cp -r Excel-tutorial/dist/. _site/Excel-tutorial/
           cp pumba.png _site/pumba.png
           cp apple-touch-icon.png _site/apple-touch-icon.png
           cp icon-192.png _site/icon-192.png
