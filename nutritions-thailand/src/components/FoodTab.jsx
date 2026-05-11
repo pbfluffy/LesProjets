@@ -32,7 +32,7 @@ export default function FoodTab({ store }) {
       .map((cat) => ({
         ...cat,
         items: cat.items.filter((it) => {
-          const matchSearch = !needle || it.name.toLowerCase().includes(needle);
+          const matchSearch = !needle || it.name.toLowerCase().includes(needle) || (it.nameEn || '').toLowerCase().includes(needle);
           const matchCat = filterCat === 'all' || cat.id === filterCat;
           return matchSearch && matchCat;
         }),
