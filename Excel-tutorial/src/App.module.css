@@ -12,12 +12,6 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  /* push past the fixed Home button on the left */
-  padding-left: 90px;
-}
-
-@media (max-width: 480px) {
-  .header { padding-left: 80px; }
 }
 
 .headerInner {
