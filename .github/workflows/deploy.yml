@@ -30,13 +30,20 @@ jobs:
           npm install
           npm run build
 
+      - name: Build nutritions-thailand
+        working-directory: nutritions-thailand
+        run: |
+          npm install
+          npm run build
+
       - name: Assemble site
         run: |
-          mkdir -p _site/bill-splitter
+          mkdir -p _site/bill-splitter _site/nutritions-thailand
           cp index.html _site/index.html
           cp NutritionsInThailand.html _site/NutritionsInThailand.html
           cp excel-tutorial.html _site/excel-tutorial.html
           cp -r bill-splitter/dist/. _site/bill-splitter/
+          cp -r nutritions-thailand/dist/. _site/nutritions-thailand/
           cp pumba.png _site/pumba.png
           cp apple-touch-icon.png _site/apple-touch-icon.png
           cp icon-192.png _site/icon-192.png
