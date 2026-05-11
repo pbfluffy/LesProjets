@@ -11,19 +11,19 @@ intros, mission flow).
 ## Quickstart
 
 ```bash
-cd excel-tutorial
+cd Excel-tutorial
 npm install
 npm run dev      # → http://localhost:5173
 npm run build    # → dist/
 npm run preview  # serve the production build locally
 ```
 
-The build is configured to live at `/excel-tutorial/` once deployed (matches
+The build is configured to live at `/Excel-tutorial/` once deployed (matches
 `vite.config.js → base`). Override at build time with `VITE_BASE_PATH=/foo/`.
 
 ## Live URL (after deploy)
 
-`https://pumbafluffycorgi.com/excel-tutorial/`
+`https://pumbafluffycorgi.com/Excel-tutorial/`
 
 ## What's in Phase 1
 
@@ -53,7 +53,7 @@ Per the design doc, these arrive later:
 ## Project structure
 
 ```
-excel-tutorial/
+Excel-tutorial/
 ├── package.json
 ├── vite.config.js
 ├── index.html
@@ -89,13 +89,13 @@ excel-tutorial/
 
 The current GitHub Actions workflow at `.github/workflows/deploy.yml` builds
 `bill-splitter/` and copies static files. To deploy this project, the workflow
-needs to also build `excel-tutorial/` and copy `excel-tutorial/dist/` into
-`_site/excel-tutorial/`.
+needs to also build `Excel-tutorial/` and copy `Excel-tutorial/dist/` into
+`_site/Excel-tutorial/`.
 
 A proposed update is provided as **`deploy.proposed.yml`** at the repo root —
 review and merge into `.github/workflows/deploy.yml` when you're ready to flip
 the switch. The legacy `excel-tutorial.html` can stay in place; the new app
-lives at a different URL path (`/excel-tutorial/` with trailing slash) so they
+lives at a different URL path (`/Excel-tutorial/` with trailing slash) so they
 don't collide.
 
 ## Adding a new formula (Phase 1 reference)
