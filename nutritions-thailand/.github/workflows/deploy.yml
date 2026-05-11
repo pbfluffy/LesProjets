@@ -1,0 +1,41 @@
+# Deploys this Vite app as a sub-path of the LesProjets gh-pages site.
+# Place the built `dist/` under `LesProjets/nutritions-thailand/` on the
+# `gh-pages` branch (or wire it into your existing multi-project deploy).
+name: Deploy nutritions-thailand
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'nutritions-thailand/**'
+      - '.github/workflows/deploy-nutritions-thailand.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nutritions-thailand
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: nutritions-thailand/package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Publish to gh-pages/nutritions-thailand
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: nutritions-thailand/dist
+          destination_dir: nutritions-thailand
+          keep_files: true

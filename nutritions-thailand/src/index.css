@@ -1,0 +1,69 @@
+:root {
+  --bg: #080810;
+  --bg2: #13131e;
+  --bg3: #1a1a2a;
+  --border: #2a2a3a;
+  --text: #f0eee8;
+  --muted: #888;
+  --subtle: #555;
+  --accent: #ff6b35;
+  --green: #06d6a0;
+  --blue: #4fc3f7;
+  --yellow: #ffd166;
+  --red: #ef476f;
+  --card-bg: #13131e;
+  --input-bg: #1a1a2a;
+}
+
+[data-theme='light'] {
+  --bg: #f5f5f0;
+  --bg2: #ffffff;
+  --bg3: #ebebeb;
+  --border: #dddddd;
+  --text: #1a1a2a;
+  --muted: #666666;
+  --subtle: #aaaaaa;
+  --card-bg: #ffffff;
+  --input-bg: #f0f0f0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  transition: background 0.2s, color 0.2s;
+}
+
+input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+select {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  width: 100%;
+  outline: none;
+}
+
+button {
+  font-family: inherit;
+}
