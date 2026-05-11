@@ -1,10 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// GitHub Pages serves the repo under /LesProjets/<project>/.
-// If you deploy a single-project site or use a custom-domain root,
-// override with `VITE_BASE=/` when running `npm run build`.
-const base = process.env.VITE_BASE ?? '/LesProjets/nutritions-thailand/';
+// Custom domain pumbafluffycorgi.com serves the site at root, so /nutritions-thailand/.
+// (The github.io URL auto-redirects to the custom domain, so the LesProjets prefix is never
+// actually in the served path.)
+const base = process.env.VITE_BASE ?? '/nutritions-thailand/';
 
 export default defineConfig({
   base,
