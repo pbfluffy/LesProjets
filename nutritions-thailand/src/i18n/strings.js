@@ -119,6 +119,8 @@ const en = {
   'photo.logBtn': '✚ Log this meal',
   'photo.logged': '✓ Logged!',
   'photo.logNote': 'From photo',
+  'photo.saveBtn': '⭐ Save to my foods',
+  'photo.saved': '✓ Saved to my foods!',
 
   'date.today': 'Today',
   'date.prev': '←',
@@ -243,6 +245,8 @@ const th = {
   'photo.logBtn': '✚ บันทึกมื้อนี้',
   'photo.logged': '✓ บันทึกแล้ว!',
   'photo.logNote': 'จากรูปภาพ',
+  'photo.saveBtn': '⭐ บันทึกในอาหารของฉัน',
+  'photo.saved': '✓ บันทึกในอาหารของฉันแล้ว!',
 
   'date.today': 'วันนี้',
   'date.prev': '←',
