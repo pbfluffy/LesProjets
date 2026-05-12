@@ -265,3 +265,30 @@
   cursor: default;
   opacity: 0.85;
 }
+
+.saveBtn {
+  width: 100%;
+  padding: 12px 16px;
+  margin-top: 8px;
+  border-radius: 10px;
+  background: var(--yellow);
+  color: #1a1a2a;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.saveBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.saveBtn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.saveBtn:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
