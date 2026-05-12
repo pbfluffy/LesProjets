@@ -106,6 +106,7 @@ export default function PhotoTab({ store }) {
   const [imagePreview, setImagePreview] = useState(null);
   const [result, setResult] = useState(null);
   const [logged, setLogged] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const fileRef = useRef(null);
@@ -172,6 +173,24 @@ export default function PhotoTab({ store }) {
     setLogged(true);
     setTimeout(() => setLogged(false), 2500);
   };
+  const handleSave = () => {
+    if (!result) return;
+    const name =
+      lang === 'th'
+        ? result.dishNameTh || result.dishNameEn || 'อาหารจากรูปภาพ'
+        : result.dishNameEn || result.dishNameTh || 'Photo dish';
+    store.addCustomFood({
+      name,
+      kcal: Math.round(result.kcal || 0),
+      protein: Math.round(result.protein || 0),
+      fat: Math.round(result.fat || 0),
+      carbs: Math.round(result.carbs || 0),
+      note: t('photo.logNote'),
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
 
 
 
@@ -296,6 +315,13 @@ export default function PhotoTab({ store }) {
           disabled={logged}
         >
           {logged ? t('photo.logged') : t('photo.logBtn')}
+        </button>
+        <button
+          className={styles.saveBtn}
+          onClick={handleSave}
+          disabled={saved}
+        >
+          {saved ? t('photo.saved') : t('photo.saveBtn')}
         </button>
 
           <div className={styles.disclaimer}>{t('photo.disclaimer')}</div>
