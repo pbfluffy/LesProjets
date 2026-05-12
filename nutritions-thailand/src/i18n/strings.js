@@ -92,8 +92,6 @@ const en = {
   'data.exportErr': 'Backup failed',
 
   'photo.title': 'Identify Thai dish',
-  'photo.apiKeyTitle': 'Anthropic API key',
-  'photo.apiKeyHint': 'Stored only in this browser. Get one at console.anthropic.com',
   'photo.choose': '📷 Choose photo',
   'photo.identify': 'Identify dish',
   'photo.identifying': 'Identifying…',
@@ -101,7 +99,6 @@ const en = {
   'photo.portion': 'Estimated portion: {v}',
   'photo.alternatives': 'Could also be',
   'photo.notes': 'Notes',
-  'photo.noKey': 'Add your API key first.',
   'photo.noImage': 'Pick a photo first.',
   'photo.disclaimer': 'Portion + macro estimates from a photo are rough (±20–40%). Treat as starting point, not truth.',
 
@@ -201,8 +198,6 @@ const th = {
   'data.exportErr': 'บันทึกสำรองล้มเหลว',
 
   'photo.title': 'ระบุอาหารไทยจากภาพ',
-  'photo.apiKeyTitle': 'Anthropic API key',
-  'photo.apiKeyHint': 'เก็บไว้ในเครื่องนี้เท่านั้น ขอ key ได้ที่ console.anthropic.com',
   'photo.choose': '📷 เลือกรูป',
   'photo.identify': 'วิเคราะห์อาหาร',
   'photo.identifying': 'กำลังวิเคราะห์…',
@@ -210,7 +205,6 @@ const th = {
   'photo.portion': 'ปริมาณโดยประมาณ: {v}',
   'photo.alternatives': 'อาจเป็น',
   'photo.notes': 'หมายเหตุ',
-  'photo.noKey': 'ใส่ API key ก่อน',
   'photo.noImage': 'เลือกรูปก่อน',
   'photo.disclaimer': 'ค่าประมาณจากภาพมีความคลาดเคลื่อน ±20–40% ใช้เป็นแนวทาง ไม่ใช่ค่าจริง',
 
