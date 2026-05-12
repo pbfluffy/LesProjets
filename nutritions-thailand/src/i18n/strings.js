@@ -116,6 +116,9 @@ const en = {
   'photo.notes': 'Notes',
   'photo.noImage': 'Pick a photo first.',
   'photo.disclaimer': 'Portion + macro estimates from a photo are rough (±20–40%). Treat as starting point, not truth.',
+  'photo.logBtn': '✚ Log this meal',
+  'photo.logged': '✓ Logged!',
+  'photo.logNote': 'From photo',
 
   'date.today': 'Today',
   'date.prev': '←',
@@ -237,6 +240,9 @@ const th = {
   'photo.notes': 'หมายเหตุ',
   'photo.noImage': 'เลือกรูปก่อน',
   'photo.disclaimer': 'ค่าประมาณจากภาพมีความคลาดเคลื่อน ±20–40% ใช้เป็นแนวทาง ไม่ใช่ค่าจริง',
+  'photo.logBtn': '✚ บันทึกมื้อนี้',
+  'photo.logged': '✓ บันทึกแล้ว!',
+  'photo.logNote': 'จากรูปภาพ',
 
   'date.today': 'วันนี้',
   'date.prev': '←',
