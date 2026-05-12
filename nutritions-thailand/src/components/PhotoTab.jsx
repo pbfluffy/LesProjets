@@ -2,14 +2,13 @@ import { useRef, useState } from 'react';
 import { useLang } from '../LangContext.jsx';
 import styles from './PhotoTab.module.css';
 
-const API_KEY_STORAGE = 'nutritions.anthropic_api_key';
-const MODEL = 'claude-sonnet-4-6';
-const MAX_DIM = 1568; // Anthropic's recommended max edge length
+const WORKER_URL = 'https://nutritions-photo.pbfluffygaming.workers.dev/';
+const MAX_DIM = 1568;
 const JPEG_QUALITY = 0.85;
 
 const PROMPT = `You are identifying Thai food in a photo for a nutrition tracker.
 
-Identify the dish, estimate portion size, and estimate macros. Be honest about uncertainty â portion estimation from a photo alone typically has \u00b120-40% error, especially without a reference object for scale.
+Identify the dish, estimate portion size, and estimate macros. Be honest about uncertainty — portion estimation from a photo alone typically has \u00b120-40% error, especially without a reference object for scale.
 
 Respond ONLY with valid JSON, no markdown fences, no preamble:
 
@@ -56,34 +55,27 @@ async function compressImage(file) {
   });
 }
 
-async function identifyDish(base64Image, apiKey) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+async function identifyDish(base64Image) {
+  const response = await fetch(WORKER_URL, {
     method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-      'content-type': 'application/json',
-    },
+    headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1024,
-      messages: [
+      contents: [
         {
-          role: 'user',
-          content: [
+          parts: [
             {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: 'image/jpeg',
+              inline_data: {
+                mime_type: 'image/jpeg',
                 data: base64Image,
               },
             },
-            { type: 'text', text: PROMPT },
+            { text: PROMPT },
           ],
         },
       ],
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
     }),
   });
   if (!response.ok) {
@@ -91,10 +83,13 @@ async function identifyDish(base64Image, apiKey) {
     throw new Error(`API ${response.status}: ${errText.slice(0, 200)}`);
   }
   const data = await response.json();
-  const textBlock = data.content?.find((b) => b.type === 'text');
-  if (!textBlock) throw new Error('No text in response');
+  // Gemini response shape: data.candidates[0].content.parts[0].text
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error('No text in response');
+  }
   // Strip optional markdown fences and parse JSON
-  const cleaned = textBlock.text
+  const cleaned = text
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```\s*$/i, '')
     .trim();
@@ -107,22 +102,12 @@ async function identifyDish(base64Image, apiKey) {
 
 export default function PhotoTab() {
   const { t, lang } = useLang();
-  const [apiKey, setApiKey] = useState(
-    () => localStorage.getItem(API_KEY_STORAGE) || ''
-  );
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const fileRef = useRef(null);
-
-  function onApiKeyChange(e) {
-    const v = e.target.value;
-    setApiKey(v);
-    if (v) localStorage.setItem(API_KEY_STORAGE, v);
-    else localStorage.removeItem(API_KEY_STORAGE);
-  }
 
   function onFile(e) {
     const f = e.target.files?.[0];
@@ -144,10 +129,6 @@ export default function PhotoTab() {
   }
 
   async function onIdentify() {
-    if (!apiKey) {
-      setError(t('photo.noKey'));
-      return;
-    }
     if (!imageFile) {
       setError(t('photo.noImage'));
       return;
@@ -157,7 +138,7 @@ export default function PhotoTab() {
     setResult(null);
     try {
       const base64 = await compressImage(imageFile);
-      const r = await identifyDish(base64, apiKey);
+      const r = await identifyDish(base64);
       if (r.error) throw new Error(r.error);
       setResult(r);
     } catch (e) {
@@ -175,21 +156,6 @@ export default function PhotoTab() {
 
   return (
     <div className={styles.wrap}>
-      {/* API key card */}
-      <div className={styles.card}>
-        <div className={styles.title}>{t('photo.apiKeyTitle')}</div>
-        <input
-          className={styles.input}
-          type="password"
-          placeholder="sk-ant-..."
-          value={apiKey}
-          onChange={onApiKeyChange}
-          autoComplete="off"
-          spellCheck="false"
-        />
-        <div className={styles.hint}>{t('photo.apiKeyHint')}</div>
-      </div>
-
       {/* Picker / preview card */}
       <div className={styles.card}>
         <div className={styles.title}>{t('photo.title')}</div>
@@ -259,25 +225,25 @@ export default function PhotoTab() {
           )}
 
           <div className={styles.portion}>
-            {t('photo.portion', { v: result.estimatedPortion || 'â' })}
+            {t('photo.portion', { v: result.estimatedPortion || '—' })}
           </div>
 
           {/* Macro grid */}
           <div className={styles.macros}>
             <div className={styles.macroCell}>
-              <div className={styles.macroVal}>{result.kcal ?? 'â'}</div>
+              <div className={styles.macroVal}>{result.kcal ?? '—'}</div>
               <div className={styles.macroLbl}>kcal</div>
             </div>
             <div className={styles.macroCell}>
-              <div className={styles.macroVal}>{result.protein ?? 'â'}g</div>
+              <div className={styles.macroVal}>{result.protein ?? '—'}g</div>
               <div className={styles.macroLbl}>{t('macro.protein')}</div>
             </div>
             <div className={styles.macroCell}>
-              <div className={styles.macroVal}>{result.fat ?? 'â'}g</div>
+              <div className={styles.macroVal}>{result.fat ?? '—'}g</div>
               <div className={styles.macroLbl}>{t('macro.fat')}</div>
             </div>
             <div className={styles.macroCell}>
-              <div className={styles.macroVal}>{result.carbs ?? 'â'}g</div>
+              <div className={styles.macroVal}>{result.carbs ?? '—'}g</div>
               <div className={styles.macroLbl}>{t('macro.carbs')}</div>
             </div>
           </div>
