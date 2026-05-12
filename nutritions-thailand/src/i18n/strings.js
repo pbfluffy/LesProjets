@@ -2,7 +2,7 @@
 // EN is the default (matches Bill Splitter convention); TH mirrors the original UI copy.
 
 const en = {
-  'app.title': '🔥 Cut · Keep Muscle',
+  'app.title': '🥗 Nutritions in Thailand',
 
   'tab.overview': '📊 Overview',
   'tab.food': '🍱 Food',
@@ -20,6 +20,7 @@ const en = {
   'stat.tdeeUnit': 'kcal/day',
   'stat.target': 'TARGET',
   'stat.targetUnit': 'kcal/day',
+  'stat.bmr': 'BMR',
   'stat.bmi': 'BMI',
   'stat.lean': 'LEAN MASS',
   'stat.bfNote': 'body fat ~{bf}%',
@@ -50,19 +51,29 @@ const en = {
   'adjust.age': 'Age: {v} y',
   'adjust.male': '♂ Male',
   'adjust.female': '♀ Female',
-  'adjust.deficit': 'Calorie cut goal',
-  'adjust.deficitVal': 'Cut: {v} kcal/day',
-  'adjust.deficitRate': '~{kg} kg/week',
 
   'activity.sedentary': 'Sedentary',
   'activity.light': 'Light (1–3 days/wk)',
   'activity.moderate': 'Moderate (3–5 days/wk)',
   'activity.active': 'Active (6–7 days/wk)',
 
-  'deficit.maintain': 'Maintain',
-  'deficit.small': 'Mild',
-  'deficit.medium': 'Moderate',
-  'deficit.aggressive': 'Aggressive',
+
+  'adjust.target': 'Calorie target',
+  'adjust.targetVal': 'Target: {v} kcal/day',
+  'adjust.targetRate': '~{kg} kg/week',
+
+  'mode.aggressiveCut': 'Aggressive cut',
+  'mode.moderateCut': 'Moderate cut',
+  'mode.mildCut': 'Mild cut',
+  'mode.maintain': 'Maintain',
+  'mode.leanBulk': 'Lean bulk',
+  'mode.bulk': 'Bulk',
+  'mode.aggressiveBulk': 'Aggressive bulk',
+
+  'warn.cautionLow': 'Aggressive cut. Hard to sustain and risks muscle loss.',
+  'warn.unsafeLow': 'Below your resting metabolic rate ({bmr} kcal). Your body will break down muscle and slow metabolism. Eat more, or talk to a doctor.',
+  'warn.cautionHigh': 'Most of this extra goes to fat — muscle gain caps out around +300 kcal/day.',
+  'warn.unsafeHigh': 'This surplus is mostly fat gain. Consider +200–400 kcal for lean growth.',
 
   'bmi.under': 'Underweight',
   'bmi.normal': 'Normal',
@@ -108,7 +119,7 @@ const en = {
 };
 
 const th = {
-  'app.title': '🔥 ลดไขมัน · รักษากล้ามเนื้อ',
+  'app.title': '🥗 โภชนาการในไทย',
 
   'tab.overview': '📊 ภาพรวม',
   'tab.food': '🍱 อาหาร',
@@ -126,6 +137,7 @@ const th = {
   'stat.tdeeUnit': 'kcal/วัน',
   'stat.target': 'เป้าหมาย',
   'stat.targetUnit': 'kcal/วัน',
+  'stat.bmr': 'BMR',
   'stat.bmi': 'BMI',
   'stat.lean': 'กล้ามเนื้อ',
   'stat.bfNote': 'ไขมัน ~{bf}%',
@@ -156,19 +168,29 @@ const th = {
   'adjust.age': 'อายุ: {v} ปี',
   'adjust.male': '♂ ชาย',
   'adjust.female': '♀ หญิง',
-  'adjust.deficit': 'เป้าหมายลดแคลอรี่',
-  'adjust.deficitVal': 'ลดแคลอรี่: {v} kcal/วัน',
-  'adjust.deficitRate': '~{kg} kg/อาทิตย์',
 
   'activity.sedentary': 'นั่งทำงาน',
   'activity.light': 'ออกกำลัง 1-3 วัน/อาทิตย์',
   'activity.moderate': 'ออกกำลัง 3-5 วัน/อาทิตย์',
   'activity.active': 'ออกกำลัง 6-7 วัน/อาทิตย์',
 
-  'deficit.maintain': 'รักษา',
-  'deficit.small': 'ลดน้อย',
-  'deficit.medium': 'ลดปานกลาง',
-  'deficit.aggressive': 'ลดเร็ว',
+
+  'adjust.target': 'เป้าหมายแคลอรี่',
+  'adjust.targetVal': 'เป้าหมาย: {v} kcal/วัน',
+  'adjust.targetRate': '~{kg} kg/สัปดาห์',
+
+  'mode.aggressiveCut': 'ลดเร็ว',
+  'mode.moderateCut': 'ลดปานกลาง',
+  'mode.mildCut': 'ลดน้อย',
+  'mode.maintain': 'รักษา',
+  'mode.leanBulk': 'เพิ่มเบา',
+  'mode.bulk': 'เพิ่ม',
+  'mode.aggressiveBulk': 'เพิ่มเร็ว',
+
+  'warn.cautionLow': 'ลดหนัก ทำตามยากและเสี่ยงเสียกล้ามเนื้อ',
+  'warn.unsafeLow': 'ต่ำกว่าค่าเผาผลาญพื้นฐาน ({bmr} kcal) ร่างกายจะเผากล้ามเนื้อและทำให้เมแทบอลิซึมช้าลง ควรกินเพิ่มหรือปรึกษาแพทย์',
+  'warn.cautionHigh': 'ส่วนเกินส่วนใหญ่จะกลายเป็นไขมัน กล้ามเนื้อสร้างได้แค่ราว ~300 kcal/วัน',
+  'warn.unsafeHigh': 'ส่วนเกินเท่านี้ส่วนใหญ่เป็นไขมัน ลองลดเหลือ +200-400 kcal เพื่อสร้างกล้ามแบบลีน',
 
   'bmi.under': 'น้ำหนักน้อย',
   'bmi.normal': 'ปกติ',
