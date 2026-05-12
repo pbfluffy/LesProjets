@@ -59,3 +59,9 @@ export function getCalorieMode(delta) {
 
 export const WATER_GLASSES = 8;
 export const WATER_ML_PER_GLASS = 250;
+
+/** Daily protein target in grams. 2.0g/kg on cut, 1.8g/kg otherwise. */
+export function getProteinTarget(weight, calorieDelta) {
+  const gPerKg = calorieDelta < 0 ? 2.0 : 1.8;
+  return Math.round(weight * gPerKg);
+}
