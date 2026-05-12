@@ -4,6 +4,7 @@ import CustomTab from './components/CustomTab.jsx';
 import FoodTab from './components/FoodTab.jsx';
 import Header from './components/Header.jsx';
 import OverviewTab from './components/OverviewTab.jsx';
+import PhotoTab from './components/PhotoTab.jsx';
 import TabBar from './components/TabBar.jsx';
 import { useNutritionStore } from './hooks/useNutritionStore.js';
 import styles from './App.module.css';
@@ -23,6 +24,7 @@ export default function App() {
 
       {tab === 'overview' && <OverviewTab store={store} />}
       {tab === 'food' && <FoodTab store={store} />}
+      {tab === 'photo' && <PhotoTab />}
       {tab === 'adjust' && <AdjustTab store={store} />}
       {tab === 'custom' && <CustomTab store={store} />}
     </div>
