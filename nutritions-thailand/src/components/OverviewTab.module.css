@@ -18,3 +18,14 @@
     gap: 8px;
   }
 }
+
+/* Mobile: 3-col top row gets too cramped. Collapse to 2-col with BMR
+   spanning both columns on its own line. Bottom row stays 2-col. */
+@media (max-width: 480px) {
+  .statRowTop {
+    grid-template-columns: 1fr 1fr;
+  }
+  .statRowTop > :nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
