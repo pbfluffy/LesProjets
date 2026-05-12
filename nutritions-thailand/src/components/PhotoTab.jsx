@@ -100,11 +100,12 @@ async function identifyDish(base64Image) {
   }
 }
 
-export default function PhotoTab() {
+export default function PhotoTab({ store }) {
   const { t, lang } = useLang();
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [result, setResult] = useState(null);
+  const [logged, setLogged] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const fileRef = useRef(null);
@@ -153,6 +154,26 @@ export default function PhotoTab() {
       ? result.dishNameTh || result.dishNameEn
       : result.dishNameEn || result.dishNameTh
     : null;
+
+  const handleLog = () => {
+    if (!result) return;
+    const name =
+      lang === 'th'
+        ? result.dishNameTh || result.dishNameEn || 'อาหารจากรูปภาพ'
+        : result.dishNameEn || result.dishNameTh || 'Photo dish';
+    store.addToLog({
+      name,
+      kcal: Math.round(result.kcal || 0),
+      protein: Math.round(result.protein || 0),
+      fat: Math.round(result.fat || 0),
+      carbs: Math.round(result.carbs || 0),
+      note: t('photo.logNote'),
+    });
+    setLogged(true);
+    setTimeout(() => setLogged(false), 2500);
+  };
+
+
 
   return (
     <div className={styles.wrap}>
@@ -269,6 +290,13 @@ export default function PhotoTab() {
               <div className={styles.notes}>{result.notes}</div>
             </>
           )}
+        <button
+          className={styles.logBtn}
+          onClick={handleLog}
+          disabled={logged}
+        >
+          {logged ? t('photo.logged') : t('photo.logBtn')}
+        </button>
 
           <div className={styles.disclaimer}>{t('photo.disclaimer')}</div>
         </div>
