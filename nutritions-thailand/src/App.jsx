@@ -24,7 +24,7 @@ export default function App() {
 
       {tab === 'overview' && <OverviewTab store={store} />}
       {tab === 'food' && <FoodTab store={store} />}
-      {tab === 'photo' && <PhotoTab />}
+      {tab === 'photo' && <PhotoTab store={store} />}
       {tab === 'adjust' && <AdjustTab store={store} />}
       {tab === 'custom' && <CustomTab store={store} />}
     </div>
