@@ -19,7 +19,7 @@ export default function DataPanel({ store }) {
     try {
       await store.exportData();
     } catch {
-      flash('err', t('data.importErr'));
+      flash('err', t('data.exportErr'));
     } finally {
       setBusy(false);
     }
@@ -73,7 +73,7 @@ export default function DataPanel({ store }) {
       <input
         ref={fileRef}
         type="file"
-        accept=".xlsx,.json,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        accept=".json,application/json"
         onChange={onFileChange}
         style={{ display: 'none' }}
       />
