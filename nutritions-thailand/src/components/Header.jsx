@@ -8,7 +8,7 @@ export default function Header({ theme, onToggleTheme, onReset }) {
       <span className={styles.title}>{t('app.title')}</span>
       <div className={styles.controls}>
         <a
-          href="./"
+          href="../"
           className={styles.iconBtn}
           title={t('header.home')}
           aria-label="Home"
