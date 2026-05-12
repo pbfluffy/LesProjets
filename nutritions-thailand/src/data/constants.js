@@ -34,22 +34,28 @@ export function estimateBodyComp(weight, bmi) {
   return { estimatedBodyFat: bf, leanMass: lean };
 }
 
-/** Default state shape — also used as the localStorage fallback. */
+/** Default state shape — also used as the localStorage fallback.
+ * `calorieDelta` is signed: negative = cut, 0 = maintain, positive = bulk.
+ * Range: -1000 to +1000 kcal/day vs TDEE. */
 export const DEFAULT_STATS = {
   weight: 75,
   height: 170,
   age: 25,
   gender: 'male',
   activity: 'moderate',
-  deficit: 400,
+  calorieDelta: 0,
 };
 
-export const DEFICIT_PRESETS = [
-  { v: 0, labelKey: 'deficit.maintain' },
-  { v: 300, labelKey: 'deficit.small' },
-  { v: 400, labelKey: 'deficit.medium' },
-  { v: 600, labelKey: 'deficit.aggressive' },
-];
+/** Returns mode key for the current calorieDelta. Keys resolve to i18n via `mode.{key}`. */
+export function getCalorieMode(delta) {
+  if (delta <= -750) return 'aggressiveCut';
+  if (delta <= -400) return 'moderateCut';
+  if (delta <= -100) return 'mildCut';
+  if (delta < 100) return 'maintain';
+  if (delta < 400) return 'leanBulk';
+  if (delta < 750) return 'bulk';
+  return 'aggressiveBulk';
+}
 
 export const WATER_GLASSES = 8;
 export const WATER_ML_PER_GLASS = 250;
