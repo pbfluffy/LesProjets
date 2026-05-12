@@ -238,3 +238,30 @@
   line-height: 1.4;
   font-style: italic;
 }
+
+.logBtn {
+  width: 100%;
+  padding: 12px 16px;
+  margin-top: 12px;
+  border-radius: 10px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.logBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.logBtn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.logBtn:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
