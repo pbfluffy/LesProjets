@@ -88,6 +88,7 @@ const en = {
   'data.confirm': 'Erase everything (stats, log, custom foods)?',
   'data.imported': 'Restored ✓',
   'data.importErr': 'Restore failed — wrong file',
+  'data.exportErr': 'Backup failed',
 
   'date.today': 'Today',
   'date.prev': '←',
@@ -181,6 +182,7 @@ const th = {
   'data.confirm': 'ลบข้อมูลทั้งหมด (สถิติ, บันทึก, อาหาร) หรือไม่?',
   'data.imported': 'กู้คืนสำเร็จ ✓',
   'data.importErr': 'กู้คืนล้มเหลว — ไฟล์ไม่ถูกต้อง',
+  'data.exportErr': 'บันทึกสำรองล้มเหลว',
 
   'date.today': 'วันนี้',
   'date.prev': '←',
