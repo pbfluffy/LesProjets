@@ -19,7 +19,7 @@ export default function OverviewTab({ store }) {
   const bmr = calcBMR(stats.weight, stats.height, stats.age, stats.gender);
   const act = ACTIVITY.find((a) => a.k === stats.activity) ?? ACTIVITY[2];
   const tdee = Math.round(bmr * act.mult);
-  const target = tdee - stats.deficit;
+  const target = tdee + stats.calorieDelta;
   const bmi = stats.weight / (stats.height / 100) ** 2;
   const band = getBMIBand(bmi);
   const { leanMass, estimatedBodyFat } = estimateBodyComp(stats.weight, bmi);
@@ -33,7 +33,7 @@ export default function OverviewTab({ store }) {
         onToday={store.goToday}
       />
 
-      <div className={styles.statRow}>
+      <div className={styles.statRowTop}>
         <StatCard
           label={t('stat.tdee')}
           value={tdee}
@@ -46,6 +46,15 @@ export default function OverviewTab({ store }) {
           unit={t('stat.targetUnit')}
           color="var(--accent)"
         />
+        <StatCard
+          label={t('stat.bmr')}
+          value={Math.round(bmr)}
+          unit={t('stat.tdeeUnit')}
+          color="var(--muted)"
+        />
+      </div>
+
+      <div className={styles.statRowBottom}>
         <StatCard
           label={t('stat.bmi')}
           value={bmi.toFixed(1)}
