@@ -1,7 +1,7 @@
 import { useLang } from '../LangContext.jsx';
 import styles from './TabBar.module.css';
 
-const TABS = ['overview', 'food', 'adjust', 'custom'];
+const TABS = ['overview', 'food', 'photo', 'adjust', 'custom'];
 
 export default function TabBar({ active, onChange }) {
   const { t } = useLang();
