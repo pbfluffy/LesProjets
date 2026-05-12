@@ -21,7 +21,7 @@ export default function Header({ theme, onToggleTheme, onReset }) {
           aria-label="Toggle language"
           title={lang === 'en' ? 'Switch to Thai' : 'Switch to English'}
         >
-          {lang === 'en' ? 'EN' : 'TH'}
+          {lang === 'en' ? 'TH' : 'EN'}
         </button>
         <button
           className={styles.iconBtn}
