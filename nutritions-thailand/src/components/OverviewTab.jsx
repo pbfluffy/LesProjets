@@ -4,8 +4,10 @@ import {
   calcBMR,
   estimateBodyComp,
   getBMIBand,
+  getProteinTarget,
 } from '../data/constants.js';
 import CaloriesCard from './CaloriesCard.jsx';
+import ProteinCard from './ProteinCard.jsx';
 import DateSwitcher from './DateSwitcher.jsx';
 import FoodLog from './FoodLog.jsx';
 import StatCard from './StatCard.jsx';
@@ -23,6 +25,7 @@ export default function OverviewTab({ store }) {
   const bmi = stats.weight / (stats.height / 100) ** 2;
   const band = getBMIBand(bmi);
   const { leanMass, estimatedBodyFat } = estimateBodyComp(stats.weight, bmi);
+  const proteinTarget = getProteinTarget(stats.weight, stats.calorieDelta);
 
   return (
     <>
@@ -70,6 +73,7 @@ export default function OverviewTab({ store }) {
       </div>
 
       <CaloriesCard eaten={Math.round(totals.kcal)} target={target} totals={totals} />
+      <ProteinCard eaten={Math.round(totals.protein)} target={proteinTarget} />
       <WaterTracker value={water} onChange={store.setWater} />
       <FoodLog log={log} onRemove={store.removeFromLog} />
     </>
