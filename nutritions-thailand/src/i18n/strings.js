@@ -29,6 +29,10 @@ const en = {
   'cal.over': '⚠️ {n} kcal over',
   'cal.under': '✅ {n} kcal remaining',
 
+  'protein.title': '💪 Protein today',
+  'protein.toGo': '🎯 {n}g to go',
+  'protein.hit': '✅ Goal hit!',
+
   'macro.protein': 'PROTEIN',
   'macro.fat': 'FAT',
   'macro.carbs': 'CARBS',
@@ -145,6 +149,10 @@ const th = {
   'cal.today': '🔥 แคลอรี่วันนี้',
   'cal.over': '⚠️ เกิน {n} kcal',
   'cal.under': '✅ เหลือ {n} kcal',
+
+  'protein.title': '💪 โปรตีนวันนี้',
+  'protein.toGo': '🎯 เหลืออีก {n}g',
+  'protein.hit': '✅ ครบเป้าหมาย!',
 
   'macro.protein': 'โปรตีน',
   'macro.fat': 'ไขมัน',
