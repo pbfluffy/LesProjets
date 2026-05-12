@@ -13,6 +13,18 @@ export function todayKey(d = new Date()) {
 
 const EMPTY_DAY = { log: [], water: 0 };
 
+/** Migrate legacy `deficit` (cut-only, positive) → `calorieDelta` (signed). */
+function migrateStats(saved) {
+  const stats = { ...DEFAULT_STATS, ...(saved || {}) };
+  if (stats.deficit !== undefined) {
+    if (saved?.calorieDelta === undefined) {
+      stats.calorieDelta = -stats.deficit;
+    }
+    delete stats.deficit;
+  }
+  return stats;
+}
+
 const INITIAL_STATE = {
   stats: { ...DEFAULT_STATS },
   customFoods: [],
@@ -25,7 +37,7 @@ function load() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return INITIAL_STATE;
     const parsed = JSON.parse(raw);
-    return { ...INITIAL_STATE, ...parsed, stats: { ...DEFAULT_STATS, ...(parsed.stats || {}) } };
+    return { ...INITIAL_STATE, ...parsed, stats: migrateStats(parsed.stats) };
   } catch {
     return INITIAL_STATE;
   }
@@ -159,7 +171,7 @@ export function useNutritionStore() {
           setState({
             ...INITIAL_STATE,
             ...parsed,
-            stats: { ...DEFAULT_STATS, ...(parsed.stats || {}) },
+            stats: migrateStats(parsed.stats),
           });
           resolve();
         } catch (e) {
