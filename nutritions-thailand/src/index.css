@@ -67,3 +67,9 @@ select {
 button {
   font-family: inherit;
 }
+
+/* Thai script doesn't benefit from letter-spacing; it makes labels look stretched.
+   Overrides per-module rules (.title, .label) globally when language is Thai. */
+html[lang='th'] * {
+  letter-spacing: normal !important;
+}
