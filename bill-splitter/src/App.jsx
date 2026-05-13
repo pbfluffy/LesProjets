@@ -10,7 +10,12 @@ const initialShare = readShareFromHash()
 
 function AppInner() {
   const [shared, setShared] = useState(initialShare)
-  const [activeTab, setActiveTab] = useState(initialShare?.t || 'split')
+  const [activeTab, setActiveTab] = useState(() => {
+    if (initialShare?.t) return initialShare.t
+    const tabParam = new URLSearchParams(window.location.search).get('tab')
+    if (tabParam === 'sushi' || tabParam === 'split') return tabParam
+    return 'split'
+  })
   const [dark, setDark] = useState(() => {
     const saved = localStorage.getItem('theme')
     if (saved) return saved === 'dark'
