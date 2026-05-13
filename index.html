@@ -55,6 +55,10 @@
     .card-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
     .arrow { margin-left: auto; font-size: 16px; color: var(--faint); flex-shrink: 0; transition: transform 0.15s, color 0.15s; }
     a.card:hover .arrow { transform: translateX(3px); color: var(--accent); }
+    .card-type-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
+    .card-type-row .card-type { margin-top: 0; }
+    .sushiro-mode-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; background: var(--accent-light); color: var(--accent); border: 0.5px solid var(--accent); border-radius: 999px; padding: 2px 9px; letter-spacing: 0.03em; cursor: pointer; user-select: none; white-space: nowrap; transition: background 0.15s, color 0.15s, transform 0.12s; }
+    .sushiro-mode-btn:hover, .sushiro-mode-btn:focus-visible { background: var(--accent); color: #fff; transform: translateY(-1px); outline: none; }
     footer { text-align: center; padding: 0 0 40px; font-size: 12px; color: var(--faint); display: flex; flex-direction: column; align-items: center; gap: 5px; }
     footer .paw { font-size: 18px; }
   </style>
@@ -90,7 +94,14 @@
         <div class="icon">🍽️</div>
         <div>
           <div class="card-name" id="app1-name">หารบิล</div>
-          <div class="card-type">React App</div>
+          <div class="card-type-row">
+            <div class="card-type">React App</div>
+            <span class="sushiro-mode-btn" role="button" tabindex="0" id="sushiro-btn"
+                  onclick="goSushi(event)"
+                  onkeydown="if(event.key==='Enter'||event.key===' ')goSushi(event)">
+              🍣 <span id="sushiro-btn-text">โหมด Sushiro</span>
+            </span>
+          </div>
         </div>
         <span class="arrow">→</span>
       </div>
@@ -141,6 +152,7 @@
         d1: "หารบิลอาหาร + Sushiro calculator รองรับ VAT, Service Charge, PromptPay และแชร์สรุปไปกลุ่ม Line",
         d2: "ติดตามแคลอรี่ TDEE BMI และมาโครจากอาหารไทย พร้อมบันทึกย้อนหลังและน้ำดื่ม",
         d3: "คู่มือการใช้งาน Excel",
+        sushiroMode: "โหมด Sushiro",
       },
       en: {
         logo: "Pumba's Projects",
@@ -152,6 +164,7 @@
         d1: "Split bills with friends + Sushiro plate calculator. Supports VAT, Service Charge, PromptPay, and share summary to Line.",
         d2: "Track calories, TDEE, BMI and macros from Thai food, with history and water logging.",
         d3: "Excel usage guide",
+        sushiroMode: "Sushiro mode",
       }
     }
 
@@ -176,12 +189,19 @@
       document.getElementById("app1-desc").textContent = s.d1
       document.getElementById("app2-desc").textContent = s.d2
       document.getElementById("app3-desc").textContent = s.d3
+      document.getElementById("sushiro-btn-text").textContent = s.sushiroMode
       document.getElementById("langBtn").textContent = lang === "th" ? "EN" : "TH"
       document.documentElement.lang = lang
     }
 
     function toggleLang() { lang = lang === "th" ? "en" : "th"; applyLang() }
     function toggleTheme() { dark = !dark; applyTheme() }
+
+    function goSushi(e) {
+      e.preventDefault()
+      e.stopPropagation()
+      window.location.href = "./bill-splitter/?tab=sushi"
+    }
 
     applyTheme()
   </script>
