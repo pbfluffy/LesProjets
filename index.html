@@ -61,6 +61,7 @@
     .sushiro-mode-btn:hover, .sushiro-mode-btn:focus-visible { background: var(--accent); color: #fff; transform: translateY(-1px); outline: none; }
     footer { text-align: center; padding: 0 0 40px; font-size: 12px; color: var(--faint); display: flex; flex-direction: column; align-items: center; gap: 5px; }
     footer .paw { font-size: 18px; }
+      .card-wip { display: inline-block; font-size: 9px; font-family: 'IBM Plex Mono', monospace; background: var(--accent-light); color: var(--accent); padding: 2px 8px; border-radius: 999px; margin-top: 4px; letter-spacing: 0.05em; font-weight: 600; border: 0.5px solid var(--border); }
   </style>
 </head>
 <body>
@@ -120,7 +121,20 @@
       <p class="card-desc" id="app2-desc">ติดตามแคลอรี่ TDEE BMI และมาโครจากอาหารไทย พร้อมบันทึกย้อนหลังและน้ำดื่ม</p>
     </a>
 
-    <p class="section-label" id="label-pages">หน้า</p>
+    <a class="card" href="./pumgoda/">
+  <div class="card-header">
+    <div class="icon">🐾</div>
+    <div>
+      <div class="card-name" id="pumgoda-name">Pumgoda</div>
+      <div class="card-type">React App</div>
+      <span class="card-wip" id="pumgoda-wip">🚧 under development</span>
+    </div>
+    <span class="arrow">→</span>
+  </div>
+  <p class="card-desc" id="pumgoda-desc">ค้นหาคาเฟ่ ร้านอาหาร โรงแรม ที่พาน้องไปได้ในกรุงเทพและต่างจังหวัด มีระบบจัดระดับเป็นอุ้งเท้า 1–4 และตรา 'พุมบ้าเคยมา'</p>
+</a>
+
+<p class="section-label" id="label-pages">หน้า</p>
 
     <a class="card" href="./excel-tutorial.html">
       <div class="card-header">
@@ -152,6 +166,9 @@
         d1: "หารบิลอาหาร + Sushiro calculator รองรับ VAT, Service Charge, PromptPay และแชร์สรุปไปกลุ่ม Line",
         d2: "ติดตามแคลอรี่ TDEE BMI และมาโครจากอาหารไทย พร้อมบันทึกย้อนหลังและน้ำดื่ม",
         d3: "คู่มือการใช้งาน Excel",
+      pumgodaName: "Pumgoda",
+      pumgodaDesc: "ค้นหาคาเฟ่ ร้านอาหาร โรงแรม ที่พาน้องไปได้ในกรุงเทพและต่างจังหวัด มีระบบจัดระดับเป็นอุ้งเท้า 1–4 และตรา 'พุมบ้าเคยมา'",
+      pumgodaWip: "🚧 อยู่ระหว่างพัฒนา"
         sushiroMode: "โหมด Sushiro",
       },
       en: {
@@ -164,6 +181,9 @@
         d1: "Split bills with friends + Sushiro plate calculator. Supports VAT, Service Charge, PromptPay, and share summary to Line.",
         d2: "Track calories, TDEE, BMI and macros from Thai food, with history and water logging.",
         d3: "Excel usage guide",
+      pumgodaName: "Pumgoda",
+      pumgodaDesc: "Find cafés, restaurants, hotels, and parks across Thailand that welcome pets — paw tier 1–4 plus 'Pumba was here' verification stamp.",
+      pumgodaWip: "🚧 under development"
         sushiroMode: "Sushiro mode",
       }
     }
@@ -189,6 +209,9 @@
       document.getElementById("app1-desc").textContent = s.d1
       document.getElementById("app2-desc").textContent = s.d2
       document.getElementById("app3-desc").textContent = s.d3
+      document.getElementById("pumgoda-name").textContent = s.pumgodaName
+      document.getElementById("pumgoda-desc").textContent = s.pumgodaDesc
+      document.getElementById("pumgoda-wip").textContent = s.pumgodaWip
       document.getElementById("sushiro-btn-text").textContent = s.sushiroMode
       document.getElementById("langBtn").textContent = lang === "th" ? "EN" : "TH"
       document.documentElement.lang = lang
