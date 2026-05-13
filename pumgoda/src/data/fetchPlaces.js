@@ -68,7 +68,8 @@ function normalize(row) {
   }
 }
 
-// Filter out the placeholder rows the sheet ships with by default
+// Filter helper for hiding the seed/template rows whose IDs start with "sample-".
+// Off by default; flip the includeSamples flag below to hide them later.
 function isRealPlace(p) {
   return p.id && !p.id.startsWith('sample-')
 }
@@ -96,7 +97,7 @@ function writeCache(places) {
   }
 }
 
-export async function fetchPlaces({ force = false, includeSamples = false } = {}) {
+export async function fetchPlaces({ force = false, includeSamples = true } = {}) {
   if (!force) {
     const cached = readCache()
     if (cached) {
