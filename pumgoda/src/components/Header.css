@@ -15,12 +15,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.ph-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
 .ph-logo {
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .ph-controls {
@@ -42,8 +51,15 @@
   align-items: center;
   cursor: pointer;
   transition: background 0.15s ease;
+  letter-spacing: 0.03em;
+  text-decoration: none;
 }
 
 .ph-ctrl:hover {
   background: var(--border);
+}
+
+/* Home button — explicit override so the anchor matches the buttons */
+.ph-home {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
 }
