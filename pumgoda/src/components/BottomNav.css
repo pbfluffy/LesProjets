@@ -1,0 +1,49 @@
+.ph-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  background: var(--surface);
+  border-top: 0.5px solid var(--border);
+  backdrop-filter: saturate(180%) blur(8px);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.ph-nav-inner {
+  max-width: 600px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.ph-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 6px 12px;
+  font-size: 11px;
+  color: var(--faint);
+  font-weight: 500;
+  transition: color 0.15s ease;
+  cursor: pointer;
+}
+
+.ph-nav-btn:hover {
+  color: var(--text);
+}
+
+.ph-nav-btn.is-active {
+  color: var(--accent);
+}
+
+.ph-nav-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.ph-nav-label {
+  letter-spacing: 0.04em;
+}

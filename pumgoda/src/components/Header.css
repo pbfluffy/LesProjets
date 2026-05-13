@@ -1,0 +1,49 @@
+.ph-header {
+  background: var(--surface);
+  border-bottom: 0.5px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  backdrop-filter: saturate(180%) blur(8px);
+}
+
+.ph-header-inner {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ph-logo {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.ph-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ph-ctrl {
+  background: var(--surface-alt);
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ph-ctrl:hover {
+  background: var(--border);
+}

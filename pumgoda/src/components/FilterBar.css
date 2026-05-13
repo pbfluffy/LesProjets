@@ -1,0 +1,56 @@
+.ph-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+/* Region — segmented control */
+.ph-region {
+  display: flex;
+  gap: 4px;
+  padding: 0 16px;
+  background: transparent;
+}
+
+.ph-region-btn {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  letter-spacing: 0.03em;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.ph-region-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.ph-region-btn.is-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* Chip — selectable pill */
+.ph-chip {
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.ph-chip:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.ph-chip.is-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}

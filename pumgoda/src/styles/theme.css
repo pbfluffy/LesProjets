@@ -1,0 +1,153 @@
+/* Pumgoda theme — mirrors pumbafluffycorgi.com/index.html palette */
+
+:root {
+  --bg: #f7f5f0;
+  --surface: #ffffff;
+  --surface-alt: #f0ede8;
+  --border: #e4e1db;
+  --text: #1a1916;
+  --muted: #6b6862;
+  --faint: #a09d98;
+  --accent: #c45c1a;
+  --accent-light: #fdf0e8;
+  --danger: #b00020;
+  --radius: 16px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+}
+
+html[data-theme='dark'] {
+  --bg: #161614;
+  --surface: #1e1e1b;
+  --surface-alt: #272723;
+  --border: #2e2e2a;
+  --text: #f0ede8;
+  --muted: #8a8780;
+  --faint: #55534e;
+  --accent: #e8924a;
+  --accent-light: #2a1e10;
+  --danger: #ff6b7d;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+body {
+  font-family: 'Noto Sans Thai', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* Layout containers — same 600px column as the portfolio index */
+.shell {
+  max-width: 600px;
+  margin: 0 auto;
+  padding-bottom: 96px; /* reserve space for bottom nav */
+}
+
+/* Mono utility for technical-feeling labels */
+.mono {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  letter-spacing: 0.03em;
+}
+
+/* Standard card surface — matches the portfolio's a.card pattern */
+.surface {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease,
+    background 0.2s ease;
+}
+
+.surface-hover:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+}
+
+/* Pill — pet-policy chips, paw tier badge */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-alt);
+  color: var(--muted);
+  border: 0.5px solid var(--border);
+  white-space: nowrap;
+}
+
+.pill.accent {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-color: transparent;
+}
+
+.pill.solid {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* Section label — "12 places nearby", "filters", etc. */
+.section-label {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--faint);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 16px 6px 8px;
+}
+
+/* Hide scrollbars on horizontal chip strips while keeping scroll behavior */
+.hscroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0 16px 4px;
+}
+.hscroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

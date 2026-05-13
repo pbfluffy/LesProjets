@@ -1,0 +1,20 @@
+.ph-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px;
+}
+
+.ph-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 40px 16px 24px;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.ph-footer-paw {
+  font-size: 18px;
+}

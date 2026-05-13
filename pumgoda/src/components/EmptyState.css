@@ -1,0 +1,24 @@
+.ph-empty {
+  text-align: center;
+  padding: 64px 24px;
+  color: var(--muted);
+}
+
+.ph-empty-icon {
+  font-size: 42px;
+  margin-bottom: 8px;
+  filter: grayscale(0.3);
+  opacity: 0.6;
+}
+
+.ph-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ph-empty-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted);
+}

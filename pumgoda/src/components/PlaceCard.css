@@ -1,0 +1,39 @@
+.ph-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ph-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ph-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ph-card-meta {
+  font-size: 11px;
+  color: var(--faint);
+  letter-spacing: 0.03em;
+}
+
+.ph-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ph-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}

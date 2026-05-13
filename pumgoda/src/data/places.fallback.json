@@ -1,0 +1,50 @@
+[
+  {
+    "id": "sample-cafe-thonglor",
+    "name": { "en": "Sample Cafe — Thonglor", "th": "ตัวอย่างคาเฟ่ — ทองหล่อ" },
+    "type": "cafe",
+    "region": "bangkok_metro",
+    "province": "Bangkok",
+    "neighborhood": "Thonglor",
+    "coords": [13.7325, 100.5808],
+    "address": { "en": "Soi Thonglor 8", "th": "ซอยทองหล่อ 8" },
+    "googleMapsUrl": "",
+    "phone": "",
+    "website": "",
+    "instagram": "@samplecafe",
+    "hours": "Daily 08:00-20:00",
+    "policy": {
+      "indoor_allowed": true,
+      "no_size_limit": true,
+      "size_limit_kg": null,
+      "water_bowl": true,
+      "no_fee": true,
+      "fee_baht": null,
+      "pet_menu": true,
+      "off_leash_zone": false,
+      "pet_bed_toys": false,
+      "pet_pool_play_grooming": false,
+      "overnight": false,
+      "staff_welcoming": true
+    },
+    "indoor_allowed": true,
+    "no_size_limit": true,
+    "water_bowl": true,
+    "no_fee": true,
+    "pet_menu": true,
+    "off_leash_zone": false,
+    "pet_bed_toys": false,
+    "pet_pool_play_grooming": false,
+    "overnight": false,
+    "staff_welcoming": true,
+    "pumba": { "verified": false, "visitDate": null, "photoUrl": null },
+    "priceTier": "฿฿",
+    "notes": {
+      "en": "Bundled fallback row — sheet was unreachable.",
+      "th": "ข้อมูลสำรอง — เชื่อมต่อชีตไม่ได้"
+    },
+    "tags": ["specialty-coffee", "wifi"],
+    "lastVerified": null,
+    "source": "fallback"
+  }
+]
