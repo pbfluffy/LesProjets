@@ -20,6 +20,7 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
   const policyRows = [
     ['indoor_allowed', s.policy.indoor_allowed],
     ['no_size_limit', s.policy.no_size_limit],
+    ['no_stroller_needed', s.policy.no_stroller_needed],
     ['water_bowl', s.policy.water_bowl],
     ['pet_menu', s.policy.pet_menu],
     ['off_leash_zone', s.policy.off_leash_zone],
@@ -80,12 +81,18 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
         <section className="ph-section">
           <h3 className="ph-section-title">{s.detail.sections.policy}</h3>
           <ul className="ph-policy-grid">
-            {policyRows.map(([key, label]) => (
-              <li key={key} className={venue.policy?.[key] ? 'is-yes' : 'is-no'}>
-                <span className="ph-policy-icon">{venue.policy?.[key] ? '✓' : '·'}</span>
-                <span>{label}</span>
-              </li>
-            ))}
+            {policyRows.map(([key, label]) => {
+              // no_stroller_needed inverts stroller_required (true = no stroller needed = good)
+              const isYes = key === 'no_stroller_needed'
+                ? !venue.policy?.stroller_required
+                : !!venue.policy?.[key]
+              return (
+                <li key={key} className={isYes ? 'is-yes' : 'is-no'}>
+                  <span className="ph-policy-icon">{isYes ? '✓' : '·'}</span>
+                  <span>{label}</span>
+                </li>
+              )
+            })}
           </ul>
           {venue.policy?.size_limit_kg && (
             <p className="ph-policy-note mono">
@@ -95,11 +102,6 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
           {venue.policy?.fee_baht && (
             <p className="ph-policy-note mono">
               {interp(s.card.fee, { baht: venue.policy.fee_baht })}
-            </p>
-          )}
-          {venue.policy?.stroller_required && (
-            <p className="ph-policy-note mono">
-              {s.policy.stroller_required}
             </p>
           )}
         </section>
