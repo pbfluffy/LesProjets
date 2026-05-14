@@ -24,6 +24,9 @@ const DEFAULT_ZOOM = 11
 const SINGLE_PLACE_ZOOM = 15
 const USER_LOCATION_ZOOM = 14
 
+// Pumba mascot image (resolved against Vite's base URL)
+const PUMBA_IMG = `${import.meta.env.BASE_URL}pumba.png`
+
 // Color ramp for paw tiers — light → dark accent
 const TIER_COLOR = {
   1: 'var(--accent-light)',
@@ -140,7 +143,7 @@ function buildPopupHtml(place, lang) {
     <div class="${styles.popupCard}">
       <div class="${styles.popupTitle}">${typeIcon} ${escapeHtml(name)}</div>
       <div class="${styles.popupTier}">${paws} ${escapeHtml(tierName)}</div>
-      ${verified ? `<div class="${styles.popupVerified}">🐾 ${escapeHtml(labels.pumbaWasHere)}</div>` : ''}
+      ${verified ? `<div class="${styles.popupVerified}"><img class="${styles.popupVerifiedImg}" src="${PUMBA_IMG}" alt="" /> ${escapeHtml(labels.pumbaWasHere)}</div>` : ''}
       <div class="${styles.popupActions}">
         <button class="${styles.popupBtn}" data-action="details" type="button">${escapeHtml(labels.details)}</button>
         ${mapsUrl ? `<a class="${styles.popupBtn} ${styles.popupBtnSecondary}" data-action="maps" href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(labels.maps)}</a>` : ''}
