@@ -63,3 +63,26 @@
 .ph-home {
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
 }
+
+/* Icon-only buttons (refresh, share) — same height as text buttons, square footprint */
+.ph-ctrl-icon {
+  width: 30px;
+  padding: 0;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.ph-ctrl-icon:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Spin animation for the refresh button while fetching */
+@keyframes ph-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ph-ctrl-icon.is-spinning {
+  animation: ph-spin 1s linear infinite;
+}
