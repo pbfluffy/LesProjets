@@ -21,6 +21,14 @@ export const STRINGS = {
     },
     footer: 'pumbafluffycorgi.com',
 
+    header: {
+      share: 'แชร์',
+      refresh: 'รีเฟรช',
+      linkCopied: 'คัดลอกลิงก์แล้ว',
+      shareTitle: 'Pumgoda',
+      shareText: 'Pumgoda — สถานที่ที่พาน้องไปได้ในประเทศไทย',
+    },
+
     tabs: {
       list: 'รายการ',
       map: 'แผนที่',
@@ -112,6 +120,14 @@ export const STRINGS = {
       remove: 'Remove photo',
     },
     footer: 'pumbafluffycorgi.com',
+
+    header: {
+      share: 'Share',
+      refresh: 'Refresh',
+      linkCopied: 'Link copied',
+      shareTitle: 'Pumgoda',
+      shareText: 'Pumgoda — Find pet-friendly places across Thailand',
+    },
 
     tabs: {
       list: 'List',
