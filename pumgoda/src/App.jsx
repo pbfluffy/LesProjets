@@ -144,7 +144,7 @@ export default function App() {
               )}
               {visiblePlaces.map((venue) => (
                 <PlaceCard
-                  key={venue.id}
+                  key={venue.id || venue.name?.en || venue.name?.th}
                   venue={venue}
                   lang={lang}
                   onOpen={setSelected}
