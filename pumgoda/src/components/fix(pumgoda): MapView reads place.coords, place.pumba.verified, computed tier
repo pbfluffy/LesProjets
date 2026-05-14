@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import styles from './MapView.module.css'
+import { computeTier } from '../data/computeTier'
 
 // Tile providers (CARTO — free for non-commercial, no API key)
 const TILES = {
@@ -43,10 +44,10 @@ const TIER_TEXT_COLOR = {
  * Small rounded badge with paw count; "Pumba was here" gets an outer ring.
  */
 function buildMarkerHtml(place) {
-  const tier = Math.max(1, Math.min(4, place.tier || 1))
+  const tier = Math.max(1, Math.min(4, computeTier(place).paws || 1))
   const bg = TIER_COLOR[tier]
   const fg = TIER_TEXT_COLOR[tier]
-  const verified = !!place.pumbaWasHere
+  const verified = !!place.pumba?.verified
   return `
     <div class="${styles.markerWrap} ${verified ? styles.markerVerified : ''}">
       <div class="${styles.markerBadge}" style="background:${bg};color:${fg};">
@@ -127,7 +128,7 @@ export default function MapView({ places = [], onPlaceClick, theme = 'light', la
     layer.clearLayers()
 
     const valid = places.filter(
-      (p) => typeof p.lat === 'number' && typeof p.lng === 'number',
+      (p) => Array.isArray(p.coords) && typeof p.coords[0] === 'number' && typeof p.coords[1] === 'number',
     )
 
     if (valid.length === 0) {
@@ -136,7 +137,7 @@ export default function MapView({ places = [], onPlaceClick, theme = 'light', la
     }
 
     const markers = valid.map((place) => {
-      const marker = L.marker([place.lat, place.lng], {
+      const marker = L.marker(place.coords, {
         icon: buildIcon(place),
         title: place.name?.[lang] || place.name?.en || place.id,
         keyboard: true,
@@ -148,7 +149,7 @@ export default function MapView({ places = [], onPlaceClick, theme = 'light', la
     })
 
     if (valid.length === 1) {
-      map.setView([valid[0].lat, valid[0].lng], SINGLE_PLACE_ZOOM)
+      map.setView(valid[0].coords, SINGLE_PLACE_ZOOM)
     } else {
       const group = L.featureGroup(markers)
       map.fitBounds(group.getBounds(), { padding: [40, 40], maxZoom: 14 })
@@ -156,7 +157,7 @@ export default function MapView({ places = [], onPlaceClick, theme = 'light', la
   }, [places, lang, onPlaceClick])
 
   const skipped = places.filter(
-    (p) => typeof p.lat !== 'number' || typeof p.lng !== 'number',
+    (p) => !Array.isArray(p.coords) || typeof p.coords[0] !== 'number' || typeof p.coords[1] !== 'number',
   ).length
 
   return (
