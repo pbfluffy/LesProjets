@@ -72,6 +72,7 @@
       <div class="header-controls">
         <button class="ctrl-btn" id="langBtn" onclick="toggleLang()">EN</button>
         <button class="ctrl-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+        <button class="ctrl-btn" id="shareBtn" onclick="shareApp()" aria-label="Share" title="Share">↗</button>
       </div>
     </div>
   </header>
@@ -224,6 +225,26 @@
       e.preventDefault()
       e.stopPropagation()
       window.location.href = "./bill-splitter/?tab=sushi"
+    }
+
+    async function shareApp() {
+      const url = location.origin + '/'
+      const lang = document.documentElement.lang === 'th' ? 'th' : 'en'
+      const title = "พุมบ้า's Projects"
+      const text = lang === 'th'
+        ? 'รวมโปรเจกต์เล็กๆ ของพุมบ้า — แอป เครื่องมือ และเว็บไซต์'
+        : "พุมบ้า's Projects — small apps, tools, and websites"
+      if (navigator.share) {
+        try { await navigator.share({ title, text, url }) }
+        catch (e) { if (e.name !== 'AbortError') console.warn('share:', e) }
+        return
+      }
+      try {
+        await navigator.clipboard.writeText(url)
+        alert((lang === 'th' ? 'คัดลอกลิงก์แล้ว: ' : 'Link copied: ') + url)
+      } catch {
+        window.prompt(lang === 'th' ? 'คัดลอกลิงก์นี้:' : 'Copy this URL:', url)
+      }
     }
 
     applyTheme()
