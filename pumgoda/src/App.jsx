@@ -34,6 +34,7 @@ export default function App() {
 
   // Header actions: share the app URL and force-refresh the Sheet cache
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [toast, setToast] = useState(null)
 
   const onShare = async () => {
     const url = window.location.href.split('?')[0].split('#')[0]
@@ -47,9 +48,12 @@ export default function App() {
     }
     try {
       await navigator.clipboard.writeText(url)
-      alert(s.header.share + ': ' + url)
+      setToast(s.header.linkCopied)
+      setTimeout(() => setToast(null), 2200)
     } catch {
-      window.prompt(s.header.share, url)
+      // Clipboard API also failed — show URL in toast for manual copy
+      setToast(url)
+      setTimeout(() => setToast(null), 5000)
     }
   }
 
@@ -173,6 +177,32 @@ export default function App() {
       )}
 
       <BottomNav active={activeTab} onChange={setActiveTab} lang={lang} />
+      {toast && (
+        <div
+          role="status"
+          style={{
+            position: 'fixed',
+            bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'var(--text)',
+            color: 'var(--surface)',
+            padding: '8px 16px',
+            borderRadius: '999px',
+            fontSize: '13px',
+            fontWeight: 600,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            zIndex: 100,
+            pointerEvents: 'none',
+            maxWidth: '90vw',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {toast}
+        </div>
+      )}
     </>
   )
 }
