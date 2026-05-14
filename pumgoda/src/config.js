@@ -10,7 +10,7 @@ export const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 hours
 
 // Storage keys
 export const LS_KEYS = {
-  PLACES: 'pumgoda_places_v1',
+  PLACES: 'pumgoda_places_v2',
   THEME: 'pumgoda_theme',
   LANG: 'pumgoda_lang',
   SAVED: 'pumgoda_saved_v1',
