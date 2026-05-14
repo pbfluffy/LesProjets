@@ -97,6 +97,11 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
               {interp(s.card.fee, { baht: venue.policy.fee_baht })}
             </p>
           )}
+          {venue.policy?.stroller_required && (
+            <p className="ph-policy-note mono">
+              {s.policy.stroller_required}
+            </p>
+          )}
         </section>
 
         {/* Hours */}
