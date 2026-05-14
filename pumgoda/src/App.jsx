@@ -39,7 +39,7 @@ export default function App() {
     const url = window.location.href.split('?')[0].split('#')[0]
     if (navigator.share) {
       try {
-        await navigator.share({ title: s.shareTitle, text: s.shareText, url })
+        await navigator.share({ title: s.header.shareTitle, text: s.header.shareText, url })
         return
       } catch (e) {
         if (e.name === 'AbortError') return // user dismissed share sheet
@@ -47,9 +47,9 @@ export default function App() {
     }
     try {
       await navigator.clipboard.writeText(url)
-      alert(s.share + ': ' + url)
+      alert(s.header.share + ': ' + url)
     } catch {
-      window.prompt(s.share, url)
+      window.prompt(s.header.share, url)
     }
   }
 
@@ -107,8 +107,8 @@ export default function App() {
         onShare={onShare}
         onRefresh={onRefresh}
         isRefreshing={isRefreshing}
-        shareLabel={s.share}
-        refreshLabel={s.refresh}
+        shareLabel={s.header.share}
+        refreshLabel={s.header.refresh}
       />
 
       <div className="shell">
