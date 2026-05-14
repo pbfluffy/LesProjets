@@ -2,7 +2,7 @@ import { STRINGS } from '../i18n/strings'
 import './FilterBar.css'
 
 const TYPES = ['cafe', 'restaurant', 'hotel', 'park', 'mall', 'beach', 'vet', 'pet_shop', 'grooming']
-const POLICIES = ['indoor_allowed', 'no_size_limit', 'pet_menu', 'off_leash_zone', 'overnight', 'no_fee']
+const POLICIES = ['indoor_allowed', 'no_size_limit', 'pet_menu', 'off_leash_zone', 'overnight', 'no_fee', 'no_stroller_needed']
 
 export default function FilterBar({ lang, filters, setRegion, toggleType, togglePolicy }) {
   const s = STRINGS[lang]
