@@ -72,7 +72,7 @@ export default function App() {
       />
 
       <div className="shell">
-        <Hero tagline={s.tagline} subtitle={s.subtitle} dogBadge={s.dogBadge} />
+        <Hero tagline={s.tagline} subtitle={s.subtitle} dogBadge={s.dogBadge} photoLabels={s.heroPhoto} />
 
         {(activeTab === 'list' || activeTab === 'saved') && (
           <>
