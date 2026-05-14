@@ -20,6 +20,19 @@ import { LS_KEYS } from './config'
 
 import './styles/theme.css'
 
+// Haversine distance in km between two [lat, lng] arrays
+function haversineKm(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b)) return Infinity
+  const R = 6371
+  const toRad = (deg) => (deg * Math.PI) / 180
+  const dLat = toRad(b[0] - a[0])
+  const dLng = toRad(b[1] - a[1])
+  const lat1 = toRad(a[0])
+  const lat2 = toRad(b[0])
+  const sa = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(sa), Math.sqrt(1 - sa))
+}
+
 export default function App() {
   const [theme, setTheme] = useTheme()
   const [lang, setLang] = useLang()
@@ -32,6 +45,21 @@ export default function App() {
   const [savedIds, setSavedIds] = useLocalStorage(LS_KEYS.SAVED, [])
 
   const { filters, setRegion, toggleType, togglePolicy, setSort } = useFilters()
+  const [userCoords, setUserCoords] = useState(null)
+  const [locationError, setLocationError] = useState(null)
+
+  const requestUserLocation = () => {
+    if (!('geolocation' in navigator)) {
+      setLocationError('unsupported')
+      return
+    }
+    setLocationError(null)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserCoords([pos.coords.latitude, pos.coords.longitude]),
+      (err) => setLocationError(err && err.code === 1 ? 'denied' : 'error'),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    )
+  }
 
   // Header actions: share the app URL and force-refresh the Sheet cache
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -100,11 +128,13 @@ export default function App() {
         if (vb !== va) return vb - va
         return computeTier(b).paws - computeTier(a).paws
       })
+    } else if (filters.sort === 'nearby' && userCoords) {
+      arr.sort((a, b) => haversineKm(userCoords, a.coords) - haversineKm(userCoords, b.coords))
     } else {
       arr.sort((a, b) => computeTier(b).paws - computeTier(a).paws)
     }
     return arr
-  }, [places, filters, savedIds, activeTab, lang])
+  }, [places, filters, savedIds, activeTab, lang, userCoords])
 
   const toggleSave = (id) =>
     setSavedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
@@ -148,10 +178,23 @@ export default function App() {
             </p>
 
             {visiblePlaces.length > 1 && loadState !== 'loading' && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0 12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, margin: '4px 0 12px' }}>
+                {filters.sort === 'nearby' && locationError && (
+                  <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: 'var(--accent)' }}>
+                    {locationError === 'denied'
+                      ? (lang === 'th' ? 'ปฏิเสธตำแหน่ง' : 'Location denied')
+                      : locationError === 'unsupported'
+                        ? (lang === 'th' ? 'ไม่รองรับ' : 'Not supported')
+                        : (lang === 'th' ? 'ไม่พบตำแหน่ง' : "Couldn't get location")}
+                  </span>
+                )}
                 <select
                   value={filters.sort}
-                  onChange={(e) => setSort(e.target.value)}
+                  onChange={(e) => {
+                    const newSort = e.target.value
+                    setSort(newSort)
+                    if (newSort === 'nearby' && !userCoords) requestUserLocation()
+                  }}
                   aria-label={lang === 'th' ? 'จัดเรียง' : 'Sort'}
                   style={{
                     fontFamily: "'IBM Plex Mono', monospace",
@@ -167,6 +210,7 @@ export default function App() {
                   <option value="paws">{lang === 'th' ? 'อุ้งเท้ามากสุด' : 'Most paws'}</option>
                   <option value="name">{lang === 'th' ? 'เรียงตามตัวอักษร' : 'A–Z'}</option>
                   <option value="verified">{lang === 'th' ? 'พุมบ้ามาก่อน' : 'Pumba verified first'}</option>
+                  <option value="nearby">{lang === 'th' ? 'ใกล้ฉันที่สุด' : 'Nearest to me'}</option>
                 </select>
               </div>
             )}
