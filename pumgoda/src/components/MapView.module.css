@@ -17,28 +17,25 @@
   height: 100%;
 }
 
-/* Leaflet uses an internal stacking context; force the controls/panes to sit
-   above the surface but below modals/overlays. */
+/* Leaflet attribution styling */
 .mapContainer :global(.leaflet-control-container) {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
 }
-
 .mapContainer :global(.leaflet-control-attribution) {
   background: var(--surface);
   color: var(--text);
   border-radius: 6px;
   padding: 2px 6px;
 }
-
 .mapContainer :global(.leaflet-control-attribution a) {
   color: var(--accent);
 }
 
-/* Marker badge — replicates the warm-orange chip aesthetic */
+/* ---------- Marker ---------- */
 
-.markerIcon {
-  /* Strip Leaflet's default white box on .leaflet-div-icon */
+/* Strip Leaflet's default white box on .leaflet-div-icon */
+.markerLeaflet {
   background: transparent !important;
   border: none !important;
 }
@@ -53,7 +50,6 @@
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
   transition: transform 120ms ease;
 }
-
 .markerWrap:hover {
   transform: translateY(-2px) scale(1.08);
 }
@@ -63,27 +59,17 @@
   height: 34px;
   border-radius: 50%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   border: 2px solid var(--surface);
-  line-height: 1;
-  font-family: 'IBM Plex Mono', monospace;
 }
 
-.markerPaw {
-  font-size: 12px;
+.markerIcon {
+  font-size: 18px;
   line-height: 1;
 }
 
-.markerNum {
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  margin-top: 1px;
-}
-
-/* "Pumba was here" — soft accent ring */
+/* "Pumba was here" — soft accent ring around the badge */
 .markerVerified::before {
   content: '';
   position: absolute;
@@ -94,7 +80,167 @@
   pointer-events: none;
 }
 
-/* Note shown when sheet rows lack lat/lng */
+/* ---------- Locate-me button ---------- */
+
+.locateBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 500;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 120ms ease, background 120ms ease;
+  padding: 0;
+}
+.locateBtn:hover {
+  transform: scale(1.05);
+  background: var(--surface-alt);
+}
+.locateBtn:active {
+  transform: scale(0.95);
+}
+.locateBtn:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+.locateBtnLoading {
+  animation: locatePulse 1s ease-in-out infinite;
+}
+@keyframes locatePulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* ---------- User-location marker (pulsing blue dot) ---------- */
+
+.userIconLeaflet {
+  background: transparent !important;
+  border: none !important;
+}
+
+.userDot {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+.userDot::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: #4285f4;
+  opacity: 0.3;
+  animation: userPulse 1.8s ease-out infinite;
+}
+.userDotInner {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: #4285f4;
+  border: 2px solid #fff;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+}
+@keyframes userPulse {
+  0% { transform: scale(0.8); opacity: 0.4; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* ---------- Popup ---------- */
+
+/* Override Leaflet's default popup chrome to match the app theme */
+:global(.leaflet-popup-content-wrapper) {
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 12px;
+  border: 0.5px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+:global(.leaflet-popup-tip) {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+}
+:global(.leaflet-popup-close-button) {
+  color: var(--text) !important;
+  font-size: 18px !important;
+  padding: 6px 8px !important;
+  opacity: 0.6;
+}
+:global(.leaflet-popup-close-button:hover) {
+  opacity: 1;
+}
+:global(.leaflet-popup-content) {
+  margin: 12px 14px;
+  font-family: 'Noto Sans Thai', system-ui, sans-serif;
+}
+
+.popupCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.popupTitle {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.3;
+}
+.popupTier {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.85;
+}
+.popupVerified {
+  color: var(--accent);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+}
+.popupActions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.popupBtn {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 0.5px solid var(--border);
+  background: var(--accent);
+  color: #fff;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  white-space: nowrap;
+  display: inline-block;
+  box-sizing: border-box;
+  transition: opacity 120ms ease;
+}
+.popupBtn:hover {
+  opacity: 0.85;
+}
+.popupBtnSecondary {
+  background: var(--surface-alt);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* ---------- Notes overlaying the map ---------- */
+
 .skippedNote {
   position: absolute;
   bottom: 8px;
@@ -111,8 +257,23 @@
   pointer-events: none;
 }
 
-/* Dark-mode tweaks — CARTO dark tiles handle most of it, just make sure
-   our overlay chrome reads right. */
+.errorNote {
+  position: absolute;
+  top: 56px;
+  right: 12px;
+  z-index: 500;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  background: var(--surface);
+  color: var(--text);
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 8px;
+  max-width: 220px;
+  pointer-events: none;
+}
+
+/* Dark-mode tweaks — CARTO dark tiles handle most of it; keep overlays readable */
 :global([data-theme='dark']) .mapContainer :global(.leaflet-control-attribution) {
   background: var(--surface);
   color: var(--text);
