@@ -52,6 +52,8 @@ export const STRINGS = {
       off_leash_zone: 'ปล่อยได้',
       no_fee: 'ฟรี',
       overnight: 'ค้างคืนได้',
+      no_stroller_needed: 'ไม่ต้องใช้รถเข็น',
+      stroller_required: 'ต้องใช้รถเข็น/กระเป๋าใส่สัตว์',
     },
 
     card: {
@@ -137,6 +139,8 @@ export const STRINGS = {
       off_leash_zone: 'Off-leash',
       no_fee: 'Free',
       overnight: 'Overnight',
+      no_stroller_needed: 'No stroller needed',
+      stroller_required: 'Stroller/carrier required',
     },
 
     card: {
