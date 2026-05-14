@@ -10,6 +10,7 @@
   overflow: hidden;
   border: 0.5px solid var(--border);
   background: var(--surface);
+  isolation: isolate;
 }
 
 .mapContainer {
