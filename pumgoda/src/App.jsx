@@ -32,6 +32,41 @@ export default function App() {
 
   const { filters, setRegion, toggleType, togglePolicy } = useFilters()
 
+  // Header actions: share the app URL and force-refresh the Sheet cache
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const onShare = async () => {
+    const url = window.location.href.split('?')[0].split('#')[0]
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: s.shareTitle, text: s.shareText, url })
+        return
+      } catch (e) {
+        if (e.name === 'AbortError') return // user dismissed share sheet
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      alert(s.share + ': ' + url)
+    } catch {
+      window.prompt(s.share, url)
+    }
+  }
+
+  const onRefresh = async () => {
+    if (isRefreshing) return
+    setIsRefreshing(true)
+    try {
+      const { places: fresh, source } = await fetchPlaces({ force: true })
+      setPlaces(fresh)
+      setLoadState(source === 'fallback' ? 'fallback' : 'ok')
+    } catch (err) {
+      console.warn('[onRefresh] could not refresh places:', err)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
   // Load places on mount
   useEffect(() => {
     let cancelled = false
@@ -69,6 +104,11 @@ export default function App() {
         theme={theme}
         onToggleLang={onToggleLang}
         onToggleTheme={onToggleTheme}
+        onShare={onShare}
+        onRefresh={onRefresh}
+        isRefreshing={isRefreshing}
+        shareLabel={s.share}
+        refreshLabel={s.refresh}
       />
 
       <div className="shell">
