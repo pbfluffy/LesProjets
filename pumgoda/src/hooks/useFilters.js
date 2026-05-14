@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react'
 const DEFAULT = {
   region: 'all', // 'all' | 'bangkok_metro' | 'weekend_escape'
   types: [], // subset of: cafe, restaurant, hotel, park, mall, beach, vet, pet_shop, grooming
-  policies: [], // subset of: indoor_allowed, no_size_limit, water_bowl, pet_menu, off_leash_zone, no_fee, overnight
+  policies: [], // subset of: indoor_allowed, no_size_limit, water_bowl, pet_menu, off_leash_zone, no_fee, overnight, no_stroller_needed
   sort: 'paws', // 'paws' | 'newest' | 'nearby'
 }
 
@@ -38,6 +38,10 @@ export function applyFilters(places, filters) {
     if (filters.types.length > 0 && !filters.types.includes(p.type)) return false
     if (filters.policies.length > 0) {
       for (const policy of filters.policies) {
+        if (policy === 'no_stroller_needed') {
+          if (p.policy?.stroller_required === true) return false
+          continue
+        }
         if (!p.policy?.[policy]) return false
       }
     }
