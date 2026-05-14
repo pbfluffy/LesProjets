@@ -31,7 +31,7 @@ export default function App() {
   const [selected, setSelected] = useState(null) // a venue object
   const [savedIds, setSavedIds] = useLocalStorage(LS_KEYS.SAVED, [])
 
-  const { filters, setRegion, toggleType, togglePolicy } = useFilters()
+  const { filters, setRegion, toggleType, togglePolicy, setSort } = useFilters()
 
   // Header actions: share the app URL and force-refresh the Sheet cache
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -90,10 +90,21 @@ export default function App() {
     let arr =
       activeTab === 'saved' ? places.filter((p) => savedIds.includes(p.id)) : places
     arr = applyFilters(arr, filters)
-    // Default sort: highest paws first
-    arr.sort((a, b) => computeTier(b).paws - computeTier(a).paws)
+    // Sort based on filters.sort
+    if (filters.sort === 'name') {
+      arr.sort((a, b) => (a.name?.[lang] || a.name?.en || '').localeCompare(b.name?.[lang] || b.name?.en || ''))
+    } else if (filters.sort === 'verified') {
+      arr.sort((a, b) => {
+        const va = a.pumba?.verified ? 1 : 0
+        const vb = b.pumba?.verified ? 1 : 0
+        if (vb !== va) return vb - va
+        return computeTier(b).paws - computeTier(a).paws
+      })
+    } else {
+      arr.sort((a, b) => computeTier(b).paws - computeTier(a).paws)
+    }
     return arr
-  }, [places, filters, savedIds, activeTab])
+  }, [places, filters, savedIds, activeTab, lang])
 
   const toggleSave = (id) =>
     setSavedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
@@ -135,6 +146,30 @@ export default function App() {
                 : `${visiblePlaces.length} ${activeTab === 'saved' ? '♥' : '🐾'}`}
               {loadState === 'fallback' ? ` · ${s.states.networkError}` : ''}
             </p>
+
+            {visiblePlaces.length > 1 && loadState !== 'loading' && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0 12px' }}>
+                <select
+                  value={filters.sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  aria-label={lang === 'th' ? 'จัดเรียง' : 'Sort'}
+                  style={{
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontSize: 12,
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    border: '0.5px solid var(--border)',
+                    background: 'var(--surface)',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="paws">{lang === 'th' ? 'อุ้งเท้ามากสุด' : 'Most paws'}</option>
+                  <option value="name">{lang === 'th' ? 'เรียงตามตัวอักษร' : 'A–Z'}</option>
+                  <option value="verified">{lang === 'th' ? 'พุมบ้ามาก่อน' : 'Pumba verified first'}</option>
+                </select>
+              </div>
+            )}
 
             <div className="ph-list">
               {visiblePlaces.length === 0 && loadState !== 'loading' && (
