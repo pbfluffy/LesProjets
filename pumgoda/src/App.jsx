@@ -7,6 +7,7 @@ import PlaceCard from './components/PlaceCard'
 import PlaceDetail from './components/PlaceDetail'
 import BottomNav from './components/BottomNav'
 import EmptyState from './components/EmptyState'
+import MapView from './components/MapView'
 
 import { useTheme, useLang } from './hooks/useThemeLang'
 import { useFilters, applyFilters } from './hooks/useFilters'
@@ -153,9 +154,18 @@ export default function App() {
           </>
         )}
 
-        {(activeTab === 'map' || activeTab === 'trips') && (
+        {activeTab === 'map' && (
+          <MapView
+            places={visiblePlaces}
+            onPlaceClick={setSelected}
+            theme={theme}
+            lang={lang}
+          />
+        )}
+
+        {activeTab === 'trips' && (
           <EmptyState
-            icon={activeTab === 'map' ? '🗺️' : '🧳'}
+            icon="🧳"
             title={s.states.comingSoon}
           />
         )}
