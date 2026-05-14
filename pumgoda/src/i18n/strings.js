@@ -14,6 +14,11 @@ export const STRINGS = {
     tagline: 'พาน้องไปไหนได้บ้าง?',
     subtitle: 'หาคาเฟ่ ร้านอาหาร โรงแรม ที่พาน้องไปได้ทั่วไทย',
     dogBadge: '🐾 corgi-approved',
+    heroPhoto: {
+      add: 'เพิ่มรูปน้องของคุณ',
+      change: 'เปลี่ยนรูปน้อง',
+      remove: 'ลบรูป',
+    },
     footer: 'pumbafluffycorgi.com',
 
     tabs: {
@@ -101,6 +106,11 @@ export const STRINGS = {
     tagline: 'Where can my fur baby go?',
     subtitle: 'Pet-friendly cafés, restaurants, and hotels across Thailand',
     dogBadge: '🐾 corgi-approved',
+    heroPhoto: {
+      add: "Add your pet's photo",
+      change: 'Change pet photo',
+      remove: 'Remove photo',
+    },
     footer: 'pumbafluffycorgi.com',
 
     tabs: {
