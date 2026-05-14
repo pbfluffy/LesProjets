@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   background: var(--bg);
-  z-index: 50;
+  z-index: 1000;
   overflow-y: auto;
   animation: ph-slide-in 0.18s ease-out;
 }
