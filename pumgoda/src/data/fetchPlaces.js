@@ -39,6 +39,7 @@ function normalize(row) {
       pet_bed_toys: isTrue(row.pet_bed_toys),
       pet_pool_play_grooming: isTrue(row.pet_pool_play_grooming),
       overnight: isTrue(row.overnight),
+      stroller_required: isTrue(row.stroller_required),
       staff_welcoming: isTrue(row.staff_welcoming),
     },
     // Flatten the policy booleans onto the venue too so computeTier() can read them
@@ -51,6 +52,7 @@ function normalize(row) {
     pet_bed_toys: isTrue(row.pet_bed_toys),
     pet_pool_play_grooming: isTrue(row.pet_pool_play_grooming),
     overnight: isTrue(row.overnight),
+    stroller_required: isTrue(row.stroller_required),
     staff_welcoming: isTrue(row.staff_welcoming),
     pumba: {
       verified: isTrue(row.pumba_verified),
