@@ -7,8 +7,16 @@
   gap: 18px;
 }
 
-.ph-mascot-wrap {
+/* Positioning wrapper — lets the remove badge overlap the tile corner */
+.ph-mascot-slot {
+  position: relative;
   flex-shrink: 0;
+}
+
+/* The mascot tile is now a button. Strip native button chrome and keep the
+   look of the previous div: rounded, accent-tinted, soft shadow. */
+.ph-mascot-wrap {
+  position: relative;
   width: 84px;
   height: 84px;
   border-radius: 18px;
@@ -16,15 +24,93 @@
   background: var(--accent-light);
   border: 1.5px solid var(--border);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  display: block;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+
+.ph-mascot-wrap:hover {
+  border-color: var(--accent);
+}
+
+.ph-mascot-wrap:active {
+  transform: scale(0.97);
+}
+
+.ph-mascot-wrap:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Default Pumba is pixel art — preserve the crisp aesthetic */
+.ph-mascot-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 55% 15%;
+  image-rendering: pixelated;
+  display: block;
+}
+
+/* User photos render smooth and centered */
+.ph-mascot-wrap.is-custom img {
+  object-position: center;
+  image-rendering: auto;
+}
+
+/* Camera hint — small accent badge bottom-right of the tile */
+.ph-mascot-edit {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
 }
 
-.ph-mascot-glyph {
-  font-size: 36px;
+/* Remove badge — × in a circle, top-right corner, only shown when custom */
+.ph-mascot-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 15px;
+  font-weight: 700;
   line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.ph-mascot-remove:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+
+.ph-mascot-remove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .ph-hero-text {
