@@ -1,0 +1,119 @@
+/* Container fills the area below the header/filters and above the bottom nav.
+   Tweak --map-height to taste, or override from App.module.css. */
+
+.mapWrap {
+  position: relative;
+  width: 100%;
+  height: var(--map-height, calc(100vh - 220px));
+  min-height: 320px;
+  border-radius: var(--radius, 16px);
+  overflow: hidden;
+  border: 0.5px solid var(--border);
+  background: var(--surface);
+}
+
+.mapContainer {
+  width: 100%;
+  height: 100%;
+}
+
+/* Leaflet uses an internal stacking context; force the controls/panes to sit
+   above the surface but below modals/overlays. */
+.mapContainer :global(.leaflet-control-container) {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+}
+
+.mapContainer :global(.leaflet-control-attribution) {
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+.mapContainer :global(.leaflet-control-attribution a) {
+  color: var(--accent);
+}
+
+/* Marker badge — replicates the warm-orange chip aesthetic */
+
+.markerIcon {
+  /* Strip Leaflet's default white box on .leaflet-div-icon */
+  background: transparent !important;
+  border: none !important;
+}
+
+.markerWrap {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+  transition: transform 120ms ease;
+}
+
+.markerWrap:hover {
+  transform: translateY(-2px) scale(1.08);
+}
+
+.markerBadge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--surface);
+  line-height: 1;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.markerPaw {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.markerNum {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+/* "Pumba was here" — soft accent ring */
+.markerVerified::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 2px var(--surface);
+  pointer-events: none;
+}
+
+/* Note shown when sheet rows lack lat/lng */
+.skippedNote {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  pointer-events: none;
+}
+
+/* Dark-mode tweaks — CARTO dark tiles handle most of it, just make sure
+   our overlay chrome reads right. */
+:global([data-theme='dark']) .mapContainer :global(.leaflet-control-attribution) {
+  background: var(--surface);
+  color: var(--text);
+}
