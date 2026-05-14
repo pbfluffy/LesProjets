@@ -25,6 +25,7 @@
       "pet_bed_toys": false,
       "pet_pool_play_grooming": false,
       "overnight": false,
+      "stroller_required": false,
       "staff_welcoming": true
     },
     "indoor_allowed": true,
@@ -36,6 +37,7 @@
     "pet_bed_toys": false,
     "pet_pool_play_grooming": false,
     "overnight": false,
+    "stroller_required": false,
     "staff_welcoming": true,
     "pumba": { "verified": false, "visitDate": null, "photoUrl": null },
     "priceTier": "฿฿",
