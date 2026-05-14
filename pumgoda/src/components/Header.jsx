@@ -1,6 +1,17 @@
 import './Header.css'
 
-export default function Header({ lang, onToggleLang, theme, onToggleTheme, brand }) {
+export default function Header({
+  lang,
+  onToggleLang,
+  theme,
+  onToggleTheme,
+  brand,
+  onShare,
+  onRefresh,
+  isRefreshing,
+  shareLabel,
+  refreshLabel,
+}) {
   return (
     <header className="ph-header">
       <div className="ph-header-inner">
@@ -24,6 +35,23 @@ export default function Header({ lang, onToggleLang, theme, onToggleTheme, brand
             aria-label="Toggle theme"
           >
             {theme === 'dark' ? '🌞' : '🌙'}
+          </button>
+          <button
+            className={`ph-ctrl ph-ctrl-icon${isRefreshing ? ' is-spinning' : ''}`}
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            aria-label={refreshLabel || 'Refresh'}
+            title={refreshLabel || 'Refresh'}
+          >
+            ⟳
+          </button>
+          <button
+            className="ph-ctrl ph-ctrl-icon"
+            onClick={onShare}
+            aria-label={shareLabel || 'Share'}
+            title={shareLabel || 'Share'}
+          >
+            ↗
           </button>
         </div>
       </div>
