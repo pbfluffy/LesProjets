@@ -19,14 +19,14 @@ export const RUBRIC = {
 // Calibration note (2026-05): if a venue with overnight + pool + pet beds (score 10)
 // still feels like paradise tier in practice, lower the top `min` to 10.
 export const TIERS = [
-  { min: 11, paws: 4, key: 'paradise',  en: 'Pet paradise', th: 'สวรรค์สัตว์เลี้ยง' },
-  { min:  7, paws: 3, key: 'welcoming', en: 'Pet-welcoming', th: 'ยินดีต้อนรับ' },
-  { min:  4, paws: 2, key: 'friendly',  en: 'Pet-friendly', th: 'เป็นมิตรกับสัตว์เลี้ยง' },
-  { min:  0, paws: 1, key: 'allowed',   en: 'Pets allowed',  th: 'อนุญาตสัตว์เลี้ยง' },
+  { min: 11, paws: 4, key: 'paradise',  en: 'Pet paradise', th: 'สวรรค์สัตว์เลี้ยง', enDesc: 'Overnight stays, pools, grooming — the full pet experience', thDesc: 'พักค้างคืน สระว่ายน้ำ อาบน้ำตัดขน — บริการสัตว์เลี้ยงครบวงจร' },
+  { min:  7, paws: 3, key: 'welcoming', en: 'Pet-welcoming', th: 'ยินดีต้อนรับ', enDesc: 'Pet menu, off-leash zone, no fees, water bowls — actively pet-oriented', thDesc: 'เมนูสัตว์เลี้ยง โซนปล่อยอิสระ ไม่มีค่าธรรมเนียม ชามน้ำ — เอาใจใส่ใจสัตว์เลี้ยง' },
+  { min:  4, paws: 2, key: 'friendly',  en: 'Pet-friendly', th: 'เป็นมิตรกับสัตว์เลี้ยง', enDesc: 'Indoor seating allowed, no size limit — comfortable for pets', thDesc: 'นั่งในร้านได้ ไม่จำกัดขนาด — สะดวกสบายสำหรับสัตว์เลี้ยง' },
+  { min:  0, paws: 1, key: 'allowed',   en: 'Pets allowed',  th: 'อนุญาตสัตว์เลี้ยง', enDesc: 'Pets permitted but no special amenities', thDesc: 'รับสัตว์เลี้ยงแต่ไม่มีสิ่งอำนวยความสะดวกพิเศษ' },
 ]
 
 // Tier 5 — reserved for Pumba's hand-picked favorites. Bypasses the rubric entirely.
-export const FAVORITE_TIER = { paws: 5, key: 'favorite', en: "Pumba's favorite", th: 'ที่โปรดของพุมบ้า' }
+export const FAVORITE_TIER = { paws: 5, key: 'favorite', en: "Pumba's favorite", th: 'ที่โปรดของพุมบ้า', enDesc: "Hand-picked by Pumba — his personal top spots, regardless of amenities", thDesc: 'พุมบ้าคัดสรรเอง — ที่โปรดของเขา ไม่ขึ้นอยู่กับสิ่งอำนวยความสะดวก' }
 
 // Sheet stores booleans as the strings "TRUE"/"FALSE". Coerce safely.
 export const isTrue = (v) => v === true || v === 'TRUE' || v === 'true' || v === 1
