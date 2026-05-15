@@ -62,18 +62,20 @@ export default function Hero({ tagline, subtitle, dogBadge, photoLabels, pumbaAc
       <div className="ph-hero-text">
         <h1 className="ph-hero-title">{tagline}</h1>
         <p className="ph-hero-sub">{subtitle}</p>
-        <span className="ph-dog-badge mono">{dogBadge}</span>
-        {onPumbaToggle && (
-          <button
-            type="button"
-            className={`ph-pumba-badge ${pumbaActive ? 'is-active' : ''}`}
-            onClick={onPumbaToggle}
-            aria-pressed={pumbaActive}
-          >
-            <img src={DEFAULT_MASCOT} alt="" />
-            {pumbaLabel}
-          </button>
-        )}
+        <div className="ph-badges-row">
+          <span className="ph-dog-badge mono">{dogBadge}</span>
+          {onPumbaToggle && (
+            <button
+              type="button"
+              className={`ph-pumba-badge ${pumbaActive ? 'is-active' : ''}`}
+              onClick={onPumbaToggle}
+              aria-pressed={pumbaActive}
+            >
+              <img src={DEFAULT_MASCOT} alt="" />
+              {pumbaLabel}
+            </button>
+          )}
+        </div>
       </div>
     </section>
   )
