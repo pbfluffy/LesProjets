@@ -58,6 +58,7 @@ function normalize(row) {
       verified: isTrue(row.pumba_verified),
       visitDate: row.pumba_visit_date || null,
       photoUrl: row.pumba_photo_url || null,
+      favorite: isTrue(row.pumba_favorite),
     },
     priceTier: row.price_tier,
     notes: { en: row.notes_en, th: row.notes_th },
