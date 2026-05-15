@@ -193,3 +193,12 @@
   align-items: center;
   margin-top: 4px;
 }
+
+/* Row container for the two brand-area badges */
+.ph-badges-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 4px;
+}
