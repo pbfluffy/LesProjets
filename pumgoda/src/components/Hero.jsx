@@ -6,7 +6,7 @@ const DEFAULT_MASCOT = `${import.meta.env.BASE_URL}pumba.png`
 const MAX_DIM = 240
 const JPEG_QUALITY = 0.85
 
-export default function Hero({ tagline, subtitle, dogBadge, photoLabels, pumbaActive, onPumbaToggle, pumbaLabel }) {
+export default function Hero({ tagline, subtitle, dogBadge, photoLabels }) {
   const { petPhoto, setPetPhoto, clearPetPhoto, isCustom } = useUserPet()
   const fileInputRef = useRef(null)
 
@@ -63,20 +63,7 @@ export default function Hero({ tagline, subtitle, dogBadge, photoLabels, pumbaAc
         <h1 className="ph-hero-title">{tagline}</h1>
         <p className="ph-hero-sub">{subtitle}</p>
         <div className="ph-badges-row">
-          <div className="ph-badges-row">
-            <span className="ph-dog-badge mono">{dogBadge}</span>
-            {onPumbaToggle && (
-              <button
-                type="button"
-                className={`ph-pumba-badge ${pumbaActive ? 'is-active' : ''}`}
-                onClick={onPumbaToggle}
-                aria-pressed={pumbaActive}
-              >
-                <img src={DEFAULT_MASCOT} alt="" />
-                {pumbaLabel}
-              </button>
-            )}
-          </div>
+        <span className="ph-dog-badge mono">{dogBadge}</span>
         </div>
       </div>
     </section>
