@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { STRINGS } from '../i18n/strings'
 import './FilterBar.css'
 
@@ -6,9 +5,8 @@ const TYPES = ['cafe', 'restaurant', 'hotel', 'park', 'mall', 'beach', 'vet', 'p
 const POLICIES = ['no_stroller_needed', 'indoor_allowed', 'no_size_limit', 'pet_menu', 'off_leash_zone', 'no_fee']
 const PUMBA_IMG = `${import.meta.env.BASE_URL}pumba.png`
 
-export default function FilterBar({ lang, filters, setRegion, toggleType, togglePolicy, clearFilters }) {
+export default function FilterBar({ lang, filters, setRegion, toggleType, togglePolicy, clearFilters, collapsed }) {
   const s = STRINGS[lang]
-  const [collapsed, setCollapsed] = useState(false)
   const activeCount =
     (filters.region !== 'all' ? 1 : 0) +
     filters.types.length +
@@ -38,18 +36,6 @@ export default function FilterBar({ lang, filters, setRegion, toggleType, toggle
             {lang === 'th' ? 'ล้าง' : 'Clear'}
           </button>
         )}
-      </div>
-
-      {/* Filters collapse toggle */}
-      <div className="ph-filter-toggle-row">
-        <button
-          type="button"
-          className="ph-filter-toggle"
-          onClick={() => setCollapsed(!collapsed)}
-          aria-expanded={!collapsed}
-        >
-          {collapsed ? '▾' : '▴'} {lang === 'th' ? 'ตัวกรอง' : 'Filters'}{collapsed && activeCount > 0 ? ` (${activeCount})` : ''}
-        </button>
       </div>
 
       {!collapsed && (<>
