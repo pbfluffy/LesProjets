@@ -153,7 +153,6 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: 6px;
   padding: 4px 10px 4px 4px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
@@ -184,4 +183,13 @@
   background: var(--surface);
   color: var(--accent);
   border-color: var(--accent);
+}
+
+/* Row container for the two brand-area badges — keeps them side-by-side on narrow viewports */
+.ph-badges-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 4px;
 }
