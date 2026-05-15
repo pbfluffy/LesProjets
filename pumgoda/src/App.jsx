@@ -151,15 +151,7 @@ export default function App() {
       />
 
       <div className="shell">
-        <Hero
-          tagline={s.tagline}
-          subtitle={s.subtitle}
-          dogBadge={s.dogBadge}
-          photoLabels={s.heroPhoto}
-          pumbaActive={filters.policies.includes('pumba_verified')}
-          onPumbaToggle={() => togglePolicy('pumba_verified')}
-          pumbaLabel={lang === 'th' ? 'พุมบ้ามาที่นี่' : 'Pumba was here'}
-        />
+        <Hero tagline={s.tagline} subtitle={s.subtitle} dogBadge={s.dogBadge} photoLabels={s.heroPhoto} />
 
         {(activeTab === 'list' || activeTab === 'saved') && (
           <>
