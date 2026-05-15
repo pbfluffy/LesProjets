@@ -1,5 +1,5 @@
 // Pumgoda — paw tier rubric
-// Computes 1–4 paw tier from venue policy attributes.
+// Computes 1–4 paw tier from venue policy attributes. Tier 5 is reserved for Pumba's personal favorites (pumba.favorite === true).
 // Sum the points, map total to a tier. All knobs (weights + thresholds) live here.
 
 export const RUBRIC = {
@@ -20,10 +20,13 @@ export const RUBRIC = {
 // still feels like paradise tier in practice, lower the top `min` to 10.
 export const TIERS = [
   { min: 11, paws: 4, key: 'paradise',  en: 'Pet paradise', th: 'สวรรค์สัตว์เลี้ยง' },
-  { min:  7, paws: 3, key: 'welcoming', en: 'Welcoming',    th: 'ยินดีต้อนรับ' },
+  { min:  7, paws: 3, key: 'welcoming', en: 'Pet-welcoming', th: 'ยินดีต้อนรับ' },
   { min:  4, paws: 2, key: 'friendly',  en: 'Pet-friendly', th: 'เป็นมิตรกับสัตว์เลี้ยง' },
-  { min:  0, paws: 1, key: 'allowed',   en: 'Pet-allowed',  th: 'อนุญาตสัตว์เลี้ยง' },
+  { min:  0, paws: 1, key: 'allowed',   en: 'Pets allowed',  th: 'อนุญาตสัตว์เลี้ยง' },
 ]
+
+// Tier 5 — reserved for Pumba's hand-picked favorites. Bypasses the rubric entirely.
+export const FAVORITE_TIER = { paws: 5, key: 'favorite', en: "Pumba's favorite", th: 'ที่โปรดของพุมบ้า' }
 
 // Sheet stores booleans as the strings "TRUE"/"FALSE". Coerce safely.
 export const isTrue = (v) => v === true || v === 'TRUE' || v === 'true' || v === 1
@@ -38,6 +41,8 @@ export function scoreVenue(venue) {
 
 export function computeTier(venue) {
   const score = scoreVenue(venue)
+  // Pumba's favorite overrides the algorithmic tier entirely.
+  if (isTrue(venue.pumba?.favorite)) return { score, ...FAVORITE_TIER }
   const tier = TIERS.find((t) => score >= t.min)
   return { score, ...tier }
 }
