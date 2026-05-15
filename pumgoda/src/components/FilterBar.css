@@ -117,3 +117,27 @@
   object-fit: cover;
   flex-shrink: 0;
 }
+
+/* Filters collapse toggle — small text button below region row */
+.ph-filter-toggle-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 16px;
+}
+
+.ph-filter-toggle {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+}
+
+.ph-filter-toggle:hover {
+  color: var(--accent);
+}
