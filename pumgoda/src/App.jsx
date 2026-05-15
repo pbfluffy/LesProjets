@@ -44,7 +44,7 @@ export default function App() {
   const [selected, setSelected] = useState(null) // a venue object
   const [savedIds, setSavedIds] = useLocalStorage(LS_KEYS.SAVED, [])
 
-  const { filters, setRegion, toggleType, togglePolicy, setSort } = useFilters()
+  const { filters, setRegion, toggleType, togglePolicy, setSort, clearFilters } = useFilters()
   const [userCoords, setUserCoords] = useState(null)
   const [locationError, setLocationError] = useState(null)
 
@@ -121,13 +121,6 @@ export default function App() {
     // Sort based on filters.sort
     if (filters.sort === 'name') {
       arr.sort((a, b) => (a.name?.[lang] || a.name?.en || '').localeCompare(b.name?.[lang] || b.name?.en || ''))
-    } else if (filters.sort === 'verified') {
-      arr.sort((a, b) => {
-        const va = a.pumba?.verified ? 1 : 0
-        const vb = b.pumba?.verified ? 1 : 0
-        if (vb !== va) return vb - va
-        return computeTier(b).paws - computeTier(a).paws
-      })
     } else if (filters.sort === 'nearby' && userCoords) {
       arr.sort((a, b) => haversineKm(userCoords, a.coords) - haversineKm(userCoords, b.coords))
     } else {
@@ -168,6 +161,7 @@ export default function App() {
               setRegion={setRegion}
               toggleType={toggleType}
               togglePolicy={togglePolicy}
+              clearFilters={clearFilters}
             />
 
             <p className="section-label">
@@ -209,7 +203,6 @@ export default function App() {
                 >
                   <option value="paws">{lang === 'th' ? 'อุ้งเท้ามากสุด' : 'Most paws'}</option>
                   <option value="name">{lang === 'th' ? 'เรียงตามตัวอักษร' : 'A–Z'}</option>
-                  <option value="verified">{lang === 'th' ? 'พุมบ้ามาก่อน' : 'Pumba verified first'}</option>
                   <option value="nearby">{lang === 'th' ? 'ใกล้ฉันที่สุด' : 'Nearest to me'}</option>
                 </select>
               </div>
