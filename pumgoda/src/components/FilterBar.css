@@ -102,3 +102,18 @@
   overflow-x: visible;
   row-gap: 6px;
 }
+
+/* Pumba verified chip — small corgi avatar inline with chip text */
+.ph-chip-pumba {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ph-chip-pumba img {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
