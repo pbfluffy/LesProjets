@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { STRINGS } from '../i18n/strings'
 import './FilterBar.css'
 
@@ -7,6 +8,7 @@ const PUMBA_IMG = `${import.meta.env.BASE_URL}pumba.png`
 
 export default function FilterBar({ lang, filters, setRegion, toggleType, togglePolicy, clearFilters }) {
   const s = STRINGS[lang]
+  const [collapsed, setCollapsed] = useState(false)
   const activeCount =
     (filters.region !== 'all' ? 1 : 0) +
     filters.types.length +
@@ -38,6 +40,19 @@ export default function FilterBar({ lang, filters, setRegion, toggleType, toggle
         )}
       </div>
 
+      {/* Filters collapse toggle */}
+      <div className="ph-filter-toggle-row">
+        <button
+          type="button"
+          className="ph-filter-toggle"
+          onClick={() => setCollapsed(!collapsed)}
+          aria-expanded={!collapsed}
+        >
+          {collapsed ? '▾' : '▴'} {lang === 'th' ? 'ตัวกรอง' : 'Filters'}{collapsed && activeCount > 0 ? ` (${activeCount})` : ''}
+        </button>
+      </div>
+
+      {!collapsed && (<>
       {/* Venue type chips */}
       <div className="hscroll hscroll-wrap">
         {TYPES.map((t) => (
@@ -52,7 +67,7 @@ export default function FilterBar({ lang, filters, setRegion, toggleType, toggle
       </div>
 
       {/* Policy chips */}
-      <div className="hscroll">
+      <div className="hscroll hscroll-wrap">
         <button
           type="button"
           className={`pill ph-chip ph-chip-pumba ${pumbaActive ? 'is-active' : ''}`}
@@ -71,6 +86,7 @@ export default function FilterBar({ lang, filters, setRegion, toggleType, toggle
           </button>
         ))}
       </div>
+      </>)}
     </div>
   )
 }
