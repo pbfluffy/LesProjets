@@ -62,9 +62,7 @@ export default function Hero({ tagline, subtitle, dogBadge, photoLabels }) {
       <div className="ph-hero-text">
         <h1 className="ph-hero-title">{tagline}</h1>
         <p className="ph-hero-sub">{subtitle}</p>
-        <div className="ph-badges-row">
         <span className="ph-dog-badge mono">{dogBadge}</span>
-        </div>
       </div>
     </section>
   )
