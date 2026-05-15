@@ -2,8 +2,7 @@ import { STRINGS } from '../i18n/strings'
 import './FilterBar.css'
 
 const TYPES = ['cafe', 'restaurant', 'hotel', 'park', 'mall', 'beach', 'vet', 'pet_shop', 'grooming']
-const POLICIES = ['indoor_allowed', 'no_size_limit', 'pet_menu', 'off_leash_zone', 'overnight', 'no_fee', 'no_stroller_needed']
-const PUMBA_IMG = `${import.meta.env.BASE_URL}pumba.png`
+const POLICIES = ['no_stroller_needed', 'indoor_allowed', 'no_size_limit', 'pet_menu', 'off_leash_zone', 'no_fee']
 
 export default function FilterBar({ lang, filters, setRegion, toggleType, togglePolicy, clearFilters }) {
   const s = STRINGS[lang]
@@ -11,7 +10,6 @@ export default function FilterBar({ lang, filters, setRegion, toggleType, toggle
     (filters.region !== 'all' ? 1 : 0) +
     filters.types.length +
     filters.policies.length
-  const pumbaActive = filters.policies.includes('pumba_verified')
 
   return (
     <div className="ph-filters">
@@ -39,7 +37,7 @@ export default function FilterBar({ lang, filters, setRegion, toggleType, toggle
       </div>
 
       {/* Venue type chips */}
-      <div className="hscroll">
+      <div className="hscroll hscroll-wrap">
         {TYPES.map((t) => (
           <button
             key={t}
@@ -53,14 +51,6 @@ export default function FilterBar({ lang, filters, setRegion, toggleType, toggle
 
       {/* Policy chips */}
       <div className="hscroll">
-        <button
-          type="button"
-          className={`pill ph-chip ph-chip-pumba ${pumbaActive ? 'is-active' : ''}`}
-          onClick={() => togglePolicy('pumba_verified')}
-        >
-          <img src={PUMBA_IMG} alt="" />
-          {lang === 'th' ? 'พุมบ้ามาที่นี่' : 'Pumba was here'}
-        </button>
         {POLICIES.map((p) => (
           <button
             key={p}
