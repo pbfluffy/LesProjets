@@ -28,6 +28,7 @@ export function useFilters() {
     togglePolicy: (p) => toggleInArray('policies', p),
     setSort: (sort) => update({ sort }),
     reset,
+    clearFilters: () => setFilters((f) => ({ ...DEFAULT, sort: f.sort })),
   }
 }
 
@@ -40,6 +41,10 @@ export function applyFilters(places, filters) {
       for (const policy of filters.policies) {
         if (policy === 'no_stroller_needed') {
           if (p.policy?.stroller_required === true) return false
+          continue
+        }
+        if (policy === 'pumba_verified') {
+          if (!p.pumba?.verified) return false
           continue
         }
         if (!p.policy?.[policy]) return false
