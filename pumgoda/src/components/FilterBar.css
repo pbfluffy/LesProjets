@@ -76,20 +76,6 @@
   color: var(--accent);
 }
 
-/* Pumba verified chip — corgi avatar prepended */
-.ph-chip-pumba {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.ph-chip-pumba img {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-}
 
 /* Subtle scrollbar on horizontal filter rows */
 .ph-filters .hscroll {
@@ -108,4 +94,11 @@
 
 .ph-filters .hscroll::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* Wrap variant of horizontal-scroll row — used for type chips */
+.hscroll-wrap {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  row-gap: 6px;
 }
