@@ -46,6 +46,8 @@ export default function App() {
 
   const { filters, setRegion, toggleType, togglePolicy, setSort, clearFilters } = useFilters()
   const [userCoords, setUserCoords] = useState(null)
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false)
+  const activeFilterCount = (filters.region !== 'all' ? 1 : 0) + filters.types.length + filters.policies.length
   const [locationError, setLocationError] = useState(null)
 
   const requestUserLocation = () => {
@@ -162,17 +164,28 @@ export default function App() {
               toggleType={toggleType}
               togglePolicy={togglePolicy}
               clearFilters={clearFilters}
+              collapsed={filtersCollapsed && visiblePlaces.length > 1}
             />
 
-            <p className="section-label">
-              {loadState === 'loading'
-                ? s.states.loading
-                : `${visiblePlaces.length} ${activeTab === 'saved' ? '♥' : '🐾'}`}
-              {loadState === 'fallback' ? ` · ${s.states.networkError}` : ''}
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, margin: '4px 0 12px' }}>
+              <p className="section-label" style={{ margin: 0, flex: '1 1 0' }}>
+                {loadState === 'loading'
+                  ? s.states.loading
+                  : `${visiblePlaces.length} ${activeTab === 'saved' ? '♥' : '🐾'}`}
+                {loadState === 'fallback' ? ` · ${s.states.networkError}` : ''}
+              </p>
 
-            {visiblePlaces.length > 1 && loadState !== 'loading' && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, margin: '4px 0 12px' }}>
+              {visiblePlaces.length > 1 && loadState !== 'loading' && (
+                <>
+                  <button
+                    type="button"
+                    className="ph-filter-toggle"
+                    onClick={() => setFiltersCollapsed(!filtersCollapsed)}
+                    aria-expanded={!filtersCollapsed}
+                  >
+                    {filtersCollapsed ? '▾' : '▴'} {lang === 'th' ? 'ตัวกรอง' : 'Filters'}{filtersCollapsed && activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 0', justifyContent: 'flex-end' }}>
                 {filters.sort === 'nearby' && locationError && (
                   <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: 'var(--accent)' }}>
                     {locationError === 'denied'
@@ -204,9 +217,11 @@ export default function App() {
                   <option value="paws">{lang === 'th' ? 'อุ้งเท้ามากสุด' : 'Most paws'}</option>
                   <option value="name">{lang === 'th' ? 'เรียงตามตัวอักษร' : 'A–Z'}</option>
                   <option value="nearby">{lang === 'th' ? 'ใกล้ฉันที่สุด' : 'Nearest to me'}</option>
-                </select>
-              </div>
-            )}
+                  </select>
+                  </div>
+                </>
+              )}
+            </div>
 
             <div className="ph-list">
               {visiblePlaces.length === 0 && loadState !== 'loading' && (
