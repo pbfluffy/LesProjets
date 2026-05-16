@@ -10,6 +10,15 @@
 
 export const STRINGS = {
   th: {
+    vote: {
+      heading: 'เสียงจากชุมชน',
+      up: 'ต้อนรับดี',
+      paw: 'พนักงานเข้าใจสัตว์เลี้ยง',
+      warn: 'ไม่ตรงปก',
+      prompt: 'เคยไปมาแล้ว? แตะเพื่อโหวต',
+      thanks: 'ขอบคุณที่ร่วมโหวต',
+      error: 'โหลดคะแนนโหวตไม่สำเร็จ',
+    },
     brand: 'Pumgoda',
     tagline: 'พาน้องไปไหนได้บ้าง?',
     subtitle: 'หาคาเฟ่ ร้านอาหาร โรงแรม ที่พาน้องไปได้ทั่วไทย',
@@ -141,6 +150,15 @@ export const STRINGS = {
   },
 
   en: {
+    vote: {
+      heading: 'Community confidence',
+      up: 'Welcomed warmly',
+      paw: 'Staff knew what to do',
+      warn: 'Not as advertised',
+      prompt: 'Been here? Tap to vote',
+      thanks: 'Thanks for voting',
+      error: "Couldn't load votes",
+    },
     brand: 'Pumgoda',
     tagline: 'Where can my fur baby go?',
     subtitle: 'Pet-friendly cafés, restaurants, and hotels across Thailand',
