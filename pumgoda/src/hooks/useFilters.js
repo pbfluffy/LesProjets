@@ -36,7 +36,7 @@ export function useFilters() {
 export function applyFilters(places, filters) {
   return places.filter((p) => {
     if (filters.region !== 'all' && p.region !== filters.region) return false
-    if (filters.types.length > 0 && !filters.types.includes(p.type)) return false
+    if (filters.types.length > 0 && !filters.types.includes(String(p.type || '').trim().toLowerCase().replace(/\s+/g, '_'))) return false
     if (filters.policies.length > 0) {
       for (const policy of filters.policies) {
         if (policy === 'no_stroller_needed') {
