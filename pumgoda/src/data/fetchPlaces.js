@@ -100,7 +100,7 @@ function writeCache(places) {
   }
 }
 
-export async function fetchPlaces({ force = false, includeSamples = true } = {}) {
+export async function fetchPlaces({ force = false, includeSamples = false } = {}) {
   if (!force) {
     const cached = readCache()
     if (cached) {
