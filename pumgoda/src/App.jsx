@@ -8,6 +8,7 @@ import PlaceDetail from './components/PlaceDetail'
 import BottomNav from './components/BottomNav'
 import EmptyState from './components/EmptyState'
 import MapView from './components/MapView'
+import TripBuilder from './components/TripBuilder'
 
 import { useTheme, useLang } from './hooks/useThemeLang'
 import { useFilters, applyFilters } from './hooks/useFilters'
@@ -260,10 +261,7 @@ export default function App() {
         )}
 
         {activeTab === 'trips' && (
-          <EmptyState
-            icon="🧳"
-            title={s.states.comingSoon}
-          />
+          <TripBuilder places={places} lang={lang} onOpenPlace={setSelected} />
         )}
 
         <footer className="ph-footer">
