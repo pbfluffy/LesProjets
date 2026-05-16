@@ -1,0 +1,65 @@
+/* Community confidence — vote buttons */
+.ph-votes {
+  margin-top: 16px;
+  padding: 12px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.ph-votes-head {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.ph-votes-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ph-vote-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+}
+.ph-vote-btn:hover:not(:disabled) { border-color: var(--accent); }
+.ph-vote-btn:disabled { cursor: default; }
+.ph-vote-btn.is-mine {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+.ph-vote-btn.is-dim { opacity: 0.45; }
+
+.ph-vote-emoji { font-size: 20px; line-height: 1; }
+
+.ph-vote-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.ph-vote-count {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.ph-votes-foot {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--faint);
+  text-align: center;
+}
