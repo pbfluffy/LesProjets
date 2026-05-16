@@ -3,6 +3,7 @@ import PawTierBadge from './PawTierBadge'
 import PumbaBadge from './PumbaBadge'
 import { STRINGS, interp } from '../i18n/strings'
 import { useTrips } from '../hooks/useTrips'
+import VoteButtons from './VoteButtons'
 import './PlaceDetail.css'
 
 export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSaved }) {
@@ -176,6 +177,9 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
             </p>
           )}
         </section>
+
+        {/* Community confidence */}
+        <VoteButtons placeId={venue.id} lang={lang} />
 
         {/* Hours */}
         {venue.hours && (
