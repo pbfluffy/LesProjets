@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import PawTierBadge from './PawTierBadge'
 import PumbaBadge from './PumbaBadge'
 import { STRINGS, interp } from '../i18n/strings'
+import { useTrips } from '../hooks/useTrips'
 import './PlaceDetail.css'
 
 export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSaved }) {
@@ -9,6 +10,17 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
   const name = venue.name?.[lang] || venue.name?.en || venue.id
   const address = venue.address?.[lang] || venue.address?.en
   const notes = venue.notes?.[lang] || venue.notes?.en
+
+  const { trips, createTrip, addPlace, removePlace } = useTrips()
+  const [tripPanelOpen, setTripPanelOpen] = useState(false)
+  const [newTripName, setNewTripName] = useState('')
+  const venueTripCount = trips.filter((t) => t.placeIds.includes(venue.id)).length
+
+  const handleCreateAndAdd = () => {
+    const trip = createTrip(newTripName)
+    addPlace(trip.id, venue.id)
+    setNewTripName('')
+  }
 
   // Close on Escape
   useEffect(() => {
@@ -53,6 +65,65 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
             <PawTierBadge venue={venue} lang={lang} size="lg" />
             <PumbaBadge venue={venue} lang={lang} />
           </div>
+        </div>
+
+        {/* Add this place to a trip */}
+        <div className="ph-pd-trip">
+          <button
+            type="button"
+            className={'ph-pd-trip-btn ' + (tripPanelOpen ? 'is-open' : '')}
+            onClick={() => setTripPanelOpen((o) => !o)}
+            aria-expanded={tripPanelOpen}
+          >
+            🧳 {s.trip.addToTrip}
+            {venueTripCount > 0 && (
+              <span className="ph-pd-trip-count">{venueTripCount}</span>
+            )}
+          </button>
+
+          {tripPanelOpen && (
+            <div className="ph-pd-trip-panel">
+              <div className="ph-pd-trip-new">
+                <input
+                  type="text"
+                  value={newTripName}
+                  onChange={(e) => setNewTripName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateAndAdd()}
+                  placeholder={s.trip.namePlaceholder}
+                  maxLength={50}
+                />
+                <button type="button" onClick={handleCreateAndAdd}>
+                  {s.trip.create}
+                </button>
+              </div>
+
+              {trips.length > 0 && (
+                <div className="ph-pd-trip-list">
+                  {trips.map((t) => {
+                    const inTrip = t.placeIds.includes(venue.id)
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={'ph-pd-trip-row ' + (inTrip ? 'is-in' : '')}
+                        onClick={() =>
+                          inTrip
+                            ? removePlace(t.id, venue.id)
+                            : addPlace(t.id, venue.id)
+                        }
+                      >
+                        <span className="ph-pd-trip-check" aria-hidden="true">
+                          {inTrip ? '✓' : '+'}
+                        </span>
+                        <span className="ph-pd-trip-name">{t.name}</span>
+                        <span className="ph-pd-trip-meta">📍 {t.placeIds.length}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Pumba verification — only shown if verified, with date + optional photo */}
