@@ -136,6 +136,7 @@ export const STRINGS = {
       pickerAllAdded: 'ทุกสถานที่อยู่ในแผนนี้แล้ว',
       add: 'เพิ่ม',
       done: 'เสร็จ',
+      addToTrip: 'เพิ่มลงแผนเที่ยว',
     },
   },
 
@@ -266,6 +267,7 @@ export const STRINGS = {
       pickerAllAdded: 'Every place is already in this trip',
       add: 'Add',
       done: 'Done',
+      addToTrip: 'Add to trip',
     },
   },
 }
