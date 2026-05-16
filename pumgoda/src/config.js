@@ -15,4 +15,5 @@ export const LS_KEYS = {
   LANG: 'pumgoda_lang',
   SAVED: 'pumgoda_saved_v1',
   VISITED: 'pumgoda_visited_v1',
+  TRIPS: 'pumgoda_trips_v1',
 }
