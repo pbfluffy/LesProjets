@@ -52,7 +52,7 @@ function persist(state) {
 }
 
 export function useNutritionStore() {
-  const [state, setState] = useState(() => { const s = load(); const t = localStorage.getItem('theme'); return t ? { ...s, theme: t } : s; });
+  const [state, setState] = useState(() => { const s = load(); const t = localStorage.getItem('theme'); return (t === 'dark' || t === 'light') ? { ...s, theme: t } : s; });
   const [dateKey, setDateKey] = useState(todayKey());
 
   // Persist on every change.
