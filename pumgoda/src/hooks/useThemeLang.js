@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocalStorage } from './useLocalStorage'
 import { LS_KEYS } from '../config'
 
@@ -11,10 +11,14 @@ export function useTheme() {
       ? 'dark'
       : 'light'
 
-  const [theme, setTheme] = useLocalStorage(LS_KEYS.THEME, initial)
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('theme')
+    return saved === 'dark' || saved === 'light' ? saved : initial
+  })
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('theme', theme)
   }, [theme])
 
   return [theme, setTheme]
