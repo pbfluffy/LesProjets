@@ -127,8 +127,8 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
           )}
         </div>
 
-        {/* Pumba verification — only shown if verified, with date + optional photo */}
-        {venue.pumba?.verified && (
+        {/* Verification — last-verified date for any place, plus Pumba photo when verified */}
+        {(venue.pumba?.verified || venue.lastVerified) && (
           <section className="ph-section">
             <h3 className="ph-section-title">{s.detail.sections.verification}</h3>
             <div className="ph-verify-row">
@@ -140,9 +140,9 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
                   loading="lazy"
                 />
               )}
-              {venue.pumba.visitDate && (
+              {venue.lastVerified && (
                 <p className="ph-verify-date mono">
-                  {interp(s.card.lastVerified, { date: venue.pumba.visitDate })}
+                  {interp(s.card.lastVerified, { date: venue.lastVerified })}
                 </p>
               )}
             </div>
