@@ -52,7 +52,7 @@ function persist(state) {
 }
 
 export function useNutritionStore() {
-  const [state, setState] = useState(load);
+  const [state, setState] = useState(() => { const s = load(); const t = localStorage.getItem('theme'); return t ? { ...s, theme: t } : s; });
   const [dateKey, setDateKey] = useState(todayKey());
 
   // Persist on every change.
@@ -63,6 +63,7 @@ export function useNutritionStore() {
   // Reflect theme on <html>.
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', state.theme);
+    localStorage.setItem('theme', state.theme);
   }, [state.theme]);
 
   const day = state.days[dateKey] ?? EMPTY_DAY;
