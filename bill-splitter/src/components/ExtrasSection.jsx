@@ -5,6 +5,7 @@ import styles from './ExtrasSection.module.css'
 export default function ExtrasSection({
   vatEnabled, onVatChange,
   serviceChargeEnabled, onServiceChargeChange,
+  serviceChargeRate, onServiceChargeRateChange,
   promptPay, onPromptPayChange,
   bankInfo, onBankInfoChange,
   notes, onNotesChange,
@@ -29,11 +30,28 @@ export default function ExtrasSection({
           <span>{t.vat}</span>
           <span className={`${styles.badge} ${styles.badgeBlue}`}>7%</span>
         </label>
-        <label className={styles.toggle}>
-          <input type="checkbox" checked={serviceChargeEnabled} onChange={e => onServiceChargeChange(e.target.checked)} />
-          <span>{t.serviceCharge}</span>
-          <span className={`${styles.badge} ${styles.badgeGreen}`}>10%</span>
-        </label>
+        <div className={styles.scRow}>
+          <label className={styles.scLabel}>
+            <input type="checkbox" checked={serviceChargeEnabled} onChange={e => onServiceChargeChange(e.target.checked)} />
+            <span>{t.serviceCharge}</span>
+          </label>
+          <span className={styles.rateField} data-on={serviceChargeEnabled}>
+            <input
+              type="number"
+              className={styles.rateInput}
+              value={serviceChargeRate}
+              min="0"
+              max="100"
+              step="0.5"
+              inputMode="decimal"
+              disabled={!serviceChargeEnabled}
+              onChange={e => onServiceChargeRateChange(e.target.value)}
+              onFocus={e => e.target.select()}
+              aria-label={t.serviceCharge}
+            />
+            <span className={styles.ratePct}>%</span>
+          </span>
+        </div>
       </div>
       <div className={styles.divider} />
       <div className={styles.ppHeader}>
