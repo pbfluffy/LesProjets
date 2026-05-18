@@ -337,7 +337,7 @@ export default function App() {
             </p>
             {TIERS.map((t) => (
               <div key={t.key} style={{ display: 'flex', gap: 10, padding: '9px 0', borderTop: '0.5px solid var(--border)' }}>
-                <span aria-hidden="true" style={{ fontSize: 14, letterSpacing: -1, whiteSpace: 'nowrap', flexShrink: 0, width: 60 }}>
+                <span aria-hidden="true" style={{ fontSize: 14, letterSpacing: -1, whiteSpace: 'nowrap', flexShrink: 0, width: 70 }}>
                   {'🐾'.repeat(t.paws)}
                 </span>
                 <span style={{ flex: 1 }}>
@@ -351,7 +351,7 @@ export default function App() {
               </div>
             ))}
             <div style={{ display: 'flex', gap: 10, padding: '9px 0', borderTop: '0.5px solid var(--border)' }}>
-              <span aria-hidden="true" style={{ fontSize: 15, color: '#e0566e', flexShrink: 0, width: 60 }}>
+              <span aria-hidden="true" style={{ fontSize: 15, color: '#e0566e', flexShrink: 0, width: 70 }}>
                 ♥
               </span>
               <span style={{ flex: 1 }}>
