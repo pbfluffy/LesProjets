@@ -18,6 +18,7 @@ export default function BillSplitter({ sharedState, readOnly }) {
     foods: store.foods,
     vatEnabled: store.vatEnabled,
     serviceChargeEnabled: store.serviceChargeEnabled,
+    serviceChargeRate: store.serviceChargeRate,
     promptPay: store.promptPay,
     bankInfo: store.bankInfo,
     notes: store.notes,
@@ -35,7 +36,7 @@ export default function BillSplitter({ sharedState, readOnly }) {
         />
         <MemberSection members={store.members} onAdd={store.addMember} onRemove={store.removeMember} />
         <FoodList foods={store.foods} members={store.members} onAdd={store.addFood} onUpdate={store.updateFood} onToggleMember={store.toggleFoodMember} onRemove={store.removeFood} onSelectAll={store.setAllMembers} />
-        <ExtrasSection vatEnabled={store.vatEnabled} onVatChange={store.setVatEnabled} serviceChargeEnabled={store.serviceChargeEnabled} onServiceChargeChange={store.setServiceChargeEnabled} promptPay={store.promptPay} onPromptPayChange={store.setPromptPay} bankInfo={store.bankInfo} onBankInfoChange={store.setBankInfo} notes={store.notes} onNotesChange={store.setNotes} />
+        <ExtrasSection vatEnabled={store.vatEnabled} onVatChange={store.setVatEnabled} serviceChargeEnabled={store.serviceChargeEnabled} onServiceChargeChange={store.setServiceChargeEnabled} serviceChargeRate={store.serviceChargeRate} onServiceChargeRateChange={store.setServiceChargeRate} promptPay={store.promptPay} onPromptPayChange={store.setPromptPay} bankInfo={store.bankInfo} onBankInfoChange={store.setBankInfo} notes={store.notes} onNotesChange={store.setNotes} />
       </fieldset>
       <ResultSection result={result} members={store.members} promptPay={store.promptPay} bankInfo={store.bankInfo} notes={store.notes} billName={store.billName} snapshot={snapshot} tab="split" />
     </div>
