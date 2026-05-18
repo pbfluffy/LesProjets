@@ -7,6 +7,7 @@ export function useBillStore(initial) {
   const [foods, setFoods] = useState(initial?.foods ?? [])
   const [vatEnabled, setVatEnabled] = useState(initial?.vatEnabled ?? false)
   const [serviceChargeEnabled, setServiceChargeEnabled] = useState(initial?.serviceChargeEnabled ?? false)
+  const [serviceChargeRate, setServiceChargeRate] = useState(initial?.serviceChargeRate ?? 10)
   const [promptPay, setPromptPay] = useState(initial?.promptPay ?? '')
   const [bankInfo, setBankInfo] = useState(initial?.bankInfo ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
@@ -57,17 +58,19 @@ export function useBillStore(initial) {
       f.who.forEach(m => { if (shares[m] !== undefined) shares[m] += split })
       subtotal += price
     })
-    let multiplier = 1
-    if (serviceChargeEnabled) multiplier *= 1.10
+    const scRate = Math.max(0, Math.min(100, parseFloat(serviceChargeRate) || 0))
+    const scFraction = serviceChargeEnabled ? scRate / 100 : 0
+    let multiplier = 1 + scFraction
     if (vatEnabled) multiplier *= 1.07
     const totals = Object.fromEntries(Object.entries(shares).map(([m, v]) => [m, v * multiplier]))
     return {
       shares, totals, subtotal,
-      serviceCharge: serviceChargeEnabled ? subtotal * 0.10 : 0,
-      vat: vatEnabled ? subtotal * (serviceChargeEnabled ? 1.10 : 1) * 0.07 : 0,
+      serviceCharge: subtotal * scFraction,
+      serviceChargeRate: scRate,
+      vat: vatEnabled ? subtotal * (1 + scFraction) * 0.07 : 0,
       grandTotal: subtotal * multiplier, multiplier,
     }
-  }, [members, foods, vatEnabled, serviceChargeEnabled])
+  }, [members, foods, vatEnabled, serviceChargeEnabled, serviceChargeRate])
 
-  return { billName, setBillName, members, addMember, removeMember, foods, addFood, updateFood, toggleFoodMember, removeFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, calculate }
+  return { billName, setBillName, members, addMember, removeMember, foods, addFood, updateFood, toggleFoodMember, removeFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, calculate }
 }
