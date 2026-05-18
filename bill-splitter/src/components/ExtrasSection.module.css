@@ -5,6 +5,15 @@
 .badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: var(--radius-pill); }
 .badgeBlue { background: var(--color-blue-bg); color: var(--color-blue); }
 .badgeGreen { background: var(--color-green-bg); color: var(--color-green); }
+.scRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; }
+.scLabel { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.rateField { display: inline-flex; align-items: center; gap: 1px; background: var(--color-green-bg); border-radius: var(--radius-pill); padding: 2px 8px; opacity: 0.4; transition: opacity 0.15s; }
+.rateField[data-on="true"] { opacity: 1; }
+.rateInput { width: 32px; border: none; background: transparent; font-size: 11px; font-weight: 600; color: var(--color-green); text-align: right; font-family: var(--font-mono); padding: 0; -moz-appearance: textfield; appearance: textfield; }
+.rateInput:focus { outline: none; }
+.rateInput:disabled { color: var(--color-green); cursor: default; }
+.rateInput::-webkit-outer-spin-button, .rateInput::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.ratePct { font-size: 11px; font-weight: 600; color: var(--color-green); }
 .divider { height: 0.5px; background: var(--color-border); margin: 12px 0; }
 .ppHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .ppLabel { font-size: 14px; font-weight: 500; }
