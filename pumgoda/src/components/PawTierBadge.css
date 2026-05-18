@@ -39,11 +39,10 @@
   border: 0.5px solid transparent;
 }
 
-/* Tier 5 — Pumba's favorite (curated; same weight as tier 4 for now) */
-.ph-tier-5 {
-  background: var(--accent);
-  color: #fff;
-  border: 0.5px solid transparent;
+/* Pumba's favorite heart — shown alongside the paws, independent of tier */
+.ph-tier-heart {
+  color: #e0566e;
+  font-size: 0.95em;
 }
 
 .ph-tier-sm .ph-tier-paws {
