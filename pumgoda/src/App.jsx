@@ -316,36 +316,57 @@ export default function App() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ background: 'var(--bg)', borderRadius: 16, padding: '20px 16px 24px', maxWidth: 480, width: '100%', maxHeight: '80vh', overflowY: 'auto', border: '0.5px solid var(--border)', boxShadow: '0 -4px 20px rgba(0,0,0,0.3)' }}
+            style={{ background: 'var(--bg)', borderRadius: 16, padding: '20px 16px 24px', maxWidth: 480, width: '100%' }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, color: 'var(--text)', fontWeight: 600 }}>
-                {lang === 'th' ? 'อุ้งเท้าคืออะไร' : 'How paws work'}
-              </h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>
+                {lang === 'th' ? 'ระบบอุ้งเท้า' : 'How the paws work'}
+              </h2>
               <button
-                type="button"
                 onClick={() => setHelpOpen(false)}
-                aria-label="Close"
-                style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 18, cursor: 'pointer', padding: '4px 8px', lineHeight: 1 }}
-              >✕</button>
+                aria-label={lang === 'th' ? 'ปิด' : 'Close'}
+                style={{ border: 'none', background: 'none', fontSize: 20, lineHeight: 1, cursor: 'pointer', color: 'var(--muted)', padding: 4 }}
+              >
+                ✕
+              </button>
             </div>
-
-            {[FAVORITE_TIER, ...TIERS].map((tier, idx, arr) => (
-              <div key={tier.key} style={{ marginBottom: 14, paddingBottom: 14, borderBottom: idx === arr.length - 1 ? 'none' : '0.5px solid var(--border)' }}>
-                <span className={`ph-tier ph-tier-${tier.paws} ph-tier-sm`} style={{ marginBottom: 6 }}>
-                  <span className="ph-tier-paws" aria-hidden="true">{'🐾'.repeat(tier.paws)}</span>
-                  <span className="ph-tier-label">{lang === 'th' ? tier.th : tier.en}</span>
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
+              {lang === 'th'
+                ? 'ยิ่งอุ้งเท้ามาก ยิ่งพาน้องเข้าได้สะดวก — ตั้งแต่ต้องใช้รถเข็น ไปจนถึงร้านที่มีเมนูสัตว์เลี้ยง'
+                : 'More paws means an easier visit — from stroller-only up to a venue with its own pet menu.'}
+            </p>
+            {TIERS.map((t) => (
+              <div key={t.key} style={{ display: 'flex', gap: 10, padding: '9px 0', borderTop: '0.5px solid var(--border)' }}>
+                <span aria-hidden="true" style={{ fontSize: 14, letterSpacing: -1, whiteSpace: 'nowrap', flexShrink: 0, width: 60 }}>
+                  {'🐾'.repeat(t.paws)}
                 </span>
-                <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--muted)', fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1.5 }}>
-                  {lang === 'th' ? tier.thDesc : tier.enDesc}
-                </p>
+                <span style={{ flex: 1 }}>
+                  <span style={{ display: 'block', fontSize: 14, fontWeight: 500 }}>
+                    {lang === 'th' ? t.th : t.en}
+                  </span>
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--muted)', lineHeight: 1.45, marginTop: 2 }}>
+                    {lang === 'th' ? t.thDesc : t.enDesc}
+                  </span>
+                </span>
               </div>
             ))}
-
-            <p style={{ margin: '16px 0 0', fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', textAlign: 'center', fontFamily: "'IBM Plex Mono', monospace" }}>
+            <div style={{ display: 'flex', gap: 10, padding: '9px 0', borderTop: '0.5px solid var(--border)' }}>
+              <span aria-hidden="true" style={{ fontSize: 15, color: '#e0566e', flexShrink: 0, width: 60 }}>
+                ♥
+              </span>
+              <span style={{ flex: 1 }}>
+                <span style={{ display: 'block', fontSize: 14, fontWeight: 500 }}>
+                  {lang === 'th' ? FAVORITE_TIER.th : FAVORITE_TIER.en}
+                </span>
+                <span style={{ display: 'block', fontSize: 12, color: 'var(--muted)', lineHeight: 1.45, marginTop: 2 }}>
+                  {lang === 'th' ? FAVORITE_TIER.thDesc : FAVORITE_TIER.enDesc}
+                </span>
+              </span>
+            </div>
+            <p style={{ margin: '14px 0 0', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
               {lang === 'th'
-                ? 'อุ้งเท้า 1–4 คำนวณจากสิ่งอำนวยความสะดวก อุ้งเท้า 5 พุมบ้าคัดสรรเอง'
-                : 'Tiers 1–4 are calculated from venue amenities. Tier 5 is hand-curated by Pumba.'}
+                ? 'หัวใจคือร้านที่พุมบ้าเลือกเอง แยกต่างหากจากจำนวนอุ้งเท้า'
+                : "The heart marks Pumba's own picks — separate from the paw count."}
             </p>
           </div>
         </div>
