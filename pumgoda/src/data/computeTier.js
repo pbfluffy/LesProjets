@@ -1,53 +1,84 @@
-// Pumgoda — paw tier rubric
-// Computes 1–4 paw tier from venue policy attributes. Tier 5 is reserved for Pumba's personal favorites (pumba.favorite === true).
-// Sum the points, map total to a tier. All knobs (weights + thresholds) live here.
-
-export const RUBRIC = {
-  indoor_allowed: 2,
-  no_size_limit: 2,
-  water_bowl: 1,
-  no_fee: 1,
-  pet_menu: 2,
-  off_leash_zone: 2,
-  pet_bed_toys: 1,
-  pet_pool_play_grooming: 2,
-  overnight: 3,
-  staff_welcoming: 1,
-}
-
-// Ordered high → low so .find() returns the highest tier the score qualifies for.
-// Calibration note (2026-05): if a venue with overnight + pool + pet beds (score 10)
-// still feels like paradise tier in practice, lower the top `min` to 10.
-export const TIERS = [
-  { min: 11, paws: 4, key: 'paradise',  en: 'Pet paradise', th: 'สวรรค์สัตว์เลี้ยง', enDesc: 'Overnight stays, pools, grooming — the full pet experience', thDesc: 'พักค้างคืน สระว่ายน้ำ อาบน้ำตัดขน — บริการสัตว์เลี้ยงครบวงจร' },
-  { min:  7, paws: 3, key: 'welcoming', en: 'Pet-welcoming', th: 'ยินดีต้อนรับ', enDesc: 'Pet menu, off-leash zone, no fees, water bowls — actively pet-oriented', thDesc: 'เมนูสัตว์เลี้ยง โซนปล่อยอิสระ ไม่มีค่าธรรมเนียม ชามน้ำ — เอาใจใส่ใจสัตว์เลี้ยง' },
-  { min:  4, paws: 2, key: 'friendly',  en: 'Pet-friendly', th: 'เป็นมิตรกับสัตว์เลี้ยง', enDesc: 'Indoor seating allowed, no size limit — comfortable for pets', thDesc: 'นั่งในร้านได้ ไม่จำกัดขนาด — สะดวกสบายสำหรับสัตว์เลี้ยง' },
-  { min:  0, paws: 1, key: 'allowed',   en: 'Pets allowed',  th: 'อนุญาตสัตว์เลี้ยง', enDesc: 'Pets permitted but no special amenities', thDesc: 'รับสัตว์เลี้ยงแต่ไม่มีสิ่งอำนวยความสะดวกพิเศษ' },
-]
-
-// Tier 5 — reserved for Pumba's hand-picked favorites. Bypasses the rubric entirely.
-export const FAVORITE_TIER = { paws: 5, key: 'favorite', en: "Pumba's favorite", th: 'ที่โปรดของพุมบ้า', enDesc: "Hand-picked by Pumba — his personal top spots, regardless of amenities", thDesc: 'พุมบ้าคัดสรรเอง — ที่โปรดของเขา ไม่ขึ้นอยู่กับสิ่งอำนวยความสะดวก' }
+// Pumgoda — paw tier ladder
+// A venue earns 1–4 paws from a strict ladder of three universal yes/no
+// questions. The heart (♥) is separate: it marks Pumba's hand-picked
+// favorites and never changes the paw count.
+//
+//   🐾        stroller required
+//   🐾🐾       no stroller — outdoor seating only
+//   🐾🐾🐾      no stroller, indoor seating OK — no pet food
+//   🐾🐾🐾🐾     all of the above + a dedicated pet menu
+//
+// Driven entirely by three sheet columns: stroller_required,
+// indoor_allowed, pet_menu. No weights, no thresholds.
 
 // Sheet stores booleans as the strings "TRUE"/"FALSE". Coerce safely.
-export const isTrue = (v) => v === true || v === 'TRUE' || v === 'true' || v === 1
+export const isTrue = (v) =>
+  v === true || String(v).trim().toUpperCase() === 'TRUE'
 
-export function scoreVenue(venue) {
-  let total = 0
-  for (const [field, weight] of Object.entries(RUBRIC)) {
-    if (isTrue(venue[field])) total += weight
-  }
-  return total
+// The four rungs, low → high. `paws` is the rung number; `en`/`th` are the
+// short badge labels; `enDesc`/`thDesc` are the help-modal explanations.
+export const TIERS = [
+  {
+    paws: 1,
+    key: 'stroller',
+    en: 'Stroller required',
+    th: 'ต้องใช้รถเข็น',
+    enDesc: 'The dog must stay in a stroller while at the venue',
+    thDesc: 'สัตว์เลี้ยงต้องอยู่ในรถเข็นตลอดเวลาที่อยู่ในร้าน',
+  },
+  {
+    paws: 2,
+    key: 'outdoor',
+    en: 'Outdoor only',
+    th: 'นั่งนอกร้านเท่านั้น',
+    enDesc: 'No stroller needed, but seating is outdoor only',
+    thDesc: 'ไม่ต้องใช้รถเข็น แต่นั่งได้เฉพาะนอกร้าน',
+  },
+  {
+    paws: 3,
+    key: 'indoor',
+    en: 'Indoor welcome',
+    th: 'เข้าในร้านได้',
+    enDesc: 'No stroller needed and indoor seating is allowed',
+    thDesc: 'ไม่ต้องใช้รถเข็น และเข้าไปนั่งในร้านได้',
+  },
+  {
+    paws: 4,
+    key: 'menu',
+    en: 'Indoor + pet menu',
+    th: 'เข้าในร้านได้ + มีเมนูสัตว์เลี้ยง',
+    enDesc: 'Indoor seating plus a dedicated menu for pets',
+    thDesc: 'เข้าไปนั่งในร้านได้ และมีเมนูสำหรับสัตว์เลี้ยงโดยเฉพาะ',
+  },
+]
+
+// The heart — Pumba's hand-picked favorites. Rendered alongside the paws,
+// never instead of them.
+export const FAVORITE_TIER = {
+  key: 'favorite',
+  en: "Pumba's favorite",
+  th: 'ที่โปรดของพุมบ้า',
+  enDesc: 'Hand-picked by Pumba — a personal top spot',
+  thDesc: 'พุมบ้าเลือกเอง — ที่โปรดส่วนตัวของเขา',
 }
 
+// Strict ladder: stroller is the gate, then indoor access, then a pet menu.
+function pawCount(venue) {
+  if (isTrue(venue.stroller_required)) return 1
+  if (!isTrue(venue.indoor_allowed)) return 2
+  if (!isTrue(venue.pet_menu)) return 3
+  return 4
+}
+
+// Returns { paws, key, en, th, enDesc, thDesc, heart }.
+// `heart` is true for Pumba's favorites and is independent of the paw count.
 export function computeTier(venue) {
-  const score = scoreVenue(venue)
-  // Pumba's favorite overrides the algorithmic tier entirely.
-  if (isTrue(venue.pumba?.favorite)) return { score, ...FAVORITE_TIER }
-  const tier = TIERS.find((t) => score >= t.min)
-  return { score, ...tier }
+  const paws = pawCount(venue)
+  const tier = TIERS.find((t) => t.paws === paws)
+  return { ...tier, heart: isTrue(venue.pumba?.favorite) }
 }
 
-// "🐾🐾🐾 Welcoming" — convenience for badge rendering
+// "🐾🐾🐾 Indoor welcome" — convenience for plain-text rendering.
 export function tierLabel(venue, lang = 'en') {
   const { paws, en, th } = computeTier(venue)
   return '🐾'.repeat(paws) + ' ' + (lang === 'th' ? th : en)
