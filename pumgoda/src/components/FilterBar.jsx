@@ -60,7 +60,7 @@ export default function FilterBar({ lang, filters, setRegion, toggleType, toggle
           onClick={() => togglePolicy('pumba_verified')}
         >
           <img src={PUMBA_IMG} alt="" />
-          {lang === 'th' ? 'พุมบ้ามาที่นี่' : 'Pumba was here'}
+          {lang === 'th' ? 'พุมบ้าเคยมา' : 'Pumba was here'}
         </button>
         {POLICIES.map((p) => (
           <button
