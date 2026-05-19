@@ -19,6 +19,8 @@ export function useTheme() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) meta.content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
   }, [theme])
 
   return [theme, setTheme]
