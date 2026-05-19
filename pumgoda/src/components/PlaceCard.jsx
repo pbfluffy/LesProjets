@@ -7,7 +7,7 @@ import './PlaceCard.css'
 export default function PlaceCard({ venue, lang = 'en', onOpen }) {
   const s = STRINGS[lang]
   const name = venue.name?.[lang] || venue.name?.en || venue.id
-  const typeLabel = s.types[venue.type] || venue.type
+  const typeLabel = s.types[venue.type?.toLowerCase().replace(/[\s-]+/g, '_')] || venue.type
 
   return (
     <button
