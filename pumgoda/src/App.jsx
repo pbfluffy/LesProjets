@@ -256,12 +256,22 @@ export default function App() {
         )}
 
         {activeTab === 'map' && (
-          <MapView
-            places={visiblePlaces}
-            onPlaceClick={setSelected}
-            theme={theme}
-            lang={lang}
-          />
+          <>
+            <FilterBar
+              lang={lang}
+              filters={filters}
+              setRegion={setRegion}
+              toggleType={toggleType}
+              togglePolicy={togglePolicy}
+              clearFilters={clearFilters}
+            />
+            <MapView
+              places={visiblePlaces}
+              onPlaceClick={setSelected}
+              theme={theme}
+              lang={lang}
+            />
+          </>
         )}
 
         {activeTab === 'trips' && (
