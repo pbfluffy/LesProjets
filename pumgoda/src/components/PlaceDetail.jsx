@@ -57,7 +57,7 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
         <div className="ph-detail-head">
           <h2 className="ph-detail-name">{name}</h2>
           <div className="ph-detail-meta mono">
-            {s.types[venue.type] || venue.type}
+            {s.types[venue.type?.toLowerCase().replace(/[\s-]+/g, '_')] || venue.type}
             {venue.neighborhood ? ` · ${venue.neighborhood}` : ''}
             {venue.province ? ` · ${venue.province}` : ''}
             {venue.priceTier ? ` · ${venue.priceTier}` : ''}
