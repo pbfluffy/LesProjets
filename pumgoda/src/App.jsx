@@ -159,17 +159,19 @@ export default function App() {
           <Hero tagline={s.tagline} subtitle={s.subtitle} dogBadge={s.dogBadge} photoLabels={s.heroPhoto} />
         )}
 
-        {(activeTab === 'list' || (activeTab === 'saved' && savedIds.length > 0)) && (
+        {(activeTab === 'list' || activeTab === 'saved') && (
           <>
-            <FilterBar
-              lang={lang}
-              filters={filters}
-              setRegion={setRegion}
-              toggleType={toggleType}
-              togglePolicy={togglePolicy}
-              clearFilters={clearFilters}
-              collapsed={filtersCollapsed && visiblePlaces.length > 1}
-            />
+            {(activeTab === 'list' || savedIds.length > 0) && (
+              <FilterBar
+                lang={lang}
+                filters={filters}
+                setRegion={setRegion}
+                toggleType={toggleType}
+                togglePolicy={togglePolicy}
+                clearFilters={clearFilters}
+                collapsed={filtersCollapsed && visiblePlaces.length > 1}
+              />
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, margin: '4px 0 12px' }}>
               <p className="section-label" style={{ margin: 0, flex: '1 1 0' }}>
