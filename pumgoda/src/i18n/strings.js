@@ -54,6 +54,10 @@ export const STRINGS = {
       weekend_escape: 'ต่างจังหวัด',
     },
 
+    search: {
+      placeholder: 'ค้นหาชื่อ ย่าน...',
+    },
+
     tierFilter: {
       label: 'ระดับพาว',
       all: 'ทั้งหมด',
@@ -200,6 +204,10 @@ export const STRINGS = {
       all: 'All',
       bangkok_metro: 'Bangkok metro',
       weekend_escape: 'Weekend escape',
+    },
+
+    search: {
+      placeholder: 'Search name, area...',
     },
 
     tierFilter: {
