@@ -44,6 +44,9 @@ export function useVotes() {
   const [myVotes, setMyVotes] = useState(loadMyVotes)
   const [status, setStatus] = useState('loading')
   const [deviceId] = useState(getOrMintDeviceId)
+  const [lastError, setLastError] = useState(null)
+
+  const clearError = useCallback(() => setLastError(null), [])
 
   useEffect(() => {
     const unsub = onValue(
@@ -68,6 +71,7 @@ export function useVotes() {
   const submitVote = useCallback(
     (placeId, vote) => {
       if (SIGNALS.indexOf(vote) === -1) return
+      setLastError(null)
       const prev = myVotes[placeId]
       if (prev === vote) {
         // Re-tapping the current choice retracts the vote entirely.
@@ -80,7 +84,8 @@ export function useVotes() {
           /* storage disabled — non-fatal */
         }
         remove(ref(db, 'votes/' + deviceId + '_' + placeId)).catch(() => {
-          // delete failed — restore the local record.
+          // delete failed — restore the local record and surface the error.
+          setLastError('write')
           setMyVotes((m) => {
             const rolled = { ...m, [placeId]: prev }
             try {
@@ -109,7 +114,8 @@ export function useVotes() {
         ts: Date.now(),
         deviceId: deviceId,
       }).catch(() => {
-        // write failed — restore the previous local record (or clear it).
+        // write failed — restore the previous local record and surface the error.
+        setLastError('write')
         setMyVotes((m) => {
           const rolled = { ...m }
           if (prev) rolled[placeId] = prev
@@ -126,5 +132,5 @@ export function useVotes() {
     [myVotes, deviceId]
   )
 
-  return { tallies, myVotes, status, submitVote }
+  return { tallies, myVotes, status, lastError, submitVote, clearError }
 }
