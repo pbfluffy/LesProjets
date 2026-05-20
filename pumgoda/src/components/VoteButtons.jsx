@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useVotes } from '../hooks/useVotes'
+import { useVotesCtx } from '../hooks/VotesContext'
 import { STRINGS, interp } from '../i18n/strings'
 import './VoteButtons.css'
 
@@ -14,7 +14,7 @@ const SIGNALS = [
 
 export default function VoteButtons({ placeId, lang }) {
   const s = STRINGS[lang] || STRINGS.en
-  const { tallies, myVotes, status, lastError, submitVote, clearError } = useVotes()
+  const { tallies, myVotes, status, lastError, submitVote, clearError } = useVotesCtx()
   const counts = tallies[placeId] || { up: 0, paw: 0, warn: 0 }
   const myVote = myVotes[placeId]
   const voted = Boolean(myVote)
