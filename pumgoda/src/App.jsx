@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
 import FilterBar from './components/FilterBar'
+import MapFilterBar from './components/MapFilterBar'
 import PlaceCard from './components/PlaceCard'
 import PlaceDetail from './components/PlaceDetail'
 import BottomNav from './components/BottomNav'
@@ -256,8 +257,14 @@ export default function App() {
         )}
 
         {activeTab === 'map' && (
-          <>
-            <FilterBar
+          <div className="ph-map-wrap">
+            <MapView
+              places={visiblePlaces}
+              onPlaceClick={setSelected}
+              theme={theme}
+              lang={lang}
+            />
+            <MapFilterBar
               lang={lang}
               filters={filters}
               setRegion={setRegion}
@@ -265,13 +272,7 @@ export default function App() {
               togglePolicy={togglePolicy}
               clearFilters={clearFilters}
             />
-            <MapView
-              places={visiblePlaces}
-              onPlaceClick={setSelected}
-              theme={theme}
-              lang={lang}
-            />
-          </>
+          </div>
         )}
 
         {activeTab === 'trips' && (
