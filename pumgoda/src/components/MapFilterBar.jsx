@@ -4,15 +4,22 @@ import './MapFilterBar.css'
 
 const TYPES = ['cafe', 'restaurant', 'hotel', 'pet_hotel', 'park', 'mall', 'beach', 'vet', 'pet_shop', 'grooming']
 const POLICIES = ['no_stroller_needed', 'indoor_allowed', 'no_size_limit', 'pet_menu', 'off_leash_zone', 'no_fee']
+const TIERS = [
+  { v: 0, label: null },
+  { v: 2, label: '🐾🐾+' },
+  { v: 3, label: '🐾🐾🐾+' },
+  { v: 4, label: '🐾🐾🐾🐾' },
+]
 const PUMBA_IMG = `${import.meta.env.BASE_URL}pumba.png`
 
-export default function MapFilterBar({ lang, filters, setRegion, toggleType, togglePolicy, clearFilters }) {
+export default function MapFilterBar({ lang, filters, setRegion, toggleType, togglePolicy, setMinPaws, clearFilters }) {
   const s = STRINGS[lang]
   const [panelOpen, setPanelOpen] = useState(false)
   const activeCount =
     (filters.region !== 'all' ? 1 : 0) +
     filters.types.length +
-    filters.policies.length
+    filters.policies.length +
+    (filters.minPaws ? 1 : 0)
   const pumbaActive = filters.policies.includes('pumba_verified')
 
   return (
@@ -48,6 +55,19 @@ export default function MapFilterBar({ lang, filters, setRegion, toggleType, tog
                 onClick={() => setRegion(r)}
               >
                 {s.regions[r]}
+              </button>
+            ))}
+          </div>
+          {/* Paw-tier minimum chips */}
+          <div className="hscroll hscroll-wrap">
+            {TIERS.map((tier) => (
+              <button
+                key={tier.v}
+                type="button"
+                className={`pill ph-chip ${(filters.minPaws || 0) === tier.v ? 'is-active' : ''}`}
+                onClick={() => setMinPaws && setMinPaws(tier.v)}
+              >
+                {tier.label || s.tierFilter.all}
               </button>
             ))}
           </div>
