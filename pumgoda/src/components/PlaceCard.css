@@ -37,3 +37,20 @@
   flex-wrap: wrap;
   gap: 4px;
 }
+
+.ph-card-votes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--faint);
+}
+.ph-card-vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.ph-card-vote-count {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-weight: 600;
+}
