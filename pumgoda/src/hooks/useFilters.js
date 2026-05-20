@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 
 const DEFAULT = {
   region: 'all', // 'all' | 'bangkok_metro' | 'weekend_escape'
-  types: [], // subset of: cafe, restaurant, hotel, park, mall, beach, vet, pet_shop, grooming
+  types: [], // subset of: cafe, restaurant, hotel, pet_hotel, park, mall, beach, vet, pet_shop, grooming
   policies: [], // subset of: indoor_allowed, no_size_limit, water_bowl, pet_menu, off_leash_zone, no_fee, overnight, no_stroller_needed
   sort: 'paws', // 'paws' | 'newest' | 'nearby'
 }
