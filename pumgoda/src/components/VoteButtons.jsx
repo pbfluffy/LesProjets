@@ -34,7 +34,6 @@ export default function VoteButtons({ placeId, lang }) {
               type="button"
               className={cls}
               onClick={() => submitVote(placeId, sig.key)}
-              disabled={voted}
             >
               <span className="ph-vote-emoji" aria-hidden="true">
                 {sig.emoji}
