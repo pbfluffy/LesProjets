@@ -15,6 +15,7 @@ import { useTheme, useLang } from './hooks/useThemeLang'
 import { useFilters, applyFilters } from './hooks/useFilters'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { VotesProvider } from './hooks/VotesContext'
+import { useVotes } from './hooks/useVotes'
 
 import { fetchPlaces } from './data/fetchPlaces'
 import { computeTier, TIERS, FAVORITE_TIER } from './data/computeTier'
@@ -48,6 +49,7 @@ export default function App() {
   const [savedIds, setSavedIds] = useLocalStorage(LS_KEYS.SAVED, [])
 
   const { filters, setRegion, toggleType, togglePolicy, setSort, clearFilters } = useFilters()
+  const voteState = useVotes()
   const [userCoords, setUserCoords] = useState(null)
   const [filtersCollapsed, setFiltersCollapsed] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
@@ -129,11 +131,18 @@ export default function App() {
       arr.sort((a, b) => (a.name?.[lang] || a.name?.en || '').localeCompare(b.name?.[lang] || b.name?.en || ''))
     } else if (filters.sort === 'nearby' && userCoords) {
       arr.sort((a, b) => haversineKm(userCoords, a.coords) - haversineKm(userCoords, b.coords))
+    } else if (filters.sort === 'welcomed') {
+      const scoreOf = (p) => {
+        const t = voteState.tallies[p.id]
+        if (!t) return 0
+        return (t.up || 0) + (t.paw || 0) - (t.warn || 0)
+      }
+      arr.sort((a, b) => scoreOf(b) - scoreOf(a) || computeTier(b).paws - computeTier(a).paws)
     } else {
       arr.sort((a, b) => computeTier(b).paws - computeTier(a).paws)
     }
     return arr
-  }, [places, filters, savedIds, activeTab, lang, userCoords])
+  }, [places, filters, savedIds, activeTab, lang, userCoords, voteState.tallies])
 
   const toggleSave = (id) =>
     setSavedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
@@ -142,7 +151,7 @@ export default function App() {
   const onToggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark')
 
   return (
-    <VotesProvider>
+    <VotesProvider value={voteState}>
       <Header
         brand={s.brand}
         lang={lang}
@@ -231,6 +240,7 @@ export default function App() {
                   }}
                 >
                   <option value="paws">{lang === 'th' ? 'อุ้งเท้ามากสุด' : 'Most paws'}</option>
+                  <option value="welcomed">{lang === 'th' ? 'ต้อนรับดีที่สุด' : 'Most welcomed'}</option>
                   <option value="name">{lang === 'th' ? 'เรียงตามตัวอักษร' : 'A–Z'}</option>
                   <option value="nearby">{lang === 'th' ? 'ใกล้ฉันที่สุด' : 'Nearest to me'}</option>
                   </select>
