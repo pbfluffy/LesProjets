@@ -14,6 +14,7 @@ import TripBuilder from './components/TripBuilder'
 import { useTheme, useLang } from './hooks/useThemeLang'
 import { useFilters, applyFilters } from './hooks/useFilters'
 import { useLocalStorage } from './hooks/useLocalStorage'
+import { VotesProvider } from './hooks/VotesContext'
 
 import { fetchPlaces } from './data/fetchPlaces'
 import { computeTier, TIERS, FAVORITE_TIER } from './data/computeTier'
@@ -141,7 +142,7 @@ export default function App() {
   const onToggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark')
 
   return (
-    <>
+    <VotesProvider>
       <Header
         brand={s.brand}
         lang={lang}
@@ -386,6 +387,6 @@ export default function App() {
           </div>
         </div>
       )}
-    </>
+    </VotesProvider>
   )
 }
