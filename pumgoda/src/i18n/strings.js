@@ -54,6 +54,11 @@ export const STRINGS = {
       weekend_escape: 'ต่างจังหวัด',
     },
 
+    tierFilter: {
+      label: 'ระดับพาว',
+      all: 'ทั้งหมด',
+    },
+
     types: {
       label: 'ประเภท',
       cafe: 'คาเฟ่',
@@ -195,6 +200,11 @@ export const STRINGS = {
       all: 'All',
       bangkok_metro: 'Bangkok metro',
       weekend_escape: 'Weekend escape',
+    },
+
+    tierFilter: {
+      label: 'Paw level',
+      all: 'All',
     },
 
     types: {
