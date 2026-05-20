@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react'
+import { computeTier } from '../data/computeTier'
 
 const DEFAULT = {
   region: 'all', // 'all' | 'bangkok_metro' | 'weekend_escape'
   types: [], // subset of: cafe, restaurant, hotel, pet_hotel, park, mall, beach, vet, pet_shop, grooming
   policies: [], // subset of: indoor_allowed, no_size_limit, water_bowl, pet_menu, off_leash_zone, no_fee, overnight, no_stroller_needed
+  minPaws: 0, // 0 = no filter; otherwise require computeTier(p).paws >= minPaws
   sort: 'paws', // 'paws' | 'newest' | 'nearby'
 }
 
@@ -27,6 +29,7 @@ export function useFilters() {
     toggleType: (t) => toggleInArray('types', t),
     togglePolicy: (p) => toggleInArray('policies', p),
     setSort: (sort) => update({ sort }),
+    setMinPaws: (n) => update({ minPaws: n }),
     reset,
     clearFilters: () => setFilters((f) => ({ ...DEFAULT, sort: f.sort })),
   }
@@ -49,6 +52,9 @@ export function applyFilters(places, filters) {
         }
         if (!p.policy?.[policy]) return false
       }
+    }
+    if (filters.minPaws && filters.minPaws > 0) {
+      if (computeTier(p).paws < filters.minPaws) return false
     }
     return true
   })
