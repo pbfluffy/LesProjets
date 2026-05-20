@@ -6,6 +6,7 @@ const DEFAULT = {
   types: [], // subset of: cafe, restaurant, hotel, pet_hotel, park, mall, beach, vet, pet_shop, grooming
   policies: [], // subset of: indoor_allowed, no_size_limit, water_bowl, pet_menu, off_leash_zone, no_fee, overnight, no_stroller_needed
   minPaws: 0, // 0 = no filter; otherwise require computeTier(p).paws >= minPaws
+  query: '', // free-text search across name / neighborhood
   sort: 'paws', // 'paws' | 'newest' | 'nearby'
 }
 
@@ -30,6 +31,7 @@ export function useFilters() {
     togglePolicy: (p) => toggleInArray('policies', p),
     setSort: (sort) => update({ sort }),
     setMinPaws: (n) => update({ minPaws: n }),
+    setQuery: (s) => update({ query: s }),
     reset,
     clearFilters: () => setFilters((f) => ({ ...DEFAULT, sort: f.sort })),
   }
@@ -55,6 +57,15 @@ export function applyFilters(places, filters) {
     }
     if (filters.minPaws && filters.minPaws > 0) {
       if (computeTier(p).paws < filters.minPaws) return false
+    }
+    if (filters.query && filters.query.trim()) {
+      const q = filters.query.trim().toLowerCase()
+      const hay = [
+        p.name?.th, p.name?.en,
+        p.neighborhood,
+        p.notes?.th, p.notes?.en,
+      ].filter(Boolean).join(' ').toLowerCase()
+      if (hay.indexOf(q) === -1) return false
     }
     return true
   })
