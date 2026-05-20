@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { db, ref, set, onValue } from '../firebase'
+import { db, ref, set, remove, onValue } from '../firebase'
 
 // Community vote store, backed by Firebase Realtime Database.
 // Schema: votes are written to /votes/{deviceId}_{placeId} via `set`, so a
@@ -69,7 +69,30 @@ export function useVotes() {
     (placeId, vote) => {
       if (SIGNALS.indexOf(vote) === -1) return
       const prev = myVotes[placeId]
-      if (prev === vote) return // re-tapping the same choice is a no-op
+      if (prev === vote) {
+        // Re-tapping the current choice retracts the vote entirely.
+        const nextMine = { ...myVotes }
+        delete nextMine[placeId]
+        setMyVotes(nextMine)
+        try {
+          localStorage.setItem(LS_KEY, JSON.stringify(nextMine))
+        } catch {
+          /* storage disabled — non-fatal */
+        }
+        remove(ref(db, 'votes/' + deviceId + '_' + placeId)).catch(() => {
+          // delete failed — restore the local record.
+          setMyVotes((m) => {
+            const rolled = { ...m, [placeId]: prev }
+            try {
+              localStorage.setItem(LS_KEY, JSON.stringify(rolled))
+            } catch {
+              /* non-fatal */
+            }
+            return rolled
+          })
+        })
+        return
+      }
 
       const nextMine = { ...myVotes, [placeId]: vote }
       setMyVotes(nextMine)
