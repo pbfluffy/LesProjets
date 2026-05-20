@@ -63,3 +63,16 @@
   color: var(--faint);
   text-align: center;
 }
+
+.ph-votes-err {
+  margin-top: 6px;
+  font-size: 11px;
+  text-align: center;
+  color: #c54f4f;
+  font-weight: 600;
+  animation: ph-votes-err-fade 0.18s ease-out;
+}
+@keyframes ph-votes-err-fade {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
