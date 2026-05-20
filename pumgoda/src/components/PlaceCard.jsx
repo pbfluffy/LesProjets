@@ -2,6 +2,7 @@ import PawTierBadge from './PawTierBadge'
 import PumbaBadge from './PumbaBadge'
 import PolicyChips from './PolicyChips'
 import { STRINGS } from '../i18n/strings'
+import { useVotesCtx } from '../hooks/VotesContext'
 import './PlaceCard.css'
 
 const VOTE_SIGNALS = [
@@ -10,8 +11,9 @@ const VOTE_SIGNALS = [
   { key: 'warn', emoji: '⚠️' },
 ]
 
-export default function PlaceCard({ venue, lang = 'en', onOpen, tallies = {} }) {
+export default function PlaceCard({ venue, lang = 'en', onOpen }) {
   const s = STRINGS[lang]
+  const { tallies } = useVotesCtx()
   const name = venue.name?.[lang] || venue.name?.en || venue.id
   const typeLabel = s.types[venue.type?.toLowerCase().replace(/[\s-]+/g, '_')] || venue.type
 
