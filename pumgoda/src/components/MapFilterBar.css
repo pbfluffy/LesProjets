@@ -1,0 +1,84 @@
+/* Floating filter overlay for the Map tab */
+
+.ph-map-wrap {
+  position: relative;
+  --map-height: calc(100vh - 150px);
+}
+
+.ph-mapfilter {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.ph-mapfilter-row {
+  display: flex;
+  gap: 7px;
+  margin-right: 52px;
+  padding: 5px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ph-mapfilter-row::-webkit-scrollbar {
+  display: none;
+}
+.ph-mapfilter-row > * {
+  flex: 0 0 auto;
+}
+
+.ph-mapfilter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.16);
+}
+.ph-mapfilter-btn.is-open {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.ph-mapfilter-count {
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+}
+.ph-mapfilter-btn.is-open .ph-mapfilter-count {
+  background: #fff;
+  color: var(--accent);
+}
+
+.ph-mapfilter-row .pill {
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.16);
+}
+
+.ph-mapfilter-panel {
+  margin: 8px 10px 0;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 56vh;
+  overflow-y: auto;
+}
+
+.ph-map-wrap .leaflet-top.leaflet-left {
+  margin-top: 56px;
+}
