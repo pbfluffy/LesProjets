@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useVotes } from '../hooks/useVotes'
 import { STRINGS, interp } from '../i18n/strings'
 import './VoteButtons.css'
@@ -13,12 +14,18 @@ const SIGNALS = [
 
 export default function VoteButtons({ placeId, lang }) {
   const s = STRINGS[lang] || STRINGS.en
-  const { tallies, myVotes, status, submitVote } = useVotes()
+  const { tallies, myVotes, status, lastError, submitVote, clearError } = useVotes()
   const counts = tallies[placeId] || { up: 0, paw: 0, warn: 0 }
   const myVote = myVotes[placeId]
   const voted = Boolean(myVote)
   const mySignal = myVote ? SIGNALS.find((x) => x.key === myVote) : null
   const myLabel = mySignal ? mySignal.emoji + ' ' + (s.vote[myVote] || myVote) : ''
+
+  useEffect(() => {
+    if (!lastError) return
+    const id = setTimeout(() => clearError(), 3000)
+    return () => clearTimeout(id)
+  }, [lastError, clearError])
 
   return (
     <div className="ph-votes">
@@ -53,6 +60,7 @@ export default function VoteButtons({ placeId, lang }) {
             ? interp(s.vote.yourPick, { label: myLabel })
             : s.vote.prompt}
       </div>
+      {lastError && <div className="ph-votes-err" role="status">{s.vote.saveError}</div>}
     </div>
   )
 }
