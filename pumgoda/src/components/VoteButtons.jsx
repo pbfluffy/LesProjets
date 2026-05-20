@@ -1,5 +1,5 @@
 import { useVotes } from '../hooks/useVotes'
-import { STRINGS } from '../i18n/strings'
+import { STRINGS, interp } from '../i18n/strings'
 import './VoteButtons.css'
 
 // Community confidence — three quick signals visitors can leave on a place.
@@ -17,6 +17,8 @@ export default function VoteButtons({ placeId, lang }) {
   const counts = tallies[placeId] || { up: 0, paw: 0, warn: 0 }
   const myVote = myVotes[placeId]
   const voted = Boolean(myVote)
+  const mySignal = myVote ? SIGNALS.find((x) => x.key === myVote) : null
+  const myLabel = mySignal ? mySignal.emoji + ' ' + (s.vote[myVote] || myVote) : ''
 
   return (
     <div className="ph-votes">
@@ -48,7 +50,7 @@ export default function VoteButtons({ placeId, lang }) {
         {status === 'error'
           ? s.vote.error
           : voted
-            ? s.vote.thanks
+            ? interp(s.vote.yourPick, { label: myLabel })
             : s.vote.prompt}
       </div>
     </div>
