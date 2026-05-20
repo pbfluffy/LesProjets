@@ -1,11 +1,15 @@
 import { useEffect, useState, useCallback } from 'react'
-import { db, ref, push, onValue } from '../firebase'
+import { db, ref, set, onValue } from '../firebase'
 
 // Community vote store, backed by Firebase Realtime Database.
-// Each vote is an append-only entry { placeId, vote, ts } under /votes.
-// One vote per place per device is enforced locally via localStorage.
+// Schema: votes are written to /votes/{deviceId}_{placeId} via `set`, so a
+// user changing their mind overwrites their previous vote in place rather
+// than stacking a second entry. Legacy push-keyed votes (auto-id) are still
+// counted by the tally aggregator for backward compatibility.
+// One vote per place per device is enforced by the deterministic key.
 
 const LS_KEY = 'pumgoda_votes_v1'
+const DEVICE_LS_KEY = 'pumgoda_device_id'
 const SIGNALS = ['up', 'paw', 'warn']
 
 function loadMyVotes() {
@@ -18,10 +22,28 @@ function loadMyVotes() {
   }
 }
 
+function getOrMintDeviceId() {
+  try {
+    let id = localStorage.getItem(DEVICE_LS_KEY)
+    if (!id) {
+      id =
+        crypto && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : 'd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10)
+      localStorage.setItem(DEVICE_LS_KEY, id)
+    }
+    return id
+  } catch {
+    // localStorage disabled — re-voting works within the session only.
+    return 'session_' + Math.random().toString(36).slice(2, 10)
+  }
+}
+
 export function useVotes() {
   const [tallies, setTallies] = useState({})
   const [myVotes, setMyVotes] = useState(loadMyVotes)
   const [status, setStatus] = useState('loading')
+  const [deviceId] = useState(getOrMintDeviceId)
 
   useEffect(() => {
     const unsub = onValue(
@@ -46,7 +68,8 @@ export function useVotes() {
   const submitVote = useCallback(
     (placeId, vote) => {
       if (SIGNALS.indexOf(vote) === -1) return
-      if (myVotes[placeId]) return
+      const prev = myVotes[placeId]
+      if (prev === vote) return // re-tapping the same choice is a no-op
 
       const nextMine = { ...myVotes, [placeId]: vote }
       setMyVotes(nextMine)
@@ -56,23 +79,28 @@ export function useVotes() {
         /* storage disabled — non-fatal */
       }
 
-      push(ref(db, 'votes'), { placeId: placeId, vote: vote, ts: Date.now() }).catch(
-        () => {
-          // write failed — roll back the local record so the user can retry
-          setMyVotes((m) => {
-            const rolled = { ...m }
-            delete rolled[placeId]
-            try {
-              localStorage.setItem(LS_KEY, JSON.stringify(rolled))
-            } catch {
-              /* non-fatal */
-            }
-            return rolled
-          })
-        }
-      )
+      const voteKey = deviceId + '_' + placeId
+      set(ref(db, 'votes/' + voteKey), {
+        placeId: placeId,
+        vote: vote,
+        ts: Date.now(),
+        deviceId: deviceId,
+      }).catch(() => {
+        // write failed — restore the previous local record (or clear it).
+        setMyVotes((m) => {
+          const rolled = { ...m }
+          if (prev) rolled[placeId] = prev
+          else delete rolled[placeId]
+          try {
+            localStorage.setItem(LS_KEY, JSON.stringify(rolled))
+          } catch {
+            /* non-fatal */
+          }
+          return rolled
+        })
+      })
     },
-    [myVotes]
+    [myVotes, deviceId]
   )
 
   return { tallies, myVotes, status, submitVote }
