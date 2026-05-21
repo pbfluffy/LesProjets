@@ -64,33 +64,140 @@
     footer { text-align: center; padding: 0 0 40px; font-size: 12px; color: var(--faint); display: flex; flex-direction: column; align-items: center; gap: 5px; }
     footer .paw { font-size: 18px; }
       .card-wip { display: inline-block; font-size: 9px; font-family: 'IBM Plex Mono', monospace; background: var(--accent-light); color: var(--accent); padding: 2px 8px; border-radius: 999px; margin-top: 4px; letter-spacing: 0.05em; font-weight: 600; border: 0.5px solid var(--border); }
-    /* ─── Claude Usage widget ────────────────────────────────────── */
-    .mascot-wrap.cu-sleep img { animation: cu-sleep 3.6s ease-in-out infinite; }
-    .mascot-wrap.cu-idle  img { animation: cu-idle  2.4s ease-in-out infinite; }
-    .mascot-wrap.cu-work  img { animation: cu-work  0.60s ease-in-out infinite; }
-    .mascot-wrap.cu-hard  img { animation: cu-hard  0.32s ease-in-out infinite; }
-    .mascot-wrap.cu-max   img { animation: cu-max   0.16s linear infinite; }
-    @keyframes cu-sleep { 50% { transform: scale(1.03); } }
-    @keyframes cu-idle  { 50% { transform: translateY(-3px); } }
-    @keyframes cu-work  { 50% { transform: translateY(-2px); } }
-    @keyframes cu-hard  { 50% { transform: translateY(-3px); } }
-    @keyframes cu-max {
+    /* ─── Claude Status widget ───────────────────────────────────── */
+    .cu-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.2s, box-shadow 0.3s;
+    }
+    .cu-card:hover { border-color: var(--accent); }
+    .cu-stage {
+      flex-shrink: 0;
+      width: 108px;
+      height: 108px;
+      border-radius: 22px;
+      background: var(--accent-light);
+      border: 1.5px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .cu-corgi {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 55% 15%;
+      image-rendering: pixelated;
+      transition: transform 0.3s;
+    }
+    .cu-desk {
+      position: absolute;
+      left: -4%;
+      right: -4%;
+      bottom: 0;
+      height: 30%;
+      background: linear-gradient(180deg, #a07654 0%, #7a4f30 60%, #5a3820 100%);
+      border-top: 2px solid #3d2410;
+      transform: translateY(105%);
+      transition: transform 0.45s cubic-bezier(.4,1.4,.6,1);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 2px;
+      z-index: 2;
+    }
+    .cu-card.cu-work .cu-desk,
+    .cu-card.cu-hard .cu-desk,
+    .cu-card.cu-max  .cu-desk { transform: translateY(0); }
+    .cu-laptop {
+      font-size: 16px;
+      line-height: 1;
+      filter: drop-shadow(0 1px 0 rgba(0,0,0,0.35));
+    }
+    .cu-zzz {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      font-style: italic;
+      color: color-mix(in srgb, var(--accent) 60%, var(--muted));
+      opacity: 0;
+      transition: opacity 0.4s;
+      z-index: 3;
+      animation: cu-zzz-float 2.4s ease-in-out infinite;
+    }
+    .cu-card.cu-sleep .cu-zzz { opacity: 1; }
+    @keyframes cu-zzz-float {
+      0%, 100% { transform: translateY(0); opacity: 0.5; }
+      50%      { transform: translateY(-4px); opacity: 1; }
+    }
+    .cu-spark {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      font-size: 16px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 3;
+    }
+    .cu-card.cu-hard .cu-spark,
+    .cu-card.cu-max  .cu-spark { opacity: 1; animation: cu-spark-pulse 0.5s ease-in-out infinite; }
+    @keyframes cu-spark-pulse { 50% { transform: scale(1.3) rotate(15deg); } }
+    .cu-card.cu-sleep .cu-corgi { animation: cu-c-sleep 3.6s ease-in-out infinite; transform: rotate(-4deg); }
+    @keyframes cu-c-sleep { 50% { transform: rotate(-4deg) scale(1.03); } }
+    .cu-card.cu-idle .cu-corgi { animation: cu-c-idle 2.4s ease-in-out infinite; }
+    @keyframes cu-c-idle { 50% { transform: translateY(-2px); } }
+    .cu-card.cu-work .cu-corgi { animation: cu-c-work 0.5s ease-in-out infinite; }
+    @keyframes cu-c-work { 50% { transform: translateY(-1.5px); } }
+    .cu-card.cu-hard .cu-corgi { animation: cu-c-hard 0.32s ease-in-out infinite; }
+    @keyframes cu-c-hard { 50% { transform: translateY(-2px); } }
+    .cu-card.cu-max  .cu-corgi { animation: cu-c-max 0.16s linear infinite; }
+    @keyframes cu-c-max {
       0%   { transform: translateX(0) rotate(0); }
-      25%  { transform: translateX(-2px) rotate(-1deg); }
-      75%  { transform: translateX(2px)  rotate(1deg); }
+      25%  { transform: translateX(-1.5px) rotate(-1deg); }
+      75%  { transform: translateX(1.5px) rotate(1deg); }
     }
-    .mascot-wrap.cu-max {
+    .cu-card.cu-max {
       border-color: var(--accent);
-      box-shadow: 0 4px 18px rgba(0,0,0,0.09), 0 0 26px -8px var(--accent);
-      animation: cu-max-glow 1.4s ease-in-out infinite;
+      box-shadow: 0 0 26px -8px var(--accent);
+      animation: cu-card-glow 1.4s ease-in-out infinite;
     }
-    @keyframes cu-max-glow { 50% { box-shadow: 0 4px 18px rgba(0,0,0,0.09), 0 0 36px -4px var(--accent); } }
-    .dog-badge#cuBadge { cursor: help; user-select: none; transition: background 0.25s, color 0.25s, border-color 0.25s; font-feature-settings: "tnum"; }
-    .dog-badge#cuBadge.cu-live          { background: var(--accent-light); color: var(--accent); }
-    .dog-badge#cuBadge.cu-live.cu-sleep,
-    .dog-badge#cuBadge.cu-live.cu-idle  { background: var(--surface-alt); color: var(--muted); }
-    .dog-badge#cuBadge.cu-live.cu-hard  { background: var(--accent-light); color: var(--accent); }
-    .dog-badge#cuBadge.cu-live.cu-max   { background: var(--accent); color: #fff; border-color: var(--accent); }
+    @keyframes cu-card-glow { 50% { box-shadow: 0 0 38px -4px var(--accent); } }
+    .cu-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .cu-state-name {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      transition: color 0.3s;
+    }
+    .cu-card.cu-max .cu-state-name { color: var(--accent); }
+    .cu-stats {
+      font-size: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+    .cu-stats .cu-cost { color: var(--accent); font-weight: 600; }
+    .cu-window-hint {
+      font-size: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--faint);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
   </style>
 </head>
 <body>
@@ -107,13 +214,13 @@
   </header>
 
   <div class="hero">
-    <div class="mascot-wrap" id="cuMascot">
+    <div class="mascot-wrap">
       <img src="./pumba.png" alt="Pumba pixel corgi" />
     </div>
     <div class="hero-text">
       <h1 id="h1">พุมบ้า's<br>Projects</h1>
       <p class="tagline" id="tagline">Apps &amp; เครื่องมือโดย pbfluffy</p>
-      <span class="dog-badge" id="cuBadge" title="">🐾 corgi-powered</span>
+      <span class="dog-badge">🐾 corgi-powered</span>
     </div>
   </div>
 
@@ -162,6 +269,19 @@
   </div>
   <p class="card-desc" id="pumgoda-desc">ค้นหาคาเฟ่ ร้านอาหาร โรงแรม ที่พาน้องไปได้ในกรุงเทพและต่างจังหวัด มีระบบจัดระดับเป็นอุ้งเท้า 1–4 และตรา 'พุมบ้าเคยมา'</p>
 </a>
+    <section class="card cu-card" id="cuCard" role="status" aria-live="polite">
+      <div class="cu-stage">
+        <img class="cu-corgi" src="./pumba.png" alt="Claude (pixel-art corgi)" />
+        <div class="cu-desk"><span class="cu-laptop">💻</span></div>
+        <span class="cu-zzz" aria-hidden="true">Zzz</span>
+        <span class="cu-spark" aria-hidden="true">✦</span>
+      </div>
+      <div class="cu-info">
+        <div class="cu-state-name" id="cuStateName">หลับอยู่</div>
+        <div class="cu-stats" id="cuStats">— tokens · $0.00</div>
+        <div class="cu-window-hint" id="cuWindowHint">วันนี้</div>
+      </div>
+    </section>
   </div>
 
   <footer>
@@ -396,19 +516,13 @@
       } catch (_) { /* offline / cors / whatever — stay silent */ }
     }
     function cuRender() {
-      const mascot = document.getElementById("cuMascot");
-      const badge  = document.getElementById("cuBadge");
-      if (!mascot || !badge) return;
+      const card = document.getElementById("cuCard");
+      if (!card) return;
       const cur = (typeof lang !== "undefined" && CU_COPY[lang]) ? lang : "th";
       const tCopy = CU_COPY[cur];
       const state = cuDeriveState();
-
-      ["cu-sleep","cu-idle","cu-work","cu-hard","cu-max"].forEach(c => mascot.classList.remove(c));
-      if (state !== "nodata") mascot.classList.add("cu-" + state);
-
-      badge.classList.remove("cu-live","cu-sleep","cu-idle","cu-work","cu-hard","cu-max");
-      if (state !== "nodata") badge.classList.add("cu-live","cu-" + state);
-
+      ["cu-sleep","cu-idle","cu-work","cu-hard","cu-max"].forEach(c => card.classList.remove(c));
+      if (state !== "nodata") card.classList.add("cu-" + state);
       const now = Date.now();
       const wins = {
         today: { from: cuStartOfDay(),                  label: tCopy.today },
@@ -418,31 +532,28 @@
       };
       const w = wins[CU_window];
       const agg = cuAgg(w.from);
-
-      const stateLbl = tCopy[state];
+      const stateName = document.getElementById("cuStateName");
+      const stats     = document.getElementById("cuStats");
+      const winHint   = document.getElementById("cuWindowHint");
       if (state === "nodata" || !CU.fbUrl) {
-        badge.textContent = tCopy.nodata;
-        badge.title = "";
+        if (stateName) stateName.textContent = tCopy.nodata;
+        if (stats)     stats.innerHTML = "&mdash;";
+        if (winHint)   winHint.textContent = "";
         return;
       }
-      if (agg.tok === 0) {
-        badge.textContent = `${stateLbl} · ${w.label}: 0`;
-      } else {
-        badge.textContent = `${stateLbl} · ${w.label}: ${cuFmtTokens(agg.tok)} · ${cuFmtCost(agg.cost)}`;
+      const stateLbl = tCopy[state] || state;
+      if (stateName) stateName.textContent = stateLbl;
+      if (stats) {
+        if (agg.tok === 0) {
+          stats.innerHTML = "0 tokens";
+        } else {
+          stats.innerHTML = cuFmtTokens(agg.tok) + " tokens \u00b7 <span class=\"cu-cost\">" + cuFmtCost(agg.cost) + "</span>";
+        }
       }
-
-      const today = cuAgg(cuStartOfDay());
-      const week  = cuAgg(now - 7 * 86400 * 1000);
-      const month = cuAgg(now - 30 * 86400 * 1000);
-      const all   = cuAgg(0);
-      badge.title =
-        `${tCopy.today}: ${cuFmtTokens(today.tok)} · ${cuFmtCost(today.cost)}\n` +
-        `${tCopy.week}: ${cuFmtTokens(week.tok)} · ${cuFmtCost(week.cost)}\n` +
-        `${tCopy.month}: ${cuFmtTokens(month.tok)} · ${cuFmtCost(month.cost)}\n` +
-        `${tCopy.all}: ${cuFmtTokens(all.tok)} · ${cuFmtCost(all.cost)} (${all.count} calls)`;
+      if (winHint) winHint.textContent = w.label + " \u00b7 tap to cycle";
     }
 
-    document.getElementById("cuBadge")?.addEventListener("click", (e) => {
+    document.getElementById("cuCard")?.addEventListener("click", (e) => {
       if (!CU.fbUrl) return;
       e.preventDefault();
       const order = ["today","week","month","all"];
