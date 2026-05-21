@@ -378,54 +378,20 @@
     applyTheme()
     applyLang()
     // ════════════════════════════════════════════════════════════════════
-    // Claude Usage widget
+    // ════════════════════════════════════════════════════════════════════
+    // Claude Status widget v2
     // ────────────────────────────────────────────────────────────────────
-    // Reads token-spend events from Firebase Realtime DB and reflects them
-    // in the hero mascot + dog badge. Tap the badge to cycle the window
-    // (today → 7d → 30d → all-time → today). Hover for full breakdown.
-    //
-    // To LOG usage from any script that calls the Claude API, paste this
-    // helper into that script and call it after every /v1/messages call:
-    //
-    //   const CU_FB_URL  = "https://pumgoda-default-rtdb.asia-southeast1.firebasedatabase.app";
-    //   const CU_FB_PATH = "claude-usage";
-    //   async function logClaudeUsage(resp, source) {
-    //     if (!resp?.usage) return;
-    //     fetch(`${CU_FB_URL}/${CU_FB_PATH}.json`, {
-    //       method: "POST",
-    //       body: JSON.stringify({
-    //         t: Date.now(),
-    //         i: resp.usage.input_tokens  ?? 0,
-    //         o: resp.usage.output_tokens ?? 0,
-    //         m: resp.model || "unknown",
-    //         s: source     || "unknown",
-    //       }),
-    //     }).catch(() => {});
-    //   }
-    //
-    // Firebase rules needed (so this widget can read + scripts can write):
-    //   { "rules": { "claude-usage": {
-    //       ".read": true, ".write": true, ".indexOn": ["t"] } } }
+    // Reads claude-limits/current from Firebase, populated by the
+    // "Pumba Claude Usage Logger" Chrome extension which scrapes
+    // claude.ai/settings/usage. Tap the card to switch between session
+    // and weekly focus.
     // ════════════════════════════════════════════════════════════════════
 
     const CU = {
-      fbUrl:  "https://pumgoda-default-rtdb.asia-southeast1.firebasedatabase.app",
-      fbPath: "claude-usage",
-      pollMs: 30000,
-    };
-
-    const CU_PRICING = {
-      "claude-opus-4-7":   { in: 5,    out: 25   },
-      "claude-opus-4-6":   { in: 5,    out: 25   },
-      "claude-sonnet-4-6": { in: 3,    out: 15   },
-      "claude-sonnet-4-5": { in: 3,    out: 15   },
-      "claude-haiku-4-5":  { in: 1,    out: 5    },
-      "claude-opus-4-1":   { in: 15,   out: 75   },
-      "claude-opus-4":     { in: 15,   out: 75   },
-      "claude-3-5-sonnet": { in: 3,    out: 15   },
-      "claude-3-5-haiku":  { in: 0.8,  out: 4    },
-      "claude-3-haiku":    { in: 0.25, out: 1.25 },
-      "unknown":           { in: 3,    out: 15   },
+      fbUrl:   "https://pumgoda-default-rtdb.asia-southeast1.firebasedatabase.app",
+      path:    "claude-limits/current",
+      pollMs:  30000,
+      staleMs: 30 * 60 * 1000,
     };
 
     const CU_COPY = {
@@ -433,141 +399,97 @@
         sleep: "💤 Claude หลับ", idle: "🐾 Claude ตื่น",
         work:  "⌨️ Claude ทำงาน", hard: "🔥 Claude เร่ง",
         max:   "⚡ Claude เต็มที่", nodata: "🐾 corgi-powered",
-        today: "วันนี้", week: "7 วัน", month: "30 วัน", all: "ทั้งหมด",
+        session: "เซสชัน", weekly: "สัปดาห์", resetsIn: "รีเซ็ตใน", tapSwitch: "แตะเพื่อสลับ",
       },
       en: {
         sleep: "💤 sleeping", idle: "🐾 awake",
         work:  "⌨️ working", hard: "🔥 crunching",
         max:   "⚡ MAX OUTPUT", nodata: "🐾 corgi-powered",
-        today: "today", week: "7d", month: "30d", all: "all-time",
+        session: "session", weekly: "weekly", resetsIn: "resets in", tapSwitch: "tap to switch",
       }
     };
 
-    let CU_entries = [];
-    let CU_window  = "today";
+    let CU_data = null;
+    let CU_view = "session";
 
-    function cuPriceFor(m) {
-      const k = String(m || "unknown").replace(/-\d{8}$/, "").toLowerCase();
-      if (CU_PRICING[k]) return CU_PRICING[k];
-      for (const p of Object.keys(CU_PRICING)) if (k.startsWith(p)) return CU_PRICING[p];
-      return CU_PRICING.unknown;
-    }
-    function cuFmtTokens(n) {
-      if (n >= 1e6) return (n/1e6).toFixed(2) + "M";
-      if (n >= 1e3) return (n/1e3).toFixed(n >= 1e4 ? 0 : 1) + "K";
-      return String(n);
-    }
-    function cuFmtCost(usd) {
-      if (usd == null) return "—";
-      if (usd === 0)   return "$0";
-      if (usd < 0.01)  return "<$0.01";
-      if (usd < 1)     return "$" + usd.toFixed(3);
-      if (usd < 100)   return "$" + usd.toFixed(2);
-      return "$" + Math.round(usd).toLocaleString();
-    }
-    function cuAgg(fromTs) {
-      let tok = 0, cost = 0, count = 0;
-      for (const e of CU_entries) {
-        if (e.t < fromTs) continue;
-        tok += e.i + e.o;
-        const p = cuPriceFor(e.m);
-        cost += (e.i * p.in + e.o * p.out) / 1e6;
-        count++;
-      }
-      return { tok, cost, count };
-    }
-    function cuStartOfDay() { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
-    function cuDeriveState() {
-      if (!CU_entries.length) return "nodata";
-      const ageMs = Date.now() - CU_entries[0].t;
-      let recent = 0;
-      for (const e of CU_entries) {
-        if (Date.now() - e.t > 60000) break;
-        recent += e.i + e.o;
-      }
-      if (ageMs < 30000) {
-        if (recent > 50000) return "max";
-        if (recent > 10000) return "hard";
-        return "work";
-      }
-      if (ageMs < 5 * 60 * 1000) return "idle";
-      return "sleep";
-    }
     async function cuFetch() {
-      if (!CU.fbUrl) return;
       try {
-        const base = CU.fbUrl.replace(/\/+$/, "");
-        const path = CU.fbPath.replace(/^\/+|\/+$/g, "");
-        const cutoff = Date.now() - 35 * 86400 * 1000;
-        const url = `${base}/${path}.json?orderBy=${encodeURIComponent('"t"')}&startAt=${cutoff}`;
-        const r = await fetch(url);
+        const r = await fetch(`${CU.fbUrl}/${CU.path}.json?_=${Date.now()}`);
         if (!r.ok) return;
-        const data = await r.json();
-        const out = [];
-        if (data && typeof data === "object") {
-          for (const k of Object.keys(data)) {
-            const e = data[k]; if (!e) continue;
-            out.push({ t: +e.t || 0, i: +e.i || 0, o: +e.o || 0, m: e.m || "unknown" });
-          }
-        }
-        out.sort((a, b) => b.t - a.t);
-        CU_entries = out;
+        CU_data = await r.json();
         cuRender();
-      } catch (_) { /* offline / cors / whatever — stay silent */ }
+      } catch (_) { /* silent */ }
     }
+
+    function cuDeriveState() {
+      if (!CU_data || !CU_data.t) return "nodata";
+      if (Date.now() - CU_data.t > CU.staleMs) return "sleep";
+      const s = CU_data.session_pct;
+      if (s == null) return "idle";
+      if (s >= 85) return "max";
+      if (s >= 60) return "hard";
+      if (s >= 15) return "work";
+      return "idle";
+    }
+
     function cuRender() {
       const card = document.getElementById("cuCard");
       if (!card) return;
       const cur = (typeof lang !== "undefined" && CU_COPY[lang]) ? lang : "th";
       const tCopy = CU_COPY[cur];
       const state = cuDeriveState();
+
       ["cu-sleep","cu-idle","cu-work","cu-hard","cu-max"].forEach(c => card.classList.remove(c));
       if (state !== "nodata") card.classList.add("cu-" + state);
-      const now = Date.now();
-      const wins = {
-        today: { from: cuStartOfDay(),                  label: tCopy.today },
-        week:  { from: now - 7  * 86400 * 1000,         label: tCopy.week  },
-        month: { from: now - 30 * 86400 * 1000,         label: tCopy.month },
-        all:   { from: 0,                               label: tCopy.all   },
-      };
-      const w = wins[CU_window];
-      const agg = cuAgg(w.from);
+
       const stateName = document.getElementById("cuStateName");
       const stats     = document.getElementById("cuStats");
       const winHint   = document.getElementById("cuWindowHint");
-      if (state === "nodata" || !CU.fbUrl) {
+
+      if (state === "nodata") {
         if (stateName) stateName.textContent = tCopy.nodata;
         if (stats)     stats.innerHTML = "&mdash;";
         if (winHint)   winHint.textContent = "";
         return;
       }
-      const stateLbl = tCopy[state] || state;
-      if (stateName) stateName.textContent = stateLbl;
+
+      if (stateName) stateName.textContent = tCopy[state] || state;
+
       if (stats) {
-        if (agg.tok === 0) {
-          stats.innerHTML = "0 tokens";
+        const d = CU_data || {};
+        const sp = d.session_pct, wp = d.weekly_all_pct;
+        const fmtPct = (v) => v != null ? `<span class="cu-cost">${v}%</span>` : "&mdash;";
+        if (CU_view === "session") {
+          const sec = wp != null ? ` \u00b7 ${tCopy.weekly} ${wp}%` : "";
+          stats.innerHTML = `${tCopy.session} ${fmtPct(sp)}${sec}`;
         } else {
-          stats.innerHTML = cuFmtTokens(agg.tok) + " tokens \u00b7 <span class=\"cu-cost\">" + cuFmtCost(agg.cost) + "</span>";
+          const sec = sp != null ? ` \u00b7 ${tCopy.session} ${sp}%` : "";
+          stats.innerHTML = `${tCopy.weekly} ${fmtPct(wp)}${sec}`;
         }
       }
-      if (winHint) winHint.textContent = w.label + " \u00b7 tap to cycle";
+
+      if (winHint) {
+        const d = CU_data || {};
+        const reset = CU_view === "session" ? d.session_reset : d.weekly_all_reset;
+        if (reset) {
+          winHint.textContent = `${tCopy.resetsIn} ${reset} \u00b7 ${tCopy.tapSwitch}`;
+        } else {
+          winHint.textContent = tCopy.tapSwitch;
+        }
+      }
     }
 
     document.getElementById("cuCard")?.addEventListener("click", (e) => {
-      if (!CU.fbUrl) return;
       e.preventDefault();
-      const order = ["today","week","month","all"];
-      const i = order.indexOf(CU_window);
-      CU_window = order[(i + 1) % order.length];
+      CU_view = CU_view === "session" ? "weekly" : "session";
       cuRender();
     });
 
     cuRender();
-    if (CU.fbUrl) {
-      cuFetch();
-      setInterval(cuFetch, CU.pollMs);
-      setInterval(cuRender, 10000);
-    }
+    cuFetch();
+    setInterval(cuFetch, CU.pollMs);
+    setInterval(cuRender, 10000);
+
   </script>
 
 </body>
