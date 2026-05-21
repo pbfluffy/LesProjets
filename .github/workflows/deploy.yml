@@ -47,7 +47,6 @@ jobs:
           mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda
           cp index.html _site/index.html
           cp NutritionsInThailand.html _site/NutritionsInThailand.html
-          cp excel-tutorial.html _site/excel-tutorial.html
           cp -r bill-splitter/dist/. _site/bill-splitter/
           cp -r nutritions-thailand/dist/. _site/nutritions-thailand/
           cp -r pumgoda/dist/. _site/pumgoda/
