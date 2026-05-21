@@ -65,94 +65,6 @@
     footer .paw { font-size: 18px; }
       .card-wip { display: inline-block; font-size: 9px; font-family: 'IBM Plex Mono', monospace; background: var(--accent-light); color: var(--accent); padding: 2px 8px; border-radius: 999px; margin-top: 4px; letter-spacing: 0.05em; font-weight: 600; border: 0.5px solid var(--border); }
     /* ─── Claude Status widget ───────────────────────────────────── */
-    .cu-card {
-      background: var(--surface);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px 20px;
-      display: flex;
-      gap: 18px;
-      align-items: center;
-      cursor: pointer;
-      user-select: none;
-      transition: border-color 0.2s, box-shadow 0.3s;
-    }
-    .cu-card:hover { border-color: var(--accent); }
-    .cu-stage {
-      flex-shrink: 0;
-      width: 108px;
-      height: 108px;
-      border-radius: 22px;
-      background: var(--accent-light);
-      border: 1.5px solid var(--border);
-      position: relative;
-      overflow: hidden;
-      transition: background 0.3s, border-color 0.3s;
-    }
-    .cu-corgi {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      image-rendering: pixelated;
-      opacity: 0;
-      transition: transform 0.3s, opacity 0.25s;
-    }
-    /* show the sprite that matches the current card state */
-    .cu-card.cu-sleep .cu-corgi[data-state="sleep"],
-    .cu-card.cu-idle  .cu-corgi[data-state="idle"],
-    .cu-card.cu-work  .cu-corgi[data-state="work"],
-    .cu-card.cu-hard  .cu-corgi[data-state="hard"],
-    .cu-card.cu-max   .cu-corgi[data-state="max"] { opacity: 1; }
-    /* fallback before any state class has been set — show idle */
-    .cu-card:not(.cu-sleep):not(.cu-idle):not(.cu-work):not(.cu-hard):not(.cu-max) .cu-corgi[data-state="idle"] { opacity: 1; }
-    /* per-state animations target only the visible sprite */
-    .cu-card.cu-sleep .cu-corgi[data-state="sleep"] { animation: cu-c-sleep 3.6s ease-in-out infinite; transform: rotate(-4deg); }
-    @keyframes cu-c-sleep { 50% { transform: rotate(-4deg) scale(1.03); } }
-    .cu-card.cu-idle .cu-corgi[data-state="idle"] { animation: cu-c-idle 2.4s ease-in-out infinite; }
-    @keyframes cu-c-idle { 50% { transform: translateY(-2px); } }
-    .cu-card.cu-work .cu-corgi[data-state="work"] { animation: cu-c-work 0.5s ease-in-out infinite; }
-    @keyframes cu-c-work { 50% { transform: translateY(-1.5px); } }
-    .cu-card.cu-hard .cu-corgi[data-state="hard"] { animation: cu-c-hard 0.32s ease-in-out infinite; }
-    @keyframes cu-c-hard { 50% { transform: translateY(-2px); } }
-    .cu-card.cu-max .cu-corgi[data-state="max"] { animation: cu-c-max 0.16s linear infinite; }
-    @keyframes cu-c-max {
-      0%   { transform: translateX(0) rotate(0); }
-      25%  { transform: translateX(-1.5px) rotate(-1deg); }
-      75%  { transform: translateX(1.5px) rotate(1deg); }
-    }
-    .cu-card.cu-max {
-      border-color: var(--accent);
-      box-shadow: 0 0 26px -8px var(--accent);
-      animation: cu-card-glow 1.4s ease-in-out infinite;
-    }
-    @keyframes cu-card-glow { 50% { box-shadow: 0 0 38px -4px var(--accent); } }
-
-    .cu-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-    .cu-state-name {
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      color: var(--text);
-      transition: color 0.3s;
-    }
-    .cu-card.cu-max .cu-state-name { color: var(--accent); }
-    .cu-stats {
-      font-size: 12px;
-      font-family: 'IBM Plex Mono', monospace;
-      color: var(--muted);
-      letter-spacing: 0.02em;
-    }
-    .cu-stats .cu-cost { color: var(--accent); font-weight: 600; }
-    .cu-window-hint {
-      font-size: 10px;
-      font-family: 'IBM Plex Mono', monospace;
-      color: var(--faint);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-top: 4px;
-    }
   </style>
 </head>
 <body>
@@ -224,20 +136,6 @@
   </div>
   <p class="card-desc" id="pumgoda-desc">ค้นหาคาเฟ่ ร้านอาหาร โรงแรม ที่พาน้องไปได้ในกรุงเทพและต่างจังหวัด มีระบบจัดระดับเป็นอุ้งเท้า 1–4 และตรา 'พุมบ้าเคยมา'</p>
 </a>
-    <section class="card cu-card" id="cuCard" role="status" aria-live="polite">
-      <div class="cu-stage">
-        <img class="cu-corgi" data-state="sleep" src="./pumba_sleep.png" alt="" />
-        <img class="cu-corgi" data-state="idle"  src="./pumba_idle.png"  alt="" />
-        <img class="cu-corgi" data-state="work"  src="./pumba_work.png"  alt="" />
-        <img class="cu-corgi" data-state="hard"  src="./pumba_hard.png"  alt="" />
-        <img class="cu-corgi" data-state="max"   src="./pumba_max.png"   alt="Claude (pixel-art corgi)" />
-      </div>
-      <div class="cu-info">
-        <div class="cu-state-name" id="cuStateName">หลับอยู่</div>
-        <div class="cu-stats" id="cuStats">— tokens · $0.00</div>
-        <div class="cu-window-hint" id="cuWindowHint">วันนี้</div>
-      </div>
-    </section>
   </div>
 
   <footer>
@@ -299,7 +197,6 @@
       document.getElementById("sushiro-btn-text").textContent = s.sushiroMode
       document.getElementById("langBtn").textContent = lang === "th" ? "EN" : "TH"
       document.documentElement.lang = lang
-      if (typeof cuRender === "function") { try { cuRender(); } catch(_){} }
     }
 
     function toggleLang() { lang = lang === "th" ? "en" : "th"; applyLang() }
@@ -333,120 +230,7 @@
 
     applyTheme()
     applyLang()
-    // ════════════════════════════════════════════════════════════════════
-    // ════════════════════════════════════════════════════════════════════
-    // Claude Status widget v2
-    // ────────────────────────────────────────────────────────────────────
-    // Reads claude-limits/current from Firebase, populated by the
-    // "Pumba Claude Usage Logger" Chrome extension which scrapes
-    // claude.ai/settings/usage. Tap the card to switch between session
-    // and weekly focus.
-    // ════════════════════════════════════════════════════════════════════
-
-    const CU = {
-      fbUrl:   "https://pumgoda-default-rtdb.asia-southeast1.firebasedatabase.app",
-      path:    "claude-limits/current",
-      pollMs:  30000,
-      staleMs: 30 * 60 * 1000,
-    };
-
-    const CU_COPY = {
-      th: {
-        sleep: "💤 Claude หลับ", idle: "🐾 Claude ตื่น",
-        work:  "⌨️ Claude ทำงาน", hard: "🔥 Claude เร่ง",
-        max:   "⚡ Claude เต็มที่", nodata: "🐾 corgi-powered",
-        session: "เซสชัน", weekly: "สัปดาห์", resetsIn: "รีเซ็ตใน", tapSwitch: "แตะเพื่อสลับ",
-      },
-      en: {
-        sleep: "💤 sleeping", idle: "🐾 awake",
-        work:  "⌨️ working", hard: "🔥 crunching",
-        max:   "⚡ MAX OUTPUT", nodata: "🐾 corgi-powered",
-        session: "session", weekly: "weekly", resetsIn: "resets in", tapSwitch: "tap to switch",
-      }
-    };
-
-    let CU_data = null;
-    let CU_view = "session";
-
-    async function cuFetch() {
-      try {
-        const r = await fetch(`${CU.fbUrl}/${CU.path}.json?_=${Date.now()}`);
-        if (!r.ok) return;
-        CU_data = await r.json();
-        cuRender();
-      } catch (_) { /* silent */ }
-    }
-
-    function cuDeriveState() {
-      if (!CU_data || !CU_data.t) return "nodata";
-      if (Date.now() - CU_data.t > CU.staleMs) return "sleep";
-      const s = CU_data.session_pct;
-      if (s == null) return "idle";
-      if (s >= 85) return "max";
-      if (s >= 60) return "hard";
-      if (s >= 15) return "work";
-      return "idle";
-    }
-
-    function cuRender() {
-      const card = document.getElementById("cuCard");
-      if (!card) return;
-      const cur = (typeof lang !== "undefined" && CU_COPY[lang]) ? lang : "th";
-      const tCopy = CU_COPY[cur];
-      const state = cuDeriveState();
-
-      ["cu-sleep","cu-idle","cu-work","cu-hard","cu-max"].forEach(c => card.classList.remove(c));
-      if (state !== "nodata") card.classList.add("cu-" + state);
-
-      const stateName = document.getElementById("cuStateName");
-      const stats     = document.getElementById("cuStats");
-      const winHint   = document.getElementById("cuWindowHint");
-
-      if (state === "nodata") {
-        if (stateName) stateName.textContent = tCopy.nodata;
-        if (stats)     stats.innerHTML = "&mdash;";
-        if (winHint)   winHint.textContent = "";
-        return;
-      }
-
-      if (stateName) stateName.textContent = tCopy[state] || state;
-
-      if (stats) {
-        const d = CU_data || {};
-        const sp = d.session_pct, wp = d.weekly_all_pct;
-        const fmtPct = (v) => v != null ? `<span class="cu-cost">${v}%</span>` : "&mdash;";
-        if (CU_view === "session") {
-          const sec = wp != null ? ` \u00b7 ${tCopy.weekly} ${wp}%` : "";
-          stats.innerHTML = `${tCopy.session} ${fmtPct(sp)}${sec}`;
-        } else {
-          const sec = sp != null ? ` \u00b7 ${tCopy.session} ${sp}%` : "";
-          stats.innerHTML = `${tCopy.weekly} ${fmtPct(wp)}${sec}`;
-        }
-      }
-
-      if (winHint) {
-        const d = CU_data || {};
-        const reset = CU_view === "session" ? d.session_reset : d.weekly_all_reset;
-        if (reset) {
-          winHint.textContent = `${tCopy.resetsIn} ${reset} \u00b7 ${tCopy.tapSwitch}`;
-        } else {
-          winHint.textContent = tCopy.tapSwitch;
-        }
-      }
-    }
-
-    document.getElementById("cuCard")?.addEventListener("click", (e) => {
-      e.preventDefault();
-      CU_view = CU_view === "session" ? "weekly" : "session";
-      cuRender();
-    });
-
-    cuRender();
-    cuFetch();
-    setInterval(cuFetch, CU.pollMs);
-    setInterval(cuRender, 10000);
-
-  </script>
+</script>
 
 </body>
 </html>
