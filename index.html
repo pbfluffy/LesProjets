@@ -223,7 +223,7 @@
       document.getElementById("sushiro-btn-text").textContent = s.sushiroMode
       document.getElementById("langBtn").textContent = lang === "th" ? "EN" : "TH"
       document.documentElement.lang = lang
-      if (typeof cuRender === "function") cuRender();
+      if (typeof cuRender === "function") { try { cuRender(); } catch(_){} }
     }
 
     function toggleLang() { lang = lang === "th" ? "en" : "th"; applyLang() }
