@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster'
 import styles from './MapView.module.css'
 import { computeTier } from '../data/computeTier'
 
@@ -164,6 +166,29 @@ function buildUserIcon() {
   })
 }
 
+/**
+ * Cluster icon — circle with the child count, in Pumgoda's accent palette.
+ * Sized in three steps to give a visual cue of density at a glance.
+ */
+function buildClusterIcon(cluster) {
+  const count = cluster.getChildCount()
+  let size = 36
+  let tierClass = styles.clusterSm
+  if (count >= 10) {
+    size = 42
+    tierClass = styles.clusterMd
+  }
+  if (count >= 50) {
+    size = 50
+    tierClass = styles.clusterLg
+  }
+  return L.divIcon({
+    html: `<div class="${styles.cluster} ${tierClass}" style="width:${size}px;height:${size}px;line-height:${size - 4}px;">${count}</div>`,
+    className: styles.clusterLeaflet,
+    iconSize: [size, size],
+  })
+}
+
 export default function MapView({ places = [], onPlaceClick, theme = 'light', lang = 'en' }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -199,7 +224,20 @@ export default function MapView({ places = [], onPlaceClick, theme = 'light', la
       maxZoom: 19,
     }).addTo(map)
 
-    markersLayerRef.current = L.layerGroup().addTo(map)
+    markersLayerRef.current = L.markerClusterGroup({
+      // Use our custom icon for cluster bubbles instead of the library's default blue.
+      iconCreateFunction: buildClusterIcon,
+      // Lighter visual: skip the polygon outline that appears when hovering a cluster.
+      showCoverageOnHover: false,
+      // Smaller radius = clusters break apart sooner as you zoom in.
+      maxClusterRadius: 60,
+      // At high zoom the user clearly wants individual markers — break out fully.
+      disableClusteringAtZoom: 16,
+      // Batch DOM work for large datasets.
+      chunkedLoading: true,
+      // Slightly smaller spider arms (when zoomed in, overlapping markers spread out)
+      spiderfyDistanceMultiplier: 1.2,
+    }).addTo(map)
 
     // Wire popup action buttons via delegation
     map.on('popupopen', (e) => {
