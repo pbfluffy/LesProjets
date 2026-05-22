@@ -48,6 +48,7 @@ const TYPE_ICON = {
   cafe: '☕',
   restaurant: '🍴',
   hotel: '🏨',
+  pet_hotel: '🛌',
   park: '🌳',
   mall: '🏬',
   beach: '🏖️',
@@ -61,7 +62,7 @@ function normalizeType(type) {
   return String(type).toLowerCase().replace(/é/g, 'e').replace(/[-\s]/g, '_')
 }
 function getTypeIcon(type) {
-  return TYPE_ICON[normalizeType(type)] || '📍'
+  return TYPE_ICON[normalizeType(type)] || '🐾'
 }
 
 // Tier names per language (for popup)
