@@ -290,3 +290,46 @@
   background: var(--surface);
   color: var(--text);
 }
+
+/* ---------- Cluster icons (leaflet.markercluster) ---------- */
+
+/* Strip Leaflet's default white box on the cluster div icon */
+.clusterLeaflet {
+  background: transparent !important;
+  border: none !important;
+}
+
+.cluster {
+  border-radius: 50%;
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  font-size: 13px;
+  color: #ffffff;
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.cluster:hover {
+  transform: scale(1.08);
+}
+
+/* Three size tiers — gradient from light to dark accent matches the marker palette */
+.clusterSm {
+  background: #f0a672;
+  font-size: 12px;
+}
+.clusterMd {
+  background: #d97a30;
+}
+.clusterLg {
+  background: var(--accent);
+  font-size: 14px;
+}
+
+/* Dark mode: subtly outline the bubble so it doesn't get lost on dark tiles */
+:global([data-theme='dark']) .cluster {
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
