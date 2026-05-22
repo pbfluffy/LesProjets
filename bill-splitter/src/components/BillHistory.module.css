@@ -1,0 +1,130 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px 12px 12px;
+  overflow-y: auto;
+}
+
+.panel {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  width: 100%;
+  max-width: 480px;
+  padding: 18px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--color-text-muted);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--color-text-faint);
+  text-align: center;
+  padding: 20px 0;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--color-border);
+}
+
+.loadBtn {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-text);
+  border-radius: var(--radius-md);
+}
+
+.loadBtn:hover {
+  background: var(--color-bg);
+}
+
+.rowName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.rowMeta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.delBtn {
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-md);
+}
+
+.delBtn:hover {
+  background: var(--color-red-bg);
+  color: var(--color-red);
+}
+
+.clearBtn {
+  align-self: flex-end;
+  background: none;
+  border: 0.5px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  padding: 6px 12px;
+  color: var(--color-text-muted);
+}
+
+.clearBtn:hover {
+  background: var(--color-red-bg);
+  color: var(--color-red);
+  border-color: var(--color-red);
+}
