@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { computeTier } from '../data/computeTier'
 
 const DEFAULT = {
@@ -10,8 +10,42 @@ const DEFAULT = {
   sort: 'paws', // 'paws' | 'newest' | 'nearby'
 }
 
+// Versioned key — bump suffix if the shape of DEFAULT changes incompatibly
+const STORE_KEY = 'pumgoda_filters_v1'
+
+// Defensively coerce a possibly-stale persisted object back into a valid filter
+// shape. Query is always reset (search input is ephemeral — don't surprise the
+// user with yesterday's search).
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY)
+    if (!raw) return DEFAULT
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return DEFAULT
+    return {
+      region: typeof parsed.region === 'string' ? parsed.region : DEFAULT.region,
+      types: Array.isArray(parsed.types) ? parsed.types.filter((t) => typeof t === 'string') : [],
+      policies: Array.isArray(parsed.policies) ? parsed.policies.filter((p) => typeof p === 'string') : [],
+      minPaws: typeof parsed.minPaws === 'number' ? parsed.minPaws : 0,
+      sort: typeof parsed.sort === 'string' ? parsed.sort : DEFAULT.sort,
+      query: '', // never persist query
+    }
+  } catch {
+    return DEFAULT
+  }
+}
+
 export function useFilters() {
-  const [filters, setFilters] = useState(DEFAULT)
+  const [filters, setFilters] = useState(loadFromStorage)
+
+  // Persist on every change. Silent on quota errors / disabled storage.
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(filters))
+    } catch {
+      // ignore
+    }
+  }, [filters])
 
   const update = (patch) => setFilters((f) => ({ ...f, ...patch }))
   const toggleInArray = (key, value) =>
