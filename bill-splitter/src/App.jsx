@@ -88,7 +88,7 @@ function AppInner() {
             <button
               className={styles.iconBtn}
               onClick={() => { window.location.href = '../' }}
-              title={lang === 'th' ? 'กลับสู่หน้าแรก' : 'Back to home'}
+              title={t.backToHome}
               aria-label="Home"
             >
               🏠
@@ -97,7 +97,7 @@ function AppInner() {
             <button
               className={styles.iconBtn}
               onClick={toggleLang}
-              title={lang === 'th' ? 'Switch to English' : '\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E20\u0E32\u0E29\u0E32\u0E44\u0E17\u0E22'}
+              title={t.langSwitch}
             >
               {lang === 'th' ? 'EN' : 'TH'}
             </button>
@@ -105,7 +105,7 @@ function AppInner() {
             <button
               className={styles.iconBtn}
               onClick={() => setDark(d => !d)}
-              title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={dark ? t.switchToLight : t.switchToDark}
             >
               {dark ? '\u{1F31E}' : '\u{1F319}'}
             </button>
