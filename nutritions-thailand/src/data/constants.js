@@ -36,7 +36,15 @@ export function estimateBodyComp(weight, bmi) {
 
 /** Default state shape — also used as the localStorage fallback.
  * `calorieDelta` is signed: negative = cut, 0 = maintain, positive = bulk.
- * Range: -1000 to +1000 kcal/day vs TDEE. */
+ * Range: -1000 to +1000 kcal/day vs TDEE.
+ *
+ * Macro target fields (Feature #19, added 2026-05-22):
+ *   macroMode    — 'auto' (default) uses the legacy protein curve only;
+ *                  'custom' uses the three g/kg fields below.
+ *   proteinPerKg — null in auto mode; number in custom mode.
+ *   fatPerKg     — null in auto mode; number in custom mode.
+ *   carbsPerKg   — null in auto mode; number in custom mode.
+ */
 export const DEFAULT_STATS = {
   weight: 75,
   height: 170,
@@ -44,6 +52,18 @@ export const DEFAULT_STATS = {
   gender: 'male',
   activity: 'moderate',
   calorieDelta: 0,
+  macroMode: 'auto',
+  proteinPerKg: null,
+  fatPerKg: null,
+  carbsPerKg: null,
+};
+
+/** Sensible starting values when the user first switches to custom mode.
+ *  Roughly: high protein, moderate fat, carbs as the bulk. */
+export const CUSTOM_MACRO_DEFAULTS = {
+  proteinPerKg: 2.0,
+  fatPerKg: 0.8,
+  carbsPerKg: 3.0,
 };
 
 /** Returns mode key for the current calorieDelta. Keys resolve to i18n via `mode.{key}`. */
@@ -64,4 +84,33 @@ export const WATER_ML_PER_GLASS = 250;
 export function getProteinTarget(weight, calorieDelta) {
   const gPerKg = calorieDelta < 0 ? 2.0 : 1.8;
   return Math.round(weight * gPerKg);
+}
+
+/** Daily macro targets in grams.
+ * Returns { protein, fat, carbs } — each value is either a number (grams)
+ * or null when the macro is not targeted.
+ *
+ * In 'auto' mode: protein follows the default curve; fat and carbs are null.
+ * In 'custom' mode: each macro uses its own g/kg field; if a field is null
+ * (shouldn't normally happen once custom is engaged), that macro is null too.
+ */
+export function getMacroTargets(stats) {
+  const { weight, calorieDelta, macroMode, proteinPerKg, fatPerKg, carbsPerKg } = stats;
+  if (macroMode === 'custom') {
+    return {
+      protein: proteinPerKg != null ? Math.round(weight * proteinPerKg) : null,
+      fat: fatPerKg != null ? Math.round(weight * fatPerKg) : null,
+      carbs: carbsPerKg != null ? Math.round(weight * carbsPerKg) : null,
+    };
+  }
+  return {
+    protein: getProteinTarget(weight, calorieDelta),
+    fat: null,
+    carbs: null,
+  };
+}
+
+/** Convert macro grams → kcal contribution. Protein/carbs = 4 kcal/g; fat = 9. */
+export function macroKcal({ protein, fat, carbs }) {
+  return (protein ?? 0) * 4 + (fat ?? 0) * 9 + (carbs ?? 0) * 4;
 }
