@@ -4,6 +4,7 @@ import {
   calcBMR,
   estimateBodyComp,
   getBMIBand,
+  getMacroTargets,
   getProteinTarget,
 } from '../data/constants.js';
 import CaloriesCard from './CaloriesCard.jsx';
@@ -26,6 +27,7 @@ export default function OverviewTab({ store }) {
   const band = getBMIBand(bmi);
   const { leanMass, estimatedBodyFat } = estimateBodyComp(stats.weight, bmi);
   const proteinTarget = getProteinTarget(stats.weight, stats.calorieDelta);
+  const macroTargets = getMacroTargets(stats);
 
   return (
     <>
@@ -72,7 +74,12 @@ export default function OverviewTab({ store }) {
         />
       </div>
 
-      <CaloriesCard eaten={Math.round(totals.kcal)} target={target} totals={totals} />
+      <CaloriesCard
+        eaten={Math.round(totals.kcal)}
+        target={target}
+        totals={totals}
+        macroTargets={macroTargets}
+      />
       <ProteinCard eaten={Math.round(totals.protein)} target={proteinTarget} />
       <WaterTracker value={water} onChange={store.setWater} />
       <FoodLog log={log} onRemove={store.removeFromLog} />
