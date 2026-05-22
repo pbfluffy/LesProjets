@@ -1,0 +1,25 @@
+{
+  "name": "Bill Splitter — Thai bill splitter with PromptPay QR",
+  "short_name": "Bill Splitter",
+  "description": "Split restaurant bills with friends. PromptPay QR per person, Sushiro plate calculator, EN/TH.",
+  "id": "/bill-splitter/",
+  "start_url": "/bill-splitter/",
+  "scope": "/bill-splitter/",
+  "display": "standalone",
+  "background_color": "#f7f6f2",
+  "theme_color": "#f7f6f2",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
