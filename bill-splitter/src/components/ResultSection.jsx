@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useLang } from '../LangContext'
 import { buildShareUrl } from '../share'
 import { isValidPromptPayId } from '../promptpay'
@@ -11,6 +11,8 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const { t } = useLang()
   const [toast, setToast] = useState('')
   const [showQR, setShowQR] = useState(false)
+  const [capturing, setCapturing] = useState(false)
+  const sectionRef = useRef(null)
   const hasData = members.length > 0 && result.subtotal > 0
   const ppValid = isValidPromptPayId(promptPay)
 
@@ -63,16 +65,72 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
     }
   }
 
+  // #5 — snapshot share as image
+  // Captures the result section (minus the action buttons) to PNG, then shares
+  // via Web Share API on mobile, or downloads as a file on desktop.
+  const handleSaveImage = async () => {
+    if (!sectionRef.current || capturing) return
+    setCapturing(true)
+    try {
+      // Dynamic import — html2canvas only loads on first click (~50kb)
+      const html2canvas = (await import('html2canvas')).default
+      // Read the section's actual background so capture matches active theme
+      const bg = getComputedStyle(sectionRef.current).backgroundColor || '#ffffff'
+      const canvas = await html2canvas(sectionRef.current, {
+        backgroundColor: bg,
+        scale: 2,
+        useCORS: true,
+        // Skip elements marked with data-snapshot-hide (the button row)
+        ignoreElements: (el) => el.hasAttribute && el.hasAttribute('data-snapshot-hide'),
+      })
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
+      if (!blob) {
+        showToast(t.imageFailed)
+        return
+      }
+      const safeName = (billName && billName.trim() ? billName.trim() : 'bill').replace(/[^\w\u0E00-\u0E7F-]+/g, '_')
+      const filename = `${safeName}.png`
+      const file = new File([blob], filename, { type: 'image/png' })
+
+      // Try native share (works on mobile, drops straight into LINE/iMessage)
+      if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+        try {
+          await navigator.share({ files: [file], title: billName && billName.trim() ? billName.trim() : t.appName })
+          showToast(t.imageShared)
+          return
+        } catch (e) {
+          if (e && e.name === 'AbortError') return
+          // fall through to download
+        }
+      }
+      // Fallback: download as a file (desktop)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      showToast(t.imageSaved)
+    } catch (e) {
+      showToast(t.imageFailed)
+    } finally {
+      setCapturing(false)
+    }
+  }
+
   return (
-    <section className={styles.section}>
+    <section ref={sectionRef} className={styles.section}>
       <div className={styles.header}>
         <h2 className={styles.title}>{t.result}</h2>
         {hasData && (
-          <div className={styles.shareBtnGroup}>
+          <div className={styles.shareBtnGroup} data-snapshot-hide>
             {onSave && (
               <button className={styles.shareBtn} onClick={handleSave} title={t.saveBill}>{t.saveBill}</button>
             )}
             <button className={styles.shareBtn} onClick={handleCopyText} title={t.copySummary}>📋 {t.copy}</button>
+            <button className={styles.shareBtn} onClick={handleSaveImage} disabled={capturing} title={t.saveImage}>{t.saveImage}</button>
             <button className={styles.shareBtn} onClick={handleShareLink}>{t.shareLink}</button>
           </div>
         )}
@@ -89,7 +147,7 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
           </div>
 
           {ppValid && (
-            <div className={styles.qrToggleRow}>
+            <div className={styles.qrToggleRow} data-snapshot-hide>
               <button
                 className={styles.qrToggleBtn}
                 onClick={() => setShowQR(v => !v)}
