@@ -8,7 +8,7 @@ import appStyles from '../App.module.css'
 
 const fieldsetReset = { border: 0, padding: 0, margin: 0, minInlineSize: 'auto' }
 
-export default function BillSplitter({ sharedState, readOnly }) {
+export default function BillSplitter({ sharedState, readOnly, onSaveBill }) {
   const { t } = useLang()
   const store = useBillStore(sharedState)
   const result = store.calculate()
@@ -23,6 +23,7 @@ export default function BillSplitter({ sharedState, readOnly }) {
     bankInfo: store.bankInfo,
     notes: store.notes,
   }
+  const handleSave = (onSaveBill && !readOnly) ? () => onSaveBill('split', snapshot) : undefined
   return (
     <div>
       <fieldset disabled={readOnly} style={fieldsetReset}>
@@ -38,7 +39,7 @@ export default function BillSplitter({ sharedState, readOnly }) {
         <FoodList foods={store.foods} members={store.members} onAdd={store.addFood} onUpdate={store.updateFood} onToggleMember={store.toggleFoodMember} onRemove={store.removeFood} onSelectAll={store.setAllMembers} />
         <ExtrasSection vatEnabled={store.vatEnabled} onVatChange={store.setVatEnabled} serviceChargeEnabled={store.serviceChargeEnabled} onServiceChargeChange={store.setServiceChargeEnabled} serviceChargeRate={store.serviceChargeRate} onServiceChargeRateChange={store.setServiceChargeRate} promptPay={store.promptPay} onPromptPayChange={store.setPromptPay} bankInfo={store.bankInfo} onBankInfoChange={store.setBankInfo} notes={store.notes} onNotesChange={store.setNotes} />
       </fieldset>
-      <ResultSection result={result} members={store.members} promptPay={store.promptPay} bankInfo={store.bankInfo} notes={store.notes} billName={store.billName} snapshot={snapshot} tab="split" />
+      <ResultSection result={result} members={store.members} promptPay={store.promptPay} bankInfo={store.bankInfo} notes={store.notes} billName={store.billName} snapshot={snapshot} tab="split" onSave={handleSave} />
     </div>
   )
 }
