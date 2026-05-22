@@ -1,16 +1,34 @@
 import { useLang } from '../LangContext.jsx';
 import styles from './CaloriesCard.module.css';
 
-export default function CaloriesCard({ eaten, target, totals }) {
+export default function CaloriesCard({ eaten, target, totals, macroTargets }) {
   const { t } = useLang();
   const pct = target > 0 ? Math.min(100, (eaten / target) * 100) : 0;
   const color =
     eaten > target ? 'var(--red)' : eaten > target * 0.9 ? 'var(--yellow)' : 'var(--green)';
 
   const macros = [
-    { key: 'protein', label: t('macro.protein'), val: totals.protein, color: 'var(--green)' },
-    { key: 'fat', label: t('macro.fat'), val: totals.fat, color: 'var(--yellow)' },
-    { key: 'carbs', label: t('macro.carbs'), val: totals.carbs, color: 'var(--blue)' },
+    {
+      key: 'protein',
+      label: t('macro.protein'),
+      val: totals.protein,
+      target: macroTargets?.protein ?? null,
+      color: 'var(--green)',
+    },
+    {
+      key: 'fat',
+      label: t('macro.fat'),
+      val: totals.fat,
+      target: macroTargets?.fat ?? null,
+      color: 'var(--yellow)',
+    },
+    {
+      key: 'carbs',
+      label: t('macro.carbs'),
+      val: totals.carbs,
+      target: macroTargets?.carbs ?? null,
+      color: 'var(--blue)',
+    },
   ];
 
   return (
@@ -32,14 +50,24 @@ export default function CaloriesCard({ eaten, target, totals }) {
       </div>
 
       <div className={styles.macroRow}>
-        {macros.map((m) => (
-          <div className={styles.pill} key={m.key}>
-            <div className={styles.pillVal} style={{ color: m.color }}>
-              {Math.round(m.val)}g
+        {macros.map((m) => {
+          const val = Math.round(m.val);
+          return (
+            <div className={styles.pill} key={m.key}>
+              <div className={styles.pillVal} style={{ color: m.color }}>
+                {val}
+                {m.target != null && (
+                  <span style={{ color: 'var(--muted)', fontWeight: 400 }}>
+                    {' / '}
+                    {m.target}
+                  </span>
+                )}
+                <span style={{ color: 'var(--muted)', fontWeight: 400 }}>g</span>
+              </div>
+              <div className={styles.pillLabel}>{m.label}</div>
             </div>
-            <div className={styles.pillLabel}>{m.label}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
