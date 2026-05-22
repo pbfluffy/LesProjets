@@ -1,5 +1,12 @@
 import { useLang } from '../LangContext.jsx';
-import { ACTIVITY, calcBMR, getCalorieMode } from '../data/constants.js';
+import {
+  ACTIVITY,
+  CUSTOM_MACRO_DEFAULTS,
+  calcBMR,
+  getCalorieMode,
+  getMacroTargets,
+  macroKcal,
+} from '../data/constants.js';
 import DataPanel from './DataPanel.jsx';
 import styles from './AdjustTab.module.css';
 
@@ -47,6 +54,54 @@ export default function AdjustTab({ store }) {
     warnKey = 'warn.cautionHigh';
     warnLevel = 'caution';
   }
+
+  // Feature #19 — macro targets
+  const macroTargets = getMacroTargets(stats);
+  const isCustomMacros = stats.macroMode === 'custom';
+  const macroSliders = [
+    {
+      key: 'proteinPerKg',
+      labelKey: 'adjust.proteinPerKg',
+      target: macroTargets.protein,
+      min: 0.8,
+      max: 3.0,
+      step: 0.1,
+      color: 'var(--green)',
+    },
+    {
+      key: 'fatPerKg',
+      labelKey: 'adjust.fatPerKg',
+      target: macroTargets.fat,
+      min: 0.4,
+      max: 2.0,
+      step: 0.1,
+      color: 'var(--yellow)',
+    },
+    {
+      key: 'carbsPerKg',
+      labelKey: 'adjust.carbsPerKg',
+      target: macroTargets.carbs,
+      min: 1.0,
+      max: 8.0,
+      step: 0.1,
+      color: 'var(--blue)',
+    },
+  ];
+
+  // When user flips to custom, seed null fields with sensible defaults
+  // (so the sliders have positions). Going back to auto keeps the saved
+  // values intact for the next custom session.
+  const setMacroMode = (mode) => {
+    if (mode === 'custom') {
+      if (stats.proteinPerKg == null) setStat('proteinPerKg', CUSTOM_MACRO_DEFAULTS.proteinPerKg);
+      if (stats.fatPerKg == null) setStat('fatPerKg', CUSTOM_MACRO_DEFAULTS.fatPerKg);
+      if (stats.carbsPerKg == null) setStat('carbsPerKg', CUSTOM_MACRO_DEFAULTS.carbsPerKg);
+    }
+    setStat('macroMode', mode);
+  };
+
+  // Total kcal from the custom macro mix — for the sanity-check line
+  const customMacroKcal = isCustomMacros ? Math.round(macroKcal(macroTargets)) : 0;
 
   return (
     <>
@@ -135,6 +190,74 @@ export default function AdjustTab({ store }) {
             }`}
           >
             {t(warnKey, warnVars || undefined)}
+          </div>
+        )}
+      </div>
+
+      <div className={styles.card}>
+        <div className={styles.title}>{t('adjust.macroTargets')}</div>
+
+        <div className={styles.genderRow}>
+          {[
+            ['auto', t('adjust.macroAuto')],
+            ['custom', t('adjust.macroCustom')],
+          ].map(([v, label]) => {
+            const active = stats.macroMode === v;
+            return (
+              <button
+                key={v}
+                className={`${styles.toggleBtn} ${active ? styles.toggleActive : ''}`}
+                onClick={() => setMacroMode(v)}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {!isCustomMacros && (
+          <div className={styles.sliderLabel} style={{ marginTop: 4 }}>
+            <span>
+              {t('adjust.macroAutoNote', { p: macroTargets.protein })}
+            </span>
+          </div>
+        )}
+
+        {isCustomMacros &&
+          macroSliders.map((s) => (
+            <div key={s.key} className={styles.sliderBlock}>
+              <div className={styles.sliderLabel}>
+                <span>
+                  {t(s.labelKey, { v: (stats[s.key] ?? 0).toFixed(1) })}
+                </span>
+                <span style={{ color: s.color, fontWeight: 600 }}>
+                  {s.target ?? '—'}g
+                </span>
+              </div>
+              <input
+                type="range"
+                min={s.min}
+                max={s.max}
+                step={s.step}
+                value={stats[s.key] ?? 0}
+                onChange={(e) => setStat(s.key, Number(e.target.value))}
+              />
+            </div>
+          ))}
+
+        {isCustomMacros && (
+          <div className={styles.modeRow}>
+            <span className={styles.modeLabel}>
+              {t('adjust.macroTotal')}
+            </span>
+            <span className={styles.deltaLabel}>
+              {customMacroKcal} kcal
+              {target > 0 && (
+                <span style={{ marginLeft: 6, opacity: 0.7 }}>
+                  ({Math.round((customMacroKcal / target) * 100)}% {t('adjust.ofTarget')})
+                </span>
+              )}
+            </span>
           </div>
         )}
       </div>
