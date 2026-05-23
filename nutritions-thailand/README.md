@@ -1,20 +1,38 @@
 # Nutritions · Thailand
 
-Thai cut/recomp nutrition tracker — TDEE, macros, water, custom foods, per-day logging.
+Thai cut/recomp nutrition tracker — TDEE, macros, water, custom foods, per-day logging, photo-based dish identification. Part of [pbfluffy/LesProjets](https://github.com/pbfluffy/LesProjets), live at [pumbafluffycorgi.com/nutritions-thailand/](https://pumbafluffycorgi.com/nutritions-thailand/).
 
-Migrated from the single-file `NutritionsInThailand.html` to a Vite + React app
-following the same conventions as `bill-splitter`.
+## Tabs
+
+| Tab | What it does |
+|---|---|
+| 📊 **Overview** | TDEE / target / BMR / BMI / lean mass cards, calorie-and-macro card, protein card, water tracker, today's food log, **7-day TrendChart**, prev/next date switcher |
+| 🍱 **Food** | Categorized Thai food database (rice dishes, noodles & congee, eggs & dairy, salads & grills, snacks, 7-11) with search + category chips; tap any item to log |
+| 📷 **Photo** | Identify a Thai dish from a photo via Gemini (proxied through a Cloudflare Worker); returns macros + portion estimate; log or save to your custom foods |
+| ⚙️ **Adjust** | Body stats (weight / height / age / gender), activity level, calorie-delta slider with safety warnings, macro-target config, **WaterReminderCard** (browser notifications), data backup panel |
+| ➕ **Custom** | Manual add-custom-food form (name + kcal + macros + note) and your custom-food list with one-tap log / remove |
 
 ## Stack
 
 - React 18, Vite 5
 - CSS Modules
-- `LangContext` for EN/TH toggle (default: EN)
-- localStorage for persistence — no backend
+- `LangContext` for EN/TH (default: EN)
+- `recharts` for the TrendChart
+- `localStorage` for everything — no backend (Gemini calls go through a Worker)
+
+## Storage
+
+Everything lives under one key:
+
+- `nutritions.store.v1` — stats, custom foods, per-day logs (`YYYY-MM-DD` keyed), theme, language, water amount, macro targets, water-reminder config
+- `theme` — shared across all apps on the origin; **plain string, never JSON-encoded**
+
+Export / Import / Clear lives in **Adjust → Data backup**.
 
 ## Dev
 
 ```bash
+cd nutritions-thailand
 npm install
 npm run dev       # http://localhost:5173/LesProjets/nutritions-thailand/
 npm run build
@@ -27,61 +45,39 @@ To build for the root of a custom domain instead of the GitHub Pages sub-path:
 VITE_BASE=/ npm run build
 ```
 
-## Layout
+## Structure
 
 ```
 src/
-  main.jsx                 # entry
-  App.jsx                  # tab switcher
-  index.css                # CSS vars, theme, body
-  LangContext.jsx          # EN/TH provider + useLang() hook
+  main.jsx, App.jsx, index.css
+  LangContext.jsx               # EN/TH provider + useLang() hook
   data/
-    meals.js               # Thai food database (categorized by food type)
-    constants.js           # ACTIVITY, BMI bands, BMR/TDEE math
+    meals.js                    # Thai food database (categorized)
+    constants.js                # ACTIVITY, BMI bands, BMR/TDEE/macro math
   i18n/
-    strings.js             # EN + TH dictionaries, makeTranslator()
+    strings.js                  # EN + TH dictionaries, makeTranslator()
   hooks/
-    useNutritionStore.js   # state + localStorage + per-day log + export/import
+    useNutritionStore.js        # state + localStorage + per-day log + export/import
+    useWaterReminder.js         # browser-notification reminder loop
   components/
     Header, TabBar, DateSwitcher,
-    StatCard, CaloriesCard, WaterTracker, FoodLog,
+    StatCard, CaloriesCard, ProteinCard, WaterTracker, FoodLog,
     FoodItem, FoodTab,
-    AdjustTab, CustomTab,
-    DataPanel,
-    OverviewTab
+    PhotoTab,                   # Gemini dish identifier
+    AdjustTab, WaterReminderCard, CustomTab, DataPanel,
+    OverviewTab, TrendChart
 ```
 
-## What's new vs the original HTML
+## PWA
 
-- **Food-type categories** — items are grouped by what they are (rice dishes,
-  noodles & congee, eggs & dairy, salads & grills, snacks & extras, 7-11)
-  rather than what meal you "should" eat them at. Eat ส้มตำ for breakfast if
-  you want.
-- **localStorage persistence** — stats, log, water, custom foods, theme, and
-  language all survive a refresh.
-- **Per-day log** — every day stored under its own `YYYY-MM-DD` key; prev/next
-  buttons in the Overview tab let you scroll through history.
-- **EN/TH toggle** — wired through `LangContext`. Default is EN, matching
-  Bill Splitter. Toggle from the header.
-- **Export / Import / Clear** — JSON backup (Adjust tab → Data panel).
-- **Modular** — each tab is a component, ready for further features (e.g.
-  weekly trends, weight log, macro targets, barcode lookup).
+Installs as a standalone app via the manifest + apple-touch-icon meta tags.
 
 ## Deploy
 
-The workflow under `.github/workflows/deploy.yml` assumes this project lives
-at `nutritions-thailand/` in the `LesProjets` monorepo and publishes the
-build to `gh-pages/nutritions-thailand/`. `keep_files: true` is used so the
-existing `bill-splitter/` deploy stays intact.
+Pushes to `main` trigger the monorepo workflow at `.github/workflows/deploy.yml`.
+GitHub Pages serializes deploys — space related commits ~60s apart.
 
-If `LesProjets` already has a different deploy workflow, just point its build
-matrix at this folder and use `vite.config.js`'s base path.
+## Notes
 
-## Roadmap
-
-- Weight & body-fat trend chart
-- Configurable macro targets (e.g. 1g protein per lb lean mass)
-- Mealtime tagging on individual log entries (opt-in, per-meal — never on
-  the food itself)
-- PWA / offline install
-- Optional sync (Gist / Drive)
+- **No barcode scanner.** A barcode scanner + OpenFoodFacts lookup shipped briefly but was removed 2026-05-23 — wasn't pulling its weight. Use the Photo tab (dish identification) or Custom tab (manual entry) instead.
+- The PhotoTab Worker URL is hardcoded in `PhotoTab.jsx`; the Worker forwards to the Gemini API with the model's API key.
