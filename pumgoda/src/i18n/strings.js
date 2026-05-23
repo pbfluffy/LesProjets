@@ -35,6 +35,7 @@ export const STRINGS = {
     header: {
       share: 'แชร์',
       refresh: 'รีเฟรช',
+      suggest: 'แนะนำสถานที่',
       linkCopied: 'คัดลอกลิงก์แล้ว',
       shareTitle: 'Pumgoda',
       shareText: 'Pumgoda — สถานที่ที่พาน้องไปได้ในประเทศไทย',
@@ -187,6 +188,7 @@ export const STRINGS = {
     header: {
       share: 'Share',
       refresh: 'Refresh',
+      suggest: 'Suggest a place',
       linkCopied: 'Link copied',
       shareTitle: 'Pumgoda',
       shareText: 'Pumgoda — Find pet-friendly places across Thailand',
