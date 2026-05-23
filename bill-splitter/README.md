@@ -1,74 +1,76 @@
-# หารบิล — Thai Bill Splitter
+# Bill Splitter
 
-A mobile-first Thai bill-splitting app with a built-in Sushiro plate calculator.
+Mobile-first Thai bill-splitting app with a Sushiro plate-counter tab. Part of [pbfluffy/LesProjets](https://github.com/pbfluffy/LesProjets), live at [pumbafluffycorgi.com/bill-splitter/](https://pumbafluffycorgi.com/bill-splitter/).
 
-## Features
+## Two tabs
 
-### หารบิล tab
+### หารบิล (Bill Splitter)
+
 - Add / remove members with avatar initials
-- Add food items and assign them to specific people (or everyone)
-- Optional VAT (7%) and Service Charge (10%)
-- Per-person amount breakdown with visual proportion bars
-- PromptPay number display + one-tap copy
-- Bank account & notes fields
-- Share summary (Line-friendly plain text via Web Share API)
+- Add food items, assign each item to a subset of members (or everyone)
+- Optional VAT 7% and Service Charge 10%
+- Per-person breakdown with proportion bars
+- **Per-person PromptPay QR** — each person gets their own scan-to-pay QR for their exact share, built from a configurable PromptPay payload (`react-qr-code`)
+- **Bill history** — save a bill, browse and reload past bills (`useBillHistory` hook, `BillHistory` panel)
+- **Share-as-image** — snapshot the result with `html2canvas` and share via the Web Share API
+- Bank account and notes fields, plain-text share to Line
 
-### Sushiro tab
-- Plate counter for all 5 colour tiers (Silver ฿40 → Blue ฿160)
-- Adjustable number of people
+### Sushiro
+
+Plate counter for the actual Sushiro Thailand colour tiers:
+
+| Plate  | Price |
+|--------|------:|
+| White  | ฿30   |
+| Red    | ฿40   |
+| Silver | ฿60   |
+| Gold   | ฿80   |
+| Black  | ฿100  |
+
+- Per-person plate counters
+- Per-person snacks (free-text item + price)
 - Optional VAT and Service Charge
-- Large per-person display
+- Share summary as text or image
 
-## Tech stack
+## Stack
 
-| Tool | Version |
-|---|---|
-| React | 18 |
-| Vite | 5 |
-| CSS Modules | (built-in) |
-| uuid | 9 |
+- React 18, Vite 5
+- CSS Modules
+- `LangContext` for EN/TH (default: EN) — toggle from the header
+- `uuid` for stable list keys
+- `react-qr-code` for PromptPay QRs
+- `html2canvas` for share-as-image
+- `localStorage` for theme, language, and bill history — no backend
 
-No UI library, no state manager — just hooks and CSS Modules.
+## Storage
 
-## Getting started
+- `bill-splitter.history` — saved bills
+- `theme` — `"dark"` | `"light"` (shared across all apps on the origin; **never JSON-encode**)
+- `bill-splitter.lang` — `"en"` | `"th"`
+
+## Dev
 
 ```bash
+cd bill-splitter
 npm install
-npm run dev
+npm run dev       # http://localhost:5173/LesProjets/bill-splitter/
+npm run build
+npm run preview
 ```
 
-Open http://localhost:5173
-
-## Build
+To build for the root of a custom domain instead of the GitHub Pages sub-path:
 
 ```bash
-npm run build
-# output → dist/
+VITE_BASE=/ npm run build
 ```
 
-## Deploy to GitHub Pages
+## Deploy
 
-1. In `vite.config.js`, add your repo name as the base path:
+Pushes to `main` trigger the monorepo workflow at `.github/workflows/deploy.yml`,
+which builds all three Vite apps and publishes them to GitHub Pages.
+GitHub Pages serializes deploys — when committing several related files,
+space commits ~60s apart so each build finishes before the next starts.
 
-```js
-export default defineConfig({
-  plugins: [react()],
-  base: '/LesProjets/',
-})
-```
+## PWA
 
-2. `npm install -D gh-pages`
-
-3. Add to `package.json` scripts:
-```json
-"predeploy": "npm run build",
-"deploy": "gh-pages -d dist"
-```
-
-4. `npm run deploy`
-
-5. GitHub repo → Settings → Pages → source: gh-pages branch.
-
-## License
-
-MIT
+Installs as a standalone app on iOS / Android via the manifest + apple-touch-icon meta tags in `index.html`.
