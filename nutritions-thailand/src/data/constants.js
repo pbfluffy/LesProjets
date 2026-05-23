@@ -56,6 +56,11 @@ export const DEFAULT_STATS = {
   proteinPerKg: null,
   fatPerKg: null,
   carbsPerKg: null,
+  // Feature #21 — water reminders. All off by default; user opts in.
+  waterReminderEnabled: false,
+  waterReminderInterval: 90, // minutes between nudges
+  waterReminderQuietStart: 22, // 10 pm
+  waterReminderQuietEnd: 7, // 7 am
 };
 
 /** Sensible starting values when the user first switches to custom mode.
