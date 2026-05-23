@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { useLang } from '../LangContext.jsx';
-import { lookupBarcode } from '../data/openFoodFacts.js';
-import BarcodeScanner from './BarcodeScanner.jsx';
 import styles from './CustomTab.module.css';
 
 const EMPTY_FORM = { name: '', kcal: '', protein: '', fat: '', carbs: '', note: '' };
@@ -10,8 +8,6 @@ export default function CustomTab({ store }) {
   const { t } = useLang();
   const { customFoods, addCustomFood, removeCustomFood, addToLog } = store;
   const [form, setForm] = useState(EMPTY_FORM);
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const [lookupStatus, setLookupStatus] = useState(null); // null | 'looking' | 'found' | 'notFound' | 'error'
 
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -26,74 +22,12 @@ export default function CustomTab({ store }) {
       note: form.note || t('custom.defaultNote'),
     });
     setForm(EMPTY_FORM);
-    setLookupStatus(null);
-  };
-
-  const handleBarcode = async (barcode) => {
-    setScannerOpen(false);
-    setLookupStatus('looking');
-    const result = await lookupBarcode(barcode);
-    if (result.found) {
-      const f = result.food;
-      const labelParts = [f.brand, f.name].filter(Boolean);
-      setForm({
-        name: labelParts.join(' · ') || `Barcode ${f.barcode}`,
-        kcal: String(f.kcal || ''),
-        protein: String(f.protein || ''),
-        fat: String(f.fat || ''),
-        carbs: String(f.carbs || ''),
-        note: f.servingSize
-          ? t('barcode.noteWithServing', { code: f.barcode, serving: f.servingSize })
-          : t('barcode.noteOnly', { code: f.barcode }),
-      });
-      setLookupStatus('found');
-    } else if (result.error) {
-      // Keep barcode in the note so the user has it to reference.
-      setForm((cur) => ({
-        ...cur,
-        note: cur.note || t('barcode.noteOnly', { code: barcode }),
-      }));
-      setLookupStatus('error');
-    } else {
-      setForm((cur) => ({
-        ...cur,
-        note: cur.note || t('barcode.noteOnly', { code: barcode }),
-      }));
-      setLookupStatus('notFound');
-    }
   };
 
   return (
     <>
       <div className={styles.card}>
         <div className={styles.title}>{t('custom.add')}</div>
-
-        <button
-          className={styles.scanBtn}
-          onClick={() => setScannerOpen(true)}
-          type="button"
-        >
-          📷 {t('barcode.scanCta')}
-        </button>
-
-        {lookupStatus === 'looking' && (
-          <div className={styles.statusBox}>{t('barcode.looking')}</div>
-        )}
-        {lookupStatus === 'found' && (
-          <div className={`${styles.statusBox} ${styles.statusOk}`}>
-            ✓ {t('barcode.foundReview')}
-          </div>
-        )}
-        {lookupStatus === 'notFound' && (
-          <div className={`${styles.statusBox} ${styles.statusWarn}`}>
-            {t('barcode.notFound')}
-          </div>
-        )}
-        {lookupStatus === 'error' && (
-          <div className={`${styles.statusBox} ${styles.statusWarn}`}>
-            {t('barcode.lookupErr')}
-          </div>
-        )}
 
         <div className={styles.form}>
           <input
@@ -172,13 +106,6 @@ export default function CustomTab({ store }) {
             </div>
           ))}
         </div>
-      )}
-
-      {scannerOpen && (
-        <BarcodeScanner
-          onDetected={handleBarcode}
-          onClose={() => setScannerOpen(false)}
-        />
       )}
     </>
   );
