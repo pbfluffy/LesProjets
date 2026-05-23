@@ -51,7 +51,7 @@ export default function App() {
   const { filters, setRegion, toggleType, togglePolicy, setSort, setMinPaws, setQuery, clearFilters } = useFilters()
   const voteState = useVotes()
   const [userCoords, setUserCoords] = useState(null)
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false)
+  const [filtersCollapsed, setFiltersCollapsed] = useLocalStorage('pumgoda_filters_collapsed_v1', false)
   const [helpOpen, setHelpOpen] = useState(false)
   const activeFilterCount = (filters.region !== 'all' ? 1 : 0) + filters.types.length + filters.policies.length + (filters.minPaws ? 1 : 0) + (filters.query && filters.query.trim() ? 1 : 0)
   const [locationError, setLocationError] = useState(null)
