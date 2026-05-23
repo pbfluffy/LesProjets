@@ -33,6 +33,13 @@ const en = {
   'protein.toGo': '🎯 {n}g to go',
   'protein.hit': '✅ Goal hit!',
 
+  'streak.title': '🔥 Protein streak',
+  'streak.best': 'best: {n}',
+  'streak.dayUnit': 'day streak',
+  'streak.kept': '✅ Kept today',
+  'streak.extend': '🎯 {n}g more to keep your streak',
+  'streak.start': 'Hit your protein target today to start',
+
   'macro.protein': 'PROTEIN',
   'macro.fat': 'FAT',
   'macro.carbs': 'CARBS',
@@ -168,6 +175,13 @@ const th = {
   'protein.title': '💪 โปรตีนวันนี้',
   'protein.toGo': '🎯 เหลืออีก {n}g',
   'protein.hit': '✅ ครบเป้าหมาย!',
+
+  'streak.title': '🔥 สถิติโปรตีน',
+  'streak.best': 'สูงสุด: {n}',
+  'streak.dayUnit': 'วันติดต่อกัน',
+  'streak.kept': '✅ ครบเป้าวันนี้',
+  'streak.extend': '🎯 อีก {n}g เพื่อรักษาสถิติ',
+  'streak.start': 'ครบเป้าโปรตีนวันนี้เพื่อเริ่มสถิติ',
 
   'macro.protein': 'โปรตีน',
   'macro.fat': 'ไขมัน',
