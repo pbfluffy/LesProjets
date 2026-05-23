@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.2.0",
   "type": "module",
-  "description": "Thai cut/recomp nutrition tracker \u2014 TDEE, macros, water, custom foods, per-day logging.",
+  "description": "Thai cut/recomp nutrition tracker — TDEE, macros, water, custom foods, per-day logging.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -12,7 +12,8 @@
   "dependencies": {
     "jsdom": "^29.1.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "recharts": "^2.10.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
