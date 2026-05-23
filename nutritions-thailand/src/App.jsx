@@ -6,12 +6,19 @@ import Header from './components/Header.jsx';
 import OverviewTab from './components/OverviewTab.jsx';
 import PhotoTab from './components/PhotoTab.jsx';
 import TabBar from './components/TabBar.jsx';
+import { useLang } from './LangContext.jsx';
 import { useNutritionStore } from './hooks/useNutritionStore.js';
+import { useWaterReminder } from './hooks/useWaterReminder.js';
 import styles from './App.module.css';
 
 export default function App() {
   const store = useNutritionStore();
+  const { t } = useLang();
   const [tab, setTab] = useState('overview');
+
+  // Feature #21 — water reminders. The hook is mounted at App level so
+  // notifications keep firing regardless of which tab is active.
+  useWaterReminder({ stats: store.stats, water: store.water, t });
 
   return (
     <div className={styles.app}>
