@@ -12,6 +12,11 @@ export const VOTES_DB_URL =
 // How long to trust the localStorage cache before re-fetching the sheet.
 export const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 hours
 
+// Google Form URL for community place submissions — leave empty to hide the
+// "+" button in the header. Set this once you've created the Form and copy
+// the live URL here (File → Share → publish URL of the form, not the editor).
+export const SUGGEST_FORM_URL = ''
+
 // Storage keys
 export const LS_KEYS = {
   PLACES: 'pumgoda_places_v2',
