@@ -2,7 +2,7 @@
    0.5px borders, 16px radius, IBM Plex Mono for technical labels. */
 
 .ph-trip-wrap {
-  padding: 0 16px;
+  padding: 12px 16px 0;
 }
 
 /* ── Create-trip row ──────────────────────────────────────────── */
