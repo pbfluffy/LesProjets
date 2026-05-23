@@ -15,7 +15,8 @@ export const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 hours
 // Google Form URL for community place submissions — leave empty to hide the
 // "+" button in the header. Set this once you've created the Form and copy
 // the live URL here (File → Share → publish URL of the form, not the editor).
-export const SUGGEST_FORM_URL = ''
+export const SUGGEST_FORM_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLSd0tng6ie4WK7OtOj9x3C0aCD2agjHT3p0-MVgArjRrHOOZkA/viewform'
 
 // Storage keys
 export const LS_KEYS = {
