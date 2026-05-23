@@ -1,0 +1,31 @@
+{
+  "name": "Nutrition · Thailand",
+  "short_name": "Nutritions TH",
+  "description": "Thai cut/recomp nutrition tracker — TDEE, macros, water, custom foods, per-day logging.",
+  "start_url": "/nutritions-thailand/",
+  "scope": "/nutritions-thailand/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080810",
+  "theme_color": "#080810",
+  "icons": [
+    {
+      "src": "/nutritions-thailand/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/nutritions-thailand/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/nutritions-thailand/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
