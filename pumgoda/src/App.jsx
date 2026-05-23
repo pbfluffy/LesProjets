@@ -20,7 +20,7 @@ import { useVotes } from './hooks/useVotes'
 import { fetchPlaces } from './data/fetchPlaces'
 import { computeTier, TIERS, FAVORITE_TIER } from './data/computeTier'
 import { STRINGS } from './i18n/strings'
-import { LS_KEYS } from './config'
+import { LS_KEYS, SUGGEST_FORM_URL } from './config'
 
 import './styles/theme.css'
 
@@ -163,6 +163,8 @@ export default function App() {
         isRefreshing={isRefreshing}
         shareLabel={s.header.share}
         refreshLabel={s.header.refresh}
+        suggestUrl={SUGGEST_FORM_URL}
+        suggestLabel={s.header.suggest}
       />
 
       <div className="shell">
