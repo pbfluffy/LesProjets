@@ -237,6 +237,7 @@ export function useNutritionStore() {
     water: day.water,
     totals,
     weights: state.weights, // Feature #17 — per-date weight + optional BF
+    days: state.days,       // Feature #20 — streak helpers need full history
     // setters
     setStat,
     setTheme,
