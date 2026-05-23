@@ -227,6 +227,16 @@ export function useNutritionStore() {
 
   const clearAll = useCallback(() => setState(INITIAL_STATE), []);
 
+  /** Feature #22 — replace entire store with imported state (used by cloud sync pull). */
+  const replaceState = useCallback((next) => {
+    if (!next || typeof next !== 'object') return;
+    setState({
+      ...INITIAL_STATE,
+      ...next,
+      stats: migrateStats(next.stats),
+    });
+  }, []);
+
   return {
     // raw state
     stats: state.stats,
@@ -253,6 +263,7 @@ export function useNutritionStore() {
     exportData,
     importData,
     clearAll,
+    replaceState, // Feature #22 — for cloud-sync pull
     setBodyFatForDate,
     setWeightEntry,
   };
