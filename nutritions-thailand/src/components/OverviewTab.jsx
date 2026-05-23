@@ -12,6 +12,7 @@ import ProteinCard from './ProteinCard.jsx';
 import DateSwitcher from './DateSwitcher.jsx';
 import FoodLog from './FoodLog.jsx';
 import StatCard from './StatCard.jsx';
+import TrendChart from './TrendChart.jsx';
 import WaterTracker from './WaterTracker.jsx';
 import styles from './OverviewTab.module.css';
 
@@ -83,6 +84,7 @@ export default function OverviewTab({ store }) {
       <ProteinCard eaten={Math.round(totals.protein)} target={proteinTarget} />
       <WaterTracker value={water} onChange={store.setWater} />
       <FoodLog log={log} onRemove={store.removeFromLog} />
+      <TrendChart weights={store.weights} />
     </>
   );
 }
