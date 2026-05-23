@@ -218,7 +218,7 @@ export default function AdjustTab({ store }) {
           })}
         </div>
 
-        {IsCustomMacros && (
+        {!isCustomMacros && (
           <div className={styles.sliderLabel} style={{ marginTop: 4 }}>
             <span>
               {t('adjust.macroAutoNote', { p: macroTargets.protein })}
