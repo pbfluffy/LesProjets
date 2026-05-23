@@ -7,8 +7,10 @@ import {
   getMacroTargets,
   getProteinTarget,
 } from '../data/constants.js';
+import { computeProteinStreak } from '../data/streak.js';
 import CaloriesCard from './CaloriesCard.jsx';
 import ProteinCard from './ProteinCard.jsx';
+import StreakCard from './StreakCard.jsx';
 import DateSwitcher from './DateSwitcher.jsx';
 import FoodLog from './FoodLog.jsx';
 import StatCard from './StatCard.jsx';
@@ -28,6 +30,7 @@ export default function OverviewTab({ store }) {
   const band = getBMIBand(bmi);
   const { leanMass, estimatedBodyFat } = estimateBodyComp(stats.weight, bmi);
   const proteinTarget = getProteinTarget(stats.weight, stats.calorieDelta);
+  const streak = computeProteinStreak(store.days, proteinTarget);
   const macroTargets = getMacroTargets(stats);
 
   return (
@@ -82,6 +85,13 @@ export default function OverviewTab({ store }) {
         macroTargets={macroTargets}
       />
       <ProteinCard eaten={Math.round(totals.protein)} target={proteinTarget} />
+      <StreakCard
+        current={streak.current}
+        best={streak.best}
+        todayMet={streak.todayMet}
+        todayProtein={totals.protein}
+        proteinTarget={proteinTarget}
+      />
       <WaterTracker value={water} onChange={store.setWater} />
       <FoodLog log={log} onRemove={store.removeFromLog} />
       <TrendChart weights={store.weights} />
