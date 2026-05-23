@@ -10,6 +10,7 @@ import {
 import DataPanel from './DataPanel.jsx';
 import styles from './AdjustTab.module.css';
 
+import WaterReminderCard from './WaterReminderCard.jsx';
 export default function AdjustTab({ store }) {
   const { t } = useLang();
   const { stats, setStat } = store;
@@ -190,7 +191,7 @@ export default function AdjustTab({ store }) {
             }`}
           >
             {t(warnKey, warnVars || undefined)}
-          </div>
+            </div>
         )}
       </div>
 
@@ -208,14 +209,15 @@ export default function AdjustTab({ store }) {
                 key={v}
                 className={`${styles.toggleBtn} ${active ? styles.toggleActive : ''}`}
                 onClick={() => setMacroMode(v)}
-              >
-                {label}
-              </button>
+                 
+                >
+                  {label}
+                </button>
             );
           })}
         </div>
 
-        {!isCustomMacros && (
+        {IsCustomMacros && (
           <div className={styles.sliderLabel} style={{ marginTop: 4 }}>
             <span>
               {t('adjust.macroAutoNote', { p: macroTargets.protein })}
@@ -231,7 +233,7 @@ export default function AdjustTab({ store }) {
                   {t(s.labelKey, { v: (stats[s.key] ?? 0).toFixed(1) })}
                 </span>
                 <span style={{ color: s.color, fontWeight: 600 }}>
-                  {s.target ?? '—'}g
+                  {s.target ?? '․'}g
                 </span>
               </div>
               <input
@@ -262,7 +264,8 @@ export default function AdjustTab({ store }) {
         )}
       </div>
 
+      <WaterReminderCard store={store} />
       <DataPanel store={store} />
     </>
-  );
-}
+  
+)#}
