@@ -29,6 +29,7 @@ const INITIAL_STATE = {
   stats: { ...DEFAULT_STATS },
   customFoods: [],
   days: {}, // { 'YYYY-MM-DD': { log, water } }
+  weights: {}, // { 'YYYY-MM-DD': { weight, bodyFat? } } — Feature #17
   theme: 'dark',
 };
 
@@ -82,7 +83,47 @@ export function useNutritionStore() {
   }, [day.log]);
 
   const setStat = useCallback((key, value) => {
-    setState((s) => ({ ...s, stats: { ...s.stats, [key]: value } }));
+    setState((s) => {
+      const nextStats = { ...s.stats, [key]: value };
+      // Feature #17 — auto-log weight to today's weights entry whenever
+      // the user adjusts the weight slider. Date-keyed, last-write-wins,
+      // so slider drags just keep overwriting today's value cleanly.
+      if (key === 'weight') {
+        const k = todayKey();
+        const prevEntry = s.weights[k] ?? {};
+        return {
+          ...s,
+          stats: nextStats,
+          weights: { ...s.weights, [k]: { ...prevEntry, weight: value } },
+        };
+      }
+      return { ...s, stats: nextStats };
+    });
+  }, []);
+
+  /** Feature #17 — set body fat % for a specific date. Pass null to clear. */
+  const setBodyFatForDate = useCallback((key, bodyFat) => {
+    setState((s) => {
+      const prev = s.weights[key] ?? {};
+      if (bodyFat == null || Number.isNaN(bodyFat)) {
+        const { bodyFat: _bf, ...rest } = prev;
+        return { ...s, weights: { ...s.weights, [key]: rest } };
+      }
+      return { ...s, weights: { ...s.weights, [key]: { ...prev, bodyFat } } };
+    });
+  }, []);
+
+  /** Feature #17 — overwrite or clear a specific date's full entry. */
+  const setWeightEntry = useCallback((key, entry) => {
+    setState((s) => {
+      const weights = { ...s.weights };
+      if (entry == null) {
+        delete weights[key];
+      } else {
+        weights[key] = entry;
+      }
+      return { ...s, weights };
+    });
   }, []);
 
   const setTheme = useCallback((theme) => {
@@ -195,6 +236,7 @@ export function useNutritionStore() {
     log: day.log,
     water: day.water,
     totals,
+    weights: state.weights, // Feature #17 — per-date weight + optional BF
     // setters
     setStat,
     setTheme,
@@ -210,5 +252,7 @@ export function useNutritionStore() {
     exportData,
     importData,
     clearAll,
+    setBodyFatForDate,
+    setWeightEntry,
   };
 }
