@@ -268,4 +268,4 @@ export default function AdjustTab({ store }) {
       <DataPanel store={store} />
     </>
   
-)#}
+)}
