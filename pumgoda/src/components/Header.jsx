@@ -11,6 +11,8 @@ export default function Header({
   isRefreshing,
   shareLabel,
   refreshLabel,
+  suggestUrl,
+  suggestLabel,
 }) {
   return (
     <header className="ph-header">
@@ -45,6 +47,18 @@ export default function Header({
           >
             ⟳
           </button>
+          {suggestUrl && (
+            <a
+              className="ph-ctrl ph-ctrl-icon"
+              href={suggestUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={suggestLabel || 'Suggest a place'}
+              title={suggestLabel || 'Suggest a place'}
+            >
+              ＋
+            </a>
+          )}
           <button
             className="ph-ctrl ph-ctrl-icon"
             onClick={onShare}
