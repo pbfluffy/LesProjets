@@ -12,6 +12,7 @@ import {
   getDoc,
   setDoc,
   serverTimestamp,
+  onSnapshot,
 } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -27,4 +28,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export { onAuthStateChanged, doc, getDoc, setDoc, serverTimestamp };
+export { onAuthStateChanged, doc, getDoc, setDoc, serverTimestamp, onSnapshot };
