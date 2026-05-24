@@ -246,7 +246,8 @@
         acctStatusLocal: "· เฉพาะในเครื่อง",
         acctStatusSyncing: "· กำลังซิงค์…",
         acctAccount: "บัญชี",
-      },
+      ,
+    acctStatusSynced: '· ซิงค์แล้ว'},
       en: {
         logo: "Pumba's Projects",
         h1: "Pumba's<br>Projects",
@@ -271,7 +272,8 @@
         acctStatusLocal: "· local only",
         acctStatusSyncing: "· syncing…",
         acctAccount: "Account",
-      }
+      ,
+    acctStatusSynced: '· synced'}
     }
 
     let lang = "th"
@@ -307,14 +309,16 @@
       document.getElementById("acct-app-nutr").textContent = s.acctAppNutr
       document.getElementById("acct-app-bill").textContent = s.acctAppBill
       document.getElementById("acct-app-pgd").textContent = s.acctAppPgd
-      document.getElementById("acct-status-nutr").textContent = s.acctStatusLocal
-      document.getElementById("acct-status-bill").textContent = s.acctStatusLocal
-      document.getElementById("acct-status-pgd").textContent = s.acctStatusLocal
+      const _nutrSynced = document.getElementById("acct-status-nutr").dataset.synced === "true";
+      document.getElementById("acct-status-nutr").textContent = _nutrSynced ? s.acctStatusSynced : s.acctStatusLocal;
+      document.getElementById("acct-status-bill").textContent = s.acctStatusLocal;
+      document.getElementById("acct-status-pgd").textContent = s.acctStatusLocal;
       const acctBtn = document.getElementById("acctBtn")
       const signedIn = document.getElementById("acctPopover").dataset.auth === "signed-in"
       acctBtn.setAttribute("aria-label", signedIn ? s.acctAccount : s.acctSignIn)
       acctBtn.setAttribute("title", signedIn ? s.acctAccount : s.acctSignIn)
     }
+      window.applyLang = applyLang;
 
     function toggleLang() { lang = lang === "th" ? "en" : "th"; applyLang() }
     function toggleTheme() { dark = !dark; applyTheme() }
@@ -353,6 +357,7 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js'
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js'
+  import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
@@ -366,6 +371,7 @@
 
   const app = initializeApp(firebaseConfig)
   const auth = getAuth(app)
+  const db = getFirestore(app);
   const provider = new GoogleAuthProvider()
 
   const btn = document.getElementById('acctBtn')
@@ -411,6 +417,22 @@
   onAuthStateChanged(auth, user => {
     setBtnAvatar(user)
     setPopoverState(user)
+  
+    // Phase 2.5: refresh Nutritions sync row by checking Firestore
+    try {
+      const nutrEl = document.getElementById("acct-status-nutr");
+      if (user && nutrEl) {
+        getDoc(doc(db, 'users', user.uid))
+          .then(snap => {
+            nutrEl.dataset.synced = snap.exists() ? "true" : "false";
+            if (window.applyLang) window.applyLang();
+          })
+          .catch(e => { console.warn('[acct] sync check failed:', e); });
+      } else if (nutrEl) {
+        nutrEl.dataset.synced = "false";
+        if (window.applyLang) window.applyLang();
+      }
+    } catch (e) { /* nop */ }
   })
 
   btn.addEventListener('click', e => {
