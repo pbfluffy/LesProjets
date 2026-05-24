@@ -9,9 +9,6 @@ import {
 } from '../data/constants.js';
 import DataPanel from './DataPanel.jsx';
 import styles from './AdjustTab.module.css';
-
-import WaterReminderCard from './WaterReminderCard.jsx';
-import SyncCard from './SyncCard.jsx';
 export default function AdjustTab({ store }) {
   const { t } = useLang();
   const { stats, setStat } = store;
@@ -265,8 +262,6 @@ export default function AdjustTab({ store }) {
         )}
       </div>
 
-      <WaterReminderCard store={store} />
-      <SyncCard store={store} />
       <DataPanel store={store} />
     </>
   
