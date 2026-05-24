@@ -166,6 +166,12 @@ const en = {
   'sync.conflict.daysLine': '{n} days logged · {f} custom foods',
   'sync.conflict.useCloud': 'Use cloud',
   'sync.conflict.useLocal': 'Use this device',
+  'sync.conflict.newer': 'newer',
+  'sync.conflict.neverEdited': 'No edits yet',
+  'sync.conflict.warnTitle': 'Use this device?',
+  'sync.conflict.warnBody': 'This will overwrite cloud data — including any edits from other devices.',
+  'sync.conflict.warnConfirm': 'Yes, overwrite cloud',
+  'sync.conflict.warnCancel': 'Cancel',
 };
 
 const th = {
@@ -333,6 +339,12 @@ const th = {
   'sync.conflict.daysLine': 'บันทึก {n} วัน · {f} อาหารกำหนดเอง',
   'sync.conflict.useCloud': 'ใช้คลาวด์',
   'sync.conflict.useLocal': 'ใช้อุปกรณ์นี้',
+  'sync.conflict.newer': 'ใหม่กว่า',
+  'sync.conflict.neverEdited': 'ยังไม่มีการแก้ไข',
+  'sync.conflict.warnTitle': 'ใช้อุปกรณ์นี้?',
+  'sync.conflict.warnBody': 'การกระทำนี้จะเขียนทับข้อมูลคลาวด์ — รวมถึงการแก้ไขจากอุปกรณ์อื่น',
+  'sync.conflict.warnConfirm': 'ใช่ เขียนทับคลาวด์',
+  'sync.conflict.warnCancel': 'ยกเลิก',
 };
 
 export const STRINGS = { en, th };
