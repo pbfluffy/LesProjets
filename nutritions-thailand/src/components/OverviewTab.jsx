@@ -40,6 +40,7 @@ export default function OverviewTab({ store }) {
         onPrev={() => store.shiftDate(-1)}
         onNext={() => store.shiftDate(1)}
         onToday={store.goToday}
+        lastEdit={store.days[dateKey]?.lastEdit}
       />
 
       <div className={styles.statRowTop}>
