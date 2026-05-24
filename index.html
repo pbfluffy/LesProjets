@@ -65,6 +65,54 @@
     footer .paw { font-size: 18px; }
       .card-wip { display: inline-block; font-size: 9px; font-family: 'IBM Plex Mono', monospace; background: var(--accent-light); color: var(--accent); padding: 2px 8px; border-radius: 999px; margin-top: 4px; letter-spacing: 0.05em; font-weight: 600; border: 0.5px solid var(--border); }
     /* ─── Claude Status widget ───────────────────────────────────── */
+
+    /* Account button + popover */
+    .header-inner { position: relative; }
+    .ctrl-btn.acct-btn { padding: 0; width: 30px; justify-content: center; overflow: hidden; }
+    .acct-btn .acct-icon { font-size: 14px; line-height: 1; }
+    .acct-btn img.acct-photo { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--accent); }
+
+    .acct-popover {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 16px;
+      width: 280px;
+      max-width: calc(100vw - 32px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+      padding: 16px;
+      z-index: 20;
+      display: none;
+      font-size: 13px;
+    }
+    .acct-popover[data-open="true"] { display: block; }
+    .acct-popover h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+    .acct-popover .acct-blurb { color: var(--muted); line-height: 1.5; margin-bottom: 12px; }
+    .acct-popover .acct-google-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 10px 12px;
+      background: #ffffff; border: 1px solid #dadce0; border-radius: 8px;
+      font-size: 13px; font-weight: 500; font-family: inherit; color: #3c4043;
+      cursor: pointer; transition: background 0.15s, box-shadow 0.15s;
+    }
+    .acct-popover .acct-google-btn:hover { background: #f8f9fa; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+    .acct-popover .acct-google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .acct-popover .acct-google-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .acct-popover .acct-privacy { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
+    .acct-popover .acct-row { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+    .acct-popover .acct-row img { width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--accent); flex-shrink: 0; }
+    .acct-popover .acct-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; }
+    .acct-popover .acct-email { font-size: 11px; color: var(--muted); line-height: 1.3; word-break: break-all; }
+    .acct-popover .acct-sync-list { border-top: 1px solid var(--border); padding-top: 10px; margin-bottom: 12px; }
+    .acct-popover .acct-sync-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; color: var(--text); }
+    .acct-popover .acct-sync-row .status { color: var(--muted); font-size: 11px; }
+    .acct-popover .acct-signout-btn { display: block; margin-left: auto; padding: 6px 12px; background: transparent; border: 0.5px solid var(--border); border-radius: 6px; font-size: 12px; color: var(--text); font-family: inherit; cursor: pointer; }
+    .acct-popover .acct-signout-btn:hover { background: var(--surface-alt); }
+
+    [data-theme="dark"] .acct-popover .acct-google-btn { background: #1f1f1f; border-color: #5f6368; color: #e8eaed; }
+    [data-theme="dark"] .acct-popover .acct-google-btn:hover { background: #2a2a2a; }
   </style>
 </head>
 <body>
@@ -76,6 +124,35 @@
         <button class="ctrl-btn" id="langBtn" onclick="toggleLang()">EN</button>
         <button class="ctrl-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
         <button class="ctrl-btn" id="shareBtn" onclick="shareApp()" aria-label="Share" title="Share">↗</button>
+        <button class="ctrl-btn acct-btn" id="acctBtn" aria-label="Sign in" title="Sign in">
+          <span class="acct-icon">👤</span>
+        </button>
+      </div>
+      <div class="acct-popover" id="acctPopover" data-open="false" data-auth="signed-out">
+        <div class="acct-signed-out">
+          <h3 id="acct-heading">Sign in to sync</h3>
+          <p class="acct-blurb" id="acct-blurb">Keep your nutrition logs, bills, and saved places across phone and laptop.</p>
+          <button class="acct-google-btn" id="acct-google-btn">
+            <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.79 2.72v2.27h2.9c1.7-1.57 2.69-3.88 2.69-6.63z"/><path fill="#34A853" d="M9 18c2.43 0 4.46-.8 5.95-2.18l-2.9-2.27c-.8.55-1.84.87-3.05.87a5.36 5.36 0 0 1-5.03-3.7H1v2.34A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.94H1A9 9 0 0 0 0 9c0 1.45.35 2.83.97 4.06l3-2.34z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0a9 9 0 0 0-8.03 4.94l3 2.34A5.36 5.36 0 0 1 9 3.58z"/></svg>
+            <span id="acct-google-label">Continue with Google</span>
+          </button>
+          <p class="acct-privacy" id="acct-privacy">We only see your name and email. Sign out anytime.</p>
+        </div>
+        <div class="acct-signed-in" style="display:none">
+          <div class="acct-row">
+            <img id="acct-photo" src="" alt="" referrerpolicy="no-referrer" />
+            <div>
+              <div class="acct-name" id="acct-name"></div>
+              <div class="acct-email" id="acct-email"></div>
+            </div>
+          </div>
+          <div class="acct-sync-list">
+            <div class="acct-sync-row"><span id="acct-app-nutr">Nutritions</span><span class="status" id="acct-status-nutr">· local only</span></div>
+            <div class="acct-sync-row"><span id="acct-app-bill">Bill history</span><span class="status" id="acct-status-bill">· local only</span></div>
+            <div class="acct-sync-row"><span id="acct-app-pgd">Saved places</span><span class="status" id="acct-status-pgd">· local only</span></div>
+          </div>
+          <button class="acct-signout-btn" id="acct-signout-btn">Sign out</button>
+        </div>
       </div>
     </div>
   </header>
@@ -157,6 +234,18 @@
       pumgodaName: "Pumgoda",
       pumgodaDesc: "ค้นหาคาเฟ่ ร้านอาหาร โรงแรม ที่พาน้องไปได้ในกรุงเทพและต่างจังหวัด มีระบบจัดระดับเป็นอุ้งเท้า 1–4 และตรา 'พุมบ้าเคยมา'",
         sushiroMode: "โหมด Sushiro",
+        acctSignIn: "เข้าสู่ระบบ",
+        acctHeading: "เข้าสู่ระบบเพื่อซิงค์ข้อมูล",
+        acctBlurb: "เก็บข้อมูลโภชนาการ ประวัติบิล และที่ที่บันทึกไว้ ให้ใช้ได้ทั้งมือถือและคอม",
+        acctGoogleLabel: "ดำเนินการต่อด้วย Google",
+        acctPrivacy: "เราเห็นเฉพาะชื่อและอีเมล ออกจากระบบได้ตลอด",
+        acctSignOut: "ออกจากระบบ",
+        acctAppNutr: "โภชนาการ",
+        acctAppBill: "ประวัติบิล",
+        acctAppPgd: "สถานที่ที่บันทึก",
+        acctStatusLocal: "· เฉพาะในเครื่อง",
+        acctStatusSyncing: "· กำลังซิงค์…",
+        acctAccount: "บัญชี",
       },
       en: {
         logo: "Pumba's Projects",
@@ -170,6 +259,18 @@
       pumgodaName: "Pumgoda",
       pumgodaDesc: "Find cafés, restaurants, hotels, and parks across Thailand that welcome pets — paw tier 1–4 plus 'Pumba was here' verification stamp.",
         sushiroMode: "Sushiro mode",
+        acctSignIn: "Sign in",
+        acctHeading: "Sign in to sync",
+        acctBlurb: "Keep your nutrition logs, bills, and saved places across phone and laptop.",
+        acctGoogleLabel: "Continue with Google",
+        acctPrivacy: "We only see your name and email. Sign out anytime.",
+        acctSignOut: "Sign out",
+        acctAppNutr: "Nutritions",
+        acctAppBill: "Bill history",
+        acctAppPgd: "Saved places",
+        acctStatusLocal: "· local only",
+        acctStatusSyncing: "· syncing…",
+        acctAccount: "Account",
       }
     }
 
@@ -197,6 +298,22 @@
       document.getElementById("sushiro-btn-text").textContent = s.sushiroMode
       document.getElementById("langBtn").textContent = lang === "th" ? "EN" : "TH"
       document.documentElement.lang = lang
+      // account popover strings
+      document.getElementById("acct-heading").textContent = s.acctHeading
+      document.getElementById("acct-blurb").textContent = s.acctBlurb
+      document.getElementById("acct-google-label").textContent = s.acctGoogleLabel
+      document.getElementById("acct-privacy").textContent = s.acctPrivacy
+      document.getElementById("acct-signout-btn").textContent = s.acctSignOut
+      document.getElementById("acct-app-nutr").textContent = s.acctAppNutr
+      document.getElementById("acct-app-bill").textContent = s.acctAppBill
+      document.getElementById("acct-app-pgd").textContent = s.acctAppPgd
+      document.getElementById("acct-status-nutr").textContent = s.acctStatusLocal
+      document.getElementById("acct-status-bill").textContent = s.acctStatusLocal
+      document.getElementById("acct-status-pgd").textContent = s.acctStatusLocal
+      const acctBtn = document.getElementById("acctBtn")
+      const signedIn = document.getElementById("acctPopover").dataset.auth === "signed-in"
+      acctBtn.setAttribute("aria-label", signedIn ? s.acctAccount : s.acctSignIn)
+      acctBtn.setAttribute("title", signedIn ? s.acctAccount : s.acctSignIn)
     }
 
     function toggleLang() { lang = lang === "th" ? "en" : "th"; applyLang() }
@@ -232,5 +349,101 @@
     applyLang()
 </script>
 
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js'
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js'
+
+  const firebaseConfig = {
+    apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
+    authDomain: 'pumgoda.firebaseapp.com',
+    databaseURL: 'https://pumgoda-default-rtdb.asia-southeast1.firebasedatabase.app',
+    projectId: 'pumgoda',
+    storageBucket: 'pumgoda.firebasestorage.app',
+    messagingSenderId: '675478948836',
+    appId: '1:675478948836:web:3ad94d736b6a677d8495f1',
+  }
+
+  const app = initializeApp(firebaseConfig)
+  const auth = getAuth(app)
+  const provider = new GoogleAuthProvider()
+
+  const btn = document.getElementById('acctBtn')
+  const popover = document.getElementById('acctPopover')
+  const signedOutEl = popover.querySelector('.acct-signed-out')
+  const signedInEl = popover.querySelector('.acct-signed-in')
+  const googleBtn = document.getElementById('acct-google-btn')
+  const signoutBtn = document.getElementById('acct-signout-btn')
+
+  function setBtnAvatar(user) {
+    btn.innerHTML = ''
+    if (user && user.photoURL) {
+      const img = document.createElement('img')
+      img.className = 'acct-photo'
+      img.src = user.photoURL
+      img.alt = ''
+      img.referrerPolicy = 'no-referrer'
+      btn.appendChild(img)
+    } else {
+      const span = document.createElement('span')
+      span.className = 'acct-icon'
+      span.textContent = user ? (user.displayName?.[0]?.toUpperCase() ?? '·') : '\uD83D\uDC64'
+      btn.appendChild(span)
+    }
+  }
+
+  function setPopoverState(user) {
+    if (user) {
+      popover.dataset.auth = 'signed-in'
+      signedOutEl.style.display = 'none'
+      signedInEl.style.display = 'block'
+      document.getElementById('acct-photo').src = user.photoURL || ''
+      document.getElementById('acct-name').textContent = user.displayName || ''
+      document.getElementById('acct-email').textContent = user.email || ''
+    } else {
+      popover.dataset.auth = 'signed-out'
+      signedOutEl.style.display = 'block'
+      signedInEl.style.display = 'none'
+    }
+    if (typeof applyLang === 'function') applyLang()
+  }
+
+  onAuthStateChanged(auth, user => {
+    setBtnAvatar(user)
+    setPopoverState(user)
+  })
+
+  btn.addEventListener('click', e => {
+    e.stopPropagation()
+    const open = popover.dataset.open === 'true'
+    popover.dataset.open = open ? 'false' : 'true'
+  })
+
+  popover.addEventListener('click', e => { e.stopPropagation() })
+
+  document.addEventListener('click', () => {
+    popover.dataset.open = 'false'
+  })
+
+  googleBtn.addEventListener('click', async () => {
+    googleBtn.disabled = true
+    try {
+      await signInWithPopup(auth, provider)
+      popover.dataset.open = 'false'
+    } catch (e) {
+      if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+        console.warn('sign-in failed:', e)
+        alert('Sign-in failed: ' + (e.message || e.code))
+      }
+    } finally {
+      googleBtn.disabled = false
+    }
+  })
+
+  signoutBtn.addEventListener('click', async () => {
+    try { await signOut(auth) } catch (e) { console.warn('sign-out failed:', e) }
+    popover.dataset.open = 'false'
+  })
+</script>
 </body>
 </html>
