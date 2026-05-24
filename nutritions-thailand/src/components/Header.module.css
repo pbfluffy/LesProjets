@@ -44,3 +44,140 @@
 .iconBtn:hover {
   opacity: 0.7;
 }
+
+.acctWrap {
+  position: relative;
+}
+
+.acctBtn {
+  padding: 0;
+  overflow: hidden;
+}
+
+.acctAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.acctAvatarPlaceholder {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.acctPopover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  background: var(--card-bg, var(--bg, #fff));
+  color: var(--text, inherit);
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  z-index: 100;
+  font-size: 14px;
+}
+
+.acctPopoverHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.acctPopoverAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.acctPopoverInfo {
+  min-width: 0;
+  flex: 1;
+}
+
+.acctName {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acctEmail {
+  color: var(--muted, #666);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acctBlurb {
+  color: var(--muted, #666);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.acctHeading {
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.acctGoogleBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--accent, #f57c00);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.acctGoogleBtn:hover {
+  opacity: 0.9;
+}
+
+.acctGoogleBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.acctGoogleIcon {
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 2px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.acctSignOutBtn {
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--border, #d0d0d0);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.acctSignOutBtn:hover {
+  background: var(--muted-bg, rgba(0, 0, 0, 0.04));
+}
