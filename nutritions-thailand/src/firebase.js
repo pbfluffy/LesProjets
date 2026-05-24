@@ -5,7 +5,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/fireba
 import {
   getAuth,
   onAuthStateChanged,
-} from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
+, GoogleAuthProvider, signInWithPopup, signOut} from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
 import {
   getFirestore,
   doc,
@@ -28,4 +28,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export { onAuthStateChanged, doc, getDoc, setDoc, serverTimestamp, onSnapshot };
+export { onAuthStateChanged, doc, getDoc, setDoc, serverTimestamp, onSnapshot , GoogleAuthProvider, signInWithPopup, signOut};
