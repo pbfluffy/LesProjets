@@ -5,7 +5,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/fireba
 import {
   getAuth,
   onAuthStateChanged,
-, GoogleAuthProvider, signInWithPopup, signOut} from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
+GoogleAuthProvider, signInWithPopup, signOut} from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
 import {
   getFirestore,
   doc,
