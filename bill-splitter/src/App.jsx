@@ -218,9 +218,11 @@ function AppInner() {
                 onClick={() => setPopoverOpen(o => !o)}
                 title={user ? user.email : t.acctSignIn}
                 aria-label={t.acctSignIn}
-                style={user ? { boxShadow: 'inset 0 0 0 2px var(--green, #2e7d32)' } : undefined}
+                style={user && user.photoURL ? { padding: 0, overflow: 'hidden', borderRadius: '50%' } : user ? { boxShadow: 'inset 0 0 0 2px var(--green, #2e7d32)' } : undefined}
               >
-                👤
+                {user && user.photoURL ? (
+                  <img src={user.photoURL} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                ) : '👤'}
               </button>
               {popoverOpen && (
                 <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', background: 'var(--color-surface, white)', color: 'var(--color-text, inherit)', border: '1px solid var(--color-border, #ddd)', borderRadius: 8, padding: 12, minWidth: 220, boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 100, textAlign: 'left' }}>
