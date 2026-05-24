@@ -16,6 +16,29 @@ function localHasData(state) {
   return false;
 }
 
+/** Deep-canonical stringify with sorted keys. Strips lastEdit from days, since
+ *  that field exists only on locally mutated copies — its presence/absence is
+ *  not a real data conflict, just metadata drift. */
+function canonical(value) {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(canonical).join(',') + ']';
+  const keys = Object.keys(value).sort();
+  return '{' + keys.map(k => JSON.stringify(k) + ':' + canonical(value[k])).join(',') + '}';
+}
+
+/** Fingerprint of synced fields. Drops day-level lastEdit so old (pre-tracking)
+ *  server docs don't always look different from current local data. */
+function syncFingerprint(state) {
+  if (!state) return canonical(state);
+  const days = state.days || {};
+  const stripped = {};
+  for (const k of Object.keys(days)) {
+    const { lastEdit: _le, ...rest } = days[k];
+    stripped[k] = rest;
+  }
+  return canonical({ ...state, days: stripped });
+}
+
 /**
  * Cloud sync for Nutritions with live updates and conflict protection.
  *
@@ -91,8 +114,21 @@ export function useCloudSync({ state, replaceState }) {
           }
 
           const serverData = snap.data();
+          const { lastModified: _lmCheck, ...serverStateForCheck } = serverData;
+          const localFp = syncFingerprint(stateRef.current);
+          const serverFp = syncFingerprint(serverStateForCheck);
+
+          if (localFp === serverFp) {
+            // Functionally identical — no conflict, no UI prompt.
+            lastPushedFingerprint.current = JSON.stringify(serverStateForCheck);
+            initialSyncDone.current = true;
+            setLastSyncedAt(Date.now());
+            setSyncStatus('synced');
+            return;
+          }
+
           if (localHasData(stateRef.current)) {
-            // Both sides have data — ask the user
+            // Both sides have data AND they genuinely differ — ask the user.
             setPendingServerData(serverData);
             setSyncStatus('awaiting-decision');
             return;
