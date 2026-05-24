@@ -5,6 +5,7 @@ import BillHistory from './components/BillHistory'
 import { LangProvider, useLang } from './LangContext'
 import { readShareFromHash, clearShareHash } from './share'
 import { useBillHistory } from './hooks/useBillHistory'
+import { useCloudSync } from './hooks/useCloudSync'
 import styles from './App.module.css'
 
 // Read share data once at module load (before any component renders)
@@ -27,6 +28,23 @@ function AppInner() {
 
   // Bill history
   const history = useBillHistory()
+  const cloudSync = useCloudSync({
+    entries: history.entries,
+    replaceEntries: history.replaceEntries,
+  })
+  // Conflict resolution: if cloud has different bills than local, prompt user.
+  useEffect(() => {
+    if (cloudSync.syncStatus === 'awaiting-decision' && cloudSync.pendingServerEntries) {
+      const cloudCount = cloudSync.pendingServerEntries.length
+      const localCount = history.entries.length
+      const useCloud = window.confirm(
+        `Cloud has ${cloudCount} saved bill(s), this device has ${localCount}.\n\n` +
+        `OK = use cloud (replaces local).\nCancel = keep this device (overwrites cloud).`
+      )
+      if (useCloud) cloudSync.confirmCloudWins()
+      else cloudSync.confirmLocalWins()
+    }
+  }, [cloudSync.syncStatus])
   const [historyOpen, setHistoryOpen] = useState(false)
   // Loaded entries are passed in as initial state to BillSplitter/SushiroCalculator.
   // Bumping `loadEpoch` (used as react key) remounts the store so initial takes effect.
