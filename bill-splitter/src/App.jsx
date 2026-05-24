@@ -12,6 +12,69 @@ import styles from './App.module.css'
 // Read share data once at module load (before any component renders)
 const initialShare = readShareFromHash()
 
+function ConflictModal({ t, lang, localEntries, cloudEntries, onUseLocal, onUseCloud }) {
+  const [confirmingLocal, setConfirmingLocal] = useState(false)
+  const localCount = localEntries.length
+  const cloudCount = cloudEntries.length
+  const localLast = localEntries[0]?.savedAt || 0
+  const cloudLast = cloudEntries[0]?.savedAt || 0
+  const localNewer = localLast > cloudLast
+  const cloudNewer = cloudLast > localLast
+  const fmtWhen = (ts) => {
+    if (!ts) return null
+    return new Date(ts).toLocaleString(lang === 'th' ? 'th-TH' : 'en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  }
+  const interp = (str, vars) => str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '')
+  const overlayStyle = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 200 }
+  const modalStyle = { background: 'var(--color-surface, white)', color: 'var(--color-text, #222)', borderRadius: 12, padding: 20, maxWidth: 480, width: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.3)' }
+  const titleStyle = { margin: '0 0 6px', fontSize: 18, fontWeight: 700 }
+  const bodyStyle = { margin: '0 0 16px', fontSize: 13, color: 'var(--color-text-muted, #666)', lineHeight: 1.5 }
+  if (confirmingLocal) {
+    return (
+      <div style={overlayStyle}>
+        <div style={modalStyle}>
+          <h2 style={titleStyle}>{t.syncConflictWarnTitle}</h2>
+          <p style={bodyStyle}>{t.syncConflictWarnBody}</p>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button onClick={() => setConfirmingLocal(false)} style={{ padding: '8px 14px', border: '1px solid var(--color-border, #ddd)', background: 'transparent', color: 'inherit', borderRadius: 6, cursor: 'pointer', font: 'inherit' }}>{t.syncConflictCancel}</button>
+            <button onClick={onUseLocal} style={{ padding: '8px 14px', border: 'none', background: 'var(--red, #c62828)', color: 'white', borderRadius: 6, cursor: 'pointer', font: 'inherit', fontWeight: 600 }}>{t.syncConflictYesOverwrite}</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  const cardStyle = (newer) => ({ flex: 1, textAlign: 'left', padding: 14, border: '2px solid', borderColor: newer ? 'var(--accent, #ff6b35)' : 'var(--color-border, #ddd)', background: 'var(--color-surface-alt, #f8f8f8)', color: 'inherit', borderRadius: 10, cursor: 'pointer', font: 'inherit' })
+  const cardHeaderStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }
+  const newerBadgeStyle = { fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'var(--accent, #ff6b35)', color: 'white', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }
+  const tsStyle = (newer) => ({ fontSize: 11, color: newer ? 'var(--accent, #ff6b35)' : 'var(--color-text-muted, #666)', fontWeight: newer ? 600 : 400 })
+  return (
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
+        <h2 style={titleStyle}>{t.syncConflictTitle}</h2>
+        <p style={bodyStyle}>{t.syncConflictBody}</p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => setConfirmingLocal(true)} style={cardStyle(localNewer)}>
+            <div style={cardHeaderStyle}>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>{t.syncConflictLocalLabel}</span>
+              {localNewer && <span style={newerBadgeStyle}>{t.syncConflictNewer}</span>}
+            </div>
+            <div style={{ fontSize: 13, marginBottom: 4 }}>{interp(t.syncConflictBillsLine, { n: localCount })}</div>
+            <div style={tsStyle(localNewer)}>{localLast ? interp(t.syncConflictLastSaved, { when: fmtWhen(localLast) }) : t.syncConflictNeverSaved}</div>
+          </button>
+          <button onClick={onUseCloud} style={cardStyle(cloudNewer)}>
+            <div style={cardHeaderStyle}>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>{t.syncConflictCloudLabel}</span>
+              {cloudNewer && <span style={newerBadgeStyle}>{t.syncConflictNewer}</span>}
+            </div>
+            <div style={{ fontSize: 13, marginBottom: 4 }}>{interp(t.syncConflictBillsLine, { n: cloudCount })}</div>
+            <div style={tsStyle(cloudNewer)}>{cloudLast ? interp(t.syncConflictLastSaved, { when: fmtWhen(cloudLast) }) : t.syncConflictNeverSaved}</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function AppInner() {
   const [shared, setShared] = useState(initialShare)
   const [activeTab, setActiveTab] = useState(() => {
@@ -34,18 +97,6 @@ function AppInner() {
     replaceEntries: history.replaceEntries,
   })
   // Conflict resolution: if cloud has different bills than local, prompt user.
-  useEffect(() => {
-    if (cloudSync.syncStatus === 'awaiting-decision' && cloudSync.pendingServerEntries) {
-      const cloudCount = cloudSync.pendingServerEntries.length
-      const localCount = history.entries.length
-      const useCloud = window.confirm(
-        `Cloud has ${cloudCount} saved bill(s), this device has ${localCount}.\n\n` +
-        `OK = use cloud (replaces local).\nCancel = keep this device (overwrites cloud).`
-      )
-      if (useCloud) cloudSync.confirmCloudWins()
-      else cloudSync.confirmLocalWins()
-    }
-  }, [cloudSync.syncStatus])
   const user = cloudSync.user
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [signingIn, setSigningIn] = useState(false)
@@ -242,6 +293,16 @@ function AppInner() {
           onRemove={history.remove}
           onClear={history.clear}
           onClose={() => setHistoryOpen(false)}
+        />
+      )}
+      {cloudSync.syncStatus === 'awaiting-decision' && cloudSync.pendingServerEntries && (
+        <ConflictModal
+          t={t}
+          lang={lang}
+          localEntries={history.entries}
+          cloudEntries={cloudSync.pendingServerEntries}
+          onUseLocal={cloudSync.confirmLocalWins}
+          onUseCloud={cloudSync.confirmCloudWins}
         />
       )}
     </div>
