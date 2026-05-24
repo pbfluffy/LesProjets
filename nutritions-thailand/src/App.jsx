@@ -115,11 +115,11 @@ function ConflictModal({ cloudSync, localState, t }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={confirmCloudWins} style={primaryBtn}>
-            {t('sync.conflict.useCloud')}
-          </button>
           <button onClick={confirmLocalWins} style={secondaryBtn}>
             {t('sync.conflict.useLocal')}
+          </button>
+          <button onClick={confirmCloudWins} style={primaryBtn}>
+            {t('sync.conflict.useCloud')}
           </button>
         </div>
       </div>
