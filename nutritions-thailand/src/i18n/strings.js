@@ -155,6 +155,17 @@ const en = {
   'date.today': 'Today',
   'date.prev': '←',
   'date.next': '→',
+  'date.lastEditJustNow': 'Edited · just now',
+  'date.lastEditMin': 'Edited · {n}m ago',
+  'date.lastEditHour': 'Edited · {n}h ago',
+  'date.lastEditDay': 'Edited · {n}d ago',
+  'sync.conflict.title': 'Sync conflict',
+  'sync.conflict.body': 'This device has local data and your cloud has data from another device. Pick which to keep — the other side will be overwritten.',
+  'sync.conflict.localLabel': 'This device',
+  'sync.conflict.cloudLabel': 'Cloud',
+  'sync.conflict.daysLine': '{n} days logged · {f} custom foods',
+  'sync.conflict.useCloud': 'Use cloud',
+  'sync.conflict.useLocal': 'Use this device',
 };
 
 const th = {
@@ -311,6 +322,17 @@ const th = {
   'date.today': 'วันนี้',
   'date.prev': '←',
   'date.next': '→',
+  'date.lastEditJustNow': 'แก้ไข · เมื่อสักครู่',
+  'date.lastEditMin': 'แก้ไข · {n} นาทีที่แล้ว',
+  'date.lastEditHour': 'แก้ไข · {n} ชม.ที่แล้ว',
+  'date.lastEditDay': 'แก้ไข · {n} วันที่แล้ว',
+  'sync.conflict.title': 'ข้อมูลซิงค์ขัดแย้ง',
+  'sync.conflict.body': 'อุปกรณ์นี้มีข้อมูล และในคลาวด์มีข้อมูลจากอุปกรณ์อื่น เลือกชุดที่ต้องการเก็บไว้ อีกฝั่งจะถูกเขียนทับ',
+  'sync.conflict.localLabel': 'อุปกรณ์นี้',
+  'sync.conflict.cloudLabel': 'คลาวด์',
+  'sync.conflict.daysLine': 'บันทึก {n} วัน · {f} อาหารกำหนดเอง',
+  'sync.conflict.useCloud': 'ใช้คลาวด์',
+  'sync.conflict.useLocal': 'ใช้อุปกรณ์นี้',
 };
 
 export const STRINGS = { en, th };
