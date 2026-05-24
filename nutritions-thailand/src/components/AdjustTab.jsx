@@ -9,7 +9,7 @@ import {
 } from '../data/constants.js';
 import DataPanel from './DataPanel.jsx';
 import styles from './AdjustTab.module.css';
-export default function AdjustTab({ store }) {
+export default function AdjustTab({ store, cloudSync }) {
   const { t } = useLang();
   const { stats, setStat } = store;
 
@@ -104,6 +104,7 @@ export default function AdjustTab({ store }) {
 
   return (
     <>
+      <SyncStatusCard cloudSync={cloudSync} />
       <div className={styles.card}>
         <div className={styles.title}>{t('adjust.body')}</div>
 
@@ -266,3 +267,52 @@ export default function AdjustTab({ store }) {
     </>
   
 )}
+
+
+function SyncStatusCard({ cloudSync }) {
+  if (!cloudSync) return null;
+  const { user, syncStatus, lastSyncedAt } = cloudSync;
+  const baseStyle = { display: 'flex', alignItems: 'center', gap: 8 };
+
+  if (!user) {
+    return (
+      <div className={styles.card} style={baseStyle}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--faint, #999)', flexShrink: 0 }} />
+        <a href="/" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 13 }}>
+          Sign in on the landing page to sync across devices →
+        </a>
+      </div>
+    );
+  }
+
+  const dotColor =
+    syncStatus === 'syncing' ? 'var(--yellow, #f5c542)' :
+    syncStatus === 'synced'  ? 'var(--green, #2e7d32)' :
+    syncStatus === 'error'   ? 'var(--red, #d32f2f)' :
+                                'var(--faint, #999)';
+  const text =
+    syncStatus === 'syncing' ? 'Syncing…' :
+    syncStatus === 'synced'  ? (lastSyncedAt ? `Synced · ${timeAgo(lastSyncedAt)}` : 'Synced') :
+    syncStatus === 'error'   ? 'Sync error — check console' :
+                                'Ready';
+
+  return (
+    <div className={styles.card} style={baseStyle}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+      <span style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {user.email}
+      </span>
+      <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--muted, #888)' }}>{text}</span>
+    </div>
+  );
+}
+
+function timeAgo(ms) {
+  const sec = Math.floor((Date.now() - ms) / 1000);
+  if (sec < 5) return 'just now';
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  return `${hr}h ago`;
+}
