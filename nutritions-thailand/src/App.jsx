@@ -44,6 +44,85 @@ export default function App() {
       {tab === 'photo' && <PhotoTab store={store} />}
       {tab === 'adjust' && <AdjustTab store={store} cloudSync={cloudSync} />}
       {tab === 'custom' && <CustomTab store={store} />}
+
+      {cloudSync.syncStatus === 'awaiting-decision' && (
+        <ConflictModal cloudSync={cloudSync} localState={cloudState} t={t} />
+      )}
+    </div>
+  );
+}
+
+function ConflictModal({ cloudSync, localState, t }) {
+  const { pendingServerData, confirmCloudWins, confirmLocalWins } = cloudSync;
+  if (!pendingServerData) return null;
+
+  const localDays = Object.keys(localState.days || {}).length;
+  const localFoods = (localState.customFoods || []).length;
+  const cloudDays = Object.keys(pendingServerData.days || {}).length;
+  const cloudFoods = (pendingServerData.customFoods || []).length;
+
+  const overlay = {
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    zIndex: 1000, padding: 16,
+  };
+  const card = {
+    background: 'var(--bg, white)', color: 'var(--text, inherit)',
+    borderRadius: 14, padding: 20, maxWidth: 440, width: '100%',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.35)',
+  };
+  const statBox = {
+    flex: 1, padding: 12, borderRadius: 10,
+    border: '1px solid var(--border, rgba(127,127,127,0.25))',
+  };
+  const primaryBtn = {
+    flex: 1, padding: '10px 16px', borderRadius: 10,
+    background: 'var(--accent, #f37c44)', color: 'white', border: 'none',
+    fontWeight: 600, fontSize: 14, cursor: 'pointer',
+  };
+  const secondaryBtn = {
+    flex: 1, padding: '10px 16px', borderRadius: 10,
+    background: 'transparent', color: 'inherit',
+    border: '1px solid var(--border, rgba(127,127,127,0.35))',
+    fontWeight: 600, fontSize: 14, cursor: 'pointer',
+  };
+
+  return (
+    <div style={overlay} role="dialog" aria-modal="true">
+      <div style={card}>
+        <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
+          {t('sync.conflict.title')}
+        </div>
+        <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 16, opacity: 0.85 }}>
+          {t('sync.conflict.body')}
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <div style={statBox}>
+            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+              {t('sync.conflict.localLabel')}
+            </div>
+            <div style={{ fontSize: 12, opacity: 0.75 }}>
+              {t('sync.conflict.daysLine', { n: localDays, f: localFoods })}
+            </div>
+          </div>
+          <div style={statBox}>
+            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+              {t('sync.conflict.cloudLabel')}
+            </div>
+            <div style={{ fontSize: 12, opacity: 0.75 }}>
+              {t('sync.conflict.daysLine', { n: cloudDays, f: cloudFoods })}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={confirmCloudWins} style={primaryBtn}>
+            {t('sync.conflict.useCloud')}
+          </button>
+          <button onClick={confirmLocalWins} style={secondaryBtn}>
+            {t('sync.conflict.useLocal')}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
