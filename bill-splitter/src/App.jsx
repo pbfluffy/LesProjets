@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { auth, GoogleAuthProvider, signInWithPopup, signOut } from './firebase.js'
 import BillSplitter from './components/BillSplitter'
 import SushiroCalculator from './components/SushiroCalculator'
 import BillHistory from './components/BillHistory'
@@ -45,6 +46,38 @@ function AppInner() {
       else cloudSync.confirmLocalWins()
     }
   }, [cloudSync.syncStatus])
+  const user = cloudSync.user
+  const [popoverOpen, setPopoverOpen] = useState(false)
+  const [signingIn, setSigningIn] = useState(false)
+  const popoverWrapRef = useRef(null)
+  useEffect(() => {
+    if (!popoverOpen) return
+    const handler = (e) => {
+      if (popoverWrapRef.current && !popoverWrapRef.current.contains(e.target)) setPopoverOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [popoverOpen])
+  const handleSignIn = async () => {
+    if (signingIn) return
+    setSigningIn(true)
+    try {
+      await signInWithPopup(auth, new GoogleAuthProvider())
+      setPopoverOpen(false)
+    } catch (e) {
+      console.warn('[acct] sign-in failed:', e)
+    } finally {
+      setSigningIn(false)
+    }
+  }
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth)
+      setPopoverOpen(false)
+    } catch (e) {
+      console.warn('[acct] sign-out failed:', e)
+    }
+  }
   const [historyOpen, setHistoryOpen] = useState(false)
   // Loaded entries are passed in as initial state to BillSplitter/SushiroCalculator.
   // Bumping `loadEpoch` (used as react key) remounts the store so initial takes effect.
@@ -127,6 +160,34 @@ function AppInner() {
             >
               {dark ? '\u{1F31E}' : '\u{1F319}'}
             </button>
+            {/* Account */}
+            <div style={{ position: 'relative' }} ref={popoverWrapRef}>
+              <button
+                className={styles.iconBtn}
+                onClick={() => setPopoverOpen(o => !o)}
+                title={user ? user.email : t.acctSignIn}
+                aria-label={t.acctSignIn}
+                style={user ? { boxShadow: 'inset 0 0 0 2px var(--green, #2e7d32)' } : undefined}
+              >
+                👤
+              </button>
+              {popoverOpen && (
+                <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', background: 'var(--color-surface, white)', color: 'var(--color-text, inherit)', border: '1px solid var(--color-border, #ddd)', borderRadius: 8, padding: 12, minWidth: 220, boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 100, textAlign: 'left' }}>
+                  {user ? (
+                    <>
+                      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, wordBreak: 'break-all' }}>{user.displayName || 'User'}</div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-muted, #666)', marginBottom: 10, wordBreak: 'break-all' }}>{user.email}</div>
+                      <button onClick={handleSignOut} style={{ width: '100%', padding: '6px 10px', border: '1px solid var(--color-border, #ddd)', background: 'transparent', color: 'inherit', borderRadius: 6, cursor: 'pointer', font: 'inherit' }}>{t.acctSignOut}</button>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>{t.acctSignIn}</div>
+                      <button onClick={handleSignIn} disabled={signingIn} style={{ width: '100%', padding: '8px 12px', border: 'none', background: 'var(--accent, #ff6b35)', color: 'white', borderRadius: 6, cursor: signingIn ? 'default' : 'pointer', font: 'inherit', fontWeight: 600 }}>{signingIn ? t.acctSigningIn : t.acctContinueWithGoogle}</button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
