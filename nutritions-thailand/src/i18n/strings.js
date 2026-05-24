@@ -172,6 +172,11 @@ const en = {
   'sync.conflict.warnBody': 'This will overwrite cloud data — including any edits from other devices.',
   'sync.conflict.warnConfirm': 'Yes, overwrite cloud',
   'sync.conflict.warnCancel': 'Cancel',
+  'account.signIn': 'Sign in',
+  'account.signOut': 'Sign out',
+  'account.signedInAs': 'Signed in as',
+  'account.continueWithGoogle': 'Continue with Google',
+  'account.signingIn': 'Signing in…',
 };
 
 const th = {
@@ -345,6 +350,11 @@ const th = {
   'sync.conflict.warnBody': 'การกระทำนี้จะเขียนทับข้อมูลคลาวด์ — รวมถึงการแก้ไขจากอุปกรณ์อื่น',
   'sync.conflict.warnConfirm': 'ใช่ เขียนทับคลาวด์',
   'sync.conflict.warnCancel': 'ยกเลิก',
+  'account.signIn': 'เข้าสู่ระบบ',
+  'account.signOut': 'ออกจากระบบ',
+  'account.signedInAs': 'เข้าสู่ระบบในชื่อ',
+  'account.continueWithGoogle': 'เข้าสู่ระบบด้วย Google',
+  'account.signingIn': 'กำลังเข้าสู่ระบบ…',
 };
 
 export const STRINGS = { en, th };
