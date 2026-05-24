@@ -138,7 +138,7 @@ export function useNutritionStore() {
     (key, fn) => {
       setState((s) => {
         const prev = s.days[key] ?? EMPTY_DAY;
-        const next = fn(prev);
+        const next = { ...fn(prev), lastEdit: Date.now() };
         return { ...s, days: { ...s.days, [key]: next } };
       });
     },
