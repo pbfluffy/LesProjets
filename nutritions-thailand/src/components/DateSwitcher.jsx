@@ -12,10 +12,11 @@ function formatDate(key, lang) {
   });
 }
 
-export default function DateSwitcher({ dateKey, onPrev, onNext, onToday }) {
+export default function DateSwitcher({ dateKey, onPrev, onNext, onToday, lastEdit }) {
   const { t, lang } = useLang();
   const isToday = dateKey === todayKey();
   return (
+    <>
     <div className={styles.bar}>
       <button className={styles.btn} onClick={onPrev} aria-label="Previous day">
         {t('date.prev')}
@@ -35,6 +36,32 @@ export default function DateSwitcher({ dateKey, onPrev, onNext, onToday }) {
       >
         {t('date.next')}
       </button>
+    </div>
+    <LastEditBadge lastEdit={lastEdit} t={t} />
+    </>
+  );
+}
+
+function LastEditBadge({ lastEdit, t }) {
+  if (!lastEdit) return null;
+  const sec = Math.floor((Date.now() - lastEdit) / 1000);
+  let key = 'date.lastEditJustNow';
+  let vars;
+  if (sec < 60) {
+    key = 'date.lastEditJustNow';
+  } else if (sec < 3600) {
+    key = 'date.lastEditMin';
+    vars = { n: Math.floor(sec / 60) };
+  } else if (sec < 86400) {
+    key = 'date.lastEditHour';
+    vars = { n: Math.floor(sec / 3600) };
+  } else {
+    key = 'date.lastEditDay';
+    vars = { n: Math.floor(sec / 86400) };
+  }
+  return (
+    <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--muted, #888)', marginTop: 4, opacity: 0.75 }}>
+      {t(key, vars)}
     </div>
   );
 }
