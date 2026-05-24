@@ -70,5 +70,11 @@ export function useBillHistory() {
     setEntries([])
   }, [])
 
-  return { entries, save, remove, clear }
+  const replaceEntries = useCallback((newEntries) => {
+    const arr = Array.isArray(newEntries) ? newEntries : []
+    writeAll(arr)
+    setEntries(arr)
+  }, [])
+
+  return { entries, save, remove, clear, replaceEntries }
 }
