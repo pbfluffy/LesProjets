@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLang } from '../LangContext.jsx';
 import styles from './PhotoTab.module.css';
 
@@ -28,31 +28,42 @@ Respond ONLY with valid JSON, no markdown fences, no preamble:
 If the photo does not contain food, respond ONLY with:
 {"error": "no food detected"}`;
 
+// BUG-02 Leak B — wrap the object URL lifetime in try/finally so the URL
+// is revoked even if Image.onerror fires, drawImage throws, or toBlob/FileReader
+// rejects. The previous code only revoked on the happy path.
 async function compressImage(file) {
-  const img = await new Promise((resolve, reject) => {
-    const i = new Image();
-    i.onload = () => resolve(i);
-    i.onerror = () => reject(new Error('Could not load image'));
-    i.src = URL.createObjectURL(file);
-  });
-  const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
-  const w = Math.round(img.width * scale);
-  const h = Math.round(img.height * scale);
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, w, h);
-  URL.revokeObjectURL(img.src);
-  const blob = await new Promise((resolve) =>
-    canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY)
-  );
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result.split(',')[1]); // strip data: prefix
-    r.onerror = () => reject(new Error('Could not read image'));
-    r.readAsDataURL(blob);
-  });
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error('Could not load image'));
+      i.src = objectUrl;
+    });
+    const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    const blob = await new Promise((resolve, reject) =>
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('Could not encode image'))),
+        'image/jpeg',
+        JPEG_QUALITY
+      )
+    );
+    return await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result.split(',')[1]); // strip data: prefix
+      r.onerror = () => reject(new Error('Could not read image'));
+      r.readAsDataURL(blob);
+    });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 async function identifyDish(base64Image) {
@@ -100,6 +111,30 @@ async function identifyDish(base64Image) {
   }
 }
 
+// BUG-07 — the Cloudflare Worker / Gemini path returns free-form English error
+// strings (e.g. "no food detected") that bleed into an otherwise-Thai UI.
+// Until the worker switches to error codes, pattern-match the known ones here.
+function localizeError(msg, lang) {
+  if (typeof msg !== 'string') return String(msg);
+  const m = msg.toLowerCase();
+  if (m.includes('no food')) {
+    return lang === 'th'
+      ? 'ไม่พบอาหารในภาพ ลองรูปอื่นดู'
+      : 'No food detected in the image. Try another photo.';
+  }
+  if (m.includes('could not load image') || m.includes('could not read image') || m.includes('could not encode image')) {
+    return lang === 'th'
+      ? 'อ่านไฟล์รูปไม่ได้ ลองอีกครั้งหรือเลือกรูปอื่น'
+      : 'Could not read the image. Try again or pick a different photo.';
+  }
+  if (m.startsWith('api ')) {
+    return lang === 'th'
+      ? 'บริการประมวลผลรูปขัดข้องชั่วคราว ลองใหม่อีกครั้ง'
+      : 'The photo service is temporarily unavailable. Please try again.';
+  }
+  return msg;
+}
+
 export default function PhotoTab({ store }) {
   const { t, lang } = useLang();
   const [imageFile, setImageFile] = useState(null);
@@ -110,23 +145,39 @@ export default function PhotoTab({ store }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const fileRef = useRef(null);
+  // BUG-04 — monotonically increasing request id. Each onIdentify captures the
+  // current id; any setResult/setError after that checks the id is still
+  // current. Picking a new image or clearing bumps the id, invalidating any
+  // in-flight identify call so its result can't land on the wrong photo.
+  const requestIdRef = useRef(0);
+
+  // BUG-02 Leak A — revoke the object URL on imagePreview change OR unmount.
+  // Switching tabs unmounts PhotoTab; without this cleanup the multi-MB blob
+  // stays in memory until full page reload.
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+    };
+  }, [imagePreview]);
 
   function onFile(e) {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    requestIdRef.current++; // invalidate any in-flight identify
     setImageFile(f);
     setImagePreview(URL.createObjectURL(f));
     setResult(null);
     setError(null);
+    setLoading(false);
   }
 
   function onClear() {
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    requestIdRef.current++; // invalidate any in-flight identify
     setImageFile(null);
     setImagePreview(null);
     setResult(null);
     setError(null);
+    setLoading(false);
     if (fileRef.current) fileRef.current.value = '';
   }
 
@@ -135,18 +186,23 @@ export default function PhotoTab({ store }) {
       setError(t('photo.noImage'));
       return;
     }
+    const reqId = ++requestIdRef.current;
+    const submittedFile = imageFile;
     setLoading(true);
     setError(null);
     setResult(null);
     try {
-      const base64 = await compressImage(imageFile);
+      const base64 = await compressImage(submittedFile);
       const r = await identifyDish(base64);
+      // BUG-04 — guard against a new image being picked mid-flight
+      if (reqId !== requestIdRef.current) return;
       if (r.error) throw new Error(r.error);
       setResult(r);
     } catch (e) {
-      setError(e.message || String(e));
+      if (reqId !== requestIdRef.current) return;
+      setError(localizeError(e.message || String(e), lang));
     } finally {
-      setLoading(false);
+      if (reqId === requestIdRef.current) setLoading(false);
     }
   }
 
