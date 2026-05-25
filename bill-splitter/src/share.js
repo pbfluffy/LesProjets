@@ -1,12 +1,21 @@
 // URL-based sharing for read-only bill views.
 // Encodes state as URL-safe base64 in a query param (?d=...) so recipients can view
-// the same bill by opening the link. No backend required.
+// the same bill by opening the link. No backend required for ?d= links.
 //
-// Note: older links use a URL hash (#...). The reader supports both formats for
-// backward compatibility; the writer always uses ?d= now (messaging apps strip
-// hash fragments from auto-linkified URLs, breaking shares in LINE/WhatsApp/etc.)
+// Optional short links (?s=<id>) require Firestore: payload is stored under
+// shareLinks/<shortId> with a 7-day TTL. Signed-in users only.
+//
+// Reader supports three URL formats in priority order:
+//   ?s=<8charId>  short link (Firestore-backed, requires async resolve)
+//   ?d=<base64>   direct (new default since #60)
+//   #<base64>     direct (legacy, pre-#60 shares)
+
+import { db, doc, getDoc, setDoc, serverTimestamp } from './firebase'
 
 const VERSION = 1
+const SHORT_ID_LEN = 8
+const SHORT_ID_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+const MAX_PAYLOAD_SIZE = 95000
 
 function utf8ToB64Url(str) {
   const bytes = new TextEncoder().encode(str)
@@ -24,6 +33,14 @@ function b64UrlToUtf8(s) {
   return new TextDecoder().decode(bytes)
 }
 
+function generateShortId() {
+  let id = ''
+  for (let i = 0; i < SHORT_ID_LEN; i++) {
+    id += SHORT_ID_CHARS[Math.floor(Math.random() * SHORT_ID_CHARS.length)]
+  }
+  return id
+}
+
 export function encodeShare(tab, state) {
   return utf8ToB64Url(JSON.stringify({ v: VERSION, t: tab, s: state }))
 }
@@ -39,13 +56,50 @@ export function decodeShare(payload) {
 export function buildShareUrl(tab, state) {
   const u = new URL(window.location.href)
   u.hash = ''
+  u.searchParams.delete('s')
   u.searchParams.set('d', encodeShare(tab, state))
   return u.toString()
 }
 
-// Reads a shared bill from the current URL.
-// Preferred: ?d=<payload> (new format, survives auto-linkifiers in messaging apps)
-// Fallback: #<payload>  (legacy format, links shared before the ?d= switch)
+// Creates a Firestore short-link doc and returns a URL like '?s=<shortId>'.
+// Requires signed-in user. Throws on auth/size/network failure.
+export async function createShortLink(tab, state, uid) {
+  if (!uid) throw new Error('not signed in')
+  const payload = encodeShare(tab, state)
+  if (payload.length > MAX_PAYLOAD_SIZE) throw new Error('payload too large')
+  const shortId = generateShortId()
+  await setDoc(doc(db, 'shareLinks', shortId), {
+    payload,
+    createdAt: serverTimestamp(),
+    createdBy: uid,
+  })
+  const u = new URL(window.location.href)
+  u.hash = ''
+  u.searchParams.delete('d')
+  u.searchParams.set('s', shortId)
+  return u.toString()
+}
+
+// Resolves a short-link ID to a decoded share.
+// Returns:
+//   { ok: <data> }     - success
+//   { expired: true }  - doc missing (TTL expired or never existed)
+//   null               - network/decode error
+export async function resolveShortLink(shortId) {
+  try {
+    const snap = await getDoc(doc(db, 'shareLinks', shortId))
+    if (!snap.exists()) return { expired: true }
+    const decoded = decodeShare(snap.data().payload)
+    return decoded ? { ok: decoded } : null
+  } catch (e) {
+    console.error('[shortLink] resolve failed:', e)
+    return null
+  }
+}
+
+// Reads a shared bill from the current URL (synchronous).
+// Handles ?d= (post-#60) and # (legacy). Does NOT handle ?s= short links
+// (those need resolveShortLink async). Returns null if no direct link found.
 export function readShareFromHash() {
   const url = new URL(window.location.href)
   const fromQuery = url.searchParams.get('d')
@@ -57,9 +111,16 @@ export function readShareFromHash() {
   return fromHash ? decodeShare(fromHash) : null
 }
 
+// Returns the short-link ID if URL has ?s=, else null.
+// Use with resolveShortLink to fetch the actual bill data.
+export function getShortLinkId() {
+  return new URL(window.location.href).searchParams.get('s')
+}
+
 export function clearShareHash() {
   const url = new URL(window.location.href)
   url.searchParams.delete('d')
+  url.searchParams.delete('s')
   url.hash = ''
   history.replaceState(null, '', url.pathname + url.search)
 }
