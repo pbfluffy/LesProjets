@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSushiroStore, PLATES } from '../hooks/useSushiroStore'
 import { useLang } from '../LangContext'
-import { buildShareUrl } from '../share'
+import { buildShareUrl, createShortLink } from '../share'
+import { auth, onAuthStateChanged } from '../firebase'
 import styles from './SushiroCalculator.module.css'
 
 const fmt = n => n.toFixed(2)
@@ -41,6 +42,11 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
   const [nameInput, setNameInput] = useState('')
   const [nameError, setNameError] = useState('')
   const [toast, setToast] = useState('')
+  const [user, setUser] = useState(null)
+  const [useShortLink, setUseShortLink] = useState(false)
+  const [creatingLink, setCreatingLink] = useState(false)
+
+  useEffect(() => onAuthStateChanged(auth, setUser), [])
 
   const handleAddPerson = () => {
     const ok = store.addPerson(nameInput)
@@ -84,7 +90,20 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
 
   const handleShareLink = async () => {
     const text = buildSummaryText()
-    const url = buildShareUrl('sushi', buildSnapshot())
+    let url
+    if (useShortLink && user) {
+      setCreatingLink(true)
+      try {
+        url = await createShortLink('sushi', buildSnapshot(), user.uid)
+      } catch (e) {
+        setCreatingLink(false)
+        showToast(t.shareError)
+        return
+      }
+      setCreatingLink(false)
+    } else {
+      url = buildShareUrl('sushi', buildSnapshot())
+    }
 
     if (navigator.share) {
       try {
@@ -175,6 +194,12 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
           <div className={styles.sectionHeader}>
             <h2 className={styles.title}>{t.summary}</h2>
             <div className={styles.shareBtnGroup}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, width: '100%', cursor: user ? 'pointer' : 'not-allowed', opacity: user ? 1 : 0.6 }}>
+                <input type="checkbox" checked={useShortLink} onChange={(e) => setUseShortLink(e.target.checked)} disabled={!user || creatingLink} />
+                {t.shareShortLink}
+                {!user && <span style={{ fontSize: 10, color: 'var(--text-muted, #888)' }}>({t.shareShortLinkSignedOut})</span>}
+                {creatingLink && <span style={{ fontSize: 10 }}>{t.shareCreating}</span>}
+              </label>
               <button type="button" className={styles.shareBtn} onClick={handleCopyText} title={t.copySummary}>📋 {t.copy}</button>
               <button type="button" className={styles.shareBtn} onClick={handleShareLink}>{t.shareLink}</button>
             </div>
