@@ -160,6 +160,27 @@ export const STRINGS = {
       done: 'เสร็จ',
       addToTrip: 'เพิ่มลงแผนเที่ยว',
     },
+
+    account: {
+      signIn: 'เข้าสู่ระบบ',
+      signOut: 'ออกจากระบบ',
+      signingIn: 'กำลังเข้าสู่ระบบ…',
+      continueWithGoogle: 'เข้าสู่ระบบด้วย Google',
+    },
+
+    syncConflict: {
+      title: 'ข้อมูลซิงค์ขัดแย้ง',
+      body: 'อุปกรณ์นี้และคลาวด์มีสถานที่บันทึกไว้คนละชุด เลือกชุดที่ต้องการเก็บ — อีกฝั่งจะถูกเขียนทับ',
+      localLabel: 'อุปกรณ์นี้',
+      cloudLabel: 'คลาวด์',
+      placesLine: 'บันทึก {n} ที่',
+      useCloud: 'ใช้คลาวด์',
+      useLocal: 'ใช้อุปกรณ์นี้',
+      warnTitle: 'ใช้อุปกรณ์นี้?',
+      warnBody: 'การกระทำนี้จะเขียนทับข้อมูลคลาวด์ — รวมถึงรายการที่บันทึกจากอุปกรณ์อื่น',
+      warnConfirm: 'ใช่ เขียนทับคลาวด์',
+      warnCancel: 'ยกเลิก',
+    },
   },
 
   en: {
@@ -313,10 +334,31 @@ export const STRINGS = {
       done: 'Done',
       addToTrip: 'Add to trip',
     },
+
+    account: {
+      signIn: 'Sign in',
+      signOut: 'Sign out',
+      signingIn: 'Signing in…',
+      continueWithGoogle: 'Continue with Google',
+    },
+
+    syncConflict: {
+      title: 'Sync conflict',
+      body: 'This device and your cloud both have saved places. Pick which to keep — the other side will be overwritten.',
+      localLabel: 'This device',
+      cloudLabel: 'Cloud',
+      placesLine: '{n} saved place(s)',
+      useCloud: 'Use cloud',
+      useLocal: 'Use this device',
+      warnTitle: 'Use this device?',
+      warnBody: 'This will overwrite cloud data — including any places saved from another device.',
+      warnConfirm: 'Yes, overwrite cloud',
+      warnCancel: 'Cancel',
+    },
   },
 }
 
 // Tiny helper to interpolate {placeholders}
 export function interp(str, vars = {}) {
-  return str.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? `{${k}}`))
+  return str.replace(/\\{(\w+)\\}/g, (_, k) => (vars[k] ?? `${k}`))
 }
