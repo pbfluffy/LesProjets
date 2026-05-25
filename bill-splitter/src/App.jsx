@@ -4,13 +4,14 @@ import BillSplitter from './components/BillSplitter'
 import SushiroCalculator from './components/SushiroCalculator'
 import BillHistory from './components/BillHistory'
 import { LangProvider, useLang } from './LangContext'
-import { readShareFromHash, clearShareHash } from './share'
+import { readShareFromHash, clearShareHash, getShortLinkId, resolveShortLink } from './share'
 import { useBillHistory } from './hooks/useBillHistory'
 import { useCloudSync } from './hooks/useCloudSync'
 import styles from './App.module.css'
 
 // Read share data once at module load (before any component renders)
 const initialShare = readShareFromHash()
+const initialShortId = getShortLinkId()
 
 function ConflictModal({ t, lang, localEntries, cloudEntries, onUseLocal, onUseCloud }) {
   const [confirmingLocal, setConfirmingLocal] = useState(false)
@@ -77,6 +78,20 @@ function ConflictModal({ t, lang, localEntries, cloudEntries, onUseLocal, onUseC
 
 function AppInner() {
   const [shared, setShared] = useState(initialShare)
+  const [shortLinkStatus, setShortLinkStatus] = useState(initialShortId ? 'loading' : null)
+  useEffect(() => {
+    if (!initialShortId) return
+    resolveShortLink(initialShortId).then(result => {
+      if (!result) {
+        setShortLinkStatus('error')
+      } else if (result.expired) {
+        setShortLinkStatus('expired')
+      } else {
+        setShortLinkStatus(null)
+        setShared(result.ok)
+      }
+    })
+  }, [])
   const [activeTab, setActiveTab] = useState(() => {
     if (initialShare?.t) return initialShare.t
     const tabParam = new URLSearchParams(window.location.search).get('tab')
@@ -245,6 +260,16 @@ function AppInner() {
         </div>
       </header>
 
+            {(shortLinkStatus === 'expired' || shortLinkStatus === 'error') && (
+        <div className={styles.sharedBanner}>
+          <span className={styles.sharedBannerText}>
+            ⚠️ {shortLinkStatus === 'expired' ? t.shareLinkExpired : t.shareError}
+          </span>
+          <button className={styles.sharedBannerBtn} onClick={() => { setShortLinkStatus(null); clearShareHash() }}>
+            {t.startYourOwn}
+          </button>
+        </div>
+      )}
       {shared && (
         <div className={styles.sharedBanner}>
           <span className={styles.sharedBannerText}>
