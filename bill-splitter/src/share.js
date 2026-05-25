@@ -1,6 +1,10 @@
-// URL-hash sharing for read-only bill views.
-// Encodes state as URL-safe base64 in the URL hash so recipients can view
+// URL-based sharing for read-only bill views.
+// Encodes state as URL-safe base64 in a query param (?d=...) so recipients can view
 // the same bill by opening the link. No backend required.
+//
+// Note: older links use a URL hash (#...). The reader supports both formats for
+// backward compatibility; the writer always uses ?d= now (messaging apps strip
+// hash fragments from auto-linkified URLs, breaking shares in LINE/WhatsApp/etc.)
 
 const VERSION = 1
 
@@ -24,9 +28,9 @@ export function encodeShare(tab, state) {
   return utf8ToB64Url(JSON.stringify({ v: VERSION, t: tab, s: state }))
 }
 
-export function decodeShare(hash) {
+export function decodeShare(payload) {
   try {
-    const obj = JSON.parse(b64UrlToUtf8(hash))
+    const obj = JSON.parse(b64UrlToUtf8(payload))
     if (obj && (obj.t === 'split' || obj.t === 'sushi') && obj.s) return obj
   } catch {}
   return null
@@ -34,17 +38,30 @@ export function decodeShare(hash) {
 
 export function buildShareUrl(tab, state) {
   const u = new URL(window.location.href)
-  u.hash = encodeShare(tab, state)
+  u.hash = ''
+  u.searchParams.set('d', encodeShare(tab, state))
   return u.toString()
 }
 
+// Reads a shared bill from the current URL.
+// Preferred: ?d=<payload> (new format, survives auto-linkifiers in messaging apps)
+// Fallback: #<payload>  (legacy format, links shared before the ?d= switch)
 export function readShareFromHash() {
-  const h = window.location.hash.replace(/^#/, '')
-  return h ? decodeShare(h) : null
+  const url = new URL(window.location.href)
+  const fromQuery = url.searchParams.get('d')
+  if (fromQuery) {
+    const decoded = decodeShare(fromQuery)
+    if (decoded) return decoded
+  }
+  const fromHash = window.location.hash.replace(/^#/, '')
+  return fromHash ? decodeShare(fromHash) : null
 }
 
 export function clearShareHash() {
-  history.replaceState(null, '', window.location.pathname + window.location.search)
+  const url = new URL(window.location.href)
+  url.searchParams.delete('d')
+  url.hash = ''
+  history.replaceState(null, '', url.pathname + url.search)
 }
 
 export async function shareLink({ title, text, url }) {
