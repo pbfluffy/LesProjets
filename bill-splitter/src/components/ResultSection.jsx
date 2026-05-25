@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useLang } from '../LangContext'
-import { buildShareUrl } from '../share'
+import { buildShareUrl, createShortLink } from '../share'
+import { auth, onAuthStateChanged } from '../firebase'
 import { isValidPromptPayId } from '../promptpay'
 import PromptPayQR from './PromptPayQR'
 import styles from './ResultSection.module.css'
@@ -12,6 +13,11 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const [toast, setToast] = useState('')
   const [showQR, setShowQR] = useState(false)
   const [capturing, setCapturing] = useState(false)
+  const [user, setUser] = useState(null)
+  const [useShortLink, setUseShortLink] = useState(false)
+  const [creatingLink, setCreatingLink] = useState(false)
+
+  useEffect(() => onAuthStateChanged(auth, setUser), [])
   const sectionRef = useRef(null)
   const hasData = members.length > 0 && result.subtotal > 0
   const ppValid = isValidPromptPayId(promptPay)
@@ -43,7 +49,20 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
 
   const handleShareLink = async () => {
     const text = buildSummaryText()
-    const url = buildShareUrl(tab || 'split', snapshot)
+    let url
+    if (useShortLink && user) {
+      setCreatingLink(true)
+      try {
+        url = await createShortLink(tab || 'split', snapshot, user.uid)
+      } catch (e) {
+        setCreatingLink(false)
+        showToast(t.shareError)
+        return
+      }
+      setCreatingLink(false)
+    } else {
+      url = buildShareUrl(tab || 'split', snapshot)
+    }
     if (navigator.share) {
       try {
         await navigator.share({ title: (billName && billName.trim()) || t.appName, text, url })
@@ -126,6 +145,12 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
         <h2 className={styles.title}>{t.result}</h2>
         {hasData && (
           <div className={styles.shareBtnGroup} data-snapshot-hide>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, width: '100%', cursor: user ? 'pointer' : 'not-allowed', opacity: user ? 1 : 0.6 }}>
+              <input type="checkbox" checked={useShortLink} onChange={(e) => setUseShortLink(e.target.checked)} disabled={!user || creatingLink} />
+              {t.shareShortLink}
+              {!user && <span style={{ fontSize: 10, color: 'var(--text-muted, #888)' }}>({t.shareShortLinkSignedOut})</span>}
+              {creatingLink && <span style={{ fontSize: 10 }}>{t.shareCreating}</span>}
+            </label>
             {onSave && (
               <button className={styles.shareBtn} onClick={handleSave} title={t.saveBill}>{t.saveBill}</button>
             )}
