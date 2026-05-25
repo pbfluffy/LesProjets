@@ -16,6 +16,7 @@ import { useFilters, applyFilters } from './hooks/useFilters'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { VotesProvider } from './hooks/VotesContext'
 import { useVotes } from './hooks/useVotes'
+import { useCloudSync } from './hooks/useCloudSync'
 
 import { fetchPlaces } from './data/fetchPlaces'
 import { computeTier, TIERS, FAVORITE_TIER } from './data/computeTier'
@@ -47,6 +48,24 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('list')
   const [selected, setSelected] = useState(null) // a venue object
   const [savedIds, setSavedIds] = useLocalStorage(LS_KEYS.SAVED, [])
+
+  // Cloud sync for savedIds (#32). Auth state propagates from BS/Nutritions/landing
+  // via shared IndexedDB on pumbafluffycorgi.com. Until #34 ships the styled
+  // ConflictModal, a window.confirm() handles first-sign-in conflicts.
+  const { pendingServerEntries, confirmCloudWins, confirmLocalWins } = useCloudSync({
+    entries: savedIds,
+    replaceEntries: setSavedIds,
+  })
+  useEffect(() => {
+    if (!pendingServerEntries) return
+    const cloudN = pendingServerEntries.length
+    const localN = savedIds.length
+    const useCloud = window.confirm(
+      `Cloud has ${cloudN} saved place(s); this device has ${localN}.\n\nOK = use cloud (overwrites this device).\nCancel = keep this device (overwrites cloud).`
+    )
+    if (useCloud) confirmCloudWins()
+    else confirmLocalWins()
+  }, [pendingServerEntries])
 
   const { filters, setRegion, toggleType, togglePolicy, setSort, setMinPaws, setQuery, clearFilters } = useFilters()
   const voteState = useVotes()
