@@ -63,8 +63,7 @@ export function buildShareUrl(tab, state) {
 
 // Creates a Firestore short-link doc and returns a URL like '?s=<shortId>'.
 // Requires signed-in user. Throws on auth/size/network failure.
-export async function createShortLink(tab, state, uid) {
-  if (!uid) throw new Error('not signed in')
+export async function createShortLink(tab, state, uid = null) {
   const payload = encodeShare(tab, state)
   if (payload.length > MAX_PAYLOAD_SIZE) throw new Error('payload too large')
   const shortId = generateShortId()
@@ -72,7 +71,7 @@ export async function createShortLink(tab, state, uid) {
     payload,
     createdAt: serverTimestamp(),
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // TTL: auto-delete after 7 days
-    createdBy: uid,
+    createdBy: uid || null,
   })
   const u = new URL(window.location.href)
   u.hash = ''
