@@ -89,6 +89,7 @@ function AppInner() {
       } else {
         setShortLinkStatus(null)
         setShared(result.ok)
+        setLoadEpoch(e => e + 1)
       }
     })
   }, [])
