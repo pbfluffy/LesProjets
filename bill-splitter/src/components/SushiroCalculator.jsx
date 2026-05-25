@@ -44,7 +44,8 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
   const [toast, setToast] = useState('')
   const [user, setUser] = useState(null)
   const [moreOpen, setMoreOpen] = useState(false)
-  const moreRef = useRef(null)  const [creatingLink, setCreatingLink] = useState(false)
+  const moreRef = useRef(null)
+  const [creatingLink, setCreatingLink] = useState(false)
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
 
