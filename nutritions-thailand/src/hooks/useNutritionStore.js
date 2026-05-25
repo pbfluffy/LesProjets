@@ -199,8 +199,17 @@ export function useNutritionStore() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `nutritions-backup-${todayKey()}.json`;
+    // BUG-06 — append to the DOM (some browsers, notably Safari/iOS, require an
+    // anchor to be in the document for a programmatic click to register) and
+    // defer the revoke so the browser has time to start reading the blob.
+    // Previously a.click() + immediate revokeObjectURL raced and the download
+    // was sometimes silently cancelled.
+    document.body.append(a);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      a.remove();
+      URL.revokeObjectURL(url);
+    }, 0);
   }, [state]);
 
   const importData = useCallback((file) => {
