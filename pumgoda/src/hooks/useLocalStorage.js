@@ -20,5 +20,27 @@ export function useLocalStorage(key, initial) {
     }
   }, [key, value])
 
+  // BUG-03 — cross-tab sync. Storage events fire only in OTHER tabs (not the
+  // one that wrote), so listening here keeps tabs in lockstep without looping
+  // against the persist effect above. Without this, tab B's React state stays
+  // stale and its next write clobbers tab A's update.
+  useEffect(() => {
+    function onStorage(e) {
+      if (e.key !== key) return
+      if (e.newValue === null) {
+        // Key was removed elsewhere — fall back to initial
+        setValue(initial)
+        return
+      }
+      try {
+        setValue(JSON.parse(e.newValue))
+      } catch {
+        // Bad JSON from elsewhere — ignore
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [key, initial])
+
   return [value, setValue]
 }
