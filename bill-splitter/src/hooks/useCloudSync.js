@@ -12,8 +12,20 @@ function localHasData(entries) {
   return Array.isArray(entries) && entries.length > 0;
 }
 
+// Deep, deterministic stringification — sorts keys recursively so two
+// objects with identical data but different field insertion order produce
+// the same fingerprint. Fixes spurious conflict modals from Firestore
+// returning fields in a different order than localStorage.
+function canonical(obj) {
+  if (obj === null || typeof obj !== 'object') return obj
+  if (Array.isArray(obj)) return obj.map(canonical)
+  const sorted = {}
+  Object.keys(obj).sort().forEach(k => { sorted[k] = canonical(obj[k]) })
+  return sorted
+}
+
 function fingerprint(entries) {
-  return JSON.stringify(entries || []);
+  return JSON.stringify(canonical(entries || []));
 }
 
 /**
