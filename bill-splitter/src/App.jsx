@@ -89,6 +89,7 @@ function AppInner() {
       } else {
         setShortLinkStatus(null)
         setShared(result.ok)
+        setActiveTab(result.ok.t)
         setLoadEpoch(e => e + 1)
       }
     })
