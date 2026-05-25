@@ -14,7 +14,7 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const [showQR, setShowQR] = useState(false)
   const [capturing, setCapturing] = useState(false)
   const [user, setUser] = useState(null)
-  const [useShortLink, setUseShortLink] = useState(false)
+  const [useShortLink, setUseShortLink] = useState(true)
   const [creatingLink, setCreatingLink] = useState(false)
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
