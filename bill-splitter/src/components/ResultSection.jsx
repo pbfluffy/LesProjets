@@ -14,10 +14,19 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const [showQR, setShowQR] = useState(false)
   const [capturing, setCapturing] = useState(false)
   const [user, setUser] = useState(null)
-  const [useShortLink, setUseShortLink] = useState(true)
-  const [creatingLink, setCreatingLink] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef(null)  const [creatingLink, setCreatingLink] = useState(false)
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
+
+  useEffect(() => {
+    if (!moreOpen) return
+    const onClickOutside = (e) => {
+      if (moreRef.current && !moreRef.current.contains(e.target)) setMoreOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [moreOpen])
   const sectionRef = useRef(null)
   const hasData = members.length > 0 && result.subtotal > 0
   const ppValid = isValidPromptPayId(promptPay)
@@ -50,19 +59,14 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const handleShareLink = async () => {
     const text = buildSummaryText()
     let url
-    if (useShortLink && user) {
-      setCreatingLink(true)
-      try {
-        url = await createShortLink(tab || 'split', snapshot, user.uid)
-      } catch (e) {
-        setCreatingLink(false)
-        showToast(t.shareError)
-        return
-      }
-      setCreatingLink(false)
-    } else {
+    setCreatingLink(true)
+    try {
+      url = await createShortLink(tab || 'split', snapshot, user?.uid || null)
+    } catch (e) {
+      // Silent fallback to long URL on Firestore failure (network, rules, etc.)
       url = buildShareUrl(tab || 'split', snapshot)
     }
+    setCreatingLink(false)
     if (navigator.share) {
       try {
         await navigator.share({ title: (billName && billName.trim()) || t.appName, text, url })
@@ -145,18 +149,19 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
         <h2 className={styles.title}>{t.result}</h2>
         {hasData && (
           <div className={styles.shareBtnGroup} data-snapshot-hide>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, width: '100%', cursor: user ? 'pointer' : 'not-allowed', opacity: user ? 1 : 0.6 }}>
-              <input type="checkbox" checked={useShortLink} onChange={(e) => setUseShortLink(e.target.checked)} disabled={!user || creatingLink} />
-              {t.shareShortLink}
-              {!user && <span style={{ fontSize: 10, color: 'var(--text-muted, #888)' }}>({t.shareShortLinkSignedOut})</span>}
-              {creatingLink && <span style={{ fontSize: 10 }}>{t.shareCreating}</span>}
-            </label>
-            {onSave && (
-              <button className={styles.shareBtn} onClick={handleSave} title={t.saveBill}>{t.saveBill}</button>
-            )}
-            <button className={styles.shareBtn} onClick={handleCopyText} title={t.copySummary}>📋 {t.copy}</button>
-            <button className={styles.shareBtn} onClick={handleSaveImage} disabled={capturing} title={t.saveImage}>{t.saveImage}</button>
-            <button className={styles.shareBtn} onClick={handleShareLink}>{t.shareLink}</button>
+            <div style={{ position: 'relative' }} ref={moreRef}>
+              <button className={styles.shareBtn} onClick={() => setMoreOpen(o => !o)} aria-haspopup="true" aria-expanded={moreOpen}>{t.more} ▾</button>
+              {moreOpen && (
+                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 10, background: 'var(--color-surface, #fff)', border: '1px solid var(--color-border, #ddd)', borderRadius: 8, padding: 4, minWidth: 160, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {onSave && (
+                    <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleSave(); setMoreOpen(false) }}>{t.saveBill}</button>
+                  )}
+                  <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleCopyText(); setMoreOpen(false) }}>📋 {t.copy}</button>
+                  <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleSaveImage(); setMoreOpen(false) }} disabled={capturing} title={t.saveImage}>{t.saveImage}</button>
+                </div>
+              )}
+            </div>
+            <button className={styles.shareBtn} style={{ background: 'var(--accent, #4f46e5)', color: 'white', fontWeight: 600 }} onClick={handleShareLink} disabled={creatingLink}>{creatingLink ? t.shareCreating : `📤 ${t.shareLink}`}</button>
           </div>
         )}
       </div>
