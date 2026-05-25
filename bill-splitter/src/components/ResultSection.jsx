@@ -15,7 +15,8 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const [capturing, setCapturing] = useState(false)
   const [user, setUser] = useState(null)
   const [moreOpen, setMoreOpen] = useState(false)
-  const moreRef = useRef(null)  const [creatingLink, setCreatingLink] = useState(false)
+  const moreRef = useRef(null)
+  const [creatingLink, setCreatingLink] = useState(false)
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
 
