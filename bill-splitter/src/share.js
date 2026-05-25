@@ -71,6 +71,7 @@ export async function createShortLink(tab, state, uid) {
   await setDoc(doc(db, 'shareLinks', shortId), {
     payload,
     createdAt: serverTimestamp(),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // TTL: auto-delete after 7 days
     createdBy: uid,
   })
   const u = new URL(window.location.href)
