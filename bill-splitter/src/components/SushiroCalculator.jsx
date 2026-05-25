@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSushiroStore, PLATES } from '../hooks/useSushiroStore'
 import { useLang } from '../LangContext'
 import { buildShareUrl, createShortLink } from '../share'
@@ -43,10 +43,19 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
   const [nameError, setNameError] = useState('')
   const [toast, setToast] = useState('')
   const [user, setUser] = useState(null)
-  const [useShortLink, setUseShortLink] = useState(true)
-  const [creatingLink, setCreatingLink] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef(null)  const [creatingLink, setCreatingLink] = useState(false)
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
+
+  useEffect(() => {
+    if (!moreOpen) return
+    const onClickOutside = (e) => {
+      if (moreRef.current && !moreRef.current.contains(e.target)) setMoreOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [moreOpen])
 
   const handleAddPerson = () => {
     const ok = store.addPerson(nameInput)
@@ -91,19 +100,14 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
   const handleShareLink = async () => {
     const text = buildSummaryText()
     let url
-    if (useShortLink && user) {
-      setCreatingLink(true)
-      try {
-        url = await createShortLink('sushi', buildSnapshot(), user.uid)
-      } catch (e) {
-        setCreatingLink(false)
-        showToast(t.shareError)
-        return
-      }
-      setCreatingLink(false)
-    } else {
+    setCreatingLink(true)
+    try {
+      url = await createShortLink('sushi', buildSnapshot(), user?.uid || null)
+    } catch (e) {
+      // Silent fallback to long URL on Firestore failure
       url = buildShareUrl('sushi', buildSnapshot())
     }
+    setCreatingLink(false)
 
     if (navigator.share) {
       try {
@@ -194,14 +198,15 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
           <div className={styles.sectionHeader}>
             <h2 className={styles.title}>{t.summary}</h2>
             <div className={styles.shareBtnGroup}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, width: '100%', cursor: user ? 'pointer' : 'not-allowed', opacity: user ? 1 : 0.6 }}>
-                <input type="checkbox" checked={useShortLink} onChange={(e) => setUseShortLink(e.target.checked)} disabled={!user || creatingLink} />
-                {t.shareShortLink}
-                {!user && <span style={{ fontSize: 10, color: 'var(--text-muted, #888)' }}>({t.shareShortLinkSignedOut})</span>}
-                {creatingLink && <span style={{ fontSize: 10 }}>{t.shareCreating}</span>}
-              </label>
-              <button type="button" className={styles.shareBtn} onClick={handleCopyText} title={t.copySummary}>📋 {t.copy}</button>
-              <button type="button" className={styles.shareBtn} onClick={handleShareLink}>{t.shareLink}</button>
+              <div style={{ position: 'relative' }} ref={moreRef}>
+                <button type="button" className={styles.shareBtn} onClick={() => setMoreOpen(o => !o)} aria-haspopup="true" aria-expanded={moreOpen}>{t.more} ▾</button>
+                {moreOpen && (
+                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 10, background: 'var(--color-surface, #fff)', border: '1px solid var(--color-border, #ddd)', borderRadius: 8, padding: 4, minWidth: 160, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <button type="button" className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleCopyText(); setMoreOpen(false) }}>📋 {t.copy}</button>
+                  </div>
+                )}
+              </div>
+              <button type="button" className={styles.shareBtn} style={{ background: 'var(--accent, #4f46e5)', color: 'white', fontWeight: 600 }} onClick={handleShareLink} disabled={creatingLink}>{creatingLink ? t.shareCreating : `📤 ${t.shareLink}`}</button>
             </div>
           </div>
           {toast && <div className={styles.toast}>{toast}</div>}
