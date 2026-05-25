@@ -3,7 +3,7 @@
 // Flow:
 //   1. localStorage cache hit & fresh? → return cached
 //   2. Fetch CSV → parse → normalize → cache → return
-//   3. Network failure → return bundled fallback JSON
+//   3. Network failure → stale cache if any, else bundled fallback JSON
 
 import Papa from 'papaparse'
 import { SHEET_CSV_URL, CACHE_TTL_MS, LS_KEYS } from '../config'
@@ -77,13 +77,14 @@ function isRealPlace(p) {
   return p.id && !p.id.startsWith('sample-')
 }
 
-function readCache() {
+function readCache({ allowStale = false } = {}) {
   try {
     const raw = localStorage.getItem(LS_KEYS.PLACES)
     if (!raw) return null
     const { ts, data } = JSON.parse(raw)
-    if (Date.now() - ts > CACHE_TTL_MS) return null
-    return data
+    const stale = Date.now() - ts > CACHE_TTL_MS
+    if (stale && !allowStale) return null
+    return { data, stale }
   } catch {
     return null
   }
@@ -104,7 +105,7 @@ export async function fetchPlaces({ force = false, includeSamples = false } = {}
   if (!force) {
     const cached = readCache()
     if (cached) {
-      return { places: cached, source: 'cache' }
+      return { places: cached.data, source: 'cache' }
     }
   }
 
@@ -118,11 +119,28 @@ export async function fetchPlaces({ force = false, includeSamples = false } = {}
     })
     if (errors.length > 0) console.warn('PapaParse warnings:', errors)
 
-    const normalized = data.map(normalize)
+    // BUG-05 — drop rows missing an id. Downstream code uses p.id as a stable
+    // key for saved/visited lists and React keys; undefined ids corrupt those.
+    const validRows = data.filter((row) => row.id && String(row.id).trim() !== '')
+    if (validRows.length !== data.length) {
+      console.warn(
+        `Pumgoda: skipped ${data.length - validRows.length} rows missing an id`
+      )
+    }
+
+    const normalized = validRows.map(normalize)
     const places = includeSamples ? normalized : normalized.filter(isRealPlace)
     writeCache(places)
     return { places, source: 'network' }
   } catch (err) {
+    // BUG-05 — prefer stale cache over the bundled fallback on network failure.
+    // The bundled JSON may be weeks/months out of date; a recently expired
+    // cache is almost always closer to current truth than the bundle.
+    const stale = readCache({ allowStale: true })
+    if (stale) {
+      console.warn('Pumgoda: network failed, serving stale cache.', err)
+      return { places: stale.data, source: 'stale-cache' }
+    }
     console.warn('Pumgoda: falling back to bundled JSON.', err)
     return { places: fallbackPlaces, source: 'fallback' }
   }
