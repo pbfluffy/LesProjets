@@ -310,9 +310,11 @@
       document.getElementById("acct-app-bill").textContent = s.acctAppBill
       document.getElementById("acct-app-pgd").textContent = s.acctAppPgd
       const _nutrSynced = document.getElementById("acct-status-nutr").dataset.synced === "true";
+      const _billSynced = document.getElementById("acct-status-bill").dataset.synced === "true";
+      const _pgdSynced = document.getElementById("acct-status-pgd").dataset.synced === "true";
       document.getElementById("acct-status-nutr").textContent = _nutrSynced ? s.acctStatusSynced : s.acctStatusLocal;
-      document.getElementById("acct-status-bill").textContent = s.acctStatusLocal;
-      document.getElementById("acct-status-pgd").textContent = s.acctStatusLocal;
+      document.getElementById("acct-status-bill").textContent = _billSynced ? s.acctStatusSynced : s.acctStatusLocal;
+      document.getElementById("acct-status-pgd").textContent = _pgdSynced ? s.acctStatusSynced : s.acctStatusLocal;
       const acctBtn = document.getElementById("acctBtn")
       const signedIn = document.getElementById("acctPopover").dataset.auth === "signed-in"
       acctBtn.setAttribute("aria-label", signedIn ? s.acctAccount : s.acctSignIn)
@@ -418,18 +420,25 @@
     setBtnAvatar(user)
     setPopoverState(user)
   
-    // Phase 2.5: refresh Nutritions sync row by checking Firestore
+    // Phase 2.5 (+ v2.3.5 #38): refresh all three sync rows by checking Firestore
     try {
-      const nutrEl = document.getElementById("acct-status-nutr");
-      if (user && nutrEl) {
-        getDoc(doc(db, 'users', user.uid))
-          .then(snap => {
-            nutrEl.dataset.synced = snap.exists() ? "true" : "false";
-            if (window.applyLang) window.applyLang();
-          })
-          .catch(e => { console.warn('[acct] sync check failed:', e); });
-      } else if (nutrEl) {
-        nutrEl.dataset.synced = "false";
+      const rows = [
+        { el: document.getElementById("acct-status-nutr"), col: 'users' },
+        { el: document.getElementById("acct-status-bill"), col: 'userBills' },
+        { el: document.getElementById("acct-status-pgd"), col: 'userPlaces' },
+      ];
+      if (user) {
+        rows.forEach(function (r) {
+          if (!r.el) return;
+          getDoc(doc(db, r.col, user.uid))
+            .then(function (snap) {
+              r.el.dataset.synced = snap.exists() ? "true" : "false";
+              if (window.applyLang) window.applyLang();
+            })
+            .catch(function (e) { console.warn('[acct] sync check failed for ' + r.col + ':', e); });
+        });
+      } else {
+        rows.forEach(function (r) { if (r.el) r.el.dataset.synced = "false"; });
         if (window.applyLang) window.applyLang();
       }
     } catch (e) { /* nop */ }
