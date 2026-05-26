@@ -22,6 +22,7 @@ export default function Header({
   onSignOut,
   signingIn,
   popoverWrapRef,
+  syncStatus,
   accountLabels,
 }) {
   return (
@@ -79,6 +80,29 @@ export default function Header({
           </button>
           {accountLabels && (
             <div style={{ position: 'relative' }} ref={popoverWrapRef}>
+              {/* Feature #66 — sync status dot (top-right of avatar button) */}
+              {syncStatus && syncStatus !== 'idle' && (
+                <span
+                  aria-hidden="true"
+                  title={'Sync: ' + syncStatus}
+                  style={{
+                    position: 'absolute',
+                    bottom: -2,
+                    right: -2,
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    background:
+                      syncStatus === 'syncing' ? '#f5c542' :
+                      syncStatus === 'synced' ? '#2e7d32' :
+                      syncStatus === 'error' ? '#d32f2f' :
+                      '#888',
+                    border: '2px solid var(--bg, #fff)',
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                  }}
+                />
+              )}
               <button
                 className="ph-ctrl ph-ctrl-icon"
                 onClick={onTogglePopover}
