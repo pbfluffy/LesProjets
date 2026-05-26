@@ -160,6 +160,7 @@ export const STRINGS = {
       add: 'เพิ่ม',
       done: 'เสร็จ',
       addToTrip: 'เพิ่มลงแผนเที่ยว',
+      openInMaps: 'เปิดใน Google Maps',
     },
 
     account: {
@@ -335,6 +336,7 @@ export const STRINGS = {
       add: 'Add',
       done: 'Done',
       addToTrip: 'Add to trip',
+      openInMaps: 'Open in Google Maps',
     },
 
     account: {
