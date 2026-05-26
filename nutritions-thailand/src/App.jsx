@@ -36,6 +36,7 @@ export default function App() {
         theme={store.theme}
         onToggleTheme={store.toggleTheme}
         onReset={store.resetDay}
+        syncStatus={cloudSync.syncStatus}
       />
       <TabBar active={tab} onChange={setTab} />
 
