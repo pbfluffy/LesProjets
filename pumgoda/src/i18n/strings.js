@@ -362,5 +362,5 @@ export const STRINGS = {
 
 // Tiny helper to interpolate {placeholders}
 export function interp(str, vars = {}) {
-  return str.replace(/\\{(\w+)\\}/g, (_, k) => (vars[k] ?? `${k}`))
+  return str.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? `${k}`))
 }
