@@ -4,7 +4,7 @@ import { STRINGS, interp } from '../i18n/strings'
 import './VoteButtons.css'
 
 // Community confidence — three quick signals visitors can leave on a place.
-// One vote per place per device (enforced in useVotes via localStorage).
+// One vote per user per place (Firestore-backed, signed-in only — see useVotesFs).
 
 const SIGNALS = [
   { key: 'up', emoji: '👍' },
@@ -14,12 +14,13 @@ const SIGNALS = [
 
 export default function VoteButtons({ placeId, lang }) {
   const s = STRINGS[lang] || STRINGS.en
-  const { tallies, myVotes, status, lastError, submitVote, clearError } = useVotesCtx()
+  const { tallies, myVotes, status, lastError, submitVote, clearError, user } = useVotesCtx()
   const counts = tallies[placeId] || { up: 0, paw: 0, warn: 0 }
   const myVote = myVotes[placeId]
   const voted = Boolean(myVote)
   const mySignal = myVote ? SIGNALS.find((x) => x.key === myVote) : null
   const myLabel = mySignal ? mySignal.emoji + ' ' + (s.vote[myVote] || myVote) : ''
+  const canVote = Boolean(user)
 
   useEffect(() => {
     if (!lastError) return
@@ -43,6 +44,8 @@ export default function VoteButtons({ placeId, lang }) {
               type="button"
               className={cls}
               onClick={() => submitVote(placeId, sig.key)}
+              disabled={!canVote}
+              style={!canVote ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
             >
               <span className="ph-vote-emoji" aria-hidden="true">
                 {sig.emoji}
@@ -54,11 +57,13 @@ export default function VoteButtons({ placeId, lang }) {
         })}
       </div>
       <div className="ph-votes-foot">
-        {status === 'error'
-          ? s.vote.error
-          : voted
-            ? interp(s.vote.yourPick, { label: myLabel })
-            : s.vote.prompt}
+        {!canVote
+          ? s.vote.signInPrompt
+          : status === 'error'
+            ? s.vote.error
+            : voted
+              ? interp(s.vote.yourPick, { label: myLabel })
+              : s.vote.prompt}
       </div>
       {lastError && <div className="ph-votes-err" role="status">{s.vote.saveError}</div>}
     </div>
