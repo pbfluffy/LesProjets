@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import Header from './components/Header'
 import Hero from './components/Hero'
@@ -17,6 +17,7 @@ import { useLocalStorage } from './hooks/useLocalStorage'
 import { VotesProvider } from './hooks/VotesContext'
 import { useVotes } from './hooks/useVotes'
 import { useCloudSync } from './hooks/useCloudSync'
+import { auth, GoogleAuthProvider, signInWithPopup, signOut } from './firebase'
 
 import { fetchPlaces } from './data/fetchPlaces'
 import { computeTier, TIERS, FAVORITE_TIER } from './data/computeTier'
@@ -38,6 +39,76 @@ function haversineKm(a, b) {
   return R * 2 * Math.atan2(Math.sqrt(sa), Math.sqrt(1 - sa))
 }
 
+// #34 — ConflictModal. Shown when useCloudSync detects that both local and
+// cloud have entries that disagree. Two-step: pick a side, then if picking
+// local (which overwrites cloud) confirm via a warn step. Adapted from
+// bill-splitter/App.jsx; simplified — Pumgoda's savedIds are just an array of
+// IDs with no per-entry timestamps, so we only show counts, not "newer".
+function ConflictModal({ s, localCount, cloudCount, onUseLocal, onUseCloud }) {
+  const [confirmingLocal, setConfirmingLocal] = useState(false)
+  const interp = (str, vars) => str.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ''))
+  const overlayStyle = {
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 20, zIndex: 200,
+  }
+  const modalStyle = {
+    background: 'var(--surface)', color: 'var(--text)',
+    borderRadius: 12, padding: 20, maxWidth: 480, width: '100%',
+    boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
+  }
+  const titleStyle = { margin: '0 0 6px', fontSize: 18, fontWeight: 700 }
+  const bodyStyle = { margin: '0 0 16px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }
+  if (confirmingLocal) {
+    return (
+      <div style={overlayStyle}>
+        <div style={modalStyle}>
+          <h2 style={titleStyle}>{s.syncConflict.warnTitle}</h2>
+          <p style={bodyStyle}>{s.syncConflict.warnBody}</p>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button
+              onClick={() => setConfirmingLocal(false)}
+              style={{ padding: '8px 14px', border: '0.5px solid var(--border)', background: 'transparent', color: 'inherit', borderRadius: 6, cursor: 'pointer', font: 'inherit' }}
+            >
+              {s.syncConflict.warnCancel}
+            </button>
+            <button
+              onClick={onUseLocal}
+              style={{ padding: '8px 14px', border: 'none', background: 'var(--red, #c62828)', color: 'white', borderRadius: 6, cursor: 'pointer', font: 'inherit', fontWeight: 600 }}
+            >
+              {s.syncConflict.warnConfirm}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  const cardStyle = {
+    flex: 1, textAlign: 'left', padding: 14,
+    border: '0.5px solid var(--border)',
+    background: 'var(--surface-alt)', color: 'inherit',
+    borderRadius: 10, cursor: 'pointer', font: 'inherit',
+  }
+  return (
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
+        <h2 style={titleStyle}>{s.syncConflict.title}</h2>
+        <p style={bodyStyle}>{s.syncConflict.body}</p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => setConfirmingLocal(true)} style={cardStyle}>
+            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>{s.syncConflict.localLabel}</div>
+            <div style={{ fontSize: 13 }}>{interp(s.syncConflict.placesLine, { n: localCount })}</div>
+          </button>
+          <button onClick={onUseCloud} style={cardStyle}>
+            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>{s.syncConflict.cloudLabel}</div>
+            <div style={{ fontSize: 13 }}>{interp(s.syncConflict.placesLine, { n: cloudCount })}</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [theme, setTheme] = useTheme()
   const [lang, setLang] = useLang()
@@ -49,23 +120,48 @@ export default function App() {
   const [selected, setSelected] = useState(null) // a venue object
   const [savedIds, setSavedIds] = useLocalStorage(LS_KEYS.SAVED, [])
 
-  // Cloud sync for savedIds (#32). Auth state propagates from BS/Nutritions/landing
-  // via shared IndexedDB on pumbafluffycorgi.com. Until #34 ships the styled
-  // ConflictModal, a window.confirm() handles first-sign-in conflicts.
-  const { pendingServerEntries, confirmCloudWins, confirmLocalWins } = useCloudSync({
+  // Cloud sync for savedIds (#32 + #34). Auth state propagates from BS/Nutritions/landing
+  // via shared IndexedDB on pumbafluffycorgi.com. The styled ConflictModal below
+  // (rendered at the end of the component) handles first-sign-in conflicts.
+  const { user, pendingServerEntries, confirmCloudWins, confirmLocalWins } = useCloudSync({
     entries: savedIds,
     replaceEntries: setSavedIds,
   })
+
+  // #34 — account button popover state. Click-outside closes the popover.
+  const [accountPopoverOpen, setAccountPopoverOpen] = useState(false)
+  const [signingIn, setSigningIn] = useState(false)
+  const popoverWrapRef = useRef(null)
   useEffect(() => {
-    if (!pendingServerEntries) return
-    const cloudN = pendingServerEntries.length
-    const localN = savedIds.length
-    const useCloud = window.confirm(
-      `Cloud has ${cloudN} saved place(s); this device has ${localN}.\n\nOK = use cloud (overwrites this device).\nCancel = keep this device (overwrites cloud).`
-    )
-    if (useCloud) confirmCloudWins()
-    else confirmLocalWins()
-  }, [pendingServerEntries])
+    if (!accountPopoverOpen) return
+    const handler = (e) => {
+      if (popoverWrapRef.current && !popoverWrapRef.current.contains(e.target)) {
+        setAccountPopoverOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [accountPopoverOpen])
+  const handleSignIn = async () => {
+    if (signingIn) return
+    setSigningIn(true)
+    try {
+      await signInWithPopup(auth, new GoogleAuthProvider())
+      setAccountPopoverOpen(false)
+    } catch (e) {
+      console.warn('[pumgoda] sign-in failed:', e)
+    } finally {
+      setSigningIn(false)
+    }
+  }
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth)
+      setAccountPopoverOpen(false)
+    } catch (e) {
+      console.warn('[pumgoda] sign-out failed:', e)
+    }
+  }
 
   const { filters, setRegion, toggleType, togglePolicy, setSort, setMinPaws, setQuery, clearFilters } = useFilters()
   const voteState = useVotes()
@@ -184,6 +280,14 @@ export default function App() {
         refreshLabel={s.header.refresh}
         suggestUrl={SUGGEST_FORM_URL}
         suggestLabel={s.header.suggest}
+        user={user}
+        popoverOpen={accountPopoverOpen}
+        onTogglePopover={() => setAccountPopoverOpen((o) => !o)}
+        onSignIn={handleSignIn}
+        onSignOut={handleSignOut}
+        signingIn={signingIn}
+        popoverWrapRef={popoverWrapRef}
+        accountLabels={s.account}
       />
 
       <div className="shell">
@@ -420,6 +524,19 @@ export default function App() {
             </p>
           </div>
         </div>
+      )}
+
+      {/* #34 — first-sign-in conflict prompt. Only rendered when both sides
+          have non-empty differing entries; useCloudSync handles all other
+          cases (empty/empty, one-side-empty, identical) automatically. */}
+      {pendingServerEntries && (
+        <ConflictModal
+          s={s}
+          localCount={savedIds.length}
+          cloudCount={pendingServerEntries.length}
+          onUseLocal={confirmLocalWins}
+          onUseCloud={confirmCloudWins}
+        />
       )}
     </VotesProvider>
   )
