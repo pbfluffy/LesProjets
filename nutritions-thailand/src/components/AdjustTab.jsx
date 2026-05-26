@@ -102,6 +102,10 @@ export default function AdjustTab({ store, cloudSync }) {
   // Total kcal from the custom macro mix — for the sanity-check line
   const customMacroKcal = isCustomMacros ? Math.round(macroKcal(macroTargets)) : 0;
 
+  // Feature #70 — body fat % for today (drives the TrendChart purple line)
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayBodyFat = store.weights?.[todayKey]?.bodyFat ?? null;
+
   return (
     <>
       <SyncStatusCard cloudSync={cloudSync} />
@@ -123,6 +127,21 @@ export default function AdjustTab({ store, cloudSync }) {
             />
           </div>
         ))}
+
+        {/* Feature #70 — body fat % for today */}
+        <div className={styles.sliderBlock}>
+          <div className={styles.sliderLabel}>
+            <span>{t('adjust.bodyFat', { v: todayBodyFat ?? '—' })}</span>
+          </div>
+          <input
+            type="range"
+            min={5}
+            max={50}
+            step={0.5}
+            value={todayBodyFat ?? 20}
+            onChange={(e) => store.setBodyFatForDate(todayKey, Number(e.target.value))}
+          />
+        </div>
 
         <div className={styles.genderRow}>
           {[
