@@ -312,9 +312,9 @@
       const _nutrSynced = document.getElementById("acct-status-nutr").dataset.synced === "true";
       const _billSynced = document.getElementById("acct-status-bill").dataset.synced === "true";
       const _pgdSynced = document.getElementById("acct-status-pgd").dataset.synced === "true";
-      document.getElementById("acct-status-nutr").textContent = _nutrSynced ? s.acctStatusSynced : s.acctStatusLocal;
-      document.getElementById("acct-status-bill").textContent = _billSynced ? s.acctStatusSynced : s.acctStatusLocal;
-      document.getElementById("acct-status-pgd").textContent = _pgdSynced ? s.acctStatusSynced : s.acctStatusLocal;
+      document.getElementById("acct-status-nutr").textContent = (_nutrSynced ? s.acctStatusSynced + (document.getElementById("acct-status-nutr").dataset.count ? " (" + document.getElementById("acct-status-nutr").dataset.count + ")" : "") : s.acctStatusLocal);
+      document.getElementById("acct-status-bill").textContent = (_billSynced ? s.acctStatusSynced + (document.getElementById("acct-status-bill").dataset.count ? " (" + document.getElementById("acct-status-bill").dataset.count + ")" : "") : s.acctStatusLocal);
+      document.getElementById("acct-status-pgd").textContent = (_pgdSynced ? s.acctStatusSynced + (document.getElementById("acct-status-pgd").dataset.count ? " (" + document.getElementById("acct-status-pgd").dataset.count + ")" : "") : s.acctStatusLocal);
       const acctBtn = document.getElementById("acctBtn")
       const signedIn = document.getElementById("acctPopover").dataset.auth === "signed-in"
       acctBtn.setAttribute("aria-label", signedIn ? s.acctAccount : s.acctSignIn)
@@ -432,7 +432,19 @@
           if (!r.el) return;
           getDoc(doc(db, r.col, user.uid))
             .then(function (snap) {
-              r.el.dataset.synced = snap.exists() ? "true" : "false";
+              var exists = snap.exists();
+              r.el.dataset.synced = exists ? "true" : "false";
+              if (exists) {
+                var d = snap.data() || {};
+                var n = 0;
+                if (r.col === 'users' && d.days) n = Object.keys(d.days).length;
+                else if (r.col === 'userBills' && Array.isArray(d.history)) n = d.history.length;
+                else if (r.col === 'userPlaces' && Array.isArray(d.savedIds)) n = d.savedIds.length;
+                if (n > 0) r.el.dataset.count = String(n);
+                else delete r.el.dataset.count;
+              } else {
+                delete r.el.dataset.count;
+              }
               if (window.applyLang) window.applyLang();
             })
             .catch(function (e) { console.warn('[acct] sync check failed for ' + r.col + ':', e); });
