@@ -15,7 +15,7 @@ import { useTheme, useLang } from './hooks/useThemeLang'
 import { useFilters, applyFilters } from './hooks/useFilters'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { VotesProvider } from './hooks/VotesContext'
-import { useVotes } from './hooks/useVotes'
+import { useVotesFs as useVotes } from './hooks/useVotesFs'
 import { useCloudSync } from './hooks/useCloudSync'
 import { auth, GoogleAuthProvider, signInWithPopup, signOut } from './firebase'
 
