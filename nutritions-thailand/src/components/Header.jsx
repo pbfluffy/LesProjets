@@ -4,7 +4,7 @@ import styles from './Header.module.css';
 import { useState, useEffect, useRef } from 'react';
 import { auth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from '../firebase.js';
 
-export default function Header({ theme, onToggleTheme, onReset }) {
+export default function Header({ theme, onToggleTheme, onReset, syncStatus }) {
   const { lang, toggle: toggleLang, t } = useLang();
   const [user, setUser] = useState(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -89,6 +89,29 @@ export default function Header({ theme, onToggleTheme, onReset }) {
           {t('header.reset')}
         </button>
       <div className={styles.acctWrap} ref={popoverWrapRef}>
+        {/* Feature #66 — sync status dot (corner of avatar button) */}
+        {syncStatus && syncStatus !== 'idle' && (
+          <span
+            aria-hidden="true"
+            title={'Sync: ' + syncStatus}
+            style={{
+              position: 'absolute',
+              bottom: -2,
+              right: -2,
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              background:
+                syncStatus === 'syncing' ? '#f5c542' :
+                syncStatus === 'synced' ? '#2e7d32' :
+                syncStatus === 'error' ? '#d32f2f' :
+                '#888',
+              border: '2px solid var(--bg, #fff)',
+              pointerEvents: 'none',
+              zIndex: 2,
+            }}
+          />
+        )}
         <button
           className={`${styles.iconBtn} ${styles.acctBtn}`}
           onClick={() => setPopoverOpen(o => !o)}
