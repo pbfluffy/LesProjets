@@ -28,6 +28,22 @@ export function useBillStore(initial) {
     setFoods(prev => [...prev, { id: uuid(), name: '', price: '', who: [] }])
   }, [])
 
+  // Feature #68 — bulk insert from receipt OCR.
+  // Each item: { name, price }. Mirrors addFood's shape, with `who: []` so
+  // the user assigns members per-item in the existing FoodList UI.
+  const addFoods = useCallback((items) => {
+    if (!Array.isArray(items) || items.length === 0) return
+    setFoods(prev => [
+      ...prev,
+      ...items.map(({ name, price }) => ({
+        id: uuid(),
+        name: String(name ?? '').slice(0, 80),
+        price: String(price ?? ''),
+        who: [],
+      })),
+    ])
+  }, [])
+
   const updateFood = useCallback((id, field, value) => {
     setFoods(prev => prev.map(f => f.id === id ? { ...f, [field]: value } : f))
   }, [])
@@ -72,5 +88,5 @@ export function useBillStore(initial) {
     }
   }, [members, foods, vatEnabled, serviceChargeEnabled, serviceChargeRate])
 
-  return { billName, setBillName, members, addMember, removeMember, foods, addFood, updateFood, toggleFoodMember, removeFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, calculate }
+  return { billName, setBillName, members, addMember, removeMember, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, calculate }
 }
