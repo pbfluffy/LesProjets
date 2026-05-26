@@ -60,6 +60,7 @@ const en = {
   'adjust.weight': 'Weight: {v} kg',
   'adjust.height': 'Height: {v} cm',
   'adjust.age': 'Age: {v} y',
+  'adjust.bodyFat': 'Body fat: {v}%',
   'adjust.male': '♂ Male',
   'adjust.female': '♀ Female',
 
@@ -238,6 +239,7 @@ const th = {
   'adjust.weight': 'น้ำหนัก: {v} kg',
   'adjust.height': 'ส่วนสูง: {v} cm',
   'adjust.age': 'อายุ: {v} ปี',
+  'adjust.bodyFat': 'ไขมัน: {v}%',
   'adjust.male': '♂ ชาย',
   'adjust.female': '♀ หญิง',
 
