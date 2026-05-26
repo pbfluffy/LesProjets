@@ -123,7 +123,7 @@ export default function App() {
   // Cloud sync for savedIds (#32 + #34). Auth state propagates from BS/Nutritions/landing
   // via shared IndexedDB on pumbafluffycorgi.com. The styled ConflictModal below
   // (rendered at the end of the component) handles first-sign-in conflicts.
-  const { user, pendingServerEntries, confirmCloudWins, confirmLocalWins } = useCloudSync({
+  const { user, syncStatus, pendingServerEntries, confirmCloudWins, confirmLocalWins } = useCloudSync({
     entries: savedIds,
     replaceEntries: setSavedIds,
   })
@@ -281,6 +281,7 @@ export default function App() {
         suggestUrl={SUGGEST_FORM_URL}
         suggestLabel={s.header.suggest}
         user={user}
+        syncStatus={syncStatus}
         popoverOpen={accountPopoverOpen}
         onTogglePopover={() => setAccountPopoverOpen((o) => !o)}
         onSignIn={handleSignIn}
