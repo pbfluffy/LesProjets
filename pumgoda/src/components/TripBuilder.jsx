@@ -153,6 +153,28 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
   }
 
   // Places not already in the trip, filtered by the picker search box.
+    const buildMapsUrl = () => {
+    if (stops.length === 0) return null
+    const points = []
+    stops.forEach((id) => {
+      const p = placeById.get(id)
+      if (p && Array.isArray(p.coords) && p.coords.length === 2) {
+        points.push(p.coords[0] + ',' + p.coords[1])
+      }
+    })
+    if (points.length === 0) return null
+    if (points.length === 1) {
+      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(points[0])
+    }
+    const origin = points[0]
+    const destination = points[points.length - 1]
+    const waypoints = points.slice(1, -1).join('|')
+    let url = 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(origin) + '&destination=' + encodeURIComponent(destination)
+    if (waypoints) url += '&waypoints=' + encodeURIComponent(waypoints)
+    return url
+  }
+  const mapsUrl = buildMapsUrl()
+
   const needle = pickerSearch.trim().toLowerCase()
   const pickerResults = places.filter((p) => {
     if (!p.id || stops.includes(p.id)) return false
@@ -276,6 +298,17 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
       >
         {s.trip.share}
       </button>
+
+      <a
+        className="ph-trip-share"
+        href={mapsUrl || '#'}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ marginTop: 8, ...(!mapsUrl ? { pointerEvents: 'none', opacity: 0.5 } : {}) }}
+        onClick={!mapsUrl ? (e) => e.preventDefault() : undefined}
+      >
+        {s.trip.openInMaps}
+      </a>
 
       {toast && <div className="ph-trip-toast">{toast}</div>}
 
