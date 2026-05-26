@@ -17,7 +17,7 @@ import { useLocalStorage } from './hooks/useLocalStorage'
 import { VotesProvider } from './hooks/VotesContext'
 import { useVotesFs as useVotes } from './hooks/useVotesFs'
 import { useCloudSync } from './hooks/useCloudSync'
-import { auth, GoogleAuthProvider, signInWithPopup, signOut } from './firebase'
+import { auth, firestore, doc, setDoc, GoogleAuthProvider, signInWithPopup, signOut } from './firebase'
 
 import { fetchPlaces } from './data/fetchPlaces'
 import { computeTier, TIERS, FAVORITE_TIER } from './data/computeTier'
@@ -127,6 +127,36 @@ export default function App() {
     entries: savedIds,
     replaceEntries: setSavedIds,
   })
+
+  // Feature #73 — remote error tracking (caps at 5 per session, writes silently)
+  useEffect(() => {
+    if (!user) return
+    let errCount = 0
+    const logError = (message, stack) => {
+      if (errCount >= 5) return
+      errCount++
+      const entryId = Date.now() + '_' + Math.random().toString(36).slice(2, 8)
+      setDoc(doc(firestore, 'errorLog', user.uid, 'entries', entryId), {
+        message: String(message || 'Unknown').slice(0, 5000),
+        stack: stack ? String(stack).slice(0, 10000) : '',
+        app: 'pumgoda',
+        ts: Date.now(),
+        url: location.href.slice(0, 1000),
+        userAgent: navigator.userAgent.slice(0, 500),
+      }).catch(() => {})
+    }
+    const onError = (e) => logError(e.message || (e.error && e.error.message), e.error && e.error.stack)
+    const onRejection = (e) => logError(
+      'Unhandled rejection: ' + ((e.reason && e.reason.message) || e.reason || 'unknown'),
+      e.reason && e.reason.stack
+    )
+    window.addEventListener('error', onError)
+    window.addEventListener('unhandledrejection', onRejection)
+    return () => {
+      window.removeEventListener('error', onError)
+      window.removeEventListener('unhandledrejection', onRejection)
+    }
+  }, [user])
 
   // #34 — account button popover state. Click-outside closes the popover.
   const [accountPopoverOpen, setAccountPopoverOpen] = useState(false)
