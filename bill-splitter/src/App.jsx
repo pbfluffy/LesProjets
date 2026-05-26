@@ -230,6 +230,29 @@ function AppInner() {
             </button>
             {/* Account */}
             <div style={{ position: 'relative' }} ref={popoverWrapRef}>
+              {/* Feature #66 — sync status dot (top corner of avatar button) */}
+              {cloudSync && cloudSync.user && cloudSync.syncStatus && cloudSync.syncStatus !== 'idle' && (
+                <span
+                  aria-hidden="true"
+                  title={'Sync: ' + cloudSync.syncStatus}
+                  style={{
+                    position: 'absolute',
+                    bottom: -2,
+                    right: -2,
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    background:
+                      cloudSync.syncStatus === 'syncing' ? '#f5c542' :
+                      cloudSync.syncStatus === 'synced' ? '#2e7d32' :
+                      cloudSync.syncStatus === 'error' ? '#d32f2f' :
+                      '#888',
+                    border: '2px solid var(--bg, #fff)',
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                  }}
+                />
+              )}
               <button
                 className={styles.iconBtn}
                 onClick={() => setPopoverOpen(o => !o)}
