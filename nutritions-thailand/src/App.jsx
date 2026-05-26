@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { db, doc, setDoc } from './firebase.js';
 import AdjustTab from './components/AdjustTab.jsx';
 import CustomTab from './components/CustomTab.jsx';
 import FoodTab from './components/FoodTab.jsx';
@@ -29,6 +30,36 @@ export default function App() {
     [store.stats, store.customFoods, store.days, store.weights, store.theme]
   );
   const cloudSync = useCloudSync({ state: cloudState, replaceState: store.replaceState });
+
+  // Feature #73 — remote error tracking (caps at 5 per session, writes silently)
+  useEffect(() => {
+    if (!cloudSync.user) return
+    let errCount = 0
+    const logError = (message, stack) => {
+      if (errCount >= 5) return
+      errCount++
+      const entryId = Date.now() + '_' + Math.random().toString(36).slice(2, 8)
+      setDoc(doc(db, 'errorLog', cloudSync.user.uid, 'entries', entryId), {
+        message: String(message || 'Unknown').slice(0, 5000),
+        stack: stack ? String(stack).slice(0, 10000) : '',
+        app: 'nutritions',
+        ts: Date.now(),
+        url: location.href.slice(0, 1000),
+        userAgent: navigator.userAgent.slice(0, 500),
+      }).catch(() => {})
+    }
+    const onError = (e) => logError(e.message || (e.error && e.error.message), e.error && e.error.stack)
+    const onRejection = (e) => logError(
+      'Unhandled rejection: ' + ((e.reason && e.reason.message) || e.reason || 'unknown'),
+      e.reason && e.reason.stack
+    )
+    window.addEventListener('error', onError)
+    window.addEventListener('unhandledrejection', onRejection)
+    return () => {
+      window.removeEventListener('error', onError)
+      window.removeEventListener('unhandledrejection', onRejection)
+    }
+  }, [cloudSync.user])
 
   return (
     <div className={styles.app}>
