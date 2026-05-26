@@ -1,5 +1,6 @@
 import MemberSection from './MemberSection'
 import FoodList from './FoodList'
+import ReceiptScanner from './ReceiptScanner'
 import ExtrasSection from './ExtrasSection'
 import ResultSection from './ResultSection'
 import { useBillStore } from '../hooks/useBillStore'
@@ -36,6 +37,7 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill }) {
           maxLength={60}
         />
         <MemberSection members={store.members} onAdd={store.addMember} onRemove={store.removeMember} />
+        <ReceiptScanner onAddItems={store.addFoods} onSetVat={store.setVatEnabled} onSetServiceCharge={store.setServiceChargeEnabled} onSetServiceChargeRate={store.setServiceChargeRate} />
         <FoodList foods={store.foods} members={store.members} onAdd={store.addFood} onUpdate={store.updateFood} onToggleMember={store.toggleFoodMember} onRemove={store.removeFood} onSelectAll={store.setAllMembers} />
         <ExtrasSection vatEnabled={store.vatEnabled} onVatChange={store.setVatEnabled} serviceChargeEnabled={store.serviceChargeEnabled} onServiceChargeChange={store.setServiceChargeEnabled} serviceChargeRate={store.serviceChargeRate} onServiceChargeRateChange={store.setServiceChargeRate} promptPay={store.promptPay} onPromptPayChange={store.setPromptPay} bankInfo={store.bankInfo} onBankInfoChange={store.setBankInfo} notes={store.notes} onNotesChange={store.setNotes} />
       </fieldset>
