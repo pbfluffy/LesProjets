@@ -13,7 +13,6 @@
 .perPersonList { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
 .personHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
 .personLeft { display: flex; align-items: center; gap: 7px; }
-.personAvatar { width: 24px; height: 24px; border-radius: 50%; background: var(--color-accent); color: var(--color-accent-text); font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .personName { font-size: 14px; }
 .personAmount { font-family: var(--font-mono); font-size: 15px; font-weight: 500; }
 .bar { height: 4px; background: var(--color-border); border-radius: 2px; overflow: hidden; }
