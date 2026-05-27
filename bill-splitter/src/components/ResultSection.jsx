@@ -147,7 +147,7 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   }
 
   return (
-    <section ref={sectionRef} className={styles.section}>
+    <section ref={sectionRef} className={styles.section} data-bill-result>
       <div className={styles.header}>
         <h2 className={styles.title}>{t.result}</h2>
         {hasData && (
