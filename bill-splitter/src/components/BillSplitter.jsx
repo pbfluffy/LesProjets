@@ -3,6 +3,8 @@ import FoodList from './FoodList'
 import ReceiptScanner from './ReceiptScanner'
 import ExtrasSection from './ExtrasSection'
 import ResultSection from './ResultSection'
+import StickyBottomBar from './StickyBottomBar'
+import FAB from './FAB'
 import { useBillStore } from '../hooks/useBillStore'
 import { useLang } from '../LangContext'
 import appStyles from '../App.module.css'
@@ -26,7 +28,7 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill }) {
   }
   const handleSave = (onSaveBill && !readOnly) ? () => onSaveBill('split', snapshot) : undefined
   return (
-    <div>
+    <div style={{ paddingBottom: 80 }}>
       <fieldset disabled={readOnly} style={fieldsetReset}>
         <input
           type="text"
@@ -42,6 +44,8 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill }) {
         <ExtrasSection vatEnabled={store.vatEnabled} onVatChange={store.setVatEnabled} serviceChargeEnabled={store.serviceChargeEnabled} onServiceChargeChange={store.setServiceChargeEnabled} serviceChargeRate={store.serviceChargeRate} onServiceChargeRateChange={store.setServiceChargeRate} promptPay={store.promptPay} onPromptPayChange={store.setPromptPay} bankInfo={store.bankInfo} onBankInfoChange={store.setBankInfo} notes={store.notes} onNotesChange={store.setNotes} />
       </fieldset>
       <ResultSection result={result} members={store.members} promptPay={store.promptPay} bankInfo={store.bankInfo} notes={store.notes} billName={store.billName} snapshot={snapshot} tab="split" onSave={handleSave} />
+      <StickyBottomBar memberCount={store.members.length} grandTotal={result.grandTotal} />
+      {!readOnly && <FAB onClick={store.addFood} ariaLabel="Add food" />}
     </div>
   )
 }
