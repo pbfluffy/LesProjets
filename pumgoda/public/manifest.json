@@ -5,6 +5,8 @@
   "id": "/pumgoda/",
   "start_url": "/pumgoda/",
   "scope": "/pumgoda/",
+  "lang": "en",
+  "dir": "ltr",
   "display": "standalone",
   "background_color": "#f7f5f0",
   "theme_color": "#f7f5f0",
@@ -20,6 +22,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
