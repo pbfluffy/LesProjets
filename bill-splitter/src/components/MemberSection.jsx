@@ -1,11 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLang } from '../LangContext'
+import { auth, onAuthStateChanged } from '../firebase'
+import Avatar from './Avatar'
 import styles from './MemberSection.module.css'
 
 export default function MemberSection({ members, onAdd, onRemove }) {
   const { t } = useLang()
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
+  const [user, setUser] = useState(null)
+
+  useEffect(() => onAuthStateChanged(auth, setUser), [])
 
   const handleAdd = () => {
     const ok = onAdd(input)
@@ -14,6 +19,13 @@ export default function MemberSection({ members, onAdd, onRemove }) {
       setError(t.nameTaken)
       setTimeout(() => setError(''), 1500)
     }
+  }
+
+  // Owner match: case-insensitive, trimmed. Pass photoURL only on match.
+  const ownerName = user?.displayName?.trim().toLowerCase()
+  const photoForName = (name) => {
+    if (!user || !ownerName) return null
+    return name.trim().toLowerCase() === ownerName ? user.photoURL : null
   }
 
   return (
@@ -28,7 +40,7 @@ export default function MemberSection({ members, onAdd, onRemove }) {
         <div className={styles.tags}>
           {members.map(m => (
             <span key={m} className={styles.tag}>
-              <span className={styles.avatar}>{m.charAt(0).toUpperCase()}</span>
+              <Avatar name={m} photoURL={photoForName(m)} size={20} />
               {m}
               <button className={styles.removeBtn} onClick={() => onRemove(m)} aria-label={`${t.removeLabel} ${m}`}>X</button>
             </span>
