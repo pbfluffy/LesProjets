@@ -1,0 +1,47 @@
+.bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border-top: 0.5px solid var(--color-border);
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  cursor: pointer;
+  z-index: 20;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.bar:hover { background: var(--color-surface-alt); }
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.amount {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 600;
+  flex: 1;
+  text-align: right;
+}
+
+.chevron {
+  font-size: 22px;
+  color: var(--color-text-muted);
+  line-height: 1;
+}
