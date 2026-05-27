@@ -5,6 +5,8 @@
   "id": "/bill-splitter/",
   "start_url": "/bill-splitter/",
   "scope": "/bill-splitter/",
+  "lang": "en",
+  "dir": "ltr",
   "display": "standalone",
   "background_color": "#f7f6f2",
   "theme_color": "#f7f6f2",
@@ -20,6 +22,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
