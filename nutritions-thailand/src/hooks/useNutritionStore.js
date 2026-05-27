@@ -177,6 +177,13 @@ export function useNutritionStore() {
     setState((s) => ({ ...s, customFoods: [...s.customFoods, food] }));
   }, []);
 
+  // Feature #59 — bulk add for CSV import. Caller de-duplicates against
+  // `customFoods` before calling so it can report an accurate skipped count.
+  const addCustomFoods = useCallback((items) => {
+    if (!items || !items.length) return;
+    setState((s) => ({ ...s, customFoods: [...s.customFoods, ...items] }));
+  }, []);
+
   const removeCustomFood = useCallback((index) => {
     setState((s) => ({ ...s, customFoods: s.customFoods.filter((_, i) => i !== index) }));
   }, []);
@@ -266,6 +273,7 @@ export function useNutritionStore() {
     setWater,
     resetDay,
     addCustomFood,
+    addCustomFoods,
     removeCustomFood,
     shiftDate,
     goToday,
