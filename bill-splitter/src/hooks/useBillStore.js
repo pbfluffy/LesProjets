@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { v4 as uuid } from 'uuid'
+import { auth, onAuthStateChanged } from '../firebase'
 
 export function useBillStore(initial) {
   const [billName, setBillName] = useState(initial?.billName ?? '')
@@ -11,6 +12,19 @@ export function useBillStore(initial) {
   const [promptPay, setPromptPay] = useState(initial?.promptPay ?? '')
   const [bankInfo, setBankInfo] = useState(initial?.bankInfo ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
+
+  // Feature #76 Phase A — On new bill (no initial.members), auto-seed the
+  // first member with the signed-in user's display name once auth resolves.
+  useEffect(() => {
+    if (initial?.members && initial.members.length > 0) return
+    const off = onAuthStateChanged(auth, (u) => {
+      const name = u?.displayName?.trim()
+      if (!name) return
+      setMembers(prev => prev.length === 0 ? [name] : prev)
+    })
+    return off
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const addMember = useCallback((name) => {
     const trimmed = name.trim()
