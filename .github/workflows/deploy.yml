@@ -54,6 +54,7 @@ jobs:
           cp apple-touch-icon.png _site/apple-touch-icon.png
           cp icon-192.png _site/icon-192.png
           cp icon-512.png _site/icon-512.png
+          cp icon-512-maskable.png _site/icon-512-maskable.png
           cp manifest.json _site/manifest.json
 
       - uses: actions/upload-pages-artifact@v3
