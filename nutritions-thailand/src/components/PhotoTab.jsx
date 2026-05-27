@@ -291,7 +291,6 @@ export default function PhotoTab({ store }) {
           ref={fileRef}
           type="file"
           accept="image/*"
-          capture="environment"
           onChange={onFile}
           style={{ display: 'none' }}
         />
