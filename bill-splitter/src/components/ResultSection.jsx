@@ -4,6 +4,7 @@ import { buildShareUrl, createShortLink } from '../share'
 import { auth, onAuthStateChanged } from '../firebase'
 import { isValidPromptPayId } from '../promptpay'
 import PromptPayQR from './PromptPayQR'
+import Avatar from './Avatar'
 import styles from './ResultSection.module.css'
 
 function fmt(n) { return n.toFixed(2) }
@@ -31,6 +32,7 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const sectionRef = useRef(null)
   const hasData = members.length > 0 && result.subtotal > 0
   const ppValid = isValidPromptPayId(promptPay)
+  const ownerName = user?.displayName?.trim().toLowerCase()
 
   const showToast = (msg) => {
     setToast(msg)
@@ -192,7 +194,7 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
           <div className={styles.perPersonList}>
             {members.map(m => { const amount=result.totals[m]??0; const pct=result.grandTotal>0?(amount/result.grandTotal)*100:0; return(
               <div key={m} className={styles.person}>
-                <div className={styles.personHeader}><div className={styles.personLeft}><span className={styles.personAvatar}>{m.charAt(0).toUpperCase()}</span><span className={styles.personName}>{m}</span></div><span className={styles.personAmount}>฿{fmt(amount)}</span></div>
+                <div className={styles.personHeader}><div className={styles.personLeft}><Avatar name={m} photoURL={user && ownerName && m.trim().toLowerCase() === ownerName ? user.photoURL : null} size={24} /><span className={styles.personName}>{m}</span></div><span className={styles.personAmount}>฿{fmt(amount)}</span></div>
                 <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
                 {showQR && ppValid && amount > 0 && (
                   <PromptPayQR promptPay={promptPay} amount={amount} />
