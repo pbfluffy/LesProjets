@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { HistoryIcon, HomeIcon, MoonIcon, SunIcon } from './components/icons'
 import { auth, db, doc, setDoc, GoogleAuthProvider, signInWithPopup, signOut } from './firebase.js'
 import BillSplitter from './components/BillSplitter'
 import SushiroCalculator from './components/SushiroCalculator'
@@ -231,7 +232,7 @@ function AppInner() {
               title={t.historyTitle}
               aria-label={t.historyTitle}
             >
-              📚
+              <HistoryIcon />
             </button>
             {/* Home */}
             <button
@@ -240,7 +241,7 @@ function AppInner() {
               title={t.backToHome}
               aria-label="Home"
             >
-              🏠
+              <HomeIcon />
             </button>
             {/* Language toggle */}
             <button
@@ -256,7 +257,7 @@ function AppInner() {
               onClick={() => setDark(d => !d)}
               title={dark ? t.switchToLight : t.switchToDark}
             >
-              {dark ? '\u{1F31E}' : '\u{1F319}'}
+              {dark ? <SunIcon /> : <MoonIcon />}
             </button>
             {/* Account */}
             <div style={{ position: 'relative' }} ref={popoverWrapRef}>
