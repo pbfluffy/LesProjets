@@ -1,9 +1,6 @@
 .section {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: 1rem 1.1rem;
-  margin-bottom: 12px;
+  padding: 18px 8px;
+  border-top: 0.5px solid var(--color-border);
 }
 .sectionHeader {
   display: flex;
@@ -44,6 +41,9 @@
 }
 .resetBtn:hover { background: var(--color-red-bg); color: var(--color-red); border-color: var(--color-red); }
 .shareBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: none;
   border: 0.5px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
