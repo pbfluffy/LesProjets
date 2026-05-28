@@ -63,28 +63,30 @@
 .headerControls {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .iconBtn {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: none;
+  border: none;
   border-radius: var(--radius-sm);
   color: var(--color-text);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 600;
   font-family: var(--font-body);
-  padding: 4px 10px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  transition: all 0.15s;
-  letter-spacing: 0.03em;
+  transition: background 0.15s;
+  letter-spacing: 0.02em;
 }
 
 .iconBtn:hover {
-  background: var(--color-border);
+  background: var(--color-surface-alt);
 }
 
 .sharedBanner {
