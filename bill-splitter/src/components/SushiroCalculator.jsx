@@ -4,6 +4,7 @@ import { useLang } from '../LangContext'
 import { buildShareUrl, createShortLink } from '../share'
 import { auth, onAuthStateChanged } from '../firebase'
 import styles from './SushiroCalculator.module.css'
+import { CopyIcon, ShareIcon } from './icons'
 
 const fmt = n => n.toFixed(2)
 const fieldsetReset = { border: 0, padding: 0, margin: 0, minInlineSize: 'auto' }
@@ -203,11 +204,11 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
                 <button type="button" className={styles.shareBtn} onClick={() => setMoreOpen(o => !o)} aria-haspopup="true" aria-expanded={moreOpen}>{t.more} ▾</button>
                 {moreOpen && (
                   <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 10, background: 'var(--color-surface, #fff)', border: '1px solid var(--color-border, #ddd)', borderRadius: 8, padding: 4, minWidth: 160, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <button type="button" className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleCopyText(); setMoreOpen(false) }}>📋 {t.copy}</button>
+                    <button type="button" className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleCopyText(); setMoreOpen(false) }}><CopyIcon style={{ width: 15, height: 15 }} /> {t.copy}</button>
                   </div>
                 )}
               </div>
-              <button type="button" className={styles.shareBtn} style={{ background: 'var(--accent, #4f46e5)', color: 'white', fontWeight: 600 }} onClick={handleShareLink} disabled={creatingLink}>{creatingLink ? t.shareCreating : `📤 ${t.shareLink}`}</button>
+              <button type="button" className={styles.shareBtn} style={{ background: 'var(--accent, #4f46e5)', color: 'white', fontWeight: 600 }} onClick={handleShareLink} disabled={creatingLink}>{creatingLink ? t.shareCreating : <><ShareIcon style={{ width: 15, height: 15 }} /> {t.shareLink}</>}</button>
             </div>
           </div>
           {toast && <div className={styles.toast}>{toast}</div>}
