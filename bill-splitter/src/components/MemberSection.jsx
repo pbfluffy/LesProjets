@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLang } from '../LangContext'
 import { auth, onAuthStateChanged } from '../firebase'
 import Avatar from './Avatar'
+import EmptyState from './EmptyState'
 import styles from './MemberSection.module.css'
 
 export default function MemberSection({ members, onAdd, onRemove }) {
@@ -47,7 +48,7 @@ export default function MemberSection({ members, onAdd, onRemove }) {
           ))}
         </div>
       )}
-      {members.length === 0 && <p className={styles.empty}>{t.noMembers}</p>}
+      {members.length === 0 && <EmptyState variant="corgi" text={t.noMembers} />}
     </section>
   )
 }
