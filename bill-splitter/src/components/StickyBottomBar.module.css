@@ -22,7 +22,10 @@
   transition: background 0.15s;
 }
 
-.bar:hover { background: var(--color-surface-alt); }
+.bar:hover,
+.bar:active {
+  background: var(--color-surface-alt);
+}
 
 .label {
   font-size: 11px;
