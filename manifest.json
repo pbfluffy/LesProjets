@@ -35,5 +35,11 @@
       "url": "/pumgoda/",
       "icons": [{"src": "./icon-192.png", "sizes": "192x192"}]
     }
+    {
+      "name": "Pum's Office",
+      "short_name": "Pum's Office",
+      "url": "/studio/",
+      "icons": [{"src": "./icon-192.png", "sizes": "192x192"}]
+    }
   ]
 }
