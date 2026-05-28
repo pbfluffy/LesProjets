@@ -44,9 +44,10 @@ jobs:
 
       - name: Assemble site
         run: |
-          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda
+          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio
           cp index.html _site/index.html
           cp NutritionsInThailand.html _site/NutritionsInThailand.html
+          cp -r studio/. _site/studio/
           cp -r bill-splitter/dist/. _site/bill-splitter/
           cp -r nutritions-thailand/dist/. _site/nutritions-thailand/
           cp -r pumgoda/dist/. _site/pumgoda/
