@@ -1,12 +1,28 @@
+import { useState, useEffect } from 'react'
 import { useLang } from '../LangContext'
 import styles from './StickyBottomBar.module.css'
 
 // Feature #76 Phase C — fixed bottom bar showing the running total.
-// Hidden until the user has added members AND the bill has a non-zero total.
-// Tap scrolls smoothly to the Result section (data-bill-result anchor).
+// Visible only when (a) the bill has members + a non-zero total, AND
+// (b) the Result section isn't currently in view. A "tap to jump to Result"
+// CTA is meaningless when Result is already on screen, so the bar auto-hides
+// once the user scrolls down to it (#78).
 export default function StickyBottomBar({ memberCount, grandTotal }) {
   const { t } = useLang()
-  if (memberCount === 0 || grandTotal === 0) return null
+  const [isResultVisible, setIsResultVisible] = useState(false)
+
+  useEffect(() => {
+    const target = document.querySelector('[data-bill-result]')
+    if (!target) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsResultVisible(entry.isIntersecting),
+      { threshold: 0.1 }
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [])
+
+  if (memberCount === 0 || grandTotal === 0 || isResultVisible) return null
 
   const handleTap = () => {
     const target = document.querySelector('[data-bill-result]')
