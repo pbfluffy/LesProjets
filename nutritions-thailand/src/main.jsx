@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import { LangProvider } from './LangContext.jsx';
 import './index.css';
+import './registerPwaUpdate.js';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
