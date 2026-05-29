@@ -367,6 +367,7 @@ function AppInner() {
             key={`sushi-${loadEpoch}`}
             sharedState={sushiInitial}
             readOnly={!!shared}
+            onSaveBill={handleSaveBill}
           />
         )}
       </main>
