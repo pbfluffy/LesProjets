@@ -279,7 +279,7 @@ function flourish(){
 
 const WDAY=['SUN','MON','TUE','WED','THU','FRI','SAT'];
 const MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-function dateStr(){ const d=new Date(); return WDAY[d.getDay()]+' '+d.getDate()+' '+MON[d.getMonth()]; }
+let wx='';function dateStr(){ const d=new Date(); return WDAY[d.getDay()]+' '+d.getDate()+' '+MON[d.getMonth()]+wx; } async function loadWeather(){ try{ const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=13.7563&longitude=100.5018&current=temperature_2m'); const j=await r.json(); const t=j&&j.current&&j.current.temperature_2m; if(typeof t==='number'){ wx=' \u00b7 '+Math.round(t)+'\u00b0C'; $('date').textContent=dateStr(); } }catch(e){} } loadWeather(); setInterval(loadWeather,600000);
 function clockTick(){ $('clock').textContent=now(); $('date').textContent=dateStr(); }
 
 // ---- live Claude work-log (graceful fallback) ----
