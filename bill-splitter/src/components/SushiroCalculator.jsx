@@ -40,7 +40,7 @@ function SnackAdder({ person, onAdd }) {
   )
 }
 
-export default function SushiroCalculator({ sharedState, readOnly }) {
+export default function SushiroCalculator({ sharedState, readOnly, onSaveBill }) {
   const store = useSushiroStore(sharedState)
   const result = store.calculate()
   const { t } = useLang()
@@ -50,6 +50,8 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
   const [user, setUser] = useState(null)
   const [moreOpen, setMoreOpen] = useState(false)
   const moreRef = useRef(null)
+  const summaryRef = useRef(null)
+  const [capturing, setCapturing] = useState(false)
   const [creatingLink, setCreatingLink] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [ppOpen, setPpOpen] = useState(false)
@@ -137,6 +139,54 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
       await navigator.clipboard.writeText(url)
       showToast(t.linkCopied)
     } catch {}
+  }
+
+  const handleSave = () => {
+    if (onSaveBill) { onSaveBill('sushi', buildSnapshot()); showToast(t.saved) }
+  }
+
+  // Save image — capture the summary section to PNG, share on mobile / download on desktop.
+  const handleSaveImage = async () => {
+    if (!summaryRef.current || capturing) return
+    setCapturing(true)
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const bg = getComputedStyle(summaryRef.current).backgroundColor || '#ffffff'
+      const canvas = await html2canvas(summaryRef.current, {
+        backgroundColor: bg,
+        scale: 2,
+        useCORS: true,
+        ignoreElements: (el) => el.hasAttribute && el.hasAttribute('data-snapshot-hide'),
+      })
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
+      if (!blob) { showToast(t.imageFailed); return }
+      const base = (store.billName && store.billName.trim()) ? store.billName.trim() : 'sushiro'
+      const safeName = base.replace(/[^\w\u0E00-\u0E7F-]+/g, '_')
+      const filename = `${safeName}.png`
+      const file = new File([blob], filename, { type: 'image/png' })
+      if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+        try {
+          await navigator.share({ files: [file], title: t.appName })
+          showToast(t.imageShared)
+          return
+        } catch (e) {
+          if (e && e.name === 'AbortError') return
+        }
+      }
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      showToast(t.imageSaved)
+    } catch (e) {
+      showToast(t.imageFailed)
+    } finally {
+      setCapturing(false)
+    }
   }
 
   // Phase F — match Split tab: pass Google photoURL only when a person's name
@@ -236,15 +286,19 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
       </fieldset>
 
       {store.people.length > 0 && result.totalPlates > 0 && (
-        <section className={styles.section}>
+        <section ref={summaryRef} className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.title}>{t.summary}</h2>
-            <div className={styles.shareBtnGroup}>
+            <div className={styles.shareBtnGroup} data-snapshot-hide>
               <div style={{ position: 'relative' }} ref={moreRef}>
                 <button type="button" className={styles.shareBtn} onClick={() => setMoreOpen(o => !o)} aria-haspopup="true" aria-expanded={moreOpen}>{t.more} ▾</button>
                 {moreOpen && (
                   <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 10, background: 'var(--color-surface, #fff)', border: '1px solid var(--color-border, #ddd)', borderRadius: 8, padding: 4, minWidth: 160, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {onSaveBill && (
+                      <button type="button" className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleSave(); setMoreOpen(false) }}>{t.saveBill}</button>
+                    )}
                     <button type="button" className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleCopyText(); setMoreOpen(false) }}><CopyIcon style={{ width: 15, height: 15 }} /> {t.copy}</button>
+                    <button type="button" className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleSaveImage(); setMoreOpen(false) }} disabled={capturing} title={t.saveImage}>{t.saveImage}</button>
                   </div>
                 )}
               </div>
