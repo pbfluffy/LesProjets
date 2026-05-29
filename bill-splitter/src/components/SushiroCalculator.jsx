@@ -5,6 +5,7 @@ import { buildShareUrl, createShortLink } from '../share'
 import { auth, onAuthStateChanged } from '../firebase'
 import styles from './SushiroCalculator.module.css'
 import { CopyIcon, ShareIcon } from './icons'
+import Avatar from './Avatar'
 
 const fmt = n => n.toFixed(2)
 const fieldsetReset = { border: 0, padding: 0, margin: 0, minInlineSize: 'auto' }
@@ -125,6 +126,12 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
     } catch {}
   }
 
+  // Phase F — match Split tab: pass Google photoURL only when a person's name
+  // matches the signed-in owner (case-insensitive, trimmed).
+  const ownerName = user?.displayName?.trim().toLowerCase()
+  const photoForName = (n) =>
+    user && ownerName && n.trim().toLowerCase() === ownerName ? user.photoURL : null
+
   return (
     <div>
       <fieldset disabled={readOnly} style={fieldsetReset}>
@@ -139,7 +146,7 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
             <div className={styles.personTabs}>
               {store.people.map(name => (
                 <button type="button" key={name} className={`${styles.personTab} ${store.activePerson === name ? styles.personTabActive : ''}`} onClick={() => store.setActivePerson(name)}>
-                  <span className={styles.avatar}>{name.charAt(0).toUpperCase()}</span>
+                  <Avatar name={name} photoURL={photoForName(name)} size={20} />
                   {name}
                   <span className={styles.removePersonBtn} onClick={e => { e.stopPropagation(); store.removePerson(name) }}>×</span>
                 </button>
@@ -222,7 +229,7 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
                 <div key={name} className={styles.personSummaryCard}>
                   <div className={styles.personSummaryHeader}>
                     <div className={styles.personSummaryLeft}>
-                      <span className={styles.avatar}>{name.charAt(0).toUpperCase()}</span>
+                      <Avatar name={name} photoURL={photoForName(name)} size={24} />
                       <div>
                         <div className={styles.personSummaryName}>{name}</div>
                         <div className={styles.personPlateDots}>
