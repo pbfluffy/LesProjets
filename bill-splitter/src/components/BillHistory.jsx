@@ -1,5 +1,8 @@
 import { useLang } from '../LangContext'
 import styles from './BillHistory.module.css'
+import { PLATES } from '../hooks/useSushiroStore'
+
+function fmt(n) { return (Number(n) || 0).toFixed(2) }
 
 function fmtWhen(ts, lang) {
   const d = new Date(ts)
@@ -18,12 +21,34 @@ function fmtWhen(ts, lang) {
 
 function entrySummary(entry, t) {
   const s = entry.state || {}
-  const memberCount = Array.isArray(s.members) ? s.members.length : 0
-  const foodCount = Array.isArray(s.foods) ? s.foods.length : 0
   if (entry.tab === 'sushi') {
-    return `${t.tabSushi}`
+    const people = Array.isArray(s.people) ? s.people : []
+    const plates = s.plates || {}
+    const snacks = s.snacks || {}
+    let totalPlates = 0, subtotal = 0
+    people.forEach(name => {
+      const pp = plates[name] || {}
+      PLATES.forEach(p => { const c = pp[p.id] || 0; totalPlates += c; subtotal += c * p.price })
+      ;(snacks[name] || []).forEach(item => { subtotal += Number(item.price) || 0 })
+    })
+    let mul = 1
+    if (s.serviceChargeEnabled) mul *= 1.10
+    if (s.vatEnabled) mul *= 1.07
+    return `${people.length} ${t.people} · ${totalPlates} ${t.plates} · ฿${fmt(subtotal * mul)}`
   }
-  return `${memberCount} ${t.people} · ${foodCount} ${t.items}`
+  const members = Array.isArray(s.members) ? s.members : []
+  const foods = Array.isArray(s.foods) ? s.foods : []
+  let subtotal = 0
+  foods.forEach(f => {
+    const price = parseFloat(f.price) || 0
+    if (!price || !Array.isArray(f.who) || !f.who.length) return
+    subtotal += price
+  })
+  const scRate = Math.max(0, Math.min(100, parseFloat(s.serviceChargeRate) || 0))
+  const scFraction = s.serviceChargeEnabled ? scRate / 100 : 0
+  let multiplier = 1 + scFraction
+  if (s.vatEnabled) multiplier *= 1.07
+  return `${members.length} ${t.people} · ${foods.length} ${t.items} · ฿${fmt(subtotal * multiplier)}`
 }
 
 export default function BillHistory({ entries, onLoad, onRemove, onClear, onClose }) {
