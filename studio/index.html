@@ -346,7 +346,7 @@ setInterval(clockTick,1000); clockTick();
 
 // ---- multi-style café music engine (pure Web Audio, no files) ----
 const Music = (function(){
-  let actx=null, master=null, warmF=null, chordBus=null, drySum=null, reverbGain=null, conv=null, crackleGain=null;
+  let actx=null, master=null, warmF=null, chordBus=null, drySum=null, reverbGain=null, conv=null, crackleGain=null, rainGain=null;
   let playing=false, lookahead=null, nextNote=0, step=0;
   const mtof=m=>440*Math.pow(2,(m-69)/12);
   let noiseBuf=null;
@@ -354,7 +354,7 @@ const Music = (function(){
   function makeReverb(sec,decay){ const len=Math.floor(actx.sampleRate*sec); const buf=actx.createBuffer(2,len,actx.sampleRate); for(let c=0;c<2;c++){ const d=buf.getChannelData(c); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay); } const cv=actx.createConvolver(); cv.buffer=buf; return cv; }
 
   // ---- styles ----
-  const STYLES = {
+  const STYLES = { 'Rainy day': { bpm:64, swing:0, inst:'pad', reverb:0.45, warm:2800, crackle:0, rain:0.05, chords:[[60,64,67,71],[57,60,64,67],[53,57,60,64],[55,59,62,65]], bass:[36,33,29,31], comp:[{s:0,d:16,v:0.6}], bassHits:[{s:0,o:0}], drums:{} },
     'Café Jazz': { bpm:70, swing:0.20, inst:'rhodes', reverb:0.32, warm:3400, crackle:0,
       chords:[[62,65,69,72,76],[55,59,65,69,64],[60,64,67,71,74],[57,61,64,67,70]],
       bass:[38,43,36,45],
@@ -380,7 +380,7 @@ const Music = (function(){
       bassHits:[{s:0,o:0}],
       drums:{} }
   };
-  const ORDER = ['Café Jazz','Lo-fi','Bossa','Late Night'];
+  const ORDER = ['Café Jazz','Lo-fi','Bossa','Late Night','Rainy day'];
   let cur = STYLES['Café Jazz'];
 
   // ---- voices ----
@@ -412,7 +412,7 @@ const Music = (function(){
   }
   function loop(){ while(nextNote<actx.currentTime+0.25){ schedule(step,nextNote); nextNote+=60/cur.bpm/4; step=(step+1)%(16*4); } }
 
-  function applyStyle(){ if(!actx) return; reverbGain.gain.setTargetAtTime(cur.reverb,actx.currentTime,0.3); warmF.frequency.setTargetAtTime(cur.warm,actx.currentTime,0.3); crackleGain.gain.setTargetAtTime(cur.crackle,actx.currentTime,0.3); }
+  function applyStyle(){ if(!actx) return; reverbGain.gain.setTargetAtTime(cur.reverb,actx.currentTime,0.3); warmF.frequency.setTargetAtTime(cur.warm,actx.currentTime,0.3); crackleGain.gain.setTargetAtTime(cur.crackle,actx.currentTime,0.3); if(rainGain) rainGain.gain.setTargetAtTime(cur.rain||0,actx.currentTime,0.4); }
 
   function init(){
     actx=new (window.AudioContext||window.webkitAudioContext)();
@@ -424,7 +424,7 @@ const Music = (function(){
     chordBus=actx.createGain(); chordBus.gain.value=0.9; chordBus.connect(drySum); chordBus.connect(conv);
     const lfo=actx.createOscillator(); lfo.type='sine'; lfo.frequency.value=4.5; const lg=actx.createGain(); lg.gain.value=0.05; lfo.connect(lg).connect(chordBus.gain); lfo.start();
     // continuous vinyl crackle, gated by style
-    const src=actx.createBufferSource(); src.buffer=noise(); src.loop=true; const hp=actx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=2000; crackleGain=actx.createGain(); crackleGain.gain.value=cur.crackle; src.connect(hp).connect(crackleGain).connect(master); src.start();
+    const src=actx.createBufferSource(); src.buffer=noise(); src.loop=true; const hp=actx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=2000; crackleGain=actx.createGain(); crackleGain.gain.value=cur.crackle; src.connect(hp).connect(crackleGain).connect(master); src.start(); const rsrc=actx.createBufferSource(); rsrc.buffer=noise(); rsrc.loop=true; const rlp=actx.createBiquadFilter(); rlp.type='lowpass'; rlp.frequency.value=2200; rainGain=actx.createGain(); rainGain.gain.value=cur.rain||0; rsrc.connect(rlp).connect(rainGain).connect(master); rsrc.start();
   }
   return {
     styles(){ return ORDER; },
