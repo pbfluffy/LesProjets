@@ -4,8 +4,11 @@ import { useLang } from '../LangContext'
 import { buildShareUrl, createShortLink } from '../share'
 import { auth, onAuthStateChanged } from '../firebase'
 import styles from './SushiroCalculator.module.css'
-import { CopyIcon, ShareIcon } from './icons'
+import { CopyIcon, ShareIcon, QrIcon, SmartphoneIcon, WarnIcon, BankIcon, NoteIcon } from './icons'
 import Avatar from './Avatar'
+import { isValidPromptPayId } from '../promptpay'
+import PromptPayQR from './PromptPayQR'
+import extras from './ExtrasSection.module.css'
 
 const fmt = n => n.toFixed(2)
 const fieldsetReset = { border: 0, padding: 0, margin: 0, minInlineSize: 'auto' }
@@ -48,6 +51,10 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
   const [moreOpen, setMoreOpen] = useState(false)
   const moreRef = useRef(null)
   const [creatingLink, setCreatingLink] = useState(false)
+  const [showQR, setShowQR] = useState(false)
+  const [ppOpen, setPpOpen] = useState(false)
+  const [ppCopied, setPpCopied] = useState(false)
+  const ppValid = isValidPromptPayId(store.promptPay)
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
 
@@ -78,6 +85,9 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
     snacks: store.snacks,
     vatEnabled: store.vatEnabled,
     serviceChargeEnabled: store.serviceChargeEnabled,
+    promptPay: store.promptPay,
+    bankInfo: store.bankInfo,
+    notes: store.notes,
   })
 
   const buildSummaryText = () => {
@@ -89,6 +99,9 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
     })
     lines.push('')
     lines.push(`${t.shareTotal} ฿${fmt(result.grandTotal)}`)
+    if (store.promptPay) lines.push(`PromptPay: ${store.promptPay}`)
+    if (store.bankInfo) lines.push(store.bankInfo)
+    if (store.notes) lines.push(`📝 ${store.notes}`)
     return lines.join('\n')
   }
 
@@ -198,6 +211,26 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
               <label className={styles.toggle}><input type="checkbox" checked={store.vatEnabled} onChange={e => store.setVatEnabled(e.target.checked)} /><span>{t.vat}</span><span className={`${styles.badge} ${styles.blue}`}>7%</span></label>
               <label className={styles.toggle}><input type="checkbox" checked={store.serviceChargeEnabled} onChange={e => store.setServiceChargeEnabled(e.target.checked)} /><span>{t.serviceCharge}</span><span className={`${styles.badge} ${styles.green}`}>10%</span></label>
             </div>
+            <div className={extras.divider} />
+            <div className={extras.ppHeader}>
+              <span className={extras.ppLabel}>PromptPay</span>
+              <button type="button" className={extras.toggleBtn} onClick={() => setPpOpen(o => !o)}>{ppOpen ? t.close : t.edit}</button>
+            </div>
+            {ppOpen && (
+              <input type="text" placeholder={t.ppPlaceholder} value={store.promptPay} onChange={e => store.setPromptPay(e.target.value)} className={extras.ppInput} />
+            )}
+            {store.promptPay && !ppOpen && (
+              <div className={extras.ppDisplay}>
+                <span className={extras.ppNumber}>{store.promptPay}</span>
+                <button type="button" className={extras.copyBtn} onClick={() => { navigator.clipboard?.writeText(store.promptPay); setPpCopied(true); setTimeout(() => setPpCopied(false), 1500) }}>{ppCopied ? t.copied : t.copy}</button>
+              </div>
+            )}
+            {!store.promptPay && !ppOpen && <p className={extras.ppEmpty}>{t.notSet}</p>}
+            <div className={extras.divider} />
+            <label className={extras.fieldLabel}>{t.bankLabel}</label>
+            <textarea className={extras.textarea} rows={3} placeholder={t.bankPlaceholder} value={store.bankInfo} onChange={e => store.setBankInfo(e.target.value)} />
+            <label className={extras.fieldLabel} style={{ marginTop: 10 }}>{t.notesLabel}</label>
+            <textarea className={extras.textarea} rows={2} placeholder={t.notesPlaceholder} value={store.notes} onChange={e => store.setNotes(e.target.value)} />
           </section>
         )}
       </fieldset>
@@ -219,6 +252,11 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
             </div>
           </div>
           {toast && <div className={styles.toast}>{toast}</div>}
+          {ppValid && (
+            <div className={styles.qrToggleRow} data-snapshot-hide>
+              <button type="button" className={styles.qrToggleBtn} onClick={() => setShowQR(v => !v)} aria-pressed={showQR}><QrIcon width={15} height={15} /> {showQR ? t.hideQR : t.showQR}</button>
+            </div>
+          )}
           <div className={styles.personSummaryList}>
             {store.people.map(name => {
               const total = result.personTotals[name] ?? 0
@@ -242,6 +280,9 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
                     <span className={styles.personSummaryAmt}>฿{fmt(total)}</span>
                   </div>
                   <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
+                  {showQR && ppValid && total > 0 && (
+                    <PromptPayQR promptPay={store.promptPay} amount={total} />
+                  )}
                 </div>
               )
             })}
@@ -252,6 +293,13 @@ export default function SushiroCalculator({ sharedState, readOnly }) {
             {result.vat > 0 && <div className={styles.grandTotalRow}><span className={styles.grandTotalLabel}>{t.vat} (7%)</span><span>฿{fmt(result.vat)}</span></div>}
             <div className={`${styles.grandTotalRow} ${styles.grandTotalFinal}`}><span>{t.grandTotal} ({result.totalPlates} {t.plates})</span><span>฿{fmt(result.grandTotal)}</span></div>
           </div>
+          {(store.promptPay || store.bankInfo) && (
+            <div className={styles.payInfo}>
+              {store.promptPay && <p className={styles.payLine}><span className={styles.payIcon}><SmartphoneIcon width={16} height={16} /></span>PromptPay: <strong>{store.promptPay}</strong>{!ppValid && <span className={styles.payWarn}><WarnIcon width={14} height={14} /> {t.promptPayInvalid}</span>}</p>}
+              {store.bankInfo && <p className={styles.payLine} style={{ whiteSpace: 'pre-line' }}><span className={styles.payIcon}><BankIcon width={16} height={16} /></span>{store.bankInfo}</p>}
+            </div>
+          )}
+          {store.notes && <div className={styles.notes}><span className={styles.notesIcon}><NoteIcon width={16} height={16} /></span><span>{store.notes}</span></div>}
         </section>
       )}
     </div>
