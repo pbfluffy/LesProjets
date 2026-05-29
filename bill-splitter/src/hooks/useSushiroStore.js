@@ -21,6 +21,9 @@ export function useSushiroStore(initial) {
   const [snacks, setSnacks]             = useState(initial?.snacks ?? {})
   const [vatEnabled, setVatEnabled]               = useState(initial?.vatEnabled ?? false)
   const [serviceChargeEnabled, setServiceChargeEnabled] = useState(initial?.serviceChargeEnabled ?? false)
+  const [promptPay, setPromptPay]       = useState(initial?.promptPay ?? '')
+  const [bankInfo, setBankInfo]         = useState(initial?.bankInfo ?? '')
+  const [notes, setNotes]               = useState(initial?.notes ?? '')
 
   // ── People ─────────────────────────────────────────────────────
   const addPerson = useCallback((name) => {
@@ -113,6 +116,9 @@ export function useSushiroStore(initial) {
     resetAll,
     vatEnabled, setVatEnabled,
     serviceChargeEnabled, setServiceChargeEnabled,
+    promptPay, setPromptPay,
+    bankInfo, setBankInfo,
+    notes, setNotes,
     calculate,
   }
 }
