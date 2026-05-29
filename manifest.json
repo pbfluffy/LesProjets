@@ -34,7 +34,7 @@
       "short_name": "Pumgoda",
       "url": "/pumgoda/",
       "icons": [{"src": "./icon-192.png", "sizes": "192x192"}]
-    }
+    },
     {
       "name": "Pum's Office",
       "short_name": "Pum's Office",
