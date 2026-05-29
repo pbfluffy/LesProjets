@@ -1,0 +1,32 @@
+.section { padding: 18px 8px; border-top: 0.5px solid var(--color-border); }
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.title { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); }
+.shareBtn { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0.5px solid var(--color-border-strong); border-radius: var(--radius-sm); font-size: 12px; padding: 4px 10px; color: var(--color-text-muted); transition: all 0.15s; }
+.shareBtn:hover { background: var(--color-accent); color: var(--color-accent-text); }
+.empty { font-size: 13px; color: var(--color-text-faint); }
+.breakdown { background: var(--color-surface-alt); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 12px; }
+.row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+.rowLabel { color: var(--color-text-muted); }
+.rowVal { font-family: var(--font-mono); }
+.totalRow { font-weight: 500; font-size: 14px; border-top: 0.5px solid var(--color-border); margin-top: 6px; padding-top: 8px; }
+.grandTotal { font-family: var(--font-mono); font-size: 18px; }
+.perPersonList { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.personHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.personLeft { display: flex; align-items: center; gap: 7px; }
+.personName { font-size: 14px; }
+.personAmount { font-family: var(--font-mono); font-size: 15px; font-weight: 500; }
+.bar { height: 4px; background: var(--color-border); border-radius: 2px; overflow: hidden; }
+.barFill { height: 100%; background: var(--color-accent); border-radius: 2px; transition: width 0.4s ease; }
+.payInfo { background: var(--color-blue-bg); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px; }
+.payLine { font-size: 13px; color: var(--color-blue); display: flex; gap: 6px; align-items: flex-start; }
+.payIcon { display: inline-flex; align-items: center; flex-shrink: 0; }
+.notes { background: var(--color-amber-bg); border-radius: var(--radius-md); padding: 8px 12px; font-size: 13px; color: var(--color-amber); display: flex; gap: 6px; align-items: flex-start; }
+.notesIcon { display: inline-flex; align-items: center; flex-shrink: 0; }
+.toast { background: var(--color-text); color: var(--color-surface); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 13px; font-weight: 500; margin-bottom: 10px; text-align: center; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.shareBtnGroup { display: flex; gap: 6px; align-items: center; }
+.qrToggleRow { display: flex; justify-content: center; margin: 4px 0 12px; }
+.qrToggleBtn { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0.5px solid var(--color-border-strong); border-radius: var(--radius-pill); font-size: 12px; padding: 6px 14px; color: var(--color-text-muted); transition: all 0.15s; }
+.qrToggleBtn:hover { background: var(--color-accent); color: var(--color-accent-text); border-color: var(--color-accent); }
+.qrToggleBtn[aria-pressed="true"] { background: var(--color-accent); color: var(--color-accent-text); border-color: var(--color-accent); }
+.payWarn { display: inline-flex; align-items: center; gap: 3px; color: var(--color-red); font-size: 12px; margin-left: 6px; }
