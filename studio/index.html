@@ -116,7 +116,7 @@
   .topnav-btn:active { transform:translateY(0); }
   .topnav-l { left:12px; }
   .topnav-r { right:12px; }
-  a.topnav-btn .glyph { display:block; transform:translateY(-0.5px); } @media (prefers-reduced-motion: reduce){.window-fx,.window-warm,.lamp,.screen,.glow,.dog,.dog.breathe,.dog.type,.dog.tilt,.dog.perk,.hero-sub .dot,.crew-dot,.chip .blink,.btn.primary:hover{animation:none !important}.dog{transform:none !important}.screen{opacity:.22}.glow{opacity:.14}.lamp{opacity:.6}.hero-sub .dot,.crew-dot,.chip .blink{opacity:1;transform:none}.btn.primary:hover,.topnav-btn:hover,.btn:hover{transform:none !important}}
+  .topnav-btn .glyph { display:block; transform:translateY(-0.5px); } @media (prefers-reduced-motion: reduce){.window-fx,.window-warm,.lamp,.screen,.glow,.dog,.dog.breathe,.dog.type,.dog.tilt,.dog.perk,.hero-sub .dot,.crew-dot,.chip .blink,.btn.primary:hover{animation:none !important}.dog{transform:none !important}.screen{opacity:.22}.glow{opacity:.14}.lamp{opacity:.6}.hero-sub .dot,.crew-dot,.chip .blink{opacity:1;transform:none}.btn.primary:hover,.topnav-btn:hover,.btn:hover{transform:none !important}}
 </style>
 </head>
 <body>
@@ -340,7 +340,7 @@ function stop(){
   Object.keys(DOGS).forEach(n=>{ const d=$('dog-'+n); d.classList.remove('type','breathe','tilt','perk'); $('chip-'+n).style.opacity='.4'; });
 }
 $('toggleBtn').addEventListener('click',()=>{ if(running){ stop(); $('toggleBtn').textContent='▶ Resume'; } else { start(); $('toggleBtn').textContent='⏸ Pause'; } });
-$('aiBtn').addEventListener('click',generateLiveLog);
+$('aiBtn').addEventListener('click',generateLiveLog); document.addEventListener('visibilitychange',()=>{const amb=document.querySelectorAll('.lamp,.screen,.glow,.window-fx,.window-warm');if(document.hidden){amb.forEach(e=>e.classList.remove('run'));Object.keys(DOGS).forEach(n=>$('dog-'+n).classList.remove('breathe','type','tilt','perk'));}else if(running){amb.forEach(e=>e.classList.add('run'));Object.keys(DOGS).forEach(n=>$('dog-'+n).classList.add('breathe'));}});
 
 setInterval(clockTick,1000); clockTick();
 
