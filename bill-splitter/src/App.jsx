@@ -243,6 +243,8 @@ function AppInner() {
             >
               <HomeIcon />
             </button>
+            {/* Phase E — group divider: nav actions | preferences + account */}
+            <span className={styles.headerDivider} aria-hidden="true" />
             {/* Language toggle */}
             <button
               className={styles.iconBtn}
