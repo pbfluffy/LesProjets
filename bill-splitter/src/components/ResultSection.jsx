@@ -5,6 +5,7 @@ import { auth, onAuthStateChanged } from '../firebase'
 import { isValidPromptPayId } from '../promptpay'
 import PromptPayQR from './PromptPayQR'
 import Avatar from './Avatar'
+import { CopyIcon, ShareIcon, QrIcon, SmartphoneIcon, WarnIcon, BankIcon, NoteIcon } from './icons'
 import styles from './ResultSection.module.css'
 
 function fmt(n) { return n.toFixed(2) }
@@ -159,12 +160,12 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
                   {onSave && (
                     <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleSave(); setMoreOpen(false) }}>{t.saveBill}</button>
                   )}
-                  <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleCopyText(); setMoreOpen(false) }}>📋 {t.copy}</button>
+                  <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleCopyText(); setMoreOpen(false) }}><CopyIcon width={15} height={15} /> {t.copy}</button>
                   <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleSaveImage(); setMoreOpen(false) }} disabled={capturing} title={t.saveImage}>{t.saveImage}</button>
                 </div>
               )}
             </div>
-            <button className={styles.shareBtn} style={{ background: 'var(--accent, #4f46e5)', color: 'white', fontWeight: 600 }} onClick={handleShareLink} disabled={creatingLink}>{creatingLink ? t.shareCreating : `📤 ${t.shareLink}`}</button>
+            <button className={styles.shareBtn} style={{ background: 'var(--accent, #4f46e5)', color: 'white', fontWeight: 600 }} onClick={handleShareLink} disabled={creatingLink}>{creatingLink ? t.shareCreating : <><ShareIcon width={14} height={14} /> {t.shareLink}</>}</button>
           </div>
         )}
       </div>
@@ -186,7 +187,7 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
                 onClick={() => setShowQR(v => !v)}
                 aria-pressed={showQR}
               >
-                📱 {showQR ? t.hideQR : t.showQR}
+                <QrIcon width={15} height={15} /> {showQR ? t.hideQR : t.showQR}
               </button>
             </div>
           )}
@@ -202,8 +203,8 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
               </div>
               )})}
           </div>
-          {(promptPay||bankInfo) && <div className={styles.payInfo}>{promptPay && <p className={styles.payLine}><span className={styles.payIcon}>📱</span>PromptPay: <strong>{promptPay}</strong>{!ppValid && <span className={styles.payWarn}> ⚠ {t.promptPayInvalid}</span>}</p>}{bankInfo && <p className={styles.payLine} style={{whiteSpace:'pre-line'}}><span className={styles.payIcon}>🏦</span>{bankInfo}</p>}</div>}
-          {notes && <div className={styles.notes}><span className={styles.notesIcon}>📝 </span><span>{notes}</span></div>}
+          {(promptPay||bankInfo) && <div className={styles.payInfo}>{promptPay && <p className={styles.payLine}><span className={styles.payIcon}><SmartphoneIcon width={16} height={16} /></span>PromptPay: <strong>{promptPay}</strong>{!ppValid && <span className={styles.payWarn}><WarnIcon width={14} height={14} /> {t.promptPayInvalid}</span>}</p>}{bankInfo && <p className={styles.payLine} style={{whiteSpace:'pre-line'}}><span className={styles.payIcon}><BankIcon width={16} height={16} /></span>{bankInfo}</p>}</div>}
+          {notes && <div className={styles.notes}><span className={styles.notesIcon}><NoteIcon width={16} height={16} /></span><span>{notes}</span></div>}
         </>
       )}
     </section>

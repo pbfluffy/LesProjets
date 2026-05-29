@@ -68,3 +68,66 @@ export function ShareIcon(props) {
     </svg>
   )
 }
+
+export function QrIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="3" width="5" height="5" rx="1" />
+      <rect x="16" y="3" width="5" height="5" rx="1" />
+      <rect x="3" y="16" width="5" height="5" rx="1" />
+      <path d="M21 16h-3a2 2 0 0 0-2 2v3" />
+      <path d="M21 21v.01" />
+      <path d="M12 7v3a2 2 0 0 1-2 2H7" />
+      <path d="M3 12h.01" />
+      <path d="M12 3h.01" />
+      <path d="M16 12h1" />
+      <path d="M21 12v.01" />
+      <path d="M12 16v.01" />
+      <path d="M12 21v-1" />
+    </svg>
+  )
+}
+
+export function SmartphoneIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="5" y="2" width="14" height="20" rx="2" />
+      <path d="M12 18h.01" />
+    </svg>
+  )
+}
+
+export function WarnIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </svg>
+  )
+}
+
+export function BankIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <line x1="3" y1="22" x2="21" y2="22" />
+      <line x1="6" y1="18" x2="6" y2="11" />
+      <line x1="10" y1="18" x2="10" y2="11" />
+      <line x1="14" y1="18" x2="14" y2="11" />
+      <line x1="18" y1="18" x2="18" y2="11" />
+      <polygon points="12 2 20 7 4 7" />
+    </svg>
+  )
+}
+
+export function NoteIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M16 13H8" />
+      <path d="M16 17H8" />
+      <path d="M10 9H8" />
+    </svg>
+  )
+}
