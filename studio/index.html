@@ -266,7 +266,7 @@ function clockTick(){ $('clock').textContent=now(); }
 // ---- live Claude work-log (graceful fallback) ----
 // When hosted with the included proxy (server.js), this hits /api/worklog and works for real.
 // Opened as a plain file, the fetch fails and we fall back to the built-in writing.
-const WORKLOG_ENDPOINT = 'https://pums-office-worklog.YOUR-SUBDOMAIN.workers.dev'; // <- set to your Worker URL
+const WORKLOG_ENDPOINT = 'https://pums-office-worklog.pbfluffygaming.workers.dev'; // <- set to your Worker URL
 async function generateLiveLog(){
   logEv(null,'Asking Claude for fresh tasks…');
   try{
