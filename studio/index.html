@@ -165,9 +165,9 @@ const IMG_W=1402, IMG_H=1122;
 const pct=(v,t)=>v/t*100;
 
 const DOGS = {
-  Corgi: { role:'Project Manager', color:'#ffae42', box:[408,418,642,700],
+  Pumba: { role:'Project Manager', color:'#ffae42', box:[408,418,642,700],
     tasks:['grooming the backlog','planning the sprint','reviewing pull requests','sniffing out requirements','updating the roadmap','triaging issues'] },
-  Floof: { role:'Systems Analyst', color:'#8fe388', box:[893,415,1132,702],
+  Gigi: { role:'Systems Analyst', color:'#8fe388', box:[893,415,1132,702],
     tasks:['profiling slow queries','tracing the logs','analyzing metrics','debugging the build','optimizing indexes','chasing a memory leak'] }
 };
 
@@ -213,7 +213,7 @@ for(const [name,d] of Object.entries(DOGS)){
   const [x0,y0,x1,y1]=d.box;
   const wrap=document.createElement('div'); wrap.className='dog breathe'; wrap.id='dog-'+name;
   wrap.style.left=pct(x0,IMG_W)+'%'; wrap.style.top=pct(y0,IMG_H)+'%'; wrap.style.width=pct(x1-x0,IMG_W)+'%';
-  wrap.style.animationDelay=(name==='Floof'?'-1.6s':'0s');
+  wrap.style.animationDelay=(name==='Gigi'?'-1.6s':'0s');
   wrap.innerHTML=`<img src="${DATA[name.toLowerCase()]}" alt="${name}">`;
   stage.appendChild(wrap);
   // monitor glow on dog face
@@ -291,8 +291,8 @@ async function generateLiveLog(){
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001', max_tokens:1000,
         messages:[{role:'user',content:
-          'Two dog coworkers at a cozy late-night software studio. Corgi is the Project Manager, Floof is the Systems Analyst. '+
-          'Return ONLY valid JSON (no markdown) shaped exactly as {"Corgi":[...],"Floof":[...]} where each array has 6 short present-tense work activities, 3-6 words each, playful and a little dog-themed but about real software work.'}]
+          'Two dog coworkers at a cozy late-night software studio. Pumba (a corgi) is the Project Manager, Gigi (a Thai Bangkaew) is the Systems Analyst. '+
+          'Return ONLY valid JSON (no markdown) shaped exactly as {"Pumba":[...],"Gigi":[...]} where each array has 6 short present-tense work activities, 3-6 words each, playful and a little dog-themed but about real software work.'}]
       })
     });
     if(!res.ok) throw new Error('http '+res.status);
@@ -300,10 +300,20 @@ async function generateLiveLog(){
     let text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
     text=text.replace(/```json|```/g,'').trim();
     const m=text.match(/\{[\s\S]*\}/); const parsed=JSON.parse(m?m[0]:text);
-    if(parsed.Corgi&&parsed.Floof){
-      DOGS.Corgi.tasks=parsed.Corgi; DOGS.Floof.tasks=parsed.Floof;
+    if(parsed.Pumba&&parsed.Gigi){
+      DOGS.Pumba.tasks=parsed.Pumba; DOGS.Gigi.tasks=parsed.Gigi;
       liveTasks=true; logsrc.textContent='live · claude'; logsrc.classList.add('live');
       logEv(null,'Live tasks loaded from Claude ✦');
+      // Option A: surface the fresh tasks into the feed, staggered + interleaved
+      const fresh=[];
+      for(let i=0;i<6;i++){
+        if(parsed.Pumba[i]) fresh.push({name:'Pumba',task:parsed.Pumba[i]});
+        if(parsed.Gigi[i])  fresh.push({name:'Gigi', task:parsed.Gigi[i]});
+      }
+      fresh.forEach((e,idx)=>{
+        const t=setTimeout(()=>logEv(e.name,`<b>${e.name}</b> — ${e.task}`), 600+idx*1200);
+        state.timers.push(t);
+      });
       return true;
     }
     throw new Error('bad shape');
@@ -445,7 +455,7 @@ $('styleBtn').addEventListener('click',()=>{
 $('shareBtn').addEventListener('click', async () => {
   const data = {
     title: "Pum’s Office",
-    text: 'A cozy late-night studio where Corgi & Floof keep working. Music, lamps, live AI work-log.',
+    text: 'A cozy late-night studio where Pumba & Gigi keep working. Music, lamps, live AI work-log.',
     url: location.href
   };
   if (navigator.share) {
