@@ -63,7 +63,15 @@
 .headerControls {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+}
+
+.headerDivider {
+  width: 1px;
+  height: 18px;
+  background: var(--color-border);
+  margin: 0 4px;
+  flex-shrink: 0;
 }
 
 .iconBtn {
