@@ -12,18 +12,22 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // Feature #63 — silent auto-update SW. Precaches build output so the
-      // app boots offline after first visit. Existing manifest.json in public/
-      // is kept untouched (manifest: false). skipWaiting + clientsClaim mean
-      // a newly installed SW takes control immediately, matching the silent
-      // auto-update UX. cleanupOutdatedCaches prevents orphan precache piles.
-      registerType: 'autoUpdate',
+      // Feature #63 + #80 — offline shell with prompt-to-reload updates.
+      // Precaches build output so the app boots offline after first visit;
+      // manifest.json in public/ is left untouched (manifest: false).
+      // #80: registerType 'prompt' (was 'autoUpdate') so a new deploy does NOT
+      // silently auto-reload. src/registerPwaUpdate.js polls for a new SW and
+      // shows a "New version — Reload" toast. injectRegister: false because we
+      // register manually there. clientsClaim keeps first-install control on the
+      // first load; the waiting SW activates only when the user taps Reload
+      // (updateSW posts SKIP_WAITING). cleanupOutdatedCaches prevents orphan
+      // precache piles.
+      registerType: 'prompt',
       manifest: false,
-      injectRegister: 'auto',
+      injectRegister: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
         cleanupOutdatedCaches: true,
-        skipWaiting: true,
         clientsClaim: true,
       },
       devOptions: { enabled: false },
