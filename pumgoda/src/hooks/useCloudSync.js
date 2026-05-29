@@ -51,6 +51,11 @@ export function useCloudSync({ entries, replaceEntries }) {
   const lastPushedFingerprint = useRef(null)
   const justPulled = useRef(false)
   const entriesRef = useRef(entries)
+  // #81: harden against destructive failed pushes.
+  // pushInFlight = fingerprint of the write currently awaiting the server.
+  // lastConfirmedFingerprint = last state the SERVER actually accepted.
+  const pushInFlight = useRef(null)
+  const lastConfirmedFingerprint = useRef(null)
 
   useEffect(() => { entriesRef.current = entries }, [entries])
 
@@ -60,6 +65,8 @@ export function useCloudSync({ entries, replaceEntries }) {
       if (!u) {
         initialSyncDone.current = false
         lastPushedFingerprint.current = null
+        pushInFlight.current = null
+        lastConfirmedFingerprint.current = null
         setPendingServerEntries(null)
         setSyncStatus('idle')
       }
@@ -78,16 +85,22 @@ export function useCloudSync({ entries, replaceEntries }) {
 
         if (!initialSyncDone.current) {
           if (cloudEntries === null) {
+            if (pushInFlight.current !== null) return
             const current = entriesRef.current
             const fp = fingerprint(current)
             lastPushedFingerprint.current = fp
+            pushInFlight.current = fp
             setDoc(ref, { savedIds: current, lastEdit: Date.now(), lastModified: serverTimestamp() })
               .then(() => {
+                pushInFlight.current = null
+                lastConfirmedFingerprint.current = fp
                 initialSyncDone.current = true
                 setLastSyncedAt(Date.now())
                 setSyncStatus('synced')
               })
               .catch((e) => {
+                pushInFlight.current = null
+                lastPushedFingerprint.current = lastConfirmedFingerprint.current
                 console.error('[pumgodaSync] initial push failed:', e)
                 setSyncStatus('error')
               })
@@ -99,6 +112,7 @@ export function useCloudSync({ entries, replaceEntries }) {
 
           if (localFp === cloudFp) {
             lastPushedFingerprint.current = cloudFp
+            lastConfirmedFingerprint.current = cloudFp
             initialSyncDone.current = true
             setLastSyncedAt(Date.now())
             setSyncStatus('synced')
@@ -114,6 +128,7 @@ export function useCloudSync({ entries, replaceEntries }) {
           justPulled.current = true
           replaceEntries(cloudEntries)
           lastPushedFingerprint.current = cloudFp
+          lastConfirmedFingerprint.current = cloudFp
           initialSyncDone.current = true
           setLastSyncedAt(Date.now())
           setSyncStatus('synced')
@@ -124,10 +139,16 @@ export function useCloudSync({ entries, replaceEntries }) {
         if (cloudEntries === null) return
         const cloudFp = fingerprint(cloudEntries)
         if (cloudFp === lastPushedFingerprint.current) return
+        // #81: a rejected push makes Firestore revert its optimistic write and
+        // fire a snapshot reverting to the last server-confirmed state. While a
+        // push is in flight, ignore that revert so it can't wipe the unsaved
+        // local change. The push effect surfaces the failure via 'error'.
+        if (pushInFlight.current !== null && cloudFp === lastConfirmedFingerprint.current) return
 
         justPulled.current = true
         replaceEntries(cloudEntries)
         lastPushedFingerprint.current = cloudFp
+        lastConfirmedFingerprint.current = cloudFp
         setLastSyncedAt(Date.now())
         setSyncStatus('synced')
         setTimeout(() => { justPulled.current = false }, 300)
@@ -149,12 +170,17 @@ export function useCloudSync({ entries, replaceEntries }) {
       const fp = fingerprint(entries)
       if (fp === lastPushedFingerprint.current) return
       lastPushedFingerprint.current = fp
+      pushInFlight.current = fp
       setDoc(ref, { savedIds: entries, lastEdit: Date.now(), lastModified: serverTimestamp() })
         .then(() => {
+          pushInFlight.current = null
+          lastConfirmedFingerprint.current = fp
           setLastSyncedAt(Date.now())
           setSyncStatus('synced')
         })
         .catch((e) => {
+          pushInFlight.current = null
+          lastPushedFingerprint.current = lastConfirmedFingerprint.current
           console.error('[pumgodaSync] push failed:', e)
           setSyncStatus('error')
         })
@@ -169,6 +195,7 @@ export function useCloudSync({ entries, replaceEntries }) {
     justPulled.current = true
     replaceEntries(pendingServerEntries)
     lastPushedFingerprint.current = fingerprint(pendingServerEntries)
+    lastConfirmedFingerprint.current = fingerprint(pendingServerEntries)
     initialSyncDone.current = true
     setPendingServerEntries(null)
     setLastSyncedAt(Date.now())
@@ -182,15 +209,20 @@ export function useCloudSync({ entries, replaceEntries }) {
     const ref = doc(firestore, COLL, user.uid)
     const fp = fingerprint(current)
     lastPushedFingerprint.current = fp
+    pushInFlight.current = fp
     setSyncStatus('syncing')
     setDoc(ref, { savedIds: current, lastEdit: Date.now(), lastModified: serverTimestamp() })
       .then(() => {
+        pushInFlight.current = null
+        lastConfirmedFingerprint.current = fp
         initialSyncDone.current = true
         setPendingServerEntries(null)
         setLastSyncedAt(Date.now())
         setSyncStatus('synced')
       })
       .catch((e) => {
+        pushInFlight.current = null
+        lastPushedFingerprint.current = lastConfirmedFingerprint.current
         console.error('[pumgodaSync] confirm-local push failed:', e)
         setSyncStatus('error')
       })
