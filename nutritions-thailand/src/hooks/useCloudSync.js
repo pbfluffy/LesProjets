@@ -67,6 +67,11 @@ export function useCloudSync({ state, replaceState }) {
   const lastPushedFingerprint = useRef(null);
   const justPulled = useRef(false);
   const stateRef = useRef(state);
+  // #81: harden against destructive failed pushes.
+  // pushInFlight = fingerprint of the write currently awaiting the server.
+  // lastConfirmedFingerprint = last state the SERVER actually accepted.
+  const pushInFlight = useRef(null);
+  const lastConfirmedFingerprint = useRef(null);
 
   // Keep stateRef fresh so async handlers can read the latest state.
   useEffect(() => { stateRef.current = state; }, [state]);
@@ -78,6 +83,8 @@ export function useCloudSync({ state, replaceState }) {
       if (!u) {
         initialSyncDone.current = false;
         lastPushedFingerprint.current = null;
+        pushInFlight.current = null;
+        lastConfirmedFingerprint.current = null;
         setPendingServerData(null);
         setSyncStatus('idle');
       }
@@ -97,16 +104,22 @@ export function useCloudSync({ state, replaceState }) {
           // ----- Initial sync path -----
           if (!snap.exists()) {
             // First device — push local state
+            if (pushInFlight.current !== null) return;
             const currentState = stateRef.current;
             const fingerprint = JSON.stringify(currentState);
             lastPushedFingerprint.current = fingerprint;
+            pushInFlight.current = fingerprint;
             setDoc(userDocRef, { ...currentState, lastModified: serverTimestamp() })
               .then(() => {
+                pushInFlight.current = null;
+                lastConfirmedFingerprint.current = fingerprint;
                 initialSyncDone.current = true;
                 setLastSyncedAt(Date.now());
                 setSyncStatus('synced');
               })
               .catch((e) => {
+                pushInFlight.current = null;
+                lastPushedFingerprint.current = lastConfirmedFingerprint.current;
                 console.error('[cloudSync] initial push failed:', e);
                 setSyncStatus('error');
               });
@@ -121,6 +134,7 @@ export function useCloudSync({ state, replaceState }) {
           if (localFp === serverFp) {
             // Functionally identical — no conflict, no UI prompt.
             lastPushedFingerprint.current = JSON.stringify(serverStateForCheck);
+            lastConfirmedFingerprint.current = JSON.stringify(serverStateForCheck);
             initialSyncDone.current = true;
             setLastSyncedAt(Date.now());
             setSyncStatus('synced');
@@ -139,6 +153,7 @@ export function useCloudSync({ state, replaceState }) {
           justPulled.current = true;
           replaceState(stateOnly);
           lastPushedFingerprint.current = JSON.stringify(stateOnly);
+          lastConfirmedFingerprint.current = JSON.stringify(stateOnly);
           initialSyncDone.current = true;
           setLastSyncedAt(Date.now());
           setSyncStatus('synced');
@@ -154,11 +169,17 @@ export function useCloudSync({ state, replaceState }) {
 
         // Echo suppression: ignore confirmations of our own recent push
         if (serverFingerprint === lastPushedFingerprint.current) return;
+        // #81: a rejected push makes Firestore revert its optimistic write and
+        // fire a snapshot reverting to the last server-confirmed state. While a
+        // push is in flight, ignore that revert so it can't wipe the unsaved
+        // local change. The push effect surfaces the failure via 'error'.
+        if (pushInFlight.current !== null && serverFingerprint === lastConfirmedFingerprint.current) return;
 
         // Genuine remote change — pull
         justPulled.current = true;
         replaceState(stateOnly);
         lastPushedFingerprint.current = serverFingerprint;
+        lastConfirmedFingerprint.current = serverFingerprint;
         setLastSyncedAt(Date.now());
         setSyncStatus('synced');
         setTimeout(() => { justPulled.current = false; }, 300);
@@ -185,12 +206,17 @@ export function useCloudSync({ state, replaceState }) {
       const userDocRef = doc(db, 'users', user.uid);
       const fingerprint = JSON.stringify(state);
       lastPushedFingerprint.current = fingerprint;
+      pushInFlight.current = fingerprint;
       setDoc(userDocRef, { ...state, lastModified: serverTimestamp() })
         .then(() => {
+          pushInFlight.current = null;
+          lastConfirmedFingerprint.current = fingerprint;
           setLastSyncedAt(Date.now());
           setSyncStatus('synced');
         })
         .catch((e) => {
+          pushInFlight.current = null;
+          lastPushedFingerprint.current = lastConfirmedFingerprint.current;
           console.error('[cloudSync] push failed:', e);
           setSyncStatus('error');
         });
@@ -208,6 +234,7 @@ export function useCloudSync({ state, replaceState }) {
     justPulled.current = true;
     replaceState(stateOnly);
     lastPushedFingerprint.current = JSON.stringify(stateOnly);
+    lastConfirmedFingerprint.current = JSON.stringify(stateOnly);
     initialSyncDone.current = true;
     setPendingServerData(null);
     setLastSyncedAt(Date.now());
@@ -221,15 +248,20 @@ export function useCloudSync({ state, replaceState }) {
     const userDocRef = doc(db, 'users', user.uid);
     const fingerprint = JSON.stringify(currentState);
     lastPushedFingerprint.current = fingerprint;
+    pushInFlight.current = fingerprint;
     setSyncStatus('syncing');
     setDoc(userDocRef, { ...currentState, lastModified: serverTimestamp() })
       .then(() => {
+        pushInFlight.current = null;
+        lastConfirmedFingerprint.current = fingerprint;
         initialSyncDone.current = true;
         setPendingServerData(null);
         setLastSyncedAt(Date.now());
         setSyncStatus('synced');
       })
       .catch((e) => {
+        pushInFlight.current = null;
+        lastPushedFingerprint.current = lastConfirmedFingerprint.current;
         console.error('[cloudSync] confirm-local push failed:', e);
         setSyncStatus('error');
       });
