@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>LesProjets · Admin</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root{
+  --bg:#15120d; --bg-2:#1d1913; --panel:#211c15; --panel-2:#2a241b;
+  --line:#3a3225; --line-soft:#2d2719; --text:#f3ece0; --muted:#b3a994;
+  --faint:#7d7560; --accent:#e8a13a; --accent-soft:#3a2c14;
+  --green:#7fb069; --red:#d9694e; --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(232,161,58,.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(127,176,105,.06), transparent 55%),
+    var(--bg);
+  color:var(--text); font-family:'Bricolage Grotesque', system-ui, sans-serif;
+  min-height:100vh; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:18px 16px 60px}
+.topbar{display:flex;align-items:center;gap:14px;padding:14px 0 18px}
+.mark{width:42px;height:42px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;font-size:22px;
+  background:linear-gradient(150deg,var(--accent),#c97f1e);box-shadow:0 6px 18px rgba(232,161,58,.25)}
+.brand h1{font-size:18px;font-weight:800;margin:0;letter-spacing:-.01em}
+.brand .sub{font-size:12px;color:var(--faint);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.who{margin-left:auto;display:flex;align-items:center;gap:10px}
+.who .ident{text-align:right;line-height:1.2}
+.who .ident b{font-size:13px}
+.who .ident span{display:block;font-size:11px;color:var(--faint)}
+.who .avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#1a1408;display:grid;place-items:center;font-weight:800;font-size:15px;overflow:hidden}
+.who .avatar img{width:100%;height:100%;object-fit:cover}
+.btn{font-family:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel-2);color:var(--text);
+  border-radius:10px;padding:8px 13px;font-size:13px;font-weight:600;transition:.15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.ghost{background:transparent}
+.btn.small{padding:6px 10px;font-size:12px}
+.btn:disabled{opacity:.6;cursor:progress}
+.note{font-size:12px;color:var(--accent);background:var(--accent-soft);border:1px solid #5a431a;border-radius:10px;
+  padding:9px 12px;margin-bottom:16px;font-family:'JetBrains Mono',monospace}
+.errbox{font-size:13px;color:#f0c9bd;background:#3a1d16;border:1px solid #6e352a;border-radius:10px;padding:12px 14px;margin-bottom:16px;line-height:1.5}
+.errbox code{font-family:'JetBrains Mono',monospace;color:#f3ece0}
+
+.stats{display:grid;gap:12px;margin-bottom:18px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.stat{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--line-soft);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden}
+.stat .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-family:'JetBrains Mono',monospace}
+.stat .v{font-size:30px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.stat .v small{font-size:13px;color:var(--muted);font-weight:600;margin-left:4px}
+.stat::after{content:"";position:absolute;right:-20px;bottom:-20px;width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,rgba(232,161,58,.10),transparent 70%)}
+
+.charts{display:grid;gap:12px;margin-bottom:18px;grid-template-columns:repeat(auto-fit,minmax(265px,1fr))}
+.chart{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--line-soft);border-radius:var(--radius);padding:16px 18px}
+.chart h3{margin:0 0 16px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-family:'JetBrains Mono',monospace;font-weight:700}
+.donut-wrap{display:flex;align-items:center;gap:18px}
+.donut{flex:0 0 auto}
+.legend{display:flex;flex-direction:column;gap:8px;font-size:12px;flex:1;min-width:0}
+.legend .li{display:flex;align-items:center;gap:8px}
+.legend .dot{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
+.legend .ln{color:var(--muted);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend .lv{font-family:'JetBrains Mono',monospace;font-weight:700;font-variant-numeric:tabular-nums}
+.hbar{margin-bottom:12px}
+.hbar:last-child{margin-bottom:0}
+.hbar .top{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;margin-bottom:5px}
+.hbar .nm{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbar .vl{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--muted);flex:0 0 auto}
+.track{height:8px;border-radius:5px;background:var(--bg-2);overflow:hidden}
+.fill{height:100%;border-radius:5px;transition:width .55s cubic-bezier(.4,0,.2,1)}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.search{flex:1 1 200px;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line-soft);border-radius:10px;padding:0 12px}
+.search input{border:0;background:transparent;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;padding:10px 0;width:100%;outline:none}
+.search input::placeholder{color:var(--faint)}
+.seg{display:flex;border:1px solid var(--line-soft);border-radius:10px;overflow:hidden}
+.seg button{font-family:inherit;border:0;background:var(--panel);color:var(--muted);padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.seg button+button{border-left:1px solid var(--line-soft)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#1a1408}
+.refreshed{font-size:11px;color:var(--faint);font-family:'JetBrains Mono',monospace;margin-left:auto}
+
+.panel{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);overflow:hidden}
+.row{display:grid;align-items:center;gap:12px;padding:13px 16px;grid-template-columns:1.7fr .7fr .7fr .7fr 1fr;border-bottom:1px solid var(--line-soft)}
+.row:last-child{border-bottom:0}
+.row.head{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);background:var(--bg-2);padding:11px 16px}
+.row.body:hover{background:var(--panel-2)}
+.empty{padding:34px 16px;text-align:center;color:var(--faint);font-family:'JetBrains Mono',monospace;font-size:13px}
+.user{display:flex;align-items:center;gap:11px;min-width:0}
+.ua{width:36px;height:36px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-weight:800;font-size:14px;color:#1a1408}
+.uinfo{min-width:0}
+.uinfo b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uinfo .em{font-size:11.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uinfo .uid{font-size:10px;color:var(--faint);font-family:'JetBrains Mono',monospace}
+.metric{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
+.metric.zero{color:var(--faint)}
+.metric .lab{display:none}
+.sync{font-family:'JetBrains Mono',monospace;font-size:12.5px}
+.sync.recent{color:var(--green)}
+.sync .abs{display:block;font-size:10px;color:var(--faint)}
+.apps{display:flex;gap:4px;margin-top:5px}
+.chip{font-size:9px;font-family:'JetBrains Mono',monospace;padding:2px 5px;border-radius:5px;background:var(--accent-soft);color:var(--accent);letter-spacing:.04em}
+
+.center{min-height:78vh;display:grid;place-items:center;text-align:center;padding:24px}
+.card{background:var(--panel);border:1px solid var(--line-soft);border-radius:18px;padding:34px 30px;max-width:380px;width:100%}
+.card .mark{width:54px;height:54px;font-size:28px;margin:0 auto 18px}
+.card h2{margin:0 0 6px;font-size:20px;font-weight:800}
+.card p{margin:0 0 22px;color:var(--muted);font-size:13.5px;line-height:1.5}
+.gbtn{display:inline-flex;align-items:center;gap:10px;cursor:pointer;background:#fff;color:#1a1408;border:0;border-radius:11px;padding:12px 20px;font-family:inherit;font-weight:700;font-size:14px;width:100%;justify-content:center}
+.gbtn:hover{opacity:.92}
+.gbtn:disabled{opacity:.6;cursor:progress}
+.deny-ico{font-size:40px;margin-bottom:14px}
+.deny-uid{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);margin-top:10px;word-break:break-all}
+.hidden{display:none !important}
+.spin{display:inline-block;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+@media (max-width:720px){
+  .row.head{display:none}
+  .row.body{grid-template-columns:1fr;gap:10px;padding:15px}
+  .metric{display:flex;justify-content:space-between;font-size:14px;border-top:1px dashed var(--line-soft);padding-top:8px}
+  .metric .lab{display:inline;font-family:'Bricolage Grotesque',sans-serif;font-weight:600;color:var(--muted);font-size:12.5px}
+  .sync{display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed var(--line-soft);padding-top:8px}
+  .sync::before{content:"Last sync";font-family:'Bricolage Grotesque',sans-serif;font-weight:600;color:var(--muted);font-size:12.5px}
+  .sync .abs{display:inline;margin-left:6px}
+  .refreshed{width:100%;text-align:right}
+}
+</style>
+</head>
+<body>
+
+<!-- SIGN-IN GATE -->
+<section id="gate" class="center">
+  <div class="card">
+    <div class="mark">🐾</div>
+    <h2>LesProjets Admin</h2>
+    <p>Owner-only console. Sign in with the admin Google account to view synced-user activity.</p>
+    <button class="gbtn" id="signinBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.7 3.2-7.8z"/><path fill="#34A853" d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1.1-3.6 1.1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M6 14.4a6.6 6.6 0 0 1 0-4.2V7.4H2.3a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.4L6 10.2C6.9 7.7 9.2 5.4 12 5.4z"/></svg>
+      Sign in with Google
+    </button>
+  </div>
+</section>
+
+<!-- NOT AUTHORIZED -->
+<section id="denied" class="center hidden">
+  <div class="card">
+    <div class="deny-ico">🔒</div>
+    <h2>Not authorized</h2>
+    <p>This account is signed in but is not the admin. Data is gated by Firestore rules — nothing was fetched.</p>
+    <div class="deny-uid" id="denied-uid"></div>
+    <button class="btn ghost" style="margin-top:18px" id="denied-signout">Sign out</button>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<main id="app" class="wrap hidden">
+  <div class="topbar">
+    <div class="mark">🐾</div>
+    <div class="brand"><h1>LesProjets · Admin</h1><div class="sub">activity console</div></div>
+    <div class="who">
+      <div class="ident"><b id="me-name">—</b><span id="me-email"></span></div>
+      <div class="avatar" id="me-avatar"></div>
+      <button class="btn ghost small" id="signoutBtn">Sign out</button>
+    </div>
+  </div>
+
+  <div id="errbox" class="errbox hidden"></div>
+
+  <div class="stats" id="stats"></div>
+
+  <section class="charts">
+    <div class="chart"><h3>Sync recency</h3><div id="chart-recency"></div></div>
+    <div class="chart"><h3>Adoption by app</h3><div id="chart-adoption"></div></div>
+    <div class="chart"><h3>Top users · activity</h3><div id="chart-top"></div></div>
+  </section>
+
+  <div class="toolbar">
+    <label class="search"><span style="color:var(--faint)">⌕</span>
+      <input id="search" type="text" placeholder="search name / email / uid" /></label>
+    <div class="seg" role="group" aria-label="sort">
+      <button data-sort="sync" aria-pressed="true">Last sync</button>
+      <button data-sort="name" aria-pressed="false">Name</button>
+      <button data-sort="data" aria-pressed="false">Most data</button>
+    </div>
+    <button class="btn small" id="refreshBtn">↻ Refresh</button>
+    <span class="refreshed" id="refreshed"></span>
+  </div>
+
+  <div class="panel">
+    <div class="row head">
+      <div>User</div><div>Nutr · days</div><div>Bills</div><div>Places</div><div>Last sync</div>
+    </div>
+    <div id="rows"></div>
+  </div>
+</main>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
+import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+
+const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
+  authDomain: 'auth.pumbafluffycorgi.com',
+  databaseURL: 'https://pumgoda-default-rtdb.asia-southeast1.firebasedatabase.app',
+  projectId: 'pumgoda',
+  storageBucket: 'pumgoda.firebasestorage.app',
+  messagingSenderId: '675478948836',
+  appId: '1:675478948836:web:3ad94d736b6a677d8495f1',
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+const $ = (id) => document.getElementById(id);
+const show = (id) => ['gate','denied','app'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+
+let DATA = [];
+let sortKey = 'sync';
+
+const COLORS = ['#e8a13a','#7fb069','#d9694e','#5b9bd5','#c678dd','#e0a458','#56b6c2','#d98ba0'];
+function colorFor(s){let h=0;for(const c of (s||''))h=(h*31+c.charCodeAt(0))>>>0;return COLORS[h%COLORS.length];}
+
+const DAY = 86400000, HR = 3600000, MIN = 60000;
+function ts(v){ if(!v) return 0; if(typeof v === 'number') return v; if(typeof v.toMillis === 'function') return v.toMillis(); if(typeof v.seconds === 'number') return v.seconds*1000; return 0; }
+function rel(t){
+  if(!t) return ['—','',''];
+  const d = Date.now()-t; let s;
+  if(d<HR) s = Math.max(1,Math.round(d/MIN))+'m ago';
+  else if(d<DAY) s = Math.round(d/HR)+'h ago';
+  else s = Math.round(d/DAY)+'d ago';
+  const abs = new Date(t).toISOString().slice(0,16).replace('T',' ');
+  return [s, abs, d<7*DAY ? 'recent' : ''];
+}
+
+// ---- auth flow ----
+$('signinBtn').addEventListener('click', async () => {
+  $('signinBtn').disabled = true;
+  try { await signInWithPopup(auth, provider); }
+  catch(e){ if(e.code!=='auth/popup-closed-by-user' && e.code!=='auth/cancelled-popup-request') alert('Sign-in failed: '+(e.message||e.code)); }
+  finally { $('signinBtn').disabled = false; }
+});
+$('signoutBtn').addEventListener('click', () => signOut(auth));
+$('denied-signout').addEventListener('click', () => signOut(auth));
+
+onAuthStateChanged(auth, (user) => {
+  if(!user){ show('gate'); return; }
+  if(user.uid !== ADMIN_UID){
+    $('denied-uid').textContent = 'uid: ' + user.uid;
+    show('denied'); return;
+  }
+  $('me-name').textContent = user.displayName || 'Admin';
+  $('me-email').textContent = user.email || '';
+  const av = $('me-avatar');
+  if(user.photoURL){ av.innerHTML = ''; const img=document.createElement('img'); img.src=user.photoURL; img.referrerPolicy='no-referrer'; av.appendChild(img); }
+  else { av.textContent = (user.displayName||'A')[0].toUpperCase(); }
+  show('app');
+  loadData();
+});
+
+// ---- data ----
+async function loadData(){
+  const btn = $('refreshBtn');
+  btn.innerHTML = '<span class="spin">↻</span> Loading…'; btn.disabled = true;
+  $('errbox').classList.add('hidden');
+  const map = new Map();
+  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,sync:0,name:null,email:null}); return map.get(uid); };
+  const errors = [];
+  async function scan(col, apply){
+    try{ const snap = await getDocs(collection(db, col)); snap.forEach(s => apply(ensure(s.id), s.data()||{})); }
+    catch(e){ errors.push(col + ': ' + (e.code||e.message)); }
+  }
+  await scan('users',      (u,d) => { u.nutr  = d.days ? Object.keys(d.days).length : 0; u.sync = Math.max(u.sync, ts(d.lastModified)); });
+  await scan('userBills',  (u,d) => { u.bills = Array.isArray(d.history) ? d.history.length : 0; u.sync = Math.max(u.sync, ts(d.lastModified)); });
+  await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; u.sync = Math.max(u.sync, ts(d.lastModified)); });
+  await scan('userProfiles',(u,d) => { u.name = d.name || null; u.email = d.email || null; u.sync = Math.max(u.sync, ts(d.lastSeen)); });
+
+  DATA = [...map.values()];
+
+  if(errors.length){
+    $('errbox').innerHTML = 'Firestore denied some reads — publish the admin rules, then Refresh.<br><code>'+errors.join('<br>')+'</code>';
+    $('errbox').classList.remove('hidden');
+  }
+  render();
+  $('refreshed').textContent = 'refreshed ' + new Date().toTimeString().slice(0,8);
+  btn.innerHTML = '↻ Refresh'; btn.disabled = false;
+}
+
+// ---- render ----
+function render(){
+  const q = ($('search').value||'').toLowerCase().trim();
+  let rows = DATA.filter(u => !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || u.uid.toLowerCase().includes(q));
+  rows.sort((a,b) => {
+    if(sortKey==='name') return (a.name||a.uid).localeCompare(b.name||b.uid);
+    if(sortKey==='data') return (b.nutr+b.bills+b.places)-(a.nutr+a.bills+a.places);
+    return b.sync-a.sync;
+  });
+
+  const synced = DATA.length;
+  const active7 = DATA.filter(u => Date.now()-u.sync < 7*DAY && u.sync>0).length;
+  const sum = (k) => DATA.reduce((s,u)=>s+u[k],0);
+  $('stats').innerHTML = [
+    ['Synced users', synced, ''],
+    ['Active · 7d', active7, '<small>/ '+synced+'</small>'],
+    ['Nutrition days', sum('nutr'), ''],
+    ['Saved bills', sum('bills'), ''],
+    ['Saved places', sum('places'), ''],
+  ].map(([k,v,x]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}${x}</div></div>`).join('');
+
+  if(rows.length===0){
+    $('rows').innerHTML = '<div class="empty">'+(DATA.length===0?'No synced users yet.':'No matches.')+'</div>';
+  } else {
+    $('rows').innerHTML = rows.map(u => {
+      const [s,abs,cls] = rel(u.sync);
+      const apps = [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
+      const m = (n,lab) => `<div class="metric ${n===0?'zero':''}"><span class="lab">${lab}</span><span>${n===0?'—':n}</span></div>`;
+      const nm = u.name || (u.uid.slice(0,12)+'…');
+      return `<div class="row body">
+        <div class="user">
+          <div class="ua" style="background:${colorFor(u.uid)}">${(u.name||'·')[0].toUpperCase()}</div>
+          <div class="uinfo"><b>${nm}</b><span class="em">${u.email||'—'}</span><span class="uid">${u.uid.slice(0,10)}…</span><div class="apps">${apps}</div></div>
+        </div>
+        ${m(u.nutr,'Nutrition days')}${m(u.bills,'Bills')}${m(u.places,'Places')}
+        <div class="sync ${cls}">${s}<span class="abs">${abs}</span></div>
+      </div>`;
+    }).join('');
+  }
+  renderCharts();
+}
+
+function donut(segs){
+  const total = segs.reduce((s,x)=>s+x.v,0)||1;
+  const r=54, C=2*Math.PI*r; let off=0;
+  const arcs = segs.map(s => { const len=C*s.v/total;
+    const c=`<circle cx="64" cy="64" r="${r}" fill="none" stroke="${s.color}" stroke-width="15" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 64 64)"/>`;
+    off+=len; return c; }).join('');
+  return `<svg class="donut" width="124" height="124" viewBox="0 0 128 128" aria-hidden="true">${arcs}
+    <text x="64" y="61" text-anchor="middle" fill="#f3ece0" font-size="27" font-weight="800" font-family="JetBrains Mono">${total}</text>
+    <text x="64" y="79" text-anchor="middle" fill="#7d7560" font-size="9" font-family="JetBrains Mono" letter-spacing="1.5">USERS</text></svg>`;
+}
+function hbar(name,val,max,color,vlabel){
+  const pct = Math.round(100*val/(max||1));
+  return `<div class="hbar"><div class="top"><span class="nm">${name}</span><span class="vl">${vlabel}</span></div>
+    <div class="track"><div class="fill" style="width:${pct}%;background:${color}"></div></div></div>`;
+}
+function renderCharts(){
+  const b = [
+    {label:'Active · <24h', color:'#7fb069', v:0},
+    {label:'This week',     color:'#e8a13a', v:0},
+    {label:'This month',    color:'#5b9bd5', v:0},
+    {label:'Dormant · 30d+',color:'#d9694e', v:0},
+  ];
+  DATA.forEach(u => { const d = u.sync ? Date.now()-u.sync : Infinity;
+    if(d<DAY) b[0].v++; else if(d<7*DAY) b[1].v++; else if(d<30*DAY) b[2].v++; else b[3].v++; });
+  $('chart-recency').innerHTML = `<div class="donut-wrap">${donut(b)}<div class="legend">`+
+    b.map(s=>`<div class="li"><span class="dot" style="background:${s.color}"></span><span class="ln">${s.label}</span><span class="lv">${s.v}</span></div>`).join('')+`</div></div>`;
+
+  const total = DATA.length;
+  const apps = [
+    {label:'Nutritions',    color:'#7fb069', v:DATA.filter(u=>u.nutr>0).length},
+    {label:'Bill Splitter', color:'#e8a13a', v:DATA.filter(u=>u.bills>0).length},
+    {label:'Pumgoda',       color:'#5b9bd5', v:DATA.filter(u=>u.places>0).length},
+  ];
+  $('chart-adoption').innerHTML = apps.map(a=>hbar(a.label,a.v,total,a.color,a.v+' / '+total)).join('');
+
+  const top = [...DATA].map(u=>({n:u.name||u.uid.slice(0,8), t:u.nutr+u.bills+u.places, c:colorFor(u.uid)}))
+    .sort((x,y)=>y.t-x.t).slice(0,6);
+  const max = top[0] ? top[0].t : 1;
+  $('chart-top').innerHTML = top.map(u=>hbar(u.n,u.t,max,u.c,String(u.t))).join('');
+}
+
+// ---- controls ----
+$('search').addEventListener('input', render);
+$('refreshBtn').addEventListener('click', loadData);
+document.querySelectorAll('.seg button').forEach(btn => btn.addEventListener('click', () => {
+  sortKey = btn.dataset.sort;
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.sort===sortKey));
+  render();
+}));
+</script>
+</body>
+</html>

@@ -425,7 +425,7 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js'
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js'
-  import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+  import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
@@ -494,6 +494,7 @@
         { el: document.getElementById("acct-status-pgd"), col: 'userPlaces' },
       ];
       if (user) {
+        setDoc(doc(db, 'userProfiles', user.uid), { name: user.displayName || null, email: user.email || null, photoURL: user.photoURL || null, lastSeen: serverTimestamp() }, { merge: true }).catch(function (e) { console.warn('[profile] write failed:', e); });
         rows.forEach(function (r) {
           if (!r.el) return;
           getDoc(doc(db, r.col, user.uid))
