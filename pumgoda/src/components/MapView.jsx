@@ -345,7 +345,7 @@ export default function MapView({ places = [], onPlaceClick, theme = 'light', la
 
   // Locate me: tap to start live tracking, tap again to stop.
   const handleLocate = useCallback(() => {
-    if (locateState === 'tracking') {
+    if (locateState !== 'idle') {
       stopTracking()
       return
     }
@@ -419,7 +419,6 @@ export default function MapView({ places = [], onPlaceClick, theme = 'light', la
         aria-label={tracking ? locateLabels.stop : locateLabels.button}
         title={tracking ? locateLabels.stop : locateLabels.button}
         aria-pressed={tracking}
-        disabled={locating}
       >
         {locating ? '⏳' : '📍'}
       </button>
