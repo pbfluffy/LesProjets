@@ -1,21 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
 import {
   auth, db,
-  onAuthStateChanged, doc, setDoc, serverTimestamp,
-  onSnapshot,
-} from '../firebase.js';
+  onAuthStateChanged, doc, setDoc, serverTimestamp, onSnapshot,
+} from '../firebase.js'
+import { useCloudSyncCore } from '../../../shared/useCloudSyncCore.js'
 
-const DEBOUNCE_MS = 1500;
-const COLL = 'userBills';
+// #75 — thin wrapper over the shared cloud-sync core.
+// Bill Splitter saved bills live in /userBills/<uid>, stored under `history`.
+const COLL = 'userBills'
 
 function localHasData(entries) {
-  return Array.isArray(entries) && entries.length > 0;
+  return Array.isArray(entries) && entries.length > 0
 }
 
-// Deep, deterministic stringification — sorts keys recursively so two
-// objects with identical data but different field insertion order produce
-// the same fingerprint. Fixes spurious conflict modals from Firestore
-// returning fields in a different order than localStorage.
+// Deep, deterministic stringification — sorts keys recursively so identical
+// data with different field order produces the same fingerprint.
 function canonical(obj) {
   if (obj === null || typeof obj !== 'object') return obj
   if (Array.isArray(obj)) return obj.map(canonical)
@@ -25,215 +23,31 @@ function canonical(obj) {
 }
 
 function fingerprint(entries) {
-  return JSON.stringify(canonical(entries || []));
+  return JSON.stringify(canonical(entries || []))
 }
 
-/**
- * Cloud sync for Bill Splitter saved bills.
- * Uses a dedicated /userBills/<uid> doc — isolated from Nutritions/Pumgoda.
- *
- * - Subscribes via onSnapshot for real-time cross-device updates.
- * - On first sign-in:
- *     - cloud has no doc -> push local
- *     - cloud has entries, local empty -> pull
- *     - both have entries AND differ -> 'awaiting-decision'; user picks via
- *       confirmCloudWins() or confirmLocalWins()
- * - Live updates after initial sync use echo suppression.
- */
 export function useCloudSync({ entries, replaceEntries }) {
-  const [user, setUser] = useState(null);
-  const [syncStatus, setSyncStatus] = useState('idle');
-  const [lastSyncedAt, setLastSyncedAt] = useState(null);
-  const [pendingServerEntries, setPendingServerEntries] = useState(null);
-
-  const initialSyncDone = useRef(false);
-  const pushTimer = useRef(null);
-  const lastPushedFingerprint = useRef(null);
-  const justPulled = useRef(false);
-  const entriesRef = useRef(entries);
-  // #81: harden against destructive failed pushes.
-  // pushInFlight = fingerprint of the write currently awaiting the server.
-  // lastConfirmedFingerprint = last state the SERVER actually accepted.
-  const pushInFlight = useRef(null);
-  const lastConfirmedFingerprint = useRef(null);
-
-  useEffect(() => { entriesRef.current = entries; }, [entries]);
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      if (!u) {
-        initialSyncDone.current = false;
-        lastPushedFingerprint.current = null;
-        pushInFlight.current = null;
-        lastConfirmedFingerprint.current = null;
-        setPendingServerEntries(null);
-        setSyncStatus('idle');
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    setSyncStatus('syncing');
-    const ref = doc(db, COLL, user.uid);
-
-    const unsubscribe = onSnapshot(
-      ref,
-      (snap) => {
-        const cloudEntries = snap.exists() ? (snap.data().history || []) : null;
-
-        if (!initialSyncDone.current) {
-          if (cloudEntries === null) {
-            if (pushInFlight.current !== null) return;
-            const current = entriesRef.current;
-            const fp = fingerprint(current);
-            lastPushedFingerprint.current = fp;
-            pushInFlight.current = fp;
-            setDoc(ref, { history: current, lastEdit: Date.now(), lastModified: serverTimestamp() })
-              .then(() => {
-                pushInFlight.current = null;
-                lastConfirmedFingerprint.current = fp;
-                initialSyncDone.current = true;
-                setLastSyncedAt(Date.now());
-                setSyncStatus('synced');
-              })
-              .catch((e) => {
-                pushInFlight.current = null;
-                lastPushedFingerprint.current = lastConfirmedFingerprint.current;
-                console.error('[billSync] initial push failed:', e);
-                setSyncStatus('error');
-              });
-            return;
-          }
-
-          const localFp = fingerprint(entriesRef.current);
-          const cloudFp = fingerprint(cloudEntries);
-
-          if (localFp === cloudFp) {
-            lastPushedFingerprint.current = cloudFp;
-            lastConfirmedFingerprint.current = cloudFp;
-            initialSyncDone.current = true;
-            setLastSyncedAt(Date.now());
-            setSyncStatus('synced');
-            return;
-          }
-
-          if (localHasData(entriesRef.current)) {
-            setPendingServerEntries(cloudEntries);
-            setSyncStatus('awaiting-decision');
-            return;
-          }
-
-          justPulled.current = true;
-          replaceEntries(cloudEntries);
-          lastPushedFingerprint.current = cloudFp;
-          lastConfirmedFingerprint.current = cloudFp;
-          initialSyncDone.current = true;
-          setLastSyncedAt(Date.now());
-          setSyncStatus('synced');
-          setTimeout(() => { justPulled.current = false; }, 300);
-          return;
-        }
-
-        if (cloudEntries === null) return;
-        const cloudFp = fingerprint(cloudEntries);
-        if (cloudFp === lastPushedFingerprint.current) return;
-        // #81: a rejected push makes Firestore revert its optimistic write and
-        // fire a snapshot reverting to the last server-confirmed state. While a
-        // push is in flight, ignore that revert so it can't wipe the unsaved
-        // local change. The push effect surfaces the failure via 'error'.
-        if (pushInFlight.current !== null && cloudFp === lastConfirmedFingerprint.current) return;
-
-        justPulled.current = true;
-        replaceEntries(cloudEntries);
-        lastPushedFingerprint.current = cloudFp;
-        lastConfirmedFingerprint.current = cloudFp;
-        setLastSyncedAt(Date.now());
-        setSyncStatus('synced');
-        setTimeout(() => { justPulled.current = false; }, 300);
-      },
-      (error) => {
-        console.error('[billSync] snapshot error:', error);
-        setSyncStatus('error');
-      }
-    );
-
-    return () => unsubscribe();
-  }, [user]);
-
-  useEffect(() => {
-    if (!user || !initialSyncDone.current || justPulled.current) return;
-    if (pushTimer.current) clearTimeout(pushTimer.current);
-    pushTimer.current = setTimeout(() => {
-      const ref = doc(db, COLL, user.uid);
-      const fp = fingerprint(entries);
-      if (fp === lastPushedFingerprint.current) return;
-      lastPushedFingerprint.current = fp;
-      pushInFlight.current = fp;
-      setDoc(ref, { history: entries, lastEdit: Date.now(), lastModified: serverTimestamp() })
-        .then(() => {
-          pushInFlight.current = null;
-          lastConfirmedFingerprint.current = fp;
-          setLastSyncedAt(Date.now());
-          setSyncStatus('synced');
-        })
-        .catch((e) => {
-          pushInFlight.current = null;
-          lastPushedFingerprint.current = lastConfirmedFingerprint.current;
-          console.error('[billSync] push failed:', e);
-          setSyncStatus('error');
-        });
-    }, DEBOUNCE_MS);
-    return () => {
-      if (pushTimer.current) clearTimeout(pushTimer.current);
-    };
-  }, [entries, user]);
-
-  const confirmCloudWins = () => {
-    if (!pendingServerEntries || !user) return;
-    justPulled.current = true;
-    replaceEntries(pendingServerEntries);
-    lastPushedFingerprint.current = fingerprint(pendingServerEntries);
-    lastConfirmedFingerprint.current = fingerprint(pendingServerEntries);
-    initialSyncDone.current = true;
-    setPendingServerEntries(null);
-    setLastSyncedAt(Date.now());
-    setSyncStatus('synced');
-    setTimeout(() => { justPulled.current = false; }, 300);
-  };
-
-  const confirmLocalWins = () => {
-    if (!user) return;
-    const current = entriesRef.current;
-    const ref = doc(db, COLL, user.uid);
-    const fp = fingerprint(current);
-    lastPushedFingerprint.current = fp;
-    pushInFlight.current = fp;
-    setSyncStatus('syncing');
-    setDoc(ref, { history: current, lastEdit: Date.now(), lastModified: serverTimestamp() })
-      .then(() => {
-        pushInFlight.current = null;
-        lastConfirmedFingerprint.current = fp;
-        initialSyncDone.current = true;
-        setPendingServerEntries(null);
-        setLastSyncedAt(Date.now());
-        setSyncStatus('synced');
-      })
-      .catch((e) => {
-        pushInFlight.current = null;
-        lastPushedFingerprint.current = lastConfirmedFingerprint.current;
-        console.error('[billSync] confirm-local push failed:', e);
-        setSyncStatus('error');
-      });
-  };
-
+  const r = useCloudSyncCore({
+    auth, db, onAuthStateChanged, doc, setDoc, serverTimestamp, onSnapshot,
+    collection: COLL,
+    logPrefix: '[billSync]',
+    localData: entries,
+    applyRemote: replaceEntries,
+    hasData: localHasData,
+    serialize: (e) => ({ history: e, lastEdit: Date.now() }),
+    readRemote: (snap) => (snap.exists() ? (snap.data().history || []) : null),
+    stashPending: (snap) => (snap.data().history || []),
+    applyPending: (p) => { replaceEntries(p); return p },
+    conflictFp: fingerprint,
+    echoFp: fingerprint,
+    syncingOnChange: false,
+  })
   return {
-    user,
-    syncStatus,
-    lastSyncedAt,
-    pendingServerEntries,
-    confirmCloudWins,
-    confirmLocalWins,
-  };
+    user: r.user,
+    syncStatus: r.syncStatus,
+    lastSyncedAt: r.lastSyncedAt,
+    pendingServerEntries: r.pendingServer,
+    confirmCloudWins: r.confirmCloudWins,
+    confirmLocalWins: r.confirmLocalWins,
+  }
 }
