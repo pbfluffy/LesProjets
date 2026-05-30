@@ -156,7 +156,7 @@
     <button class="btn ghost" id="styleBtn">Style: Café Jazz</button>
     <button class="btn ghost" id="aiBtn">✦ Generate live log</button>
   </div>
-  <div class="footnote">your art, untouched · ambient fx + claude work-log · <a href="/">© Pum's Office</a></div>
+  <div class="footnote">your art, untouched · ambient fx + AI work-log · <a href="/">© Pum's Office</a></div>
 </div>
 
 <script>
@@ -287,7 +287,7 @@ function clockTick(){ $('clock').textContent=now(); $('date').textContent=dateSt
 // Opened as a plain file, the fetch fails and we fall back to the built-in writing.
 const WORKLOG_ENDPOINT = 'https://pums-office-worklog.pbfluffygaming.workers.dev'; // <- set to your Worker URL
 async function generateLiveLog(){
-  logEv(null,'Asking Claude for fresh tasks…');
+  logEv(null,'Asking the AI for fresh tasks…');
   try{
     const res=await fetch(WORKLOG_ENDPOINT,{
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -305,8 +305,8 @@ async function generateLiveLog(){
     const m=text.match(/\{[\s\S]*\}/); const parsed=JSON.parse(m?m[0]:text);
     if(parsed.Pumba&&parsed.Gigi){
       DOGS.Pumba.tasks=parsed.Pumba; DOGS.Gigi.tasks=parsed.Gigi;
-      liveTasks=true; logsrc.textContent='live · claude'; logsrc.classList.add('live');
-      logEv(null,'Live tasks loaded from Claude ✦');
+      liveTasks=true; logsrc.textContent='live · AI'; logsrc.classList.add('live');
+      logEv(null,'Live tasks loaded ✦');
       // Option A: surface the fresh tasks into the feed, staggered + interleaved
       const fresh=[];
       for(let i=0;i<6;i++){
