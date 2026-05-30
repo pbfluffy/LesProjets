@@ -113,6 +113,24 @@
 
     [data-theme="dark"] .acct-popover .acct-google-btn { background: #1f1f1f; border-color: #5f6368; color: #e8eaed; }
     [data-theme="dark"] .acct-popover .acct-google-btn:hover { background: #2a2a2a; }
+    .acct-popover .acct-backup { border-top: 1px solid var(--border); padding-top: 10px; margin-bottom: 12px; }
+    .acct-popover .acct-backup-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .acct-mini-btn { flex: 1; padding: 6px 10px; background: var(--surface-alt); border: 0.5px solid var(--border); border-radius: 6px; font-size: 12px; color: var(--text); font-family: inherit; cursor: pointer; }
+    .acct-mini-btn:hover { background: var(--surface); }
+    .acct-mini-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .restore-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+    .restore-overlay[data-open="true"] { display: flex; }
+    .restore-modal { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; max-width: 380px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 18px; box-shadow: 0 8px 28px rgba(0,0,0,0.25); }
+    .restore-modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .restore-modal-head h3 { font-size: 15px; font-weight: 600; margin: 0; }
+    .restore-modal-close { background: transparent; border: 0.5px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 12px; color: var(--text); font-family: inherit; cursor: pointer; }
+    .restore-list { display: flex; flex-direction: column; gap: 8px; }
+    .restore-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 16px 0; }
+    .restore-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 0.5px solid var(--border); border-radius: 8px; padding: 10px; }
+    .restore-item .ri-when { font-size: 12px; font-weight: 600; color: var(--text); }
+    .restore-item .ri-summary { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .restore-item .ri-btn { padding: 5px 12px; background: var(--accent); border: none; border-radius: 6px; font-size: 12px; color: #fff; font-family: inherit; cursor: pointer; flex-shrink: 0; }
+    .restore-item .ri-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     /* Pum's Office living widget */
     a.studio-widget { display:block; background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius); padding:7px 7px 4px; text-decoration:none; color:inherit; transition:border-color 0.15s, transform 0.12s, box-shadow 0.15s, background 0.2s; }
     a.studio-widget:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.07); }
@@ -182,6 +200,13 @@
             <div class="acct-sync-row"><span id="acct-app-nutr">Nutritions</span><span class="status" id="acct-status-nutr">· local only</span></div>
             <div class="acct-sync-row"><span id="acct-app-bill">Bill history</span><span class="status" id="acct-status-bill">· local only</span></div>
             <div class="acct-sync-row"><span id="acct-app-pgd">Saved places</span><span class="status" id="acct-status-pgd">· local only</span></div>
+          </div>
+          <div class="acct-backup">
+            <div class="acct-sync-row"><span id="acct-backup-label">Cloud backup</span><span class="status" id="acct-backup-when" data-ts="">· none yet</span></div>
+            <div class="acct-backup-actions">
+              <button class="acct-mini-btn" id="acct-backup-now">Back up now</button>
+              <button class="acct-mini-btn" id="acct-restore-open">Restore…</button>
+            </div>
           </div>
           <button class="acct-signout-btn" id="acct-signout-btn">Sign out</button>
         </div>
@@ -280,6 +305,16 @@
     pumbafluffycorgi.com
   </footer>
 
+  <div class="restore-overlay" id="restore-overlay" data-open="false">
+    <div class="restore-modal">
+      <div class="restore-modal-head">
+        <h3 id="restore-modal-title">Restore from backup</h3>
+        <button class="restore-modal-close" id="restore-modal-close">Close</button>
+      </div>
+      <div class="restore-list" id="restore-list"></div>
+    </div>
+  </div>
+
   <script>
     const S = {
       th: {
@@ -308,6 +343,19 @@
         acctStatusLocal: "· เฉพาะในเครื่อง",
         acctStatusSyncing: "· กำลังซิงค์…",
         acctAccount: "บัญชี",
+        acctBackupLabel: "สำรองข้อมูลบนคลาวด์",
+        acctBackupNow: "สำรองตอนนี้",
+        acctRestore: "กู้คืน…",
+        acctBackupNone: "· ยังไม่มี",
+        restoreTitle: "กู้คืนจากข้อมูลสำรอง",
+        restoreEmpty: "ยังไม่มีข้อมูลสำรอง",
+        restoreClose: "ปิด",
+        restoreBtn: "กู้คืน",
+        restoreConfirm: "กู้คืนจากข้อมูลสำรองนี้? ข้อมูลบนคลาวด์ปัจจุบันจะถูกแทนที่",
+        restoreDone: "กู้คืนแล้ว — รีโหลดแอปเพื่อดูข้อมูล",
+        restoreFail: "กู้คืนไม่สำเร็จ",
+        backupDone: "สำรองข้อมูลแล้ว ✓",
+        backupFail: "สำรองข้อมูลไม่สำเร็จ",
       
     acctStatusSynced: '· ซิงค์แล้ว'},
       en: {
@@ -336,6 +384,19 @@
         acctStatusLocal: "· local only",
         acctStatusSyncing: "· syncing…",
         acctAccount: "Account",
+        acctBackupLabel: "Cloud backup",
+        acctBackupNow: "Back up now",
+        acctRestore: "Restore…",
+        acctBackupNone: "· none yet",
+        restoreTitle: "Restore from backup",
+        restoreEmpty: "No backups yet",
+        restoreClose: "Close",
+        restoreBtn: "Restore",
+        restoreConfirm: "Restore from this backup? Your current cloud data will be replaced.",
+        restoreDone: "Restored — reload the app to see your data",
+        restoreFail: "Restore failed",
+        backupDone: "Backed up ✓",
+        backupFail: "Backup failed",
       
     acctStatusSynced: '· synced'}
     }
@@ -381,12 +442,22 @@
       document.getElementById("acct-status-nutr").textContent = (_nutrSynced ? s.acctStatusSynced + (document.getElementById("acct-status-nutr").dataset.count ? " (" + document.getElementById("acct-status-nutr").dataset.count + ")" : "") : s.acctStatusLocal);
       document.getElementById("acct-status-bill").textContent = (_billSynced ? s.acctStatusSynced + (document.getElementById("acct-status-bill").dataset.count ? " (" + document.getElementById("acct-status-bill").dataset.count + ")" : "") : s.acctStatusLocal);
       document.getElementById("acct-status-pgd").textContent = (_pgdSynced ? s.acctStatusSynced + (document.getElementById("acct-status-pgd").dataset.count ? " (" + document.getElementById("acct-status-pgd").dataset.count + ")" : "") : s.acctStatusLocal);
+      // backup section
+      const _bkLabel = document.getElementById("acct-backup-label"); if (_bkLabel) _bkLabel.textContent = s.acctBackupLabel;
+      const _bkNow = document.getElementById("acct-backup-now"); if (_bkNow) _bkNow.textContent = s.acctBackupNow;
+      const _bkRestore = document.getElementById("acct-restore-open"); if (_bkRestore) _bkRestore.textContent = s.acctRestore;
+      const _bkWhen = document.getElementById("acct-backup-when");
+      if (_bkWhen) _bkWhen.textContent = _bkWhen.dataset.ts ? ("· " + new Date(Number(_bkWhen.dataset.ts)).toLocaleString(lang === "th" ? "th-TH" : "en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })) : s.acctBackupNone;
+      const _rTitle = document.getElementById("restore-modal-title"); if (_rTitle) _rTitle.textContent = s.restoreTitle;
+      const _rClose = document.getElementById("restore-modal-close"); if (_rClose) _rClose.textContent = s.restoreClose;
       const acctBtn = document.getElementById("acctBtn")
       const signedIn = document.getElementById("acctPopover").dataset.auth === "signed-in"
       acctBtn.setAttribute("aria-label", signedIn ? s.acctAccount : s.acctSignIn)
       acctBtn.setAttribute("title", signedIn ? s.acctAccount : s.acctSignIn)
     }
       window.applyLang = applyLang;
+      window.S = S;
+      window.curLang = function () { return lang; };
 
     function toggleLang() { lang = lang === "th" ? "en" : "th"; applyLang() }
     function toggleTheme() { dark = !dark; applyTheme() }
@@ -425,7 +496,7 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js'
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js'
-  import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+  import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, limit, deleteDoc } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
@@ -448,6 +519,149 @@
   const signedInEl = popover.querySelector('.acct-signed-in')
   const googleBtn = document.getElementById('acct-google-btn')
   const signoutBtn = document.getElementById('acct-signout-btn')
+
+  // ---- #72 Scheduled Firestore backup (client-side daily, keep 7, whole-snapshot) ----
+  const BACKUP_INTERVAL = 24 * 60 * 60 * 1000; // daily
+  const BACKUP_KEEP = 7;                         // retain last 7 snapshots
+  const APP_DOCS = [
+    { key: 'nutritions', col: 'users' },
+    { key: 'bills', col: 'userBills' },
+    { key: 'places', col: 'userPlaces' },
+  ];
+
+  function curLang() { return (window.curLang ? window.curLang() : 'en'); }
+  function txt(k) { const s = window.S ? window.S[curLang()] : null; return s ? s[k] : k; }
+  function snapCol(uid) { return collection(db, 'userBackups', uid, 'snapshots'); }
+  function fmtWhen(ts) { return new Date(ts || 0).toLocaleString(curLang() === 'th' ? 'th-TH' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+
+  function snapCounts(apps) {
+    apps = apps || {};
+    const b = apps.bills && Array.isArray(apps.bills.history) ? apps.bills.history.length : 0;
+    const n = apps.nutritions && apps.nutritions.days ? Object.keys(apps.nutritions.days).length : 0;
+    const p = apps.places && Array.isArray(apps.places.savedIds) ? apps.places.savedIds.length : 0;
+    return '\uD83C\uDF7D\uFE0F ' + b + ' \u00b7 \uD83E\uDD57 ' + n + ' \u00b7 \uD83D\uDCCD ' + p;
+  }
+
+  async function readAppDocs(uid) {
+    const snaps = await Promise.all(APP_DOCS.map(a => getDoc(doc(db, a.col, uid))));
+    const apps = {};
+    APP_DOCS.forEach((a, i) => { if (snaps[i].exists()) apps[a.key] = snaps[i].data(); });
+    return apps;
+  }
+
+  async function latestSnapshotTs(uid) {
+    try {
+      const q = await getDocs(query(snapCol(uid), orderBy('ts', 'desc'), limit(1)));
+      let ts = 0; q.forEach(d => { ts = (d.data() || {}).ts || 0; });
+      return ts;
+    } catch (e) { return 0; }
+  }
+
+  function refreshBackupWhen(ts) {
+    const el = document.getElementById('acct-backup-when');
+    if (!el) return;
+    if (ts) el.dataset.ts = String(ts); else delete el.dataset.ts;
+    if (window.applyLang) window.applyLang();
+  }
+
+  async function writeBackup(uid) {
+    const apps = await readAppDocs(uid);
+    if (!Object.keys(apps).length) {            // nothing synced yet — nothing to back up
+      localStorage.setItem('lp_lastBackup_' + uid, String(Date.now()));
+      return 0;
+    }
+    const ts = Date.now();
+    await addDoc(snapCol(uid), { ts: ts, schema: 1, apps: apps });
+    localStorage.setItem('lp_lastBackup_' + uid, String(ts));
+    try {                                        // prune to BACKUP_KEEP newest
+      const all = await getDocs(query(snapCol(uid), orderBy('ts', 'desc')));
+      const docs = all.docs;
+      if (docs.length > BACKUP_KEEP) await Promise.all(docs.slice(BACKUP_KEEP).map(d => deleteDoc(d.ref)));
+    } catch (e) { console.warn('[backup] prune failed:', e); }
+    refreshBackupWhen(ts);
+    return ts;
+  }
+
+  async function maybeAutoBackup(user) {
+    if (!user) { refreshBackupWhen(0); return; }
+    const lsKey = 'lp_lastBackup_' + user.uid;
+    try {
+      const lastLocal = Number(localStorage.getItem(lsKey) || 0);
+      if (Date.now() - lastLocal < BACKUP_INTERVAL) {   // backed up recently on this device
+        refreshBackupWhen(await latestSnapshotTs(user.uid));
+        return;
+      }
+      const lastTs = await latestSnapshotTs(user.uid);  // authoritative cross-device check
+      if (Date.now() - lastTs < BACKUP_INTERVAL) {
+        localStorage.setItem(lsKey, String(lastTs));
+        refreshBackupWhen(lastTs);
+        return;
+      }
+      await writeBackup(user.uid);
+    } catch (e) { console.warn('[backup] auto-backup failed:', e); }
+  }
+
+  async function restoreSnapshot(uid, snapId) {
+    const snap = await getDoc(doc(db, 'userBackups', uid, 'snapshots', snapId));
+    if (!snap.exists()) throw new Error('snapshot missing');
+    const apps = (snap.data() || {}).apps || {};
+    const writes = [];
+    APP_DOCS.forEach(a => {
+      if (apps[a.key]) writes.push(setDoc(doc(db, a.col, uid), Object.assign({}, apps[a.key], { lastModified: serverTimestamp() })));
+    });
+    await Promise.all(writes);
+  }
+
+  async function openRestore(uid) {
+    const overlay = document.getElementById('restore-overlay');
+    const listEl = document.getElementById('restore-list');
+    listEl.innerHTML = '';
+    overlay.dataset.open = 'true';
+    let docs = [];
+    try { docs = (await getDocs(query(snapCol(uid), orderBy('ts', 'desc')))).docs; }
+    catch (e) { console.warn('[backup] list failed:', e); }
+    if (!docs.length) {
+      const empty = document.createElement('div');
+      empty.className = 'restore-empty';
+      empty.textContent = txt('restoreEmpty');
+      listEl.appendChild(empty);
+      return;
+    }
+    docs.forEach(d => {
+      const data = d.data() || {};
+      const row = document.createElement('div'); row.className = 'restore-item';
+      const info = document.createElement('div');
+      const when = document.createElement('div'); when.className = 'ri-when'; when.textContent = fmtWhen(data.ts);
+      const sum = document.createElement('div'); sum.className = 'ri-summary'; sum.textContent = snapCounts(data.apps);
+      info.appendChild(when); info.appendChild(sum);
+      const btn = document.createElement('button'); btn.className = 'ri-btn'; btn.textContent = txt('restoreBtn');
+      btn.addEventListener('click', async () => {
+        if (!window.confirm(txt('restoreConfirm'))) return;
+        btn.disabled = true;
+        try { await restoreSnapshot(uid, d.id); alert(txt('restoreDone')); overlay.dataset.open = 'false'; }
+        catch (e) { console.warn('[backup] restore failed:', e); alert(txt('restoreFail')); btn.disabled = false; }
+      });
+      row.appendChild(info); row.appendChild(btn);
+      listEl.appendChild(row);
+    });
+  }
+
+  const backupNowBtn = document.getElementById('acct-backup-now');
+  const restoreOpenBtn = document.getElementById('acct-restore-open');
+  const restoreOverlay = document.getElementById('restore-overlay');
+  const restoreCloseBtn = document.getElementById('restore-modal-close');
+
+  if (backupNowBtn) backupNowBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!auth.currentUser) return;
+    backupNowBtn.disabled = true;
+    try { await writeBackup(auth.currentUser.uid); backupNowBtn.textContent = txt('backupDone'); }
+    catch (err) { console.warn('[backup] manual failed:', err); backupNowBtn.textContent = txt('backupFail'); }
+    finally { setTimeout(() => { backupNowBtn.textContent = txt('acctBackupNow'); backupNowBtn.disabled = false; }, 1800); }
+  });
+  if (restoreOpenBtn) restoreOpenBtn.addEventListener('click', (e) => { e.stopPropagation(); if (auth.currentUser) openRestore(auth.currentUser.uid); });
+  if (restoreCloseBtn) restoreCloseBtn.addEventListener('click', () => { restoreOverlay.dataset.open = 'false'; });
+  if (restoreOverlay) restoreOverlay.addEventListener('click', (e) => { if (e.target === restoreOverlay) restoreOverlay.dataset.open = 'false'; });
 
   function setBtnAvatar(user) {
     btn.innerHTML = ''
@@ -485,6 +699,7 @@
   onAuthStateChanged(auth, user => {
     setBtnAvatar(user)
     setPopoverState(user)
+    maybeAutoBackup(user)
   
     // Phase 2.5 (+ v2.3.5 #38): refresh all three sync rows by checking Firestore
     try {
