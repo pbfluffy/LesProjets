@@ -81,12 +81,14 @@ const POPUP_LABELS = {
 const LOCATE_LABELS = {
   en: {
     button: 'Find my location',
+    stop: 'Stop tracking',
     denied: 'Location permission denied',
     error: "Couldn't find your location",
     unsupported: 'Geolocation not supported',
   },
   th: {
     button: 'ค้นหาตำแหน่งของฉัน',
+    stop: 'หยุดติดตามตำแหน่ง',
     denied: 'ไม่ได้รับอนุญาตให้เข้าถึงตำแหน่ง',
     error: 'ค้นหาตำแหน่งไม่สำเร็จ',
     unsupported: 'อุปกรณ์ไม่รองรับ',
@@ -197,7 +199,9 @@ export default function MapView({ places = [], onPlaceClick, theme = 'light', la
   const markersLayerRef = useRef(null)
   const userMarkerRef = useRef(null)
   const onPlaceClickRef = useRef(onPlaceClick)
-  const [locating, setLocating] = useState(false)
+  const watchIdRef = useRef(null)
+  const hasFirstFixRef = useRef(false)
+  const [locateState, setLocateState] = useState('idle') // idle | locating | tracking
   const [locateError, setLocateError] = useState(null)
 
   // Keep the latest onPlaceClick in a ref so the popup handler always sees the current value
@@ -255,6 +259,10 @@ export default function MapView({ places = [], onPlaceClick, theme = 'light', la
     })
 
     return () => {
+      if (watchIdRef.current != null) {
+        navigator.geolocation.clearWatch(watchIdRef.current)
+        watchIdRef.current = null
+      }
       map.remove()
       mapRef.current = null
       tileLayerRef.current = null
@@ -321,40 +329,76 @@ export default function MapView({ places = [], onPlaceClick, theme = 'light', la
     }
   }, [places, lang])
 
-  // Locate me handler
+  // Tear down an active watch and the user marker; back to idle.
+  const stopTracking = useCallback(() => {
+    if (watchIdRef.current != null) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+    }
+    hasFirstFixRef.current = false
+    if (userMarkerRef.current && mapRef.current) {
+      mapRef.current.removeLayer(userMarkerRef.current)
+    }
+    userMarkerRef.current = null
+    setLocateState('idle')
+  }, [])
+
+  // Locate me: tap to start live tracking, tap again to stop.
   const handleLocate = useCallback(() => {
+    if (locateState === 'tracking') {
+      stopTracking()
+      return
+    }
     if (!('geolocation' in navigator)) {
       setLocateError('unsupported')
       return
     }
     if (!mapRef.current) return
-    setLocating(true)
+
+    setLocateState('locating')
     setLocateError(null)
-    navigator.geolocation.getCurrentPosition(
+    hasFirstFixRef.current = false
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        const { latitude, longitude } = pos.coords
         const map = mapRef.current
         if (!map) return
+        const { latitude, longitude } = pos.coords
+        const latlng = [latitude, longitude]
+
         if (userMarkerRef.current) {
-          userMarkerRef.current.setLatLng([latitude, longitude])
+          userMarkerRef.current.setLatLng(latlng)
         } else {
-          userMarkerRef.current = L.marker([latitude, longitude], {
+          userMarkerRef.current = L.marker(latlng, {
             icon: buildUserIcon(),
             keyboard: false,
             interactive: false,
             zIndexOffset: 1000,
           }).addTo(map)
         }
-        map.flyTo([latitude, longitude], USER_LOCATION_ZOOM, { duration: 1.2 })
-        setLocating(false)
+
+        if (!hasFirstFixRef.current) {
+          hasFirstFixRef.current = true
+          map.flyTo(latlng, USER_LOCATION_ZOOM, { duration: 1.2 })
+          setLocateState('tracking')
+        }
       },
       (err) => {
-        setLocating(false)
+        if (watchIdRef.current != null) {
+          navigator.geolocation.clearWatch(watchIdRef.current)
+          watchIdRef.current = null
+        }
+        hasFirstFixRef.current = false
+        if (userMarkerRef.current && mapRef.current) {
+          mapRef.current.removeLayer(userMarkerRef.current)
+        }
+        userMarkerRef.current = null
+        setLocateState('idle')
         setLocateError(err && err.code === 1 ? 'denied' : 'error')
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
     )
-  }, [])
+  }, [locateState, stopTracking])
 
   const skipped = places.filter(
     (p) => !Array.isArray(p.coords) || typeof p.coords[0] !== 'number' || typeof p.coords[1] !== 'number'
@@ -362,16 +406,19 @@ export default function MapView({ places = [], onPlaceClick, theme = 'light', la
 
   const locateLabels = LOCATE_LABELS[lang] || LOCATE_LABELS.en
   const errorText = locateError ? locateLabels[locateError] || locateLabels.error : null
+  const locating = locateState === 'locating'
+  const tracking = locateState === 'tracking'
 
   return (
     <div className={styles.mapWrap}>
       <div ref={containerRef} className={styles.mapContainer} aria-label="Map of pet-friendly places" />
       <button
         type="button"
-        className={`${styles.locateBtn} ${locating ? styles.locateBtnLoading : ''}`}
+        className={`${styles.locateBtn} ${locating ? styles.locateBtnLoading : ''} ${tracking ? styles.locateBtnActive : ''}`}
         onClick={handleLocate}
-        aria-label={locateLabels.button}
-        title={locateLabels.button}
+        aria-label={tracking ? locateLabels.stop : locateLabels.button}
+        title={tracking ? locateLabels.stop : locateLabels.button}
+        aria-pressed={tracking}
         disabled={locating}
       >
         {locating ? '⏳' : '📍'}

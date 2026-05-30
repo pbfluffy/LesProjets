@@ -123,6 +123,17 @@
   50% { opacity: 1; }
 }
 
+.locateBtnActive {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.locateBtnActive:hover {
+  background: var(--accent);
+  color: #fff;
+  opacity: 0.9;
+}
+
 /* ---------- User-location marker (pulsing blue dot) ---------- */
 
 .userIconLeaflet {
