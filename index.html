@@ -113,6 +113,38 @@
 
     [data-theme="dark"] .acct-popover .acct-google-btn { background: #1f1f1f; border-color: #5f6368; color: #e8eaed; }
     [data-theme="dark"] .acct-popover .acct-google-btn:hover { background: #2a2a2a; }
+    /* Pum's Office living widget */
+    a.studio-widget { display:block; background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius); padding:7px 7px 4px; text-decoration:none; color:inherit; transition:border-color 0.15s, transform 0.12s, box-shadow 0.15s, background 0.2s; }
+    a.studio-widget:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.07); }
+    .sw-thumb { position:relative; height:150px; border-radius:11px; overflow:hidden; background:#0a0c12; border:0.5px solid #252c3a; }
+    .sw-scene { position:absolute; left:0; width:100%; aspect-ratio:1402/1122; top:50%; transform:translateY(-50%); }
+    .sw-scene .bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+    .sw-lamp { position:absolute; border-radius:50%; transform:translate(-50%,-50%); mix-blend-mode:screen; pointer-events:none; aspect-ratio:1/1; background:radial-gradient(circle,rgba(255,214,140,0.9),rgba(255,190,100,0.25) 45%,transparent 70%); animation:swLamp 4.5s ease-in-out infinite; }
+    @keyframes swLamp { 0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(1)} 50%{opacity:.82;transform:translate(-50%,-50%) scale(1.06)} }
+    .sw-screen { position:absolute; border-radius:40%; transform:translate(-50%,-50%); mix-blend-mode:screen; pointer-events:none; animation:swFlick .9s steps(8,end) infinite; }
+    @keyframes swFlick { 0%{opacity:.16}20%{opacity:.30}35%{opacity:.14}55%{opacity:.32}70%{opacity:.18}90%{opacity:.27}100%{opacity:.20} }
+    .sw-dog { position:absolute; transform-origin:50% 100%; will-change:transform; }
+    .sw-dog img { display:block; width:100%; height:auto; }
+    .sw-dog.breathe { animation:swBreathe 3.8s ease-in-out infinite; }
+    .sw-dog.tilt { animation:swTilt 1.3s ease-in-out; }
+    @keyframes swBreathe { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.016)} }
+    @keyframes swTilt { 0%{transform:rotate(0)} 35%{transform:rotate(3.5deg)} 70%{transform:rotate(3.5deg)} 100%{transform:rotate(0)} }
+    .sw-wash { position:absolute; inset:0; pointer-events:none; mix-blend-mode:multiply; background:rgba(20,18,46,0); animation:swDay 60s ease-in-out infinite; }
+    @keyframes swDay { 0%{background:rgba(20,18,46,0)}24%{background:rgba(8,10,34,.34)}48%{background:rgba(14,14,46,.26)}72%{background:rgba(70,46,60,.18)}86%{background:rgba(150,96,66,.12)}100%{background:rgba(20,18,46,0)} }
+    .sw-live { position:absolute; top:9px; left:10px; display:flex; align-items:center; gap:5px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#8fe388; letter-spacing:.1em; text-transform:uppercase; z-index:3; }
+    .sw-live i { width:6px; height:6px; border-radius:50%; background:#8fe388; box-shadow:0 0 6px #8fe388; animation:swPulse 1.6s ease-in-out infinite; }
+    @keyframes swPulse { 0%,100%{opacity:1}50%{opacity:.4} }
+    .sw-clock { position:absolute; top:8px; right:10px; font-family:'IBM Plex Mono',monospace; font-size:13px; color:#8fe388; letter-spacing:.04em; text-shadow:0 0 9px rgba(143,227,136,0.45); z-index:3; }
+    .sw-cap { position:absolute; bottom:7px; left:10px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#aeb8a4; letter-spacing:.12em; text-transform:uppercase; text-shadow:0 1px 4px rgba(0,0,0,0.7); z-index:3; }
+    .sw-scrim { position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg,rgba(10,12,18,0.45) 0%,transparent 22%,transparent 72%,rgba(10,12,18,0.5) 100%); z-index:2; }
+    .sw-meta { display:flex; align-items:center; gap:12px; padding:11px 11px 9px; }
+    .sw-ic { width:42px; height:42px; border-radius:11px; background:var(--surface-alt); border:0.5px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:21px; flex-shrink:0; }
+    .sw-nm { font-size:15px; font-weight:600; }
+    .sw-tp { font-size:10px; font-family:'IBM Plex Mono',monospace; color:var(--faint); margin-top:2px; letter-spacing:.04em; }
+    .sw-ar { margin-left:auto; font-size:16px; color:var(--faint); transition:transform 0.15s, color 0.15s; }
+    a.studio-widget:hover .sw-ar { transform:translateX(3px); color:var(--accent); }
+    .sw-sr { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+    @media (prefers-reduced-motion: reduce){ .sw-lamp,.sw-screen,.sw-dog.breathe,.sw-dog.tilt,.sw-wash,.sw-live i{animation:none!important} .sw-lamp{opacity:.6}.sw-screen{opacity:.22}.sw-dog{transform:none!important} }
   </style>
 </head>
 <body>
@@ -214,16 +246,32 @@
   <p class="card-desc" id="pumgoda-desc">ค้นหาคาเฟ่ ร้านอาหาร โรงแรม ที่พาน้องไปได้ในกรุงเทพและต่างจังหวัด มีระบบจัดระดับเป็นอุ้งเท้า 1–4 และตรา 'พุมบ้าเคยมา'</p>
 </a>
 
-    <a class="card" href="./studio/">
-      <div class="card-header">
-        <div class="icon">💻</div>
-        <div>
-          <div class="card-name" id="studio-name">Pum's Office</div>
-          <div class="card-type">Ambient · เล่นเพลิน</div>
+    <a class="studio-widget" href="./studio/" aria-label="Pum's Office">
+      <div class="sw-thumb">
+        <div class="sw-scene">
+          <img class="bg" src="./studio/assets/office.jpg" alt="" />
+          <div class="sw-screen" style="left:20%;top:48.6%;width:16%;height:13%;background:radial-gradient(circle,rgba(150,200,255,0.9),transparent 65%)"></div>
+          <div class="sw-screen" style="left:77.7%;top:54.5%;width:13%;height:10%;background:radial-gradient(circle,rgba(150,200,255,0.9),transparent 65%);animation-delay:-.4s"></div>
+          <div class="sw-lamp" style="left:20.3%;top:39.7%;width:13%;animation-delay:-2.2s"></div>
+          <div class="sw-lamp" style="left:87.7%;top:41.7%;width:12%"></div>
+          <div class="sw-dog breathe" id="dogPumba" style="left:29.10%;top:37.25%;width:16.69%"><img src="./studio/assets/corgi.png" alt="Pumba" /></div>
+          <div class="sw-dog breathe" id="dogGigi" style="left:63.70%;top:36.99%;width:17.05%;animation-delay:-1.6s"><img src="./studio/assets/floof.png" alt="Gigi" /></div>
+          <div class="sw-wash"></div>
         </div>
-        <span class="arrow">→</span>
+        <div class="sw-scrim"></div>
+        <div class="sw-live"><i></i>live</div>
+        <div class="sw-clock" id="swClock">--:--</div>
+        <div class="sw-cap">the studio is open</div>
       </div>
-      <p class="card-desc" id="studio-desc">ออฟฟิศหมายามค่ำคืน — พุมบ้ากับกิกี้ทำงานไปเรื่อย ๆ มีไฟตั้งโต๊ะ ดนตรีชิล และ work-log สดจาก AI</p>
+      <div class="sw-meta">
+        <div class="sw-ic">💻</div>
+        <div>
+          <div class="sw-nm" id="studio-name">Pum's Office</div>
+          <div class="sw-tp">Ambient · live</div>
+        </div>
+        <span class="sw-ar">→</span>
+      </div>
+      <span class="sw-sr" id="studio-desc"></span>
     </a>
   </div>
 
@@ -505,6 +553,19 @@
     try { await signOut(auth) } catch (e) { console.warn('sign-out failed:', e) }
     popover.dataset.open = 'false'
   })
+</script>
+<script>
+  (function(){
+    var clk=document.getElementById('swClock'); if(!clk) return;
+    function tick(){var d=new Date();clk.textContent=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}
+    tick(); var ct=setInterval(tick,1000);
+    var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var dogs=[document.getElementById('dogPumba'),document.getElementById('dogGigi')].filter(Boolean);
+    var ft=null;
+    function flourish(){ if(!dogs.length) return; var d=dogs[Math.random()<0.5?0:dogs.length-1]; d.classList.remove('breathe'); d.classList.add('tilt'); setTimeout(function(){d.classList.remove('tilt');d.classList.add('breathe');},1300); ft=setTimeout(flourish,6000+Math.random()*5000); }
+    if(!reduce) ft=setTimeout(flourish,4500);
+    document.addEventListener('visibilitychange',function(){ if(document.hidden){clearInterval(ct); if(ft)clearTimeout(ft);} else {tick(); ct=setInterval(tick,1000); if(!reduce) ft=setTimeout(flourish,3000);} });
+  })();
 </script>
 </body>
 </html>
