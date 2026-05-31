@@ -68,7 +68,7 @@
   margin-top: 6px;
   font-size: 11px;
   text-align: center;
-  color: #c54f4f;
+  color: var(--danger);          /* was #c54f4f */
   font-weight: 600;
   animation: ph-votes-err-fade 0.18s ease-out;
 }
