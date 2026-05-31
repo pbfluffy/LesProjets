@@ -9,7 +9,7 @@ export default function FoodTab({ store }) {
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
 
-  const { customFoods, log, addToLog } = store;
+  const { customFoods, log, addToLog, favorites, toggleFavorite } = store;
 
   // Combine built-in categories with the user's custom-food category.
   const allCategories = useMemo(() => {
@@ -26,6 +26,27 @@ export default function FoodTab({ store }) {
     return cats;
   }, [customFoods, t]);
 
+  // Feature #90 — pinned foods, resolved to their item in pin order.
+  // Built-in and custom foods are keyed by `name`; first occurrence wins.
+  const favItems = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    const byName = new Map();
+    for (const cat of allCategories) {
+      for (const it of cat.items) {
+        if (!byName.has(it.name)) byName.set(it.name, it);
+      }
+    }
+    return (favorites ?? [])
+      .map((n) => byName.get(n))
+      .filter(Boolean)
+      .filter(
+        (it) =>
+          !needle ||
+          it.name.toLowerCase().includes(needle) ||
+          (it.nameEn || '').toLowerCase().includes(needle)
+      );
+  }, [allCategories, favorites, search]);
+
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return allCategories
@@ -39,6 +60,20 @@ export default function FoodTab({ store }) {
       }))
       .filter((cat) => cat.items.length > 0);
   }, [allCategories, search, filterCat]);
+
+  // Favorites section shows on the "All" view and when the 📌 chip is active.
+  const showFav = (filterCat === 'all' || filterCat === 'fav') && favItems.length > 0;
+
+  const renderItem = (item, key) => (
+    <FoodItem
+      key={key}
+      item={item}
+      added={log.some((x) => x.name === item.name)}
+      onAdd={addToLog}
+      isFav={(favorites ?? []).includes(item.name)}
+      onToggleFav={toggleFavorite}
+    />
+  );
 
   return (
     <>
@@ -60,6 +95,16 @@ export default function FoodTab({ store }) {
         >
           {t('food.all')}
         </div>
+        {(favorites ?? []).length > 0 && (
+          <div
+            className={`${styles.chip} ${filterCat === 'fav' ? styles.active : ''}`}
+            onClick={() => setFilterCat('fav')}
+            role="button"
+            tabIndex={0}
+          >
+            {t('food.favorites')}
+          </div>
+        )}
         {MEALS.map((m) => (
           <div
             key={m.id}
@@ -83,26 +128,32 @@ export default function FoodTab({ store }) {
         )}
       </div>
 
-      {filtered.length === 0 && <div className={styles.empty}>{t('food.empty')}</div>}
+      {filtered.length === 0 && !showFav && (
+        <div className={styles.empty}>{t('food.empty')}</div>
+      )}
 
-      {filtered.map((cat) => (
-        <div key={cat.id}>
+      {showFav && (
+        <div>
           <div className={styles.catHeader}>
-            <div className={styles.catDot} style={{ background: cat.color }} />
-            <span className={styles.catName}>
-              {lang === 'en' && cat.categoryEn ? cat.categoryEn : cat.category}
-            </span>
+            <div className={styles.catDot} style={{ background: '#EF476F' }} />
+            <span className={styles.catName}>{t('food.favorites')}</span>
           </div>
-          {cat.items.map((item, i) => (
-            <FoodItem
-              key={`${cat.id}-${i}`}
-              item={item}
-              added={log.some((x) => x.name === item.name)}
-              onAdd={addToLog}
-            />
-          ))}
+          {favItems.map((item) => renderItem(item, `fav-${item.name}`))}
         </div>
-      ))}
+      )}
+
+      {filterCat !== 'fav' &&
+        filtered.map((cat) => (
+          <div key={cat.id}>
+            <div className={styles.catHeader}>
+              <div className={styles.catDot} style={{ background: cat.color }} />
+              <span className={styles.catName}>
+                {lang === 'en' && cat.categoryEn ? cat.categoryEn : cat.category}
+              </span>
+            </div>
+            {cat.items.map((item, i) => renderItem(item, `${cat.id}-${i}`))}
+          </div>
+        ))}
     </>
   );
 }
