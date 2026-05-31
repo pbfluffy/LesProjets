@@ -35,9 +35,14 @@
 /* Tier 4 — pet paradise (solid accent: clearly outranks tier 3) */
 .ph-tier-4 {
   background: var(--accent);
-  color: #1a1916;            /* dark label — legible on orange in BOTH themes */
+  color: #fff;
   border: 0.5px solid transparent;
   font-weight: 600;
+}
+
+/* dark-theme accent is lighter — deepen the tier-4 fill so white stays legible */
+html[data-theme='dark'] .ph-tier-4 {
+  background: #b5500f;
 }
 
 /* keep the brown paw emoji readable on the solid fill */
@@ -47,7 +52,12 @@
   padding: 1px 6px;
 }
 
-/* Pumba's favorite heart — shown alongside the paws, independent of tier */
+/* heart sits on the solid fill on tier 4 — white so it stays visible */
+.ph-tier-4 .ph-tier-heart {
+  color: #fff;
+}
+
+/* Pumba's favorite heart — default (on light tiers), independent of tier */
 .ph-tier-heart {
   color: #e0566e;
   font-size: 0.95em;
