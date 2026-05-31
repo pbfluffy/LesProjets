@@ -1,0 +1,79 @@
+/* ============================================================================
+   LesProjets — Canonical design tokens (Initiative #98)
+   Single source of truth for the cross-app design language, lifted verbatim
+   from bill-splitter (the reference implementation).
+
+   React apps (bill-splitter, pumgoda, nutritions-thailand) import this via the
+   same relative path used for shared/useCloudSyncCore.js:
+       import '../../../shared/theme-tokens.css'   // in main.jsx, FIRST import
+   so it is bundled and its :root/[data-theme] vars are globally available.
+
+   Vanilla HTML pages (root landing, studio) copy these tokens into their own
+   stylesheet (no bundler to import through).
+
+   THEME RULE (see architecture.md): the dark/light choice is driven by the
+   data-theme attribute on <html>, written as a PLAIN string in
+   localStorage["theme"]. This file only defines the token *values* per theme;
+   it never reads or writes the theme key.
+   ============================================================================ */
+
+:root {
+  --font-body: 'Noto Sans Thai', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --color-bg: #f7f6f2;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f0eeea;
+  --color-border: #e4e1db;
+  --color-border-strong: #ccc9c2;
+
+  --color-text: #1a1916;
+  --color-text-muted: #6b6862;
+  --color-text-faint: #a09d98;
+
+  --color-accent: #1a1916;
+  --color-accent-text: #ffffff;
+
+  --color-green: #2d6a4f;
+  --color-green-bg: #d8f3dc;
+  --color-blue: #1b4f72;
+  --color-blue-bg: #d6eaf8;
+  --color-amber: #7d5a00;
+  --color-amber-bg: #fef3cd;
+  --color-red: #922b21;
+  --color-red-bg: #fadbd8;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.08), 0 0 0 0.5px var(--color-border);
+}
+
+[data-theme="dark"] {
+  --color-bg: #161614;
+  --color-surface: #1e1e1b;
+  --color-surface-alt: #272723;
+  --color-border: #2e2e2a;
+  --color-border-strong: #3e3e39;
+
+  --color-text: #f0ede8;
+  --color-text-muted: #8a8780;
+  --color-text-faint: #55534e;
+
+  --color-accent: #f0ede8;
+  --color-accent-text: #1a1916;
+
+  --color-green: #74c69d;
+  --color-green-bg: #1a3a28;
+  --color-blue: #7bb3e0;
+  --color-blue-bg: #152535;
+  --color-amber: #e8c84a;
+  --color-amber-bg: #2a2008;
+  --color-red: #f1948a;
+  --color-red-bg: #3a1a18;
+
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.3), 0 0 0 0.5px var(--color-border);
+}
