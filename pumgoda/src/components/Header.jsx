@@ -63,14 +63,7 @@ export default function Header({
             ⟳
           </button>
           {suggestUrl && (
-            
-              className="ph-ctrl ph-ctrl-icon"
-              href={suggestUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={suggestLabel || 'Suggest a place'}
-              title={suggestLabel || 'Suggest a place'}
-            >
+            <a className="ph-ctrl ph-ctrl-icon" href={suggestUrl} target="_blank" rel="noopener noreferrer" aria-label={suggestLabel || 'Suggest a place'} title={suggestLabel || 'Suggest a place'}>
               ＋
             </a>
           )}
