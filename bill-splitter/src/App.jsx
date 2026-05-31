@@ -376,6 +376,10 @@ function AppInner() {
             sharedState={sushiInitial}
             readOnly={!!shared}
             onSaveBill={handleSaveBill}
+            savedPayees={savedPayees.payees}
+            onSavePayee={savedPayees.addPayee}
+            onRemovePayee={savedPayees.removePayee}
+            payeesEnabled={!!user}
           />
         )}
       </main>
