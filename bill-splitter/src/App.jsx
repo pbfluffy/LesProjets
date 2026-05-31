@@ -8,6 +8,7 @@ import { LangProvider, useLang } from './LangContext'
 import { readShareFromHash, clearShareHash, getShortLinkId, resolveShortLink } from './share'
 import { useBillHistory } from './hooks/useBillHistory'
 import { useCloudSync } from './hooks/useCloudSync'
+import { useSavedPayees } from './hooks/useSavedPayees'
 import styles from './App.module.css'
 
 // Read share data once at module load (before any component renders)
@@ -116,6 +117,9 @@ function AppInner() {
   })
   // Conflict resolution: if cloud has different bills than local, prompt user.
   const user = cloudSync.user
+
+  // Feature #96 — saved payees (per-user, dedicated doc)
+  const savedPayees = useSavedPayees(user)
 
   // Feature #73 — remote error tracking (caps at 5 per session, writes silently)
   useEffect(() => {
@@ -360,6 +364,10 @@ function AppInner() {
             sharedState={splitInitial}
             readOnly={!!shared}
             onSaveBill={handleSaveBill}
+            savedPayees={savedPayees.payees}
+            onSavePayee={savedPayees.addPayee}
+            onRemovePayee={savedPayees.removePayee}
+            payeesEnabled={!!user}
           />
         )}
         {activeTab === 'sushi' && (
