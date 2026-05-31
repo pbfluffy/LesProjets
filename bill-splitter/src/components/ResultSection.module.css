@@ -30,3 +30,12 @@
 .qrToggleBtn:hover { background: var(--color-accent); color: var(--color-accent-text); border-color: var(--color-accent); }
 .qrToggleBtn[aria-pressed="true"] { background: var(--color-accent); color: var(--color-accent-text); border-color: var(--color-accent); }
 .payWarn { display: inline-flex; align-items: center; gap: 3px; color: var(--color-red); font-size: 12px; margin-left: 6px; }
+
+/* #91 mark-as-paid — session-only paid toggle. Checkbox sits left of the avatar;
+   when on it fills green with a tick and the row's name/amount strike through. */
+.payCheck { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--color-border-strong); background: none; display: inline-flex; align-items: center; justify-content: center; color: transparent; cursor: pointer; padding: 0; transition: all 0.15s; }
+.payCheck:hover { border-color: var(--color-green); }
+.payCheckOn { background: var(--color-green); border-color: var(--color-green); color: var(--color-accent-text); }
+.paid .personName { text-decoration: line-through; opacity: 0.5; }
+.paid .personAmount { text-decoration: line-through; opacity: 0.5; }
+.paid .barFill { opacity: 0.35; }
