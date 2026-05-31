@@ -31,7 +31,7 @@ const INITIAL_STATE = {
   days: {}, // { 'YYYY-MM-DD': { log, water } }
   weights: {}, // { 'YYYY-MM-DD': { weight, bodyFat? } } — Feature #17
   favorites: [], // Feature #90 — pinned food names (keyed by name)
-  theme: 'dark',
+  theme: 'light',
 };
 
 function load() {
