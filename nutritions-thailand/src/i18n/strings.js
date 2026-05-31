@@ -53,6 +53,9 @@ const en = {
   'food.search': '🔍 Search food…',
   'food.all': 'All',
   'food.custom': '⭐ Mine',
+  'food.favorites': '📌 Favorites',
+  'food.pin': 'Pin to favorites',
+  'food.unpin': 'Remove from favorites',
   'food.empty': 'No matches found',
   'food.kcal': 'kcal',
 
@@ -238,6 +241,9 @@ const th = {
   'food.search': '🔍 ค้นหาอาหาร...',
   'food.all': 'ทั้งหมด',
   'food.custom': '⭐ ของฉัน',
+  'food.favorites': '📌 รายการโปรด',
+  'food.pin': 'ปักหมุดรายการโปรด',
+  'food.unpin': 'เอาออกจากรายการโปรด',
   'food.empty': 'ไม่พบอาหารที่ค้นหา',
   'food.kcal': 'kcal',
 
