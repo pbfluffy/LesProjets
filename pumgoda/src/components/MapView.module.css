@@ -328,11 +328,11 @@
 
 /* Three size tiers — gradient from light to dark accent matches the marker palette */
 .clusterSm {
-  background: #f0a672;
+  background: var(--tier-2);
   font-size: 12px;
 }
 .clusterMd {
-  background: #d97a30;
+  background: var(--tier-3);
 }
 .clusterLg {
   background: var(--accent);
