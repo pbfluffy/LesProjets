@@ -17,6 +17,11 @@
   --accent: #c45c1a;
   --accent-light: #fdf0e8;
   --danger: var(--color-red);
+
+  /* semantic identity colors (were hardcoded across components — #98.1 1b) */
+  --heart: #e0566e;        /* Pumba's-favorite heart (decoupled from --danger) */
+  --tier-2: #f0a672;       /* paw-tier marker/cluster ramp: light → dark accent */
+  --tier-3: #d97a30;
 }
 
 html[data-theme='dark'] {
