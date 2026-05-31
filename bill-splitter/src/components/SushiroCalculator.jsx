@@ -40,7 +40,7 @@ function SnackAdder({ person, onAdd }) {
   )
 }
 
-export default function SushiroCalculator({ sharedState, readOnly, onSaveBill }) {
+export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled = false }) {
   const store = useSushiroStore(sharedState)
   const result = store.calculate()
   const { t } = useLang()
@@ -56,6 +56,21 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill })
   const [showQR, setShowQR] = useState(false)
   const [ppOpen, setPpOpen] = useState(false)
   const [ppCopied, setPpCopied] = useState(false)
+  // #96 saved payees (Sushiro parity — shares the same userPayees doc as Split)
+  const [payeeManaging, setPayeeManaging] = useState(false)
+  const [payeeSaving, setPayeeSaving] = useState(false)
+  const [payeeName, setPayeeName] = useState('')
+  const ppTrim = (store.promptPay || '').trim()
+  const payeeAlreadySaved = savedPayees.some(p => p.promptPay === ppTrim)
+  const payeesOn = payeesEnabled && !readOnly
+  const handleSavePayee = () => {
+    const n = payeeName.trim()
+    if (!n || !ppTrim) return
+    onSavePayee?.(n, ppTrim)
+    setPayeeName('')
+    setPayeeSaving(false)
+  }
+  const cancelSavePayee = () => { setPayeeName(''); setPayeeSaving(false) }
   const ppValid = isValidPromptPayId(store.promptPay)
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
@@ -266,6 +281,24 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill })
               <span className={extras.ppLabel}>PromptPay</span>
               <button type="button" className={extras.toggleBtn} onClick={() => setPpOpen(o => !o)}>{ppOpen ? t.close : t.edit}</button>
             </div>
+            {payeesOn && savedPayees.length > 0 && (
+              <div className={extras.payeeBlock}>
+                <div className={extras.payeeHead}>
+                  <span className={extras.payeeHeadLabel}>{t.savedPayees}</span>
+                  <button type="button" className={extras.payeeManageBtn} onClick={() => setPayeeManaging(m => !m)}>{payeeManaging ? t.payeeDone : t.payeeManage}</button>
+                </div>
+                <div className={extras.payeeChips}>
+                  {savedPayees.map(p => (
+                    <span key={p.id} className={extras.payeeChipWrap}>
+                      <button type="button" className={`${extras.payeeChip} ${p.promptPay === ppTrim ? extras.payeeChipActive : ''}`} onClick={() => store.setPromptPay(p.promptPay)} title={p.promptPay}>{p.name}</button>
+                      {payeeManaging && (
+                        <button type="button" className={extras.payeeRemove} onClick={() => onRemovePayee?.(p.id)} aria-label={t.removePayee}>×</button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             {ppOpen && (
               <input type="text" placeholder={t.ppPlaceholder} value={store.promptPay} onChange={e => store.setPromptPay(e.target.value)} className={extras.ppInput} />
             )}
@@ -276,6 +309,17 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill })
               </div>
             )}
             {!store.promptPay && !ppOpen && <p className={extras.ppEmpty}>{t.notSet}</p>}
+            {payeesOn && ppTrim && !payeeAlreadySaved && (
+              payeeSaving ? (
+                <div className={extras.payeeSaveForm}>
+                  <input type="text" className={extras.payeeNameInput} value={payeeName} onChange={e => setPayeeName(e.target.value)} placeholder={t.payeeNamePh} maxLength={30} autoFocus onKeyDown={e => { if (e.key === 'Enter') handleSavePayee(); if (e.key === 'Escape') cancelSavePayee() }} />
+                  <button type="button" className={extras.payeeSaveBtn} onClick={handleSavePayee} disabled={!payeeName.trim()}>{t.payeeSave}</button>
+                  <button type="button" className={extras.payeeCancelBtn} onClick={cancelSavePayee}>{t.close}</button>
+                </div>
+              ) : (
+                <button type="button" className={extras.payeeSaveLink} onClick={() => setPayeeSaving(true)} title={t.savePayeeHint}>+ {t.payeeSave}</button>
+              )
+            )}
             <div className={extras.divider} />
             <label className={extras.fieldLabel}>{t.bankLabel}</label>
             <textarea className={extras.textarea} rows={3} placeholder={t.bankPlaceholder} value={store.bankInfo} onChange={e => store.setBankInfo(e.target.value)} />
