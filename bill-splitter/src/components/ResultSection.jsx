@@ -10,7 +10,7 @@ import styles from './ResultSection.module.css'
 
 function fmt(n) { return n.toFixed(2) }
 
-export default function ResultSection({ result, members, promptPay, bankInfo, notes, billName, snapshot, tab, onSave }) {
+export default function ResultSection({ result, members, promptPay, bankInfo, notes, billName, snapshot, tab, onSave, initialPaid }) {
   const { t } = useLang()
   const [toast, setToast] = useState('')
   const [showQR, setShowQR] = useState(false)
@@ -20,8 +20,9 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const moreRef = useRef(null)
   const [creatingLink, setCreatingLink] = useState(false)
   // #91 mark-as-paid — session-only set of member names marked paid.
-  // Deliberately NOT persisted to store/snapshot/cloud (resets on new bill).
-  const [paid, setPaid] = useState(() => new Set())
+  // Deliberately NOT persisted to store/history/cloud (resets on new bill).
+  // Seeds from initialPaid when opening a share link that carried paid names.
+  const [paid, setPaid] = useState(() => new Set(Array.isArray(initialPaid) ? initialPaid : []))
   const togglePaid = (m) => setPaid(prev => {
     const next = new Set(prev)
     if (next.has(m)) next.delete(m); else next.add(m)
@@ -70,13 +71,17 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
 
   const handleShareLink = async () => {
     const text = buildSummaryText()
+    // #91 follow-up — carry the session-only paid set in the SHARE PAYLOAD only,
+    // so checks show for whoever opens the link. Never written to store/history/cloud:
+    // we spread into a fresh object and leave `snapshot` (used by Save) untouched.
+    const shareSnapshot = paid.size > 0 ? { ...snapshot, paid: [...paid] } : snapshot
     let url
     setCreatingLink(true)
     try {
-      url = await createShortLink(tab || 'split', snapshot, user?.uid || null)
+      url = await createShortLink(tab || 'split', shareSnapshot, user?.uid || null)
     } catch (e) {
       // Silent fallback to long URL on Firestore failure (network, rules, etc.)
-      url = buildShareUrl(tab || 'split', snapshot)
+      url = buildShareUrl(tab || 'split', shareSnapshot)
     }
     setCreatingLink(false)
     if (navigator.share) {
