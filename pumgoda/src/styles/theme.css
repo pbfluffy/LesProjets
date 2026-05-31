@@ -1,32 +1,22 @@
-/* Pumgoda theme — mirrors pumbafluffycorgi.com/index.html palette */
+/* Pumgoda theme — tokens now alias the canonical shared system (#98).
+   Existing component CSS keeps using --bg / --surface / --accent etc.; those
+   names now resolve to bill-splitter's palette via shared/theme-tokens.css.
+   Dark mode is driven entirely by the shared [data-theme="dark"] block, so the
+   aliases flip automatically — no per-app dark overrides needed here. */
 
 :root {
-  --bg: #f7f5f0;
-  --surface: #ffffff;
-  --surface-alt: #f0ede8;
-  --border: #e4e1db;
-  --text: #1a1916;
-  --muted: #6b6862;
-  --faint: #a09d98;
-  --accent: #c45c1a;
-  --accent-light: #fdf0e8;
-  --danger: #b00020;
-  --radius: 16px;
-  --radius-sm: 8px;
-  --radius-pill: 999px;
-}
-
-html[data-theme='dark'] {
-  --bg: #161614;
-  --surface: #1e1e1b;
-  --surface-alt: #272723;
-  --border: #2e2e2a;
-  --text: #f0ede8;
-  --muted: #8a8780;
-  --faint: #55534e;
-  --accent: #e8924a;
-  --accent-light: #2a1e10;
-  --danger: #ff6b7d;
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --surface-alt: var(--color-surface-alt);
+  --border: var(--color-border);
+  --text: var(--color-text);
+  --muted: var(--color-text-muted);
+  --faint: var(--color-text-faint);
+  --accent: var(--color-accent);
+  --accent-light: var(--color-surface-alt);
+  --danger: var(--color-red);
+  --radius: var(--radius-lg);
+  /* --radius-sm and --radius-pill come from the shared tokens */
 }
 
 *,
