@@ -55,7 +55,7 @@
 .active {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(255, 107, 53, 0.12);
+  background: var(--color-surface-alt);
 }
 
 .empty {
