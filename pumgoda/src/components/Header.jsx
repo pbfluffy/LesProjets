@@ -1,4 +1,5 @@
 import './Header.css'
+import Avatar from './Avatar'
 
 export default function Header({
   lang,
@@ -62,7 +63,7 @@ export default function Header({
             ⟳
           </button>
           {suggestUrl && (
-            <a
+            
               className="ph-ctrl ph-ctrl-icon"
               href={suggestUrl}
               target="_blank"
@@ -114,19 +115,16 @@ export default function Header({
                 title={user ? user.email : accountLabels.signIn}
                 aria-label={accountLabels.signIn}
                 style={
-                  user && user.photoURL
+                  user
                     ? { padding: 0, overflow: 'hidden', borderRadius: '50%', aspectRatio: '1 / 1' }
-                    : user
-                    ? { boxShadow: 'inset 0 0 0 2px var(--paw, #2e7d32)' }
                     : undefined
                 }
               >
-                {user && user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+                {user ? (
+                  <Avatar
+                    name={user.displayName || user.email || ''}
+                    photoURL={user.photoURL}
+                    size={28}
                   />
                 ) : (
                   '👤'
