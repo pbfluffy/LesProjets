@@ -29,14 +29,14 @@ export default function Header({
     <header className="ph-header">
       <div className="ph-header-inner">
         <div className="ph-header-left">
-          <a href="../" className="ph-ctrl ph-home mono" aria-label="Back to portfolio">
+          <a href="../" className="ph-ctrl ph-home" aria-label="Back to portfolio">
             ← Home
           </a>
           <span className="ph-logo">{brand}</span>
         </div>
         <div className="ph-controls">
           <button
-            className="ph-ctrl mono"
+            className="ph-ctrl"
             onClick={onToggleLang}
             aria-label="Toggle language"
           >
@@ -79,7 +79,9 @@ export default function Header({
             ↗
           </button>
           {accountLabels && (
-            <div style={{ position: 'relative' }} ref={popoverWrapRef}>
+            <>
+              <span className="ph-header-divider" aria-hidden="true" />
+              <div style={{ position: 'relative' }} ref={popoverWrapRef}>
               {/* Feature #66 — sync status dot (top-right of avatar button) */}
               {syncStatus && syncStatus !== 'idle' && (
                 <span
@@ -195,6 +197,7 @@ export default function Header({
                 </div>
               )}
             </div>
+            </>
           )}
         </div>
       </div>
