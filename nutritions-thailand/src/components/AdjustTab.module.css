@@ -88,13 +88,13 @@
 }
 
 .warnCaution {
-  background: rgba(220, 180, 80, 0.12);
-  border: 1px solid rgba(220, 180, 80, 0.35);
-  color: #d8b450;
+  background: var(--color-amber-bg);
+  border: 1px solid var(--yellow);
+  color: var(--yellow);
 }
 
 .warnUnsafe {
-  background: rgba(220, 80, 80, 0.12);
-  border: 1px solid rgba(220, 80, 80, 0.4);
-  color: #e57373;
+  background: var(--color-red-bg);
+  border: 1px solid var(--red);
+  color: var(--red);
 }
