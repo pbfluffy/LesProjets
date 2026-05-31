@@ -24,3 +24,22 @@
 .ppEmpty { font-size: 13px; color: var(--color-text-faint); }
 .fieldLabel { display: block; font-size: 12px; color: var(--color-text-muted); margin-bottom: 4px; }
 .textarea { resize: vertical; font-size: 13px; line-height: 1.6; }
+
+/* #96 saved payees — pick / save / manage, inline in the PromptPay area */
+.payeeBlock { margin: 8px 0 10px; }
+.payeeHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.payeeHeadLabel { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
+.payeeManageBtn { background: none; border: none; font-size: 11px; color: var(--color-blue); cursor: pointer; padding: 0; }
+.payeeChips { display: flex; flex-wrap: wrap; gap: 6px; }
+.payeeChipWrap { display: inline-flex; align-items: center; }
+.payeeChip { font-size: 13px; padding: 4px 11px; border-radius: var(--radius-pill); border: 0.5px solid var(--color-border-strong); background: var(--color-surface-alt); color: var(--color-text); cursor: pointer; transition: all 0.15s; }
+.payeeChip:hover { border-color: var(--color-blue); }
+.payeeChipActive { background: var(--color-blue-bg); border-color: var(--color-blue); color: var(--color-blue); font-weight: 600; }
+.payeeRemove { background: none; border: none; color: var(--color-red); font-size: 16px; line-height: 1; cursor: pointer; padding: 0 2px 0 5px; margin-left: -3px; }
+.payeeSaveLink { background: none; border: none; color: var(--color-blue); font-size: 12px; cursor: pointer; padding: 4px 0 0; margin-top: 2px; }
+.payeeSaveForm { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+.payeeNameInput { flex: 1; min-width: 0; font-size: 13px; padding: 7px 10px; border: 0.5px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); }
+.payeeNameInput:focus { outline: none; border-color: var(--color-blue); }
+.payeeSaveBtn { font-size: 12px; font-weight: 600; padding: 7px 13px; border: none; border-radius: var(--radius-sm); background: var(--color-accent); color: var(--color-accent-text); cursor: pointer; white-space: nowrap; }
+.payeeSaveBtn:disabled { opacity: 0.45; cursor: default; }
+.payeeCancelBtn { font-size: 12px; padding: 7px 10px; border: 0.5px solid var(--color-border); border-radius: var(--radius-sm); background: none; color: var(--color-text-muted); cursor: pointer; white-space: nowrap; }
