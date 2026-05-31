@@ -30,6 +30,7 @@ const INITIAL_STATE = {
   customFoods: [],
   days: {}, // { 'YYYY-MM-DD': { log, water } }
   weights: {}, // { 'YYYY-MM-DD': { weight, bodyFat? } } — Feature #17
+  favorites: [], // Feature #90 — pinned food names (keyed by name)
   theme: 'dark',
 };
 
@@ -188,6 +189,22 @@ export function useNutritionStore() {
     setState((s) => ({ ...s, customFoods: s.customFoods.filter((_, i) => i !== index) }));
   }, []);
 
+  // Feature #90 — pin/unpin a food to favorites. Stored in the shared store so
+  // it persists locally and rides the existing cloud sync; no new Firestore
+  // path or rule needed. Keyed by `name` because built-in foods have no stable
+  // id (the add/added check already keys on name).
+  const toggleFavorite = useCallback((name) => {
+    if (!name) return;
+    setState((s) => {
+      const favs = s.favorites ?? [];
+      const has = favs.includes(name);
+      return {
+        ...s,
+        favorites: has ? favs.filter((n) => n !== name) : [...favs, name],
+      };
+    });
+  }, []);
+
   const shiftDate = useCallback((deltaDays) => {
     setDateKey((cur) => {
       const [y, m, d] = cur.split('-').map(Number);
@@ -263,6 +280,7 @@ export function useNutritionStore() {
     water: day.water,
     totals,
     weights: state.weights, // Feature #17 — per-date weight + optional BF
+    favorites: state.favorites ?? [], // Feature #90 — pinned food names
     days: state.days,       // Feature #20 — streak helpers need full history
     // setters
     setStat,
@@ -275,6 +293,7 @@ export function useNutritionStore() {
     addCustomFood,
     addCustomFoods,
     removeCustomFood,
+    toggleFavorite, // Feature #90
     shiftDate,
     goToday,
     exportData,
