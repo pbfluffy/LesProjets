@@ -19,6 +19,14 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const [moreOpen, setMoreOpen] = useState(false)
   const moreRef = useRef(null)
   const [creatingLink, setCreatingLink] = useState(false)
+  // #91 mark-as-paid — session-only set of member names marked paid.
+  // Deliberately NOT persisted to store/snapshot/cloud (resets on new bill).
+  const [paid, setPaid] = useState(() => new Set())
+  const togglePaid = (m) => setPaid(prev => {
+    const next = new Set(prev)
+    if (next.has(m)) next.delete(m); else next.add(m)
+    return next
+  })
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
 
@@ -193,9 +201,9 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
           )}
 
           <div className={styles.perPersonList}>
-            {members.map(m => { const amount=result.totals[m]??0; const pct=result.grandTotal>0?(amount/result.grandTotal)*100:0; return(
-              <div key={m} className={styles.person}>
-                <div className={styles.personHeader}><div className={styles.personLeft}><Avatar name={m} photoURL={user && ownerName && m.trim().toLowerCase() === ownerName ? user.photoURL : null} size={24} /><span className={styles.personName}>{m}</span></div><span className={styles.personAmount}>฿{fmt(amount)}</span></div>
+            {members.map(m => { const amount=result.totals[m]??0; const pct=result.grandTotal>0?(amount/result.grandTotal)*100:0; const isPaid=paid.has(m); return(
+              <div key={m} className={`${styles.person} ${isPaid ? styles.paid : ''}`}>
+                <div className={styles.personHeader}><div className={styles.personLeft}><button type="button" className={`${styles.payCheck} ${isPaid ? styles.payCheckOn : ''}`} onClick={() => togglePaid(m)} aria-pressed={isPaid} aria-label={isPaid ? t.markUnpaid : t.markPaid} title={isPaid ? t.markUnpaid : t.markPaid}>{isPaid && (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)}</button><Avatar name={m} photoURL={user && ownerName && m.trim().toLowerCase() === ownerName ? user.photoURL : null} size={24} /><span className={styles.personName}>{m}</span></div><span className={styles.personAmount}>฿{fmt(amount)}</span></div>
                 <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
                 {showQR && ppValid && amount > 0 && (
                   <PromptPayQR promptPay={promptPay} amount={amount} />
