@@ -44,9 +44,9 @@
 }
 
 .danger {
-  background: rgba(239, 71, 111, 0.1);
+  background: var(--color-red-bg);
   color: var(--red);
-  border-color: rgba(239, 71, 111, 0.3);
+  border-color: var(--red);
 }
 
 .danger:hover {
@@ -63,11 +63,11 @@
 }
 
 .statusOk {
-  background: rgba(6, 214, 160, 0.12);
+  background: var(--color-green-bg);
   color: var(--green);
 }
 
 .statusErr {
-  background: rgba(239, 71, 111, 0.12);
+  background: var(--color-red-bg);
   color: var(--red);
 }
