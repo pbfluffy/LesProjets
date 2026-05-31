@@ -15,7 +15,7 @@
 }
 
 .added {
-  background: rgba(6, 214, 160, 0.15) !important;
+  background: var(--color-green-bg) !important;
 }
 
 .info {
