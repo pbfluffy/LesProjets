@@ -379,29 +379,31 @@ export default function App() {
                   </span>
                 )}
                 <select
-                  value={filters.sort}
-                  onChange={(e) => {
-                    const newSort = e.target.value
-                    setSort(newSort)
-                    if (newSort === 'nearby' && !userCoords) requestUserLocation()
-                  }}
-                  aria-label={lang === 'th' ? 'จัดเรียง' : 'Sort'}
-                  style={{
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    fontSize: 12,
-                    padding: '6px 12px',
-                    borderRadius: 8,
-                    border: '0.5px solid var(--border)',
-                    background: 'var(--surface)',
-                    color: 'var(--text)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <option value="paws">{lang === 'th' ? 'อุ้งเท้ามากสุด' : 'Most paws'}</option>
-                  <option value="welcomed">{lang === 'th' ? 'ต้อนรับดีที่สุด' : 'Most welcomed'}</option>
-                  <option value="name">{lang === 'th' ? 'เรียงตามตัวอักษร' : 'A–Z'}</option>
-                  <option value="nearby">{lang === 'th' ? 'ใกล้ฉันที่สุด' : 'Nearest to me'}</option>
-                  </select>
+                value={filters.sort}
+                onChange={(e) => {
+                  const newSort = e.target.value
+                  setSort(newSort)
+                  if (newSort === 'nearby' && !userCoords) requestUserLocation()
+                }}
+                aria-label={lang === 'th' ? 'จัดเรียง' : 'Sort'}
+                style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: '0.03em',
+                  padding: '5px 12px',
+                  borderRadius: 'var(--radius-pill)',
+                  border: '0.5px solid var(--border)',
+                  background: 'var(--surface-alt)',
+                  color: 'var(--muted)',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="paws">{lang === 'th' ? 'อุ้งเท้ามากสุด' : 'Most paws'}</option>
+                <option value="welcomed">{lang === 'th' ? 'ต้อนรับดีที่สุด' : 'Most welcomed'}</option>
+                <option value="name">{lang === 'th' ? 'เรียงตามตัวอักษร' : 'A–Z'}</option>
+                <option value="nearby">{lang === 'th' ? 'ใกล้ฉันที่สุด' : 'Nearest to me'}</option>
+              </select>
                   </div>
                 </>
               )}
