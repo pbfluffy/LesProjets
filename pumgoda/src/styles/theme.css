@@ -1,10 +1,8 @@
-/* Pumgoda theme — tokens now alias the canonical shared system (#98).
-   Existing component CSS keeps using --bg / --surface / --accent etc.; those
-   names now resolve to bill-splitter's palette via shared/theme-tokens.css.
-   Dark mode is driven entirely by the shared [data-theme="dark"] block, so the
-   aliases flip automatically — no per-app dark overrides needed here. */
+/* Pumgoda theme — structural tokens alias the shared foundation;
+   accent is Pumgoda's own warm identity (brand orange), not the shared ink. */
 
 :root {
+  /* structural — aliased to shared/theme-tokens.css (imported first in main.jsx) */
   --bg: var(--color-bg);
   --surface: var(--color-surface);
   --surface-alt: var(--color-surface-alt);
@@ -12,11 +10,19 @@
   --text: var(--color-text);
   --muted: var(--color-text-muted);
   --faint: var(--color-text-faint);
-  --accent: var(--color-accent);
-  --accent-light: var(--color-surface-alt);
-  --danger: var(--color-red);
   --radius: var(--radius-lg);
-  /* --radius-sm and --radius-pill come from the shared tokens */
+  /* --radius-sm and --radius-pill resolve straight from the shared file (same names) */
+
+  /* accent — app identity, NOT aliased to ink */
+  --accent: #c45c1a;
+  --accent-light: #fdf0e8;
+  --danger: var(--color-red);
+}
+
+html[data-theme='dark'] {
+  /* structural tokens flip via the shared [data-theme="dark"]; only accent needs an override */
+  --accent: #e8924a;
+  --accent-light: #2a1e10;
 }
 
 *,
