@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pumba &amp; Co. — Pixel Virtual Office</title>
+<link rel="icon" href="assets/pumba.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Press+Start+2P&family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="office.css" rel="stylesheet">
+</head>
+<body data-time="night">
+<div class="app">
+
+  <!-- Header -->
+  <header class="hero" data-screen-label="header">
+    <div class="hero-left">
+      <div class="hero-mark"><img id="heroImg" src="assets/corgi.png" alt="Pumba"></div>
+      <div>
+        <h1 class="hero-title" id="title">Pumba &amp; Co.</h1>
+        <div class="hero-sub"><span class="dot"></span><span data-i18n="sub">the office is open · everyone's working</span></div>
+      </div>
+    </div>
+    <div class="console">
+      <div class="seg" id="langSeg">
+        <button data-lang="th">TH</button>
+        <button data-lang="en">EN</button>
+      </div>
+      <div class="seg" id="timeSeg">
+        <button data-t="auto" data-i18n="t_auto">Auto</button>
+        <button data-t="day" data-i18n="t_day">Day</button>
+        <button data-t="night" data-i18n="t_night">Night</button>
+      </div>
+      <div class="clockbox">
+        <div class="dial" id="dial" title="day / night cycle">
+          <span class="dial-glyph" id="dialGlyph">🌙</span>
+          <span class="dial-dot" id="dialDot"></span>
+        </div>
+        <div class="console-sep"></div>
+        <div>
+          <div class="console-clock" id="clock">--:--</div>
+          <div class="console-meta" id="date">BKK</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Telemetry -->
+  <div class="telemetry">
+    <div class="tcell">
+      <div class="tcell-label"><i></i><span data-i18n="lbl_status">Status</span></div>
+      <div class="tcell-value" id="statusVal">Working</div>
+      <div class="tcell-sub" id="statusSub">2 of 2 on shift</div>
+    </div>
+    <div class="tcell gigi">
+      <div class="tcell-label"><i></i><span data-i18n="lbl_session">Session</span></div>
+      <div class="tcell-value" id="sessionVal">00:00<span class="u">elapsed</span></div>
+      <div class="tcell-sub" id="sessionSub" data-i18n="sessionSub">since the office opened</div>
+    </div>
+    <div class="tcell">
+      <div class="tcell-label"><i></i><span data-i18n="lbl_tasks">Tasks logged</span></div>
+      <div class="tcell-value" id="tasksVal">0</div>
+      <div class="tcell-sub" id="tasksSub" data-i18n="tasksSub">work-log entries today</div>
+    </div>
+    <div class="tcell idle gigi" id="npCell">
+      <div class="tcell-label"><i></i><span data-i18n="lbl_np">Now playing</span></div>
+      <div class="tcell-value" id="npVal" style="font-size:15px">— silent —</div>
+      <div class="eq" id="eq"></div>
+    </div>
+  </div>
+
+  <!-- Stage -->
+  <div class="card stage-card" data-screen-label="office stage">
+    <div class="stage-head">
+      <div class="card-title"><span class="tri">▸</span> <span data-i18n="stageTitle">The Office</span></div>
+      <div class="card-meta" id="meta">working</div>
+    </div>
+    <div class="stage" id="stage">
+      <img class="stage-bg" src="assets/office.jpg" alt="pixel office">
+      <!-- ambient + dog layers injected by JS -->
+      <div class="day-wash"></div>
+      <div class="vignette"></div>
+      <div class="grain"></div>
+    </div>
+  </div>
+
+  <!-- Crew -->
+  <div class="card crew-card">
+    <div class="card-head"><div class="card-title" data-i18n="crew">Crew</div><div class="card-meta" id="crewMeta" data-i18n="onShiftMeta">2 on shift</div></div>
+    <div class="panel-body" id="crew"></div>
+  </div>
+
+  <!-- Work Log -->
+  <div class="card log-card">
+    <div class="card-head"><div class="card-title" data-i18n="worklog">Work Log</div><div class="card-meta" id="logsrc">scripted</div></div>
+    <div class="feed" id="feed" role="log" aria-live="polite" aria-relevant="additions"></div>
+  </div>
+
+  <!-- Control dock -->
+  <div class="dock">
+    <div class="dock-group">
+      <button class="btn" id="toggleBtn"><span class="ic">⏸</span> <span class="lbl">Pause</span></button>
+      <button class="btn" id="musicBtn"><span class="ic">♪</span> <span class="lbl">Music</span></button>
+      <button class="btn" id="styleBtn"><span class="ic">⤮</span> <span class="lbl">Café Jazz</span></button>
+      <button class="btn" id="aiBtn"><span class="ic">✦</span> <span class="lbl">Live log: off</span></button>
+    </div>
+    <div class="seg" id="layoutSeg">
+      <button data-l="console" data-i18n="lay_console">Console</button>
+      <button data-l="theater" data-i18n="lay_theater">Stage</button>
+      <button data-l="den" data-i18n="lay_den">Den</button>
+    </div>
+  </div>
+
+  <div class="footnote" data-i18n="footnote">your art, untouched · click a dog to assign work · pumba &amp; co.</div>
+</div>
+
+<script src="office.js"></script>
+</body>
+</html>
