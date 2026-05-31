@@ -9,10 +9,27 @@ export default function ExtrasSection({
   promptPay, onPromptPayChange,
   bankInfo, onBankInfoChange,
   notes, onNotesChange,
+  savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled = false,
 }) {
   const { t } = useLang()
   const [ppOpen, setPpOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  // #96 saved payees
+  const [managing, setManaging] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [payeeName, setPayeeName] = useState('')
+
+  const ppTrim = (promptPay || '').trim()
+  const alreadySaved = savedPayees.some(p => p.promptPay === ppTrim)
+
+  const handleSavePayee = () => {
+    const n = payeeName.trim()
+    if (!n || !ppTrim) return
+    onSavePayee?.(n, ppTrim)
+    setPayeeName('')
+    setSaving(false)
+  }
+  const cancelSave = () => { setPayeeName(''); setSaving(false) }
 
   const handleCopy = () => {
     if (!promptPay) return
@@ -60,6 +77,40 @@ export default function ExtrasSection({
           {ppOpen ? t.close : t.edit}
         </button>
       </div>
+      {payeesEnabled && savedPayees.length > 0 && (
+        <div className={styles.payeeBlock}>
+          <div className={styles.payeeHead}>
+            <span className={styles.payeeHeadLabel}>{t.savedPayees}</span>
+            <button type="button" className={styles.payeeManageBtn} onClick={() => setManaging(m => !m)}>
+              {managing ? t.payeeDone : t.payeeManage}
+            </button>
+          </div>
+          <div className={styles.payeeChips}>
+            {savedPayees.map(p => (
+              <span key={p.id} className={styles.payeeChipWrap}>
+                <button
+                  type="button"
+                  className={`${styles.payeeChip} ${p.promptPay === ppTrim ? styles.payeeChipActive : ''}`}
+                  onClick={() => onPromptPayChange(p.promptPay)}
+                  title={p.promptPay}
+                >
+                  {p.name}
+                </button>
+                {managing && (
+                  <button
+                    type="button"
+                    className={styles.payeeRemove}
+                    onClick={() => onRemovePayee?.(p.id)}
+                    aria-label={t.removePayee}
+                  >
+                    ×
+                  </button>
+                )}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       {ppOpen && (
         <input
           type="text"
@@ -78,6 +129,35 @@ export default function ExtrasSection({
         </div>
       )}
       {!promptPay && !ppOpen && <p className={styles.ppEmpty}>{t.notSet}</p>}
+      {payeesEnabled && ppTrim && !alreadySaved && (
+        saving ? (
+          <div className={styles.payeeSaveForm}>
+            <input
+              type="text"
+              className={styles.payeeNameInput}
+              value={payeeName}
+              onChange={e => setPayeeName(e.target.value)}
+              placeholder={t.payeeNamePh}
+              maxLength={30}
+              autoFocus
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleSavePayee()
+                if (e.key === 'Escape') cancelSave()
+              }}
+            />
+            <button type="button" className={styles.payeeSaveBtn} onClick={handleSavePayee} disabled={!payeeName.trim()}>
+              {t.payeeSave}
+            </button>
+            <button type="button" className={styles.payeeCancelBtn} onClick={cancelSave}>
+              {t.close}
+            </button>
+          </div>
+        ) : (
+          <button type="button" className={styles.payeeSaveLink} onClick={() => setSaving(true)} title={t.savePayeeHint}>
+            + {t.payeeSave}
+          </button>
+        )
+      )}
       <div className={styles.divider} />
       <label className={styles.fieldLabel}>{t.bankLabel}</label>
       <textarea
