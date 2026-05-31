@@ -1,79 +1,41 @@
-.ph-tier {
+.ph-pumba-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  border-radius: 999px;
-  padding: 3px 10px;
-  font-size: 11px;
-  font-weight: 500;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  white-space: nowrap;
-  letter-spacing: 0.02em;
-}
-
-/* Tier 1 — pet allowed (subtle, surface tone) */
-.ph-tier-1 {
+  gap: 6px;
   background: var(--surface-alt);
-  color: var(--muted);
-  border: 0.5px solid var(--border);
-}
-
-/* Tier 2 — pet friendly (accent-light) */
-.ph-tier-2 {
-  background: var(--accent-light);
   color: var(--accent);
-  border: 0.5px solid transparent;
-}
-
-/* Tier 3 — welcoming (accent-light + accent hairline) */
-.ph-tier-3 {
-  background: var(--accent-light);
-  color: var(--accent);
-  border: 0.5px solid var(--accent);
-}
-
-/* Tier 4 — pet paradise (solid accent: clearly outranks tier 3) */
-.ph-tier-4 {
-  background: var(--accent);
-  color: #fff;                /* label: white (per your call) */
-  border: 0.5px solid transparent;
-  font-weight: 600;
-}
-
-/* dark-theme accent is lighter — deepen the tier-4 fill so white label stays legible */
-html[data-theme='dark'] .ph-tier-4 {
-  background: #b5500f;
-}
-
-/* keep the brown paw emoji readable on the solid fill */
-.ph-tier-4 .ph-tier-paws {
-  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid var(--accent);
   border-radius: 999px;
-  padding: 1px 6px;
-}
-
-/* heart on tier-4: recolored bright red-pink so it stays a visible heart (NOT white) */
-.ph-tier-4 .ph-tier-heart {
-  color: #ff4d6d;
-}
-
-/* Pumba's favorite heart — default on light tiers */
-.ph-tier-heart {
-  color: var(--heart);
-  font-size: 0.95em;
-}
-
-.ph-tier-sm .ph-tier-paws {
+  padding: 2px 10px 2px 2px;
   font-size: 11px;
-  letter-spacing: -1px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  box-shadow:
+    0 1px 3px rgba(196, 92, 26, 0.18),
+    inset 0 0 0 1px var(--surface);
 }
 
-.ph-tier-lg {
-  padding: 5px 12px;
-  font-size: 13px;
+.ph-pumba-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--accent-light);
+  flex-shrink: 0;
+  border: 1px solid var(--surface);
 }
 
-.ph-tier-lg .ph-tier-paws {
-  font-size: 13px;
-  letter-spacing: -0.5px;
+.ph-pumba-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 55% 15%;
+  image-rendering: pixelated;
+  display: block;
+}
+
+.ph-pumba-text {
+  line-height: 1;
 }
