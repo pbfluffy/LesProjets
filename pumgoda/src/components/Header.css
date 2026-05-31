@@ -26,8 +26,8 @@
 }
 
 .ph-logo {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
 }
@@ -35,41 +35,55 @@
 .ph-controls {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
+}
+
+/* Thin group divider (matches bill-splitter's header) */
+.ph-header-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 4px;
+  flex-shrink: 0;
 }
 
 .ph-ctrl {
-  background: var(--surface-alt);
-  border: 0.5px solid var(--border);
-  border-radius: 8px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 600;
-  padding: 4px 10px;
-  height: 30px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0 7px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 4px;
   cursor: pointer;
   transition: background 0.15s ease;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   text-decoration: none;
 }
 
 .ph-ctrl:hover {
-  background: var(--border);
+  background: var(--surface-alt);
 }
 
-/* Home button — explicit override so the anchor matches the buttons */
+/* Home button — text label, body font to match bill-splitter */
 .ph-home {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 14px;
+  letter-spacing: 0;
 }
 
-/* Icon-only buttons (refresh, share) — same height as text buttons, square footprint */
+/* Icon-only buttons (refresh, share) — square footprint, same height */
 .ph-ctrl-icon {
-  width: 30px;
+  width: 34px;
+  min-width: 34px;
   padding: 0;
   justify-content: center;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .ph-ctrl-icon:disabled {
