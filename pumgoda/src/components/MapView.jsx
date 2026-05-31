@@ -32,8 +32,8 @@ const PUMBA_IMG = `${import.meta.env.BASE_URL}pumba.png`
 // Color ramp for paw tiers — light → dark accent
 const TIER_COLOR = {
   1: 'var(--accent-light)',
-  2: '#f0a672',
-  3: '#d97a30',
+  2: 'var(--tier-2)',
+  3: 'var(--tier-3)',
   4: 'var(--accent)',
 }
 const TIER_TEXT_COLOR = {
