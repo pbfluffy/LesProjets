@@ -71,12 +71,6 @@
   background: var(--surface-alt);
 }
 
-/* Home button — text label, body font to match bill-splitter */
-.ph-home {
-  font-size: 14px;
-  letter-spacing: 0;
-}
-
 /* Icon-only buttons (refresh, share) — square footprint, same height */
 .ph-ctrl-icon {
   width: 34px;
