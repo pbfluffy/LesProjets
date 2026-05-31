@@ -32,11 +32,13 @@
   border: 0.5px solid var(--accent);
 }
 
-/* Tier 4 — pet paradise (solid accent fill) */
+/* Tier 4 — pet paradise (strongest: light surface + bold ink outline so the
+   paw emoji stay legible; a solid dark fill would hide the brown paws) */
 .ph-tier-4 {
-  background: var(--accent);
-  color: #fff;
-  border: 0.5px solid transparent;
+  background: var(--surface-alt);
+  color: var(--text);
+  border: 1.5px solid var(--accent);
+  font-weight: 700;
 }
 
 /* Pumba's favorite heart — shown alongside the paws, independent of tier */
