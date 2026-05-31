@@ -4,7 +4,6 @@ import ReceiptScanner from './ReceiptScanner'
 import ExtrasSection from './ExtrasSection'
 import ResultSection from './ResultSection'
 import StickyBottomBar from './StickyBottomBar'
-import FAB from './FAB'
 import { useBillStore } from '../hooks/useBillStore'
 import { useLang } from '../LangContext'
 import appStyles from '../App.module.css'
@@ -45,7 +44,6 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill }) {
       </fieldset>
       <ResultSection result={result} members={store.members} promptPay={store.promptPay} bankInfo={store.bankInfo} notes={store.notes} billName={store.billName} snapshot={snapshot} tab="split" onSave={handleSave} initialPaid={sharedState?.paid} />
       <StickyBottomBar memberCount={store.members.length} grandTotal={result.grandTotal} />
-      {!readOnly && <FAB onClick={store.addFood} ariaLabel="Add food" />}
     </div>
   )
 }
