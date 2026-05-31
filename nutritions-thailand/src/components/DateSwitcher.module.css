@@ -46,5 +46,5 @@
 .today {
   color: var(--accent);
   border-color: var(--accent);
-  background: rgba(255, 107, 53, 0.08);
+  background: var(--color-surface-alt);
 }
