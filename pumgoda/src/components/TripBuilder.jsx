@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTrips } from '../hooks/useTrips'
 import { computeTier } from '../data/computeTier'
 import { STRINGS, interp } from '../i18n/strings'
+import { buildTripShareUrl } from '../shareTrip'
 import PawTierBadge from './PawTierBadge'
 import EmptyState from './EmptyState'
 import './TripBuilder.css'
@@ -128,7 +129,7 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
 
   const handleShare = async () => {
     const text = buildShareText()
-    const url = appUrl()
+    const url = buildTripShareUrl(selectedTrip)
     if (navigator.share) {
       try {
         await navigator.share({ title: s.trip.shareTitle, text, url })
