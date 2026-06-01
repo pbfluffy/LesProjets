@@ -231,8 +231,13 @@ function setStatus(){ const w=running; $('statusVal').textContent=w?tr('working'
 function start(){
   running=true; setStatus();
   document.querySelectorAll(AMB_SEL).forEach(e=>e.classList.add('run'));
-  Object.keys(DOGS).forEach((n,i)=>{ const t=setTimeout(()=>cycle(n),i*900); state.timers.push(t); $('dog-'+n).classList.add('breathe'); $('chip-'+n).style.opacity='1'; });
-  const f=setTimeout(flourish,3000); state.timers.push(f);
+  const rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; // BUG-26: reduced-motion = truly at rest
+  Object.keys(DOGS).forEach((n,i)=>{
+    if(rm){ state.task[n]=DOGS[n].tasks[0]; renderDog(n); } // static task: no cycling, no work-log churn
+    else { const t=setTimeout(()=>cycle(n),i*900); state.timers.push(t); }
+    $('dog-'+n).classList.add('breathe'); $('chip-'+n).style.opacity='1';
+  });
+  if(!rm){ const f=setTimeout(flourish,3000); state.timers.push(f); }
 }
 function stop(){
   running=false; setStatus();
