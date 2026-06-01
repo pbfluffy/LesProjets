@@ -49,7 +49,7 @@ const T = {
     footnote:"your art, untouched · click a dog to assign work · pumba & co.",
     roleP:"Technical Lead", roleG:"QA Engineer", metaWorking:"working", metaPaused:"paused",
     logOpened:"Office opened. Good code, good dogs.", logPaused:"Scene paused — everyone takes a nap.", logResumed:"Back to work.",
-    logAskAI:"Asking the AI for fresh tasks…", logAIok:"Live tasks loaded ✦", logAIfail:"Live AI unavailable here — shuffled in fresh scripted tasks.",
+    logAskAI:"Asking the AI for fresh tasks…", logAIok:"Live tasks loaded ✦", logAIfail:"Live AI unavailable here — shuffled in fresh scripted tasks.", logTreat:"got a treat",
     logLiveOff:"Live log off — back to the house tasks.", lang_en:"EN", lang_th:"TH", t_auto:"Auto", t_day:"Day", t_night:"Night" },
   th:{ sub:"ออฟฟิศเปิดแล้ว · ทุกคนกำลังทำงาน", lbl_status:"สถานะ", lbl_session:"เซสชัน", lbl_tasks:"งานที่บันทึก", lbl_np:"กำลังเล่น",
     working:"กำลังทำงาน", paused:"หยุดชั่วคราว", onshift:"เข้าเวร 2 จาก 2", napping:"กำลังงีบ", sessionSub:"ตั้งแต่เปิดออฟฟิศ", elapsed:"ผ่านไป",
@@ -60,7 +60,7 @@ const T = {
     footnote:"ภาพของคุณ ไม่ถูกแตะต้อง · คลิกที่หมาเพื่อมอบงาน · pumba & co.",
     roleP:"หัวหน้าทีมเทคนิค", roleG:"วิศวกร QA", metaWorking:"กำลังทำงาน", metaPaused:"หยุด",
     logOpened:"เปิดออฟฟิศแล้ว โค้ดดี หมาดี", logPaused:"หยุดฉาก — ทุกคนงีบสักครู่", logResumed:"กลับมาทำงาน",
-    logAskAI:"กำลังขอ AI หางานใหม่…", logAIok:"โหลดงานสดแล้ว ✦", logAIfail:"AI สดใช้ไม่ได้ที่นี่ — สุ่มงานสคริปต์ใหม่แทน",
+    logAskAI:"กำลังขอ AI หางานใหม่…", logAIok:"โหลดงานสดแล้ว ✦", logAIfail:"AI สดใช้ไม่ได้ที่นี่ — สุ่มงานสคริปต์ใหม่แทน", logTreat:"ได้ขนม",
     logLiveOff:"ปิดบันทึกสด — กลับไปงานประจำ", lang_en:"EN", lang_th:"TH", t_auto:"อัตโนมัติ", t_day:"กลางวัน", t_night:"กลางคืน" }
 };
 const LS = { lang:'pco.lang', time:'pco.time', layout:'pco.layout' };
@@ -133,6 +133,7 @@ for (const [name,d] of Object.entries(DOGS)) {
 
 /* ── work-log ────────────────────────────────────────────────────────────── */
 function now(){ return new Date().toTimeString().slice(0,5); }
+function esc(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); } // BUG-22: escape dynamic text injected via innerHTML
 function logEv(cv,text){
   const c = cv ? 'var('+cv+')' : '';
   const el=document.createElement('div'); el.className='ev';
@@ -150,7 +151,7 @@ function renderDog(name){
 }
 function setTask(name,taskObj,silent){
   state.task[name]=taskObj; renderDog(name);
-  if(!silent){ logEv(DOGS[name].cv, `<b>${name}</b> — ${taskText(taskObj)}`); bumpTasks(); }
+  if(!silent){ logEv(DOGS[name].cv, `<b>${name}</b> — ${esc(taskText(taskObj))}`); bumpTasks(); }
   const fx=$('fx-'+name); fx.classList.add('type');
   const t=setTimeout(()=>fx.classList.remove('type'), 2200+Math.random()*1500); state.timers.push(t);
 }
@@ -199,7 +200,7 @@ function giveTreat(name){
   const t=document.createElement('div'); t.className='treat'; t.textContent='🦴';
   t.style.left=pct(x0+(x1-x0)*0.5,IMG_W)+'%'; t.style.top=pct(y0+8,IMG_H)+'%';
   stage.appendChild(t); setTimeout(()=>t.remove(),1300);
-  logEv(d.cv, `<b>${name}</b> ${lang==='th'?'ได้ขนม':'got a treat'} 🦴`); bumpTasks();
+  logEv(d.cv, `<b>${name}</b> ${tr('logTreat')} 🦴`); bumpTasks();
 }
 
 /* ── clock · date · weather · session ────────────────────────────────────── */
@@ -216,6 +217,7 @@ loadWeather(); setInterval(loadWeather,600000);
 function pad2(n){ return (n<10?'0':'')+n; }
 function tick(){
   $('clock').textContent=now(); $('date').textContent=dateStr();
+  if(timeMode==='auto'){ const _w=resolveTime(); if(document.body.getAttribute('data-time')!==_w) document.body.setAttribute('data-time',_w); } // BUG-21: Auto follows the clock
   const s=Math.floor((Date.now()-startTime)/1000);
   const hh=Math.floor(s/3600), mm=Math.floor((s%3600)/60), ss=s%60;
   const txt=hh>0 ? hh+':'+pad2(mm)+':'+pad2(ss) : pad2(mm)+':'+pad2(ss);
@@ -257,7 +259,7 @@ function applyFreshTasks(parsed,srcKey){
   if(srcKey==='src_live') logsrc.innerHTML='<i></i>'+tr('src_live');
   const fresh=[];
   for(let i=0;i<6;i++){ if(parsed.Pumba[i]) fresh.push({name:'Pumba',task:parsed.Pumba[i]}); if(parsed.Gigi[i]) fresh.push({name:'Gigi',task:parsed.Gigi[i]}); }
-  fresh.forEach((e,idx)=>{ const t=setTimeout(()=>{ logEv(DOGS[e.name].cv,`<b>${e.name}</b> — ${taskText(e.task)}`); bumpTasks(); }, 600+idx*1100); state.timers.push(t); });
+  fresh.forEach((e,idx)=>{ const t=setTimeout(()=>{ logEv(DOGS[e.name].cv,`<b>${e.name}</b> — ${esc(taskText(e.task))}`); bumpTasks(); }, 600+idx*1100); state.timers.push(t); });
 }
 async function generateLiveLog(){
   logEv(null,tr('logAskAI'));
@@ -265,7 +267,7 @@ async function generateLiveLog(){
   if(window.claude && typeof window.claude.complete==='function'){
     try{ let text=await window.claude.complete(prompt); text=String(text).replace(/```json|```/g,'').trim();
       const m=text.match(/\{[\s\S]*\}/); const parsed=JSON.parse(m?m[0]:text);
-      if(parsed.Pumba&&parsed.Gigi){ parsed.Pumba=parsed.Pumba.map(s=>({en:s,th:s})); parsed.Gigi=parsed.Gigi.map(s=>({en:s,th:s})); applyFreshTasks(parsed,'src_live'); logEv(null,tr('logAIok')); return true; }
+      if(Array.isArray(parsed.Pumba)&&parsed.Pumba.length&&Array.isArray(parsed.Gigi)&&parsed.Gigi.length){ parsed.Pumba=parsed.Pumba.map(s=>({en:s,th:s})); parsed.Gigi=parsed.Gigi.map(s=>({en:s,th:s})); applyFreshTasks(parsed,'src_live'); logEv(null,tr('logAIok')); return true; }
     }catch(err){}
   }
   applyFreshTasks(scriptedFresh(),'src_fresh'); logEv(null,tr('logAIfail')); return false;
@@ -387,7 +389,7 @@ function applyLang(){
   setStatus();
   Object.keys(DOGS).forEach(n=>{ renderDog(n); $('crole-'+n).textContent=tr(DOGS[n].roleKey); $('cassign-'+n).textContent=tr('tm_assign'); const pr=$('prole-'+n); if(pr) pr.textContent=tr(DOGS[n].roleKey); });
   $('toggleBtn').innerHTML = running ? `<span class="ic">⏸</span> <span class="lbl">${tr('pause')}</span>` : `<span class="ic">▶</span> <span class="lbl">${tr('resume')}</span>`;
-  const mOn=Music.isPlaying(); $('musicBtn').innerHTML=`<span class="ic">♪</span> <span class="lbl">${tr('music')}${mOn?': '+tr('on'):''}</span>`;
+  const mOn=Music.isPlaying(); $('musicBtn').innerHTML=`<span class="ic">♪</span> <span class="lbl">${tr('music')}: ${mOn?tr('on'):tr('off')}</span>`;
   $('aiBtn').innerHTML=`<span class="ic">✦</span> <span class="lbl">${tr('livelog')}: ${liveOn?tr('on'):tr('off')}</span>`;
   if(!liveOn){ logsrc.textContent=tr('src_scripted'); }
   $('npVal').textContent = Music.isPlaying() ? Music.current() : tr('silent');
