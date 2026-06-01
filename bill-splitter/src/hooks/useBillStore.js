@@ -28,10 +28,15 @@ export function useBillStore(initial) {
 
   const addMember = useCallback((name) => {
     const trimmed = name.trim()
-    if (!trimmed || members.includes(trimmed)) return false
-    setMembers(prev => [...prev, trimmed])
-    return true
-  }, [members])
+    if (!trimmed) return false
+    let added = false
+    setMembers(prev => {
+      if (prev.includes(trimmed)) return prev
+      added = true
+      return [...prev, trimmed]
+    })
+    return added
+  }, [])
 
   const removeMember = useCallback((name) => {
     setMembers(prev => prev.filter(m => m !== name))
