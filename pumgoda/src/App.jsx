@@ -19,6 +19,8 @@ import { useVotesFs as useVotes } from './hooks/useVotesFs'
 import { useCloudSync } from './hooks/useCloudSync'
 import { useTripsCloudSync } from './hooks/useTripsCloudSync'
 import { useTrips } from './hooks/useTrips'
+import SharedTripView from './components/SharedTripView'
+import { readSharedTrip, clearSharedTripParam } from './shareTrip'
 import { auth, firestore, doc, setDoc, GoogleAuthProvider, signInWithPopup, signOut } from './firebase'
 
 import { fetchPlaces } from './data/fetchPlaces'
@@ -141,13 +143,26 @@ export default function App() {
   })
 
   // #97 Phase 1 — trips → Firestore (mirrors the savedIds sync above).
-  const { trips, replaceTrips } = useTrips()
+  const { trips, replaceTrips, importTrip } = useTrips()
   const {
     syncStatus: tripsSyncStatus,
     pendingServerTrips,
     confirmCloudWins: confirmTripsCloudWins,
     confirmLocalWins: confirmTripsLocalWins,
   } = useTripsCloudSync({ trips, replaceTrips })
+
+  // #97 Phase 2 — a trip shared via ?trip= opens a read-only view + clone.
+  const [sharedTrip, setSharedTrip] = useState(() => readSharedTrip())
+  const handleCloneSharedTrip = () => {
+    if (sharedTrip) importTrip(sharedTrip)
+    clearSharedTripParam()
+    setSharedTrip(null)
+    setActiveTab('trips')
+  }
+  const handleDismissSharedTrip = () => {
+    clearSharedTripParam()
+    setSharedTrip(null)
+  }
 
   // Feature #73 — remote error tracking (caps at 5 per session, writes silently)
   useEffect(() => {
@@ -605,6 +620,17 @@ export default function App() {
           countLine={s.syncConflict.tripsLine}
         />
       )}
+    {/* #97 Phase 2 — read-only view of a shared trip (?trip=) + clone. */}
+    {sharedTrip && (
+      <SharedTripView
+        shared={sharedTrip}
+        places={places}
+        lang={lang}
+        onClone={handleCloneSharedTrip}
+        onClose={handleDismissSharedTrip}
+      />
+    )}
+
     </VotesProvider>
   )
 }
