@@ -10,7 +10,7 @@ import styles from './ResultSection.module.css'
 
 function fmt(n) { return n.toFixed(2) }
 
-export default function ResultSection({ result, members, promptPay, bankInfo, notes, billName, snapshot, tab, onSave, initialPaid }) {
+export default function ResultSection({ result, members, promptPay, bankInfo, notes, billName, snapshot, tab, onSave, initialPaid, roundTotalEnabled, onRoundTotalChange, readOnly }) {
   const { t } = useLang()
   const [toast, setToast] = useState('')
   const [showQR, setShowQR] = useState(false)
@@ -43,6 +43,8 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const hasData = members.length > 0 && result.subtotal > 0
   const ppValid = isValidPromptPayId(promptPay)
   const ownerName = user?.displayName?.trim().toLowerCase()
+  const rawGrand = result.subtotal * result.multiplier
+  const showRoundedFrom = roundTotalEnabled && rawGrand.toFixed(2) !== Number(result.grandTotal).toFixed(2)
 
   const showToast = (msg) => {
     setToast(msg)
@@ -190,7 +192,13 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
             <div className={styles.row}><span className={styles.rowLabel}>{t.foodSubtotal}</span><span className={styles.rowVal}>฿{fmt(result.subtotal)}</span></div>
             {result.serviceCharge > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.serviceCharge} ({result.serviceChargeRate}%)</span><span className={styles.rowVal}>฿{fmt(result.serviceCharge)}</span></div>}
             {result.vat > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.vat} (7%)</span><span className={styles.rowVal}>฿{fmt(result.vat)}</span></div>}
-            <div className={`${styles.row} ${styles.totalRow}`}><span>{t.total}</span><span className={styles.grandTotal}>฿{fmt(result.grandTotal)}</span></div>
+            <div className={`${styles.row} ${styles.totalRow}`}><span>{t.total}</span><span className={styles.totalRight}><span className={styles.grandTotal}>฿{roundTotalEnabled ? Math.round(result.grandTotal) : fmt(result.grandTotal)}</span>{showRoundedFrom && <span className={styles.roundFrom}>{t.roundedFrom} ฿{rawGrand.toFixed(2)}</span>}</span></div>
+            {!readOnly && (
+              <div className={styles.roundRow} data-snapshot-hide>
+                <span className={styles.roundLabel}>{t.roundTotal}</span>
+                <button type="button" className={styles.roundSwitch} role="switch" aria-checked={!!roundTotalEnabled} aria-label={t.roundTotal} onClick={() => onRoundTotalChange(!roundTotalEnabled)}><span className={styles.roundSwitchKnob} /></button>
+              </div>
+            )}
           </div>
 
           {ppValid && (
