@@ -29,13 +29,17 @@ export function useSushiroStore(initial) {
   const addPerson = useCallback((name) => {
     const t = name.trim()
     if (!t) return false
-    if (people.includes(t)) return false
-    setPeople(prev => [...prev, t])
-    setPlates(prev => ({ ...prev, [t]: emptyPlates() }))
-    setSnacks(prev => ({ ...prev, [t]: [] }))
+    let added = false
+    setPeople(prev => {
+      if (prev.includes(t)) return prev
+      added = true
+      return [...prev, t]
+    })
+    setPlates(prev => (prev[t] ? prev : { ...prev, [t]: emptyPlates() }))
+    setSnacks(prev => (prev[t] ? prev : { ...prev, [t]: [] }))
     setActivePerson(prev => prev ?? t)
-    return true
-  }, [people])
+    return added
+  }, [])
 
   const removePerson = useCallback((name) => {
     setPeople(prev => {
