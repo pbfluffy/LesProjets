@@ -113,9 +113,20 @@ export function useTrips() {
     )
   }, [])
 
+  const importTrip = useCallback(({ name, placeIds }) => {
+    const trip = {
+      id: newId(),
+      name: (name || '').trim() || 'Shared trip',
+      placeIds: Array.isArray(placeIds) ? [...new Set(placeIds.filter((x) => typeof x === 'string'))] : [],
+      createdAt: Date.now(),
+    }
+    setTrips((ts) => [trip, ...ts])
+    return trip
+  }, [])
+
   const replaceTrips = useCallback((next) => {
     setTrips(Array.isArray(next) ? next : [])
   }, [])
 
-  return { trips: list, createTrip, renameTrip, deleteTrip, addPlace, removePlace, movePlace, replaceTrips }
+  return { trips: list, createTrip, renameTrip, deleteTrip, addPlace, removePlace, movePlace, replaceTrips, importTrip }
 }
