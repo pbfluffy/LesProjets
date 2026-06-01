@@ -55,7 +55,7 @@ export function useCloudSync({ state, replaceState }) {
     stashPending: (snap) => snap.data(),
     applyPending: (raw) => { const so = stripLastModified(raw); replaceState(so); return so },
     conflictFp: syncFingerprint,
-    echoFp: (s) => JSON.stringify(s),
+    echoFp: canonical, // BUG-18: key-order-independent echo check (was raw JSON.stringify)
     syncingOnChange: true,
     guardRedundantPush: false,
   })
