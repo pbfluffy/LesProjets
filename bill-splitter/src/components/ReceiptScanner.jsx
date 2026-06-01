@@ -268,7 +268,6 @@ export default function ReceiptScanner({
         ref={fileRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={onFile}
         className={styles.hiddenFile}
       />
