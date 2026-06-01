@@ -48,7 +48,8 @@ function entrySummary(entry, t) {
   const scFraction = s.serviceChargeEnabled ? scRate / 100 : 0
   let multiplier = 1 + scFraction
   if (s.vatEnabled) multiplier *= 1.07
-  return `${members.length} ${t.people} · ${foods.length} ${t.items} · ฿${fmt(subtotal * multiplier)}`
+  const billTotal = s.roundTotalEnabled ? Math.round(subtotal * multiplier) : subtotal * multiplier
+  return `${members.length} ${t.people} · ${foods.length} ${t.items} · ฿${fmt(billTotal)}`
 }
 
 export default function BillHistory({ entries, onLoad, onRemove, onClear, onClose }) {
