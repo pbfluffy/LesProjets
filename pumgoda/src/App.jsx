@@ -17,6 +17,8 @@ import { useLocalStorage } from './hooks/useLocalStorage'
 import { VotesProvider } from './hooks/VotesContext'
 import { useVotesFs as useVotes } from './hooks/useVotesFs'
 import { useCloudSync } from './hooks/useCloudSync'
+import { useTripsCloudSync } from './hooks/useTripsCloudSync'
+import { useTrips } from './hooks/useTrips'
 import { auth, firestore, doc, setDoc, GoogleAuthProvider, signInWithPopup, signOut } from './firebase'
 
 import { fetchPlaces } from './data/fetchPlaces'
@@ -44,9 +46,11 @@ function haversineKm(a, b) {
 // local (which overwrites cloud) confirm via a warn step. Adapted from
 // bill-splitter/App.jsx; simplified — Pumgoda's savedIds are just an array of
 // IDs with no per-entry timestamps, so we only show counts, not "newer".
-function ConflictModal({ s, localCount, cloudCount, onUseLocal, onUseCloud }) {
+function ConflictModal({ s, localCount, cloudCount, onUseLocal, onUseCloud, bodyText, countLine }) {
   const [confirmingLocal, setConfirmingLocal] = useState(false)
   const interp = (str, vars) => str.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ''))
+  const _body = bodyText || s.syncConflict.body
+  const _line = countLine || s.syncConflict.placesLine
   const overlayStyle = {
     position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -93,20 +97,28 @@ function ConflictModal({ s, localCount, cloudCount, onUseLocal, onUseCloud }) {
     <div style={overlayStyle}>
       <div style={modalStyle}>
         <h2 style={titleStyle}>{s.syncConflict.title}</h2>
-        <p style={bodyStyle}>{s.syncConflict.body}</p>
+        <p style={bodyStyle}>{_body}</p>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={() => setConfirmingLocal(true)} style={cardStyle}>
             <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>{s.syncConflict.localLabel}</div>
-            <div style={{ fontSize: 13 }}>{interp(s.syncConflict.placesLine, { n: localCount })}</div>
+            <div style={{ fontSize: 13 }}>{interp(_line, { n: localCount })}</div>
           </button>
           <button onClick={onUseCloud} style={cardStyle}>
             <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>{s.syncConflict.cloudLabel}</div>
-            <div style={{ fontSize: 13 }}>{interp(s.syncConflict.placesLine, { n: cloudCount })}</div>
+            <div style={{ fontSize: 13 }}>{interp(_line, { n: cloudCount })}</div>
           </button>
         </div>
       </div>
     </div>
   )
+}
+
+// #97 — merge the two independent sync streams (places + trips) for the header dot.
+function mergeSync(a, b) {
+  if (a === 'error' || b === 'error') return 'error'
+  if (a === 'syncing' || b === 'syncing' || a === 'awaiting-decision' || b === 'awaiting-decision') return 'syncing'
+  if (a === 'synced' || b === 'synced') return 'synced'
+  return 'idle'
 }
 
 export default function App() {
@@ -127,6 +139,15 @@ export default function App() {
     entries: savedIds,
     replaceEntries: setSavedIds,
   })
+
+  // #97 Phase 1 — trips → Firestore (mirrors the savedIds sync above).
+  const { trips, replaceTrips } = useTrips()
+  const {
+    syncStatus: tripsSyncStatus,
+    pendingServerTrips,
+    confirmCloudWins: confirmTripsCloudWins,
+    confirmLocalWins: confirmTripsLocalWins,
+  } = useTripsCloudSync({ trips, replaceTrips })
 
   // Feature #73 — remote error tracking (caps at 5 per session, writes silently)
   useEffect(() => {
@@ -311,7 +332,7 @@ export default function App() {
         suggestUrl={SUGGEST_FORM_URL}
         suggestLabel={s.header.suggest}
         user={user}
-        syncStatus={syncStatus}
+        syncStatus={mergeSync(syncStatus, tripsSyncStatus)}
         popoverOpen={accountPopoverOpen}
         onTogglePopover={() => setAccountPopoverOpen((o) => !o)}
         onSignIn={handleSignIn}
@@ -569,6 +590,19 @@ export default function App() {
           cloudCount={pendingServerEntries.length}
           onUseLocal={confirmLocalWins}
           onUseCloud={confirmCloudWins}
+        />
+      )}
+
+      {/* #97 Phase 1 — trips first-sign-in conflict (parallel to places). */}
+      {pendingServerTrips && (
+        <ConflictModal
+          s={s}
+          localCount={trips.length}
+          cloudCount={pendingServerTrips.length}
+          onUseLocal={confirmTripsLocalWins}
+          onUseCloud={confirmTripsCloudWins}
+          bodyText={s.syncConflict.tripsBody}
+          countLine={s.syncConflict.tripsLine}
         />
       )}
     </VotesProvider>
