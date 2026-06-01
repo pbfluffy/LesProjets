@@ -170,6 +170,17 @@ export const STRINGS = {
       continueWithGoogle: 'เข้าสู่ระบบด้วย Google',
     },
 
+    sharedTrip: {
+      title: 'ทริปที่แชร์มา',
+      subtitle: 'มีคนแชร์แผนทริปนี้ให้คุณ',
+      untitled: 'ทริปไม่มีชื่อ',
+      emptyStops: 'ทริปนี้ยังไม่มีจุดแวะ',
+      unavailable: 'สถานที่นี้ไม่มีอยู่แล้ว',
+      clone: 'บันทึกเข้าทริปของฉัน',
+      close: 'ปิด',
+      someUnavailable: 'มี {n} สถานที่ที่ไม่อยู่ในรายการแล้ว ถูกข้ามในตัวอย่าง',
+    },
+
     syncConflict: {
       title: 'ข้อมูลซิงค์ขัดแย้ง',
       body: 'อุปกรณ์นี้และคลาวด์มีสถานที่บันทึกไว้คนละชุด เลือกชุดที่ต้องการเก็บ — อีกฝั่งจะถูกเขียนทับ',
@@ -346,6 +357,17 @@ export const STRINGS = {
       signOut: 'Sign out',
       signingIn: 'Signing in…',
       continueWithGoogle: 'Continue with Google',
+    },
+
+    sharedTrip: {
+      title: 'Shared trip',
+      subtitle: 'Someone shared this itinerary with you.',
+      untitled: 'Untitled trip',
+      emptyStops: 'This trip has no stops.',
+      unavailable: 'Place no longer available',
+      clone: 'Clone to my trips',
+      close: 'Close',
+      someUnavailable: '{n} place(s) are no longer listed and were skipped in the preview.',
     },
 
     syncConflict: {
