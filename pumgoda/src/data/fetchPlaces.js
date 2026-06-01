@@ -11,6 +11,12 @@ import { isTrue } from './computeTier'
 import fallbackPlaces from './places.fallback.json'
 
 // Map raw CSV row → typed place object
+// Normalize the Sheet's free-text price_tier to a known token or null. (BUG-09)
+function normTier(v) {
+  const t = (v || '').trim()
+  return ['$', '$$', '$$$'].includes(t) ? t : null
+}
+
 function normalize(row) {
   return {
     id: row.id,
@@ -60,7 +66,7 @@ function normalize(row) {
       photoUrl: row.pumba_photo_url || null,
       favorite: isTrue(row.pumba_favorite),
     },
-    priceTier: row.price_tier,
+    priceTier: normTier(row.price_tier),
     notes: { en: row.notes_en, th: row.notes_th },
     tags: (row.tags || '')
       .split(';')
