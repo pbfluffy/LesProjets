@@ -113,5 +113,9 @@ export function useTrips() {
     )
   }, [])
 
-  return { trips: list, createTrip, renameTrip, deleteTrip, addPlace, removePlace, movePlace }
+  const replaceTrips = useCallback((next) => {
+    setTrips(Array.isArray(next) ? next : [])
+  }, [])
+
+  return { trips: list, createTrip, renameTrip, deleteTrip, addPlace, removePlace, movePlace, replaceTrips }
 }
