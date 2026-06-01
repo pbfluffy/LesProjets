@@ -45,6 +45,17 @@ function getSnapshot() {
   return trips
 }
 
+// Cross-tab sync (BUG-16): when another tab writes the trips key, adopt its
+// value and notify subscribers WITHOUT writing back (avoids a storage echo
+// loop), so two open tabs never clobber each other's trips.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key !== null && e.key !== LS_KEYS.TRIPS) return
+    trips = load()
+    for (const l of listeners) l()
+  })
+}
+
 export function useTrips() {
   const list = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
