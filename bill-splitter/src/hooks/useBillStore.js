@@ -9,6 +9,7 @@ export function useBillStore(initial) {
   const [vatEnabled, setVatEnabled] = useState(initial?.vatEnabled ?? false)
   const [serviceChargeEnabled, setServiceChargeEnabled] = useState(initial?.serviceChargeEnabled ?? false)
   const [serviceChargeRate, setServiceChargeRate] = useState(initial?.serviceChargeRate ?? 10)
+  const [roundTotalEnabled, setRoundTotalEnabled] = useState(initial?.roundTotalEnabled ?? false)
   const [promptPay, setPromptPay] = useState(initial?.promptPay ?? '')
   const [bankInfo, setBankInfo] = useState(initial?.bankInfo ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
@@ -97,15 +98,38 @@ export function useBillStore(initial) {
     const scFraction = serviceChargeEnabled ? scRate / 100 : 0
     let multiplier = 1 + scFraction
     if (vatEnabled) multiplier *= 1.07
-    const totals = Object.fromEntries(Object.entries(shares).map(([m, v]) => [m, v * multiplier]))
+    const rawTotals = Object.fromEntries(Object.entries(shares).map(([m, v]) => [m, v * multiplier]))
+    const rawGrand = subtotal * multiplier
+    // #88 — reconcile per-person amounts so the column always sums exactly to the
+    // grand total (fixes BUG-19). When roundTotalEnabled, the grand total snaps to
+    // the nearest whole baht. Either way the bill owner (members[0], the auto-seeded
+    // creator) absorbs the rounding delta. Guard: if the owner's natural share is too
+    // small to absorb a round-down, clamp owner to >=0 and let the total settle at
+    // what is actually owed rather than display a negative amount.
+    const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100
+    let grandTotal = roundTotalEnabled ? Math.round(rawGrand) : round2(rawGrand)
+    const owner = members[0]
+    const totals = {}
+    if (members.length > 0) {
+      let othersSum = 0
+      members.forEach(m => {
+        if (m === owner) return
+        const r = round2(rawTotals[m])
+        totals[m] = r
+        othersSum += r
+      })
+      let ownerAmt = round2(grandTotal - othersSum)
+      if (ownerAmt < 0) { ownerAmt = 0; grandTotal = round2(othersSum) }
+      totals[owner] = ownerAmt
+    }
     return {
       shares, totals, subtotal,
       serviceCharge: subtotal * scFraction,
       serviceChargeRate: scRate,
       vat: vatEnabled ? subtotal * (1 + scFraction) * 0.07 : 0,
-      grandTotal: subtotal * multiplier, multiplier,
+      grandTotal, multiplier,
     }
-  }, [members, foods, vatEnabled, serviceChargeEnabled, serviceChargeRate])
+  }, [members, foods, vatEnabled, serviceChargeEnabled, serviceChargeRate, roundTotalEnabled])
 
-  return { billName, setBillName, members, addMember, removeMember, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, calculate }
+  return { billName, setBillName, members, addMember, removeMember, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, roundTotalEnabled, setRoundTotalEnabled, calculate }
 }
