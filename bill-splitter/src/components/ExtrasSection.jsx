@@ -5,6 +5,7 @@ import styles from './ExtrasSection.module.css'
 export default function ExtrasSection({
   vatEnabled, onVatChange,
   serviceChargeEnabled, onServiceChargeChange,
+  roundTotalEnabled, onRoundTotalChange,
   serviceChargeRate, onServiceChargeRateChange,
   promptPay, onPromptPayChange,
   bankInfo, onBankInfoChange,
@@ -69,6 +70,10 @@ export default function ExtrasSection({
             <span className={styles.ratePct}>%</span>
           </span>
         </div>
+        <label className={styles.toggle}>
+          <input type="checkbox" checked={!!roundTotalEnabled} onChange={e => onRoundTotalChange(e.target.checked)} />
+          <span>{t.roundTotal}</span>
+        </label>
       </div>
       <div className={styles.divider} />
       <div className={styles.ppHeader}>
