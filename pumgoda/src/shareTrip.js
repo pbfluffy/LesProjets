@@ -61,6 +61,29 @@ export function readSharedTrip() {
   return payload ? decodeTrip(payload) : null
 }
 
+// ── #97 Phase 3: collaborative trips share only the trip CODE (?ctrip=<id>),
+// not a snapshot — both people open the same live sharedTrips/<id> doc.
+
+export function buildCollabTripUrl(remoteId) {
+  const u = new URL(window.location.href)
+  u.hash = ''
+  u.searchParams.delete('trip')
+  u.searchParams.set('ctrip', remoteId)
+  return u.toString()
+}
+
+export function readCollabTripId() {
+  const id = new URL(window.location.href).searchParams.get('ctrip')
+  return id && /^[A-Za-z0-9_-]{4,64}$/.test(id) ? id : null
+}
+
+export function clearCollabTripParam() {
+  const url = new URL(window.location.href)
+  url.searchParams.delete('ctrip')
+  url.hash = ''
+  history.replaceState(null, '', url.pathname + url.search)
+}
+
 // Strip the ?trip= param without reloading (after clone or dismiss).
 export function clearSharedTripParam() {
   const url = new URL(window.location.href)
