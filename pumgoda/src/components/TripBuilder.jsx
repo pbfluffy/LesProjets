@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useTrips } from '../hooks/useTrips'
+import { useSharedTrip } from '../hooks/useSharedTrip'
 import { computeTier } from '../data/computeTier'
 import { STRINGS, interp } from '../i18n/strings'
-import { buildTripShareUrl } from '../shareTrip'
+import { buildTripShareUrl, buildCollabTripUrl } from '../shareTrip'
 import PawTierBadge from './PawTierBadge'
 import EmptyState from './EmptyState'
 import './TripBuilder.css'
@@ -10,11 +11,6 @@ import './TripBuilder.css'
 // A trip is a short ordered chain of pet-friendly stops (the design doc
 // targets 3-5). Cap kept generous so the shared Line message stays readable.
 const MAX_STOPS = 8
-
-// App URL without query/hash — appended to the shared trip text.
-function appUrl() {
-  return window.location.href.split('?')[0].split('#')[0]
-}
 
 export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
   const s = STRINGS[lang]
@@ -26,6 +22,7 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
     addPlace,
     removePlace,
     movePlace,
+    promoteToShared,
   } = useTrips()
 
   const [selectedTripId, setSelectedTripId] = useState(null)
@@ -33,6 +30,7 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerSearch, setPickerSearch] = useState('')
   const [toast, setToast] = useState('')
+  const [promoting, setPromoting] = useState(false)
 
   // id -> place, for resolving the ids stored on a trip
   const placeById = useMemo(() => {
@@ -62,6 +60,97 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
   const selectedTrip = selectedTripId
     ? trips.find((t) => t.id === selectedTripId)
     : null
+
+  // #97 Phase 3 — collaborative trips. The hook is called UNCONDITIONALLY
+  // (null tripId when the open trip isn't shared) so hook order is stable. When
+  // the trip is shared it subscribes live to sharedTrips/<remoteId>, so this
+  // device sees other members' edits and writes flow back as debounced LWW.
+  const isShared = !!(selectedTrip && selectedTrip.shared && selectedTrip.remoteId)
+  const shared = useSharedTrip(isShared ? selectedTrip.remoteId : null)
+  const live = isShared && shared.remote ? shared.remote : null
+
+  // Effective trip content: the live remote doc wins when shared, else local.
+  const stops = live ? (Array.isArray(live.placeIds) ? live.placeIds : []) : (selectedTrip ? selectedTrip.placeIds : [])
+  const tripName = live ? (live.name || '') : (selectedTrip ? selectedTrip.name : '')
+  const memberCount = live && Array.isArray(live.members) ? live.members.length : 0
+
+  // ─────────────────────────────────────────── Mutators (route by share state)
+  const canEditShared = !!shared.user
+  const doAddPlace = (placeId) => {
+    if (stops.includes(placeId)) return
+    if (isShared) shared.update({ placeIds: [...stops, placeId] })
+    else addPlace(selectedTrip.id, placeId)
+  }
+  const doRemovePlace = (placeId) => {
+    if (isShared) shared.update({ placeIds: stops.filter((x) => x !== placeId) })
+    else removePlace(selectedTrip.id, placeId)
+  }
+  const doMovePlace = (index, dir) => {
+    const j = index + dir
+    if (j < 0 || j >= stops.length) return
+    if (isShared) {
+      const next = [...stops]
+      ;[next[index], next[j]] = [next[j], next[index]]
+      shared.update({ placeIds: next })
+    } else {
+      movePlace(selectedTrip.id, index, dir)
+    }
+  }
+  const doRename = (name) => {
+    const trimmed = (name || '').trim()
+    if (!trimmed) return
+    if (isShared) shared.update({ name: trimmed })
+    else renameTrip(selectedTrip.id, trimmed)
+  }
+
+  // Owner promotes a local trip to a collaborative shared doc, then copies the
+  // ?ctrip= link. The local trip id is reused as the shared doc id / share code.
+  const handleMakeCollab = async () => {
+    if (!shared.user) {
+      flashToast(s.trip.collabSignIn)
+      return
+    }
+    if (promoting) return
+    setPromoting(true)
+    try {
+      const id = await shared.create({
+        id: selectedTrip.id,
+        name: selectedTrip.name,
+        placeIds: selectedTrip.placeIds,
+      })
+      if (id) {
+        promoteToShared(selectedTrip.id, id)
+        try {
+          await navigator.clipboard.writeText(buildCollabTripUrl(id))
+          flashToast(s.trip.copied)
+        } catch {
+          flashToast(buildCollabTripUrl(id))
+        }
+      } else {
+        flashToast(s.trip.collabSyncError)
+      }
+    } finally {
+      setPromoting(false)
+    }
+  }
+
+  const handleShareCollabLink = async () => {
+    const url = buildCollabTripUrl(selectedTrip.remoteId)
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: s.trip.shareTitle, text: tripName, url })
+        return
+      } catch (e) {
+        if (e && e.name === 'AbortError') return
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      flashToast(s.trip.copied)
+    } catch {
+      flashToast(url)
+    }
+  }
 
   // ─────────────────────────────────────────── Trip list view
   if (!selectedTrip) {
@@ -94,7 +183,14 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
                 onClick={() => setSelectedTripId(trip.id)}
               >
                 <div className="ph-trip-card-body">
-                  <div className="ph-trip-card-name">{trip.name}</div>
+                  <div className="ph-trip-card-name">
+                    {trip.name}
+                    {trip.shared && (
+                      <span className="ph-trip-collab-tag" aria-label={s.trip.collabLive}>
+                        👥
+                      </span>
+                    )}
+                  </div>
                   <div className="ph-trip-card-meta mono">
                     📍 {trip.placeIds.length}
                   </div>
@@ -111,11 +207,10 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
   }
 
   // ─────────────────────────────────────────── Trip detail view
-  const stops = selectedTrip.placeIds
   const atCap = stops.length >= MAX_STOPS
 
   const buildShareText = () => {
-    const lines = [`🐾 ${selectedTrip.name}`, '']
+    const lines = [`🐾 ${tripName}`, '']
     stops.forEach((id, i) => {
       const p = placeById.get(id)
       if (!p) return
@@ -129,7 +224,7 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
 
   const handleShare = async () => {
     const text = buildShareText()
-    const url = buildTripShareUrl(selectedTrip)
+    const url = buildTripShareUrl({ name: tripName, placeIds: stops })
     if (navigator.share) {
       try {
         await navigator.share({ title: s.trip.shareTitle, text, url })
@@ -153,8 +248,7 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
     }
   }
 
-  // Places not already in the trip, filtered by the picker search box.
-    const buildMapsUrl = () => {
+  const buildMapsUrl = () => {
     if (stops.length === 0) return null
     const points = []
     stops.forEach((id) => {
@@ -187,6 +281,10 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
   })
   const somethingToAdd = places.some((p) => p.id && !stops.includes(p.id))
 
+  // Shared trips are read-from-remote; block edits until the snapshot is live
+  // and the user is signed in (writes need an auth uid).
+  const editsLocked = isShared && (!canEditShared || shared.status !== 'live')
+
   return (
     <div className="ph-trip-wrap">
       <div className="ph-trip-detail-bar">
@@ -197,18 +295,38 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
         >
           {s.trip.back}
         </button>
+        {isShared && (
+          <span className="ph-trip-collab-status">
+            <span
+              className={`ph-trip-live-dot ${shared.status === 'live' ? 'is-live' : ''}`}
+              aria-hidden="true"
+            />
+            <span className="mono">
+              {shared.status === 'live'
+                ? `${s.trip.collabLive} · ${memberCount} ${s.trip.collabMembers}`
+                : shared.status === 'error' || shared.status === 'denied'
+                  ? s.trip.collabSyncError
+                  : '…'}
+            </span>
+          </span>
+        )}
       </div>
 
       <input
         key={selectedTrip.id}
         type="text"
         className="ph-trip-name-input"
-        defaultValue={selectedTrip.name}
+        defaultValue={tripName}
         maxLength={50}
         aria-label={s.trip.rename}
-        onBlur={(e) => renameTrip(selectedTrip.id, e.target.value)}
+        onBlur={(e) => doRename(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+        disabled={editsLocked}
       />
+
+      {isShared && !canEditShared && (
+        <p className="ph-trip-hint">{s.trip.collabSignIn}</p>
+      )}
 
       {stops.length === 0 ? (
         <EmptyState icon="📍" title={s.trip.emptyStops} />
@@ -244,8 +362,8 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
                   <button
                     type="button"
                     className="ph-trip-arrow-btn"
-                    onClick={() => movePlace(selectedTrip.id, i, -1)}
-                    disabled={i === 0}
+                    onClick={() => doMovePlace(i, -1)}
+                    disabled={i === 0 || editsLocked}
                     aria-label={s.trip.moveUp}
                   >
                     ▲
@@ -253,8 +371,8 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
                   <button
                     type="button"
                     className="ph-trip-arrow-btn"
-                    onClick={() => movePlace(selectedTrip.id, i, 1)}
-                    disabled={i === stops.length - 1}
+                    onClick={() => doMovePlace(i, 1)}
+                    disabled={i === stops.length - 1 || editsLocked}
                     aria-label={s.trip.moveDown}
                   >
                     ▼
@@ -264,8 +382,9 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
                 <button
                   type="button"
                   className="ph-trip-remove-btn"
-                  onClick={() => removePlace(selectedTrip.id, id)}
+                  onClick={() => doRemovePlace(id)}
                   aria-label={s.trip.remove}
+                  disabled={editsLocked}
                 >
                   ×
                 </button>
@@ -282,7 +401,7 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
           setPickerSearch('')
           setPickerOpen(true)
         }}
-        disabled={atCap}
+        disabled={atCap || editsLocked}
       >
         {atCap ? interp(s.trip.full, { n: MAX_STOPS }) : s.trip.addStop}
       </button>
@@ -291,11 +410,32 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
         <p className="ph-trip-hint">{s.trip.hint}</p>
       )}
 
+      {/* #97 Phase 3 — promote to collaborative, or share the live link. */}
+      {isShared ? (
+        <button
+          type="button"
+          className="ph-trip-share"
+          onClick={handleShareCollabLink}
+        >
+          {s.trip.collabShareLink}
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="ph-trip-collab-btn"
+          onClick={handleMakeCollab}
+          disabled={promoting || stops.length === 0}
+        >
+          {s.trip.makeCollab}
+        </button>
+      )}
+
       <button
         type="button"
         className="ph-trip-share"
         onClick={handleShare}
         disabled={stops.length === 0}
+        style={{ marginTop: 8 }}
       >
         {s.trip.share}
       </button>
@@ -372,7 +512,7 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
                     <button
                       type="button"
                       className={`ph-trip-picker-add ${atCap ? 'is-added' : ''}`}
-                      onClick={() => !atCap && addPlace(selectedTrip.id, p.id)}
+                      onClick={() => !atCap && doAddPlace(p.id)}
                       disabled={atCap}
                     >
                       {s.trip.add}
