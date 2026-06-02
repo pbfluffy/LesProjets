@@ -248,7 +248,7 @@
   border-color: var(--danger);
 }
 
-/* ── Detail actions ───────────────────────────────────────────── */
+/* ── Detail actions ──────────────────────────────────────────── */
 
 .ph-trip-add {
   width: 100%;
@@ -496,4 +496,70 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* ── #97 Phase 3 — collaborative trips ───────────────────────────────── */
+
+/* 👥 tag on a shared trip's list card */
+.ph-trip-collab-tag {
+  margin-left: 6px;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+/* Make-collaborative button — outlined accent, sits above the share buttons */
+.ph-trip-collab-btn {
+  width: 100%;
+  padding: 11px;
+  border: 0.5px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.ph-trip-collab-btn:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.ph-trip-collab-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Live status pill in the detail bar */
+.ph-trip-collab-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ph-trip-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.ph-trip-live-dot.is-live {
+  background: var(--heart, #2e9e5b);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--heart, #2e9e5b) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ph-trip-live-dot.is-live {
+    animation: ph-trip-pulse 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes ph-trip-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
