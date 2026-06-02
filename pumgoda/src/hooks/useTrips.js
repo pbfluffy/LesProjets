@@ -113,12 +113,23 @@ export function useTrips() {
     )
   }, [])
 
-  const importTrip = useCallback(({ name, placeIds }) => {
+  // #97 Phase 3 — mark a local trip as collaborative. remoteId is the
+  // sharedTrips/<id> doc id (it doubles as the share code). The trip keeps its
+  // local id; { shared, remoteId } make useSharedTrip subscribe to the doc.
+  const promoteToShared = useCallback((id, remoteId) => {
+    if (!id || !remoteId) return
+    setTrips((ts) =>
+      ts.map((t) => (t.id === id ? { ...t, shared: true, remoteId } : t))
+    )
+  }, [])
+
+  const importTrip = useCallback(({ name, placeIds, shared = false, remoteId = null }) => {
     const trip = {
       id: newId(),
       name: (name || '').trim() || 'Shared trip',
       placeIds: Array.isArray(placeIds) ? [...new Set(placeIds.filter((x) => typeof x === 'string'))] : [],
       createdAt: Date.now(),
+      ...(shared && remoteId ? { shared: true, remoteId } : {}),
     }
     setTrips((ts) => [trip, ...ts])
     return trip
@@ -128,5 +139,5 @@ export function useTrips() {
     setTrips(Array.isArray(next) ? next : [])
   }, [])
 
-  return { trips: list, createTrip, renameTrip, deleteTrip, addPlace, removePlace, movePlace, replaceTrips, importTrip }
+  return { trips: list, createTrip, renameTrip, deleteTrip, addPlace, removePlace, movePlace, replaceTrips, importTrip, promoteToShared }
 }
