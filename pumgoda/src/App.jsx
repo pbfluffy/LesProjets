@@ -20,7 +20,8 @@ import { useCloudSync } from './hooks/useCloudSync'
 import { useTripsCloudSync } from './hooks/useTripsCloudSync'
 import { useTrips } from './hooks/useTrips'
 import SharedTripView from './components/SharedTripView'
-import { readSharedTrip, clearSharedTripParam } from './shareTrip'
+import JoinCollabView from './components/JoinCollabView'
+import { readSharedTrip, clearSharedTripParam, readCollabTripId, clearCollabTripParam } from './shareTrip'
 import { auth, firestore, doc, setDoc, GoogleAuthProvider, signInWithPopup, signOut } from './firebase'
 
 import { fetchPlaces } from './data/fetchPlaces'
@@ -162,6 +163,21 @@ export default function App() {
   const handleDismissSharedTrip = () => {
     clearSharedTripParam()
     setSharedTrip(null)
+  }
+
+  // #97 Phase 3 — opened via ?ctrip=<id>: live collaborative-join view.
+  const [collabTripId, setCollabTripId] = useState(() => readCollabTripId())
+  const handleJoinedCollab = ({ id, name, placeIds }) => {
+    // Reuse an existing local pointer to this shared doc; else mirror it in.
+    const existing = trips.find((t) => t.remoteId === id)
+    if (!existing) importTrip({ name, placeIds, shared: true, remoteId: id })
+    clearCollabTripParam()
+    setCollabTripId(null)
+    setActiveTab('trips')
+  }
+  const handleDismissCollab = () => {
+    clearCollabTripParam()
+    setCollabTripId(null)
   }
 
   // Feature #73 — remote error tracking (caps at 5 per session, writes silently)
@@ -628,6 +644,17 @@ export default function App() {
         lang={lang}
         onClone={handleCloneSharedTrip}
         onClose={handleDismissSharedTrip}
+      />
+    )}
+
+    {/* #97 Phase 3 — live collaborative join (?ctrip=). ?trip= takes priority. */}
+    {collabTripId && !sharedTrip && (
+      <JoinCollabView
+        tripId={collabTripId}
+        places={places}
+        lang={lang}
+        onJoined={handleJoinedCollab}
+        onClose={handleDismissCollab}
       />
     )}
 
