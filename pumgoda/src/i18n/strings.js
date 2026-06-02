@@ -121,6 +121,7 @@ export const STRINGS = {
       empty: 'ไม่พบสถานที่ที่ตรงกับตัวกรอง',
       emptySaved: 'ยังไม่มีรายการบันทึกไว้',
       networkError: 'เชื่อมต่อไม่ได้ — กำลังแสดงข้อมูลที่บันทึกไว้',
+      staleCache: 'กำลังแสดงข้อมูลที่บันทึกไว้ — แตะ ⟳ เพื่อรีเฟรช',
       comingSoon: 'เร็วๆ นี้ — รอเวอร์ชัน 2',
     },
 
@@ -177,7 +178,7 @@ export const STRINGS = {
     account: {
       signIn: 'เข้าสู่ระบบ',
       signOut: 'ออกจากระบบ',
-      signingIn: 'กำลังเข้าสู่ระบบ…',
+      signingIn: 'กำลังเข้าสู่ระบบ',
       continueWithGoogle: 'เข้าสู่ระบบด้วย Google',
     },
 
@@ -321,6 +322,7 @@ export const STRINGS = {
       empty: 'No places match your filters',
       emptySaved: 'No saved places yet',
       networkError: 'Offline — showing cached data',
+      staleCache: 'Showing cached data — tap ⟳ to retry',
       comingSoon: 'Coming soon — v2',
     },
 
