@@ -130,7 +130,7 @@ export default function App() {
   const s = STRINGS[lang]
 
   const [places, setPlaces] = useState([])
-  const [loadState, setLoadState] = useState('loading') // 'loading' | 'ok' | 'fallback'
+  const [loadState, setLoadState] = useState('loading') // 'loading' | 'ok' | 'fallback' | 'stale'
   const [activeTab, setActiveTab] = useState('list')
   const [selected, setSelected] = useState(null) // a venue object
   const [savedIds, setSavedIds] = useLocalStorage(LS_KEYS.SAVED, [])
@@ -297,7 +297,7 @@ export default function App() {
     try {
       const { places: fresh, source } = await fetchPlaces({ force: true })
       setPlaces(fresh)
-      setLoadState(source === 'fallback' ? 'fallback' : 'ok')
+      setLoadState(source === 'fallback' ? 'fallback' : source === 'stale-cache' ? 'stale' : 'ok')
     } catch (err) {
       console.warn('[onRefresh] could not refresh places:', err)
     } finally {
@@ -311,7 +311,7 @@ export default function App() {
     fetchPlaces().then(({ places, source }) => {
       if (cancelled) return
       setPlaces(places)
-      setLoadState(source === 'fallback' ? 'fallback' : 'ok')
+      setLoadState(source === 'fallback' ? 'fallback' : source === 'stale-cache' ? 'stale' : 'ok')
     })
     return () => {
       cancelled = true
@@ -400,6 +400,7 @@ export default function App() {
                   ? s.states.loading
                   : `${visiblePlaces.length} ${activeTab === 'saved' ? '♥' : '🐾'}`}
                 {loadState === 'fallback' ? ` · ${s.states.networkError}` : ''}
+                {loadState === 'stale' ? ` · ${s.states.staleCache}` : ''}
                 {loadState !== 'loading' && activeTab !== 'saved' && (
                   <button
                     type="button"
