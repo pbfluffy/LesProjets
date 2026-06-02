@@ -48,6 +48,7 @@ jobs:
           cp index.html _site/index.html
           cp admindepum.html _site/admindepum.html
           cp NutritionsInThailand.html _site/NutritionsInThailand.html
+          cp Game.html _site/Game.html
           cp -r studio/. _site/studio/
           cp -r bill-splitter/dist/. _site/bill-splitter/
           cp -r nutritions-thailand/dist/. _site/nutritions-thailand/
