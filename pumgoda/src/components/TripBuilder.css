@@ -47,7 +47,7 @@
   opacity: 0.85;
 }
 
-/* ── Trip list ────────────────────────────────────────────────── */
+/* ── Trip list ───────────────────────────────────────────────── */
 
 .ph-trip-list {
   display: flex;
@@ -562,4 +562,28 @@
 @keyframes ph-trip-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }
+}
+
+/* P4 — owner badge in the detail bar (sits left, before the live pill) */
+.ph-trip-owner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-light);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* P4 — per-stop "added by {name}" line, under the paw badge */
+.ph-trip-stop-by {
+  font-size: 10px;
+  color: var(--faint);
+  margin-top: 4px;
 }
