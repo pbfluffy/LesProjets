@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { STRINGS } from '../i18n/strings'
 import './MapFilterBar.css'
 
-const TYPES = ['cafe', 'restaurant', 'hotel', 'pet_hotel', 'park', 'mall', 'beach', 'vet', 'pet_shop', 'grooming']
+const TYPES = ['cafe', 'restaurant', 'hotel', 'pet_hotel', 'park', 'mall', 'beach', 'vet', 'clinic', 'pet_shop', 'grooming']
 const POLICIES = ['no_stroller_needed', 'indoor_allowed', 'no_size_limit', 'pet_menu', 'off_leash_zone', 'no_fee']
 const TIERS = [
   { v: 0, label: null },
