@@ -360,11 +360,6 @@ function applyTime(){ document.body.setAttribute('data-time', resolveTime());
   $('timeSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('sel', b.dataset.t===timeMode)); localStorage.setItem(LS.time,timeMode); }
 $('timeSeg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ timeMode=b.dataset.t; applyTime(); }));
 
-/* ── layout switcher ─────────────────────────────────────────────────────── */
-let layout = localStorage.getItem(LS.layout) || 'console';
-function applyLayout(){ document.body.classList.remove('layout-console','layout-theater','layout-den'); document.body.classList.add('layout-'+layout);
-  $('layoutSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('sel', b.dataset.l===layout)); localStorage.setItem(LS.layout,layout); }
-$('layoutSeg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ layout=b.dataset.l; applyLayout(); }));
 
 /* ── language toggle ─────────────────────────────────────────────────────── */
 function applyLang(){
@@ -384,7 +379,7 @@ function applyLang(){
 $('langSeg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ lang=b.dataset.lang; localStorage.setItem(LS.lang,lang); applyLang(); }));
 
 /* ── boot ────────────────────────────────────────────────────────────────── */
-applyTime(); applyLayout(); applyLang(); tick();
+applyTime(); applyLang(); tick();
 eqLoop();
 logEv(null, tr('logOpened'));
 (function(){ const h=new Date().getHours(); const st=(h>=18||h<6)?'Late Night':'Café Jazz'; Music.setStyle(st); $('styleBtn').innerHTML=`<span class="ic">⤮</span> <span class="lbl">${st}</span>`; })();
