@@ -75,6 +75,7 @@ export const STRINGS = {
       mall: 'ห้างฯ',
       beach: 'ชายหาด',
       vet: 'สัตวแพทย์',
+      clinic: 'คลินิก',
       pet_shop: 'ร้านสัตว์เลี้ยง',
       grooming: 'อาบน้ำตัดขน',
     },
@@ -173,15 +174,12 @@ export const STRINGS = {
       collabJoinSub: 'แก้ไขร่วมกันได้แบบเรียลไทม์',
       collabJoin: 'เข้าร่วม + แก้ไข',
       collabJoined: 'เข้าร่วมแล้ว ✓',
-      collabAddedBy: 'เพิ่มโดย {name}',
-      collabSomeone: 'สมาชิกคนหนึ่ง',
-      collabOwner: 'เจ้าของ',
     },
 
     account: {
       signIn: 'เข้าสู่ระบบ',
       signOut: 'ออกจากระบบ',
-      signingIn: 'กำลังเข้าสู่ระบบ',
+      signingIn: 'กำลังเข้าสู่ระบบ…',
       continueWithGoogle: 'เข้าสู่ระบบด้วย Google',
     },
 
@@ -279,6 +277,7 @@ export const STRINGS = {
       mall: 'Mall',
       beach: 'Beach',
       vet: 'Vet',
+      clinic: 'Clinic',
       pet_shop: 'Pet shop',
       grooming: 'Grooming',
     },
@@ -377,9 +376,6 @@ export const STRINGS = {
       collabJoinSub: 'Edit together in real time',
       collabJoin: 'Join + edit',
       collabJoined: 'Joined ✓',
-      collabAddedBy: 'Added by {name}',
-      collabSomeone: 'a member',
-      collabOwner: 'Owner',
     },
 
     account: {
