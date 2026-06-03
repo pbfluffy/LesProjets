@@ -14,7 +14,7 @@ const VOTE_SIGNALS = [
 export default function PlaceCard({ venue, lang = 'en', onOpen }) {
   const s = STRINGS[lang]
   const { tallies } = useVotesCtx()
-  const name = venue.name?.[lang] || venue.name?.en || venue.id
+  const name = venue.name?.[lang] || venue.name?.en || venue.name?.th || venue.id
   const typeLabel = s.types[venue.type?.toLowerCase().replace(/[\s-]+/g, '_')] || venue.type
 
   return (
