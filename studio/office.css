@@ -251,13 +251,12 @@ body[data-time="day"] .screen { opacity:.12 !important; }
 
 /* dogs — two motion layers. The animated layer is feathered at the bottom so
    the desk-contact edge blends into the static office image and never wobbles. */
-.dog { position:absolute; transform-origin:50% 100%; will-change:transform; cursor:pointer; }
+.dog { position:absolute; transform-origin:50% 100%; will-change:transform; }
 .dog img { display:block; width:100%; height:auto; }
 .dog-fx { transform-origin:50% 92%; will-change:transform; transition:transform .7s cubic-bezier(.33,0,.2,1);
   -webkit-mask-image:linear-gradient(to bottom,#000 90%,rgba(0,0,0,.4) 96%,transparent 100%);
           mask-image:linear-gradient(to bottom,#000 90%,rgba(0,0,0,.4) 96%,transparent 100%); }
 .dog-hit { position:absolute; inset:0; border-radius:14% 14% 22% 22% / 18% 18% 30% 30%; transition:box-shadow .18s; }
-.dog:hover .dog-hit { box-shadow:0 0 0 2px var(--c), 0 0 22px color-mix(in srgb,var(--c) 45%,transparent); }
 .dog.sel .dog-hit { box-shadow:0 0 0 2px var(--c), 0 0 26px color-mix(in srgb,var(--c) 60%,transparent); }
 .dog-paws { position:absolute; inset:0; clip-path:inset(81% 17% 9% 17%); pointer-events:none; will-change:transform; }
 .dog-paws img { display:block; width:100%; height:auto; }
@@ -331,7 +330,7 @@ body[data-time="day"] .taskmenu { box-shadow:0 12px 36px rgba(60,50,40,.22); }
 
 /* ── CREW PANEL ──────────────────────────────────────────────────────────── */
 .panel-body { padding:6px 14px 12px; }
-.crew { display:flex; align-items:flex-start; gap:11px; padding:11px 0; border-bottom:1px solid var(--line); cursor:pointer; border-radius:8px; transition:background .14s; }
+.crew { display:flex; align-items:flex-start; gap:11px; padding:11px 0; border-bottom:1px solid var(--line); border-radius:8px; transition:background .14s; }
 .crew { padding-left:8px; padding-right:8px; margin:0 -8px; }
 .crew:last-child { border-bottom:none; }
 .crew:hover { background:var(--inset); }
