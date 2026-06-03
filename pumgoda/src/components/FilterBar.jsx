@@ -1,7 +1,7 @@
 import { STRINGS } from '../i18n/strings'
 import './FilterBar.css'
 
-const TYPES = ['cafe', 'restaurant', 'hotel', 'pet_hotel', 'park', 'mall', 'beach', 'vet', 'pet_shop', 'grooming']
+const TYPES = ['cafe', 'restaurant', 'hotel', 'pet_hotel', 'park', 'mall', 'beach', 'vet', 'clinic', 'pet_shop', 'grooming']
 const POLICIES = ['no_stroller_needed', 'indoor_allowed', 'no_size_limit', 'pet_menu', 'off_leash_zone', 'no_fee']
 const TIERS = [
   { v: 0, label: null }, // 'All' — label comes from i18n
@@ -40,7 +40,7 @@ export default function FilterBar({ lang, filters, setRegion, toggleType, toggle
             onClick={clearFilters}
             aria-label={lang === 'th' ? 'ล้างตัวกรอง' : 'Clear filters'}
           >
-            {lang === 'th' ? 'ล้าง' : 'Clear'}
+            {lang === 'th' ? 'ล้า' : 'Clear'}
           </button>
         )}
       </div>
