@@ -600,3 +600,16 @@
   opacity: 0.6;
   flex-shrink: 0;
 }
+
+
+/* P4b - members popover (who is in the trip) */
+.ph-trip-collab-status{position:relative}
+.ph-trip-members-btn{font:inherit;font-size:11px;color:var(--muted);background:none;border:none;padding:0;cursor:pointer;display:inline-flex;align-items:center;gap:3px}
+.ph-trip-members-btn:hover{color:var(--text,#1a1a1a)}
+.ph-trip-members-caret{font-size:9px;opacity:.65}
+.ph-trip-members-overlay{position:fixed;inset:0;z-index:40}
+.ph-trip-members-pop{position:absolute;top:calc(100% + 6px);right:0;z-index:41;min-width:160px;max-width:240px;background:var(--surface,#fff);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:6px}
+.ph-trip-members-row{display:flex;align-items:center;gap:8px;padding:6px 8px;font-size:12px;color:var(--text,#1a1a1a)}
+.ph-trip-members-avatar{width:22px;height:22px;border-radius:50%;background:var(--accent-light);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.ph-trip-members-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-trip-members-crown{font-size:12px;flex-shrink:0}
