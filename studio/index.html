@@ -15,20 +15,22 @@
 
   <!-- Header -->
   <header class="hero" data-screen-label="header">
-    <div class="hero-left">
+    <div class="hero-top">
       <a class="home-btn" href="../" aria-label="Home" title="Home"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></a>
+      <div class="seg" id="langSeg">
+        <button data-lang="th">TH</button>
+        <button data-lang="en">EN</button>
+      </div>
+    </div>
+    <div class="hero-main">
+      <div class="hero-left">
       <div class="hero-mark"><img id="heroImg" src="assets/corgi.png" alt="Pumba"></div>
       <div>
         <h1 class="hero-title" id="title">Pumba &amp; Co.</h1>
         <div class="hero-sub"><span class="dot"></span><span data-i18n="sub">the office is open · everyone's working</span></div>
       </div>
-    </div>
-    <div class="console">
-      <div class="seg" id="langSeg">
-        <button data-lang="th">TH</button>
-        <button data-lang="en">EN</button>
       </div>
-      <div class="console-break"></div>
+      <div class="console">
       <div class="seg" id="timeSeg">
         <button data-t="auto" data-i18n="t_auto">Auto</button>
         <button data-t="day" data-i18n="t_day">Day</button>
@@ -44,6 +46,7 @@
           <div class="console-clock" id="clock">--:--</div>
           <div class="console-meta" id="date">BKK</div>
         </div>
+      </div>
       </div>
     </div>
   </header>
