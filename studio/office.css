@@ -400,3 +400,11 @@ body[data-time="day"] .btn.on { box-shadow:none; background:color-mix(in srgb,va
   .console-clock{font-size:14px}
   .console-meta{font-size:7px;letter-spacing:.1em;margin-top:3px}
 }
+
+/* Home button (links to portfolio root) */
+.home-btn{ display:inline-grid; place-items:center; width:40px; height:40px; flex-shrink:0;
+  border:1px solid var(--line-bright); border-radius:var(--r-sm); color:var(--txt-mid);
+  background:transparent; transition:all .18s; text-decoration:none; }
+.home-btn:hover{ color:var(--pumba); border-color:var(--pumba); transform:translateY(-1px); }
+.home-btn:active{ transform:translateY(0); }
+.home-btn svg{ width:18px; height:18px; }
