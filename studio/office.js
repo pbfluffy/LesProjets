@@ -96,7 +96,6 @@ for (const [name,d] of Object.entries(DOGS)) {
   wrap.style.left=pct(x0,IMG_W)+'%'; wrap.style.top=pct(y0,IMG_H)+'%'; wrap.style.width=pct(x1-x0,IMG_W)+'%';
   wrap.style.animationDelay=(name==='Gigi'?'-1.6s':'0s');
   wrap.innerHTML=`<div class="dog-fx" id="fx-${name}"><img src="${ASSET[name.toLowerCase()]}" alt="${name}"><div class="dog-paws"><img src="${ASSET[name.toLowerCase()]}" alt=""></div></div><div class="dog-hit"></div>`;
-  wrap.addEventListener('click',e=>{ e.stopPropagation(); openMenu(name); });
   stage.appendChild(wrap);
   const g=document.createElement('div'); g.className='glow run'; g.id='glow-'+name;
   const gw=(x1-x0)*0.7, gx=x0+(x1-x0)*0.15, gy=y0+(y1-y0)*0.05;
@@ -123,11 +122,10 @@ for (const [name,d] of Object.entries(DOGS)) {
   const row=document.createElement('div'); row.className='crew'; row.id='crew-'+name; row.style.setProperty('--c','var('+d.cv+')');
   row.innerHTML=`<div class="crew-av"><img src="${ASSET[name.toLowerCase()]}" alt=""></div>
     <div class="crew-info">
-      <div class="crew-top"><span class="crew-dot" style="color:var(${d.cv})"></span><span class="crew-name" style="color:var(${d.cv})">${name}</span><span class="crew-assign" id="cassign-${name}">${tr('tm_assign')}</span></div>
+      <div class="crew-top"><span class="crew-dot" style="color:var(${d.cv})"></span><span class="crew-name" style="color:var(${d.cv})">${name}</span></div>
       <div class="crew-role" id="crole-${name}">${tr(d.roleKey)}</div>
       <div class="crew-task" id="task-${name}" style="color:var(${d.cv})">${tr('boot')}</div>
     </div>`;
-  row.addEventListener('click',e=>{ e.stopPropagation(); openMenu(name); });
   crewEl.appendChild(row);
 }
 
@@ -169,39 +167,6 @@ function flourish(){
   const t=setTimeout(flourish, 3500+Math.random()*4000); state.timers.push(t);
 }
 
-/* ── task-assign popover ─────────────────────────────────────────────────── */
-let menuEl=null, menuFor=null;
-function closeMenu(){ if(menuEl){ menuEl.classList.remove('open'); const m=menuEl; setTimeout(()=>{ if(m&&m.parentNode) m.remove(); },180); menuEl=null; } if(menuFor){ const s=$('dog-'+menuFor); if(s) s.classList.remove('sel'); menuFor=null; } }
-function openMenu(name){
-  if(menuFor===name){ closeMenu(); return; }
-  closeMenu(); menuFor=name; $('dog-'+name).classList.add('sel');
-  const d=DOGS[name];
-  const m=document.createElement('div'); m.className='taskmenu'; m.style.setProperty('--c','var('+d.cv+')');
-  const items=d.tasks.map((t,i)=>`<button class="tm-item" data-i="${i}">${taskText(t)}</button>`).join('');
-  m.innerHTML=`<div class="tm-head"><div class="tm-av"><img src="${ASSET[name.toLowerCase()]}" alt=""></div>
-      <div><div class="tm-name" style="color:var(${d.cv})">${name}</div><div class="tm-role">${tr(d.roleKey)}</div></div></div>
-    <div class="tm-list">${items}</div>
-    <div class="tm-foot"><button class="tm-btn" id="tmCustom">${tr('tm_custom')}</button><button class="tm-btn treat" id="tmTreat">${tr('tm_treat')}</button></div>`;
-  stage.appendChild(m);
-  // position near the dog
-  const [x0,y0,x1,y1]=d.box;
-  const cx=pct(x0+(x1-x0)*0.5,IMG_W); let left=cx; const top=pct(y0,IMG_H);
-  m.style.left=Math.min(Math.max(left,16),84)+'%'; m.style.top=top+'%'; m.style.transform='translate(-50%,0)';
-  requestAnimationFrame(()=>{ m.classList.add('open'); });
-  menuEl=m;
-  m.querySelectorAll('.tm-item').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); setTask(name, d.tasks[+b.dataset.i]); closeMenu(); }));
-  m.querySelector('#tmCustom').addEventListener('click',e=>{ e.stopPropagation(); const v=prompt(tr('tm_promptCustom')); if(v&&v.trim()){ setTask(name,{en:v.trim(),th:v.trim()}); } closeMenu(); });
-  m.querySelector('#tmTreat').addEventListener('click',e=>{ e.stopPropagation(); giveTreat(name); closeMenu(); });
-}
-document.addEventListener('click',()=>closeMenu());
-function giveTreat(name){
-  const fx=$('fx-'+name); fx.classList.remove('type'); tween(name,'perk',1100);
-  const d=DOGS[name]; const [x0,y0,x1,y1]=d.box;
-  const t=document.createElement('div'); t.className='treat'; t.textContent='🦴';
-  t.style.left=pct(x0+(x1-x0)*0.5,IMG_W)+'%'; t.style.top=pct(y0+8,IMG_H)+'%';
-  stage.appendChild(t); setTimeout(()=>t.remove(),1300);
-  logEv(d.cv, `<b>${name}</b> ${tr('logTreat')} 🦴`); bumpTasks();
-}
 
 /* ── clock · date · weather · session ────────────────────────────────────── */
 const WDAY=['SUN','MON','TUE','WED','THU','FRI','SAT'];
@@ -368,7 +333,7 @@ function applyLang(){
   $('langSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('sel', b.dataset.lang===lang));
   // dynamic bits
   setStatus();
-  Object.keys(DOGS).forEach(n=>{ renderDog(n); $('crole-'+n).textContent=tr(DOGS[n].roleKey); $('cassign-'+n).textContent=tr('tm_assign'); const pr=$('prole-'+n); if(pr) pr.textContent=tr(DOGS[n].roleKey); });
+  Object.keys(DOGS).forEach(n=>{ renderDog(n); $('crole-'+n).textContent=tr(DOGS[n].roleKey); const pr=$('prole-'+n); if(pr) pr.textContent=tr(DOGS[n].roleKey); });
   $('toggleBtn').innerHTML = running ? `<span class="ic">⏸</span> <span class="lbl">${tr('pause')}</span>` : `<span class="ic">▶</span> <span class="lbl">${tr('resume')}</span>`;
   const mOn=Music.isPlaying(); $('musicBtn').innerHTML=`<span class="ic">♪</span> <span class="lbl">${tr('music')}: ${mOn?tr('on'):tr('off')}</span>`;
   $('npVal').textContent = Music.isPlaying() ? Music.current() : tr('silent');
@@ -395,7 +360,7 @@ async function loadChangelog(){
   var qaRe=/(fix|bug|guard|overflow|legible|polish|adjust|style|tweak|test|qa|verify|cleanup|clean|refactor|regression|hotfix)/i;
   var PV=['shipped','added','built','pushed','wired up'],GV=['polished','tidied','fixed up','tuned','smoothed out'];
   var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  function render(entries){window.__CL=true;var FEED=document.getElementById('feed'); if(!FEED) return;FEED.innerHTML='';entries.forEach(function(e){var el=document.createElement('div');el.className='ev';el.innerHTML='<div class="ev-time">'+e.d+'</div><div class="ev-mark" style="background:var('+e.cv+')"></div><div class="ev-body">'+e.html+'</div>';FEED.appendChild(el);});FEED.scrollTop=FEED.scrollHeight;var TV=document.getElementById('tasksVal'); if(TV) TV.textContent=entries.length;var SRC=document.getElementById('logsrc'); if(SRC) SRC.textContent='live · git';}
+  function render(entries){window.__CL=true;var FEED=document.getElementById('feed'); if(!FEED) return;FEED.innerHTML='';entries.forEach(function(e){var el=document.createElement('div');el.className='ev';el.innerHTML='<div class="ev-time">'+e.d+'</div><div class="ev-mark" style="background:var('+e.cv+')"></div><div class="ev-body">'+e.html+'</div>';FEED.appendChild(el);});FEED.scrollTop=FEED.scrollHeight;var TV=document.getElementById('tasksVal'); if(TV) TV.textContent=entries.length;var SRC=document.getElementById('logsrc'); if(SRC) SRC.textContent='live';}
   try{var raw=localStorage.getItem(CACHE_KEY);if(raw){var o=JSON.parse(raw);if(o&&o.ts&&Date.now()-o.ts<TTL&&Array.isArray(o.entries)&&o.entries.length){render(o.entries);return;}}}catch(e){}
   try{var list=await fetch('https://api.github.com/repos/pbfluffy/LesProjets/commits?per_page=40').then(function(r){return r.json();});if(!Array.isArray(list))throw new Error('list');var kept=list.filter(function(c){var fl=c.commit.message.split(String.fromCharCode(10))[0];return !NOISE.some(function(re){return re.test(fl);});}).slice(0,10);if(!kept.length)throw new Error('empty');kept.reverse();var entries=[],pi=0,gi=0;for(var i=0;i<kept.length;i++){var c=kept[i];var top='?';try{var det=await fetch(c.url).then(function(r){return r.json();});var segs={};(det.files||[]).forEach(function(f){var s=f.filename.indexOf('/')>-1?f.filename.split('/')[0]:'(root)';segs[s]=(segs[s]||0)+1;});var ks=Object.keys(segs).sort(function(a,b){return segs[b]-segs[a];});top=ks[0]||'?';}catch(e){}var tag=APP[top]||(top==='(root)'?'Site':(top==='?'?'':top));var m=c.commit.message.split(String.fromCharCode(10))[0];if(tag&&m.toLowerCase().indexOf((tag+':').toLowerCase())===0)m=m.slice(tag.length+1).trim();m=m.replace(/^(Add|Implement|Enhance|Create|Update|Make) /i,'');m=m.charAt(0).toUpperCase()+m.slice(1);var isQA=qaRe.test(c.commit.message);var dog=isQA?'Gigi':'Pumba';var cv=isQA?'--gigi':'--pumba';var emo=isQA?'🐾':'🦴';var verb=isQA?GV[gi++%GV.length]:PV[pi++%PV.length];var dt=new Date(c.commit.author.date);var d=dt.getDate()+' '+MON[dt.getMonth()];var html='<b>'+emo+' '+dog+'</b> '+verb+(tag?' · '+clEsc(tag):'')+' — '+clEsc(m);entries.push({cv:cv,d:d,html:html});}try{localStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),entries:entries}));}catch(e){}render(entries);}catch(e){window.__CL=false;}
 }
