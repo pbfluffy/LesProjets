@@ -372,3 +372,21 @@ body[data-time="day"] .btn.on { box-shadow:none; background:color-mix(in srgb,va
   .window-fx,.window-warm,.lamp,.screen,.glow,.dog,.dog.breathe,.dog-fx,.dog-fx.type,.dog-fx.tilt,.dog-fx.perk,.dog-fx.type .dog-paws,.mote,.hero-sub .dot,.crew-dot,.chip .blink,.card-meta.live i,.tcell-label i{animation:none !important}
   .dog,.dog-fx,.dog-paws{transform:none !important}.screen{opacity:.22}.glow{opacity:.14}.lamp{opacity:.6}.mote{opacity:.3}
 }
+
+
+/* BUG-27 mobile overflow guard + finer mobile layer (best-effort; verify on device) */
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .app > *{min-width:0}
+  .telemetry{grid-template-columns:minmax(0,1fr)}
+  .telemetry > *{min-width:0}
+  body.layout-den .telemetry{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:560px){
+  .app{padding:16px 12px 24px}
+  .telemetry,
+  body.layout-den .telemetry{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:380px){
+  .app{padding:12px 10px 18px}
+}
