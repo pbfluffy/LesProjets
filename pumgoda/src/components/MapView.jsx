@@ -136,7 +136,7 @@ function buildPopupHtml(place, lang) {
   const verified = !!place.pumba?.verified
   const tierName = (TIER_NAME[lang] && TIER_NAME[lang][tier]) || TIER_NAME.en[tier]
   const labels = POPUP_LABELS[lang] || POPUP_LABELS.en
-  const name = place.name?.[lang] || place.name?.en || place.id || '?'
+  const name = place.name?.[lang] || place.name?.en || place.name?.th || place.id || '?'
   const paws = '🐾'.repeat(tier)
   const typeIcon = getTypeIcon(place.type)
   const mapsUrl =
@@ -304,7 +304,7 @@ export default function MapView({ places = [], onPlaceClick, theme = 'light', la
     const markers = valid.map((place) => {
       const marker = L.marker(place.coords, {
         icon: buildIcon(place),
-        title: place.name?.[lang] || place.name?.en || place.id,
+        title: place.name?.[lang] || place.name?.en || place.name?.th || place.id,
         keyboard: true,
         riseOnHover: true,
       })
