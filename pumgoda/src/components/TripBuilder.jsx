@@ -31,6 +31,7 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
   const [pickerSearch, setPickerSearch] = useState('')
   const [toast, setToast] = useState('')
   const [promoting, setPromoting] = useState(false)
+  const [membersOpen, setMembersOpen] = useState(false)
 
   // id -> place, for resolving the ids stored on a trip
   const placeById = useMemo(() => {
@@ -317,13 +318,37 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
               className={`ph-trip-live-dot ${shared.status === 'live' ? 'is-live' : ''}`}
               aria-hidden="true"
             />
-            <span className="mono">
-              {shared.status === 'live'
-                ? `${s.trip.collabLive} · ${memberCount} ${s.trip.collabMembers}`
-                : shared.status === 'error' || shared.status === 'denied'
-                  ? s.trip.collabSyncError
-                  : '…'}
-            </span>
+            {shared.status === 'live' ? (
+                <button
+                  type="button"
+                  className="ph-trip-members-btn mono"
+                  onClick={(e) => { e.stopPropagation(); setMembersOpen((o) => !o) }}
+                  aria-expanded={membersOpen}
+                >
+                  {`${s.trip.collabLive} · ${memberCount} ${s.trip.collabMembers}`}
+                  <span className="ph-trip-members-caret" aria-hidden="true">▾</span>
+                </button>
+              ) : (
+                <span className="mono">
+                  {shared.status === 'error' || shared.status === 'denied'
+                    ? s.trip.collabSyncError
+                    : '…'}
+                </span>
+              )}
+              {membersOpen && shared.status === 'live' && (
+                <>
+                  <div className="ph-trip-members-overlay" onClick={() => setMembersOpen(false)} />
+                  <div className="ph-trip-members-pop" role="menu">
+                    {(live && Array.isArray(live.members) ? live.members : []).map((uid) => (
+                      <div key={uid} className="ph-trip-members-row">
+                        <span className="ph-trip-members-avatar" aria-hidden="true">{(nameFor(uid) || '?').trim().charAt(0).toUpperCase()}</span>
+                        <span className="ph-trip-members-name">{nameFor(uid)}</span>
+                        {uid === live.ownerUid && <span className="ph-trip-members-crown" aria-hidden="true">👑</span>}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
           </span>
         )}
       </div>
