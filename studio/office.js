@@ -71,7 +71,7 @@ function taskText(t){ return typeof t==='string' ? t : (t[lang]||t.en); }
 /* ── refs ────────────────────────────────────────────────────────────────── */
 const $ = id => document.getElementById(id);
 const stage=$('stage'), feed=$('feed'), crewEl=$('crew'), meta=$('meta'), logsrc=$('logsrc');
-let running=true, taskCount=0, liveOn=false;
+let running=true, taskCount=0;
 const ORIGINAL_TASKS = { Pumba:DOGS.Pumba.tasks.slice(), Gigi:DOGS.Gigi.tasks.slice() };
 const startTime = Date.now();
 const state = { task:{}, timers:[] };
@@ -266,25 +266,6 @@ function applyFreshTasks(parsed,srcKey){
   for(let i=0;i<6;i++){ if(parsed.Pumba[i]) fresh.push({name:'Pumba',task:parsed.Pumba[i]}); if(parsed.Gigi[i]) fresh.push({name:'Gigi',task:parsed.Gigi[i]}); }
   fresh.forEach((e,idx)=>{ const t=setTimeout(()=>{ logEv(DOGS[e.name].cv,`<b>${e.name}</b> — ${esc(taskText(e.task))}`); bumpTasks(); }, 600+idx*1100); state.timers.push(t); });
 }
-async function generateLiveLog(){
-  logEv(null,tr('logAskAI'));
-  const prompt='Two dog coworkers at a cozy late-night software studio. Pumba (a corgi) is the Technical Lead, Gigi (a Thai Bangkaew) is the QA Engineer. Return ONLY valid JSON (no markdown) shaped exactly as {"Pumba":[...],"Gigi":[...]} where each array has 6 short present-tense work activities, 3-6 words each, playful and a little dog-themed but about real software work.';
-  if(window.claude && typeof window.claude.complete==='function'){
-    try{ let text=await window.claude.complete(prompt); text=String(text).replace(/```json|```/g,'').trim();
-      const m=text.match(/\{[\s\S]*\}/); const parsed=JSON.parse(m?m[0]:text);
-      if(Array.isArray(parsed.Pumba)&&parsed.Pumba.length&&Array.isArray(parsed.Gigi)&&parsed.Gigi.length){ parsed.Pumba=parsed.Pumba.map(s=>({en:s,th:s})); parsed.Gigi=parsed.Gigi.map(s=>({en:s,th:s})); applyFreshTasks(parsed,'src_live'); logEv(null,tr('logAIok')); return true; }
-    }catch(err){}
-  }
-  applyFreshTasks(scriptedFresh(),'src_fresh'); logEv(null,tr('logAIfail')); return false;
-}
-async function toggleLiveLog(){
-  liveOn=!liveOn; const btn=$('aiBtn');
-  if(liveOn){ btn.classList.add('on'); btn.innerHTML=`<span class="ic">✦</span> <span class="lbl">${tr('livelog')}: ${tr('on')}</span>`; await generateLiveLog(); }
-  else { DOGS.Pumba.tasks=ORIGINAL_TASKS.Pumba.slice(); DOGS.Gigi.tasks=ORIGINAL_TASKS.Gigi.slice();
-    btn.classList.remove('on'); btn.innerHTML=`<span class="ic">✦</span> <span class="lbl">${tr('livelog')}: ${tr('off')}</span>`;
-    logsrc.textContent=tr('src_scripted'); logsrc.classList.remove('live'); logEv(null,tr('logLiveOff')); }
-}
-$('aiBtn').addEventListener('click',toggleLiveLog);
 
 /* ── day-phase dial (decorative; advances while running) ──────────────────── */
 let dayPhase=0, lastTs=performance.now(); const DIAL_R=17;
@@ -395,8 +376,6 @@ function applyLang(){
   Object.keys(DOGS).forEach(n=>{ renderDog(n); $('crole-'+n).textContent=tr(DOGS[n].roleKey); $('cassign-'+n).textContent=tr('tm_assign'); const pr=$('prole-'+n); if(pr) pr.textContent=tr(DOGS[n].roleKey); });
   $('toggleBtn').innerHTML = running ? `<span class="ic">⏸</span> <span class="lbl">${tr('pause')}</span>` : `<span class="ic">▶</span> <span class="lbl">${tr('resume')}</span>`;
   const mOn=Music.isPlaying(); $('musicBtn').innerHTML=`<span class="ic">♪</span> <span class="lbl">${tr('music')}: ${mOn?tr('on'):tr('off')}</span>`;
-  $('aiBtn').innerHTML=`<span class="ic">✦</span> <span class="lbl">${tr('livelog')}: ${liveOn?tr('on'):tr('off')}</span>`;
-  if(!liveOn){ logsrc.textContent=tr('src_scripted'); }
   $('npVal').textContent = Music.isPlaying() ? Music.current() : tr('silent');
   $('sessionSub') && ($('sessionSub').textContent=tr('sessionSub'));
   $('tasksSub') && ($('tasksSub').textContent=tr('tasksSub'));
