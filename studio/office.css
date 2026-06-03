@@ -388,3 +388,15 @@ body[data-time="day"] .btn.on { box-shadow:none; background:color-mix(in srgb,va
 @media (max-width:380px){
   .app{padding:12px 10px 18px}
 }
+
+/* Mobile: keep clock compact + beside Day/Night (desktop unchanged) */
+@media (max-width:560px){
+  #langSeg{flex-basis:100%}
+  .console{gap:9px 10px}
+  .clockbox{padding:5px 10px;gap:9px}
+  .dial{width:30px;height:30px}
+  .dial-glyph{font-size:11px}
+  .console-sep{height:22px}
+  .console-clock{font-size:14px}
+  .console-meta{font-size:7px;letter-spacing:.1em;margin-top:3px}
+}
