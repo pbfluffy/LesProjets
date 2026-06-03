@@ -151,7 +151,7 @@ function renderDog(name){
 }
 function setTask(name,taskObj,silent){
   state.task[name]=taskObj; renderDog(name);
-  if(!silent){ logEv(DOGS[name].cv, `<b>${name}</b> — ${esc(taskText(taskObj))}`); bumpTasks(); }
+  if(!silent && !window.__CL){ logEv(DOGS[name].cv, `<b>${name}</b> — ${esc(taskText(taskObj))}`); bumpTasks(); }
   const fx=$('fx-'+name); fx.classList.add('type');
   const t=setTimeout(()=>fx.classList.remove('type'), 2200+Math.random()*1500); state.timers.push(t);
 }
@@ -410,3 +410,19 @@ eqLoop();
 logEv(null, tr('logOpened'));
 (function(){ const h=new Date().getHours(); const st=(h>=18||h<6)?'Late Night':'Café Jazz'; Music.setStyle(st); $('styleBtn').innerHTML=`<span class="ic">⤮</span> <span class="lbl">${st}</span>`; })();
 start();
+
+
+/* live work-log: GitHub commits changelog (dog voice) · BUG-20 */
+async function loadChangelog(){
+  var CACHE_KEY='studio_cl_v1',TTL=600000;
+  function clEsc(s){return String(s).replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];});}
+  var NOISE=[/^Add files via upload$/i,/^Delete /i,/^Merge /i,/^Initial commit$/i,/^Create .+ via upload$/i];
+  var APP={pumgoda:'Pumgoda','bill-splitter':'Bill Splitter',nutritions:'Nutritions',nutrition:'Nutritions','nutritions-thailand':'Nutritions',studio:'Studio',shared:'Shared'};
+  var qaRe=/(fix|bug|guard|overflow|legible|polish|adjust|style|tweak|test|qa|verify|cleanup|clean|refactor|regression|hotfix)/i;
+  var PV=['shipped','added','built','pushed','wired up'],GV=['polished','tidied','fixed up','tuned','smoothed out'];
+  var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function render(entries){window.__CL=true;var FEED=document.getElementById('feed'); if(!FEED) return;FEED.innerHTML='';entries.forEach(function(e){var el=document.createElement('div');el.className='ev';el.innerHTML='<div class="ev-time">'+e.d+'</div><div class="ev-mark" style="background:var('+e.cv+')"></div><div class="ev-body">'+e.html+'</div>';FEED.appendChild(el);});FEED.scrollTop=FEED.scrollHeight;var SRC=document.getElementById('logsrc'); if(SRC) SRC.textContent='live · git';}
+  try{var raw=localStorage.getItem(CACHE_KEY);if(raw){var o=JSON.parse(raw);if(o&&o.ts&&Date.now()-o.ts<TTL&&Array.isArray(o.entries)&&o.entries.length){render(o.entries);return;}}}catch(e){}
+  try{var list=await fetch('https://api.github.com/repos/pbfluffy/LesProjets/commits?per_page=40').then(function(r){return r.json();});if(!Array.isArray(list))throw new Error('list');var kept=list.filter(function(c){var fl=c.commit.message.split(String.fromCharCode(10))[0];return !NOISE.some(function(re){return re.test(fl);});}).slice(0,10);if(!kept.length)throw new Error('empty');kept.reverse();var entries=[],pi=0,gi=0;for(var i=0;i<kept.length;i++){var c=kept[i];var top='?';try{var det=await fetch(c.url).then(function(r){return r.json();});var segs={};(det.files||[]).forEach(function(f){var s=f.filename.indexOf('/')>-1?f.filename.split('/')[0]:'(root)';segs[s]=(segs[s]||0)+1;});var ks=Object.keys(segs).sort(function(a,b){return segs[b]-segs[a];});top=ks[0]||'?';}catch(e){}var tag=APP[top]||(top==='(root)'?'Site':(top==='?'?'':top));var m=c.commit.message.split(String.fromCharCode(10))[0];if(tag&&m.toLowerCase().indexOf((tag+':').toLowerCase())===0)m=m.slice(tag.length+1).trim();m=m.replace(/^(Add|Implement|Enhance|Create|Update|Make) /i,'');m=m.charAt(0).toUpperCase()+m.slice(1);var isQA=qaRe.test(c.commit.message);var dog=isQA?'Gigi':'Pumba';var cv=isQA?'--gigi':'--pumba';var emo=isQA?'🐾':'🦴';var verb=isQA?GV[gi++%GV.length]:PV[pi++%PV.length];var dt=new Date(c.commit.author.date);var d=dt.getDate()+' '+MON[dt.getMonth()];var html='<b>'+emo+' '+dog+'</b> '+verb+(tag?' · '+clEsc(tag):'')+' — '+clEsc(m);entries.push({cv:cv,d:d,html:html});}try{localStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),entries:entries}));}catch(e){}render(entries);}catch(e){window.__CL=false;}
+}
+loadChangelog();
