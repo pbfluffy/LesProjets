@@ -173,6 +173,9 @@ export const STRINGS = {
       collabJoinSub: 'แก้ไขร่วมกันได้แบบเรียลไทม์',
       collabJoin: 'เข้าร่วม + แก้ไข',
       collabJoined: 'เข้าร่วมแล้ว ✓',
+      collabAddedBy: 'เพิ่มโดย {name}',
+      collabSomeone: 'สมาชิกคนหนึ่ง',
+      collabOwner: 'เจ้าของ',
     },
 
     account: {
@@ -374,6 +377,9 @@ export const STRINGS = {
       collabJoinSub: 'Edit together in real time',
       collabJoin: 'Join + edit',
       collabJoined: 'Joined ✓',
+      collabAddedBy: 'Added by {name}',
+      collabSomeone: 'a member',
+      collabOwner: 'Owner',
     },
 
     account: {
