@@ -8,7 +8,7 @@ import './PlaceDetail.css'
 
 export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSaved }) {
   const s = STRINGS[lang]
-  const name = venue.name?.[lang] || venue.name?.en || venue.id
+  const name = venue.name?.[lang] || venue.name?.en || venue.name?.th || venue.id
   const address = venue.address?.[lang] || venue.address?.en
   const notes = venue.notes?.[lang] || venue.notes?.en
 
