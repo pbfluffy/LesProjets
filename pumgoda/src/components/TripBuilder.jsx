@@ -74,12 +74,23 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
   const tripName = live ? (live.name || '') : (selectedTrip ? selectedTrip.name : '')
   const memberCount = live && Array.isArray(live.members) ? live.members.length : 0
 
+  // P4 — resolve a uid to a display name from the live doc's memberNames map.
+  // The current user reads as "You"; unknown members fall back to a generic.
+  const nameFor = (uid) => {
+    if (!uid) return s.trip.collabSomeone
+    if (shared.user && uid === shared.user.uid) return s.trip.collabYou
+    const nm = live && live.memberNames ? live.memberNames[uid] : null
+    return nm || s.trip.collabSomeone
+  }
+
   // ─────────────────────────────────────────── Mutators (route by share state)
   const canEditShared = !!shared.user
   const doAddPlace = (placeId) => {
     if (stops.includes(placeId)) return
-    if (isShared) shared.update({ placeIds: [...stops, placeId] })
-    else addPlace(selectedTrip.id, placeId)
+    if (isShared) {
+      shared.update({ placeIds: [...stops, placeId] })
+      if (shared.user) shared.recordAdds({ [placeId]: shared.user.uid })
+    } else addPlace(selectedTrip.id, placeId)
   }
   const doRemovePlace = (placeId) => {
     if (isShared) shared.update({ placeIds: stops.filter((x) => x !== placeId) })
@@ -295,6 +306,11 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
         >
           {s.trip.back}
         </button>
+        {live && (
+          <span className="ph-trip-owner-badge" title={s.trip.collabOwner}>
+            <span aria-hidden="true">👑</span> {nameFor(live.ownerUid)}
+          </span>
+        )}
         {isShared && (
           <span className="ph-trip-collab-status">
             <span
@@ -351,6 +367,13 @@ export default function TripBuilder({ places = [], lang = 'en', onOpenPlace }) {
                     <div className="ph-trip-stop-badge">
                       <PawTierBadge venue={p} lang={lang} />
                     </div>
+                    {isShared && live && live.addedBy && live.addedBy[id] && (
+                      <div className="ph-trip-stop-by mono">
+                        {interp(s.trip.collabAddedBy, {
+                          name: nameFor(live.addedBy[id]),
+                        })}
+                      </div>
+                    )}
                   </button>
                 ) : (
                   <span className="ph-trip-stop-missing">
