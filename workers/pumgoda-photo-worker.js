@@ -94,7 +94,7 @@ export default {
       if (file.size > MAX_BYTES) return json({ error: 'too large (max 8MB)' }, 413, origin);
 
       const placeId = (form.get('placeId') || 'misc').toString().replace(/[^A-Za-z0-9_-]/g, '') || 'misc';
-      const key = `${placeId}/${crypto.randomUUID}.${EXT[type]}`;
+      const key = `${placeId}/${crypto.randomUUID()}.${EXT[type]}`;
       const bytes = await file.arrayBuffer();
       await env.BUCKET.put(key, bytes, { httpMetadata: { contentType: type } });
       return json({ url: `${PUBLIC_BASE}/${key}`, key }, 200, origin);
