@@ -60,11 +60,9 @@ Logic lives in `src/data/computeTier.js` — plain `if` ladder, no rubric/weight
 
 ## Data source
 
-Venues live in **Firestore** at `places/{placeId}`. Each doc stores the already-normalized place object the app consumes directly (no client-side transform on the read path). The catalog is cached 30 min in `localStorage["pumgoda_places_v2"]`, and a bundled `src/data/places.fallback.json` backs the app when offline. The active source is selected by `PLACES_SOURCE` in `src/config.js` (`'firestore'` in production).
+Venues live in **Firestore** at `places/{placeId}`. Each doc stores the already-normalized place object the app consumes directly (no client-side transform on the read path). The catalog is cached 30 min in `localStorage["pumgoda_places_v2"]`, and a bundled `src/data/places.fallback.json` backs the app when offline. Reads come straight from Firestore — the legacy Google Sheet source was retired (#100·4.2).
 
 Editing happens in the admin editor (`admindepum.html`): search the catalog, add / edit / delete places, and upload photos. Uploaded photos go to Cloudflare R2 via the `pumgoda-photo` Worker, and their URLs are pushed into the place's `photos[]`. Catalog writes are gated to the admin uid by the `places` Firestore rule (public read, admin write).
-
-> **Legacy fallback (bake-in):** the original published [Google Sheet](https://docs.google.com/spreadsheets/d/1Ckf0fZ0EM9xXYrJipTXCO-TfaL910QzIbl1C0y9V4n0/edit) (`SHEET_CSV_URL`) stays wired as a tertiary fallback while Firestore proves stable, and will be removed in a later cleanup. While it's live: a row's `type` is normalized to lowercase (`type.toLowerCase().replace(/[\s-]+/g, '_')`), so capitalization is fine but a misspelled `type` makes that category filter return nothing — that's a data fix, not a code fix.
 
 ## Storage keys
 
@@ -98,7 +96,7 @@ VITE_BASE=/ npm run build
 ```
 src/
   main.jsx, App.jsx, App.css
-  config.js                     # PLACES_SOURCE, SHEET_CSV_URL, LS_KEYS, VOTES_DB_URL
+  config.js                     # PLACES_COLLECTION, CACHE_TTL_MS, LS_KEYS, VOTES_DB_URL
   firebase.js                   # Firebase init — Firestore (catalog/sync/votes) + Auth + RTDB (legacy)
   components/
     Header, Hero,
@@ -108,7 +106,7 @@ src/
     BottomNav, EmptyState
   data/
     computeTier.js              # paw-tier rubric (single source of truth)
-    fetchPlaces.js              # Firestore / Sheet → cache → fallback pipeline
+    fetchPlaces.js              # Firestore → cache → fallback pipeline
     places.fallback.json
   hooks/
     useLocalStorage.js, useThemeLang.js,
