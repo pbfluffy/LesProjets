@@ -127,6 +127,15 @@ body{
   .sync .abs{display:inline;margin-left:6px}
   .refreshed{width:100%;text-align:right}
 }
+
+.prow{grid-template-columns:2fr .9fr 1fr .8fr .6fr}
+.pname b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pname .pth{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.pname .pid{font-size:10px;color:var(--faint);font-family:'JetBrains Mono',monospace}
+.ptype{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);text-transform:capitalize}
+.preg{font-size:12px;color:var(--faint);font-family:'JetBrains Mono',monospace;text-transform:capitalize}
+.ppaw{font-size:13px;letter-spacing:1px}
+.pverif{font-size:13px;color:var(--green)}
 </style>
 </head>
 <body>
@@ -194,6 +203,21 @@ body{
       <div>User</div><div>Nutr · days</div><div>Bills</div><div>Places</div><div>Last sync</div>
     </div>
     <div id="rows"></div>
+  </div>
+
+  <!-- PLACES CATALOG (Feature #100, Phase 2.1 - read-only) -->
+  <div class="toolbar" style="margin-top:28px">
+    <div class="brand" style="flex:0 0 auto"><h1 style="font-size:15px;font-weight:800;margin:0">Pumgoda catalog</h1><div class="sub" style="font-size:11px;color:var(--faint);font-family:'JetBrains Mono',monospace">places · read-only</div></div>
+    <label class="search" style="margin-left:auto"><span style="color:var(--faint)">⌕</span>
+      <input id="psearch" type="text" placeholder="search name / type / region / id" /></label>
+    <span class="refreshed" id="pcount"></span>
+  </div>
+
+  <div class="panel">
+    <div class="row head prow">
+      <div>Place</div><div>Type</div><div>Region</div><div>Paws</div><div>Pumba</div>
+    </div>
+    <div id="prows"></div>
   </div>
 </main>
 
@@ -383,6 +407,49 @@ document.querySelectorAll('.seg button').forEach(btn => btn.addEventListener('cl
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.sort===sortKey));
   render();
 }));
+
+// ---- Pumgoda catalog (Feature #100, Phase 2.1: read-only) ----
+let PLACES = [];
+async function loadPlaces(){
+  try{
+    const snap = await getDocs(collection(db, 'places'));
+    PLACES = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }catch(e){ PLACES = []; console.warn('places load failed', e.code||e.message); }
+  renderPlaces();
+}
+function pawTier(p){
+  if(p.stroller_required) return 1;
+  if(!p.indoor_allowed) return 2;
+  if(!p.pet_menu) return 3;
+  return 4;
+}
+function renderPlaces(){
+  const q = ($('psearch').value||'').toLowerCase().trim();
+  const en = (p)=> (p.name&&p.name.en)||'';
+  const th = (p)=> (p.name&&p.name.th)||'';
+  let rows = PLACES.filter(p => !q || en(p).toLowerCase().includes(q) || th(p).includes(q) || (p.type||'').toLowerCase().includes(q) || (p.region||'').toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+  rows.sort((a,b)=> a.id.localeCompare(b.id));
+  $('pcount').textContent = rows.length + ' / ' + PLACES.length + ' places';
+  if(rows.length===0){
+    $('prows').innerHTML = '<div class="empty">'+(PLACES.length===0?'No places in Firestore yet.':'No matches.')+'</div>';
+    return;
+  }
+  $('prows').innerHTML = rows.map(p => {
+    const paws = '🐾'.repeat(pawTier(p));
+    const reg = (p.region||'').replace(/_/g,' ');
+    const ver = (p.pumba&&p.pumba.verified) ? '✓' : '—';
+    return `<div class="row body prow">
+      <div class="pname"><b>${en(p)||p.id}</b><span class="pth">${th(p)||''}</span><span class="pid">${p.id}</span></div>
+      <div class="ptype">${p.type||'—'}</div>
+      <div class="preg">${reg||'—'}</div>
+      <div class="ppaw">${paws}</div>
+      <div class="pverif">${ver}</div>
+    </div>`;
+  }).join('');
+}
+onAuthStateChanged(auth, (user) => { if(user && user.uid===ADMIN_UID) loadPlaces(); });
+$('psearch').addEventListener('input', renderPlaces);
+$('refreshBtn').addEventListener('click', loadPlaces);
 </script>
 </body>
 </html>
