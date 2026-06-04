@@ -18,7 +18,7 @@ export const VOTES_DB_URL =
   'https://pumgoda-default-rtdb.asia-southeast1.firebasedatabase.app'
 
 // How long to trust the localStorage cache before re-fetching the sheet.
-export const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 hours
+export const CACHE_TTL_MS = 30 * 60 * 1000 // 30 minutes
 
 // Google Form URL for community place submissions — leave empty to hide the
 // "+" button in the header. Set this once you've created the Form and copy
