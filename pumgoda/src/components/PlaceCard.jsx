@@ -16,6 +16,7 @@ export default function PlaceCard({ venue, lang = 'en', onOpen }) {
   const { tallies } = useVotesCtx()
   const name = venue.name?.[lang] || venue.name?.en || venue.name?.th || venue.id
   const typeLabel = s.types[venue.type?.toLowerCase().replace(/[\s-]+/g, '_')] || venue.type
+  const thumb = Array.isArray(venue.photos) ? venue.photos.find(Boolean) : null
 
   return (
     <button
@@ -23,6 +24,12 @@ export default function PlaceCard({ venue, lang = 'en', onOpen }) {
       onClick={() => onOpen?.(venue)}
       aria-label={name}
     >
+      {thumb && (
+        <div className="ph-card-thumb">
+          <img src={thumb} alt="" loading="lazy" />
+        </div>
+      )}
+
       <div className="ph-card-head">
         <div className="ph-card-name">{name}</div>
         <div className="ph-card-meta mono">
