@@ -47,8 +47,6 @@ jobs:
           mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio
           cp index.html _site/index.html
           cp admindepum.html _site/admindepum.html
-          cp NutritionsInThailand.html _site/NutritionsInThailand.html
-          cp Game.html _site/Game.html
           mkdir -p _site/backyard-rampage && cp -r backyard-rampage/. _site/backyard-rampage/
           cp -r studio/. _site/studio/
           cp -r bill-splitter/dist/. _site/bill-splitter/
