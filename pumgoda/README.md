@@ -60,7 +60,7 @@ Logic lives in `src/data/computeTier.js` — plain `if` ladder, no rubric/weight
 
 ## Data source
 
-Venues live in **Firestore** at `places/{placeId}`. Each doc stores the already-normalized place object the app consumes directly (no client-side transform on the read path). The catalog is cached 6h in `localStorage["pumgoda_places_v2"]`, and a bundled `src/data/places.fallback.json` backs the app when offline. The active source is selected by `PLACES_SOURCE` in `src/config.js` (`'firestore'` in production).
+Venues live in **Firestore** at `places/{placeId}`. Each doc stores the already-normalized place object the app consumes directly (no client-side transform on the read path). The catalog is cached 30 min in `localStorage["pumgoda_places_v2"]`, and a bundled `src/data/places.fallback.json` backs the app when offline. The active source is selected by `PLACES_SOURCE` in `src/config.js` (`'firestore'` in production).
 
 Editing happens in the admin editor (`admindepum.html`): search the catalog, add / edit / delete places, and upload photos. Uploaded photos go to Cloudflare R2 via the `pumgoda-photo` Worker, and their URLs are pushed into the place's `photos[]`. Catalog writes are gated to the admin uid by the `places` Firestore rule (public read, admin write).
 
@@ -70,7 +70,7 @@ Editing happens in the admin editor (`admindepum.html`): search the catalog, add
 
 Centralized in the `LS_KEYS` object in `src/config.js`:
 
-- `pumgoda_places_v2` — catalog cache (6h TTL)
+- `pumgoda_places_v2` — catalog cache (30 min TTL)
 - `pumgoda_filters` — filter state (with schema validation)
 - `pumgoda_trips` — saved venue lists
 - `pumgoda_user_pet` — user's pet profile
