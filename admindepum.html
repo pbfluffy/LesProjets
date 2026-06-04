@@ -155,7 +155,22 @@ body{
 .pol input{width:16px;height:16px;accent-color:var(--accent)}
 .fld-sec{grid-column:1 / -1;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);margin-top:4px;border-top:1px solid var(--line-soft);padding-top:12px}
 @media(max-width:560px){.pedit-bd{grid-template-columns:1fr}}
+
+html.light{
+  --bg:#f7f3ea; --bg-2:#efe9dc; --panel:#fffdf8; --panel-2:#f3ede1;
+  --line:#dcd2c0; --line-soft:#e9e1d3; --text:#2b2418; --muted:#6e6451;
+  --faint:#9b917f; --accent:#bf7714; --accent-soft:#f6e7cd;
+  --green:#4e7a36; --red:#c0492f;
+}
+html.light body{
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(191,119,20,.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(78,122,54,.07), transparent 55%),
+    var(--bg);
+}
 </style>
+
+  <script>try{if(localStorage.getItem('admin_theme')==='light')document.documentElement.classList.add('light');}catch(e){}</script>
 </head>
 <body>
 
@@ -394,8 +409,8 @@ function donut(segs){
     const c=`<circle cx="64" cy="64" r="${r}" fill="none" stroke="${s.color}" stroke-width="15" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 64 64)"/>`;
     off+=len; return c; }).join('');
   return `<svg class="donut" width="124" height="124" viewBox="0 0 128 128" aria-hidden="true">${arcs}
-    <text x="64" y="61" text-anchor="middle" fill="#f3ece0" font-size="27" font-weight="800" font-family="JetBrains Mono">${total}</text>
-    <text x="64" y="79" text-anchor="middle" fill="#7d7560" font-size="9" font-family="JetBrains Mono" letter-spacing="1.5">USERS</text></svg>`;
+    <text x="64" y="61" text-anchor="middle" style="fill:var(--text)" font-size="27" font-weight="800" font-family="JetBrains Mono">${total}</text>
+    <text x="64" y="79" text-anchor="middle" style="fill:var(--faint)" font-size="9" font-family="JetBrains Mono" letter-spacing="1.5">USERS</text></svg>`;
 }
 function hbar(name,val,max,color,vlabel){
   const pct = Math.round(100*val/(max||1));
@@ -639,6 +654,28 @@ document.getElementById('pedit-x').addEventListener('click', closeEditor);
 document.getElementById('pedit-cancel').addEventListener('click', closeEditor);
 document.getElementById('pedit-save').addEventListener('click', saveEditor);
 document.getElementById('pedit').addEventListener('click', (e)=>{ if(e.target.id==='pedit') closeEditor(); });
+
+// ---- Admin theme toggle (light / dark) ----
+(function(){
+  const KEY='admin_theme';
+  const root=document.documentElement;
+  const tbtn=document.createElement('button');
+  tbtn.className='btn ghost small'; tbtn.id='themeBtn'; tbtn.style.marginRight='4px';
+  function apply(t){
+    root.classList.toggle('light', t==='light');
+    tbtn.textContent = (t==='light') ? '\u263d Dark' : '\u2600 Light';
+  }
+  let cur='dark'; try{ if(localStorage.getItem(KEY)==='light') cur='light'; }catch(e){}
+  tbtn.addEventListener('click', ()=>{
+    cur = root.classList.contains('light') ? 'dark' : 'light';
+    try{ localStorage.setItem(KEY, cur); }catch(e){}
+    apply(cur);
+    if(typeof renderCharts==='function'){ try{ renderCharts(); }catch(e){} }
+  });
+  const who=document.querySelector('.who'); const so=document.getElementById('signoutBtn');
+  if(who){ if(so) who.insertBefore(tbtn, so); else who.appendChild(tbtn); }
+  apply(cur);
+})();
 </script>
 </body>
 </html>
