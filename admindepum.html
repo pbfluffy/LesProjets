@@ -136,6 +136,25 @@ body{
 .preg{font-size:12px;color:var(--faint);font-family:'JetBrains Mono',monospace;text-transform:capitalize}
 .ppaw{font-size:13px;letter-spacing:1px}
 .pverif{font-size:13px;color:var(--green)}
+
+.pedit-ov{position:fixed;inset:0;background:rgba(0,0,0,.62);display:flex;align-items:flex-start;justify-content:center;padding:38px 16px;overflow:auto;z-index:60}
+.pedit-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:660px;width:100%;margin:auto}
+.pedit-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line-soft)}
+.pedit-hd b{font-size:16px}
+.pedit-idtag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);margin-left:8px}
+.pedit-bd{padding:16px 18px;display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.pedit-ft{display:flex;justify-content:flex-end;gap:10px;padding:14px 18px;border-top:1px solid var(--line-soft)}
+.fld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fld.full{grid-column:1 / -1}
+.fld label{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-family:'JetBrains Mono',monospace}
+.fld input[type=text],.fld input[type=number],.fld select,.fld textarea{background:var(--bg-2);border:1px solid var(--line-soft);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 10px;outline:none;width:100%}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--accent)}
+.fld textarea{resize:vertical;min-height:54px}
+.pol{grid-column:1 / -1;display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px}
+.pol label{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text);font-family:inherit;text-transform:none;letter-spacing:0;cursor:pointer}
+.pol input{width:16px;height:16px;accent-color:var(--accent)}
+.fld-sec{grid-column:1 / -1;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);margin-top:4px;border-top:1px solid var(--line-soft);padding-top:12px}
+@media(max-width:560px){.pedit-bd{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -219,12 +238,22 @@ body{
     </div>
     <div id="prows"></div>
   </div>
+
+  <!-- PLACE EDITOR (Feature #100, Phase 2.2) -->
+  <div id="pedit" class="pedit-ov hidden">
+    <div class="pedit-box">
+      <div class="pedit-hd"><div><b>Edit place</b><span class="pedit-idtag" id="pedit-id"></span></div><button class="btn ghost small" id="pedit-x">Close</button></div>
+      <div id="pedit-err" class="errbox hidden" style="margin:14px 18px 0"></div>
+      <div class="pedit-bd" id="pedit-bd"></div>
+      <div class="pedit-ft"><button class="btn ghost" id="pedit-cancel">Cancel</button><button class="btn" id="pedit-save" style="border-color:var(--accent);color:var(--accent)">Save to Firestore</button></div>
+    </div>
+  </div>
 </main>
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
-import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
 const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562';
 
@@ -438,7 +467,7 @@ function renderPlaces(){
     const paws = '🐾'.repeat(pawTier(p));
     const reg = (p.region||'').replace(/_/g,' ');
     const ver = (p.pumba&&p.pumba.verified) ? '✓' : '—';
-    return `<div class="row body prow">
+    return `<div class="row body prow" data-pid="${p.id}" style="cursor:pointer" title="Edit">
       <div class="pname"><b>${en(p)||p.id}</b><span class="pth">${th(p)||''}</span><span class="pid">${p.id}</span></div>
       <div class="ptype">${p.type||'—'}</div>
       <div class="preg">${reg||'—'}</div>
@@ -450,6 +479,114 @@ function renderPlaces(){
 onAuthStateChanged(auth, (user) => { if(user && user.uid===ADMIN_UID) loadPlaces(); });
 $('psearch').addEventListener('input', renderPlaces);
 $('refreshBtn').addEventListener('click', loadPlaces);
+
+// ---- Pumgoda catalog editor (Feature #100, Phase 2.2) ----
+let CUR = null;
+const TYPE_BASE = ['Cafe','Restaurant','Hotel','Pet Hotel','Park','Mall','Beach','Vet','Pet shop','Grooming','Clinic'];
+const REGION_BASE = ['bangkok_metro','weekend_escape'];
+const vget = (id) => (document.getElementById(id)?.value || '').trim();
+const esc = (v) => (v ?? '').toString().replace(/"/g,'&quot;');
+const escA = (v) => (v ?? '').toString().replace(/</g,'&lt;');
+const optList = (list, cur) => [...new Set([...list, cur].filter(v=>v!==undefined&&v!==null&&v!==''))].map(v=>`<option value="${esc(v)}"${v===cur?' selected':''}>${v}</option>`).join('');
+const field = (label,id,val,type) => `<div class="fld"><label>${label}</label><input type="${type||'text'}" id="${id}" value="${esc(val)}" /></div>`;
+const area = (label,id,val) => `<div class="fld full"><label>${label}</label><textarea id="${id}">${escA(val)}</textarea></div>`;
+const chk = (label,id,on) => `<label><input type="checkbox" id="${id}"${on?' checked':''} /> ${label}</label>`;
+function openEditor(id){
+  const p = PLACES.find(x=>x.id===id); if(!p) return;
+  CUR = id;
+  document.getElementById('pedit-id').textContent = id;
+  document.getElementById('pedit-err').classList.add('hidden');
+  const pol = p.policy || {};
+  const b = (k) => (k in p) ? !!p[k] : !!pol[k];
+  document.getElementById('pedit-bd').innerHTML =
+    field('Name (EN)','f_name_en',(p.name&&p.name.en)||'') +
+    field('Name (TH)','f_name_th',(p.name&&p.name.th)||'') +
+    `<div class="fld"><label>Type</label><select id="f_type">${optList(TYPE_BASE, p.type||'')}</select></div>` +
+    `<div class="fld"><label>Region</label><select id="f_region">${optList(REGION_BASE, p.region||'')}</select></div>` +
+    field('Province','f_province',p.province||'') +
+    field('Neighborhood','f_neighborhood',p.neighborhood||'') +
+    field('Latitude','f_lat',(p.coords&&p.coords[0]!=null)?p.coords[0]:'','number') +
+    field('Longitude','f_lng',(p.coords&&p.coords[1]!=null)?p.coords[1]:'','number') +
+    field('Address (EN)','f_address_en',(p.address&&p.address.en)||'') +
+    field('Address (TH)','f_address_th',(p.address&&p.address.th)||'') +
+    `<div class="fld-sec">Contact</div>` +
+    field('Phone','f_phone',p.phone||'') +
+    field('Website','f_website',p.website||'') +
+    field('Instagram','f_instagram',p.instagram||'') +
+    field('Google Maps URL','f_google_maps_url',p.googleMapsUrl||'') +
+    field('Hours','f_hours',p.hours||'') +
+    `<div class="fld-sec">Policy</div><div class="pol">` +
+      chk('Indoor allowed','f_indoor_allowed',b('indoor_allowed')) +
+      chk('No size limit','f_no_size_limit',b('no_size_limit')) +
+      chk('Water bowl','f_water_bowl',b('water_bowl')) +
+      chk('No fee','f_no_fee',b('no_fee')) +
+      chk('Pet menu','f_pet_menu',b('pet_menu')) +
+      chk('Off-leash zone','f_off_leash_zone',b('off_leash_zone')) +
+      chk('Pet bed / toys','f_pet_bed_toys',b('pet_bed_toys')) +
+      chk('Pool / play / grooming','f_pet_pool_play_grooming',b('pet_pool_play_grooming')) +
+      chk('Overnight','f_overnight',b('overnight')) +
+      chk('Stroller required','f_stroller_required',b('stroller_required')) +
+      chk('Staff welcoming','f_staff_welcoming',b('staff_welcoming')) +
+    `</div>` +
+    field('Size limit (kg)','f_size_limit_kg',(pol.size_limit_kg!=null?pol.size_limit_kg:''),'number') +
+    field('Fee (baht)','f_fee_baht',(pol.fee_baht!=null?pol.fee_baht:''),'number') +
+    `<div class="fld"><label>Price tier</label><select id="f_price">${['','$','$$','$$$'].map(v=>`<option value="${v}"${v===(p.priceTier||'')?' selected':''}>${v||'\u2014'}</option>`).join('')}</select></div>` +
+    `<div class="fld-sec">Pumba</div><div class="pol">` + chk('Pumba verified','f_pumba_verified',!!(p.pumba&&p.pumba.verified)) + chk('Favorite','f_pumba_favorite',!!(p.pumba&&p.pumba.favorite)) + `</div>` +
+    field('Visit date','f_pumba_visit_date',(p.pumba&&p.pumba.visitDate)||'') +
+    field('Pumba photo URL','f_pumba_photo_url',(p.pumba&&p.pumba.photoUrl)||'') +
+    `<div class="fld-sec">Meta</div>` +
+    area('Notes (EN)','f_notes_en',(p.notes&&p.notes.en)||'') +
+    area('Notes (TH)','f_notes_th',(p.notes&&p.notes.th)||'') +
+    field('Tags (; separated)','f_tags',(p.tags||[]).join('; ')) +
+    field('Last verified','f_last_verified',p.lastVerified||'');
+  document.getElementById('pedit').classList.remove('hidden');
+}
+function closeEditor(){ document.getElementById('pedit').classList.add('hidden'); CUR = null; }
+function numOrNull(id){ const v=vget(id); if(v==='') return null; const n=parseFloat(v); return isNaN(n)?null:n; }
+async function saveEditor(){
+  if(!CUR) return;
+  const err = document.getElementById('pedit-err');
+  const fail = (m)=>{ err.textContent=m; err.classList.remove('hidden'); };
+  if(!vget('f_name_en') && !vget('f_name_th')) return fail('Name (EN or TH) is required.');
+  if(!vget('f_type')) return fail('Type is required.');
+  const lat=vget('f_lat'), lng=vget('f_lng');
+  if((lat==='')!==(lng==='')) return fail('Latitude and longitude must both be set, or both empty.');
+  if(lat!=='' && (isNaN(parseFloat(lat))||isNaN(parseFloat(lng)))) return fail('Coordinates must be valid numbers.');
+  const orig = PLACES.find(x=>x.id===CUR) || {};
+  const bk = ['indoor_allowed','no_size_limit','water_bowl','no_fee','pet_menu','off_leash_zone','pet_bed_toys','pet_pool_play_grooming','overnight','stroller_required','staff_welcoming'];
+  const bools = {}; bk.forEach(k=> bools[k] = document.getElementById('f_'+k).checked);
+  const pt = vget('f_price');
+  const body = {
+    ...orig,
+    name:{ en:vget('f_name_en'), th:vget('f_name_th') },
+    type:vget('f_type'), region:vget('f_region'), province:vget('f_province'), neighborhood:vget('f_neighborhood'),
+    coords: lat==='' ? null : [parseFloat(lat), parseFloat(lng)],
+    address:{ en:vget('f_address_en'), th:vget('f_address_th') },
+    googleMapsUrl:vget('f_google_maps_url'), phone:vget('f_phone'), website:vget('f_website'), instagram:vget('f_instagram'), hours:vget('f_hours'),
+    policy:{ ...bools, size_limit_kg:numOrNull('f_size_limit_kg'), fee_baht:numOrNull('f_fee_baht') },
+    ...bools,
+    pumba:{ verified:document.getElementById('f_pumba_verified').checked, favorite:document.getElementById('f_pumba_favorite').checked, visitDate:vget('f_pumba_visit_date')||null, photoUrl:vget('f_pumba_photo_url')||null },
+    priceTier: pt==='' ? null : pt,
+    notes:{ en:vget('f_notes_en'), th:vget('f_notes_th') },
+    tags: vget('f_tags').split(';').map(t=>t.trim()).filter(Boolean),
+    lastVerified: vget('f_last_verified')||null,
+  };
+  delete body.id;
+  body.lastModified = serverTimestamp();
+  const btn = document.getElementById('pedit-save');
+  btn.disabled=true; btn.textContent='Saving\u2026';
+  try{
+    await setDoc(doc(db,'places',CUR), body);
+    closeEditor();
+    await loadPlaces();
+  }catch(e){ fail('Save failed: '+(e.code||e.message)); }
+  finally{ btn.disabled=false; btn.textContent='Save to Firestore'; }
+}
+document.getElementById('prows').addEventListener('click', (e)=>{ const row=e.target.closest('.row.body.prow'); if(row && row.dataset.pid) openEditor(row.dataset.pid); });
+document.getElementById('pedit-x').addEventListener('click', closeEditor);
+document.getElementById('pedit-cancel').addEventListener('click', closeEditor);
+document.getElementById('pedit-save').addEventListener('click', saveEditor);
+document.getElementById('pedit').addEventListener('click', (e)=>{ if(e.target.id==='pedit') closeEditor(); });
 </script>
 </body>
 </html>
