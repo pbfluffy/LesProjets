@@ -26,7 +26,7 @@ export default function PlaceCard({ venue, lang = 'en', onOpen }) {
     >
       {thumb && (
         <div className="ph-card-thumb">
-          <img src={thumb} alt="" loading="lazy" />
+          <img src={thumb} alt="" loading="eager" />
         </div>
       )}
 
