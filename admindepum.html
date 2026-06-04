@@ -253,7 +253,7 @@ body{
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
-import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp, deleteDoc } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
 const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562';
 
@@ -480,8 +480,9 @@ onAuthStateChanged(auth, (user) => { if(user && user.uid===ADMIN_UID) loadPlaces
 $('psearch').addEventListener('input', renderPlaces);
 $('refreshBtn').addEventListener('click', loadPlaces);
 
-// ---- Pumgoda catalog editor (Feature #100, Phase 2.2) ----
+// ---- Pumgoda catalog editor (Feature #100, Phase 2.2 + 2.3 create/delete) ----
 let CUR = null;
+let CREATING = false;
 const TYPE_BASE = ['Cafe','Restaurant','Hotel','Pet Hotel','Park','Mall','Beach','Vet','Pet shop','Grooming','Clinic'];
 const REGION_BASE = ['bangkok_metro','weekend_escape'];
 const vget = (id) => (document.getElementById(id)?.value || '').trim();
@@ -491,14 +492,12 @@ const optList = (list, cur) => [...new Set([...list, cur].filter(v=>v!==undefine
 const field = (label,id,val,type) => `<div class="fld"><label>${label}</label><input type="${type||'text'}" id="${id}" value="${esc(val)}" /></div>`;
 const area = (label,id,val) => `<div class="fld full"><label>${label}</label><textarea id="${id}">${escA(val)}</textarea></div>`;
 const chk = (label,id,on) => `<label><input type="checkbox" id="${id}"${on?' checked':''} /> ${label}</label>`;
-function openEditor(id){
-  const p = PLACES.find(x=>x.id===id); if(!p) return;
-  CUR = id;
-  document.getElementById('pedit-id').textContent = id;
-  document.getElementById('pedit-err').classList.add('hidden');
+function blankPlace(){ return { name:{en:'',th:''}, type:'', region:'bangkok_metro', province:'', neighborhood:'', coords:null, address:{en:'',th:''}, googleMapsUrl:'', phone:'', website:'', instagram:'', hours:'', policy:{}, pumba:{}, priceTier:null, notes:{en:'',th:''}, tags:[], lastVerified:null, photos:[] }; }
+function buildForm(p, creating){
   const pol = p.policy || {};
   const b = (k) => (k in p) ? !!p[k] : !!pol[k];
-  document.getElementById('pedit-bd').innerHTML =
+  const idField = creating ? `<div class="fld full"><label>Place ID (unique \u2014 e.g. P012)</label><input type="text" id="f_id" value="" placeholder="P012" /></div>` : '';
+  document.getElementById('pedit-bd').innerHTML = idField +
     field('Name (EN)','f_name_en',(p.name&&p.name.en)||'') +
     field('Name (TH)','f_name_th',(p.name&&p.name.th)||'') +
     `<div class="fld"><label>Type</label><select id="f_type">${optList(TYPE_BASE, p.type||'')}</select></div>` +
@@ -539,23 +538,33 @@ function openEditor(id){
     area('Notes (TH)','f_notes_th',(p.notes&&p.notes.th)||'') +
     field('Tags (; separated)','f_tags',(p.tags||[]).join('; ')) +
     field('Last verified','f_last_verified',p.lastVerified||'');
+}
+function openEditor(id){
+  const p = PLACES.find(x=>x.id===id); if(!p) return;
+  CUR = id; CREATING = false;
+  document.querySelector('.pedit-hd b').textContent = 'Edit place';
+  document.getElementById('pedit-id').textContent = id;
+  if(delBtn) delBtn.style.display = '';
+  document.getElementById('pedit-err').classList.add('hidden');
+  buildForm(p, false);
   document.getElementById('pedit').classList.remove('hidden');
 }
-function closeEditor(){ document.getElementById('pedit').classList.add('hidden'); CUR = null; }
+function openCreate(){
+  CUR = null; CREATING = true;
+  document.querySelector('.pedit-hd b').textContent = 'Add place';
+  document.getElementById('pedit-id').textContent = 'new';
+  if(delBtn) delBtn.style.display = 'none';
+  document.getElementById('pedit-err').classList.add('hidden');
+  buildForm(blankPlace(), true);
+  document.getElementById('pedit').classList.remove('hidden');
+}
+function closeEditor(){ document.getElementById('pedit').classList.add('hidden'); CUR = null; CREATING = false; }
 function numOrNull(id){ const v=vget(id); if(v==='') return null; const n=parseFloat(v); return isNaN(n)?null:n; }
-async function saveEditor(){
-  if(!CUR) return;
-  const err = document.getElementById('pedit-err');
-  const fail = (m)=>{ err.textContent=m; err.classList.remove('hidden'); };
-  if(!vget('f_name_en') && !vget('f_name_th')) return fail('Name (EN or TH) is required.');
-  if(!vget('f_type')) return fail('Type is required.');
-  const lat=vget('f_lat'), lng=vget('f_lng');
-  if((lat==='')!==(lng==='')) return fail('Latitude and longitude must both be set, or both empty.');
-  if(lat!=='' && (isNaN(parseFloat(lat))||isNaN(parseFloat(lng)))) return fail('Coordinates must be valid numbers.');
-  const orig = PLACES.find(x=>x.id===CUR) || {};
+function buildBody(){
+  const orig = CREATING ? {} : (PLACES.find(x=>x.id===CUR) || {});
   const bk = ['indoor_allowed','no_size_limit','water_bowl','no_fee','pet_menu','off_leash_zone','pet_bed_toys','pet_pool_play_grooming','overnight','stroller_required','staff_welcoming'];
   const bools = {}; bk.forEach(k=> bools[k] = document.getElementById('f_'+k).checked);
-  const pt = vget('f_price');
+  const lat=vget('f_lat'), lng=vget('f_lng'); const pt = vget('f_price');
   const body = {
     ...orig,
     name:{ en:vget('f_name_en'), th:vget('f_name_th') },
@@ -570,18 +579,61 @@ async function saveEditor(){
     notes:{ en:vget('f_notes_en'), th:vget('f_notes_th') },
     tags: vget('f_tags').split(';').map(t=>t.trim()).filter(Boolean),
     lastVerified: vget('f_last_verified')||null,
+    photos: Array.isArray(orig.photos) ? orig.photos : [],
   };
   delete body.id;
   body.lastModified = serverTimestamp();
-  const btn = document.getElementById('pedit-save');
-  btn.disabled=true; btn.textContent='Saving\u2026';
+  return body;
+}
+async function saveEditor(){
+  const err = document.getElementById('pedit-err');
+  const fail = (m)=>{ err.textContent=m; err.classList.remove('hidden'); };
+  if(!vget('f_name_en') && !vget('f_name_th')) return fail('Name (EN or TH) is required.');
+  if(!vget('f_type')) return fail('Type is required.');
+  let targetId = CUR;
+  if(CREATING){
+    targetId = vget('f_id');
+    if(!targetId) return fail('Place ID is required.');
+    if(!/^[A-Za-z0-9_-]+$/.test(targetId)) return fail('Place ID may use letters, numbers, hyphen and underscore only.');
+    if(PLACES.some(x=>x.id===targetId)) return fail('Place ID "'+targetId+'" already exists.');
+  }
+  if(!targetId) return fail('No target id.');
+  const lat=vget('f_lat'), lng=vget('f_lng');
+  if((lat==='')!==(lng==='')) return fail('Latitude and longitude must both be set, or both empty.');
+  if(lat!=='' && (isNaN(parseFloat(lat))||isNaN(parseFloat(lng)))) return fail('Coordinates must be valid numbers.');
+  const body = buildBody();
+  const btn = document.getElementById('pedit-save'); btn.disabled=true; btn.textContent='Saving\u2026';
   try{
-    await setDoc(doc(db,'places',CUR), body);
+    await setDoc(doc(db,'places',targetId), body);
     closeEditor();
     await loadPlaces();
   }catch(e){ fail('Save failed: '+(e.code||e.message)); }
   finally{ btn.disabled=false; btn.textContent='Save to Firestore'; }
 }
+async function deletePlace(){
+  if(!CUR || CREATING) return;
+  if(!window.confirm('Delete place '+CUR+'? This cannot be undone.')) return;
+  const err = document.getElementById('pedit-err');
+  delBtn.disabled=true; delBtn.textContent='Deleting\u2026';
+  try{
+    await deleteDoc(doc(db,'places',CUR));
+    closeEditor();
+    await loadPlaces();
+  }catch(e){ err.textContent='Delete failed: '+(e.code||e.message); err.classList.remove('hidden'); }
+  finally{ delBtn.disabled=false; delBtn.textContent='Delete'; }
+}
+const addBtn = document.createElement('button');
+addBtn.className = 'btn small'; addBtn.id = 'padd'; addBtn.textContent = '+ Add place';
+addBtn.style.borderColor = 'var(--accent)'; addBtn.style.color = 'var(--accent)';
+addBtn.addEventListener('click', openCreate);
+const pcountEl = document.getElementById('pcount');
+if(pcountEl && pcountEl.parentNode) pcountEl.parentNode.insertBefore(addBtn, pcountEl);
+const delBtn = document.createElement('button');
+delBtn.className = 'btn'; delBtn.id = 'pedit-del'; delBtn.textContent = 'Delete';
+delBtn.style.borderColor = 'var(--red)'; delBtn.style.color = 'var(--red)'; delBtn.style.marginRight = 'auto';
+delBtn.addEventListener('click', deletePlace);
+const ftEl = document.querySelector('.pedit-ft');
+if(ftEl) ftEl.insertBefore(delBtn, ftEl.firstChild);
 document.getElementById('prows').addEventListener('click', (e)=>{ const row=e.target.closest('.row.body.prow'); if(row && row.dataset.pid) openEditor(row.dataset.pid); });
 document.getElementById('pedit-x').addEventListener('click', closeEditor);
 document.getElementById('pedit-cancel').addEventListener('click', closeEditor);
