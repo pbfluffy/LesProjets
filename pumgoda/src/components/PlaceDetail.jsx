@@ -68,6 +68,8 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
           </div>
         </div>
 
+        <PhotoStrip photos={venue.photos} label={name} />
+
         {/* Add this place to a trip */}
         <div className="ph-pd-trip">
           <button
@@ -244,6 +246,49 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
           </a>
         )}
       </div>
+    </div>
+  )
+}
+
+function PhotoStrip({ photos = [], label = 'Photos' }) {
+  const list = Array.isArray(photos) ? photos.filter(Boolean) : []
+  const [open, setOpen] = useState(-1)
+  useEffect(() => {
+    if (open < 0) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.stopImmediatePropagation(); setOpen(-1) }
+      else if (e.key === 'ArrowLeft') setOpen((i) => (i - 1 + list.length) % list.length)
+      else if (e.key === 'ArrowRight') setOpen((i) => (i + 1) % list.length)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [open, list.length])
+  if (!list.length) return null
+  const close = () => setOpen(-1)
+  const prev = (e) => { e.stopPropagation(); setOpen((i) => (i - 1 + list.length) % list.length) }
+  const next = (e) => { e.stopPropagation(); setOpen((i) => (i + 1) % list.length) }
+  return (
+    <div className="ph-strip-wrap">
+      <div className="ph-strip">
+        {list.map((u, i) => (
+          <button type="button" key={i} className="ph-strip-item" onClick={() => setOpen(i)}>
+            <img src={u} alt={`${label} ${i + 1}`} loading="lazy" />
+          </button>
+        ))}
+      </div>
+      {open >= 0 && (
+        <div className="ph-lightbox" onClick={close} role="dialog" aria-modal="true">
+          <button className="ph-lb-close" onClick={close} aria-label="Close">×</button>
+          {list.length > 1 && (
+            <button className="ph-lb-nav ph-lb-prev" onClick={prev} aria-label="Previous">‹</button>
+          )}
+          <img className="ph-lb-img" src={list[open]} alt={`${label} ${open + 1}`} onClick={(e) => e.stopPropagation()} />
+          {list.length > 1 && (
+            <button className="ph-lb-nav ph-lb-next" onClick={next} aria-label="Next">›</button>
+          )}
+          {list.length > 1 && <div className="ph-lb-count mono">{open + 1} / {list.length}</div>}
+        </div>
+      )}
     </div>
   )
 }
