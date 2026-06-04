@@ -5,6 +5,14 @@
 export const SHEET_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vRtGZtLBfINyfeMVQ-SLThpyZ94bse7XmRs9aXIxgt05ujFIbyyJKcWraw-v04rlugl2pGaUUl6ABDH/pub?output=csv'
 
+// Catalog data source: 'sheet' (legacy published CSV) | 'firestore' (primary after the
+// #100 migration cutover). Stays 'sheet' until the places collection is imported and
+// verified -- flipping this one value is the cutover (and the one-line rollback).
+export const PLACES_SOURCE = 'sheet'
+
+// Firestore collection holding the venue catalog (read by fetchFromFirestore).
+export const PLACES_COLLECTION = 'places'
+
 // Firebase Realtime Database base URL — community vote storage.
 export const VOTES_DB_URL =
   'https://pumgoda-default-rtdb.asia-southeast1.firebasedatabase.app'
