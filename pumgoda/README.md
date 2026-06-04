@@ -11,25 +11,29 @@ Pet-friendly places in Thailand. Find cafés, restaurants, hotels, parks, vets, 
 - **Free-text search** across name, area, notes
 - **`minPaws` tier filter** — show only venues at or above a given tier
 - "Pumba was here" filter (`pumba_verified` venues)
+- Cover thumbnail from the venue's first photo, when present
 
 ### Map view
 - Full-height Leaflet map
 - **Floating overlay filter** (`MapFilterBar`) — same filters as list view, floats over the map
 - **Marker clustering** (`leaflet.markercluster`) — handles dense city blocks
 - Custom marker icons coloured by tier; the `pet_hotel` icon placed to clear the locate button
+- **Live location** — locate, then a `watchPosition` follow mode (tap again to stop)
 - Tap a pin → place detail overlay
 
 ### Place detail
 - Full policy block, contact, Google Maps link
+- **Photo gallery** (`PhotoStrip`) with lightbox, reading the place's `photos[]`
 - Pumba "was here" badge (with optional photo)
 - Paw tier badge (1–4) + optional ♥ favourite
-- **Community votes** via Firebase Realtime DB (`useVotes` + `VotesContext`)
+- **Community votes** — Firestore-backed and sign-in-gated (`useVotesFs`); one vote per user/place, enforced by a composite-key rule
 - Save to your local "Trips" list
 
 ### Persistence
 - Filter state persists to `localStorage` with **schema validation** — corrupted/old shapes are discarded rather than crashing the app
 - Theme + language persist across sessions
-- Trips and user-pet info persist locally
+- When signed in, saved places sync to Firestore (`userPlaces`) and trips to `userTrips`; collaborative trips live in `sharedTrips`
+- User-pet info persists locally
 
 ## Paw-tier system
 
@@ -49,25 +53,24 @@ Logic lives in `src/data/computeTier.js` — plain `if` ladder, no rubric/weight
 
 - React 18, Vite 5
 - Leaflet 1.9 + `leaflet.markercluster`
-- Firebase Realtime DB (community votes only)
+- Firebase **Firestore** (venue catalog, per-user sync, community votes) + Auth; legacy Realtime DB retained only for old vote data
+- Cloudflare **R2** + a `pumgoda-photo` Worker (place photos)
 - CSS modules + a shared `theme.css`
 - `localStorage` for filter state, trips, user-pet, theme, language
 
 ## Data source
 
-Venues live in a published [Google Sheet](https://docs.google.com/spreadsheets/d/1Ckf0fZ0EM9xXYrJipTXCO-TfaL910QzIbl1C0y9V4n0/edit). The app fetches the published CSV URL (`SHEET_CSV_URL` in `src/config.js`) on first load, caches it 6h in `localStorage["pumgoda_places_v2"]`, and falls back to a bundled `src/data/places.fallback.json` when offline.
+Venues live in **Firestore** at `places/{placeId}`. Each doc stores the already-normalized place object the app consumes directly (no client-side transform on the read path). The catalog is cached 6h in `localStorage["pumgoda_places_v2"]`, and a bundled `src/data/places.fallback.json` backs the app when offline. The active source is selected by `PLACES_SOURCE` in `src/config.js` (`'firestore'` in production).
 
-The sheet has 39 columns; 36 are consumed by the app. `tags` and `source` are unused by the app — feel free to repurpose or delete.
+Editing happens in the admin editor (`admindepum.html`): search the catalog, add / edit / delete places, and upload photos. Uploaded photos go to Cloudflare R2 via the `pumgoda-photo` Worker, and their URLs are pushed into the place's `photos[]`. Catalog writes are gated to the admin uid by the `places` Firestore rule (public read, admin write).
 
-To add a place: open the sheet, add a row, save. The next app load (or 6h later, with a cached version) picks it up.
-
-⚠️ Category filters normalize `type` to lowercase (`type.toLowerCase().replace(/[\s-]+/g, '_')`) because sheet values are capitalized. A misspelled `type` cell makes that category filter return nothing — that's a sheet fix, not a code fix.
+> **Legacy fallback (bake-in):** the original published [Google Sheet](https://docs.google.com/spreadsheets/d/1Ckf0fZ0EM9xXYrJipTXCO-TfaL910QzIbl1C0y9V4n0/edit) (`SHEET_CSV_URL`) stays wired as a tertiary fallback while Firestore proves stable, and will be removed in a later cleanup. While it's live: a row's `type` is normalized to lowercase (`type.toLowerCase().replace(/[\s-]+/g, '_')`), so capitalization is fine but a misspelled `type` makes that category filter return nothing — that's a data fix, not a code fix.
 
 ## Storage keys
 
 Centralized in the `LS_KEYS` object in `src/config.js`:
 
-- `pumgoda_places_v2` — CSV cache (6h TTL)
+- `pumgoda_places_v2` — catalog cache (6h TTL)
 - `pumgoda_filters` — filter state (with schema validation)
 - `pumgoda_trips` — saved venue lists
 - `pumgoda_user_pet` — user's pet profile
@@ -95,21 +98,22 @@ VITE_BASE=/ npm run build
 ```
 src/
   main.jsx, App.jsx, App.css
-  config.js                     # SHEET_CSV_URL, LS_KEYS, VOTES_DB_URL
-  firebase.js                   # Firebase Realtime DB init (votes only)
+  config.js                     # PLACES_SOURCE, SHEET_CSV_URL, LS_KEYS, VOTES_DB_URL
+  firebase.js                   # Firebase init — Firestore (catalog/sync/votes) + Auth + RTDB (legacy)
   components/
     Header, Hero,
     FilterBar, MapFilterBar,
     PlaceCard, PawTierBadge, PumbaBadge, PolicyChips,
-    PlaceDetail, MapView,
+    PhotoStrip, PlaceDetail, MapView, TripBuilder,
     BottomNav, EmptyState
   data/
     computeTier.js              # paw-tier rubric (single source of truth)
-    fetchPlaces.js              # CSV → cache → fallback pipeline
+    fetchPlaces.js              # Firestore / Sheet → cache → fallback pipeline
     places.fallback.json
   hooks/
     useLocalStorage.js, useThemeLang.js,
-    useFilters.js, useTrips.js, useUserPet.js, useVotes.js
+    useFilters.js, useTrips.js, useUserPet.js,
+    useVotesFs.js, useCloudSync.js, useSharedTrip.js
   i18n/strings.js               # TH/EN
   styles/theme.css              # CSS vars matching portfolio palette
 ```
