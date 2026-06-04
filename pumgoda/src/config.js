@@ -8,7 +8,7 @@ export const SHEET_CSV_URL =
 // Catalog data source: 'sheet' (legacy published CSV) | 'firestore' (primary after the
 // #100 migration cutover). Stays 'sheet' until the places collection is imported and
 // verified -- flipping this one value is the cutover (and the one-line rollback).
-export const PLACES_SOURCE = 'sheet'
+export const PLACES_SOURCE = 'firestore'
 
 // Firestore collection holding the venue catalog (read by fetchFromFirestore).
 export const PLACES_COLLECTION = 'places'
