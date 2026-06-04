@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { computeTier } from '../data/computeTier'
+import { STRINGS } from '../i18n/strings'
 
 const DEFAULT = {
   region: 'all', // 'all' | 'bangkok_metro' | 'weekend_escape'
@@ -94,10 +95,19 @@ export function applyFilters(places, filters) {
     }
     if (filters.query && filters.query.trim()) {
       const q = filters.query.trim().toLowerCase()
+      // Type + policy labels (both languages) so a query like "cafe", "คาเฟ่",
+      // "off-leash", or "pet menu" matches regardless of the current UI language.
+      const typeKey = String(p.type || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+      const policyKeys = p.policy ? Object.keys(p.policy).filter((k) => p.policy[k] === true) : []
+      const labelBits = [
+        STRINGS.en.types?.[typeKey], STRINGS.th.types?.[typeKey], typeKey,
+        ...policyKeys.flatMap((k) => [STRINGS.en.policy?.[k], STRINGS.th.policy?.[k], k]),
+      ]
       const hay = [
         p.name?.th, p.name?.en,
         p.neighborhood,
         p.notes?.th, p.notes?.en,
+        ...labelBits,
       ].filter(Boolean).join(' ').toLowerCase()
       if (hay.indexOf(q) === -1) return false
     }
