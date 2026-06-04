@@ -1,15 +1,5 @@
 // Pumgoda config — single source of truth for environment-level constants.
 
-// Published CSV URL of the Pumgoda Places Google Sheet.
-// To rotate: File → Share → Publish to web → CSV → copy URL.
-export const SHEET_CSV_URL =
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRtGZtLBfINyfeMVQ-SLThpyZ94bse7XmRs9aXIxgt05ujFIbyyJKcWraw-v04rlugl2pGaUUl6ABDH/pub?output=csv'
-
-// Catalog data source: 'sheet' (legacy published CSV) | 'firestore' (primary after the
-// #100 migration cutover). Stays 'sheet' until the places collection is imported and
-// verified -- flipping this one value is the cutover (and the one-line rollback).
-export const PLACES_SOURCE = 'firestore'
-
 // Firestore collection holding the venue catalog (read by fetchFromFirestore).
 export const PLACES_COLLECTION = 'places'
 
@@ -17,7 +7,7 @@ export const PLACES_COLLECTION = 'places'
 export const VOTES_DB_URL =
   'https://pumgoda-default-rtdb.asia-southeast1.firebasedatabase.app'
 
-// How long to trust the localStorage cache before re-fetching the sheet.
+// How long to trust the localStorage cache before re-fetching the catalog.
 export const CACHE_TTL_MS = 30 * 60 * 1000 // 30 minutes
 
 // Google Form URL for community place submissions — leave empty to hide the
