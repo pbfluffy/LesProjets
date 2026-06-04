@@ -1,12 +1,23 @@
-// fetchPlaces — Sheet CSV → normalized place objects with localStorage caching.
+// fetchPlaces — catalog source (Firestore or Sheet CSV) → normalized place
+// objects with localStorage caching.
 //
 // Flow:
 //   1. localStorage cache hit & fresh? → return cached
-//   2. Fetch CSV → parse → normalize → cache → return
-//   3. Network failure → stale cache if any, else bundled fallback JSON
+//   2. Read PLACES_SOURCE: Firestore getDocs, or Sheet CSV → parse → normalize
+//   3. Cache → return
+//   4. Failure → stale cache; during bake-in fall back to the other source;
+//      else bundled fallback JSON
 
 import Papa from 'papaparse'
-import { SHEET_CSV_URL, CACHE_TTL_MS, LS_KEYS } from '../config'
+import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js'
+import {
+  SHEET_CSV_URL,
+  CACHE_TTL_MS,
+  LS_KEYS,
+  PLACES_SOURCE,
+  PLACES_COLLECTION,
+} from '../config'
+import { firestore } from '../firebase'
 import { isTrue } from './computeTier'
 import fallbackPlaces from './places.fallback.json'
 
@@ -107,6 +118,39 @@ function writeCache(places) {
   }
 }
 
+// Sheet CSV path — fetch, parse, drop id-less rows (BUG-05), normalize.
+async function fetchFromSheet({ includeSamples = false } = {}) {
+  const res = await fetch(SHEET_CSV_URL)
+  if (!res.ok) throw new Error('HTTP ' + res.status)
+  const csv = await res.text()
+  const { data, errors } = Papa.parse(csv, {
+    header: true,
+    skipEmptyLines: true,
+  })
+  if (errors.length > 0) console.warn('PapaParse warnings:', errors)
+
+  // BUG-05 — drop rows missing an id. Downstream code uses p.id as a stable
+  // key for saved/visited lists and React keys; undefined ids corrupt those.
+  const validRows = data.filter((row) => row.id && String(row.id).trim() !== '')
+  if (validRows.length !== data.length) {
+    console.warn(
+      `Pumgoda: skipped ${data.length - validRows.length} rows missing an id`
+    )
+  }
+
+  const normalized = validRows.map(normalize)
+  return includeSamples ? normalized : normalized.filter(isRealPlace)
+}
+
+// Firestore path — read the places collection. Docs are stored already-normalized
+// (see scripts/import-places.mjs), so no normalize() pass is needed here.
+async function fetchFromFirestore() {
+  const snap = await getDocs(collection(firestore, PLACES_COLLECTION))
+  const places = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  if (!places.length) throw new Error('places collection empty')
+  return places
+}
+
 export async function fetchPlaces({ force = false, includeSamples = false } = {}) {
   if (!force) {
     const cached = readCache()
@@ -115,38 +159,36 @@ export async function fetchPlaces({ force = false, includeSamples = false } = {}
     }
   }
 
+  const useFirestore = PLACES_SOURCE === 'firestore'
+
   try {
-    const res = await fetch(SHEET_CSV_URL)
-    if (!res.ok) throw new Error('HTTP ' + res.status)
-    const csv = await res.text()
-    const { data, errors } = Papa.parse(csv, {
-      header: true,
-      skipEmptyLines: true,
-    })
-    if (errors.length > 0) console.warn('PapaParse warnings:', errors)
-
-    // BUG-05 — drop rows missing an id. Downstream code uses p.id as a stable
-    // key for saved/visited lists and React keys; undefined ids corrupt those.
-    const validRows = data.filter((row) => row.id && String(row.id).trim() !== '')
-    if (validRows.length !== data.length) {
-      console.warn(
-        `Pumgoda: skipped ${data.length - validRows.length} rows missing an id`
-      )
-    }
-
-    const normalized = validRows.map(normalize)
-    const places = includeSamples ? normalized : normalized.filter(isRealPlace)
+    const places = useFirestore
+      ? await fetchFromFirestore()
+      : await fetchFromSheet({ includeSamples })
     writeCache(places)
-    return { places, source: 'network' }
+    return { places, source: useFirestore ? 'firestore' : 'network' }
   } catch (err) {
-    // BUG-05 — prefer stale cache over the bundled fallback on network failure.
-    // The bundled JSON may be weeks/months out of date; a recently expired
-    // cache is almost always closer to current truth than the bundle.
+    // 1) Prefer a (possibly stale) cache over anything else — closest to truth.
     const stale = readCache({ allowStale: true })
     if (stale) {
-      console.warn('Pumgoda: network failed, serving stale cache.', err)
+      console.warn('Pumgoda: primary source failed, serving stale cache.', err)
       return { places: stale.data, source: 'stale-cache' }
     }
+
+    // 2) Bake-in safety net: when Firestore is primary, the Sheet stays wired
+    //    as a secondary source. (No-op while PLACES_SOURCE === 'sheet'.)
+    if (useFirestore) {
+      try {
+        const places = await fetchFromSheet({ includeSamples })
+        writeCache(places)
+        console.warn('Pumgoda: Firestore failed, served Sheet fallback.', err)
+        return { places, source: 'sheet-fallback' }
+      } catch (err2) {
+        console.warn('Pumgoda: Sheet fallback also failed.', err2)
+      }
+    }
+
+    // 3) Last resort — bundled JSON.
     console.warn('Pumgoda: falling back to bundled JSON.', err)
     return { places: fallbackPlaces, source: 'fallback' }
   }
