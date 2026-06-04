@@ -168,6 +168,16 @@ html.light body{
     radial-gradient(900px 500px at -10% 110%, rgba(78,122,54,.07), transparent 55%),
     var(--bg);
 }
+
+.photogrid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.thumb{position:relative;width:84px;height:84px;border-radius:8px;overflow:hidden;border:1px solid var(--line-soft);background:var(--bg-2)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thx{position:absolute;top:3px;right:3px;width:20px;height:20px;border:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:13px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.thx:hover{background:var(--red)}
+.photoempty{font-size:12px;color:var(--faint);font-family:'JetBrains Mono',monospace;padding:6px 0}
+.uploadbtn{display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:1px dashed var(--line);border-radius:8px;padding:8px 12px;font-size:12.5px;color:var(--accent);background:transparent}
+.uploadbtn:hover{border-color:var(--accent)}
+.photomsg{font-size:11.5px;color:var(--faint);font-family:'JetBrains Mono',monospace;margin-top:6px;min-height:14px}
 </style>
 
   <script>try{if(localStorage.getItem('admin_theme')==='light')document.documentElement.classList.add('light');}catch(e){}</script>
@@ -268,7 +278,7 @@ html.light body{
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
-import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp, deleteDoc } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp, deleteDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
 const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562';
 
@@ -552,7 +562,9 @@ function buildForm(p, creating){
     area('Notes (EN)','f_notes_en',(p.notes&&p.notes.en)||'') +
     area('Notes (TH)','f_notes_th',(p.notes&&p.notes.th)||'') +
     field('Tags (; separated)','f_tags',(p.tags||[]).join('; ')) +
-    field('Last verified','f_last_verified',p.lastVerified||'');
+    field('Last verified','f_last_verified',p.lastVerified||'') +
+    (creating ? '' : '<div class="fld-sec">Photos</div><div class="fld full"><div id="f_photos" class="photogrid"></div><label class="uploadbtn"><input type="file" id="f_photofile" accept="image/*" hidden multiple /><span>+ Upload photo</span></label><div id="f_photomsg" class="photomsg"></div></div>');
+  if(!creating) renderThumbs();
 }
 function openEditor(id){
   const p = PLACES.find(x=>x.id===id); if(!p) return;
@@ -676,6 +688,66 @@ document.getElementById('pedit').addEventListener('click', (e)=>{ if(e.target.id
   if(who){ if(so) who.insertBefore(tbtn, so); else who.appendChild(tbtn); }
   apply(cur);
 })();
+
+// ---- Pumgoda photo upload (Feature #100, Phase 3.1) ----
+const PHOTO_WORKER = 'https://pumgoda-photo.pbfluffygaming.workers.dev';
+const PHOTO_MAX = 12;
+function placePhotos(){ const p = PLACES.find(x=>x.id===CUR); return (p && Array.isArray(p.photos)) ? p.photos : []; }
+function renderThumbs(){
+  const wrap = document.getElementById('f_photos'); if(!wrap) return;
+  const ph = placePhotos();
+  wrap.innerHTML = ph.length
+    ? ph.map(u=>`<div class="thumb"><img src="${u}" alt="" loading="lazy" /><button type="button" class="thx" data-rmphoto="${u.replace(/"/g,'&quot;')}" title="Remove">\u00d7</button></div>`).join('')
+    : '<div class="photoempty">No photos yet.</div>';
+}
+function setPhotoMsg(m, isErr){ const el=document.getElementById('f_photomsg'); if(el){ el.textContent=m||''; el.style.color = isErr ? 'var(--red)' : 'var(--faint)'; } }
+async function uploadPhotos(fileList){
+  if(!CUR || CREATING) return;
+  const files = [...(fileList||[])];
+  if(!files.length) return;
+  const cur = placePhotos().slice();
+  if(cur.length + files.length > PHOTO_MAX){ setPhotoMsg('Max '+PHOTO_MAX+' photos per place.', true); return; }
+  let token; try{ token = await auth.currentUser.getIdToken(); }catch(e){ setPhotoMsg('Auth error.', true); return; }
+  const added = [];
+  for(let i=0;i<files.length;i++){
+    const f = files[i];
+    if(!/^image\//.test(f.type)){ setPhotoMsg('Skipped non-image: '+f.name, true); continue; }
+    if(f.size > 8*1024*1024){ setPhotoMsg('Skipped >8MB: '+f.name, true); continue; }
+    setPhotoMsg('Uploading '+(i+1)+' / '+files.length+'\u2026');
+    const fd = new FormData(); fd.append('file', f); fd.append('placeId', CUR);
+    try{
+      const r = await fetch(PHOTO_WORKER, { method:'POST', headers:{ Authorization:'Bearer '+token }, body: fd });
+      const b = await r.json().catch(()=>({}));
+      if(!r.ok || !b.url){ setPhotoMsg('Upload failed: '+(b.error||r.status), true); continue; }
+      added.push(b.url);
+    }catch(e){ setPhotoMsg('Upload error: '+e.message, true); }
+  }
+  if(added.length){
+    const next = cur.concat(added);
+    try{
+      await updateDoc(doc(db,'places',CUR), { photos: next, lastModified: serverTimestamp() });
+      const p = PLACES.find(x=>x.id===CUR); if(p) p.photos = next;
+      renderThumbs(); renderPlaces();
+      setPhotoMsg(added.length+' photo'+(added.length>1?'s':'')+' added.');
+    }catch(e){ setPhotoMsg('Uploaded to storage but DB update failed: '+(e.code||e.message), true); }
+  }
+  const inp=document.getElementById('f_photofile'); if(inp) inp.value='';
+}
+async function removePhoto(url){
+  if(!CUR || CREATING || !url) return;
+  if(!window.confirm('Remove this photo?')) return;
+  let token; try{ token = await auth.currentUser.getIdToken(); }catch(e){ setPhotoMsg('Auth error.', true); return; }
+  try{ await fetch(PHOTO_WORKER + '?key=' + encodeURIComponent(url), { method:'DELETE', headers:{ Authorization:'Bearer '+token } }); }catch(e){}
+  const next = placePhotos().filter(u=>u!==url);
+  try{
+    await updateDoc(doc(db,'places',CUR), { photos: next, lastModified: serverTimestamp() });
+    const p = PLACES.find(x=>x.id===CUR); if(p) p.photos = next;
+    renderThumbs(); renderPlaces();
+    setPhotoMsg('Photo removed.');
+  }catch(e){ setPhotoMsg('Remove failed: '+(e.code||e.message), true); }
+}
+document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='f_photofile') uploadPhotos(e.target.files); });
+document.addEventListener('click', (e)=>{ const x = e.target.closest && e.target.closest('[data-rmphoto]'); if(x) removePhoto(x.getAttribute('data-rmphoto')); });
 </script>
 </body>
 </html>
