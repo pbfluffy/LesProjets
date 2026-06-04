@@ -318,6 +318,29 @@ export default function App() {
     }
   }, [])
 
+  // Self-heal a stale photo cache: if a place photo 404s (e.g. the catalog
+  // changed in admin while this client still holds a warm cache), evict the
+  // cache and force one fresh Firestore read. Runs at most once per mount.
+  useEffect(() => {
+    let healed = false
+    const onImgError = (e) => {
+      const t = e.target
+      if (healed || !t || t.tagName !== 'IMG') return
+      if (!/r2\.dev\//.test(t.currentSrc || t.src || '')) return
+      healed = true
+      try { localStorage.removeItem(LS_KEYS.PLACES) } catch {}
+      fetchPlaces({ force: true })
+        .then(({ places, source }) => {
+          setPlaces(places)
+          setLoadState(source === 'fallback' ? 'fallback' : source === 'stale-cache' ? 'stale' : 'ok')
+        })
+        .catch((err) => console.warn('[photo self-heal] refetch failed:', err))
+    }
+    // Image load errors don't bubble; capture phase catches them at window.
+    window.addEventListener('error', onImgError, true)
+    return () => window.removeEventListener('error', onImgError, true)
+  }, [])
+
   // Filter + sort
   const visiblePlaces = useMemo(() => {
     let arr =
