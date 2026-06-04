@@ -139,7 +139,7 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
                   className="ph-pumba-photo"
                   src={venue.pumba.photoUrl}
                   alt="Pumba at venue"
-                  loading="lazy"
+                  loading="eager"
                 />
               )}
               {venue.lastVerified && (
@@ -272,7 +272,7 @@ function PhotoStrip({ photos = [], label = 'Photos' }) {
       <div className="ph-strip">
         {list.map((u, i) => (
           <button type="button" key={i} className="ph-strip-item" onClick={() => setOpen(i)}>
-            <img src={u} alt={`${label} ${i + 1}`} loading="lazy" />
+            <img src={u} alt={`${label} ${i + 1}`} loading="eager" />
           </button>
         ))}
       </div>
