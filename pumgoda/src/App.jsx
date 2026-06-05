@@ -497,6 +497,11 @@ export default function App() {
                   venue={venue}
                   lang={lang}
                   onOpen={setSelected}
+                  distanceKm={
+                    filters.sort === 'nearby' && userCoords && Array.isArray(venue.coords)
+                      ? haversineKm(userCoords, venue.coords)
+                      : null
+                  }
                 />
               ))}
             </div>
