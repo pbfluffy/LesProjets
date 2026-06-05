@@ -71,6 +71,8 @@ function taskText(t){ return typeof t==='string' ? t : (t[lang]||t.en); }
 /* ── refs ────────────────────────────────────────────────────────────────── */
 const $ = id => document.getElementById(id);
 const stage=$('stage'), feed=$('feed'), crewEl=$('crew'), meta=$('meta'), logsrc=$('logsrc');
+let curSrcKey='src_scripted';
+function renderSrc(){ if(!logsrc) return; if(curSrcKey==='src_live'){ logsrc.innerHTML='<i></i>'+tr('src_live'); logsrc.classList.add('live'); } else { logsrc.textContent=tr(curSrcKey); logsrc.classList.remove('live'); } }
 let running=true, taskCount=0;
 const ORIGINAL_TASKS = { Pumba:DOGS.Pumba.tasks.slice(), Gigi:DOGS.Gigi.tasks.slice() };
 const startTime = Date.now();
@@ -225,8 +227,7 @@ function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.fl
 function scriptedFresh(){ return { Pumba:shuffle(SCRIPTED_POOL.Pumba).slice(0,6), Gigi:shuffle(SCRIPTED_POOL.Gigi).slice(0,6) }; }
 function applyFreshTasks(parsed,srcKey){
   DOGS.Pumba.tasks=parsed.Pumba; DOGS.Gigi.tasks=parsed.Gigi;
-  logsrc.textContent=tr(srcKey); logsrc.classList.toggle('live', srcKey==='src_live');
-  if(srcKey==='src_live') logsrc.innerHTML='<i></i>'+tr('src_live');
+  curSrcKey=srcKey; renderSrc();
   const fresh=[];
   for(let i=0;i<6;i++){ if(parsed.Pumba[i]) fresh.push({name:'Pumba',task:parsed.Pumba[i]}); if(parsed.Gigi[i]) fresh.push({name:'Gigi',task:parsed.Gigi[i]}); }
   fresh.forEach((e,idx)=>{ const t=setTimeout(()=>{ logEv(DOGS[e.name].cv,`<b>${e.name}</b> — ${esc(taskText(e.task))}`); bumpTasks(); }, 600+idx*1100); state.timers.push(t); });
@@ -328,6 +329,7 @@ $('timeSeg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()
 
 /* ── language toggle ─────────────────────────────────────────────────────── */
 function applyLang(){
+  renderSrc();
   document.documentElement.lang = lang==='th' ? 'th' : 'en';
   document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = tr(el.dataset.i18n); });
   $('langSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('sel', b.dataset.lang===lang));
@@ -360,7 +362,7 @@ async function loadChangelog(){
   var qaRe=/(fix|bug|guard|overflow|legible|polish|adjust|style|tweak|test|qa|verify|cleanup|clean|refactor|regression|hotfix)/i;
   var PV=['shipped','added','built','pushed','wired up'],GV=['polished','tidied','fixed up','tuned','smoothed out'];
   var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  function render(entries){window.__CL=true;var FEED=document.getElementById('feed'); if(!FEED) return;FEED.innerHTML='';entries.forEach(function(e){var el=document.createElement('div');el.className='ev';el.innerHTML='<div class="ev-time">'+e.d+'</div><div class="ev-mark" style="background:var('+e.cv+')"></div><div class="ev-body">'+e.html+'</div>';FEED.appendChild(el);});FEED.scrollTop=FEED.scrollHeight;var TV=document.getElementById('tasksVal'); if(TV) TV.textContent=entries.length;var SRC=document.getElementById('logsrc'); if(SRC) SRC.textContent='live';}function bindDogs(b){try{if(b&&b.Pumba)setTask('Pumba',{en:b.Pumba,th:b.Pumba},true);if(b&&b.Gigi)setTask('Gigi',{en:b.Gigi,th:b.Gigi},true);}catch(e){}}
+  function render(entries){window.__CL=true;var FEED=document.getElementById('feed'); if(!FEED) return;FEED.innerHTML='';entries.forEach(function(e){var el=document.createElement('div');el.className='ev';el.innerHTML='<div class="ev-time">'+e.d+'</div><div class="ev-mark" style="background:var('+e.cv+')"></div><div class="ev-body">'+e.html+'</div>';FEED.appendChild(el);});FEED.scrollTop=FEED.scrollHeight;var TV=document.getElementById('tasksVal'); if(TV) TV.textContent=entries.length;curSrcKey='src_live'; renderSrc();}function bindDogs(b){try{if(b&&b.Pumba)setTask('Pumba',{en:b.Pumba,th:b.Pumba},true);if(b&&b.Gigi)setTask('Gigi',{en:b.Gigi,th:b.Gigi},true);}catch(e){}}
   try{var raw=localStorage.getItem(CACHE_KEY);if(raw){var o=JSON.parse(raw);if(o&&o.ts&&Date.now()-o.ts<TTL&&Array.isArray(o.entries)&&o.entries.length){render(o.entries);bindDogs(o.bound||{});return;}}}catch(e){}
   try{var list=await fetch('https://api.github.com/repos/pbfluffy/LesProjets/commits?per_page=40').then(function(r){return r.json();});if(!Array.isArray(list))throw new Error('list');var kept=list.filter(function(c){var fl=c.commit.message.split(String.fromCharCode(10))[0];return !NOISE.some(function(re){return re.test(fl);});}).slice(0,10);if(!kept.length)throw new Error('empty');kept.reverse();var entries=[],pi=0,gi=0,last={};for(var i=0;i<kept.length;i++){var c=kept[i];var top='?';try{var det=await fetch(c.url).then(function(r){return r.json();});var segs={};(det.files||[]).forEach(function(f){var s=f.filename.indexOf('/')>-1?f.filename.split('/')[0]:'(root)';segs[s]=(segs[s]||0)+1;});var ks=Object.keys(segs).sort(function(a,b){return segs[b]-segs[a];});top=ks[0]||'?';}catch(e){}var tag=APP[top]||(top==='(root)'?'Site':(top==='?'?'':top));var m=c.commit.message.split(String.fromCharCode(10))[0];if(tag&&m.toLowerCase().indexOf((tag+':').toLowerCase())===0)m=m.slice(tag.length+1).trim();m=m.replace(/^(Add|Implement|Enhance|Create|Update|Make) /i,'');m=m.charAt(0).toUpperCase()+m.slice(1);var isQA=qaRe.test(c.commit.message);var dog=isQA?'Gigi':'Pumba';var cv=isQA?'--gigi':'--pumba';var emo=isQA?'🐾':'🦴';var verb=isQA?GV[gi++%GV.length]:PV[pi++%PV.length];var dt=new Date(c.commit.author.date);var d=dt.getDate()+' '+MON[dt.getMonth()];var disp=m;var pp=disp.lastIndexOf(' (');if(pp>0&&disp.charAt(disp.length-1)===')')disp=disp.slice(0,pp);last[dog]=disp;var html='<b>'+emo+' '+dog+'</b> '+verb+(tag?' · '+clEsc(tag):'')+' — '+clEsc(m);entries.push({cv:cv,d:d,html:html});}try{localStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),entries:entries,bound:last}));}catch(e){}render(entries);bindDogs(last);}catch(e){window.__CL=false;}
 }
