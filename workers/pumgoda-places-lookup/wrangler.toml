@@ -1,0 +1,6 @@
+name = "pumgoda-places-lookup"
+main = "worker.js"
+compatibility_date = "2026-06-05"
+
+# GOOGLE_MAPS_KEY is NOT set here — it's an encrypted secret:
+#   npx wrangler secret put GOOGLE_MAPS_KEY
