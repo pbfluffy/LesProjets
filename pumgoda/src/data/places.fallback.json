@@ -1,52 +1,778 @@
 [
   {
-    "id": "sample-cafe-thonglor",
-    "name": { "en": "Sample Cafe — Thonglor", "th": "ตัวอย่างคาเฟ่ — ทองหล่อ" },
-    "type": "cafe",
-    "region": "bangkok_metro",
-    "province": "Bangkok",
-    "neighborhood": "Thonglor",
-    "coords": [13.7325, 100.5808],
-    "address": { "en": "Soi Thonglor 8", "th": "ซอยทองหล่อ 8" },
-    "googleMapsUrl": "",
-    "phone": "",
-    "website": "",
-    "instagram": "@samplecafe",
-    "hours": "Daily 08:00-20:00",
+    "id": "P001",
+    "no_size_limit": true,
+    "no_fee": true,
+    "stroller_required": false,
+    "overnight": true,
+    "pumba": {
+      "photoUrl": null,
+      "visitDate": "13/05/2026",
+      "verified": true,
+      "favorite": true
+    },
+    "hours": "24 hours",
+    "coords": [
+      12.94495831,
+      100.8875752
+    ],
+    "pet_bed_toys": false,
+    "region": "weekend_escape",
+    "pet_menu": true,
+    "website": "http://www.terranara.com/",
+    "notes": {
+      "th": "",
+      "en": ""
+    },
+    "name": {
+      "th": "โรงแรมเทอร์รา นารา",
+      "en": "Terra Nara"
+    },
+    "water_bowl": true,
     "policy": {
-      "indoor_allowed": true,
       "no_size_limit": true,
-      "size_limit_kg": null,
-      "water_bowl": true,
       "no_fee": true,
+      "stroller_required": false,
       "fee_baht": null,
+      "overnight": true,
+      "indoor_allowed": true,
+      "size_limit_kg": null,
+      "off_leash_zone": true,
+      "pet_bed_toys": false,
+      "staff_welcoming": false,
       "pet_menu": true,
+      "pet_pool_play_grooming": false,
+      "water_bowl": true
+    },
+    "lastModified": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780575958,
+      "nanoseconds": 703000000
+    },
+    "address": {
+      "en": "",
+      "th": "239 ม.9 ซอย 4 Pattaya City, Bang Lamung District, Chon Buri 20150"
+    },
+    "lastVerified": "13/05/2026",
+    "province": "Chonburi",
+    "phone": "+66 38362500",
+    "priceTier": null,
+    "instagram": "terranarahotel",
+    "indoor_allowed": true,
+    "tags": [],
+    "photos": [
+      "https://pub-def11107571946c7943260f18e42bb2d.r2.dev/P001/48e0d516-c432-4e11-99c8-51077bec5978.png"
+    ],
+    "off_leash_zone": true,
+    "staff_welcoming": false,
+    "pet_pool_play_grooming": false,
+    "source": "",
+    "neighborhood": "Pattaya",
+    "googleMapsUrl": "https://maps.app.goo.gl/4GPkpfUtVSz1drqj6",
+    "type": "Hotel"
+  },
+  {
+    "id": "P002",
+    "coords": [
+      13.6901485,
+      100.6704048
+    ],
+    "pumba": {
+      "photoUrl": null,
+      "verified": false,
+      "visitDate": "14/05/2026",
+      "favorite": false
+    },
+    "overnight": false,
+    "hours": "7 AM–6 PM",
+    "no_fee": true,
+    "stroller_required": false,
+    "no_size_limit": true,
+    "water_bowl": false,
+    "policy": {
+      "no_size_limit": true,
+      "fee_baht": null,
+      "no_fee": true,
+      "stroller_required": false,
+      "overnight": false,
+      "indoor_allowed": true,
       "off_leash_zone": false,
+      "size_limit_kg": null,
       "pet_bed_toys": false,
       "pet_pool_play_grooming": false,
-      "overnight": false,
-      "stroller_required": false,
-      "staff_welcoming": true
+      "staff_welcoming": false,
+      "pet_menu": false,
+      "water_bowl": false
     },
+    "pet_menu": false,
+    "notes": {
+      "th": "",
+      "en": ""
+    },
+    "website": "",
+    "name": {
+      "th": "ตื่นเจริญ",
+      "en": "Wake and grow coffee"
+    },
+    "pet_bed_toys": false,
+    "region": "bangkok_metro",
     "indoor_allowed": true,
+    "tags": [],
+    "priceTier": null,
+    "instagram": "",
+    "lastVerified": null,
+    "province": "Bangkok",
+    "phone": "+66 837574645",
+    "lastModified": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780555639,
+      "nanoseconds": 100000000
+    },
+    "address": {
+      "en": "",
+      "th": "3 Chalermprakiat Rama 9 rd Nong Bon, Prawet, Bangkok 10250"
+    },
+    "source": "",
+    "neighborhood": "Suanluang",
+    "googleMapsUrl": "https://maps.app.goo.gl/mByXPAmDiDa8HeBRA",
+    "type": "Cafe",
+    "staff_welcoming": false,
+    "pet_pool_play_grooming": false,
+    "photos": [],
+    "off_leash_zone": false
+  },
+  {
+    "id": "P003",
+    "pet_bed_toys": false,
+    "region": "bangkok_metro",
+    "pet_menu": false,
+    "website": "",
+    "notes": {
+      "en": "",
+      "th": ""
+    },
+    "name": {
+      "th": "ศูนย์กีฬาบึงหนองบอน",
+      "en": "Bueng Nong Bon Sports Center"
+    },
+    "policy": {
+      "no_size_limit": true,
+      "stroller_required": false,
+      "no_fee": true,
+      "fee_baht": null,
+      "overnight": false,
+      "indoor_allowed": false,
+      "size_limit_kg": null,
+      "off_leash_zone": false,
+      "pet_bed_toys": false,
+      "staff_welcoming": false,
+      "pet_menu": false,
+      "pet_pool_play_grooming": false,
+      "water_bowl": false
+    },
+    "water_bowl": false,
+    "no_size_limit": true,
+    "stroller_required": false,
+    "no_fee": true,
+    "pumba": {
+      "visitDate": "15/05/2026",
+      "verified": true,
+      "photoUrl": null,
+      "favorite": true
+    },
+    "overnight": false,
+    "hours": "8:30 AM–6:30 PM",
+    "coords": [
+      13.69221756,
+      100.6611687
+    ],
+    "photos": [
+      "https://pub-def11107571946c7943260f18e42bb2d.r2.dev/P003/3ed18e75-d57d-4822-9163-ed2d569de4d3.png"
+    ],
+    "off_leash_zone": false,
+    "staff_welcoming": false,
+    "pet_pool_play_grooming": false,
+    "googleMapsUrl": "https://maps.app.goo.gl/1QNp6btMfzsgjeut8",
+    "type": "Park",
+    "neighborhood": "Suanluang",
+    "source": "",
+    "lastModified": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780576985,
+      "nanoseconds": 675000000
+    },
+    "address": {
+      "en": "",
+      "th": "ซอย 43 Nong Bon, Prawet, Bangkok 10260"
+    },
+    "lastVerified": null,
+    "phone": "023280236",
+    "province": "Bangkok",
+    "priceTier": null,
+    "instagram": "",
+    "tags": [],
+    "indoor_allowed": false
+  },
+  {
+    "id": "P004",
+    "pet_bed_toys": false,
+    "region": "bangkok_metro",
+    "pet_menu": false,
+    "name": {
+      "en": "BLOOM pretzel & coffee\n",
+      "th": ""
+    },
+    "website": "https://m.facebook.com/BLOOM-BKK-102430782086212/",
+    "notes": {
+      "en": "",
+      "th": ""
+    },
+    "policy": {
+      "stroller_required": false,
+      "no_fee": true,
+      "fee_baht": null,
+      "no_size_limit": true,
+      "indoor_allowed": true,
+      "overnight": false,
+      "pet_bed_toys": false,
+      "off_leash_zone": false,
+      "size_limit_kg": null,
+      "water_bowl": false,
+      "pet_pool_play_grooming": false,
+      "staff_welcoming": false,
+      "pet_menu": false
+    },
+    "water_bowl": false,
+    "no_size_limit": true,
+    "stroller_required": false,
+    "no_fee": true,
+    "overnight": false,
+    "pumba": {
+      "visitDate": "16/05/2026",
+      "verified": true,
+      "photoUrl": null,
+      "favorite": true
+    },
+    "hours": "8:30 AM–5 PM",
+    "coords": [
+      13.72690345,
+      100.6587259
+    ],
+    "photos": [],
+    "off_leash_zone": false,
+    "staff_welcoming": false,
+    "pet_pool_play_grooming": false,
+    "type": "Cafe",
+    "googleMapsUrl": "https://maps.app.goo.gl/adns1UEfqQRmhhDp9",
+    "neighborhood": "Prawet",
+    "source": "",
+    "lastModified": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780555639,
+      "nanoseconds": 100000000
+    },
+    "address": {
+      "en": "",
+      "th": "16 ซอย พัฒนาการ 65 ประเวศ Prawet, Bangkok 10250"
+    },
+    "lastVerified": null,
+    "phone": "027222371",
+    "province": "Bangkok",
+    "priceTier": null,
+    "instagram": "",
+    "tags": [],
+    "indoor_allowed": true
+  },
+  {
+    "id": "P005",
+    "priceTier": null,
+    "instagram": "",
+    "tags": [],
+    "indoor_allowed": true,
+    "lastModified": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780555639,
+      "nanoseconds": 100000000
+    },
+    "address": {
+      "th": "",
+      "en": "270 Thong Lo, Khlong Tan Nuea, Watthana, Bangkok 10110"
+    },
+    "lastVerified": null,
+    "phone": "0654411145",
+    "province": "Bangkok",
+    "staff_welcoming": false,
+    "pet_pool_play_grooming": false,
+    "googleMapsUrl": "https://maps.app.goo.gl/i67ryWgarRhskuC58",
+    "type": "Restaurant",
+    "source": "",
+    "neighborhood": "Thong Lo",
+    "photos": [],
+    "off_leash_zone": false,
+    "pumba": {
+      "favorite": false,
+      "visitDate": "17/05/2026",
+      "verified": true,
+      "photoUrl": null
+    },
+    "overnight": false,
+    "hours": "10:30 AM–10:30 PM",
+    "coords": [
+      13.732299,
+      100.5840743
+    ],
+    "no_size_limit": true,
+    "stroller_required": true,
+    "no_fee": true,
+    "pet_menu": false,
+    "name": {
+      "th": "",
+      "en": "Beast & Butter : Burgers & Beers (Thong Lo)"
+    },
+    "website": "http://www.facebook.com/beastandbutter",
+    "notes": {
+      "th": "",
+      "en": ""
+    },
+    "policy": {
+      "pet_pool_play_grooming": false,
+      "pet_menu": false,
+      "staff_welcoming": false,
+      "water_bowl": false,
+      "off_leash_zone": false,
+      "size_limit_kg": null,
+      "pet_bed_toys": false,
+      "overnight": false,
+      "indoor_allowed": true,
+      "no_size_limit": true,
+      "fee_baht": null,
+      "stroller_required": true,
+      "no_fee": true
+    },
+    "water_bowl": false,
+    "region": "bangkok_metro",
+    "pet_bed_toys": false
+  },
+  {
+    "id": "P006",
+    "coords": [
+      13.72730091,
+      100.6763857
+    ],
+    "hours": "",
+    "pumba": {
+      "photoUrl": null,
+      "visitDate": null,
+      "verified": true,
+      "favorite": false
+    },
+    "overnight": true,
+    "no_fee": false,
+    "stroller_required": false,
     "no_size_limit": true,
     "water_bowl": true,
-    "no_fee": true,
-    "pet_menu": true,
-    "off_leash_zone": false,
+    "policy": {
+      "fee_baht": null,
+      "no_fee": false,
+      "stroller_required": false,
+      "no_size_limit": true,
+      "indoor_allowed": true,
+      "overnight": true,
+      "pet_bed_toys": false,
+      "off_leash_zone": true,
+      "size_limit_kg": null,
+      "water_bowl": true,
+      "pet_pool_play_grooming": false,
+      "staff_welcoming": false,
+      "pet_menu": false
+    },
+    "website": "",
+    "notes": {
+      "en": "",
+      "th": ""
+    },
+    "name": {
+      "th": "",
+      "en": "The Pawtel Bangkok\n"
+    },
+    "pet_menu": false,
     "pet_bed_toys": false,
+    "region": "bangkok_metro",
+    "indoor_allowed": true,
+    "tags": [],
+    "instagram": "",
+    "priceTier": null,
+    "province": "Bangkok",
+    "phone": "0964624974",
+    "lastVerified": null,
+    "address": {
+      "th": "151 ซอย พัฒนาการ 69 Khwaeng Prawet, Prawet, Bangkok 10250",
+      "en": ""
+    },
+    "lastModified": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780555639,
+      "nanoseconds": 100000000
+    },
+    "source": "",
+    "neighborhood": "Prawet",
+    "googleMapsUrl": "https://maps.app.goo.gl/ak8MbLfDpb6cjJUq9",
+    "type": "Pet Hotel",
     "pet_pool_play_grooming": false,
+    "staff_welcoming": false,
+    "off_leash_zone": true,
+    "photos": []
+  },
+  {
+    "id": "P007",
+    "hours": "9 AM–6 PM",
+    "pumba": {
+      "favorite": false,
+      "visitDate": null,
+      "verified": true,
+      "photoUrl": null
+    },
+    "overnight": false,
+    "coords": [
+      13.72060172,
+      100.6855228
+    ],
+    "no_size_limit": true,
+    "stroller_required": true,
+    "no_fee": true,
+    "name": {
+      "en": "Ring the Bell Cafe and Restaurant\n",
+      "th": ""
+    },
+    "website": "https://www.facebook.com/ringthebellcafeandrestaurant",
+    "notes": {
+      "th": "",
+      "en": ""
+    },
+    "pet_menu": false,
+    "water_bowl": false,
+    "policy": {
+      "size_limit_kg": null,
+      "off_leash_zone": false,
+      "pet_bed_toys": false,
+      "pet_menu": false,
+      "staff_welcoming": false,
+      "pet_pool_play_grooming": false,
+      "water_bowl": false,
+      "no_size_limit": true,
+      "fee_baht": null,
+      "no_fee": true,
+      "stroller_required": true,
+      "overnight": false,
+      "indoor_allowed": true
+    },
+    "pet_bed_toys": false,
+    "region": "bangkok_metro",
+    "instagram": "",
+    "priceTier": null,
+    "indoor_allowed": true,
+    "tags": [],
+    "address": {
+      "en": "288, 1 On Nut 84 Alley, Prawet, Bangkok 10250",
+      "th": ""
+    },
+    "lastModified": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780555639,
+      "nanoseconds": 100000000
+    },
+    "province": "Bangkok",
+    "phone": "0824982624",
+    "lastVerified": null,
+    "pet_pool_play_grooming": false,
+    "staff_welcoming": false,
+    "neighborhood": "Prawet",
+    "source": "",
+    "type": "Cafe",
+    "googleMapsUrl": "https://maps.app.goo.gl/ZqcPgvPpFjrJ6ejx6",
+    "off_leash_zone": false,
+    "photos": []
+  },
+  {
+    "id": "P008",
+    "tags": [],
+    "indoor_allowed": true,
+    "instagram": "",
+    "priceTier": null,
+    "phone": "0655202566",
+    "province": "Nakhon Ratchasima",
+    "lastVerified": null,
+    "address": {
+      "en": "The Backyard 168 บ้านเลขที่ 168, Pak Chong, Pak Chong District, Nakhon Ratchasima 30130",
+      "th": ""
+    },
+    "lastModified": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780555639,
+      "nanoseconds": 100000000
+    },
+    "type": "Restaurant",
+    "googleMapsUrl": "https://maps.app.goo.gl/wnzrYn2bUYfAbpUB8",
+    "neighborhood": "Pak Chong ",
+    "source": "",
+    "pet_pool_play_grooming": false,
+    "staff_welcoming": false,
+    "off_leash_zone": false,
+    "photos": [],
+    "coords": [
+      14.63819788,
+      101.4025047
+    ],
+    "hours": "9:30 AM–5 PM",
+    "pumba": {
+      "favorite": false,
+      "photoUrl": null,
+      "visitDate": null,
+      "verified": false
+    },
     "overnight": false,
     "stroller_required": false,
-    "staff_welcoming": true,
-    "pumba": { "verified": false, "visitDate": null, "photoUrl": null },
-    "priceTier": "฿฿",
-    "notes": {
-      "en": "Bundled fallback row — sheet was unreachable.",
-      "th": "ข้อมูลสำรอง — เชื่อมต่อชีตไม่ได้"
+    "no_fee": true,
+    "no_size_limit": true,
+    "policy": {
+      "water_bowl": false,
+      "staff_welcoming": false,
+      "pet_menu": false,
+      "pet_pool_play_grooming": false,
+      "pet_bed_toys": false,
+      "size_limit_kg": null,
+      "off_leash_zone": false,
+      "indoor_allowed": true,
+      "overnight": false,
+      "fee_baht": null,
+      "stroller_required": false,
+      "no_fee": true,
+      "no_size_limit": true
     },
-    "tags": ["specialty-coffee", "wifi"],
+    "water_bowl": false,
+    "notes": {
+      "th": "",
+      "en": ""
+    },
+    "website": "",
+    "name": {
+      "th": "",
+      "en": "Owen's Room, Brunch & All-Day Dining"
+    },
+    "pet_menu": false,
+    "region": "weekend_escape",
+    "pet_bed_toys": false
+  },
+  {
+    "id": "P009",
+    "water_bowl": true,
+    "policy": {
+      "no_size_limit": true,
+      "fee_baht": null,
+      "stroller_required": false,
+      "no_fee": true,
+      "overnight": true,
+      "indoor_allowed": true,
+      "off_leash_zone": true,
+      "size_limit_kg": null,
+      "pet_bed_toys": false,
+      "pet_pool_play_grooming": false,
+      "staff_welcoming": false,
+      "pet_menu": true,
+      "water_bowl": true
+    },
+    "name": {
+      "th": "เพ็ทเพอร์เฟคคลินิก",
+      "en": "Pet perfect clinic"
+    },
+    "notes": {
+      "en": "",
+      "th": ""
+    },
+    "website": "https://www.instagram.com/petperfectpetclinic?igsh=OTVvdG5xcjkzNmFm",
+    "pet_menu": true,
+    "pet_bed_toys": false,
+    "region": "bangkok_metro",
+    "coords": [
+      13.72133962,
+      100.6302457
+    ],
+    "hours": "8:30 AM–8:30 PM",
+    "pumba": {
+      "favorite": false,
+      "visitDate": null,
+      "verified": true,
+      "photoUrl": null
+    },
+    "overnight": true,
+    "no_fee": true,
+    "stroller_required": false,
+    "no_size_limit": true,
+    "neighborhood": "Suanluang",
+    "source": "",
+    "googleMapsUrl": "https://maps.app.goo.gl/DKvcU9UpNNEaJz5h7",
+    "type": "Clinic",
+    "pet_pool_play_grooming": false,
+    "staff_welcoming": false,
+    "off_leash_zone": true,
+    "photos": [
+      "https://pub-def11107571946c7943260f18e42bb2d.r2.dev/P009/a9c95e68-8cf9-4c33-8fa3-706ab3315352.jpg"
+    ],
+    "indoor_allowed": true,
+    "tags": [],
+    "instagram": "petperfectpetclinic",
+    "priceTier": null,
+    "province": "Bangkok",
+    "phone": "",
     "lastVerified": null,
-    "source": "fallback"
+    "address": {
+      "th": "782, 10 พัฒนาการ38 Suan Luang, Bangkok 10250",
+      "en": ""
+    },
+    "lastModified": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780585909,
+      "nanoseconds": 877000000
+    }
+  },
+  {
+    "id": "P010",
+    "address": {
+      "th": "",
+      "en": "709 1 Lat Krabang Rd, Lat Krabang, Bangkok 10520"
+    },
+    "lastModified": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780555639,
+      "nanoseconds": 100000000
+    },
+    "phone": "027371825",
+    "province": "Bangkok",
+    "lastVerified": null,
+    "instagram": "",
+    "priceTier": null,
+    "tags": [],
+    "indoor_allowed": true,
+    "off_leash_zone": true,
+    "photos": [],
+    "pet_pool_play_grooming": false,
+    "staff_welcoming": false,
+    "googleMapsUrl": "https://maps.app.goo.gl/EQpePyHQpNJLmSBUA",
+    "type": "Vet",
+    "source": "",
+    "neighborhood": "Latkrabang",
+    "no_size_limit": true,
+    "no_fee": true,
+    "stroller_required": false,
+    "hours": "24 hours",
+    "pumba": {
+      "favorite": false,
+      "photoUrl": null,
+      "verified": true,
+      "visitDate": null
+    },
+    "overnight": true,
+    "coords": [
+      13.72257498,
+      100.7303546
+    ],
+    "pet_bed_toys": false,
+    "region": "bangkok_metro",
+    "notes": {
+      "en": "",
+      "th": ""
+    },
+    "website": "",
+    "name": {
+      "en": "",
+      "th": "โรงพยาบาลสัตว์ลาดกระบัง\n"
+    },
+    "pet_menu": true,
+    "policy": {
+      "indoor_allowed": true,
+      "overnight": true,
+      "stroller_required": false,
+      "no_fee": true,
+      "fee_baht": null,
+      "no_size_limit": true,
+      "water_bowl": true,
+      "pet_pool_play_grooming": false,
+      "staff_welcoming": false,
+      "pet_menu": true,
+      "pet_bed_toys": false,
+      "off_leash_zone": true,
+      "size_limit_kg": null
+    },
+    "water_bowl": true
+  },
+  {
+    "id": "P011",
+    "pet_bed_toys": false,
+    "region": "bangkok_metro",
+    "name": {
+      "th": "MATCHA MONSTER - พัฒนาการ",
+      "en": ""
+    },
+    "notes": {
+      "th": "",
+      "en": ""
+    },
+    "website": "",
+    "pet_menu": false,
+    "policy": {
+      "stroller_required": false,
+      "no_fee": true,
+      "fee_baht": null,
+      "no_size_limit": true,
+      "indoor_allowed": true,
+      "overnight": false,
+      "pet_bed_toys": false,
+      "size_limit_kg": null,
+      "off_leash_zone": false,
+      "water_bowl": false,
+      "pet_menu": false,
+      "staff_welcoming": false,
+      "pet_pool_play_grooming": false
+    },
+    "water_bowl": false,
+    "no_size_limit": true,
+    "stroller_required": false,
+    "no_fee": true,
+    "hours": "7 AM–5 PM",
+    "overnight": false,
+    "pumba": {
+      "photoUrl": null,
+      "verified": false,
+      "visitDate": null,
+      "favorite": false
+    },
+    "coords": [
+      13.74598636,
+      100.6535632
+    ],
+    "off_leash_zone": false,
+    "photos": [],
+    "pet_pool_play_grooming": false,
+    "staff_welcoming": false,
+    "googleMapsUrl": "https://maps.app.goo.gl/ry5ng9rpEyqKKCiW8",
+    "type": "Cafe",
+    "neighborhood": "Suanluang",
+    "source": "",
+    "address": {
+      "en": "2871 Phatthanakan Rd, Suanluang, Suan Luang, Bangkok 10250",
+      "th": ""
+    },
+    "lastModified": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1780565549,
+      "nanoseconds": 57000000
+    },
+    "phone": "0935639905",
+    "province": "Bangkok",
+    "lastVerified": null,
+    "instagram": "",
+    "priceTier": null,
+    "tags": [],
+    "indoor_allowed": true
   }
 ]
