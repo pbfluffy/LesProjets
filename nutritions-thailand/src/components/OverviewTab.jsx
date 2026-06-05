@@ -95,7 +95,7 @@ export default function OverviewTab({ store }) {
       />
       <WaterTracker value={water} onChange={store.setWater} />
       <FoodLog log={log} onRemove={store.removeFromLog} />
-      <TrendChart weights={store.weights} />
+      <TrendChart weights={store.weights} days={store.days} calorieTarget={target} proteinTarget={proteinTarget} />
     </>
   );
 }
