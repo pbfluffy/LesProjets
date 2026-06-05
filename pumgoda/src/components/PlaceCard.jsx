@@ -11,12 +11,22 @@ const VOTE_SIGNALS = [
   { key: 'warn', emoji: '⚠️' },
 ]
 
-export default function PlaceCard({ venue, lang = 'en', onOpen }) {
+function formatDistance(km, lang) {
+  if (!Number.isFinite(km)) return null
+  if (km < 1) {
+    const m = Math.round(km * 1000)
+    return lang === 'th' ? `${m} ม.` : `${m} m`
+  }
+  return lang === 'th' ? `${km.toFixed(1)} กม.` : `${km.toFixed(1)} km`
+}
+
+export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = null }) {
   const s = STRINGS[lang]
   const { tallies } = useVotesCtx()
   const name = venue.name?.[lang] || venue.name?.en || venue.name?.th || venue.id
   const typeLabel = s.types[venue.type?.toLowerCase().replace(/[\s-]+/g, '_')] || venue.type
   const thumb = Array.isArray(venue.photos) ? venue.photos.find(Boolean) : null
+  const distanceLabel = formatDistance(distanceKm, lang)
 
   return (
     <button
@@ -36,6 +46,7 @@ export default function PlaceCard({ venue, lang = 'en', onOpen }) {
           {typeLabel}
           {venue.neighborhood ? ` · ${venue.neighborhood}` : ''}
           {venue.priceTier ? ` · ${venue.priceTier}` : ''}
+          {distanceLabel ? ` · 📍 ${distanceLabel}` : ''}
         </div>
       </div>
 
