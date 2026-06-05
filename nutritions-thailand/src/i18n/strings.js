@@ -187,6 +187,18 @@ const en = {
   'account.signedInAs': 'Signed in as',
   'account.continueWithGoogle': 'Continue with Google',
   'account.signingIn': 'Signing in…',
+
+  // Trend chart (TrendChart.jsx) — weight + #102 intake
+  'trend.weightTitle': '📊 Weight Trend',
+  'trend.intakeTitle': '📊 Intake Trend',
+  'trend.body': 'Body',
+  'trend.intake': 'Intake',
+  'trend.emptyWeight': 'No weight entries yet — log weights from the ⚙️ Adjust tab',
+  'trend.emptyIntake': 'No food logged in this range — log meals from the 🍱 Food tab',
+  'trend.sWeight': 'Weight (kg)',
+  'trend.sBodyFat': 'Body Fat (%)',
+  'trend.sCalories': 'Calories (kcal)',
+  'trend.sProtein': 'Protein (g)',
 };
 
 const th = {
@@ -375,6 +387,18 @@ const th = {
   'account.signedInAs': 'เข้าสู่ระบบในชื่อ',
   'account.continueWithGoogle': 'เข้าสู่ระบบด้วย Google',
   'account.signingIn': 'กำลังเข้าสู่ระบบ…',
+
+  // Trend chart (TrendChart.jsx) — weight + #102 intake
+  'trend.weightTitle': '📊 แนวโน้มน้ำหนัก',
+  'trend.intakeTitle': '📊 แนวโน้มการกิน',
+  'trend.body': 'ร่างกาย',
+  'trend.intake': 'การกิน',
+  'trend.emptyWeight': 'ยังไม่มีข้อมูลน้ำหนัก — บันทึกน้ำหนักได้ที่แท็บ ⚙️ ปรับค่า',
+  'trend.emptyIntake': 'ยังไม่มีอาหารในช่วงนี้ — บันทึกมื้ออาหารได้ที่แท็บ 🍱 อาหาร',
+  'trend.sWeight': 'น้ำหนัก (kg)',
+  'trend.sBodyFat': 'ไขมัน (%)',
+  'trend.sCalories': 'แคลอรี่ (kcal)',
+  'trend.sProtein': 'โปรตีน (g)',
 };
 
 export const STRINGS = { en, th };
