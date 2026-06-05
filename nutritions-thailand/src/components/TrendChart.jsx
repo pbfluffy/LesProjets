@@ -50,17 +50,15 @@ export default function TrendChart({ weights, days, calorieTarget, proteinTarget
 
   const isIntake = mode === 'intake'
   const data = isIntake ? intakeData : bodyData
-  const title = isIntake ? '📊 Intake Trend' : '📊 Weight Trend'
-  const emptyMsg = isIntake
-    ? 'No food logged in this range — log meals from the 🍱 Food tab'
-    : 'No weight entries yet — log weights from the ⚙️ Adjust tab'
+  const title = isIntake ? t('trend.intakeTitle') : t('trend.weightTitle')
+  const emptyMsg = isIntake ? t('trend.emptyIntake') : t('trend.emptyWeight')
 
   const header = (
     <div className={styles.headerRow}>
       <div className={styles.title}>{title}</div>
       <div className={styles.rangeRow}>
-        <button className={styles.rangeBtn} onClick={() => setMode('body')} style={tabStyle(!isIntake)}>Body</button>
-        <button className={styles.rangeBtn} onClick={() => setMode('intake')} style={tabStyle(isIntake)}>Intake</button>
+        <button className={styles.rangeBtn} onClick={() => setMode('body')} style={tabStyle(!isIntake)}>{t('trend.body')}</button>
+        <button className={styles.rangeBtn} onClick={() => setMode('intake')} style={tabStyle(isIntake)}>{t('trend.intake')}</button>
         <span style={{ display: 'inline-block', width: 6 }} />
         {RANGES.map((r) => (
           <button key={r.days} className={styles.rangeBtn} onClick={() => setRange(r.days)} style={tabStyle(range === r.days)}>
@@ -100,14 +98,14 @@ export default function TrendChart({ weights, days, calorieTarget, proteinTarget
               {Number.isFinite(proteinTarget) && (
                 <ReferenceLine yAxisId="right" y={proteinTarget} stroke="#9f7aea" strokeDasharray="4 4" strokeOpacity={0.5} />
               )}
-              <Line yAxisId="left" type="monotone" dataKey="kcal" stroke="var(--accent)" dot={{ r: 3 }} isAnimationActive={false} name="Calories (kcal)" />
-              <Line yAxisId="right" type="monotone" dataKey="protein" stroke="#9f7aea" dot={{ r: 2 }} isAnimationActive={false} name="Protein (g)" />
+              <Line yAxisId="left" type="monotone" dataKey="kcal" stroke="var(--accent)" dot={{ r: 3 }} isAnimationActive={false} name={t('trend.sCalories')} />
+              <Line yAxisId="right" type="monotone" dataKey="protein" stroke="#9f7aea" dot={{ r: 2 }} isAnimationActive={false} name={t('trend.sProtein')} />
             </>
           ) : (
             <>
-              <Line yAxisId="left" type="monotone" dataKey="weight" stroke="var(--accent)" dot={{ r: 3 }} isAnimationActive={false} name="Weight (kg)" />
+              <Line yAxisId="left" type="monotone" dataKey="weight" stroke="var(--accent)" dot={{ r: 3 }} isAnimationActive={false} name={t('trend.sWeight')} />
               {data.some((d) => d.bodyFat != null) && (
-                <Line yAxisId="right" type="monotone" dataKey="bodyFat" stroke="#9f7aea" dot={{ r: 2 }} isAnimationActive={false} name="Body Fat (%)" />
+                <Line yAxisId="right" type="monotone" dataKey="bodyFat" stroke="#9f7aea" dot={{ r: 2 }} isAnimationActive={false} name={t('trend.sBodyFat')} />
               )}
             </>
           )}
