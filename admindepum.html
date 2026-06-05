@@ -521,6 +521,7 @@ const AUTOFILL_BLOCK =
   '</div>';
 const REGION_BASE = ['bangkok_metro','weekend_escape'];
 const vget = (id) => (document.getElementById(id)?.value || '').trim();
+const nextPlaceId = () => { const ns = PLACES.map(x=>{ const m=/^P0*(\d+)$/.exec(x.id||''); return m?parseInt(m[1],10):0; }); return 'P'+String((ns.length?Math.max(...ns):0)+1).padStart(3,'0'); };
 const esc = (v) => (v ?? '').toString().replace(/"/g,'&quot;');
 const escA = (v) => (v ?? '').toString().replace(/</g,'&lt;');
 const optList = (list, cur) => [...new Set([...list, cur].filter(v=>v!==undefined&&v!==null&&v!==''))].map(v=>`<option value="${esc(v)}"${v===cur?' selected':''}>${v}</option>`).join('');
@@ -531,7 +532,7 @@ function blankPlace(){ return { name:{en:'',th:''}, type:'', region:'bangkok_met
 function buildForm(p, creating){
   const pol = p.policy || {};
   const b = (k) => (k in p) ? !!p[k] : !!pol[k];
-  const idField = creating ? `<div class="fld full"><label>Place ID (unique \u2014 e.g. P012)</label><input type="text" id="f_id" value="" placeholder="P012" /></div>` : '';
+  const idField = creating ? `<div class="fld full"><label>Place ID (unique \u2014 e.g. P012)</label><input type="text" id="f_id" value="${nextPlaceId()}" placeholder="P012" /></div>` : '';
   document.getElementById('pedit-bd').innerHTML = idField + AUTOFILL_BLOCK +
     field('Name (EN)','f_name_en',(p.name&&p.name.en)||'') +
     field('Name (TH)','f_name_th',(p.name&&p.name.th)||'') +
