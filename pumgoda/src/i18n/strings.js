@@ -117,6 +117,13 @@ export const STRINGS = {
       },
     },
 
+    hours: {
+      open24: 'เปิด 24 ชม.',
+      daily: 'ทุกวัน',
+      closed: 'ปิด',
+      days: ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'],
+    },
+
     states: {
       loading: 'กำลังโหลด…',
       empty: 'ไม่พบสถานที่ที่ตรงกับตัวกรอง',
@@ -320,6 +327,13 @@ export const STRINGS = {
         notes: 'Notes',
         verification: 'Verification',
       },
+    },
+
+    hours: {
+      open24: 'Open 24 hours',
+      daily: 'daily',
+      closed: 'Closed',
+      days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     },
 
     states: {
