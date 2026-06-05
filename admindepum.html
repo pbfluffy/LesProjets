@@ -509,6 +509,16 @@ $('refreshBtn').addEventListener('click', loadPlaces);
 let CUR = null;
 let CREATING = false;
 const TYPE_BASE = ['Cafe','Restaurant','Hotel','Pet Hotel','Park','Mall','Beach','Vet','Pet shop','Grooming','Clinic'];
+const LOOKUP_WORKER = 'https://pumgoda-places-lookup.pbfluffygaming.workers.dev';
+const AUTOFILL_BLOCK =
+  '<div class="fld full" style="border:1px solid var(--line-soft);border-radius:10px;padding:10px 12px;background:var(--panel-2)">' +
+    '<label style="font-weight:600">Auto-fill from Google Maps link</label>' +
+    '<div style="display:flex;gap:8px;margin-top:2px">' +
+      '<input type="text" id="f_autofill_url" placeholder="paste a Google Maps link" style="flex:1" />' +
+      '<button type="button" class="btn" id="btn_autofill" style="white-space:nowrap">Auto-fill</button>' +
+    '</div>' +
+    '<div id="autofill_msg" class="photomsg"></div>' +
+  '</div>';
 const REGION_BASE = ['bangkok_metro','weekend_escape'];
 const vget = (id) => (document.getElementById(id)?.value || '').trim();
 const esc = (v) => (v ?? '').toString().replace(/"/g,'&quot;');
@@ -522,7 +532,7 @@ function buildForm(p, creating){
   const pol = p.policy || {};
   const b = (k) => (k in p) ? !!p[k] : !!pol[k];
   const idField = creating ? `<div class="fld full"><label>Place ID (unique \u2014 e.g. P012)</label><input type="text" id="f_id" value="" placeholder="P012" /></div>` : '';
-  document.getElementById('pedit-bd').innerHTML = idField +
+  document.getElementById('pedit-bd').innerHTML = idField + AUTOFILL_BLOCK +
     field('Name (EN)','f_name_en',(p.name&&p.name.en)||'') +
     field('Name (TH)','f_name_th',(p.name&&p.name.th)||'') +
     `<div class="fld"><label>Type</label><select id="f_type">${optList(TYPE_BASE, p.type||'')}</select></div>` +
@@ -756,6 +766,64 @@ async function removePhoto(url){
   }catch(e){ setPhotoMsg('Remove failed: '+(e.code||e.message), true); }
 }
 document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='f_photofile') uploadPhotos(e.target.files); });
+document.addEventListener('click', (e)=>{ if(e.target && e.target.id==='btn_autofill') runAutofill(); });
+
+function setAutofillMsg(m, isErr){ const el=document.getElementById('autofill_msg'); if(el){ el.textContent=m||''; el.style.color = isErr ? 'var(--red)' : 'var(--faint)'; } }
+const AUTOFILL_HI = 'var(--accent-soft)';
+function setIfEmpty(id, val){
+  const el=document.getElementById(id); if(!el || val==null || val==='') return;
+  if(el.value && el.value.trim()) return;           // never clobber typed text
+  el.value = val; el.style.background = AUTOFILL_HI;
+}
+function selectIfEmpty(id, val){
+  const el=document.getElementById(id); if(!el || val==null || val==='') return;
+  if(!CREATING && el.value && el.value.trim()) return; // on edit, keep existing choice
+  if(![...el.options].some(o=>o.value===val)){ const o=document.createElement('option'); o.value=val; o.textContent=val; el.appendChild(o); }
+  el.value = val; el.style.background = AUTOFILL_HI;
+}
+function applyAutofill(p){
+  if(!p) return;
+  setIfEmpty('f_name_en', p.name && p.name.en);
+  setIfEmpty('f_name_th', p.name && p.name.th);
+  if(p.coords){ setIfEmpty('f_lat', p.coords[0]); setIfEmpty('f_lng', p.coords[1]); }
+  setIfEmpty('f_address_en', p.address && p.address.en);
+  setIfEmpty('f_address_th', p.address && p.address.th);
+  setIfEmpty('f_phone', p.phone);
+  setIfEmpty('f_website', p.website);
+  setIfEmpty('f_google_maps_url', p.googleMapsUrl);
+  setIfEmpty('f_hours', p.hours);
+  setIfEmpty('f_province', p.province);
+  setIfEmpty('f_neighborhood', p.neighborhood);
+  if(p.type)  selectIfEmpty('f_type', p.type);
+  if(p.price) selectIfEmpty('f_price', p.price);
+}
+async function runAutofill(){
+  const url = vget('f_autofill_url');
+  if(!url){ setAutofillMsg('Paste a Google Maps link first.', true); return; }
+  const btn = document.getElementById('btn_autofill');
+  if(btn) btn.disabled = true;
+  setAutofillMsg('Looking up\u2026');
+  try{
+    const r = await fetch(LOOKUP_WORKER, {
+      method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ url })
+    });
+    const data = await r.json();
+    if(!data.ok){
+      const map = { bad_url:'That doesn\u2019t look like a valid link.', resolve_failed:'Couldn\u2019t read that link \u2014 try opening it and pasting the expanded URL.', not_found:'No matching place found.', places_error:'Lookup service error \u2014 try again.' };
+      setAutofillMsg(map[data.error] || ('Lookup failed: ' + data.error), true);
+      return;
+    }
+    applyAutofill(data.place);
+    const partial = !data.meta || data.meta.placeId == null;
+    setAutofillMsg(partial
+      ? 'Got coordinates only \u2014 fill the rest, then set pet policy.'
+      : 'Filled \u2014 review highlighted fields, then set pet policy.');
+  }catch(e){
+    setAutofillMsg('Network error.', true);
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
 document.addEventListener('click', (e)=>{ const x = e.target.closest && e.target.closest('[data-rmphoto]'); if(x) removePhoto(x.getAttribute('data-rmphoto')); });
 </script>
 </body>
