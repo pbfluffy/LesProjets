@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react'
 import { useLang } from '../LangContext'
 import styles from './BillHistory.module.css'
 import { PLATES } from '../hooks/useSushiroStore'
@@ -19,24 +20,25 @@ function fmtWhen(ts, lang) {
   return `${dd}/${mo} ${hh}:${mm}`
 }
 
-function entrySummary(entry, t) {
+// Numeric grand total for a saved entry, mirroring each store's calculate().
+// Shared by the row summary and the "Highest total" sort.
+function entryTotal(entry) {
   const s = entry.state || {}
   if (entry.tab === 'sushi') {
     const people = Array.isArray(s.people) ? s.people : []
     const plates = s.plates || {}
     const snacks = s.snacks || {}
-    let totalPlates = 0, subtotal = 0
+    let subtotal = 0
     people.forEach(name => {
       const pp = plates[name] || {}
-      PLATES.forEach(p => { const c = pp[p.id] || 0; totalPlates += c; subtotal += c * p.price })
+      PLATES.forEach(p => { const c = pp[p.id] || 0; subtotal += c * p.price })
       ;(snacks[name] || []).forEach(item => { subtotal += Number(item.price) || 0 })
     })
     let mul = 1
     if (s.serviceChargeEnabled) mul *= 1.10
     if (s.vatEnabled) mul *= 1.07
-    return `${people.length} ${t.people} · ${totalPlates} ${t.plates} · ฿${fmt(subtotal * mul)}`
+    return subtotal * mul
   }
-  const members = Array.isArray(s.members) ? s.members : []
   const foods = Array.isArray(s.foods) ? s.foods : []
   let subtotal = 0
   foods.forEach(f => {
@@ -48,12 +50,62 @@ function entrySummary(entry, t) {
   const scFraction = s.serviceChargeEnabled ? scRate / 100 : 0
   let multiplier = 1 + scFraction
   if (s.vatEnabled) multiplier *= 1.07
-  const billTotal = s.roundTotalEnabled ? Math.round(subtotal * multiplier) : subtotal * multiplier
-  return `${members.length} ${t.people} · ${foods.length} ${t.items} · ฿${fmt(billTotal)}`
+  return s.roundTotalEnabled ? Math.round(subtotal * multiplier) : subtotal * multiplier
+}
+
+function entrySummary(entry, t) {
+  const s = entry.state || {}
+  const total = entryTotal(entry)
+  if (entry.tab === 'sushi') {
+    const people = Array.isArray(s.people) ? s.people : []
+    const plates = s.plates || {}
+    let totalPlates = 0
+    people.forEach(name => {
+      const pp = plates[name] || {}
+      PLATES.forEach(p => { totalPlates += pp[p.id] || 0 })
+    })
+    return `${people.length} ${t.people} · ${totalPlates} ${t.plates} · ฿${fmt(total)}`
+  }
+  const members = Array.isArray(s.members) ? s.members : []
+  const foods = Array.isArray(s.foods) ? s.foods : []
+  return `${members.length} ${t.people} · ${foods.length} ${t.items} · ฿${fmt(total)}`
+}
+
+// Names attached to an entry — members (split) or people (sushi) — for search.
+function entryNames(entry) {
+  const s = entry.state || {}
+  const arr = entry.tab === 'sushi' ? s.people : s.members
+  return Array.isArray(arr) ? arr : []
+}
+
+function matchesQuery(entry, needle) {
+  if (!needle) return true
+  const hay = [entry.billName || '', ...entryNames(entry)].join(' ').toLowerCase()
+  return hay.includes(needle)
 }
 
 export default function BillHistory({ entries, onLoad, onRemove, onClear, onClose }) {
   const { t, lang } = useLang()
+  const [query, setQuery] = useState('')
+  const [sortKey, setSortKey] = useState('newest') // newest | oldest | highest
+  const [tabFilter, setTabFilter] = useState('all') // all | split | sushi
+
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    let list = entries.filter(e => matchesQuery(e, needle))
+    if (tabFilter !== 'all') list = list.filter(e => e.tab === tabFilter)
+    const sorted = [...list]
+    if (sortKey === 'oldest') sorted.sort((a, b) => a.savedAt - b.savedAt)
+    else if (sortKey === 'highest') sorted.sort((a, b) => entryTotal(b) - entryTotal(a))
+    else sorted.sort((a, b) => b.savedAt - a.savedAt)
+    return sorted
+  }, [entries, query, sortKey, tabFilter])
+
+  const tabs = [
+    { id: 'all', label: t.historyFilterAll },
+    { id: 'split', label: t.historyFilterSplit },
+    { id: 'sushi', label: t.historyFilterSushi },
+  ]
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -67,34 +119,73 @@ export default function BillHistory({ entries, onLoad, onRemove, onClear, onClos
           <p className={styles.empty}>{t.historyEmpty}</p>
         ) : (
           <>
-            <ul className={styles.list}>
-              {entries.map(entry => (
-                <li key={entry.id} className={styles.row}>
-                  <button
-                    className={styles.loadBtn}
-                    onClick={() => onLoad(entry)}
-                    title={t.historyLoad}
-                  >
-                    <span className={styles.rowName}>
-                      {entry.billName || (entry.tab === 'sushi' ? `🍣 ${t.tabSushi}` : t.untitledBill)}
-                    </span>
-                    <span className={styles.rowMeta}>
-                      {entrySummary(entry, t)} · {fmtWhen(entry.savedAt, lang)}
-                    </span>
-                  </button>
-                  <button
-                    className={styles.delBtn}
-                    onClick={() => {
-                      if (confirm(t.historyConfirmDelete)) onRemove(entry.id)
-                    }}
-                    title={t.removeLabel}
-                    aria-label={t.removeLabel}
-                  >
-                    🗑
-                  </button>
-                </li>
+            <div className={styles.controls}>
+              <input
+                type="text"
+                className={styles.search}
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder={t.historySearchPlaceholder}
+              />
+              <select
+                className={styles.sort}
+                value={sortKey}
+                onChange={e => setSortKey(e.target.value)}
+                aria-label={t.historySortNewest}
+              >
+                <option value="newest">{t.historySortNewest}</option>
+                <option value="oldest">{t.historySortOldest}</option>
+                <option value="highest">{t.historySortHighest}</option>
+              </select>
+            </div>
+
+            <div className={styles.tabs} role="tablist">
+              {tabs.map(tb => (
+                <button
+                  key={tb.id}
+                  role="tab"
+                  aria-selected={tabFilter === tb.id}
+                  className={tabFilter === tb.id ? `${styles.tab} ${styles.tabOn}` : styles.tab}
+                  onClick={() => setTabFilter(tb.id)}
+                >
+                  {tb.label}
+                </button>
               ))}
-            </ul>
+            </div>
+
+            {visible.length === 0 ? (
+              <p className={styles.empty}>{t.historyNoMatch}</p>
+            ) : (
+              <ul className={styles.list}>
+                {visible.map(entry => (
+                  <li key={entry.id} className={styles.row}>
+                    <button
+                      className={styles.loadBtn}
+                      onClick={() => onLoad(entry)}
+                      title={t.historyLoad}
+                    >
+                      <span className={styles.rowName}>
+                        {entry.billName || (entry.tab === 'sushi' ? `🍣 ${t.tabSushi}` : t.untitledBill)}
+                      </span>
+                      <span className={styles.rowMeta}>
+                        {entrySummary(entry, t)} · {fmtWhen(entry.savedAt, lang)}
+                      </span>
+                    </button>
+                    <button
+                      className={styles.delBtn}
+                      onClick={() => {
+                        if (confirm(t.historyConfirmDelete)) onRemove(entry.id)
+                      }}
+                      title={t.removeLabel}
+                      aria-label={t.removeLabel}
+                    >
+                      🗑
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
             <button
               className={styles.clearBtn}
               onClick={() => {
