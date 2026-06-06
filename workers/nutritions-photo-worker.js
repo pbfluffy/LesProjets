@@ -54,6 +54,15 @@ export default {
       return new Response('Forbidden', { status: 403 });
     }
 
+    // Per-IP rate limit (cost-abuse cap) — no-op until the RATE_LIMITER binding is configured
+    if (env.RATE_LIMITER) {
+      const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+      const { success } = await env.RATE_LIMITER.limit({ key: ip });
+      if (!success) {
+        return new Response('Rate limited', { status: 429, headers: corsHeaders(request) });
+      }
+    }
+
     if (!env.GOOGLE_API_KEY) {
       return new Response('Server misconfigured', { status: 500 });
     }
