@@ -886,8 +886,8 @@ async function runAutofill(){
   if(btn) btn.disabled = true;
   setAutofillMsg('Looking up\u2026');
   try{
-    const r = await fetch(LOOKUP_WORKER, {
-      method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ url })
+    const token = await auth.currentUser.getIdToken(); const r = await fetch(LOOKUP_WORKER, {
+      method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token }, body: JSON.stringify({ url })
     });
     const data = await r.json();
     if(!data.ok){
