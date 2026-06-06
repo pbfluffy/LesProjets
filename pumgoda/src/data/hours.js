@@ -116,7 +116,9 @@ function parseLegacyHours(raw) {
   if (/24\s*\/?\s*7|24\s*h(ou)?rs?|open\s*24|ตลอด\s*24|24\s*ชม/i.test(s)) return { always: true }
   const perDay = parsePerDayHours(raw)
   if (perDay) return perDay
-  const parts = s.split(/\s*(?:–|—|-|to|ถึง)\s*/i)
+  // Uniform "Daily 9:00 AM - 8:00 PM" (auto-fill worker output): drop the label, treat as one all-week range.
+  const single = s.replace(/^(?:daily|every ?day|ทุกวัน)\s+/i, '')
+  const parts = single.split(/\s*(?:–|—|-|to|ถึง)\s*/i)
   if (parts.length === 2) {
     const o = parseTimeToken(parts[0])
     const c = parseTimeToken(parts[1])
