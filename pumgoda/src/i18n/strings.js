@@ -121,6 +121,7 @@ export const STRINGS = {
       open24: 'เปิด 24 ชม.',
       daily: 'ทุกวัน',
       closed: 'ปิด',
+      openNow: 'เปิดอยู่',
       days: ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'],
     },
 
@@ -333,6 +334,7 @@ export const STRINGS = {
       open24: 'Open 24 hours',
       daily: 'daily',
       closed: 'Closed',
+      openNow: 'Open now',
       days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     },
 
