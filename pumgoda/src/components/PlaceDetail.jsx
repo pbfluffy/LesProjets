@@ -193,7 +193,11 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
               <h3 className="ph-section-title">{s.detail.sections.hours}</h3>
               {venueOpen === true && <span className="ph-open-badge">{s.hours.openNow}</span>}
             </div>
-            <p className="ph-hours mono">{hoursDisplay}</p>
+            <div className="ph-hours mono">
+              {hoursDisplay.split(' · ').map((line, i) => (
+                <div key={i}>{line}</div>
+              ))}
+            </div>
           </section>
         )}
 
