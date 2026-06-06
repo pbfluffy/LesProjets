@@ -9,6 +9,7 @@ const GEMINI_MODEL = 'gemini-2.5-flash';
 const RETRY_STATUSES = new Set([500, 502, 503, 504]);
 const MAX_ATTEMPTS = 3;
 const BASE_DELAY_MS = 1000;
+const MAX_BYTES = 12 * 1024 * 1024; // 12 MB — base64 image payload ceiling
 
 // #65 photo cache - bump CACHE_VERSION to invalidate ALL cached results
 // (e.g. after changing the client prompt or the model).
@@ -55,6 +56,10 @@ export default {
 
     if (!env.GOOGLE_API_KEY) {
       return new Response('Server misconfigured', { status: 500 });
+    }
+
+    if (Number(request.headers.get('Content-Length') || 0) > MAX_BYTES) {
+      return new Response('Payload too large', { status: 413, headers: corsHeaders(request) });
     }
 
     const body = await request.text();
