@@ -145,6 +145,7 @@ export const STRINGS = {
     receiptErrService: 'Receipt scanner temporarily unavailable. Please try again.',
     receiptErrNoItems: 'No items found on this receipt.',
     receiptLowConfWarn: 'Low confidence \u2014 please verify each item.',
+    receiptBillName: 'Bill name',
   },
   th: {
     appName: '\u0E2B\u0E32\u0E23\u0E1A\u0E34\u0E25',
@@ -288,6 +289,7 @@ export const STRINGS = {
     receiptErrService: '\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E2A\u0E41\u0E01\u0E19\u0E02\u0E31\u0E14\u0E02\u0E49\u0E2D\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E04\u0E23\u0E32\u0E27 \u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07',
     receiptErrNoItems: '\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E1A\u0E19\u0E43\u0E1A\u0E40\u0E2A\u0E23\u0E47\u0E08',
     receiptLowConfWarn: '\u0E04\u0E27\u0E32\u0E21\u0E21\u0E31\u0E48\u0E19\u0E43\u0E08\u0E15\u0E48\u0E33 \u2014 \u0E42\u0E1B\u0E23\u0E14\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23',
+    receiptBillName: '\u0E0A\u0E37\u0E48\u0E2D\u0E1A\u0E34\u0E25',
   },
 }
 
