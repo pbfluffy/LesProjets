@@ -30,6 +30,7 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill, savedP
   return (
     <div style={{ paddingBottom: 80 }}>
       <fieldset disabled={readOnly} style={fieldsetReset}>
+        <ReceiptScanner onAddItems={store.addFoods} onSetBillName={(name) => { if (!store.billName.trim()) store.setBillName(name) }} onSetVat={store.setVatEnabled} onSetServiceCharge={store.setServiceChargeEnabled} onSetServiceChargeRate={store.setServiceChargeRate} />
         <input
           type="text"
           className={appStyles.billNameInput}
@@ -39,7 +40,6 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill, savedP
           maxLength={60}
         />
         <MemberSection members={store.members} onAdd={store.addMember} onRemove={store.removeMember} />
-        <ReceiptScanner onAddItems={store.addFoods} onSetVat={store.setVatEnabled} onSetServiceCharge={store.setServiceChargeEnabled} onSetServiceChargeRate={store.setServiceChargeRate} />
         <FoodList foods={store.foods} members={store.members} onAdd={store.addFood} onUpdate={store.updateFood} onToggleMember={store.toggleFoodMember} onRemove={store.removeFood} onSelectAll={store.setAllMembers} />
         <ExtrasSection vatEnabled={store.vatEnabled} onVatChange={store.setVatEnabled} serviceChargeEnabled={store.serviceChargeEnabled} onServiceChargeChange={store.setServiceChargeEnabled} serviceChargeRate={store.serviceChargeRate} onServiceChargeRateChange={store.setServiceChargeRate} promptPay={store.promptPay} onPromptPayChange={store.setPromptPay} bankInfo={store.bankInfo} onBankInfoChange={store.setBankInfo} notes={store.notes} onNotesChange={store.setNotes} savedPayees={savedPayees} onSavePayee={onSavePayee} onRemovePayee={onRemovePayee} payeesEnabled={payeesEnabled && !readOnly} />
       </fieldset>
