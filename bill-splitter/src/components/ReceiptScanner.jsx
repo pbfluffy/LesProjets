@@ -13,6 +13,7 @@ const PROMPT = `You are extracting line items from a restaurant or shop receipt 
 Respond ONLY with valid JSON, no markdown fences, no preamble:
 
 {
+  "merchantName": "<the restaurant or shop name, usually at the top of the receipt; preserve original language; null if not legible>",
   "items": [
     {"name": "item name (preserve original language)", "price": <number>}
   ],
@@ -28,6 +29,7 @@ Notes:
 - If neither is on the receipt, set vatDetected: false and serviceChargeRate: null.
 - Prices should be the line total (unit price * quantity).
 - Numbers must be plain numbers, no currency symbols.
+- merchantName is the business/venue name printed on the receipt (skip branch codes, addresses, tax IDs, phone numbers). If you cannot read it, use null.
 
 If the photo does not contain a receipt, respond ONLY with:
 {"error": "no receipt"}`
@@ -143,6 +145,7 @@ function format(template, vars) {
 
 export default function ReceiptScanner({
   onAddItems,
+  onSetBillName,
   onSetVat,
   onSetServiceCharge,
   onSetServiceChargeRate,
@@ -155,6 +158,7 @@ export default function ReceiptScanner({
   const [vatDetected, setVatDetected] = useState(false)
   const [scRate, setScRate] = useState(null)
   const [confidence, setConfidence] = useState(null)
+  const [merchant, setMerchant] = useState('')
   const [capReached, setCapReached] = useState(false)
   const fileRef = useRef(null)
   // Monotonic request id — same pattern as Nutritions PhotoTab BUG-04 fix.
@@ -169,6 +173,7 @@ export default function ReceiptScanner({
     setVatDetected(false)
     setScRate(null)
     setConfidence(null)
+    setMerchant('')
     if (fileRef.current) fileRef.current.value = ''
   }
 
@@ -215,6 +220,9 @@ export default function ReceiptScanner({
       setConfidence(
         ['high', 'medium', 'low'].includes(r.confidence) ? r.confidence : 'medium',
       )
+      setMerchant(
+        typeof r.merchantName === 'string' ? r.merchantName.trim().slice(0, 60) : '',
+      )
     } catch (err) {
       if (reqId !== requestIdRef.current) return
       const msg = err?.message || String(err)
@@ -252,6 +260,7 @@ export default function ReceiptScanner({
       onSetServiceCharge(true)
       onSetServiceChargeRate(String(scRate))
     }
+    if (merchant.trim()) onSetBillName?.(merchant.trim())
     reset()
   }
 
@@ -310,6 +319,19 @@ export default function ReceiptScanner({
 
               {!loading && !error && items && (
                 <>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 4 }}>{t.receiptBillName}</div>
+                    <input
+                      type="text"
+                      className={styles.itemName}
+                      style={{ width: '100%' }}
+                      value={merchant}
+                      onChange={(e) => setMerchant(e.target.value)}
+                      placeholder={t.receiptBillName}
+                      maxLength={60}
+                      aria-label={t.receiptBillName}
+                    />
+                  </div>
                   {confidence === 'low' && (
                     <div className={styles.lowConfWarn}>{t.receiptLowConfWarn}</div>
                   )}
