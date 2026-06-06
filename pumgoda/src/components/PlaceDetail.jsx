@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import PawTierBadge from './PawTierBadge'
 import PumbaBadge from './PumbaBadge'
 import { STRINGS, interp } from '../i18n/strings'
-import { normalizeHours, formatHours } from '../data/hours'
+import { normalizeHours, formatHours, isOpenNow } from '../data/hours'
 import { useTrips } from '../hooks/useTrips'
 import VoteButtons from './VoteButtons'
 import './PlaceDetail.css'
@@ -13,6 +13,7 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
   const address = venue.address?.[lang] || venue.address?.en
   const notes = venue.notes?.[lang] || venue.notes?.en
   const hoursDisplay = formatHours(normalizeHours(venue), lang) || venue.hours || null
+  const venueOpen = isOpenNow(venue)
 
   const { trips, createTrip, addPlace, removePlace } = useTrips()
   const [tripPanelOpen, setTripPanelOpen] = useState(false)
@@ -188,7 +189,10 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
         {/* Hours (#108: structured bilingual render, falls back to raw text) */}
         {hoursDisplay && (
           <section className="ph-section">
-            <h3 className="ph-section-title">{s.detail.sections.hours}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h3 className="ph-section-title">{s.detail.sections.hours}</h3>
+              {venueOpen === true && <span className="ph-open-badge">{s.hours.openNow}</span>}
+            </div>
             <p className="ph-hours mono">{hoursDisplay}</p>
           </section>
         )}
