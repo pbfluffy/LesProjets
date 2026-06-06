@@ -264,6 +264,16 @@ html.light body{
     <div id="prows"></div>
   </div>
 
+  <!-- ADMIN ACCESS (Feature #111) -->
+  <div id="adminPanel" class="hidden" style="margin-top:28px">
+    <div class="chart" style="background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--line-soft);border-radius:14px;padding:18px 20px">
+      <div style="margin-bottom:6px"><div style="font-size:15px;font-weight:800;letter-spacing:-.01em">Admin access</div>
+      <div id="admin-sub" class="sub" style="font-size:11px;color:var(--faint);font-family:'JetBrains Mono',monospace">owner only</div></div>
+      <div class="note" style="margin:12px 0 18px">Admins manage the catalog + photos. Only the owner can add or remove admins.</div>
+      <div id="admin-body"></div>
+    </div>
+  </div>
+
   <!-- PLACE EDITOR (Feature #100, Phase 2.2) -->
   <div id="pedit" class="pedit-ov hidden">
     <div class="pedit-box">
@@ -278,7 +288,7 @@ html.light body{
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
-import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp, deleteDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+import { getFirestore, collection, getDocs, getDoc, doc, setDoc, serverTimestamp, deleteDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
 const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562';
 
@@ -327,9 +337,14 @@ $('signinBtn').addEventListener('click', async () => {
 $('signoutBtn').addEventListener('click', () => signOut(auth));
 $('denied-signout').addEventListener('click', () => signOut(auth));
 
-onAuthStateChanged(auth, (user) => {
+let IS_OWNER = false, ME = null;
+onAuthStateChanged(auth, async (user) => {
   if(!user){ show('gate'); return; }
-  if(user.uid !== ADMIN_UID){
+  ME = user;
+  IS_OWNER = (user.uid === ADMIN_UID);
+  let allowed = IS_OWNER;
+  if(!allowed){ try{ allowed = (await getDoc(doc(db,'admins',user.uid))).exists(); }catch(e){ allowed = false; } }
+  if(!allowed){
     $('denied-uid').textContent = 'uid: ' + user.uid;
     show('denied'); return;
   }
@@ -338,6 +353,7 @@ onAuthStateChanged(auth, (user) => {
   const av = $('me-avatar');
   if(user.photoURL){ av.innerHTML = ''; const img=document.createElement('img'); img.src=user.photoURL; img.referrerPolicy='no-referrer'; av.appendChild(img); }
   else { av.textContent = (user.displayName||'A')[0].toUpperCase(); }
+  $('adminPanel').classList.toggle('hidden', !IS_OWNER);
   show('app');
   loadData();
 });
@@ -366,9 +382,74 @@ async function loadData(){
     $('errbox').classList.remove('hidden');
   }
   render();
+  if(IS_OWNER) renderAdminsPanel();
   $('refreshed').textContent = 'refreshed ' + new Date().toTimeString().slice(0,8);
   btn.innerHTML = '↻ Refresh'; btn.disabled = false;
 }
+
+// ---- admins (Feature #111) ----
+const escAdm = (s) => String(s==null?"":s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+const avA = (initial, owner) => '<div style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;flex:0 0 auto;'+(owner?'background:var(--accent);color:#1a1408':'background:var(--panel-2);color:var(--muted);border:1px solid var(--line)')+'">'+escAdm(initial)+'</div>';
+const seclblA = (t) => '<div style="font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-family:\'JetBrains Mono\',monospace;font-weight:700;margin-bottom:9px">'+t+'</div>';
+const ROWA = '<div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:var(--bg-2);border:1px solid var(--line-soft);border-radius:12px">';
+const monoA = 'font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+
+async function renderAdminsPanel(){
+  if(!IS_OWNER) return;
+  const body = $('admin-body');
+  body.innerHTML = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--faint);padding:8px 2px">Loading…</div>';
+  let admins = [];
+  try{ const snap = await getDocs(collection(db,'admins')); snap.forEach(s => admins.push(Object.assign({uid:s.id}, s.data()||{}))); }
+  catch(e){ body.innerHTML = '<div class="errbox">Could not read admins — publish the admin rules, then Refresh.<br><code>'+escAdm(e.code||e.message)+'</code></div>'; return; }
+  const adminUids = new Set(admins.map(a=>a.uid));
+  const info = (uid) => DATA.find(d=>d.uid===uid) || {};
+
+  let html = seclblA('Current admins') + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px">';
+  const oNm = (ME && ME.displayName) || 'Owner';
+  html += ROWA + avA((oNm[0]||'A').toUpperCase(), true)
+    + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">'+escAdm(oNm)+' <span style="color:var(--faint);font-weight:600">· you</span></div>'
+    + '<div style="'+monoA+'">'+escAdm(ADMIN_UID)+'</div></div>'
+    + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#1a1408;background:var(--accent);border-radius:8px;padding:4px 9px;flex:0 0 auto">Owner</span></div>';
+  if(admins.length===0){ html += '<div style="'+monoA+';white-space:normal">No additional admins yet.</div>'; }
+  else {
+    admins.sort((a,b)=>((info(a.uid).name||a.name||a.uid)+'').localeCompare((info(b.uid).name||b.name||b.uid)+''));
+    for(const a of admins){ const i=info(a.uid); const nm=i.name||a.name||'(unknown)'; const em=i.email||a.email||'';
+      html += ROWA + avA((nm[0]||'?').toUpperCase(), false)
+        + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">'+escAdm(nm)+'</div>'
+        + '<div style="'+monoA+'">'+escAdm(em ? em+' · '+a.uid : a.uid)+'</div></div>'
+        + '<button class="btn small admin-remove" data-uid="'+escAdm(a.uid)+'" data-name="'+escAdm(nm)+'" style="color:var(--red);border-color:#5a2c22;background:transparent">Remove</button></div>'; }
+  }
+  html += '</div>';
+
+  const cand = DATA.filter(d => d.uid!==ADMIN_UID && !adminUids.has(d.uid) && (d.name||d.email));
+  html += seclblA('Add admin') + '<div style="'+monoA+';white-space:normal;margin-bottom:10px">Signed-in users you can promote — pick from the roster.</div>';
+  if(cand.length===0){ html += '<div style="'+monoA+';white-space:normal">No one to add — users appear here after they sign in on the landing page.</div>'; }
+  else {
+    html += '<div style="display:flex;flex-direction:column;gap:8px">';
+    cand.sort((a,b)=>((a.name||a.email||'')+'').localeCompare((b.name||b.email||'')+''));
+    for(const c of cand){ const nm=c.name||c.email||c.uid;
+      html += ROWA + avA((nm[0]||'?').toUpperCase(), false)
+        + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600">'+escAdm(c.name||'(no name)')+'</div>'
+        + '<div style="'+monoA+'">'+escAdm((c.email||'')+' · '+c.uid)+'</div></div>'
+        + '<button class="btn small admin-add" data-uid="'+escAdm(c.uid)+'" data-name="'+escAdm(c.name||'')+'" data-email="'+escAdm(c.email||'')+'" style="background:var(--accent);color:#1a1408;border-color:var(--accent)">Make admin</button></div>'; }
+    html += '</div>';
+  }
+  body.innerHTML = html;
+  const n = admins.length+1; $('admin-sub').textContent = 'owner only · ' + n + (n===1?' admin':' admins');
+}
+
+$('admin-body').addEventListener('click', async (e) => {
+  const addBtn = e.target.closest('.admin-add');
+  const remBtn = e.target.closest('.admin-remove');
+  if(addBtn){ const uid = addBtn.dataset.uid; addBtn.disabled = true; addBtn.textContent = 'Adding…';
+    try{ await setDoc(doc(db,'admins',uid), { addedBy: ADMIN_UID, addedAt: serverTimestamp(), name: addBtn.dataset.name||null, email: addBtn.dataset.email||null }); await renderAdminsPanel(); }
+    catch(err){ addBtn.disabled=false; addBtn.textContent='Make admin'; alert('Could not add admin: '+(err.code||err.message)); } return; }
+  if(remBtn){ const uid = remBtn.dataset.uid, nm = remBtn.dataset.name || uid;
+    if(!confirm('Remove ' + nm + ' as admin?')) return;
+    remBtn.disabled = true; remBtn.textContent = 'Removing…';
+    try{ await deleteDoc(doc(db,'admins',uid)); await renderAdminsPanel(); }
+    catch(err){ remBtn.disabled=false; remBtn.textContent='Remove'; alert('Could not remove admin: '+(err.code||err.message)); } }
+});
 
 // ---- render ----
 function render(){
@@ -501,7 +582,7 @@ function renderPlaces(){
     </div>`;
   }).join('');
 }
-onAuthStateChanged(auth, (user) => { if(user && user.uid===ADMIN_UID) loadPlaces(); });
+onAuthStateChanged(auth, async (user) => { if(!user) return; let ok = user.uid===ADMIN_UID; if(!ok){ try{ ok = (await getDoc(doc(db,'admins',user.uid))).exists(); }catch(e){ ok=false; } } if(ok) loadPlaces(); });
 $('psearch').addEventListener('input', renderPlaces);
 $('refreshBtn').addEventListener('click', loadPlaces);
 
