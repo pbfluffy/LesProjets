@@ -8,6 +8,7 @@ const GEMINI_MODEL = 'gemini-2.5-flash';
 const RETRY_STATUSES = new Set([500, 502, 503, 504]);
 const MAX_ATTEMPTS = 3;
 const BASE_DELAY_MS = 1000;
+const MAX_BYTES = 12 * 1024 * 1024; // 12 MB — base64 image payload ceiling
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
@@ -46,6 +47,22 @@ export default {
 
     if (request.method !== 'POST') {
       return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
+    }
+
+    // Origin allowlist — blocks cross-site browser embedding (spoofable by non-browser clients)
+    if ((request.headers.get('Origin') || '') !== ALLOWED_ORIGIN) {
+      return new Response(
+        JSON.stringify({ error: 'forbidden origin' }),
+        { status: 403, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // Body-size cap (receipt images are base64-in-JSON)
+    if (Number(request.headers.get('Content-Length') || 0) > MAX_BYTES) {
+      return new Response(
+        JSON.stringify({ error: 'payload too large' }),
+        { status: 413, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
+      );
     }
 
     let body;
