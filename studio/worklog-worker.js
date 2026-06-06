@@ -11,14 +11,18 @@
 //   5) put the deployed URL into WORKLOG_ENDPOINT in studio/index.html
 
 const MODEL_DEFAULT = 'claude-sonnet-4-20250514';
+const ALLOWED_ORIGINS = ['https://pumbafluffycorgi.com', 'https://pbfluffy.github.io'];
+const MAX_BYTES = 100 * 1024; // 100 KB — work-log prompts are text-only
 
 export default {
   async fetch(request, env) {
-    const origin = env.ALLOWED_ORIGIN || '*';
+    const reqOrigin = request.headers.get('Origin') || '';
+    const allowOrigin = ALLOWED_ORIGINS.includes(reqOrigin) ? reqOrigin : (env.ALLOWED_ORIGIN || ALLOWED_ORIGINS[0]);
     const cors = {
-      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Origin': allowOrigin,
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
+      'Vary': 'Origin',
     };
 
     // Preflight
@@ -26,14 +30,25 @@ export default {
     if (request.method !== 'POST') {
       return new Response(JSON.stringify({ error: 'POST only' }), { status: 405, headers: { ...cors, 'Content-Type': 'application/json' } });
     }
+    // Origin allowlist — blocks cross-site browser embedding (spoofable by non-browser clients)
+    if (!ALLOWED_ORIGINS.includes(reqOrigin)) {
+      return new Response(JSON.stringify({ error: 'forbidden origin' }), { status: 403, headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
+    if (Number(request.headers.get('Content-Length') || 0) > MAX_BYTES) {
+      return new Response(JSON.stringify({ error: 'payload too large' }), { status: 413, headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
     if (!env.ANTHROPIC_API_KEY) {
       return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY secret not set' }), { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } });
     }
 
     try {
-      const body = await request.json();
+      const raw = await request.text();
+      if (raw.length > MAX_BYTES) {
+        return new Response(JSON.stringify({ error: 'payload too large' }), { status: 413, headers: { ...cors, 'Content-Type': 'application/json' } });
+      }
+      const body = JSON.parse(raw);
       const payload = {
-        model: body.model || MODEL_DEFAULT,
+        model: MODEL_DEFAULT,                       // pinned — caller cannot choose the model
         max_tokens: Math.min(body.max_tokens || 1000, 2000),
         messages: body.messages || [],
       };
