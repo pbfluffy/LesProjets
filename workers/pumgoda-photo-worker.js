@@ -64,11 +64,23 @@ async function verifyIdToken(token) {
   return payload;
 }
 
+// --- Feature #111: owner OR anyone present in the Firestore /admins collection ---
+const OWNER_UID = ADMIN_UID; // bootstrap owner — network-free fast path
+
+async function isAdmin(uid, idToken) {
+  if (uid === OWNER_UID) return true;
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}`
+            + `/databases/(default)/documents/admins/${encodeURIComponent(uid)}`;
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + idToken } });
+  return res.status === 200; // self-read allowed & doc exists -> admin; 404/403 -> not
+}
+
 async function requireAdmin(request) {
   const m = (request.headers.get('Authorization') || '').match(/^Bearer\s+(.+)$/i);
   if (!m) throw new Error('missing token');
-  const payload = await verifyIdToken(m[1]);
-  if (payload.sub !== ADMIN_UID) throw new Error('not admin');
+  const token   = m[1];
+  const payload = await verifyIdToken(token);
+  if (!(await isAdmin(payload.sub, token))) throw new Error('not admin');
   return payload;
 }
 
