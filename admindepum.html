@@ -482,8 +482,8 @@ function render(){
       const nm = u.name || (u.uid.slice(0,12)+'…');
       return `<div class="row body">
         <div class="user">
-          <div class="ua" style="background:${colorFor(u.uid)}">${(u.name||'·')[0].toUpperCase()}</div>
-          <div class="uinfo"><b>${nm}</b><span class="em">${u.email||'—'}</span><span class="uid">${u.uid.slice(0,10)}…</span><div class="apps">${apps}</div></div>
+          <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><span class="uid">${u.uid.slice(0,10)}…</span><div class="apps">${apps}</div></div>
         </div>
         ${m(u.nutr,'Nutrition days')}${m(u.bills,'Bills')}${m(u.places,'Places')}
         <div class="sync ${cls}">${s}<span class="abs">${abs}</span></div>
@@ -505,7 +505,7 @@ function donut(segs){
 }
 function hbar(name,val,max,color,vlabel){
   const pct = Math.round(100*val/(max||1));
-  return `<div class="hbar"><div class="top"><span class="nm">${name}</span><span class="vl">${vlabel}</span></div>
+  return `<div class="hbar"><div class="top"><span class="nm">${escAdm(name)}</span><span class="vl">${vlabel}</span></div>
     <div class="track"><div class="fill" style="width:${pct}%;background:${color}"></div></div></div>`;
 }
 function renderCharts(){
@@ -573,10 +573,10 @@ function renderPlaces(){
     const paws = '🐾'.repeat(pawTier(p));
     const reg = (p.region||'').replace(/_/g,' ');
     const ver = (p.pumba&&p.pumba.verified) ? '✓' : '—';
-    return `<div class="row body prow" data-pid="${p.id}" style="cursor:pointer" title="Edit">
-      <div class="pname"><b>${en(p)||p.id}</b><span class="pth">${th(p)||''}</span><span class="pid">${p.id}</span></div>
-      <div class="ptype">${p.type||'—'}</div>
-      <div class="preg">${reg||'—'}</div>
+    return `<div class="row body prow" data-pid="${escAdm(p.id)}" style="cursor:pointer" title="Edit">
+      <div class="pname"><b>${escAdm(en(p)||p.id)}</b><span class="pth">${escAdm(th(p)||'')}</span><span class="pid">${escAdm(p.id)}</span></div>
+      <div class="ptype">${escAdm(p.type||'—')}</div>
+      <div class="preg">${escAdm(reg||'—')}</div>
       <div class="ppaw">${paws}</div>
       <div class="pverif">${ver}</div>
     </div>`;
