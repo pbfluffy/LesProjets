@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { computeTier } from '../data/computeTier'
 import { STRINGS } from '../i18n/strings'
+import { isOpenNow } from '../data/hours'
 
 const DEFAULT = {
   region: 'all', // 'all' | 'bangkok_metro' | 'weekend_escape'
@@ -9,6 +10,7 @@ const DEFAULT = {
   minPaws: 0, // 0 = no filter; otherwise require computeTier(p).paws >= minPaws
   query: '', // free-text search across name / neighborhood
   sort: 'paws', // 'paws' | 'newest' | 'nearby'
+  openNow: false, // show only venues open right now (#104)
 }
 
 // Versioned key — bump suffix if the shape of DEFAULT changes incompatibly
@@ -29,6 +31,7 @@ function loadFromStorage() {
       policies: Array.isArray(parsed.policies) ? parsed.policies.filter((p) => typeof p === 'string') : [],
       minPaws: typeof parsed.minPaws === 'number' ? parsed.minPaws : 0,
       sort: typeof parsed.sort === 'string' ? parsed.sort : DEFAULT.sort,
+      openNow: typeof parsed.openNow === 'boolean' ? parsed.openNow : false,
       query: '', // never persist query
     }
   } catch {
@@ -67,6 +70,7 @@ export function useFilters() {
     setSort: (sort) => update({ sort }),
     setMinPaws: (n) => update({ minPaws: n }),
     setQuery: (s) => update({ query: s }),
+    toggleOpenNow: () => setFilters((f) => ({ ...f, openNow: !f.openNow })),
     reset,
     clearFilters: () => setFilters((f) => ({ ...DEFAULT, sort: f.sort })),
   }
@@ -111,6 +115,7 @@ export function applyFilters(places, filters) {
       ].filter(Boolean).join(' ').toLowerCase()
       if (hay.indexOf(q) === -1) return false
     }
+    if (filters.openNow && isOpenNow(p) !== true) return false
     return true
   })
 }
