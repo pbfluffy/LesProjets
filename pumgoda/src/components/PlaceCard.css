@@ -1,4 +1,5 @@
 .ph-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -68,4 +69,13 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* #104 — open-now badge floated to the card's top-right corner */
+.ph-open-badge-corner {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.22);
 }
