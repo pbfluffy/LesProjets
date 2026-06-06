@@ -6,15 +6,21 @@ const WORKER_URL = 'https://nutritions-photo.pbfluffygaming.workers.dev/';
 const MAX_DIM = 1568;
 const JPEG_QUALITY = 0.85;
 
-const PROMPT = `You are identifying Thai food in a photo for a nutrition tracker.
+const PROMPT = `You are a food identifier for a nutrition tracker used in Thailand. Identify the dish in the photo, estimate portion size, and estimate macros.
 
-Identify the dish, estimate portion size, and estimate macros. Be honest about uncertainty — portion estimation from a photo alone typically has \u00b120-40% error, especially without a reference object for scale.
+Work in this order:
+1. First decide whether the dish is Thai. If it is, identify the specific Thai dish with its Thai and English names.
+2. If it is clearly NOT Thai, still identify it as the international or Western dish it actually is (e.g. a ham & cheese toastie, spaghetti carbonara, a croissant). Give its common English name and a Thai name (the usual Thai term, or a transliteration).
+3. Only treat the photo as having no food if it genuinely contains no edible food at all (a receipt, a person, an empty table, scenery). Any real dish — Thai or not — must be identified, never reported as "no food".
+
+Be honest about uncertainty — portion estimation from a photo alone typically has \u00b120-40% error, especially without a reference object for scale.
 
 Respond ONLY with valid JSON, no markdown fences, no preamble:
 
 {
   "dishNameEn": "English name, e.g. Pad Krapao Gai",
   "dishNameTh": "Thai name in Thai script, e.g. \u0e1c\u0e31\u0e14\u0e01\u0e30\u0e40\u0e1e\u0e23\u0e32\u0e44\u0e01\u0e48",
+  "cuisine": "Thai | Western | Japanese | Chinese | Korean | Other",
   "alternatives": [{"en": "alternate name 1", "th": "alternate Thai name 1"}, {"en": "alternate 2", "th": "alternate Thai 2"}],
   "confidence": "high" | "medium" | "low",
   "estimatedPortion": "e.g. 1 plate, 1 bowl, 1 cup",
@@ -25,7 +31,7 @@ Respond ONLY with valid JSON, no markdown fences, no preamble:
   "notes": "one short sentence about visible ingredients, cooking method, or scale assumptions"
 }
 
-If the photo does not contain food, respond ONLY with:
+If the photo genuinely contains no food, respond ONLY with:
 {"error": "no food detected"}`;
 
 // BUG-02 Leak B — wrap the object URL lifetime in try/finally so the URL
