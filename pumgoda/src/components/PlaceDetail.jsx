@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import PawTierBadge from './PawTierBadge'
 import PumbaBadge from './PumbaBadge'
 import { STRINGS, interp } from '../i18n/strings'
+import { normalizeHours, formatHours } from '../data/hours'
 import { useTrips } from '../hooks/useTrips'
 import VoteButtons from './VoteButtons'
 import './PlaceDetail.css'
@@ -11,6 +12,7 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
   const name = venue.name?.[lang] || venue.name?.en || venue.name?.th || venue.id
   const address = venue.address?.[lang] || venue.address?.en
   const notes = venue.notes?.[lang] || venue.notes?.en
+  const hoursDisplay = formatHours(normalizeHours(venue), lang) || venue.hours || null
 
   const { trips, createTrip, addPlace, removePlace } = useTrips()
   const [tripPanelOpen, setTripPanelOpen] = useState(false)
@@ -183,11 +185,11 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
         {/* Community confidence */}
         <VoteButtons placeId={venue.id} lang={lang} />
 
-        {/* Hours */}
-        {venue.hours && (
+        {/* Hours (#108: structured bilingual render, falls back to raw text) */}
+        {hoursDisplay && (
           <section className="ph-section">
             <h3 className="ph-section-title">{s.detail.sections.hours}</h3>
-            <p className="ph-hours mono">{venue.hours}</p>
+            <p className="ph-hours mono">{hoursDisplay}</p>
           </section>
         )}
 
