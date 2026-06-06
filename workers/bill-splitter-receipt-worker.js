@@ -57,6 +57,18 @@ export default {
       );
     }
 
+    // Per-IP rate limit (cost-abuse cap) — no-op until the RATE_LIMITER binding is configured
+    if (env.RATE_LIMITER) {
+      const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+      const { success } = await env.RATE_LIMITER.limit({ key: ip });
+      if (!success) {
+        return new Response(
+          JSON.stringify({ error: 'rate_limited' }),
+          { status: 429, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
     // Body-size cap (receipt images are base64-in-JSON)
     if (Number(request.headers.get('Content-Length') || 0) > MAX_BYTES) {
       return new Response(
