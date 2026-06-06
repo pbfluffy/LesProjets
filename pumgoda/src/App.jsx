@@ -245,12 +245,12 @@ export default function App() {
     }
   }
 
-  const { filters, setRegion, toggleType, togglePolicy, setSort, setMinPaws, setQuery, clearFilters } = useFilters()
+  const { filters, setRegion, toggleType, togglePolicy, setSort, setMinPaws, setQuery, toggleOpenNow, clearFilters } = useFilters()
   const voteState = useVotes()
   const [userCoords, setUserCoords] = useState(null)
   const [filtersCollapsed, setFiltersCollapsed] = useLocalStorage('pumgoda_filters_collapsed_v1', false)
   const [helpOpen, setHelpOpen] = useState(false)
-  const activeFilterCount = (filters.region !== 'all' ? 1 : 0) + filters.types.length + filters.policies.length + (filters.minPaws ? 1 : 0) + (filters.query && filters.query.trim() ? 1 : 0)
+  const activeFilterCount = (filters.region !== 'all' ? 1 : 0) + filters.types.length + filters.policies.length + (filters.minPaws ? 1 : 0) + (filters.query && filters.query.trim() ? 1 : 0) + (filters.openNow ? 1 : 0)
   const [locationError, setLocationError] = useState(null)
 
   const requestUserLocation = () => {
@@ -411,6 +411,7 @@ export default function App() {
                 toggleType={toggleType}
                 togglePolicy={togglePolicy}
                 setMinPaws={setMinPaws}
+                toggleOpenNow={toggleOpenNow}
                 setQuery={setQuery}
                 clearFilters={clearFilters}
                 collapsed={filtersCollapsed && visiblePlaces.length > 1}
