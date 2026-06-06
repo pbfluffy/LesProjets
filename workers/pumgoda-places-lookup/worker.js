@@ -1,20 +1,28 @@
 // pumgoda-places-lookup — resolve a Google Maps link to a normalized place object.
 //
-// POST { "url": "<google maps link>" }
+// POST { "url": "<google maps link>" }   (Authorization: Bearer <Firebase ID token>, admin only)
 //   -> 200 { ok:true, place:{...}, meta:{ placeId, matchName } }
-//   -> err { ok:false, error: bad_url | resolve_failed | not_found | places_error }
+//   -> err { ok:false, error: unauthorized | bad_url | resolve_failed | not_found | places_error }
 //
 // Key lives only in the GOOGLE_MAPS_KEY secret — never shipped to the browser.
-// Same secret/CORS pattern as pumgoda-photo / nutritions-photo.
+// Auth + CORS pattern mirrors pumgoda-photo: verify a Firebase ID token, owner OR
+// anyone in the Firestore /admins collection. SSRF guard: only Google Maps hosts
+// are ever fetched (both the pasted link and its redirect target).
 
 const ALLOW = ['https://pbfluffy.github.io', 'https://pumbafluffycorgi.com'];
+const PROJECT_ID = 'pumgoda';
+const OWNER_UID  = 'HfksT06CgFUkZ9s4vrzEGs85O562';
+const JWKS_URL   = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
+// SSRF guard — the only hosts this Worker is ever allowed to fetch.
+const ALLOWED_HOSTS = ['google.com', 'www.google.com', 'maps.google.com', 'maps.app.goo.gl', 'goo.gl', 'g.co'];
 
 function corsFor(req) {
   const o = req.headers.get('Origin');
   return {
     'Access-Control-Allow-Origin': ALLOW.includes(o) ? o : ALLOW[0],
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+    'Vary': 'Origin',
   };
 }
 
@@ -24,15 +32,85 @@ const json = (o, s, h) =>
     headers: { 'Content-Type': 'application/json', ...h },
   });
 
+// ---------------------------------------------------------------------------
+// auth — verify a Firebase ID token; owner OR a member of /admins
+// ---------------------------------------------------------------------------
+function b64urlToBytes(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+const b64urlToString = (s) => new TextDecoder().decode(b64urlToBytes(s));
+
+async function verifyIdToken(token) {
+  const parts = token.split('.');
+  if (parts.length !== 3) throw new Error('malformed token');
+  const header  = JSON.parse(b64urlToString(parts[0]));
+  const payload = JSON.parse(b64urlToString(parts[1]));
+
+  const jwks = await (await fetch(JWKS_URL)).json();
+  const jwk = (jwks.keys || []).find((k) => k.kid === header.kid);
+  if (!jwk) throw new Error('signing key not found');
+
+  const key = await crypto.subtle.importKey(
+    'jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']
+  );
+  const data = new TextEncoder().encode(parts[0] + '.' + parts[1]);
+  const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, b64urlToBytes(parts[2]), data);
+  if (!ok) throw new Error('bad signature');
+
+  const now = Math.floor(Date.now() / 1000);
+  if (payload.aud !== PROJECT_ID) throw new Error('bad aud');
+  if (payload.iss !== 'https://securetoken.google.com/' + PROJECT_ID) throw new Error('bad iss');
+  if (payload.exp <= now) throw new Error('expired');
+  if (payload.iat > now + 300) throw new Error('iat in future');
+  if (!payload.sub) throw new Error('no sub');
+  return payload;
+}
+
+async function isAdmin(uid, idToken) {
+  if (uid === OWNER_UID) return true;
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}`
+            + `/databases/(default)/documents/admins/${encodeURIComponent(uid)}`;
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + idToken } });
+  return res.status === 200;
+}
+
+async function requireAdmin(request) {
+  const m = (request.headers.get('Authorization') || '').match(/^Bearer\s+(.+)$/i);
+  if (!m) throw new Error('missing token');
+  const token = m[1];
+  const payload = await verifyIdToken(token);
+  if (!(await isAdmin(payload.sub, token))) throw new Error('not admin');
+  return payload;
+}
+
+// SSRF guard — true only for Google Maps hosts (exact or subdomain).
+function isAllowedMapsUrl(u) {
+  try {
+    const h = new URL(u).hostname.toLowerCase();
+    return ALLOWED_HOSTS.some((d) => h === d || h.endsWith('.' + d));
+  } catch {
+    return false;
+  }
+}
+
 export default {
   async fetch(req, env) {
     const cors = corsFor(req);
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
     if (req.method !== 'POST') return json({ ok: false, error: 'bad_url' }, 405, cors);
 
+    // admin gate
+    try { await requireAdmin(req); }
+    catch (e) { return json({ ok: false, error: 'unauthorized' }, 401, cors); }
+
     try {
       const { url } = await req.json();
-      if (!url || !/^https?:\/\//.test(url))
+      if (!url || !/^https?:\/\//.test(url) || !isAllowedMapsUrl(url))
         return json({ ok: false, error: 'bad_url' }, 400, cors);
 
       // a. resolve short links (maps.app.goo.gl / goo.gl/maps) -> final long URL
@@ -42,6 +120,9 @@ export default {
       } catch {
         return json({ ok: false, error: 'resolve_failed' }, 422, cors);
       }
+      // SSRF guard — the redirect target must also be a Google Maps host
+      if (!isAllowedMapsUrl(finalUrl))
+        return json({ ok: false, error: 'bad_url' }, 400, cors);
 
       // b. parse name + pin coords from the long URL
       const { name, coords } = parseMapsUrl(finalUrl);
