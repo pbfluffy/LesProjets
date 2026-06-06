@@ -34,6 +34,14 @@ export default {
     if (!ALLOWED_ORIGINS.includes(reqOrigin)) {
       return new Response(JSON.stringify({ error: 'forbidden origin' }), { status: 403, headers: { ...cors, 'Content-Type': 'application/json' } });
     }
+    // Per-IP rate limit (cost-abuse cap) — no-op until the RATE_LIMITER binding is configured
+    if (env.RATE_LIMITER) {
+      const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+      const { success } = await env.RATE_LIMITER.limit({ key: ip });
+      if (!success) {
+        return new Response(JSON.stringify({ error: 'rate_limited' }), { status: 429, headers: { ...cors, 'Content-Type': 'application/json' } });
+      }
+    }
     if (Number(request.headers.get('Content-Length') || 0) > MAX_BYTES) {
       return new Response(JSON.stringify({ error: 'payload too large' }), { status: 413, headers: { ...cors, 'Content-Type': 'application/json' } });
     }
