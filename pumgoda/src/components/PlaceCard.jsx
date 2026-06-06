@@ -2,6 +2,7 @@ import PawTierBadge from './PawTierBadge'
 import PumbaBadge from './PumbaBadge'
 import PolicyChips from './PolicyChips'
 import { STRINGS } from '../i18n/strings'
+import { isOpenNow } from '../data/hours'
 import { useVotesCtx } from '../hooks/VotesContext'
 import './PlaceCard.css'
 
@@ -27,6 +28,7 @@ export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = nul
   const typeLabel = s.types[venue.type?.toLowerCase().replace(/[\s-]+/g, '_')] || venue.type
   const thumb = Array.isArray(venue.photos) ? venue.photos.find(Boolean) : null
   const distanceLabel = formatDistance(distanceKm, lang)
+  const open = isOpenNow(venue)
 
   return (
     <button
@@ -51,6 +53,7 @@ export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = nul
       </div>
 
       <div className="ph-card-badges">
+        {open === true && <span className="ph-open-badge">{s.hours.openNow}</span>}
         <PawTierBadge venue={venue} lang={lang} />
         <PumbaBadge venue={venue} lang={lang} />
       </div>
