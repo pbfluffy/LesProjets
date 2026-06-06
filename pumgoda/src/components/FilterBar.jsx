@@ -11,13 +11,14 @@ const TIERS = [
 ]
 const PUMBA_IMG = `${import.meta.env.BASE_URL}pumba.png`
 
-export default function FilterBar({ lang, filters, setRegion, toggleType, togglePolicy, setMinPaws, clearFilters, collapsed }) {
+export default function FilterBar({ lang, filters, setRegion, toggleType, togglePolicy, setMinPaws, toggleOpenNow, clearFilters, collapsed }) {
   const s = STRINGS[lang]
   const activeCount =
     (filters.region !== 'all' ? 1 : 0) +
     filters.types.length +
     filters.policies.length +
-    (filters.minPaws ? 1 : 0)
+    (filters.minPaws ? 1 : 0) +
+    (filters.openNow ? 1 : 0)
   const pumbaActive = filters.policies.includes('pumba_verified')
 
   return (
@@ -46,6 +47,17 @@ export default function FilterBar({ lang, filters, setRegion, toggleType, toggle
       </div>
 
       {!collapsed && (<>
+      {/* Open-now quick filter (#104) */}
+      <div className="hscroll hscroll-wrap">
+        <button
+          type="button"
+          className={'pill ph-chip ph-chip-open ' + (filters.openNow ? 'is-active' : '')}
+          onClick={() => toggleOpenNow && toggleOpenNow()}
+        >
+          {s.hours.openNow}
+        </button>
+      </div>
+
       {/* Venue type chips */}
       <div className="hscroll hscroll-wrap">
         {TYPES.map((t) => (
