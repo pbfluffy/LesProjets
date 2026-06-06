@@ -36,6 +36,7 @@ export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = nul
       onClick={() => onOpen?.(venue)}
       aria-label={name}
     >
+      {open === true && <span className="ph-open-badge ph-open-badge-corner">{s.hours.openNow}</span>}
       {thumb && (
         <div className="ph-card-thumb">
           <img src={thumb} alt="" loading="eager" />
@@ -53,7 +54,6 @@ export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = nul
       </div>
 
       <div className="ph-card-badges">
-        {open === true && <span className="ph-open-badge">{s.hours.openNow}</span>}
         <PawTierBadge venue={venue} lang={lang} />
         <PumbaBadge venue={venue} lang={lang} />
       </div>
