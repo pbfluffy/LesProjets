@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Korea 2026 · BTS ARIRANG 💜 (Editable)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Space+Mono:wght@400;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4EEE2;--paper-2:#FBF7EF;--ink:#2A1B33;--ink-soft:#5C4A66;--line:#E0D5C4;
+    --purple:#6D28D9;--purple-deep:#4C1D95;--gold:#C18A21;--naver:#03C75A;
+    --flight:#3B6FB0;--transit:#7A7184;--hotel:#C18A21;--food:#D2552E;--cafe:#8B5E34;
+    --landmark:#7C3AED;--beach:#138A9A;--concert:#6D28D9;--shop:#C2407A;--beauty:#D9608A;--fun:#2E9E5B;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:'Noto Sans Thai','Noto Sans KR',sans-serif;font-size:16px;line-height:1.5;
+    background-image:radial-gradient(circle at 18% -10%, rgba(109,40,217,.06), transparent 45%),
+                     radial-gradient(circle at 110% 8%, rgba(193,138,33,.07), transparent 40%);
+    background-attachment:fixed;}
+  .wrap{max-width:760px;margin:0 auto;padding:0 18px 90px}
+
+  header{padding:26px 0 12px}
+  .kicker{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.32em;
+    text-transform:uppercase;color:var(--purple-deep);margin:0 0 8px}
+  h1{font-family:'Fraunces',serif;font-weight:900;font-size:clamp(42px,12vw,82px);
+    line-height:.92;letter-spacing:-.02em;margin:0}
+  h1 .yr{font-style:italic;font-weight:500;color:var(--purple)}
+  .sub{font-family:'Fraunces',serif;font-style:italic;font-size:clamp(16px,4.4vw,22px);
+    color:var(--ink-soft);margin:9px 0 0}
+  .facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .fact{font-family:'Space Mono',monospace;font-size:11.5px;letter-spacing:.05em;
+    background:var(--paper-2);border:1px solid var(--line);border-radius:30px;padding:6px 13px}
+
+  .count{margin-top:18px;background:var(--ink);color:var(--paper-2);border-radius:18px;
+    padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    box-shadow:0 14px 30px -18px rgba(42,27,51,.8)}
+  .count .lbl{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.22em;
+    text-transform:uppercase;opacity:.7;max-width:90px;line-height:1.4}
+  .clock{display:flex;gap:6px}
+  .clock .u{text-align:center;min-width:48px}
+  .clock .n{font-family:'Fraunces',serif;font-weight:900;font-size:28px;line-height:1;color:#C9A6FF}
+  .clock .t{font-family:'Space Mono',monospace;font-size:8.5px;letter-spacing:.18em;
+    text-transform:uppercase;opacity:.6;margin-top:5px}
+  .count.go .n{color:#9FE6B6}
+
+  .toolbar{display:flex;gap:7px;flex-wrap:wrap;margin-top:16px}
+  .tbtn{font-family:'Space Mono',monospace;font-size:11.5px;font-weight:700;letter-spacing:.03em;
+    padding:9px 13px;border-radius:11px;border:1.5px solid var(--ink);background:transparent;
+    color:var(--ink);cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+  .tbtn:active{transform:scale(.96)}
+  .tbtn.primary{background:var(--purple-deep);border-color:var(--purple-deep);color:#fff}
+  .editbanner{display:none;margin-top:12px;background:#F2E8FB;border:1px dashed var(--purple);
+    color:var(--purple-deep);border-radius:11px;padding:10px 13px;font-size:12.5px;
+    font-family:'Space Mono',monospace;letter-spacing:.02em}
+  body.editing .editbanner{display:block}
+
+  .tabs{position:sticky;top:0;z-index:40;display:flex;gap:6px;margin:18px 0 6px;
+    padding:10px 0;background:linear-gradient(var(--paper) 72%, transparent)}
+  .tab{flex:1;font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.04em;
+    text-transform:uppercase;padding:11px 4px;border:1.5px solid var(--ink);background:transparent;
+    color:var(--ink);border-radius:12px;cursor:pointer;font-weight:700;transition:.18s;line-height:1.2}
+  .tab .th{display:block;font-family:'Noto Sans Thai';font-size:10px;letter-spacing:0;
+    opacity:.65;text-transform:none;margin-top:2px}
+  .tab.on{background:var(--ink);color:var(--paper-2)}
+
+  .daynav{display:flex;gap:8px;overflow-x:auto;padding:6px 18px 12px;margin:0 -18px;scrollbar-width:none}
+  .daynav::-webkit-scrollbar{display:none}
+  .dpill{flex:0 0 auto;background:var(--paper-2);border:1px solid var(--line);border-radius:14px;
+    padding:9px 14px;cursor:pointer;min-width:96px;transition:.16s}
+  .dpill .dn{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--purple-deep)}
+  .dpill .dd{font-family:'Fraunces',serif;font-weight:600;font-size:15px;margin-top:1px}
+  .dpill .dt{font-size:11px;color:var(--ink-soft);margin-top:2px;line-height:1.25}
+  .dpill.on{background:var(--purple-deep);border-color:var(--purple-deep);color:#fff}
+  .dpill.on .dn{color:#D7BBFF}.dpill.on .dt{color:#E5D6FF}
+
+  .dayhead{margin:14px 0 4px}
+  .dayhead .big{font-family:'Fraunces',serif;font-weight:900;font-size:clamp(25px,7vw,37px);
+    line-height:1;letter-spacing:-.01em}
+  .dayhead .meta{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.06em;
+    color:var(--ink-soft);margin-top:7px}
+  .dayedit{display:none;gap:8px;flex-direction:column;margin:10px 0 4px}
+  body.editing .dayedit{display:flex}
+  body.editing .dayhead{display:none}
+
+  .tl{position:relative;margin:18px 0 0;padding-left:26px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:14px;width:2px;
+    background:linear-gradient(var(--line),var(--line) 70%,transparent)}
+  .ev{position:relative;margin-bottom:14px}
+  .ev::before{content:"";position:absolute;left:-26px;top:7px;width:14px;height:14px;border-radius:50%;
+    background:var(--paper);border:3px solid var(--c,#999);z-index:2}
+  .card{background:var(--paper-2);border:1px solid var(--line);border-left:4px solid var(--c,#999);
+    border-radius:13px;padding:13px 15px;transition:.18s}
+  .card.done{opacity:.5}.card.done .title{text-decoration:line-through}
+  .row1{display:flex;align-items:flex-start;gap:10px}
+  .chk{flex:0 0 auto;width:22px;height:22px;border-radius:7px;border:2px solid var(--line);
+    background:var(--paper);cursor:pointer;margin-top:1px;display:flex;align-items:center;
+    justify-content:center;font-size:13px;color:#fff;transition:.15s}
+  .chk.on{background:var(--fun);border-color:var(--fun)}
+  .evbody{flex:1;min-width:0}
+  .time{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.03em;color:var(--c,#777);
+    font-weight:700;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .catname{background:var(--c,#777);color:#fff;font-size:9px;padding:2px 7px;border-radius:20px;
+    letter-spacing:.08em;text-transform:uppercase}
+  .title{font-family:'Fraunces',serif;font-weight:600;font-size:17px;line-height:1.25;margin:5px 0 0;letter-spacing:-.005em}
+  .badge{display:inline-block;font-family:'Space Mono',monospace;font-size:9.5px;background:#EFE6F7;
+    color:var(--purple-deep);padding:2px 8px;border-radius:20px;margin-left:6px;letter-spacing:.05em;vertical-align:middle}
+  .acts{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+  .mbtn{display:inline-flex;align-items:center;gap:5px;text-decoration:none;font-family:'Space Mono',monospace;
+    font-size:11px;font-weight:700;letter-spacing:.02em;padding:7px 11px;border-radius:9px;border:1px solid var(--line);transition:.15s}
+  .mbtn:active{transform:scale(.96)}
+  .mbtn.g{background:#fff;color:#1a73e8;border-color:#cfd9ec}
+  .mbtn.n{background:var(--naver);color:#fff;border-color:var(--naver)}
+  .rtoggle{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.02em;
+    background:transparent;border:1px dashed var(--line);color:var(--ink-soft);padding:7px 11px;border-radius:9px;cursor:pointer}
+  .route{display:none;margin-top:10px;font-size:13px;line-height:1.55;color:var(--ink-soft);
+    background:var(--paper);border-radius:9px;padding:11px 13px;border:1px solid var(--line)}
+  .route.open{display:block}.route b{color:var(--ink);font-weight:600}
+
+  .efield{margin-top:9px}
+  .efield label{display:block;font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px}
+  input.ed,select.ed,textarea.ed{width:100%;font-family:'Noto Sans Thai','Noto Sans KR',sans-serif;
+    font-size:14px;color:var(--ink);background:var(--paper);border:1px solid var(--line);
+    border-radius:9px;padding:9px 11px;outline:none}
+  input.ed:focus,select.ed:focus,textarea.ed:focus{border-color:var(--purple)}
+  textarea.ed{resize:vertical;min-height:54px;line-height:1.5}
+  .e2{display:flex;gap:8px}.e2>div{flex:1}
+  .ck{display:flex;align-items:center;gap:8px;font-family:'Space Mono',monospace;font-size:12px;
+    color:var(--ink-soft);margin-top:11px;cursor:pointer}
+  .ck input{width:18px;height:18px;accent-color:var(--purple)}
+  .mapfields{display:none;margin-top:6px;border-left:2px solid var(--line);padding-left:11px}
+  .mapfields.show{display:block}
+  .editrow{display:flex;gap:6px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+  .ebtn{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.03em;
+    padding:7px 11px;border-radius:9px;border:1px solid var(--line);background:var(--paper);
+    color:var(--ink);cursor:pointer}
+  .ebtn:disabled{opacity:.3;cursor:not-allowed}
+  .ebtn.del{color:#C0392B;border-color:#e7b7b1}
+  .addbtn{width:100%;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.05em;
+    padding:13px;border-radius:12px;border:1.5px dashed var(--purple);background:#F6EEFC;color:var(--purple-deep);
+    cursor:pointer;margin-top:4px}
+
+  .frow{display:flex;gap:7px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:none}
+  .frow::-webkit-scrollbar{display:none}
+  .fchip{flex:0 0 auto;font-family:'Space Mono',monospace;font-size:11.5px;font-weight:700;letter-spacing:.04em;
+    padding:8px 13px;border-radius:30px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);
+    cursor:pointer;transition:.15s;white-space:nowrap}
+  .fchip.on{background:var(--ink);color:var(--paper-2)}
+  .catsec{margin-top:20px}
+  .catsec h3{font-family:'Fraunces',serif;font-weight:900;font-size:23px;margin:0 0 3px;display:flex;align-items:center;gap:9px}
+  .catsec .cdot{width:11px;height:11px;border-radius:50%;background:var(--c)}
+  .catsec .ccount{font-family:'Space Mono',monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.08em;margin:0 0 13px}
+  .place{background:var(--paper-2);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:13px;padding:14px 15px;margin-bottom:11px}
+  .place .pn{font-family:'Fraunces',serif;font-weight:600;font-size:17.5px;line-height:1.2}
+  .place .pcity{font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:#fff;background:var(--c);padding:2px 8px;border-radius:20px;margin-left:7px;vertical-align:middle}
+  .place .addr{font-size:12.5px;color:var(--ink-soft);margin:6px 0 0;font-family:'Space Mono',monospace;line-height:1.45}
+  .place .desc{font-size:13.5px;color:var(--ink);margin:9px 0 0;line-height:1.6}
+
+  .tip{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:16px 17px;margin-top:14px}
+  .tip h3{font-family:'Fraunces',serif;font-weight:900;font-size:20px;margin:0 0 10px}
+  .tip ul{margin:0;padding-left:18px}.tip li{margin-bottom:9px;font-size:14px;line-height:1.6}
+  .tip li b{color:var(--purple-deep)}
+  .phrase{background:var(--ink);color:var(--paper-2);border-radius:14px;padding:16px 17px;margin-top:14px}
+  .phrase h3{font-family:'Fraunces',serif;font-weight:900;font-size:20px;margin:0 0 12px;color:#C9A6FF}
+  .phrase .p{margin-bottom:12px}
+  .phrase .ko{font-family:'Noto Sans KR';font-size:18px;font-weight:700}
+  .phrase .rom{font-family:'Space Mono',monospace;font-size:12px;opacity:.8;margin-top:2px}
+  .phrase .mean{font-size:13px;margin-top:3px;opacity:.92}
+
+  .hidden{display:none}
+  footer{text-align:center;margin-top:34px;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.1em;color:var(--ink-soft);opacity:.8}
+  footer .heart{color:var(--purple)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="kicker">BTS ARIRANG 💜 · Editable Itinerary</p>
+    <h1>KOREA<br><span class="yr">2026</span></h1>
+    <p class="sub">Busan · Gyeongju · Seoul — June 11 → 17</p>
+    <div class="facts">
+      <span class="fact">📅 7 Days</span><span class="fact">🏙 3 Cities</span>
+      <span class="fact">💜 1 Concert</span><span class="fact">✈️ Jeju Air</span>
+    </div>
+    <div class="count" id="count"><div class="lbl" id="countlbl">Departs in</div><div class="clock" id="clock"></div></div>
+
+    <div class="toolbar">
+      <button class="tbtn primary" id="editToggle">✏️ Edit Mode</button>
+      <button class="tbtn" id="exportBtn">⬇ Export</button>
+      <button class="tbtn" id="importBtn">⬆ Import</button>
+      <button class="tbtn" id="resetBtn">↺ Reset</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+    </div>
+    <div class="editbanner">✏️ Edit mode on — tap any field to change it. Everything saves to this device automatically. Use <b>Export</b> to back up.</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab on" data-view="day">Day by Day<span class="th">รายวัน</span></button>
+    <button class="tab" data-view="cat">Places<span class="th">หมวดหมู่</span></button>
+    <button class="tab" data-view="tips">Tips<span class="th">ทิปส์ &amp; มารยาท</span></button>
+  </nav>
+
+  <section id="view-day">
+    <div class="daynav" id="daynav"></div>
+    <div id="dayhead" class="dayhead"></div>
+    <div id="dayedit" class="dayedit"></div>
+    <div id="timeline" class="tl"></div>
+    <button class="addbtn" id="addEvBtn" style="display:none">＋ Add activity to this day</button>
+  </section>
+
+  <section id="view-cat" class="hidden">
+    <div class="frow" id="cityrow"></div>
+    <div class="frow" id="typerow"></div>
+    <div id="catlist"></div>
+    <button class="addbtn" id="addPlaceBtn" style="display:none">＋ Add a place</button>
+  </section>
+
+  <section id="view-tips" class="hidden"></section>
+
+  <footer>BORAHAE <span class="heart">💜</span> · 7C2552 → ICN<br>Editable plan · v2</footer>
+</div>
+
+<script>
+/* ===================== HELPERS ===================== */
+const G = q => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q||'');
+const N = q => 'https://map.naver.com/p/search/' + encodeURIComponent(q||'');
+const $ = s => document.querySelector(s);
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+const clone = o => JSON.parse(JSON.stringify(o));
+const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+const CATS = {
+  flight:{n:'Flight',i:'✈️'},transit:{n:'Transit',i:'🚇'},hotel:{n:'Hotel',i:'🏨'},
+  food:{n:'Eat',i:'🍽'},cafe:{n:'Cafe',i:'☕'},landmark:{n:'Sight',i:'📍'},
+  beach:{n:'Beach',i:'🏖'},concert:{n:'Concert',i:'💜'},shop:{n:'Shop',i:'🛍'},
+  beauty:{n:'Beauty',i:'💆'},fun:{n:'Fun',i:'✨'}
+};
+const mp=(on,q,nq,g)=>({on:!!on,q:q||'',nq:nq||'',g:g||''});
+
+/* ===================== DEFAULT DATA ===================== */
+const DEFAULTS = { days:[
+ {dn:'Day 01',date:'Thu · Jun 11',theme:'Busan → Gyeongju',title:'Arrival & Eastward',meta:'BKK ✈ Busan · KTX to Gyeongju',events:[
+   {t:'12:50 AM – 08:30 AM',cat:'flight',title:'Flight BKK → PUS',badge:'7C2552 · ref XEVNRQ',note:'Jeju Air · Gimhae Int’l Airport (PUS) · Direct 5h 40m · Economy.',map:mp(0)},
+   {t:'09:15 AM – 10:30 AM',cat:'transit',title:'Travel to Haeundae Station (Exit 7)',note:'Gimhae Airport station → <b>Sasang Station</b> (3 stops), walk 400 m. Then <b>Line 2 (Green)</b>: Sasang → Haeundae Exit 7 (24 stops).',map:mp(0)},
+   {t:'11:00 AM – 12:00 PM',cat:'food',title:'Lunch — Rendez-vous / Haeundae Gaya Milmyeon',map:mp(1,'Haeundae Gaya Milmyeon Busan','해운대 가야밀면')},
+   {t:'02:00 PM – 03:00 PM',cat:'hotel',title:'Check-in — Shilla Stay Busan Haeundae',map:mp(1,'Shilla Stay Haeundae Busan','신라스테이 해운대')},
+   {t:'03:00 PM – 04:15 PM',cat:'transit',title:'Bus to Busan Station',map:mp(0)},
+   {t:'04:15 PM – 05:15 PM',cat:'transit',title:'KTX / SRT — Busan → Gyeongju Station',badge:'High-speed rail',map:mp(0)},
+   {t:'05:15 PM – 06:15 PM',cat:'transit',title:'Gyeongju Station → The K Hotel',note:'Arrive Singyeongju (Gyeongju). Suggest <b>Taxi / Uber (UT)</b> to The K Hotel ≈ 25–30 min.',map:mp(0)},
+   {t:'06:15 PM – 06:30 PM',cat:'hotel',title:'Check-in — The K Hotel Gyeongju',map:mp(1,'The K Hotel Gyeongju','더케이호텔 경주')},
+ ]},
+ {dn:'Day 02',date:'Fri · Jun 12',theme:'Concert Day 💜',title:'BTS ARIRANG',meta:'The main event · Busan Asiad Stadium',events:[
+   {t:'11:00 AM – 12:00 PM',cat:'hotel',title:'Check-out — The K Hotel Gyeongju',map:mp(0)},
+   {t:'12:00 PM – 03:00 PM',cat:'transit',title:'Travel to Busan Asiad Main Stadium',note:'Taxi to KTX → <b>Busan Station</b>. Subway <b>Line 1</b> → change to <b>Line 3</b> → <b>Sports Complex Station</b> (connects to Asiad Main Stadium).',map:mp(0)},
+   {t:'03:00 PM – 05:00 PM',cat:'fun',title:'Merch Shop + FESTA zone at the stadium',badge:'Arrive early!',map:mp(0)},
+   {t:'05:00 PM – 08:00 PM',cat:'concert',title:'BTS ARIRANG Concert 💜',badge:'★ THE moment',map:mp(1,'Busan Asiad Main Stadium','부산아시아드주경기장')},
+   {t:'08:00 PM – 09:15 PM',cat:'hotel',title:'Back & Check-in — Shilla Stay Busan Haeundae',map:mp(1,'Shilla Stay Haeundae Busan','신라스테이 해운대')},
+ ]},
+ {dn:'Day 03',date:'Sat · Jun 13',theme:'Busan Tour',title:'Color & Coast',meta:'Gamcheon · Gwangalli · Blueline',events:[
+   {t:'08:00 AM – 09:00 AM',cat:'landmark',title:'Gamcheon Culture Village',map:mp(1,'Gamcheon Culture Village Busan','감천문화마을')},
+   {t:'10:00 AM – 11:00 AM',cat:'beach',title:'Gwangalli Beach',map:mp(1,'Gwangalli Beach Busan','광안리해수욕장')},
+   {t:'12:00 PM – 01:00 PM',cat:'food',title:'Lunch — Haeundae Gaya Milmyeon',map:mp(1,'Haeundae Gaya Milmyeon Busan','해운대 가야밀면')},
+   {t:'01:00 PM – 02:00 PM',cat:'fun',title:'Haeundae Blueline Park beach train 🚂',note:'Board the train at <b>Mipo Station</b>.',map:mp(1,'Haeundae Blueline Park Mipo','해운대 블루라인파크 미포정거장')},
+   {t:'02:00 PM – 03:00 PM',cat:'cafe',title:'ZM-ILLENNIAL Cafe (Jimin’s father’s cafe)',note:'From Blueline Park, taxi ≈ 25–30 min (Daeyeon-dong). Open daily 10:00–22:00.',map:mp(1,'ZM-ILLENNIAL Busan','ZM-ILLENNIAL 대연동','https://maps.app.goo.gl/61nZrkEKTJ4RZZbo9')},
+   {t:'04:00 PM – 05:00 PM',cat:'landmark',title:'Explore / Rest near Busan Asiad Main Stadium',map:mp(0)},
+ ]},
+ {dn:'Day 04',date:'Sun · Jun 14',theme:'Hello Seoul & Bagel',title:'Fly to Seoul',meta:'PUS ✈ GMP · Bagels & hanok',events:[
+   {t:'05:00 AM – 06:30 AM',cat:'transit',title:'Check-out & Uber/Limousine to Gimhae Airport',map:mp(0)},
+   {t:'07:15 AM – 08:20 AM',cat:'flight',title:'Domestic Flight PUS → GMP',badge:'7C904 · ref RGI8WK',note:'Jeju Air · Gimpo (GMP) · Direct 1h 05m · Economy.',map:mp(0)},
+   {t:'09:30 AM – 11:00 AM',cat:'cafe',title:'London Bagel Museum (Anguk) — queue & breakfast 🥯',note:'From Gimpo: <b>Line 5 (Purple)</b> → Jongno 3-ga → <b>Line 3 (Orange)</b> → Anguk Station (Exit 2). ≈ 45–50 min.',map:mp(1,'London Bagel Museum Anguk','런던베이글뮤지엄 안국','https://maps.app.goo.gl/RkTjtS7vUZvRJYMUA')},
+   {t:'11:30 AM – 01:00 PM',cat:'landmark',title:'National Museum of Korea',map:mp(1,'National Museum of Korea Seoul','국립중앙박물관')},
+   {t:'01:30 PM – 02:30 PM',cat:'food',title:'Late lunch — Yoojung Sikdang (BTS favorite)',note:'From the museum (Ichon): <b>Line 4</b> → Samgakji → <b>Line 6</b> → Yaksu → <b>Line 3</b> → Sinsa / Hakdong. ≈ 35 min.',map:mp(1,'Yoojung Sikdang Seoul','유정식당 신사','https://maps.app.goo.gl/EktZoYCa1rtLviy18')},
+   {t:'03:00 PM',cat:'hotel',title:'Check-in — Myeongdong Sunshine Guesthouse',map:mp(1,'Myeongdong Sunshine Guesthouse Seoul','명동 선샤인 게스트하우스')},
+   {t:'04:00 PM – 05:00 PM',cat:'landmark',title:'Stroll Ikseon-dong / Samcheong-dong Hanok Village',map:mp(1,'Ikseon-dong Hanok Village Seoul','익선동 한옥마을')},
+   {t:'05:30 PM onwards',cat:'landmark',title:'Evening walk — Cheonggyecheon Stream',map:mp(1,'Cheonggyecheon Stream Seoul','청계천')},
+ ]},
+ {dn:'Day 05',date:'Mon · Jun 15',theme:'K-Pop & Cafe',title:'HYBE & COEX',meta:'Compose Coffee · Library · Onion',events:[
+   {t:'10:00 AM – 11:30 AM',cat:'concert',title:'Compose Coffee (V’s brand) + HYBE photo op',note:'From Myeongdong: <b>Line 4 (Blue)</b> → Sinyongsan (10 min), walk 10–15 min to the HYBE Building.',map:mp(1,'HYBE Headquarters Seoul','하이브 본사','https://maps.app.goo.gl/n9BQNoRbBoEaoxCv8')},
+   {t:'12:30 PM – 02:30 PM',cat:'shop',title:'Starfield COEX Mall & Starfield Library',map:mp(1,'Starfield Library COEX Seoul','별마당도서관 코엑스')},
+   {t:'03:00 PM – 04:30 PM',cat:'cafe',title:'Cafe Onion (Anguk / Seongsu branch)',note:'COEX is reachable via <b>Line 9 (Gold)</b> → Bongeunsa Station, directly connected to the mall.',map:mp(1,'Cafe Onion Anguk','카페 어니언 안국','https://maps.app.goo.gl/QuWZGH6Ehccy8cYP8')},
+   {t:'05:00 PM – 07:00 PM',cat:'food',title:'Dinner — Geumdwaeji Sikdang (Gold Pig BBQ, Yaksu)',map:mp(1,'Geumdwaeji Sikdang Yaksu Seoul','금돼지식당')},
+ ]},
+ {dn:'Day 06',date:'Tue · Jun 16',theme:'Pokémon & Seongsu',title:'Run & Bread',meta:'Seoul Forest · Salt bread · Daifuku',events:[
+   {t:'08:00 AM – 10:00 AM',cat:'fun',title:'Run: Seoul Forest → Han River + Pokémon Secret Forest',note:'From Myeongdong: <b>Line 2 (Green)</b> Euljiro 1-ga → Ttukseom; or <b>Line 4</b> → transfer Line 2 at DDP.',map:mp(1,'Seoul Forest Park Seoul','서울숲')},
+   {t:'10:00 AM – 12:00 PM',cat:'shop',title:'Seongsu-dong: Ditto Playground + Salt Bread (Jayeon Do Shiopan)',map:mp(1,'Seongsu-dong Seoul','성수동')},
+   {t:'12:00 PM – 02:00 PM',cat:'cafe',title:'Relax — Rain Report Cafe (Seongsu)',map:mp(1,'Rain Report Cafe Seongsu Seoul','레인리포트 성수')},
+   {t:'02:30 PM – 04:30 PM',cat:'hotel',title:'Back to Myeongdong — rest / refresh',map:mp(0)},
+   {t:'05:00 PM – 07:30 PM',cat:'food',title:'Strawberry Daifuku — Hongman Dang (Myeongdong) 🍓',note:'From Seongsu: <b>Line 2</b> back to Euljiro 1-ga, or transfer <b>Line 4</b> to Myeongdong. ≈ 25–30 min.',map:mp(1,'Hongman Dang Myeongdong Seoul','홍만당 명동')},
+   {t:'07:30 PM onwards',cat:'food',title:'Myeongdong Night Market — street food 🌃',map:mp(1,'Myeongdong Night Market Seoul','명동 야시장')},
+ ]},
+ {dn:'Day 07',date:'Wed · Jun 17',theme:'Last Day Shopping',title:'Skincare & Home',meta:'Olive Young · AREX · ICN ✈ BKK',events:[
+   {t:'09:30 AM – 10:00 AM',cat:'cafe',title:'Breakfast/Coffee — Focal Point (near Seoul Station)',map:mp(1,'Focal Point Cafe Seoul Station','포컬포인트 서울역')},
+   {t:'10:30 AM',cat:'hotel',title:'Check-out — Myeongdong Sunshine Guesthouse',map:mp(0)},
+   {t:'11:00 AM – 12:00 PM',cat:'beauty',title:'Skincare shopping — Vands Myeong-dong',map:mp(1,'Vands Myeongdong Seoul','반즈 명동')},
+   {t:'12:00 PM – 01:00 PM',cat:'food',title:'Lunch — Yuzu Fine Ramen',note:'Evening flight tip: take the <b>AREX Express (Orange)</b> nonstop Seoul Station → ICN T1 in 43 min. Book ahead — beats the Limousine bus in rush hour.',map:mp(1,'Yuzu Fine Ramen Seoul','유즈 파인 라멘')},
+   {t:'01:00 PM – 02:30 PM',cat:'shop',title:'Souvenir run — Olive Young Myeongdong Town',map:mp(1,'Olive Young Myeongdong Town','올리브영 명동타운','https://maps.app.goo.gl/fuCAyNj4odudkKDK8')},
+   {t:'02:30 PM – 03:30 PM',cat:'transit',title:'Head to Incheon International Airport (check-in)',map:mp(0)},
+   {t:'06:00 PM – 12:05 AM',cat:'flight',title:'Flight ICN → BKK',badge:'7C2503',note:'Jeju Air · Incheon → Bangkok. 안녕 Korea 💜',map:mp(0)},
+ ]},
+],
+places:[
+ {city:'Busan',type:'Cafe',name:'ZM-ILLENNIAL (Magnate cafe)',addr:'135 Jinnam-ro, Nam-gu, Busan',g:'https://maps.app.goo.gl/61nZrkEKTJ4RZZbo9',nq:'ZM-ILLENNIAL 대연동',desc:'คาเฟ่ของครอบครัวจีมิน (อดีตร้าน Magnate) ย่านแทยอนดง'},
+ {city:'Busan',type:'Cafe',name:'Standard Bread (Haeundae)',addr:'571 Haeun-daero, Haeundae-gu, Busan',g:'https://maps.app.goo.gl/kuLXA4EfsBFSX2r5A',nq:'스탠다드브레드 해운대',desc:'ร้านเบเกอรี่และคาเฟ่สุดฮอตในย่านแฮอุนแด ร้านกว้างขวาง เมนูแนะนำ: เฟรนช์โทสต์ราดเมเปิลไซรัปฉ่ำๆ'},
+ {city:'Busan',type:'Cafe',name:'Casa Busano (Gwangalli Beach)',addr:'179 Gwanganhaebyeon-ro, Suyeong-gu, Busan',g:'https://maps.app.goo.gl/nTANZ6Qr72dGFyuv5',nq:'카사부사노 광안리',desc:'คาเฟ่ริมหาดกวางอันรี วิวสะพานกวางอัน 180 องศา บรรยากาศ 10/10 เมนูแนะนำ: Padua Bar'},
+ {city:'Busan',type:'Cafe',name:'Waveon Coffee (Gijang)',addr:'286 Haemaji-ro, Gijang-gun, Busan',g:'https://maps.app.goo.gl/zn3Gw9vqScbYZjmK9',nq:'웨이브온 커피 기장',desc:'มีที่นั่งด้านนอกรับลมทะเลแบบชิลๆ เหมาะถ่ายรูปและพักผ่อน'},
+ {city:'Busan',type:'Restaurant',name:'Subyeon Choego Dwaeji-gukbap',addr:'26 Centum 3-ro, Haeundae-gu, Busan',g:'https://maps.app.goo.gl/xbg9aoWwDUrBoPZ49',nq:'수변최고돼지국밥',desc:'แทจีกุกบับ (ซุปข้าวหมู) เมนูประจำเมืองปูซาน · ย่าน Centum/Haeundae'},
+ {city:'Busan',type:'Restaurant',name:'Haeundae Gaya Milmyeon',addr:'27 Jwadongsunhwan-ro, Haeundae-gu, Busan',g:'https://maps.app.goo.gl/iMzCfr1UzbzetaqT9',nq:'해운대 가야밀면',desc:'มิลมยอน (บะหมี่เย็นเส้นข้าวสาลี) เมนูซิกเนเจอร์ของปูซาน'},
+ {city:'Busan',type:'Restaurant',name:'Gaemijip (Gukje Market Branch)',addr:'34 Gunam-ro, Haeundae-gu, Busan',g:'https://maps.app.goo.gl/Jy51W2cZMbqpW4Le9',nq:'개미집 국제시장',desc:'นัคกบแซ (ผัดปลาหมึก ไส้ และกุ้งรสเผ็ด)'},
+ {city:'Seoul',type:'Cafe',name:'London Bagel Museum Anguk',addr:'20 Bukchon-ro 4-gil, Jongno-gu, Seoul',g:'https://maps.app.goo.gl/RkTjtS7vUZvRJYMUA',nq:'런던베이글뮤지엄 안국',desc:'เบเกิลฮิตที่สุดในโซล ต้องมาต่อคิวแต่เช้า'},
+ {city:'Seoul',type:'Cafe',name:'UNLIGN',addr:'46 Seongsui-ro 16-gil, Seongdong-gu, Seoul',g:'https://maps.app.goo.gl/DTA3uizgb3C1rBU99',nq:'언라인 성수',desc:''},
+ {city:'Seoul',type:'Cafe',name:'Artist Bakery',addr:'167 Anguk-dong, Jongno-gu, Seoul',g:'https://maps.app.goo.gl/WD1gwKtoLBZ7zb3H6',nq:'아티스트 베이커리 안국',desc:''},
+ {city:'Seoul',type:'Cafe',name:'웨이스트스토어 (Waste Store)',addr:'Dosan-daero 45-gil 16-6 2F, Gangnam-gu, Seoul',g:'https://maps.app.goo.gl/KsozMD8dr3JBgmb67',nq:'웨이스트스토어',desc:''},
+ {city:'Seoul',type:'Cafe',name:'O Tigelle',addr:'168-6 Noksapyeong-daero, Yongsan-gu, Seoul',g:'https://maps.app.goo.gl/hzA9eg59EN9sKmkE8',nq:'오티젤레',desc:''},
+ {city:'Seoul',type:'Cafe',name:'Tartine Bakery Seoul Hannam',addr:'22 Hannam-daero 18-gil, Yongsan-gu, Seoul',g:'https://maps.app.goo.gl/mdDEFrgvDH8fmWgg9',nq:'타르틴 베이커리 한남',desc:''},
+ {city:'Seoul',type:'Cafe',name:'A SLICE',addr:'36-35 Seogang-ro 11-gil, Mapo-gu, Seoul',g:'https://maps.app.goo.gl/RnPtDZ83JbAb22QBA',nq:'어슬라이스',desc:''},
+ {city:'Seoul',type:'Cafe',name:'Cafe Onion Anguk',addr:'5 Gyedong-gil, Jongno-gu, Seoul',g:'https://maps.app.goo.gl/QuWZGH6Ehccy8cYP8',nq:'카페 어니언 안국',desc:''},
+ {city:'Seoul',type:'Restaurant',name:'Dosan Butcher',addr:'Seolleung-ro 155-gil 12 1F, Gangnam-gu, Seoul',g:'https://maps.app.goo.gl/yWFndxRMv6HjZF9o7',nq:'도산부처',desc:''},
+ {city:'Seoul',type:'Restaurant',name:'Yoojung Sikdang',addr:'14 Dosan-daero 28-gil, Gangnam-gu, Seoul',g:'https://maps.app.goo.gl/EktZoYCa1rtLviy18',nq:'유정식당 신사',desc:'ร้านเก่าแก่ที่ BTS ชอบมา'},
+ {city:'Seoul',type:'Beauty',name:'Xenia Clinic (Gangnam)',addr:'Gangnam-daero 441, 4F & 13F, Seocho-gu, Seoul',g:'https://maps.app.goo.gl/svRoaWtQpqHjp7z98',nq:'제니아 클리닉 강남',desc:'ย่านคังนัม ราคาโปรคุ้มมาก มีล่ามภาษาไทยฟรี · เมนูฮิต: Potenza, Skin Botox, Exosome ASCE+ · สถานี Gangnam / Sinnonhyeon'},
+ {city:'Seoul',type:'Beauty',name:'Abijou Clinic (Myeongdong/Hongdae)',addr:'Namdaemun-ro 78, B1, Jung-gu, Seoul',g:'https://maps.app.goo.gl/AQLzun978hZVZP3Q8',nq:'아비쥬 클리닉 명동',desc:'สาขาเยอะ เดินทางสะดวก มีล่ามไทยกว่า 60 คน · เมนูฮิต: เลเซอร์หน้าใส, Filler, Botox · สาขามยองดง (Euljiro 1-ga ทางออก 6)'},
+ {city:'Seoul',type:'Beauty',name:'Lienjang Clinic (Siam/Hongdae/Gangnam)',addr:'Yanghwa-ro 18-gil, 6F, Mapo-gu, Seoul',g:'https://maps.app.goo.gl/86mFSFJWJy9YR4FL7',nq:'리엔장 클리닉',desc:'คนไทยรู้จักดีที่สุด มีสาขาที่ไทยด้วย จองผ่าน LINE ไทยสะดวก · เมนูฮิต: Ultraformer III, Liftera'},
+ {city:'Seoul',type:'Beauty',name:'PPEUM Clinic (Myeongdong/Gangnam)',addr:'Namdaemun-ro 84, 3–5F, Jung-gu, Seoul',g:'https://maps.app.goo.gl/49HD7pvsJmJzJaN8A',nq:'쁨 클리닉 명동',desc:'ตกแต่งสวย ราคาเป็นมิตร มีโปร Global · เมนูฮิต: Shurink Universe, Rejuran Healer · ใกล้สถานี Myeongdong ทางออก 6'},
+ {city:'Seoul',type:'Beauty',name:'Selena Skin Clinic (Hongdae)',addr:'162 Yanghwa-ro, Mapo-gu, Seoul',g:'https://maps.app.goo.gl/m1mmRDqD54tCMxvUA',nq:'셀레나 스킨 클리닉 홍대',desc:'เหมาะถ้าพักย่านฮงแด มีล่ามฟรีบางช่วง วิเคราะห์ผิวละเอียด · เมนูฮิต: Laser Toning, รักษาสิว'},
+ {city:'Seoul',type:'Shopping',name:'Olive Young Myeongdong Town',addr:'53 Myeongdong-gil, Jung-gu, Seoul',g:'https://maps.app.goo.gl/fuCAyNj4odudkKDK8',nq:'올리브영 명동타운',desc:'ช้อปสกินแคร์/ของฝากครบจบในที่เดียว'},
+ {city:'Seoul',type:'Landmark',name:'HYBE Headquarters',addr:'42 Hangang-daero, Yongsan-gu, Seoul',g:'https://maps.app.goo.gl/n9BQNoRbBoEaoxCv8',nq:'하이브 본사',desc:'ตึก HYBE ต้นสังกัด BTS · จุดถ่ายรูป + Compose Coffee'}
+]};
+
+/* ===================== STATE ===================== */
+const KEY='korea2026_state_v2';
+let STATE, editMode=false, curDay=0, curCity='All', curType='All';
+function load(){
+  try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s&&s.days&&s.places){ STATE=s; return; } }catch(e){}
+  STATE=clone(DEFAULTS);
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(STATE)); }catch(e){} }
+load();
+
+/* ===================== SHARED ===================== */
+function mapButtons(map){
+  const w=el('div','acts');
+  const g=el('a','mbtn g','<span>📍</span> Google'); g.href=map.g||G(map.q); g.target='_blank'; g.rel='noopener';
+  const n=el('a','mbtn n','<b>N</b> Naver'); n.href=N(map.nq||map.q); n.target='_blank'; n.rel='noopener';
+  w.appendChild(g); w.appendChild(n); return w;
+}
+function catSelect(val,onchange){
+  const s=el('select','ed');
+  Object.keys(CATS).forEach(k=>{const o=el('option',null,`${CATS[k].i} ${CATS[k].n}`);o.value=k;if(k===val)o.selected=true;s.appendChild(o);});
+  s.onchange=onchange; return s;
+}
+function field(label,value,oninput,ph){
+  const w=el('div','efield'); w.appendChild(el('label',null,label));
+  const i=el('input','ed'); i.type='text'; i.value=value||''; if(ph)i.placeholder=ph; i.oninput=oninput;
+  w.appendChild(i); return w;
+}
+function area(label,value,oninput){
+  const w=el('div','efield'); w.appendChild(el('label',null,label));
+  const t=el('textarea','ed'); t.value=value||''; t.oninput=oninput; w.appendChild(t); return w;
+}
+
+/* ===================== DAY VIEW ===================== */
+function renderDayNav(){
+  const nav=$('#daynav'); nav.innerHTML='';
+  STATE.days.forEach((d,i)=>{
+    const p=el('div','dpill'+(i===curDay?' on':''));
+    p.innerHTML=`<div class="dn">${esc(d.dn)}</div><div class="dd">${esc(d.date)}</div><div class="dt">${esc(d.theme)}</div>`;
+    p.onclick=()=>{curDay=i;renderDayNav();renderDay();$('#timeline').scrollIntoView({behavior:'smooth',block:'start'});};
+    nav.appendChild(p);
+  });
+}
+function renderDayHead(){
+  const d=STATE.days[curDay];
+  $('#dayhead').innerHTML=`<div class="big">${esc(d.title)}</div><div class="meta">${esc(d.dn)} · ${esc(d.date)} — ${esc(d.meta)}</div>`;
+  const e=$('#dayedit'); e.innerHTML='';
+  e.appendChild(field('Day title',d.title,ev=>{d.title=ev.target.value;save();}));
+  const r=el('div','e2');
+  r.appendChild(field('Date',d.date,ev=>{d.date=ev.target.value;save();}));
+  r.appendChild(field('Theme',d.theme,ev=>{d.theme=ev.target.value;save();}));
+  e.appendChild(r);
+  e.appendChild(field('Subtitle / meta',d.meta,ev=>{d.meta=ev.target.value;save();}));
+}
+function renderDay(){
+  renderDayHead();
+  const d=STATE.days[curDay], tl=$('#timeline'); tl.innerHTML='';
+  d.events.forEach((ev,j)=>{
+    const c=`var(--${ev.cat})`, wrap=el('div','ev'); wrap.style.setProperty('--c',c);
+    const card=el('div','card'+(ev.done?' done':'')); card.style.setProperty('--c',c);
+    if(!editMode){
+      const row=el('div','row1');
+      const chk=el('div','chk'+(ev.done?' on':''),ev.done?'✓':'');
+      chk.onclick=()=>{ev.done=!ev.done;save();renderDay();};
+      const body=el('div','evbody'), cat=CATS[ev.cat]||{i:'•',n:ev.cat};
+      body.appendChild(el('div','time',`${esc(ev.t)} <span class="catname">${cat.i} ${cat.n}</span>`));
+      body.appendChild(el('div','title',`${esc(ev.title)}${ev.badge?` <span class="badge">${esc(ev.badge)}</span>`:''}`));
+      if(ev.note){
+        if(ev.map&&ev.map.on) body.appendChild(mapButtons(ev.map));
+        const tgl=el('button','rtoggle','🚇 Route ▾'), rt=el('div','route',ev.note);
+        tgl.onclick=()=>{rt.classList.toggle('open');tgl.innerHTML=rt.classList.contains('open')?'🚇 Route ▴':'🚇 Route ▾';};
+        const tr=el('div','acts');tr.appendChild(tgl);body.appendChild(tr);body.appendChild(rt);
+      } else if(ev.map&&ev.map.on){ body.appendChild(mapButtons(ev.map)); }
+      row.appendChild(chk);row.appendChild(body);card.appendChild(row);
+    } else {
+      card.appendChild(field('Time',ev.t,e=>{ev.t=e.target.value;save();},'e.g. 10:00 AM – 11:00 AM'));
+      const cw=el('div','efield');cw.appendChild(el('label',null,'Category'));
+      cw.appendChild(catSelect(ev.cat,e=>{ev.cat=e.target.value;save();renderDay();}));card.appendChild(cw);
+      card.appendChild(field('Title',ev.title,e=>{ev.title=e.target.value;save();}));
+      card.appendChild(field('Badge (optional)',ev.badge,e=>{ev.badge=e.target.value;save();},'e.g. ★ THE moment'));
+      card.appendChild(area('Route / note (optional)',ev.note,e=>{ev.note=e.target.value;save();}));
+      if(!ev.map)ev.map=mp(0);
+      const ck=el('label','ck'); const cb=el('input');cb.type='checkbox';cb.checked=!!ev.map.on;
+      ck.appendChild(cb);ck.appendChild(document.createTextNode('Show map links (Google + Naver)'));
+      const mf=el('div','mapfields'+(cb.checked?' show':''));
+      cb.onchange=()=>{ev.map.on=cb.checked;mf.classList.toggle('show',cb.checked);save();};
+      mf.appendChild(field('Map search (name + area)',ev.map.q,e=>{ev.map.q=e.target.value;save();},'e.g. Cafe Onion Anguk'));
+      mf.appendChild(field('Naver search (Korean, optional)',ev.map.nq,e=>{ev.map.nq=e.target.value;save();},'e.g. 카페 어니언 안국'));
+      mf.appendChild(field('Google Maps link (optional)',ev.map.g,e=>{ev.map.g=e.target.value;save();},'paste a maps.app.goo.gl link'));
+      card.appendChild(ck);card.appendChild(mf);
+      const ctr=el('div','editrow');
+      const up=el('button','ebtn','↑');up.disabled=j===0;up.onclick=()=>{[d.events[j-1],d.events[j]]=[d.events[j],d.events[j-1]];save();renderDay();};
+      const dn=el('button','ebtn','↓');dn.disabled=j===d.events.length-1;dn.onclick=()=>{[d.events[j+1],d.events[j]]=[d.events[j],d.events[j+1]];save();renderDay();};
+      const del=el('button','ebtn del','🗑 Delete');del.onclick=()=>{if(confirm('Delete this activity?')){d.events.splice(j,1);save();renderDay();}};
+      ctr.appendChild(up);ctr.appendChild(dn);ctr.appendChild(del);card.appendChild(ctr);
+    }
+    wrap.appendChild(card);tl.appendChild(wrap);
+  });
+}
+$('#addEvBtn').onclick=()=>{
+  STATE.days[curDay].events.push({t:'',cat:'fun',title:'New activity',badge:'',note:'',map:mp(0),done:false});
+  save();renderDay();
+};
+
+/* ===================== PLACES VIEW ===================== */
+const TYPE_ORDER=['All','Cafe','Restaurant','Beauty','Shopping','Landmark'];
+const TYPE_CAT={Cafe:'cafe',Restaurant:'food',Beauty:'beauty',Shopping:'shop',Landmark:'landmark'};
+const TYPE_ICON={Cafe:'☕',Restaurant:'🍽',Beauty:'💆',Shopping:'🛍',Landmark:'📍'};
+function renderFilters(){
+  const cr=$('#cityrow');cr.innerHTML='';
+  ['All','Busan','Seoul'].forEach(c=>{const b=el('button','fchip'+(c===curCity?' on':''),(c==='All'?'🌏 ':'')+c);
+    b.onclick=()=>{curCity=c;renderFilters();renderCat();};cr.appendChild(b);});
+  const tr=$('#typerow');tr.innerHTML='';
+  TYPE_ORDER.forEach(t=>{const b=el('button','fchip'+(t===curType?' on':''),`${t==='All'?'✦':TYPE_ICON[t]} ${t}`);
+    b.onclick=()=>{curType=t;renderFilters();renderCat();};tr.appendChild(b);});
+}
+function renderCat(){
+  const list=$('#catlist');list.innerHTML='';
+  const data=STATE.places.filter(p=>(curCity==='All'||p.city===curCity)&&(curType==='All'||p.type===curType));
+  const groups={};data.forEach(p=>{(groups[p.type]=groups[p.type]||[]).push(p);});
+  const order=curType==='All'?['Cafe','Restaurant','Beauty','Shopping','Landmark']:[curType];
+  order.forEach(type=>{
+    if(!groups[type])return;
+    const cvar=`var(--${TYPE_CAT[type]||'landmark'})`, sec=el('div','catsec');sec.style.setProperty('--c',cvar);
+    sec.appendChild(el('h3',null,`<span class="cdot"></span>${TYPE_ICON[type]||'📍'} ${type}`));
+    sec.appendChild(el('p','ccount',`${groups[type].length} places`));
+    groups[type].forEach(p=>{
+      const idx=STATE.places.indexOf(p);
+      const card=el('div','place');card.style.setProperty('--c',cvar);
+      if(!editMode){
+        card.appendChild(el('div',null,`<span class="pn">${esc(p.name)}</span><span class="pcity">${esc(p.city)}</span>`));
+        if(p.addr)card.appendChild(el('div','addr','📮 '+esc(p.addr)));
+        if(p.desc)card.appendChild(el('div','desc',esc(p.desc)));
+        card.appendChild(mapButtons({g:p.g,q:p.name+', '+p.city,nq:p.nq}));
+      } else {
+        card.appendChild(field('Name',p.name,e=>{p.name=e.target.value;save();}));
+        const r=el('div','e2');
+        const cw=el('div','efield');cw.appendChild(el('label',null,'City'));
+        const cs=el('select','ed');['Busan','Seoul'].forEach(c=>{const o=el('option',null,c);o.value=c;if(c===p.city)o.selected=true;cs.appendChild(o);});
+        cs.onchange=e=>{p.city=e.target.value;save();renderCat();};cw.appendChild(cs);r.appendChild(cw);
+        const tw=el('div','efield');tw.appendChild(el('label',null,'Type'));
+        const ts=el('select','ed');['Cafe','Restaurant','Beauty','Shopping','Landmark'].forEach(t=>{const o=el('option',null,t);o.value=t;if(t===p.type)o.selected=true;ts.appendChild(o);});
+        ts.onchange=e=>{p.type=e.target.value;save();renderCat();};tw.appendChild(ts);r.appendChild(tw);
+        card.appendChild(r);
+        card.appendChild(field('Address',p.addr,e=>{p.addr=e.target.value;save();}));
+        card.appendChild(area('Detail (note)',p.desc,e=>{p.desc=e.target.value;save();}));
+        card.appendChild(field('Naver search (Korean)',p.nq,e=>{p.nq=e.target.value;save();}));
+        card.appendChild(field('Google Maps link',p.g,e=>{p.g=e.target.value;save();}));
+        const ctr=el('div','editrow');
+        const del=el('button','ebtn del','🗑 Delete');del.onclick=()=>{if(confirm('Delete this place?')){STATE.places.splice(idx,1);save();renderCat();}};
+        ctr.appendChild(del);card.appendChild(ctr);
+      }
+      sec.appendChild(card);
+    });
+    list.appendChild(sec);
+  });
+  if(!data.length)list.appendChild(el('p','ccount','No places for this filter.'));
+}
+$('#addPlaceBtn').onclick=()=>{
+  STATE.places.push({city:curCity==='Seoul'?'Seoul':'Busan',type:curType==='All'?'Cafe':curType,name:'New place',addr:'',g:'',nq:'',desc:''});
+  save();renderCat();
+};
+
+/* ===================== TIPS ===================== */
+function renderTips(){
+  const v=$('#view-tips');v.innerHTML='';
+  const cafe=el('div','tip');cafe.innerHTML=`<h3>☕ มารยาทในคาเฟ่</h3><ul>
+    <li><b>1 คน 1 เมนู (1인 1음료):</b> ทุกคนที่นั่งต้องสั่งเครื่องดื่มอย่างน้อยคนละ 1 แก้ว สั่งเครื่องดื่มชัวร์สุด</li>
+    <li><b>ห้ามนำอาหารนอกร้านเข้ามา</b> รวมขนมหรือสตรีทฟู้ดที่เพิ่งซื้อมา</li>
+    <li><b>จองโต๊ะก่อนสั่ง:</b> วางกระเป๋า/ร่มจองโต๊ะก่อน แล้วค่อยลงไปสั่งที่เคาน์เตอร์</li>
+    <li><b>Self-service:</b> ได้เครื่องสั่น (buzzer) แล้วไปรับน้ำเอง ทานเสร็จยกถาดไปคืนที่จุด Return (반납구) แยกแก้ว/หลอด/น้ำแข็ง</li></ul>`;
+  const rest=el('div','tip');rest.innerHTML=`<h3>🥩 มารยาทในร้านอาหาร</h3><ul>
+    <li><b>ขั้นต่ำ 2 ที่ (최소 2인분):</b> ร้านปิ้งย่าง/หม้อไฟ ส่วนใหญ่ต้องสั่งขั้นต่ำ 2 ส่วน</li>
+    <li><b>อุปกรณ์หาเอง:</b> ช้อน ตะเกียบ ทิชชู่ มักอยู่ในลิ้นชักข้างโต๊ะ · น้ำ + เครื่องเคียง (banchan) ฟรี</li>
+    <li><b>เรียกพนักงาน:</b> กดปุ่ม Bell บนโต๊ะ หรือเรียกเบาๆ ว่า “ชอ-กี-โย” · ห้ามกวักมือคว่ำ/ดีดนิ้ว</li>
+    <li><b>จ่ายเงินที่เคาน์เตอร์หน้าร้าน</b> ไม่เรียกเช็คบิลที่โต๊ะ</li>
+    <li><b>Dutch Pay:</b> ร้านไม่ชอบรูดหลายใบในโต๊ะเดียว ให้คนเดียวจ่ายก่อนแล้วโอนคืนกัน</li>
+    <li><b>ไม่มีทิป</b> ราคารวมค่าบริการแล้ว</li></ul>`;
+  const ph=el('div','phrase');ph.innerHTML=`<h3>💬 ประโยคเกาหลีที่ได้ใช้แน่</h3>
+    <div class="p"><div class="ko">1인 1메뉴입니까?</div><div class="rom">il-in il-menyu im-ni-kka?</div><div class="mean">ต้องสั่ง 1 คน 1 เมนูไหมคะ/ครับ?</div></div>
+    <div class="p"><div class="ko">저기요</div><div class="rom">jeo-gi-yo</div><div class="mean">ขอโทษนะคะ/ครับ (เรียกพนักงาน)</div></div>
+    <div class="p"><div class="ko">계산해 주세요</div><div class="rom">gye-san-hae ju-se-yo</div><div class="mean">คิดเงินด้วยค่ะ/ครับ</div></div>`;
+  v.appendChild(cafe);v.appendChild(rest);v.appendChild(ph);
+}
+
+/* ===================== EDIT / TOOLBAR ===================== */
+function setEdit(on){
+  editMode=on;
+  document.body.classList.toggle('editing',on);
+  $('#editToggle').innerHTML=on?'✓ Done':'✏️ Edit Mode';
+  $('#editToggle').classList.toggle('primary',!on);
+  $('#addEvBtn').style.display=on?'block':'none';
+  $('#addPlaceBtn').style.display=on?'block':'none';
+  renderDay();renderCat();
+}
+$('#editToggle').onclick=()=>setEdit(!editMode);
+
+$('#exportBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(STATE,null,2)],{type:'application/json'});
+  const a=el('a');a.href=URL.createObjectURL(blob);
+  a.download='korea_2026_plan.json';document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},100);
+};
+$('#importBtn').onclick=()=>$('#importFile').click();
+$('#importFile').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const s=JSON.parse(r.result);
+    if(s&&Array.isArray(s.days)&&Array.isArray(s.places)){STATE=s;save();curDay=0;renderAll();alert('Imported! ✓');}
+    else alert('That file doesn’t look like a Korea-plan export.');
+  }catch(err){alert('Could not read that JSON file.');}
+  $('#importFile').value='';};
+  r.readAsText(f);
+};
+$('#resetBtn').onclick=()=>{
+  if(confirm('Reset everything back to the original plan? Your edits on this device will be lost.')){
+    STATE=clone(DEFAULTS);save();curDay=0;renderAll();
+  }
+};
+
+/* ===================== TABS ===================== */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
+    const v=t.dataset.view;
+    $('#view-day').classList.toggle('hidden',v!=='day');
+    $('#view-cat').classList.toggle('hidden',v!=='cat');
+    $('#view-tips').classList.toggle('hidden',v!=='tips');
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+});
+
+/* ===================== COUNTDOWN ===================== */
+const TARGET=new Date('2026-06-11T00:50:00+07:00').getTime();
+function tick(){
+  let diff=TARGET-Date.now();const c=$('#count'),clk=$('#clock'),lbl=$('#countlbl');
+  if(diff<=0){c.classList.add('go');lbl.textContent='Annyeong! Trip is on 💜';
+    clk.innerHTML=`<div class="u"><div class="n">GO</div><div class="t">Enjoy</div></div>`;return;}
+  const d=Math.floor(diff/864e5);diff-=d*864e5;const h=Math.floor(diff/36e5);diff-=h*36e5;
+  const m=Math.floor(diff/6e4);diff-=m*6e4;const s=Math.floor(diff/1e3);
+  const u=(n,t)=>`<div class="u"><div class="n">${String(n).padStart(2,'0')}</div><div class="t">${t}</div></div>`;
+  clk.innerHTML=u(d,'Days')+u(h,'Hrs')+u(m,'Min')+u(s,'Sec');
+}
+
+/* ===================== INIT ===================== */
+function renderAll(){renderDayNav();renderDay();renderFilters();renderCat();renderTips();}
+renderAll();tick();setInterval(tick,1000);
+</script>
+</body>
+</html>
