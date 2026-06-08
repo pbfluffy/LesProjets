@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bang Saen Beach Trip</title>
+<style>
+  :root {
+    --blue:#0b5fff;
+    --teal:#00a8a8;
+    --navy:#071b4d;
+    --sand:#fff4df;
+    --card:rgba(255,255,255,.92);
+    --line:rgba(7,27,77,.12);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    color:var(--navy);
+    background:linear-gradient(180deg,#85d8ff 0%,#eaf9ff 38%,#fff7e8 100%);
+  }
+  .page {
+    max-width:460px;
+    min-height:100vh;
+    margin:0 auto;
+    background:
+      radial-gradient(circle at 15% 7%,rgba(255,255,255,.8),transparent 20%),
+      linear-gradient(180deg,rgba(0,155,220,.55) 0 19%,transparent 19%),
+      linear-gradient(160deg,#22b8cf 0%,#4ecdc4 28%,#f7d794 72%,#fff 100%);
+    padding:18px;
+  }
+  .hero {
+    border-radius:28px;
+    overflow:hidden;
+    min-height:260px;
+    padding:24px 20px;
+    position:relative;
+    color:white;
+    box-shadow:0 20px 45px rgba(6,34,80,.22);
+    background:
+      linear-gradient(180deg,rgba(0,44,100,.1),rgba(0,18,60,.52)),
+      radial-gradient(circle at 85% 20%,#fff 0 4%,transparent 5%),
+      linear-gradient(175deg,#0aa9ff 0 35%,#06c3cc 36% 50%,#f7d794 51% 100%);
+  }
+  .hero:before {
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+      repeating-linear-gradient(165deg,transparent 0 16px,rgba(255,255,255,.15) 17px 18px),
+      radial-gradient(ellipse at 50% 47%,rgba(255,255,255,.85) 0 2%,transparent 3%),
+      linear-gradient(170deg,transparent 0 47%,rgba(255,255,255,.82) 48% 50%,transparent 51%);
+    opacity:.75;
+  }
+  .hero h1 {
+    position:relative;
+    margin:0;
+    font-size:49px;
+    line-height:.95;
+    letter-spacing:-2px;
+    text-shadow:0 5px 18px rgba(0,0,0,.25);
+  }
+  .hero .tag {
+    position:relative;
+    display:inline-block;
+    margin-bottom:10px;
+    padding:8px 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.22);
+    backdrop-filter:blur(8px);
+    font-weight:800;
+  }
+  .hero .trip {
+    position:absolute;
+    right:18px;
+    bottom:18px;
+    font-size:44px;
+  }
+  .info-row {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin:14px 0;
+  }
+  .pill,.card {
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:22px;
+    box-shadow:0 12px 30px rgba(6,34,80,.12);
+    backdrop-filter:blur(12px);
+  }
+  .pill {
+    padding:14px;
+  }
+  .label {
+    font-size:12px;
+    text-transform:uppercase;
+    color:#2870b8;
+    font-weight:900;
+    letter-spacing:.7px;
+  }
+  .value {
+    margin-top:4px;
+    font-size:21px;
+    font-weight:900;
+  }
+  .destination {
+    padding:18px;
+    margin-bottom:14px;
+  }
+  .dest-top {
+    display:grid;
+    grid-template-columns:1fr 120px;
+    gap:14px;
+    align-items:center;
+  }
+  .btn {
+    display:block;
+    margin-top:16px;
+    padding:16px 18px;
+    border-radius:18px;
+    background:linear-gradient(135deg,var(--blue),#04a9ff);
+    color:white;
+    text-align:center;
+    text-decoration:none;
+    font-weight:950;
+    letter-spacing:.5px;
+    box-shadow:0 10px 22px rgba(11,95,255,.32);
+  }
+  .qr {
+    background:white;
+    padding:8px;
+    border-radius:18px;
+    border:1px solid #dbe7ff;
+    box-shadow:0 10px 25px rgba(6,34,80,.12);
+  }
+  .qr img { width:100%; display:block; }
+  .stats {
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .stat {
+    padding:13px 8px;
+    text-align:center;
+    border-radius:20px;
+    background:white;
+    box-shadow:0 8px 22px rgba(6,34,80,.1);
+  }
+  .stat b { display:block; font-size:30px; color:var(--blue); }
+  .section-title {
+    font-size:16px;
+    font-weight:950;
+    margin:18px 2px 10px;
+    letter-spacing:.5px;
+  }
+  .group {
+    padding:15px;
+    margin-bottom:10px;
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    gap:12px;
+    align-items:start;
+  }
+  .icon {
+    width:44px;
+    height:44px;
+    border-radius:16px;
+    display:grid;
+    place-items:center;
+    color:white;
+    background:linear-gradient(135deg,var(--teal),var(--blue));
+    font-size:24px;
+  }
+  .group h3 {
+    margin:0 0 8px;
+    font-size:18px;
+  }
+  .group ul {
+    margin:0;
+    padding-left:18px;
+    line-height:1.75;
+  }
+  .count {
+    background:#eef7ff;
+    color:#0752bc;
+    padding:8px 10px;
+    border-radius:999px;
+    font-weight:900;
+    white-space:nowrap;
+  }
+  .footer {
+    text-align:center;
+    padding:18px 0 8px;
+    font-weight:800;
+    color:#0752bc;
+  }
+  @media print {
+    body { background:white; }
+    .page { max-width:none; min-height:auto; }
+    a { color:inherit; }
+  }
+</style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="tag">LET'S GO!</div>
+      <h1>Bang Saen<br/>Beach</h1>
+      <div class="trip">🌴</div>
+    </section>
+
+    <section class="info-row">
+      <div class="pill">
+        <div class="label">Date</div>
+        <div class="value">Saturday<br/>4th July 2026</div>
+      </div>
+      <div class="pill">
+        <div class="label">Time</div>
+        <div class="value">01:00 PM</div>
+      </div>
+    </section>
+
+    <section class="destination card">
+      <div class="dest-top">
+        <div>
+          <div class="label">Destination</div>
+          <div class="value">📍 Bang Saen Beach</div>
+          <a class="btn" href="https://maps.app.goo.gl/r3NpZenzdHBAzEbF7" target="_blank" rel="noopener">OPEN IN GOOGLE MAPS</a>
+        </div>
+        <div>
+          <div class="qr"><img src="data:image/png;base64,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" alt="QR code for Google Maps location"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stat"><b>12</b>People</div>
+      <div class="stat"><b>3</b>Cars</div>
+      <div class="stat"><b>2</b>Meet at Restaurant</div>
+    </section>
+
+    <div class="section-title">🚗 TRAVEL GROUPS</div>
+
+    <section class="group card">
+      <div class="icon">🚗</div>
+      <div>
+        <h3>Arm's Car</h3>
+        <ul><li>Arm</li><li>Arm's GF</li><li>Arm's Daughter</li></ul>
+      </div>
+      <div class="count">3</div>
+    </section>
+
+    <section class="group card">
+      <div class="icon">🚙</div>
+      <div>
+        <h3>Earth's Car</h3>
+        <ul><li>Earth</li><li>Earth's GF</li></ul>
+      </div>
+      <div class="count">2</div>
+    </section>
+
+    <section class="group card">
+      <div class="icon">🚐</div>
+      <div>
+        <h3>Po's Car</h3>
+        <ul><li>Po</li><li>Aew</li><li>Yan</li><li>Kaung</li><li>Keng</li></ul>
+      </div>
+      <div class="count">5</div>
+    </section>
+
+    <section class="group card">
+      <div class="icon">🍽️</div>
+      <div>
+        <h3>Meet at Restaurant</h3>
+        <ul><li>Tibeth</li><li>Kotchathan</li></ul>
+      </div>
+      <div class="count">2</div>
+    </section>
+
+    <div class="footer">See you at Bang Saen Beach! 🌊</div>
+  </main>
+</body>
+</html>
