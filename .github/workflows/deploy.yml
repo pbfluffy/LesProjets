@@ -48,7 +48,7 @@ jobs:
           cp index.html _site/index.html
           cp admindepum.html _site/admindepum.html
           cp korea2026-d6718e8d.html _site/korea2026-d6718e8d.html
-          cp temp.html _site/.html
+          cp temp.html _site/temp.html
           mkdir -p _site/backyard-rampage && cp -r backyard-rampage/. _site/backyard-rampage/
           cp -r studio/. _site/studio/
           cp -r bill-splitter/dist/. _site/bill-splitter/
