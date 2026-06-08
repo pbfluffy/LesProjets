@@ -5,282 +5,391 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Bang Saen Beach Trip</title>
 <style>
-  :root {
-    --blue:#0b5fff;
-    --teal:#00a8a8;
-    --navy:#071b4d;
-    --sand:#fff4df;
-    --card:rgba(255,255,255,.92);
-    --line:rgba(7,27,77,.12);
-  }
-  * { box-sizing:border-box; }
-  body {
-    margin:0;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-    color:var(--navy);
-    background:linear-gradient(180deg,#85d8ff 0%,#eaf9ff 38%,#fff7e8 100%);
-  }
-  .page {
-    max-width:460px;
-    min-height:100vh;
-    margin:0 auto;
-    background:
-      radial-gradient(circle at 15% 7%,rgba(255,255,255,.8),transparent 20%),
-      linear-gradient(180deg,rgba(0,155,220,.55) 0 19%,transparent 19%),
-      linear-gradient(160deg,#22b8cf 0%,#4ecdc4 28%,#f7d794 72%,#fff 100%);
-    padding:18px;
-  }
-  .hero {
-    border-radius:28px;
-    overflow:hidden;
-    min-height:260px;
-    padding:24px 20px;
-    position:relative;
-    color:white;
-    box-shadow:0 20px 45px rgba(6,34,80,.22);
-    background:
-      linear-gradient(180deg,rgba(0,44,100,.1),rgba(0,18,60,.52)),
-      radial-gradient(circle at 85% 20%,#fff 0 4%,transparent 5%),
-      linear-gradient(175deg,#0aa9ff 0 35%,#06c3cc 36% 50%,#f7d794 51% 100%);
-  }
-  .hero:before {
-    content:"";
-    position:absolute;
-    inset:0;
-    background:
-      repeating-linear-gradient(165deg,transparent 0 16px,rgba(255,255,255,.15) 17px 18px),
-      radial-gradient(ellipse at 50% 47%,rgba(255,255,255,.85) 0 2%,transparent 3%),
-      linear-gradient(170deg,transparent 0 47%,rgba(255,255,255,.82) 48% 50%,transparent 51%);
-    opacity:.75;
-  }
-  .hero h1 {
-    position:relative;
-    margin:0;
-    font-size:49px;
-    line-height:.95;
-    letter-spacing:-2px;
-    text-shadow:0 5px 18px rgba(0,0,0,.25);
-  }
-  .hero .tag {
-    position:relative;
-    display:inline-block;
-    margin-bottom:10px;
-    padding:8px 12px;
-    border-radius:999px;
-    background:rgba(255,255,255,.22);
-    backdrop-filter:blur(8px);
-    font-weight:800;
-  }
-  .hero .trip {
-    position:absolute;
-    right:18px;
-    bottom:18px;
-    font-size:44px;
-  }
-  .info-row {
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
-    margin:14px 0;
-  }
-  .pill,.card {
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:22px;
-    box-shadow:0 12px 30px rgba(6,34,80,.12);
-    backdrop-filter:blur(12px);
-  }
-  .pill {
-    padding:14px;
-  }
-  .label {
-    font-size:12px;
-    text-transform:uppercase;
-    color:#2870b8;
-    font-weight:900;
-    letter-spacing:.7px;
-  }
-  .value {
-    margin-top:4px;
-    font-size:21px;
-    font-weight:900;
-  }
-  .destination {
-    padding:18px;
-    margin-bottom:14px;
-  }
-  .dest-top {
-    display:grid;
-    grid-template-columns:1fr 120px;
-    gap:14px;
-    align-items:center;
-  }
-  .btn {
-    display:block;
-    margin-top:16px;
-    padding:16px 18px;
-    border-radius:18px;
-    background:linear-gradient(135deg,var(--blue),#04a9ff);
-    color:white;
-    text-align:center;
-    text-decoration:none;
-    font-weight:950;
-    letter-spacing:.5px;
-    box-shadow:0 10px 22px rgba(11,95,255,.32);
-  }
-  .qr {
-    background:white;
-    padding:8px;
-    border-radius:18px;
-    border:1px solid #dbe7ff;
-    box-shadow:0 10px 25px rgba(6,34,80,.12);
-  }
-  .qr img { width:100%; display:block; }
-  .stats {
-    display:grid;
-    grid-template-columns:1fr 1fr 1fr;
-    gap:8px;
-    margin-bottom:14px;
-  }
-  .stat {
-    padding:13px 8px;
-    text-align:center;
-    border-radius:20px;
-    background:white;
-    box-shadow:0 8px 22px rgba(6,34,80,.1);
-  }
-  .stat b { display:block; font-size:30px; color:var(--blue); }
-  .section-title {
-    font-size:16px;
-    font-weight:950;
-    margin:18px 2px 10px;
-    letter-spacing:.5px;
-  }
-  .group {
-    padding:15px;
-    margin-bottom:10px;
-    display:grid;
-    grid-template-columns:auto 1fr auto;
-    gap:12px;
-    align-items:start;
-  }
-  .icon {
-    width:44px;
-    height:44px;
-    border-radius:16px;
-    display:grid;
-    place-items:center;
-    color:white;
-    background:linear-gradient(135deg,var(--teal),var(--blue));
-    font-size:24px;
-  }
-  .group h3 {
-    margin:0 0 8px;
-    font-size:18px;
-  }
-  .group ul {
-    margin:0;
-    padding-left:18px;
-    line-height:1.75;
-  }
-  .count {
-    background:#eef7ff;
-    color:#0752bc;
-    padding:8px 10px;
-    border-radius:999px;
-    font-weight:900;
-    white-space:nowrap;
-  }
-  .footer {
-    text-align:center;
-    padding:18px 0 8px;
-    font-weight:800;
-    color:#0752bc;
-  }
-  @media print {
-    body { background:white; }
-    .page { max-width:none; min-height:auto; }
-    a { color:inherit; }
-  }
+:root {
+  --ink:#0A2540;
+  --muted:#5B6B82;
+  --blue:#1366D6;
+  --blue2:#00A3C7;
+  --sand:#F7E1B5;
+  --paper:#FFFFFF;
+  --soft:#F4F8FB;
+  --line:rgba(10,37,64,.12);
+  --shadow:0 18px 46px rgba(10,37,64,.14);
+}
+* { box-sizing:border-box; }
+body {
+  margin:0;
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background:linear-gradient(180deg,#DDF5FF 0%,#FFF7E8 72%,#FFFFFF 100%);
+  color:var(--ink);
+}
+.wrapper {
+  width:min(100%,480px);
+  margin:0 auto;
+  padding:18px 16px 30px;
+}
+.hero {
+  position:relative;
+  overflow:hidden;
+  border-radius:32px;
+  min-height:310px;
+  padding:26px 24px;
+  color:white;
+  box-shadow:var(--shadow);
+  background:
+    linear-gradient(180deg,rgba(10,37,64,.05),rgba(10,37,64,.60)),
+    linear-gradient(165deg,#17A8E5 0 38%,#11B6B3 39% 52%,#F6D899 53% 100%);
+}
+.hero:before {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(ellipse at 28% 20%,rgba(255,255,255,.82) 0 10%,transparent 11%),
+    radial-gradient(ellipse at 68% 23%,rgba(255,255,255,.68) 0 9%,transparent 10%),
+    linear-gradient(170deg,transparent 0 47%,rgba(255,255,255,.82) 48% 50%,transparent 51%),
+    repeating-linear-gradient(176deg,transparent 0 18px,rgba(255,255,255,.18) 19px 20px);
+  opacity:.82;
+}
+.hero-content {
+  position:relative;
+  z-index:1;
+}
+.kicker {
+  display:inline-block;
+  padding:8px 12px;
+  border-radius:999px;
+  background:rgba(255,255,255,.18);
+  border:1px solid rgba(255,255,255,.42);
+  font-size:12px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.9px;
+}
+h1 {
+  margin:24px 0 12px;
+  font-size:54px;
+  line-height:.92;
+  letter-spacing:-2.2px;
+  text-shadow:0 8px 22px rgba(0,0,0,.22);
+}
+.hero-subtitle {
+  font-size:16px;
+  font-weight:700;
+  opacity:.96;
+}
+.panel {
+  position:relative;
+  z-index:2;
+  margin-top:-32px;
+  padding:14px;
+  border-radius:28px;
+  background:rgba(255,255,255,.82);
+  backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,.86);
+  box-shadow:var(--shadow);
+}
+.top-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.info-box,.card,.stat {
+  background:var(--paper);
+  border:1px solid var(--line);
+  box-shadow:0 10px 26px rgba(10,37,64,.08);
+}
+.info-box {
+  padding:14px;
+  border-radius:22px;
+}
+.label {
+  color:var(--blue);
+  font-size:11px;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.75px;
+}
+.value {
+  margin-top:6px;
+  font-size:19px;
+  font-weight:850;
+  line-height:1.18;
+}
+.card {
+  margin-top:13px;
+  padding:17px;
+  border-radius:26px;
+}
+.destination {
+  display:grid;
+  grid-template-columns:1fr 112px;
+  gap:14px;
+  align-items:center;
+}
+.button {
+  display:block;
+  margin-top:14px;
+  padding:15px 16px;
+  border-radius:16px;
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  color:white;
+  text-align:center;
+  text-decoration:none;
+  font-size:14px;
+  font-weight:850;
+  letter-spacing:.35px;
+  box-shadow:0 12px 24px rgba(19,102,214,.26);
+}
+.button.secondary {
+  background:linear-gradient(135deg,#F28C28,#F6B84E);
+  box-shadow:0 12px 24px rgba(242,140,40,.22);
+}
+.qr {
+  padding:8px;
+  border-radius:18px;
+  background:white;
+  border:1px solid #DAE7F4;
+}
+.qr img {
+  display:block;
+  width:100%;
+  border-radius:10px;
+}
+.url {
+  margin-top:8px;
+  font-size:11px;
+  color:var(--muted);
+  word-break:break-all;
+}
+.stats {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:9px;
+  margin-top:13px;
+}
+.stat {
+  padding:15px 8px;
+  text-align:center;
+  border-radius:22px;
+}
+.stat strong {
+  display:block;
+  font-size:32px;
+  line-height:1;
+  color:var(--blue);
+}
+.stat span {
+  display:block;
+  margin-top:6px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:750;
+}
+.section-title {
+  margin:22px 4px 10px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-size:13px;
+  color:#153B66;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:1px;
+}
+.section-title:after {
+  content:"";
+  flex:1;
+  height:1px;
+  background:linear-gradient(90deg,rgba(21,59,102,.30),transparent);
+}
+.group {
+  display:grid;
+  grid-template-columns:48px 1fr auto;
+  gap:13px;
+  align-items:start;
+}
+.mark {
+  width:48px;
+  height:48px;
+  border-radius:16px;
+  display:grid;
+  place-items:center;
+  color:white;
+  background:linear-gradient(135deg,var(--blue2),var(--blue));
+  font-weight:900;
+  letter-spacing:.5px;
+}
+.mark.green { background:linear-gradient(135deg,#10A57A,#00A3C7); }
+.mark.purple { background:linear-gradient(135deg,#6857D8,#9958D8); }
+.mark.orange { background:linear-gradient(135deg,#F28C28,#F6B84E); }
+.group h3 {
+  margin:0 0 10px;
+  font-size:18px;
+}
+.people {
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+.chip {
+  padding:7px 10px;
+  border-radius:999px;
+  background:var(--soft);
+  border:1px solid var(--line);
+  font-size:14px;
+  font-weight:700;
+}
+.count {
+  padding:8px 10px;
+  border-radius:999px;
+  background:#EAF4FF;
+  color:#0A55B7;
+  font-size:12px;
+  font-weight:850;
+  white-space:nowrap;
+}
+.meetbox {
+  margin-top:15px;
+  padding:14px;
+  border-radius:20px;
+  background:linear-gradient(135deg,#FFF5E4,#FFFFFF);
+  border:1px solid rgba(242,140,40,.25);
+}
+.meetgrid {
+  display:grid;
+  grid-template-columns:1fr 100px;
+  gap:13px;
+  align-items:center;
+}
+.footer {
+  margin-top:22px;
+  padding:18px;
+  text-align:center;
+  color:var(--muted);
+  font-weight:700;
+}
+@media(max-width:380px) {
+  h1 { font-size:47px; }
+  .destination,.meetgrid { grid-template-columns:1fr; }
+  .qr { max-width:140px; }
+  .group { grid-template-columns:44px 1fr; }
+  .count { grid-column:2; }
+}
 </style>
 </head>
 <body>
-  <main class="page">
-    <section class="hero">
-      <div class="tag">LET'S GO!</div>
-      <h1>Bang Saen<br/>Beach</h1>
-      <div class="trip">🌴</div>
-    </section>
+<main class="wrapper">
+  <section class="hero">
+    <div class="hero-content">
+      <div class="kicker">Beach Trip Plan</div>
+      <h1>Bang Saen<br>Beach</h1>
+      <div class="hero-subtitle">Saturday, 4th July 2026 · 01:00 PM</div>
+    </div>
+  </section>
 
-    <section class="info-row">
-      <div class="pill">
+  <section class="panel">
+    <div class="top-grid">
+      <div class="info-box">
         <div class="label">Date</div>
-        <div class="value">Saturday<br/>4th July 2026</div>
+        <div class="value">Saturday<br>4th July 2026</div>
       </div>
-      <div class="pill">
-        <div class="label">Time</div>
+      <div class="info-box">
+        <div class="label">Departure Time</div>
         <div class="value">01:00 PM</div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="destination card">
-      <div class="dest-top">
-        <div>
-          <div class="label">Destination</div>
-          <div class="value">📍 Bang Saen Beach</div>
-          <a class="btn" href="https://maps.app.goo.gl/r3NpZenzdHBAzEbF7" target="_blank" rel="noopener">OPEN IN GOOGLE MAPS</a>
-        </div>
-        <div>
-          <div class="qr"><img src="data:image/png;base64,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" alt="QR code for Google Maps location"></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="stats">
-      <div class="stat"><b>12</b>People</div>
-      <div class="stat"><b>3</b>Cars</div>
-      <div class="stat"><b>2</b>Meet at Restaurant</div>
-    </section>
-
-    <div class="section-title">🚗 TRAVEL GROUPS</div>
-
-    <section class="group card">
-      <div class="icon">🚗</div>
+  <section class="card">
+    <div class="destination">
       <div>
-        <h3>Arm's Car</h3>
-        <ul><li>Arm</li><li>Arm's GF</li><li>Arm's Daughter</li></ul>
+        <div class="label">Destination</div>
+        <div class="value">Bang Saen Beach</div>
+        <a class="button" href="https://maps.app.goo.gl/r3NpZenzdHBAzEbF7" target="_blank" rel="noopener">Open in Google Maps</a>
+        <div class="url">https://maps.app.goo.gl/r3NpZenzdHBAzEbF7</div>
       </div>
-      <div class="count">3</div>
-    </section>
+      <div class="qr"><img src="data:image/png;base64,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" alt="QR code for Bang Saen Beach destination"></div>
+    </div>
+  </section>
 
-    <section class="group card">
-      <div class="icon">🚙</div>
-      <div>
-        <h3>Earth's Car</h3>
-        <ul><li>Earth</li><li>Earth's GF</li></ul>
+  <section class="stats">
+    <div class="stat"><strong>12</strong><span>People</span></div>
+    <div class="stat"><strong>3</strong><span>Cars</span></div>
+    <div class="stat"><strong>2</strong><span>Restaurant Meetup</span></div>
+  </section>
+
+  <div class="section-title">Travel Groups</div>
+
+  <section class="card group">
+    <div class="mark green">A</div>
+    <div>
+      <h3>Arm's Car</h3>
+      <div class="people">
+        <span class="chip">Arm</span>
+        <span class="chip">Arm's GF</span>
+        <span class="chip">Arm's Daughter</span>
       </div>
-      <div class="count">2</div>
-    </section>
+    </div>
+    <div class="count">3 people</div>
+  </section>
 
-    <section class="group card">
-      <div class="icon">🚐</div>
+  <section class="card group">
+    <div class="mark">E</div>
+    <div>
+      <h3>Earth's Car</h3>
+      <div class="people">
+        <span class="chip">Earth</span>
+        <span class="chip">Earth's GF</span>
+      </div>
+    </div>
+    <div class="count">2 people</div>
+  </section>
+
+  <section class="card">
+    <div class="group" style="margin:0;padding:0;border:0;background:transparent;box-shadow:none;">
+      <div class="mark purple">P</div>
       <div>
         <h3>Po's Car</h3>
-        <ul><li>Po</li><li>Aew</li><li>Yan</li><li>Kaung</li><li>Keng</li></ul>
+        <div class="people">
+          <span class="chip">Po</span>
+          <span class="chip">Aew</span>
+          <span class="chip">Yan</span>
+          <span class="chip">Kaung</span>
+          <span class="chip">Keng</span>
+        </div>
       </div>
-      <div class="count">5</div>
-    </section>
+      <div class="count">5 people</div>
+    </div>
 
-    <section class="group card">
-      <div class="icon">🍽️</div>
-      <div>
-        <h3>Meet at Restaurant</h3>
-        <ul><li>Tibeth</li><li>Kotchathan</li></ul>
+    <div class="meetbox">
+      <div class="meetgrid">
+        <div>
+          <div class="label">Po's Car Pre-meet</div>
+          <div class="value">09:00 AM</div>
+          <a class="button secondary" href="https://maps.app.goo.gl/WHCaotHDKEQ9xKxq9" target="_blank" rel="noopener">Open Meetup Location</a>
+          <div class="url">https://maps.app.goo.gl/WHCaotHDKEQ9xKxq9</div>
+        </div>
+        <div class="qr"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUgAAAFICAIAAAC9dvBkAAAHO0lEQVR4nO3dMY5kNRRAURqRsQ/2wcrZx+yDuAiYcIzkkS3bl3NCNPyuruorB69sf30+n1+All9PvwBgPWFDkLAhSNgQJGwIEjYECRuChA1BwoYgYUOQsCFI2BAkbAgSNgQJG4J+m/0ffv/jzx2vY7m/v/31w/8++/pnn7Pq389a9fzqc2aff5vZ39eKDUHChiBhQ5CwIUjYECRsCBI2BE3PsUdWzRVn7Z5Lzz5/1b8/NT+/bQ6/6jmzr/OVv+cRKzYECRuChA1BwoYgYUOQsCFI2BC0bI49smoud9u8dPfruW1+vsqqOfwpt/39jFixIUjYECRsCBI2BAkbgoQNQcKGoO1z7Nuc2ud82/z2lZ97al/066zYECRsCBI2BAkbgoQNQcKGIGFD0P9ujn1q3/Kqeeyq+fPuufGp12nu/S8rNgQJG4KEDUHChiBhQ5CwIUjYELR9jn3bXPHUPuRV93jPmn3O7n3mI7vPaT/1fp5ixYYgYUOQsCFI2BAkbAgSNgQJG4KWzbFvu8d4ZPf53q88/5V57G33eL/Cig1BwoYgYUOQsCFI2BAkbAgSNgRNz7FfmX/O2j0vff0889vmuqteT/Xv2YoNQcKGIGFDkLAhSNgQJGwIEjYEPXM/9qpzuU+dK77qfO9V8+3d+8ZHds/hb9vffmr/vBUbgoQNQcKGIGFDkLAhSNgQJGwImp5j777n+bZ7pFe9nur927Nu29c9smoePmvV52LFhiBhQ5CwIUjYECRsCBI2BAkbgrbvx35lfrv7ObfN82/7XG5z2/3b9mMDwoYiYUOQsCFI2BAkbAgSNgQdux/71HnLu+/Bnv25I7t/r9vOId/9ua+y+3O0HxsYEjYECRuChA1BwoYgYUOQsCHo6/P5TP0Pp+bPu1/PrFP7q2+b647ctp/81N+D+7GBZYQNQcKGIGFDkLAhSNgQJGwIen6Ovcor52C/Pv+f9cr8eeTUveVWbAgSNgQJG4KEDUHChiBhQ5CwIWjZHHvktvO6Z70ybz81f75t7j3y+vtjPzYgbCgSNgQJG4KEDUHChiBhQ9Cy+7FHc7lT52mfOnf6lbnurFf229/2Pp/63oEVG4KEDUHChiBhQ5CwIUjYECRsCJqeY886NR9+ZZ582znht72eWa/vu17Fig1BwoYgYUOQsCFI2BAkbAgSNgRddz/26/cSn9qffNvceOTU5zvyyj7zWVZsCBI2BAkbgoQNQcKGIGFDkLAhaHqOPXLb/Hbk1LzdveI/93Orc/jdz7diQ5CwIUjYECRsCBI2BAkbgoQNQdPnis/OD3fvvz21j3fV8287d33WbfP52Z87+/6cet9mWbEhSNgQJGwIEjYECRuChA1BwoagZeeKj7wyp63u6x65bZ/zyCvfX5i1e55vxYYgYUOQsCFI2BAkbAgSNgQJG4KWnSs+8vr5z6/cs33bfc6vzI1Pna8+4lxxYEjYECRsCBI2BAkbgoQNQcKGoO3niq+y6ufu3nd92/x25Lb7vU993+HUOeHOFQemCRuChA1BwoYgYUOQsCFI2BA0PceedWo/8CqvnH9+6pzzkdvOP9/9Pqz6O1/1HCs2BAkbgoQNQcKGIGFDkLAhSNgQtGyO7f7n/37+7jnn7p+7aq57277rU98v2M2KDUHChiBhQ5CwIUjYECRsCBI2BE3fj/363O/1Ofms3fvJZ58z8sr3HV45X8CKDUHChiBhQ5CwIUjYECRsCBI2BG0/V/zUfHJk9/nYp/al794Xfdv7NvuckVfue5/9vazYECRsCBI2BAkbgoQNQcKGIGFD0LH92LvtnhPu9sq91rftZ77tcz/1PlixIUjYECRsCBI2BAkbgoQNQcKGoOv2Y9/2/Fmv3P98yuvnro/cdq6+FRuChA1BwoYgYUOQsCFI2BAkbAia3o/9utvuYR55/T7qU3PdU9+bGDm1X92KDUHChiBhQ5CwIUjYECRsCBI2BC07V/w2t81RR07d57x7Xn3qfO/d57Gfev/djw0IG4qEDUHChiBhQ5CwIUjYELTsXPFXzvF+ZQ5/2/7n0b+/bf/zrN1/t6fOe7diQ5CwIUjYECRsCBI2BAkbgoQNQcfux561at64aq646vfa/ZzR77vq/u1Vdu+LPjUPP7Xf24oNQcKGIGFDkLAhSNgQJGwIEjYEbZ9jv+7UOdWn9rfPum3+fOqc9lWfo/uxgSFhQ5CwIUjYECRsCBI2BAkbgsyxv7vtvujdTu2TP3Xe+KnvI5z6XoMVG4KEDUHChiBhQ5CwIUjYECRsCNo+x35lX/HIqfuTR247H3vW7n3Lr+8PX8WKDUHChiBhQ5CwIUjYECRsCBI2BC2bY9+233jWqfnk7n3Rpz6XU/ulV72e275fMMuKDUHChiBhQ5CwIUjYECRsCBI2BH19Pp/TrwFYzIoNQcKGIGFDkLAhSNgQJGwIEjYECRuChA1BwoYgYUOQsCFI2BAkbAgSNgT9A437wN6mk+gIAAAAAElFTkSuQmCC" alt="QR code for Po's car meetup location"></div>
       </div>
-      <div class="count">2</div>
-    </section>
+    </div>
+  </section>
 
-    <div class="footer">See you at Bang Saen Beach! 🌊</div>
-  </main>
+  <div class="section-title">Restaurant Meetup</div>
+
+  <section class="card group">
+    <div class="mark orange">R</div>
+    <div>
+      <h3>Meet at Restaurant</h3>
+      <div class="people">
+        <span class="chip">Tibeth</span>
+        <span class="chip">Kotchathan</span>
+      </div>
+    </div>
+    <div class="count">2 people</div>
+  </section>
+
+  <div class="footer">Bang Saen Beach Trip · 4 July 2026</div>
+</main>
 </body>
 </html>
