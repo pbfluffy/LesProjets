@@ -3,7 +3,7 @@
     "enemies": "Per-monster stats. hp, dmg=raw; speed=world units/sec; r=hitbox radius; xp/score=reward; size=sprite px.",
     "bosses": "Same fields as enemies; these are the wave bosses.",
     "weapons": "cd=seconds between attacks; damage at level L = dmg + scale*L. rocket also has blastDmg/blastScale for splash.",
-    "knobs": "rebirthCostPerWave & rebirthBonusPerWavePct multiply your current wave. mobile*Mul tune the phone-only swarm/HP/reward. bossKnockbackMul: 0.5=bosses take half knockback. mage*: blast radius & channel seconds (Boss variants separate). pet*: bite & orb-pull ranges in world units.",
+    "knobs": "rebirthCostPerWave & rebirthBonusPerWavePct multiply your current wave. mobile*Mul tune the phone-only swarm/HP/reward. bossKnockbackMul: 0.5=bosses take half knockback. mage*: blast radius & channel seconds (Boss variants separate). pet*: bite & orb-pull ranges in world units. wave1SwarmMul/wave1HpMul: wave-1-only spawn-count and HP multipliers (gentler, tankier opening).",
     "achievements": "Each track has 10 escalating tiers. kind dmg/hp = +per% per earned tier (applied at run start). kind pull = +per to XP pickup radius per tier (base 120). No bone rewards."
   },
   "enemies": {
@@ -362,7 +362,9 @@
     "mageChannel": 0.95,
     "mageBossChannel": 0.7,
     "petBiteRange": 200,
-    "petPullRange": 210
+    "petPullRange": 210,
+    "wave1SwarmMul": 0.5,
+    "wave1HpMul": 2
   },
   "achievements": {
     "kills": {
