@@ -43,7 +43,10 @@ document.addEventListener('DOMContentLoaded', async function() {
   window.addEventListener('error', function(e) {
     var tgt = e.target || e.srcElement;
     var tag = tgt && tgt.tagName ? tgt.tagName.toUpperCase() : '';
-    if (tag === 'IMG' || tag === 'AUDIO' || tag === 'VIDEO' || tag === 'SOURCE') { if (window.console && console.warn) console.warn('[bundle] media load failed:', (tgt.src || tgt.href || tag)); return; }
+    // Resource load failures (img/audio/script/link/etc.) are recoverable: the game has
+    // procedural sprites, silent-audio and relative-path fallbacks. Log for devs, never show players.
+    if (tag) { if (window.console && console.warn) console.warn('[bundle] resource load failed:', tag, (tgt.src || tgt.href || '')); return; }
+    if (!e.message) { if (window.console && console.warn) console.warn('[bundle] suppressed error event with no message'); return; }
     var p = document.body || document.documentElement;
     var d = document.getElementById('__bundler_err') || p.appendChild(document.createElement('div'));
     d.id = '__bundler_err';
