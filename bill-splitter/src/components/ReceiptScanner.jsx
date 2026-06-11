@@ -13,7 +13,8 @@ const PROMPT = `You are extracting line items from a restaurant or shop receipt 
 Respond ONLY with valid JSON, no markdown fences, no preamble:
 
 {
-  "merchantName": "<the restaurant or shop name, usually at the top of the receipt; preserve original language; null if not legible>",
+  "merchantName": "<the restaurant or shop name translated to English; null if not legible>",
+  "merchantOriginal": "<merchant name in original language, omit if already English>",
   "items": [
     {"name": "<item name translated to English>", "originalName": "<item name in original language, omit if already English>", "price": <number>}
   ],
@@ -29,7 +30,8 @@ Notes:
 - If neither is on the receipt, set vatDetected: false and serviceChargeRate: null.
 - Prices should be the line total (unit price * quantity).
 - Numbers must be plain numbers, no currency symbols.
-- merchantName is the business/venue name printed on the receipt (skip branch codes, addresses, tax IDs, phone numbers). If you cannot read it, use null.
+- merchantName is the business/venue name printed on the receipt translated to English (skip branch codes, addresses, tax IDs, phone numbers). If you cannot read it, use null.
+- merchantOriginal: only include when the original merchant name was in a non-English/non-Thai script. Do not repeat an English name in merchantOriginal.
 - Translate item names to natural English (e.g. "김치찌개" → "Kimchi Stew", "焼き鳥" → "Yakitori"). If the item name is already in English or Thai, leave it as-is and omit originalName.
 - For originalName: only include when the original was in a non-English/non-Thai script. Do not repeat an English name in originalName.
 
@@ -161,6 +163,7 @@ export default function ReceiptScanner({
   const [scRate, setScRate] = useState(null)
   const [confidence, setConfidence] = useState(null)
   const [merchant, setMerchant] = useState('')
+  const [merchantOriginal, setMerchantOriginal] = useState('')
   const [capReached, setCapReached] = useState(false)
   const fileRef = useRef(null)
   // Monotonic request id — same pattern as Nutritions PhotoTab BUG-04 fix.
@@ -176,6 +179,7 @@ export default function ReceiptScanner({
     setScRate(null)
     setConfidence(null)
     setMerchant('')
+    setMerchantOriginal('')
     if (fileRef.current) fileRef.current.value = ''
   }
 
@@ -228,6 +232,9 @@ export default function ReceiptScanner({
       )
       setMerchant(
         typeof r.merchantName === 'string' ? r.merchantName.trim().slice(0, 60) : '',
+      )
+      setMerchantOriginal(
+        typeof r.merchantOriginal === 'string' ? r.merchantOriginal.trim().slice(0, 60) : '',
       )
     } catch (err) {
       if (reqId !== requestIdRef.current) return
@@ -337,6 +344,9 @@ export default function ReceiptScanner({
                       maxLength={60}
                       aria-label={t.receiptBillName}
                     />
+                    {merchantOriginal && (
+                      <span className={styles.originalName} style={{ display: 'block', marginTop: 4, padding: '0 2px' }}>{merchantOriginal}</span>
+                    )}
                   </div>
                   {confidence === 'low' && (
                     <div className={styles.lowConfWarn}>{t.receiptLowConfWarn}</div>
