@@ -15,7 +15,7 @@ Respond ONLY with valid JSON, no markdown fences, no preamble:
 {
   "merchantName": "<the restaurant or shop name, usually at the top of the receipt; preserve original language; null if not legible>",
   "items": [
-    {"name": "item name (preserve original language)", "price": <number>}
+    {"name": "<item name translated to English>", "originalName": "<item name in original language, omit if already English>", "price": <number>}
   ],
   "vatDetected": <boolean>,
   "serviceChargeRate": <number or null>,
@@ -30,6 +30,8 @@ Notes:
 - Prices should be the line total (unit price * quantity).
 - Numbers must be plain numbers, no currency symbols.
 - merchantName is the business/venue name printed on the receipt (skip branch codes, addresses, tax IDs, phone numbers). If you cannot read it, use null.
+- Translate item names to natural English (e.g. "김치찌개" → "Kimchi Stew", "焼き鳥" → "Yakitori"). If the item name is already in English or Thai, leave it as-is and omit originalName.
+- For originalName: only include when the original was in a non-English/non-Thai script. Do not repeat an English name in originalName.
 
 If the photo does not contain a receipt, respond ONLY with:
 {"error": "no receipt"}`
@@ -206,6 +208,10 @@ export default function ReceiptScanner({
         )
         .map((it) => ({
           name: String(it.name).slice(0, 80),
+          originalName:
+            it.originalName && typeof it.originalName === 'string' && it.originalName.trim()
+              ? String(it.originalName).slice(0, 80)
+              : null,
           price: String(it.price),
         }))
       if (cleanItems.length === 0) throw new Error('no items')
@@ -352,13 +358,18 @@ export default function ReceiptScanner({
                   <ul className={styles.itemList}>
                     {items.map((it, i) => (
                       <li key={i} className={styles.item}>
-                        <input
-                          type="text"
-                          className={styles.itemName}
-                          value={it.name}
-                          onChange={(e) => updateItem(i, 'name', e.target.value)}
-                          placeholder={t.receiptItemNamePlaceholder}
-                        />
+                        <div className={styles.itemNameWrap}>
+                          <input
+                            type="text"
+                            className={styles.itemName}
+                            value={it.name}
+                            onChange={(e) => updateItem(i, 'name', e.target.value)}
+                            placeholder={t.receiptItemNamePlaceholder}
+                          />
+                          {it.originalName && (
+                            <span className={styles.originalName}>{it.originalName}</span>
+                          )}
+                        </div>
                         <input
                           type="number"
                           className={styles.itemPrice}
@@ -411,4 +422,3 @@ export default function ReceiptScanner({
     </>
   )
 }
-
