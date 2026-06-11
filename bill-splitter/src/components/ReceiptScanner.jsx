@@ -164,6 +164,7 @@ export default function ReceiptScanner({
   const [confidence, setConfidence] = useState(null)
   const [merchant, setMerchant] = useState('')
   const [merchantOriginal, setMerchantOriginal] = useState('')
+  const [merchantEng, setMerchantEng] = useState('')
   const [capReached, setCapReached] = useState(false)
   const fileRef = useRef(null)
   // Monotonic request id — same pattern as Nutritions PhotoTab BUG-04 fix.
@@ -180,6 +181,7 @@ export default function ReceiptScanner({
     setConfidence(null)
     setMerchant('')
     setMerchantOriginal('')
+    setMerchantEng('')
     if (fileRef.current) fileRef.current.value = ''
   }
 
@@ -210,14 +212,19 @@ export default function ReceiptScanner({
             it.name.trim() &&
             Number.isFinite(Number(it.price)),
         )
-        .map((it) => ({
-          name: String(it.name).slice(0, 80),
-          originalName:
+        .map((it) => {
+          const engName = String(it.name).slice(0, 80)
+          const origName =
             it.originalName && typeof it.originalName === 'string' && it.originalName.trim()
               ? String(it.originalName).slice(0, 80)
-              : null,
-          price: String(it.price),
-        }))
+              : null
+          return {
+            name: engName,
+            engName,
+            originalName: origName,
+            price: String(it.price),
+          }
+        })
       if (cleanItems.length === 0) throw new Error('no items')
       bumpScanCount()
       setItems(cleanItems)
@@ -230,9 +237,9 @@ export default function ReceiptScanner({
       setConfidence(
         ['high', 'medium', 'low'].includes(r.confidence) ? r.confidence : 'medium',
       )
-      setMerchant(
-        typeof r.merchantName === 'string' ? r.merchantName.trim().slice(0, 60) : '',
-      )
+      const engMerch = typeof r.merchantName === 'string' ? r.merchantName.trim().slice(0, 60) : ''
+      setMerchant(engMerch)
+      setMerchantEng(engMerch)
       setMerchantOriginal(
         typeof r.merchantOriginal === 'string' ? r.merchantOriginal.trim().slice(0, 60) : '',
       )
@@ -345,7 +352,10 @@ export default function ReceiptScanner({
                       aria-label={t.receiptBillName}
                     />
                     {merchantOriginal && (
-                      <span className={styles.originalName} style={{ display: 'block', marginTop: 4, padding: '0 2px' }}>{merchantOriginal}</span>
+                      <div className={styles.altChips}>
+                        <button type="button" className={`${styles.altChip} ${merchant === merchantEng ? styles.altChipActive : ''}`} onClick={() => setMerchant(merchantEng)}>{merchantEng}</button>
+                        <button type="button" className={`${styles.altChip} ${merchant === merchantOriginal ? styles.altChipActive : ''}`} onClick={() => setMerchant(merchantOriginal)}>{merchantOriginal}</button>
+                      </div>
                     )}
                   </div>
                   {confidence === 'low' && (
@@ -377,7 +387,10 @@ export default function ReceiptScanner({
                             placeholder={t.receiptItemNamePlaceholder}
                           />
                           {it.originalName && (
-                            <span className={styles.originalName}>{it.originalName}</span>
+                            <div className={styles.altChips}>
+                              <button type="button" className={`${styles.altChip} ${it.name === it.engName ? styles.altChipActive : ''}`} onClick={() => updateItem(i, 'name', it.engName)}>{it.engName}</button>
+                              <button type="button" className={`${styles.altChip} ${it.name === it.originalName ? styles.altChipActive : ''}`} onClick={() => updateItem(i, 'name', it.originalName)}>{it.originalName}</button>
+                            </div>
                           )}
                         </div>
                         <input
