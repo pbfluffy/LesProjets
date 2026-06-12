@@ -5,8 +5,11 @@
 .priceWrap { position: relative; flex-shrink: 0; width: 80px; }
 .baht { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--color-text-muted); pointer-events: none; }
 .priceInput { width: 100%; padding-left: 20px; text-align: right; }
+.dupBtn { background: none; border: none; color: var(--color-text-faint); font-size: 15px; line-height: 1; padding: 0 4px; flex-shrink: 0; transition: color 0.1s; }
+.dupBtn:hover { color: var(--color-text); }
 .removeBtn { background: none; border: none; color: var(--color-text-faint); font-size: 20px; line-height: 1; padding: 0 4px; flex-shrink: 0; transition: color 0.1s; }
 .removeBtn:hover { color: var(--color-red); }
+.chipDot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: middle; flex-shrink: 0; }
 .whoRow { display: flex; align-items: flex-start; gap: 8px; }
 .whoLabel { font-size: 11px; color: var(--color-text-faint); padding-top: 5px; white-space: nowrap; flex-shrink: 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
