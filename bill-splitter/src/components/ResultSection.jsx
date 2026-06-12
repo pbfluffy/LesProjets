@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLang } from '../LangContext'
 import { buildShareUrl, createShortLink } from '../share'
 import { auth, onAuthStateChanged } from '../firebase'
@@ -10,7 +10,7 @@ import styles from './ResultSection.module.css'
 
 function fmt(n) { return n.toFixed(2) }
 
-export default function ResultSection({ result, members, promptPay, bankInfo, notes, billName, snapshot, tab, onSave, initialPaid, roundTotalEnabled, onRoundTotalChange, readOnly }) {
+export default function ResultSection({ result, members, promptPay, bankInfo, notes, billName, snapshot, tab, onSave, initialPaid, roundTotalEnabled, onRoundTotalChange, readOnly, currency = 'THB', currencySymbol = '฿' }) {
   const { t } = useLang()
   const [toast, setToast] = useState('')
   const [showQR, setShowQR] = useState(false)
@@ -19,6 +19,37 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const [moreOpen, setMoreOpen] = useState(false)
   const moreRef = useRef(null)
   const [creatingLink, setCreatingLink] = useState(false)
+  // #124 — currency converter: display-only, never mutates store prices
+  const [converting, setConverting] = useState(false)
+  const [convertRate, setConvertRate] = useState(null)   // rate: 1 THB = X currency
+  const [convertError, setConvertError] = useState(null)
+  const isTHB = currency === 'THB'
+
+  const handleConvert = useCallback(async () => {
+    if (isTHB) { setConvertRate(null); setConvertError(null); return }
+    if (convertRate !== null) { setConvertRate(null); setConvertError(null); return }
+    setConverting(true)
+    setConvertError(null)
+    try {
+      const res = await fetch(`https://open.er-api.com/v6/latest/THB`)
+      if (!res.ok) throw new Error('fetch failed')
+      const data = await res.json()
+      const rate = data?.rates?.[currency]
+      if (!rate) throw new Error('no rate')
+      setConvertRate(rate)
+    } catch {
+      setConvertError(t.convertError ?? 'Could not fetch rate')
+    } finally {
+      setConverting(false)
+    }
+  }, [currency, convertRate, isTHB, t])
+
+  // Reset conversion when currency changes
+  useEffect(() => { setConvertRate(null); setConvertError(null) }, [currency])
+
+  const conv = (n) => convertRate !== null ? (n * convertRate) : n
+  const sym = convertRate !== null ? currencySymbol : '฿'
+  const fmtC = (n) => conv(n).toFixed(currency === 'KRW' || currency === 'JPY' ? 0 : 2)
   // #91 mark-as-paid — session-only set of member names marked paid.
   // Deliberately NOT persisted to store/history/cloud (resets on new bill).
   // Seeds from initialPaid when opening a share link that carried paid names.
@@ -54,9 +85,9 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const buildSummaryText = () => {
     const prefix = billName && billName.trim() ? `\u{1F374} ${billName.trim()}` : t.sharePrefix
     const lines = [prefix, '']
-    members.forEach(m => lines.push(`${m}: ฿${fmt(result.totals[m] ?? 0)}`))
+    members.forEach(m => lines.push(`${m}: ${sym}${fmtC(result.totals[m] ?? 0)}`))
     lines.push('')
-    lines.push(`${t.shareTotal} ฿${fmt(result.grandTotal)}`)
+    lines.push(`${t.shareTotal} ${sym}${fmtC(result.grandTotal)}`)
     if (promptPay) lines.push(`PromptPay: ${promptPay}`)
     if (bankInfo) lines.push(bankInfo)
     if (notes) lines.push(`📝 ${notes}`)
@@ -189,16 +220,37 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
       {hasData && (
         <>
           <div className={styles.breakdown}>
-            <div className={styles.row}><span className={styles.rowLabel}>{t.foodSubtotal}</span><span className={styles.rowVal}>฿{fmt(result.subtotal)}</span></div>
-            {result.serviceCharge > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.serviceCharge} ({result.serviceChargeRate}%)</span><span className={styles.rowVal}>฿{fmt(result.serviceCharge)}</span></div>}
-            {result.vat > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.vat} (7%)</span><span className={styles.rowVal}>฿{fmt(result.vat)}</span></div>}
-            <div className={`${styles.row} ${styles.totalRow}`}><span>{t.total}</span><span className={styles.totalRight}><span className={styles.grandTotal}>฿{roundTotalEnabled ? Math.round(result.grandTotal) : fmt(result.grandTotal)}</span>{showRoundedFrom && <span className={styles.roundFrom}>{t.roundedFrom} ฿{rawGrand.toFixed(2)}</span>}</span></div>
+            <div className={styles.row}><span className={styles.rowLabel}>{t.foodSubtotal}</span><span className={styles.rowVal}>{sym}{fmtC(result.subtotal)}</span></div>
+            {result.serviceCharge > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.serviceCharge} ({result.serviceChargeRate}%)</span><span className={styles.rowVal}>{sym}{fmtC(result.serviceCharge)}</span></div>}
+            {result.vat > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.vat} (7%)</span><span className={styles.rowVal}>{sym}{fmtC(result.vat)}</span></div>}
+            <div className={`${styles.row} ${styles.totalRow}`}><span>{t.total}</span><span className={styles.totalRight}><span className={styles.grandTotal}>{sym}{convertRate !== null ? fmtC(result.grandTotal) : (roundTotalEnabled ? Math.round(result.grandTotal) : fmt(result.grandTotal))}</span>{showRoundedFrom && convertRate === null && <span className={styles.roundFrom}>{t.roundedFrom} ฿{rawGrand.toFixed(2)}</span>}</span></div>
             {!readOnly && (
               <div className={styles.roundRow} data-snapshot-hide>
                 <span className={styles.roundLabel}>{t.roundTotal}</span>
                 <button type="button" className={styles.roundSwitch} role="switch" aria-checked={!!roundTotalEnabled} aria-label={t.roundTotal} onClick={() => onRoundTotalChange(!roundTotalEnabled)}><span className={styles.roundSwitchKnob} /></button>
               </div>
             )}
+            {!isTHB && (
+              <div className={styles.roundRow} data-snapshot-hide>
+                <span className={styles.roundLabel}>
+                  {convertRate !== null
+                    ? `1 ฿ = ${convertRate.toFixed(4)} ${currencySymbol}`
+                    : (t.convertTo ?? `Convert to ${currencySymbol}`)}
+                </span>
+                <button
+                  type="button"
+                  className={styles.roundSwitch}
+                  role="switch"
+                  aria-checked={convertRate !== null}
+                  aria-label={t.convertTo ?? `Convert to ${currencySymbol}`}
+                  onClick={handleConvert}
+                  disabled={converting}
+                >
+                  <span className={styles.roundSwitchKnob} />
+                </button>
+              </div>
+            )}
+            {convertError && <p style={{ fontSize: 11, color: 'var(--color-red, #c62828)', margin: '4px 0 0' }}>{convertError}</p>}
           </div>
 
           {ppValid && (
@@ -216,7 +268,7 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
           <div className={styles.perPersonList}>
             {members.map(m => { const amount=result.totals[m]??0; const pct=result.grandTotal>0?(amount/result.grandTotal)*100:0; const isPaid=paid.has(m); return(
               <div key={m} className={isPaid ? styles.paid : undefined}>
-                <div className={styles.personHeader}><div className={styles.personLeft}><button type="button" className={`${styles.payCheck} ${isPaid ? styles.payCheckOn : ''}`} onClick={() => togglePaid(m)} aria-pressed={isPaid} aria-label={isPaid ? t.markUnpaid : t.markPaid} title={isPaid ? t.markUnpaid : t.markPaid}>{isPaid && (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)}</button><Avatar name={m} photoURL={user && ownerName && m.trim().toLowerCase() === ownerName ? user.photoURL : null} size={24} /><span className={styles.personName}>{m}</span></div><span className={styles.personAmount}>฿{fmt(amount)}</span></div>
+                <div className={styles.personHeader}><div className={styles.personLeft}><button type="button" className={`${styles.payCheck} ${isPaid ? styles.payCheckOn : ''}`} onClick={() => togglePaid(m)} aria-pressed={isPaid} aria-label={isPaid ? t.markUnpaid : t.markPaid} title={isPaid ? t.markUnpaid : t.markPaid}>{isPaid && (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)}</button><Avatar name={m} photoURL={user && ownerName && m.trim().toLowerCase() === ownerName ? user.photoURL : null} size={24} /><span className={styles.personName}>{m}</span></div><span className={styles.personAmount}>{sym}{fmtC(amount)}</span></div>
                 <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
                 {showQR && ppValid && amount > 0 && (
                   <PromptPayQR promptPay={promptPay} amount={amount} />
