@@ -89,9 +89,12 @@ export function useBillStore(initial) {
   const calculate = useCallback(() => {
     const shares = Object.fromEntries(members.map(m => [m, 0]))
     let subtotal = 0
+    let rawSubtotal = 0
     foods.forEach(f => {
       const price = parseFloat(f.price) || 0
-      if (!price || !f.who.length) return
+      if (!price) return
+      rawSubtotal += price
+      if (!f.who.length) return
       const split = price / f.who.length
       f.who.forEach(m => { if (shares[m] !== undefined) shares[m] += split })
       subtotal += price
@@ -125,7 +128,7 @@ export function useBillStore(initial) {
       totals[owner] = ownerAmt
     }
     return {
-      shares, totals, subtotal,
+      shares, totals, subtotal, rawSubtotal,
       serviceCharge: subtotal * scFraction,
       serviceChargeRate: scRate,
       vat: vatEnabled ? subtotal * (1 + scFraction) * 0.07 : 0,
