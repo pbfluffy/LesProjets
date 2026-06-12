@@ -48,7 +48,7 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill, savedP
         <ExtrasSection vatEnabled={store.vatEnabled} onVatChange={store.setVatEnabled} serviceChargeEnabled={store.serviceChargeEnabled} onServiceChargeChange={store.setServiceChargeEnabled} serviceChargeRate={store.serviceChargeRate} onServiceChargeRateChange={store.setServiceChargeRate} promptPay={store.promptPay} onPromptPayChange={store.setPromptPay} bankInfo={store.bankInfo} onBankInfoChange={store.setBankInfo} notes={store.notes} onNotesChange={store.setNotes} savedPayees={savedPayees} onSavePayee={onSavePayee} onRemovePayee={onRemovePayee} payeesEnabled={payeesEnabled && !readOnly} />
       </fieldset>
       <ResultSection result={result} members={store.members} promptPay={store.promptPay} bankInfo={store.bankInfo} notes={store.notes} billName={store.billName} snapshot={snapshot} tab="split" onSave={handleSave} initialPaid={sharedState?.paid} roundTotalEnabled={store.roundTotalEnabled} onRoundTotalChange={store.setRoundTotalEnabled} readOnly={readOnly} currency={store.currency} currencySymbol={currencySymbol} />
-      <StickyBottomBar memberCount={store.members.length} grandTotal={result.grandTotal} currencySymbol={currencySymbol} />
+      <StickyBottomBar memberCount={store.members.length} grandTotal={result.grandTotal} rawSubtotal={result.rawSubtotal} currencySymbol={currencySymbol} />
     </div>
   )
 }
