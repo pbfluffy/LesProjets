@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { useLang } from '../LangContext'
-import { CURRENCIES, normaliseCurrency } from '../currencies'
+import { normaliseCurrency } from '../currencies'
+
+const CURRENCY_FLAGS = { THB: '🇹🇭', KRW: '🇰🇷', JPY: '🇯🇵', USD: '🇺🇸', EUR: '🇪🇺', SGD: '🇸🇬', HKD: '🇭🇰', GBP: '🇬🇧', AUD: '🇦🇺', CNY: '🇨🇳' }
 import styles from './ReceiptScanner.module.css'
 
 const WORKER_URL = 'https://bill-splitter-receipt.pbfluffygaming.workers.dev/'
@@ -384,19 +386,13 @@ export default function ReceiptScanner({
                       )}
                     </div>
                   )}
-                  {detectedCurrency && (
+                  {detectedCurrency && detectedCurrency !== 'THB' && (
                     <div className={styles.currencyRow}>
                       <span className={styles.detectedLabel}>{t.receiptCurrency ?? 'Currency'}:</span>
-                      {CURRENCIES.map(c => (
-                        <button
-                          key={c.code}
-                          type="button"
-                          className={`${styles.altChip} ${detectedCurrency === c.code ? styles.altChipActive : ''}`}
-                          onClick={() => setDetectedCurrency(c.code)}
-                        >
-                          {c.label}
-                        </button>
-                      ))}
+                      <span className={styles.currencyPill}>
+                        {CURRENCY_FLAGS[detectedCurrency] ?? '🏳️'} {detectedCurrency}
+                        <button type="button" className={styles.currencyPillDismiss} onClick={() => setDetectedCurrency('THB')} aria-label="Dismiss">×</button>
+                      </span>
                     </div>
                   )}
                   <ul className={styles.itemList}>
