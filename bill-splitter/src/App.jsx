@@ -124,10 +124,12 @@ function AppInner() {
   // Feature #73 — remote error tracking (caps at 5 per session, writes silently)
   useEffect(() => {
     if (!user) return
-    let errCount = 0
+    const ERR_KEY = 'bs_errCount_' + (user.uid || 'anon')
+    const getErrCount = () => { try { return parseInt(sessionStorage.getItem(ERR_KEY) || '0', 10) || 0 } catch { return 0 } }
+    const bumpErrCount = () => { try { sessionStorage.setItem(ERR_KEY, String(getErrCount() + 1)) } catch {} }
     const logError = (message, stack) => {
-      if (errCount >= 5) return
-      errCount++
+      if (getErrCount() >= 5) return
+      bumpErrCount()
       const entryId = Date.now() + '_' + Math.random().toString(36).slice(2, 8)
       setDoc(doc(db, 'errorLog', user.uid, 'entries', entryId), {
         message: String(message || 'Unknown').slice(0, 5000),
