@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useLang } from '../LangContext'
 import { normaliseCurrency } from '../currencies'
 
-const CURRENCY_FLAGS = { THB: '🇹🇭', KRW: '🇰🇷', JPY: '🇯🇵', USD: '🇺🇸', EUR: '🇪🇺', SGD: '🇸🇬', HKD: '🇭🇰', GBP: '🇬🇧', AUD: '🇦🇺', CNY: '🇨🇳' }
+const CURRENCY_FLAGS = { THB: '🇹🇭', KRW: '🇰🇷', JPY: '🇯🇵', USD: '🇺🇸', EUR: '🇪🇺', SGD: '🇸🇬', HKD: '🇭🇰', GBP: '🇬🇧', AUD: '🇦🇺', CAD: '🇨🇦', CNY: '🇨🇳' }
 import styles from './ReceiptScanner.module.css'
 
 const WORKER_URL = 'https://bill-splitter-receipt.pbfluffygaming.workers.dev/'
@@ -35,10 +35,10 @@ Notes:
 - Prices should be the line total (unit price * quantity).
 - Numbers must be plain numbers, no currency symbols.
 - merchantName is the business/venue name printed on the receipt translated to English (skip branch codes, addresses, tax IDs, phone numbers). If you cannot read it, use null.
-- merchantOriginal: only include when the original merchant name was in a non-English/non-Thai script. Do not repeat an English name in merchantOriginal.
-- currency: detect from currency symbols or context (₩ → KRW, ¥ → JPY, $ → USD, £ → GBP, € → EUR etc.). Use THB as default for Thai receipts.
-- Translate item names to natural English (e.g. "김치찌개" → "Kimchi Stew", "焼き鳥" → "Yakitori"). If the item name is already in English or Thai, leave it as-is and omit originalName.
-- For originalName: only include when the original was in a non-English/non-Thai script. Do not repeat an English name in originalName.
+- merchantOriginal: include whenever the original merchant name was not in English (any language). Do not repeat an English name in merchantOriginal.
+- currency: detect from currency symbols or context (₩ → KRW, ¥ → JPY, $ → USD or CAD depending on context, £ → GBP, € → EUR, A$ → AUD, C$ → CAD etc.). Use THB as default for Thai receipts. For $ receipts, use store location/language clues to pick USD vs CAD vs AUD.
+- Translate item names to natural English regardless of language (e.g. "김치찌개" → "Kimchi Stew", "焼き鳥" → "Yakitori", "PAIN BLANC TRANCHÉ" → "Sliced White Bread", "Poulet rôti" → "Roast Chicken"). If the item name is already in English or Thai, leave it as-is and omit originalName.
+- For originalName: include whenever the original was not in English (any language — Korean, Japanese, French, Spanish, etc.). Do not repeat an English name in originalName.
 
 If the photo does not contain a receipt, respond ONLY with:
 {"error": "no receipt"}`
