@@ -3,6 +3,10 @@ import { HistoryIcon, HomeIcon, MoonIcon, SunIcon } from './components/icons'
 import { auth, db, doc, setDoc, GoogleAuthProvider, signInWithPopup, signOut } from './firebase.js'
 import BillSplitter from './components/BillSplitter'
 import SushiroCalculator from './components/SushiroCalculator'
+import TripsTab from './components/TripsTab'
+
+// #128 — Trip mode. Flip to true when UI is ready to ship.
+const TRIPS_ENABLED = false
 import BillHistory from './components/BillHistory'
 import { LangProvider, useLang } from './LangContext'
 import { readShareFromHash, clearShareHash, getShortLinkId, resolveShortLink } from './share'
@@ -99,7 +103,7 @@ function AppInner() {
   const [activeTab, setActiveTab] = useState(() => {
     if (initialShare?.t) return initialShare.t
     const tabParam = new URLSearchParams(window.location.search).get('tab')
-    if (tabParam === 'sushi' || tabParam === 'split') return tabParam
+    if (tabParam === 'sushi' || tabParam === 'split' || (TRIPS_ENABLED && tabParam === 'trips')) return tabParam
     return 'split'
   })
   const [dark, setDark] = useState(() => {
@@ -214,6 +218,7 @@ function AppInner() {
 
   const TABS = [
     { id: 'split', label: t.tabSplit },
+    ...(TRIPS_ENABLED ? [{ id: 'trips', label: t.tabTrips ?? 'Trips' }] : []),
     { id: 'sushi', label: t.tabSushi },
   ]
 
@@ -382,6 +387,13 @@ function AppInner() {
             onSavePayee={savedPayees.addPayee}
             onRemovePayee={savedPayees.removePayee}
             payeesEnabled={!!user}
+          />
+        )}
+        {TRIPS_ENABLED && activeTab === 'trips' && (
+          <TripsTab
+            entries={history.entries}
+            onLoadBill={(entry) => { history.load?.(entry); setActiveTab(entry.tab) }}
+            onNewBillForTrip={() => setActiveTab('split')}
           />
         )}
       </main>
