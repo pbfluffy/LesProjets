@@ -8,7 +8,7 @@ import styles from './ReceiptScanner.module.css'
 const WORKER_URL = 'https://bill-splitter-receipt.pbfluffygaming.workers.dev/'
 const MAX_DIM = 1568
 const JPEG_QUALITY = 0.85
-const SCAN_CAP = 5
+const SCAN_CAP = 10
 const SCAN_KEY = 'billSplitter_scanCount'
 
 const PROMPT = `You are extracting line items from a restaurant or shop receipt photo.

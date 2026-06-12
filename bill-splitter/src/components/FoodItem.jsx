@@ -36,7 +36,7 @@ export default function FoodItem({ food, members, onUpdate, onToggleMember, onRe
           </div>
         </div>
       )}
-      {food.who.length > 1 && food.price && (
+      {food.who.length >= 1 && food.price && (
         <p className={styles.hint}>{t.splitHint} {currencySymbol}{(parseFloat(food.price) / food.who.length).toFixed(2)}</p>
       )}
     </div>
