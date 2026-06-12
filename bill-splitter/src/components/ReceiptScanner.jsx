@@ -285,7 +285,7 @@ export default function ReceiptScanner({
       return
     }
     onAddItems(clean)
-    if (vatDetected) onSetVat(true)
+    if (vatDetected && (!detectedCurrency || detectedCurrency === 'THB')) onSetVat(true)
     if (scRate !== null && scRate > 0) {
       onSetServiceCharge(true)
       onSetServiceChargeRate(String(scRate))
