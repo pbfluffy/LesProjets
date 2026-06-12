@@ -82,6 +82,26 @@ export function useBillStore(initial) {
     setFoods(prev => prev.filter(f => f.id !== id))
   }, [])
 
+  const duplicateFood = useCallback((id) => {
+    setFoods(prev => {
+      const idx = prev.findIndex(f => f.id === id)
+      if (idx === -1) return prev
+      const copy = { ...prev[idx], id: uuid() }
+      const next = [...prev]
+      next.splice(idx + 1, 0, copy)
+      return next
+    })
+  }, [])
+
+  const restoreFood = useCallback((food, afterId) => {
+    setFoods(prev => {
+      const idx = afterId ? prev.findIndex(f => f.id === afterId) : -1
+      const next = [...prev]
+      next.splice(idx + 1, 0, food)
+      return next
+    })
+  }, [])
+
   const setAllMembers = useCallback((id, memberList) => {
     setFoods(prev => prev.map(f => f.id === id ? { ...f, who: [...memberList] } : f))
   }, [])
@@ -136,5 +156,5 @@ export function useBillStore(initial) {
     }
   }, [members, foods, vatEnabled, serviceChargeEnabled, serviceChargeRate, roundTotalEnabled])
 
-  return { billName, setBillName, members, addMember, removeMember, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, roundTotalEnabled, setRoundTotalEnabled, currency, setCurrency, calculate }
+  return { billName, setBillName, members, addMember, removeMember, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, duplicateFood, restoreFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, roundTotalEnabled, setRoundTotalEnabled, currency, setCurrency, calculate }
 }
