@@ -398,7 +398,7 @@ export default function ReceiptScanner({
                   <ul className={styles.itemList}>
                     {items.map((it, i) => (
                       <li key={i} className={styles.item}>
-                        <div className={styles.itemNameWrap}>
+                        <div className={styles.itemTopRow}>
                           <input
                             type="text"
                             className={styles.itemName}
@@ -406,32 +406,32 @@ export default function ReceiptScanner({
                             onChange={(e) => updateItem(i, 'name', e.target.value)}
                             placeholder={t.receiptItemNamePlaceholder}
                           />
-                          {it.originalName && (
-                            <div className={styles.altChips}>
-                              <button type="button" className={`${styles.altChip} ${it.name === it.engName ? styles.altChipActive : ''}`} onClick={() => updateItem(i, 'name', it.engName)}>{it.engName}</button>
-                              <button type="button" className={`${styles.altChip} ${it.name === it.originalName ? styles.altChipActive : ''}`} onClick={() => updateItem(i, 'name', it.originalName)}>{it.originalName}</button>
-                            </div>
-                          )}
+                          <input
+                            type="number"
+                            className={styles.itemPrice}
+                            value={it.price}
+                            onChange={(e) => updateItem(i, 'price', e.target.value)}
+                            placeholder={t.receiptItemPricePlaceholder}
+                            inputMode="decimal"
+                            min="0"
+                            step="0.01"
+                          />
+                          <button
+                            type="button"
+                            className={styles.removeBtn}
+                            onClick={() => removeItem(i)}
+                            aria-label={t.receiptRemoveItem}
+                            title={t.receiptRemoveItem}
+                          >
+                            ×
+                          </button>
                         </div>
-                        <input
-                          type="number"
-                          className={styles.itemPrice}
-                          value={it.price}
-                          onChange={(e) => updateItem(i, 'price', e.target.value)}
-                          placeholder={t.receiptItemPricePlaceholder}
-                          inputMode="decimal"
-                          min="0"
-                          step="0.01"
-                        />
-                        <button
-                          type="button"
-                          className={styles.removeBtn}
-                          onClick={() => removeItem(i)}
-                          aria-label={t.receiptRemoveItem}
-                          title={t.receiptRemoveItem}
-                        >
-                          ×
-                        </button>
+                        {it.originalName && (
+                          <div className={styles.altChips}>
+                            <button type="button" className={`${styles.altChip} ${it.name === it.engName ? styles.altChipActive : ''}`} onClick={() => updateItem(i, 'name', it.engName)}>{it.engName}</button>
+                            <button type="button" className={`${styles.altChip} ${it.name === it.originalName ? styles.altChipActive : ''}`} onClick={() => updateItem(i, 'name', it.originalName)}>{it.originalName}</button>
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>

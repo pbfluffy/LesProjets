@@ -175,6 +175,12 @@
 }
 
 .item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.itemTopRow {
   display: grid;
   grid-template-columns: 1fr 80px 28px;
   gap: 6px;
