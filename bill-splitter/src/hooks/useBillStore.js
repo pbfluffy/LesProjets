@@ -51,8 +51,8 @@ export function useBillStore(initial) {
   }, [])
 
   // Feature #68 — bulk insert from receipt OCR.
-  // Each item: { name, price }. Mirrors addFood's shape, with `who: []` so
-  // the user assigns members per-item in the existing FoodList UI.
+  // Each item: { name, price }. Seeds `who` with all current members so the
+  // summary calculates immediately after scan without manual assignment.
   const addFoods = useCallback((items) => {
     if (!Array.isArray(items) || items.length === 0) return
     setFoods(prev => [
@@ -61,10 +61,10 @@ export function useBillStore(initial) {
         id: uuid(),
         name: String(name ?? '').slice(0, 80),
         price: String(price ?? ''),
-        who: [],
+        who: [...members],
       })),
     ])
-  }, [])
+  }, [members])
 
   const updateFood = useCallback((id, field, value) => {
     setFoods(prev => prev.map(f => f.id === id ? { ...f, [field]: value } : f))
