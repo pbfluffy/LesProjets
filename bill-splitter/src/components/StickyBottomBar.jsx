@@ -22,7 +22,7 @@ export default function StickyBottomBar({ memberCount, grandTotal, currencySymbo
     return () => observer.disconnect()
   }, [])
 
-  if (memberCount === 0 || grandTotal === 0 || isResultVisible) return null
+  if (grandTotal === 0 || isResultVisible) return null
 
   const handleTap = () => {
     const target = document.querySelector('[data-bill-result]')

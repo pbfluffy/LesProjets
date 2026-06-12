@@ -71,7 +71,7 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [moreOpen])
   const sectionRef = useRef(null)
-  const hasData = members.length > 0 && result.subtotal > 0
+  const hasData = result.subtotal > 0
   const ppValid = isValidPromptPayId(promptPay)
   const ownerName = user?.displayName?.trim().toLowerCase()
   const rawGrand = result.subtotal * result.multiplier
