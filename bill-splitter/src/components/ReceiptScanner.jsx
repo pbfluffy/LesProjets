@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useLang } from '../LangContext'
+import { CURRENCIES, normaliseCurrency } from '../currencies'
 import styles from './ReceiptScanner.module.css'
 
 const WORKER_URL = 'https://bill-splitter-receipt.pbfluffygaming.workers.dev/'
@@ -14,6 +15,7 @@ Respond ONLY with valid JSON, no markdown fences, no preamble:
 
 {
   "merchantName": "<the restaurant or shop name translated to English; null if not legible>",
+  "currency": "<ISO 4217 currency code detected from the receipt, e.g. THB, KRW, JPY, USD; null if unknown>",
   "merchantOriginal": "<merchant name in original language, omit if already English>",
   "items": [
     {"name": "<item name translated to English>", "originalName": "<item name in original language, omit if already English>", "price": <number>}
@@ -32,6 +34,7 @@ Notes:
 - Numbers must be plain numbers, no currency symbols.
 - merchantName is the business/venue name printed on the receipt translated to English (skip branch codes, addresses, tax IDs, phone numbers). If you cannot read it, use null.
 - merchantOriginal: only include when the original merchant name was in a non-English/non-Thai script. Do not repeat an English name in merchantOriginal.
+- currency: detect from currency symbols or context (₩ → KRW, ¥ → JPY, $ → USD, £ → GBP, € → EUR etc.). Use THB as default for Thai receipts.
 - Translate item names to natural English (e.g. "김치찌개" → "Kimchi Stew", "焼き鳥" → "Yakitori"). If the item name is already in English or Thai, leave it as-is and omit originalName.
 - For originalName: only include when the original was in a non-English/non-Thai script. Do not repeat an English name in originalName.
 
@@ -153,6 +156,7 @@ export default function ReceiptScanner({
   onSetVat,
   onSetServiceCharge,
   onSetServiceChargeRate,
+  onSetCurrency,
 }) {
   const { t } = useLang()
   const [open, setOpen] = useState(false)
@@ -165,6 +169,7 @@ export default function ReceiptScanner({
   const [merchant, setMerchant] = useState('')
   const [merchantOriginal, setMerchantOriginal] = useState('')
   const [merchantEng, setMerchantEng] = useState('')
+  const [detectedCurrency, setDetectedCurrency] = useState(null)
   const [capReached, setCapReached] = useState(false)
   const fileRef = useRef(null)
   // Monotonic request id — same pattern as Nutritions PhotoTab BUG-04 fix.
@@ -182,6 +187,7 @@ export default function ReceiptScanner({
     setMerchant('')
     setMerchantOriginal('')
     setMerchantEng('')
+    setDetectedCurrency(null)
     if (fileRef.current) fileRef.current.value = ''
   }
 
@@ -243,6 +249,8 @@ export default function ReceiptScanner({
       setMerchantOriginal(
         typeof r.merchantOriginal === 'string' ? r.merchantOriginal.trim().slice(0, 60) : '',
       )
+      const detCurrency = normaliseCurrency(r.currency)
+      setDetectedCurrency(detCurrency)
     } catch (err) {
       if (reqId !== requestIdRef.current) return
       const msg = err?.message || String(err)
@@ -281,6 +289,7 @@ export default function ReceiptScanner({
       onSetServiceChargeRate(String(scRate))
     }
     if (merchant.trim()) onSetBillName?.(merchant.trim())
+    if (detectedCurrency && onSetCurrency) onSetCurrency(detectedCurrency)
     reset()
   }
 
@@ -373,6 +382,21 @@ export default function ReceiptScanner({
                           {format(t.receiptSvc, { rate: scRate })}
                         </span>
                       )}
+                    </div>
+                  )}
+                  {detectedCurrency && (
+                    <div className={styles.currencyRow}>
+                      <span className={styles.detectedLabel}>{t.receiptCurrency ?? 'Currency'}:</span>
+                      {CURRENCIES.map(c => (
+                        <button
+                          key={c.code}
+                          type="button"
+                          className={`${styles.altChip} ${detectedCurrency === c.code ? styles.altChipActive : ''}`}
+                          onClick={() => setDetectedCurrency(c.code)}
+                        >
+                          {c.label}
+                        </button>
+                      ))}
                     </div>
                   )}
                   <ul className={styles.itemList}>

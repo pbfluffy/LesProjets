@@ -311,3 +311,11 @@
   color: var(--color-accent-text);
   border-color: var(--color-accent);
 }
+
+.currencyRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
