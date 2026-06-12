@@ -21,7 +21,7 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const [creatingLink, setCreatingLink] = useState(false)
   // #124 — currency converter: display-only, never mutates store prices
   const [converting, setConverting] = useState(false)
-  const [convertRate, setConvertRate] = useState(null)   // rate: 1 THB = X currency
+  const [convertRate, setConvertRate] = useState(null)   // rate: 1 foreignCurrency = X THB
   const [convertError, setConvertError] = useState(null)
   const isTHB = currency === 'THB'
 
@@ -31,10 +31,10 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
     setConverting(true)
     setConvertError(null)
     try {
-      const res = await fetch(`https://open.er-api.com/v6/latest/THB`)
+      const res = await fetch(`https://open.er-api.com/v6/latest/${currency}`)
       if (!res.ok) throw new Error('fetch failed')
       const data = await res.json()
-      const rate = data?.rates?.[currency]
+      const rate = data?.rates?.['THB']
       if (!rate) throw new Error('no rate')
       setConvertRate(rate)
     } catch {
@@ -48,8 +48,8 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   useEffect(() => { setConvertRate(null); setConvertError(null) }, [currency])
 
   const conv = (n) => convertRate !== null ? (n * convertRate) : n
-  const sym = convertRate !== null ? currencySymbol : '฿'
-  const fmtC = (n) => conv(n).toFixed(currency === 'KRW' || currency === 'JPY' ? 0 : 2)
+  const sym = convertRate !== null ? '฿' : currencySymbol
+  const fmtC = (n) => conv(n).toFixed(2)
   // #91 mark-as-paid — session-only set of member names marked paid.
   // Deliberately NOT persisted to store/history/cloud (resets on new bill).
   // Seeds from initialPaid when opening a share link that carried paid names.
@@ -234,15 +234,15 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
               <div className={styles.roundRow} data-snapshot-hide>
                 <span className={styles.roundLabel}>
                   {convertRate !== null
-                    ? `1 ฿ = ${convertRate.toFixed(4)} ${currencySymbol}`
-                    : (t.convertTo ?? `Convert to ${currencySymbol}`)}
+                    ? `1 ${currencySymbol} = ${convertRate.toFixed(4)} ฿`
+                    : (t.convertTo ?? `Convert to ฿`)}
                 </span>
                 <button
                   type="button"
                   className={styles.roundSwitch}
                   role="switch"
                   aria-checked={convertRate !== null}
-                  aria-label={t.convertTo ?? `Convert to ${currencySymbol}`}
+                  aria-label={t.convertTo ?? `Convert to ฿`}
                   onClick={handleConvert}
                   disabled={converting}
                 >
