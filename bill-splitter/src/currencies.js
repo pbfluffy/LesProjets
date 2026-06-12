@@ -9,6 +9,7 @@ export const CURRENCIES = [
   { code: 'HKD', symbol: 'HK$', label: 'HK$ HKD' },
   { code: 'GBP', symbol: '£',   label: '£ GBP' },
   { code: 'AUD', symbol: 'A$',  label: 'A$ AUD' },
+  { code: 'CAD', symbol: 'C$',  label: 'C$ CAD' },
   { code: 'CNY', symbol: '¥',   label: '¥ CNY' },
 ]
 
