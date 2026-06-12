@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { v4 as uuid } from 'uuid'
 import { auth, onAuthStateChanged } from '../firebase'
+import { DEFAULT_CURRENCY, normaliseCurrency } from '../currencies'
 
 export function useBillStore(initial) {
   const [billName, setBillName] = useState(initial?.billName ?? '')
@@ -13,6 +14,7 @@ export function useBillStore(initial) {
   const [promptPay, setPromptPay] = useState(initial?.promptPay ?? '')
   const [bankInfo, setBankInfo] = useState(initial?.bankInfo ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
+  const [currency, setCurrency] = useState(normaliseCurrency(initial?.currency) ?? DEFAULT_CURRENCY)
 
   // Feature #76 Phase A — On new bill (no initial.members), auto-seed the
   // first member with the signed-in user's display name once auth resolves.
@@ -131,5 +133,5 @@ export function useBillStore(initial) {
     }
   }, [members, foods, vatEnabled, serviceChargeEnabled, serviceChargeRate, roundTotalEnabled])
 
-  return { billName, setBillName, members, addMember, removeMember, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, roundTotalEnabled, setRoundTotalEnabled, calculate }
+  return { billName, setBillName, members, addMember, removeMember, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, roundTotalEnabled, setRoundTotalEnabled, currency, setCurrency, calculate }
 }
