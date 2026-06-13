@@ -2,7 +2,7 @@
   "_doc": {
     "enemies": "Per-monster stats. hp, dmg=raw; speed=world units/sec; r=hitbox radius; xp/score=reward; size=sprite px.",
     "bosses": "Same fields as enemies; these are the wave bosses.",
-    "weapons": "cd=seconds between attacks; damage at level L = dmg + scale*L. rocket also has blastDmg/blastScale for splash.",
+    "weapons": "cd=seconds between attacks; damage at level L = dmg + scale*L. rocket also has blastDmg/blastScale for splash. dur=swing animation seconds (melee only).",
     "knobs": "rebirthCostPerWave & rebirthBonusPerWavePct multiply your current wave. mobile*Mul tune the phone-only swarm/HP/reward. bossKnockbackMul: 0.5=bosses take half knockback. mage*: blast radius & channel seconds (Boss variants separate). pet*: bite & orb-pull ranges in world units. wave1SwarmMul/wave1HpMul: wave-1-only spawn-count and HP multipliers (gentler, tankier opening).",
     "achievements": "Each track has 10 escalating tiers. kind dmg/hp = +per% per earned tier (applied at run start). kind pull = +per to XP pickup radius per tier (base 120). No bone rewards."
   },
@@ -284,7 +284,8 @@
     "knife": {
       "cd": 0.45,
       "dmg": 12,
-      "scale": 5
+      "scale": 5,
+      "dur": 0.25
     },
     "bone": {
       "cd": 0.95,
@@ -314,7 +315,8 @@
     "laser": {
       "cd": 0.3,
       "dmg": 11,
-      "scale": 5
+      "scale": 5,
+      "dur": 0.13
     },
     "thunder": {
       "cd": 1.5,
@@ -331,22 +333,26 @@
     "paw": {
       "cd": 0.7,
       "dmg": 22,
-      "scale": 8
+      "scale": 8,
+      "dur": 0.22
     },
     "bat": {
       "cd": 1.15,
       "dmg": 40,
-      "scale": 16
+      "scale": 16,
+      "dur": 0.26
     },
     "katar": {
       "cd": 0.55,
       "dmg": 16,
-      "scale": 6
+      "scale": 6,
+      "dur": 0.16
     },
     "spin": {
       "cd": 1.8,
       "dmg": 18,
-      "scale": 7
+      "scale": 7,
+      "dur": 0.34
     }
   },
   "knobs": {
@@ -369,7 +375,7 @@
   "achievements": {
     "kills": {
       "name": "Slayer",
-      "icon": "\ud83e\uddb4",
+      "icon": "🦴",
       "kind": "dmg",
       "per": 1.5,
       "tiers": [
@@ -387,7 +393,7 @@
     },
     "bossKills": {
       "name": "Boss Hunter",
-      "icon": "\ud83d\udc79",
+      "icon": "👹",
       "kind": "dmg",
       "per": 2,
       "tiers": [
@@ -405,7 +411,7 @@
     },
     "eliteKills": {
       "name": "Champion",
-      "icon": "\u2b50",
+      "icon": "⭐",
       "kind": "dmg",
       "per": 1.5,
       "tiers": [
@@ -423,7 +429,7 @@
     },
     "wave": {
       "name": "Survivor",
-      "icon": "\ud83c\udf0a",
+      "icon": "🌊",
       "kind": "hp",
       "per": 2,
       "tiers": [
@@ -441,7 +447,7 @@
     },
     "combo": {
       "name": "Combo King",
-      "icon": "\ud83d\udd25",
+      "icon": "🔥",
       "kind": "pull",
       "per": 8,
       "tiers": [
@@ -459,7 +465,7 @@
     },
     "reborn": {
       "name": "Reborn",
-      "icon": "\ud83c\udf1f",
+      "icon": "🌟",
       "kind": "pull",
       "per": 10,
       "tiers": [
@@ -477,7 +483,7 @@
     },
     "outfits": {
       "name": "Collector",
-      "icon": "\ud83d\udc54",
+      "icon": "👔",
       "kind": "pull",
       "per": 9,
       "tiers": [
@@ -495,7 +501,7 @@
     },
     "veteran": {
       "name": "Veteran",
-      "icon": "\ud83c\udfae",
+      "icon": "🎮",
       "kind": "pull",
       "per": 7,
       "tiers": [
