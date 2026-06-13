@@ -40,8 +40,10 @@ Notes:
 - Translate item names to natural English regardless of language (e.g. "김치찌개" → "Kimchi Stew", "焼き鳥" → "Yakitori", "PAIN BLANC TRANCHÉ" → "Sliced White Bread", "Poulet rôti" → "Roast Chicken"). If the item name is already in English or Thai, leave it as-is and omit originalName.
 - For originalName: include whenever the original was not in English (any language — Korean, Japanese, French, Spanish, etc.). Do not repeat an English name in originalName.
 
-If the photo does not contain a receipt, respond ONLY with:
-{"error": "no receipt"}`
+If the photo does not contain a receipt at all, respond ONLY with:
+{"error": "no receipt"}
+If the photo is a credit card payment slip or bank transaction slip (shows card number, approval code, total only — no individual items), respond ONLY with:
+{"error": "payment slip"}`
 
 // Mirrors Nutritions PhotoTab BUG-02 Leak B fix — wrap object URL in try/finally
 // so it's revoked even if Image.onerror fires or drawImage/toBlob throws.
@@ -118,6 +120,7 @@ async function scanReceipt(base64Image) {
 function localizeError(msg, t) {
   if (typeof msg !== 'string') return String(msg)
   const m = msg.toLowerCase()
+  if (m.includes('payment slip')) return t.receiptErrPaymentSlip ?? 'This looks like a payment slip — please scan the itemized order receipt instead.'
   if (m.includes('no receipt')) return t.receiptErrNoReceipt
   if (
     m.includes('could not load image') ||
