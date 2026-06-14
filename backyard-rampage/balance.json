@@ -282,10 +282,10 @@
   },
   "weapons": {
     "knife": {
-      "cd": 2.5,
-      "dmg": 12,
+      "cd": 0.55,
+      "dmg": 14,
       "scale": 5,
-      "dur": 1.5
+      "dur": 0.28
     },
     "bone": {
       "cd": 0.95,
@@ -313,10 +313,10 @@
       "scale": 6
     },
     "laser": {
-      "cd": 0.3,
+      "cd": 0.32,
       "dmg": 11,
       "scale": 5,
-      "dur": 0.13
+      "dur": 0.18
     },
     "thunder": {
       "cd": 1.5,
@@ -331,28 +331,29 @@
       "blastScale": 16
     },
     "paw": {
-      "cd": 0.7,
-      "dmg": 22,
+      "cd": 0.65,
+      "dmg": 24,
       "scale": 8,
-      "dur": 0.22
+      "dur": 0.24
     },
     "bat": {
-      "cd": 1.15,
-      "dmg": 40,
+      "cd": 1.2,
+      "dmg": 48,
       "scale": 16,
-      "dur": 0.26
+      "dur": 0.3
     },
     "katar": {
-      "cd": 2.55,
-      "dmg": 16,
+      "cd": 0.75,
+      "dmg": 18,
       "scale": 6,
-      "dur": 2.55
+      "dur": 0.2,
+      "critScale": 2
     },
     "spin": {
       "cd": 1.8,
-      "dmg": 18,
+      "dmg": 20,
       "scale": 7,
-      "dur": 0.34
+      "dur": 0.38
     }
   },
   "knobs": {
