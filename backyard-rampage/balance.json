@@ -314,9 +314,9 @@
     },
     "laser": {
       "cd": 0.9,
-      "dmg": 18,
-      "scale": 7,
-      "dur": 0.28
+      "dmg": 30,
+      "scale": 10,
+      "dur": 1.28
     },
     "thunder": {
       "cd": 1.5,
