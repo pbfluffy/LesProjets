@@ -313,10 +313,10 @@
       "scale": 6
     },
     "laser": {
-      "cd": 0.9,
+      "cd": 0.6,
       "dmg": 30,
-      "scale": 10,
-      "dur": 0.9
+      "scale": 7,
+      "dur": 0.6
     },
     "thunder": {
       "cd": 1.5,
