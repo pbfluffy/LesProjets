@@ -313,10 +313,10 @@
       "scale": 6
     },
     "laser": {
-      "cd": 0.7,
+      "cd": 0.9,
       "dmg": 18,
       "scale": 7,
-      "dur": 0.22
+      "dur": 0.28
     },
     "thunder": {
       "cd": 1.5,
@@ -376,7 +376,7 @@
   "achievements": {
     "kills": {
       "name": "Slayer",
-      "icon": "🦴",
+      "icon": "\ud83e\uddb4",
       "kind": "dmg",
       "per": 1.5,
       "tiers": [
@@ -394,7 +394,7 @@
     },
     "bossKills": {
       "name": "Boss Hunter",
-      "icon": "👹",
+      "icon": "\ud83d\udc79",
       "kind": "dmg",
       "per": 2,
       "tiers": [
@@ -412,7 +412,7 @@
     },
     "eliteKills": {
       "name": "Champion",
-      "icon": "⭐",
+      "icon": "\u2b50",
       "kind": "dmg",
       "per": 1.5,
       "tiers": [
@@ -430,7 +430,7 @@
     },
     "wave": {
       "name": "Survivor",
-      "icon": "🌊",
+      "icon": "\ud83c\udf0a",
       "kind": "hp",
       "per": 2,
       "tiers": [
@@ -448,7 +448,7 @@
     },
     "combo": {
       "name": "Combo King",
-      "icon": "🔥",
+      "icon": "\ud83d\udd25",
       "kind": "pull",
       "per": 8,
       "tiers": [
@@ -466,7 +466,7 @@
     },
     "reborn": {
       "name": "Reborn",
-      "icon": "🌟",
+      "icon": "\ud83c\udf1f",
       "kind": "pull",
       "per": 10,
       "tiers": [
@@ -484,7 +484,7 @@
     },
     "outfits": {
       "name": "Collector",
-      "icon": "👔",
+      "icon": "\ud83d\udc54",
       "kind": "pull",
       "per": 9,
       "tiers": [
@@ -502,7 +502,7 @@
     },
     "veteran": {
       "name": "Veteran",
-      "icon": "🎮",
+      "icon": "\ud83c\udfae",
       "kind": "pull",
       "per": 7,
       "tiers": [
