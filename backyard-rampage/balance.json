@@ -336,7 +336,7 @@
       "cd": 0.75,
       "dmg": 18,
       "scale": 6,
-      "dur": 0.9,
+      "dur": 0.5,
       "critScale": 2
     },
     "spin": {
