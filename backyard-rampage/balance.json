@@ -295,7 +295,8 @@
     "pinball": {
       "cd": 1.05,
       "dmg": 10,
-      "scale": 4
+      "scale": 4,
+      "range": 350
     },
     "tennis": {
       "cd": 0.42,
