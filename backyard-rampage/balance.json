@@ -302,16 +302,6 @@
       "dmg": 8,
       "scale": 2
     },
-    "bacon": {
-      "cd": 1.5,
-      "dmg": 28,
-      "scale": 12
-    },
-    "bark": {
-      "cd": 2.2,
-      "dmg": 16,
-      "scale": 6
-    },
     "laser": {
       "cd": 0.6,
       "dmg": 30,
