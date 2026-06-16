@@ -249,10 +249,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
   return (
     <section ref={sectionRef} className={styles.section} data-bill-result>
       <div className={styles.header}>
-        <div>
-          <h2 className={styles.title}>{t.result}</h2>
-          {billName && billName.trim() && <div className={styles.billNameDisplay}>{billName.trim()}</div>}
-        </div>
+        <h2 className={styles.title}>{t.result}</h2>
         {hasData && (
           <div className={styles.shareBtnGroup} data-snapshot-hide>
             <div style={{ position: 'relative' }} ref={moreRef}>
@@ -272,6 +269,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
           </div>
         )}
       </div>
+      {billName && billName.trim() && <div className={styles.billNameDisplay}>{billName.trim()}</div>}
       {toast && <div className={styles.toast}>{toast}</div>}
       {!hasData && <p className={styles.empty}>{t.noData}</p>}
       {hasData && (
