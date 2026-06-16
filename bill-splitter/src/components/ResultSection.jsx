@@ -92,8 +92,8 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
         const split = parseFloat(f.price) / f.who.length
         lines.push(`  · ${f.name}: ${sym}${fmtC(split * result.multiplier)}`)
       })
+      lines.push('')
     })
-    lines.push('')
     if (result.serviceCharge > 0 || result.vat > 0) {
       lines.push(`${t.foodSubtotal}: ${sym}${fmtC(result.subtotal)}`)
       if (result.serviceCharge > 0) lines.push(`${t.serviceCharge} (${result.serviceChargeRate}%): ${sym}${fmtC(result.serviceCharge)}`)
