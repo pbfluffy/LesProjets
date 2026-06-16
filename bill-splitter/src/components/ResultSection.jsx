@@ -165,15 +165,18 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
     try {
       // Dynamic import — html2canvas only loads on first click (~50kb)
       const html2canvas = (await import('html2canvas')).default
-      // Read the section's actual background so capture matches active theme
-      const bg = getComputedStyle(sectionRef.current).backgroundColor || '#ffffff'
-      const canvas = await html2canvas(sectionRef.current, {
-        backgroundColor: bg,
+      // Force light-mode styles during capture so image always looks clean
+      const el = sectionRef.current
+      const prevStyle = el.getAttribute('style') || ''
+      el.setAttribute('style', (prevStyle + ';background:#ffffff;color:#1a1a1a;--color-surface:#ffffff;--color-surface-alt:#f5f5f4;--color-text:#1a1a1a;--color-text-muted:#6b7280;--color-text-faint:#9ca3af;--color-border:rgba(0,0,0,0.08);--color-border-strong:rgba(0,0,0,0.15);--color-accent:#1a1a1a;--color-accent-text:#ffffff;').replace(/^;/, ''))
+      const canvas = await html2canvas(el, {
+        backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
         // Skip elements marked with data-snapshot-hide (the button row)
         ignoreElements: (el) => el.hasAttribute && el.hasAttribute('data-snapshot-hide'),
       })
+      el.setAttribute('style', prevStyle)
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
       if (!blob) {
         showToast(t.imageFailed)
@@ -289,6 +292,16 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
               <div key={m} className={isPaid ? styles.paid : undefined}>
                 <div className={styles.personHeader}><div className={styles.personLeft}><button type="button" className={`${styles.payCheck} ${isPaid ? styles.payCheckOn : ''}`} onClick={() => togglePaid(m)} aria-pressed={isPaid} aria-label={isPaid ? t.markUnpaid : t.markPaid} title={isPaid ? t.markUnpaid : t.markPaid}>{isPaid && (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)}</button><Avatar name={m} photoURL={user && ownerName && m.trim().toLowerCase() === ownerName ? user.photoURL : null} size={24} /><span className={styles.personName}>{m}</span></div><span className={styles.personAmount}>{sym}{fmtC(amount)}</span></div>
                 <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
+                {foods.filter(f => f.who && f.who.includes(m) && f.name && parseFloat(f.price) > 0).length > 0 && (
+                  <div className={styles.itemList}>
+                    {foods.filter(f => f.who && f.who.includes(m) && f.name && parseFloat(f.price) > 0).map(f => (
+                      <div key={f.id} className={styles.itemRow}>
+                        <span className={styles.itemName}>· {f.name}</span>
+                        <span className={styles.itemAmt}>{sym}{fmtC((parseFloat(f.price) / f.who.length) * result.multiplier)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {showQR && ppValid && amount > 0 && (
                   <PromptPayQR promptPay={promptPay} amount={amount} />
                 )}

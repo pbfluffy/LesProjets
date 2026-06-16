@@ -47,3 +47,9 @@
 .paid .personName { text-decoration: line-through; opacity: 0.5; }
 .paid .personAmount { text-decoration: line-through; opacity: 0.5; }
 .paid .barFill { opacity: 0.35; }
+
+/* Item breakdown under each person in the per-person list */
+.itemList { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 6px 31px; }
+.itemRow { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; padding: 1px 0; }
+.itemName { color: var(--color-text-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 8px; }
+.itemAmt { font-family: var(--font-mono); color: var(--color-text-muted); flex-shrink: 0; }
