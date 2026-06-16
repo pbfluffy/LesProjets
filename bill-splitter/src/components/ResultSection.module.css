@@ -53,3 +53,4 @@
 .itemRow { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; padding: 1px 0; }
 .itemName { color: var(--color-text-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 8px; }
 .itemAmt { font-family: var(--font-mono); color: var(--color-text-muted); flex-shrink: 0; }
+.billNameDisplay { font-size: 16px; font-weight: 600; color: var(--color-text); margin-top: 2px; }
