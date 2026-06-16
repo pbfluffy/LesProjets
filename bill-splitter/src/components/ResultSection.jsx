@@ -10,7 +10,7 @@ import styles from './ResultSection.module.css'
 
 function fmt(n) { return n.toFixed(2) }
 
-export default function ResultSection({ result, members, promptPay, bankInfo, notes, billName, snapshot, tab, onSave, initialPaid, roundTotalEnabled, onRoundTotalChange, readOnly, currency = 'THB', currencySymbol = '฿' }) {
+export default function ResultSection({ result, members, foods = [], promptPay, bankInfo, notes, billName, snapshot, tab, onSave, initialPaid, roundTotalEnabled, onRoundTotalChange, readOnly, currency = 'THB', currencySymbol = '฿' }) {
   const { t } = useLang()
   const [toast, setToast] = useState('')
   const [showQR, setShowQR] = useState(false)
@@ -85,8 +85,21 @@ export default function ResultSection({ result, members, promptPay, bankInfo, no
   const buildSummaryText = () => {
     const prefix = billName && billName.trim() ? `\u{1F374} ${billName.trim()}` : t.sharePrefix
     const lines = [prefix, '']
-    members.forEach(m => lines.push(`${m}: ${sym}${fmtC(result.totals[m] ?? 0)}`))
+    members.forEach(m => {
+      lines.push(`${m}: ${sym}${fmtC(result.totals[m] ?? 0)}`)
+      const myFoods = foods.filter(f => f.who && f.who.includes(m) && f.name && parseFloat(f.price) > 0)
+      myFoods.forEach(f => {
+        const split = parseFloat(f.price) / f.who.length
+        lines.push(`  · ${f.name}: ${sym}${fmtC(split * result.multiplier)}`)
+      })
+    })
     lines.push('')
+    if (result.serviceCharge > 0 || result.vat > 0) {
+      lines.push(`${t.foodSubtotal}: ${sym}${fmtC(result.subtotal)}`)
+      if (result.serviceCharge > 0) lines.push(`${t.serviceCharge} (${result.serviceChargeRate}%): ${sym}${fmtC(result.serviceCharge)}`)
+      if (result.vat > 0) lines.push(`${t.vat} (7%): ${sym}${fmtC(result.vat)}`)
+      lines.push('')
+    }
     lines.push(`${t.shareTotal} ${sym}${fmtC(result.grandTotal)}`)
     if (promptPay) lines.push(`PromptPay: ${promptPay}`)
     if (bankInfo) lines.push(bankInfo)
