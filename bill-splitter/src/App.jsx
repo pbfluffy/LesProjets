@@ -6,7 +6,7 @@ import SushiroCalculator from './components/SushiroCalculator'
 import TripsTab from './components/TripsTab'
 
 // #128 — Trip mode. Flip to true when UI is ready to ship.
-const TRIPS_ENABLED = false
+const TRIPS_ENABLED = true
 import BillHistory from './components/BillHistory'
 import { LangProvider, useLang } from './LangContext'
 import { readShareFromHash, clearShareHash, getShortLinkId, resolveShortLink } from './share'
