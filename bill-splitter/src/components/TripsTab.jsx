@@ -5,8 +5,9 @@
  *   'list'   — all trips
  *   'detail' — single trip (bills + summary + settlement)
  *   'new'    — create trip form
+ *   'edit'   — edit trip name/members/currency
  */
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useLang } from '../LangContext'
 import { useTripsStore } from '../hooks/useTripsStore'
 import Avatar from './Avatar'
@@ -23,13 +24,13 @@ function fmtAmount(n, currency = 'THB') {
   return `${sym}${Number(n).toFixed(decimals)}`
 }
 
-// ── New trip form ───────────────────────────────────────────────────────────
-function NewTripForm({ onSave, onCancel }) {
+// ── Trip form (new + edit) ──────────────────────────────────────────────────
+function TripForm({ initial, onSave, onCancel, title }) {
   const { t } = useLang()
-  const [name, setName] = useState('')
+  const [name, setName] = useState(initial?.name ?? '')
   const [memberInput, setMemberInput] = useState('')
-  const [members, setMembers] = useState([])
-  const [currency, setCurrency] = useState('THB')
+  const [members, setMembers] = useState(initial?.members ?? [])
+  const [currency, setCurrency] = useState(initial?.currency ?? 'THB')
   const CURRENCIES = [
     { code:'THB', label:'฿ THB' }, { code:'KRW', label:'₩ KRW' },
     { code:'JPY', label:'¥ JPY' }, { code:'USD', label:'$ USD' },
@@ -45,7 +46,7 @@ function NewTripForm({ onSave, onCancel }) {
 
   return (
     <div className={styles.form}>
-      <h2 className={styles.formTitle}>{t.tripNew ?? 'New Trip'}</h2>
+      <h2 className={styles.formTitle}>{title}</h2>
       <label className={styles.label}>{t.tripName ?? 'Trip name'}</label>
       <input
         className={styles.input}
@@ -89,7 +90,7 @@ function NewTripForm({ onSave, onCancel }) {
       </div>
       <div className={styles.formActions}>
         <button className={styles.saveBtn} onClick={() => { if (name.trim()) onSave(name, members, currency) }} disabled={!name.trim()}>
-          {t.tripCreate ?? 'Create trip'}
+          {t.tripCreate ?? 'Save'}
         </button>
         <button className={styles.cancelBtn} onClick={onCancel}>{t.receiptCancel}</button>
       </div>
@@ -102,19 +103,26 @@ function TripSummarySection({ trip, entries, tripSummary }) {
   const summary = tripSummary(trip.id, entries)
   if (!summary || summary.grandTotal === 0) return null
 
+  const hasOwedData = trip.members.some(m => (summary.owed[m] ?? 0) > 0)
+
   return (
     <div className={styles.summarySection}>
-      {/* Per-person owed */}
       <div className={styles.summaryTitle}>สรุปยอด</div>
-      {trip.members.map(m => (
-        <div key={m} className={styles.summaryRow}>
-          <span className={styles.summaryName}>
-            <Avatar name={m} size={20} />
-            {m}
-          </span>
-          <span className={styles.summaryAmt}>{fmtAmount(summary.owed[m] ?? 0, summary.currency)}</span>
-        </div>
-      ))}
+
+      {hasOwedData
+        ? trip.members.map(m => (
+            <div key={m} className={styles.summaryRow}>
+              <span className={styles.summaryName}><Avatar name={m} size={20} />{m}</span>
+              <span className={styles.summaryAmt}>{fmtAmount(summary.owed[m] ?? 0, summary.currency)}</span>
+            </div>
+          ))
+        : (
+            <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8 }}>
+              💡 เปิดแต่ละบิลและกด Save เพื่อบันทึกยอดต่อคน
+            </div>
+          )
+      }
+
       <div className={styles.summaryTotal}>
         <span>รวม</span>
         <span>{fmtAmount(summary.grandTotal, summary.currency)}</span>
@@ -123,9 +131,7 @@ function TripSummarySection({ trip, entries, tripSummary }) {
       {/* Settlement transfers */}
       {summary.hasPayers && summary.settlements.length > 0 && (
         <>
-          <div className={styles.summaryTitle} style={{ marginTop: 14 }}>
-            💸 ใครโอนให้ใคร
-          </div>
+          <div className={styles.summaryTitle} style={{ marginTop: 14 }}>💸 ใครโอนให้ใคร</div>
           {summary.settlements.map((s, i) => (
             <div key={i} className={styles.summaryRow}>
               <span className={styles.summaryName} style={{ gap: 6 }}>
@@ -151,7 +157,7 @@ function TripSummarySection({ trip, entries, tripSummary }) {
 
       {!summary.hasPayers && (
         <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10 }}>
-          💡 เลือกว่าใครจ่ายแต่ละบิลเพื่อคำนวณยอดโอน
+          💳 เลือกว่าใครจ่ายแต่ละบิลเพื่อคำนวณยอดโอน
         </div>
       )}
     </div>
@@ -161,9 +167,7 @@ function TripSummarySection({ trip, entries, tripSummary }) {
 // ── Trip detail view ────────────────────────────────────────────────────────
 function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onSetPayer }) {
   const { t } = useLang()
-  const tripBills = trip.billIds
-    .map(id => entries.find(e => e.id === id))
-    .filter(Boolean)
+  const tripBills = trip.billIds.map(id => entries.find(e => e.id === id)).filter(Boolean)
   const paidBy = trip.paidBy || {}
 
   return (
@@ -181,7 +185,9 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           </span>
         ))}
       </div>
+
       <TripSummarySection trip={trip} entries={entries} tripSummary={tripSummary} />
+
       <div className={styles.billsTitle}>{t.tripBills ?? 'Bills'} ({tripBills.length})</div>
       {tripBills.length === 0 && (
         <p className={styles.empty}>{t.tripNoBills ?? 'No bills yet — add one below'}</p>
@@ -201,7 +207,6 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
               </button>
               <button className={styles.billCardRemove} onClick={() => onRemoveBill(trip.id, entry.id)} aria-label="Remove from trip">×</button>
             </div>
-            {/* Payer selector — only shown when trip has members */}
             {trip.members.length > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px 10px', borderTop: '0.5px solid var(--color-border)' }}>
                 <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>
@@ -270,19 +275,26 @@ function TripList({ trips, onSelect, onNew }) {
 // ── Main export ─────────────────────────────────────────────────────────────
 export default function TripsTab({ entries, onLoadBill, onNewBillForTrip }) {
   const { trips, createTrip, updateTrip, deleteTrip, addBillToTrip, removeBillFromTrip, setBillPayer, getTrip, tripSummary } = useTripsStore()
-  const [view, setView] = useState('list')   // 'list' | 'detail' | 'new'
+  const [view, setView] = useState('list')   // 'list' | 'detail' | 'new' | 'edit'
   const [activeTrip, setActiveTrip] = useState(null)
   const [addingBill, setAddingBill] = useState(false)
 
   const handleNew = () => setView('new')
-  const handleSave = (name, members, currency) => {
+
+  const handleCreate = (name, members, currency) => {
     const trip = createTrip(name, members, currency)
     setActiveTrip(trip)
     setView('detail')
   }
+
+  const handleEdit = (name, members, currency) => {
+    updateTrip(activeTrip.id, { name: name.trim().slice(0, 60), members, currency })
+    setActiveTrip(prev => ({ ...prev, name: name.trim().slice(0, 60), members, currency }))
+    setView('detail')
+  }
+
   const handleSelect = (trip) => { setActiveTrip(trip); setView('detail') }
   const handleBack = () => { setActiveTrip(null); setView('list') }
-
   const handleAddBill = () => setAddingBill(true)
 
   const handleRemoveBill = (tripId, billId) => {
@@ -298,9 +310,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip }) {
     })
   }
 
-  const handleLoadBill = (entry) => { onLoadBill(entry) }
-
-  // Bill picker — shows history entries to add to trip
+  // Bill picker
   const BillPicker = () => {
     const available = entries.filter(e => !activeTrip.billIds.includes(e.id))
     const { t } = useLang()
@@ -327,7 +337,11 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip }) {
   }
 
   if (addingBill && activeTrip) return <BillPicker />
-  if (view === 'new') return <NewTripForm onSave={handleSave} onCancel={() => setView('list')} />
+  if (view === 'new') return <TripForm title="New Trip" onSave={handleCreate} onCancel={() => setView('list')} />
+  if (view === 'edit' && activeTrip) {
+    const trip = getTrip(activeTrip.id) ?? activeTrip
+    return <TripForm title="Edit Trip" initial={trip} onSave={handleEdit} onCancel={() => setView('detail')} />
+  }
   if (view === 'detail' && activeTrip) {
     const trip = getTrip(activeTrip.id) ?? activeTrip
     return (
@@ -338,8 +352,8 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip }) {
         onBack={handleBack}
         onAddBill={handleAddBill}
         onRemoveBill={handleRemoveBill}
-        onLoadBill={handleLoadBill}
-        onEditTrip={() => {}}
+        onLoadBill={onLoadBill}
+        onEditTrip={() => setView('edit')}
         onSetPayer={handleSetPayer}
       />
     )
