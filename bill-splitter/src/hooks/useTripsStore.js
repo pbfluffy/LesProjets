@@ -180,45 +180,38 @@ export function useTripsStore() {
   const createTrip = useCallback((name, members = [], currency = 'THB') => {
     const trip = { id: uuid(), name: name.trim().slice(0, 60), members, currency, createdAt: Date.now(), billIds: [], paidBy: {} }
     let _next
-    setTrips(prev => { _next = [trip, ...prev]; writeAll(_next); return _next })
-    pushToCloud(_next)
+    setTrips(prev => { _next = [trip, ...prev]; writeAll(_next); pushToCloud(_next); return _next })
     return trip
   }, [])
 
   const updateTrip = useCallback((id, patch) => {
     let _next
-    setTrips(prev => { _next = prev.map(t => t.id === id ? { ...t, ...patch } : t); writeAll(_next); return _next })
-    pushToCloud(_next)
+    setTrips(prev => { _next = prev.map(t => t.id === id ? { ...t, ...patch } : t); writeAll(_next); pushToCloud(_next); return _next })
   }, [])
 
   const deleteTrip = useCallback((id) => {
     let _next
-    setTrips(prev => { _next = prev.filter(t => t.id !== id); writeAll(_next); return _next })
-    pushToCloud(_next, true)
+    setTrips(prev => { _next = prev.filter(t => t.id !== id); writeAll(_next); pushToCloud(_next, true); return _next })
   }, [])
 
   const addBillToTrip = useCallback((tripId, billId) => {
     let _next
-    setTrips(prev => { _next = prev.map(t => t.id === tripId && !t.billIds.includes(billId) ? { ...t, billIds: [...t.billIds, billId] } : t); writeAll(_next); return _next })
-    pushToCloud(_next)
+    setTrips(prev => { _next = prev.map(t => t.id === tripId && !t.billIds.includes(billId) ? { ...t, billIds: [...t.billIds, billId] } : t); writeAll(_next); pushToCloud(_next); return _next })
   }, [])
 
   const removeBillFromTrip = useCallback((tripId, billId) => {
     let _next
-    setTrips(prev => { _next = prev.map(t => { if (t.id !== tripId) return t; const pb = { ...(t.paidBy||{}) }; delete pb[billId]; return { ...t, billIds: t.billIds.filter(b => b !== billId), paidBy: pb } }); writeAll(_next); return _next })
-    pushToCloud(_next)
+    setTrips(prev => { _next = prev.map(t => { if (t.id !== tripId) return t; const pb = { ...(t.paidBy||{}) }; delete pb[billId]; return { ...t, billIds: t.billIds.filter(b => b !== billId), paidBy: pb } }); writeAll(_next); pushToCloud(_next); return _next })
   }, [])
 
   const setBillPayer = useCallback((tripId, billId, payer) => {
     let _next
-    setTrips(prev => { _next = prev.map(t => t.id !== tripId ? t : { ...t, paidBy: { ...(t.paidBy||{}), [billId]: payer } }); writeAll(_next); return _next })
-    pushToCloud(_next)
+    setTrips(prev => { _next = prev.map(t => t.id !== tripId ? t : { ...t, paidBy: { ...(t.paidBy||{}), [billId]: payer } }); writeAll(_next); pushToCloud(_next); return _next })
   }, [])
 
   const reorderBills = useCallback((tripId, fromIdx, toIdx) => {
     let _next
-    setTrips(prev => { _next = prev.map(t => { if (t.id !== tripId) return t; const ids = [...t.billIds]; const [m] = ids.splice(fromIdx,1); ids.splice(toIdx,0,m); return { ...t, billIds: ids } }); writeAll(_next); return _next })
-    pushToCloud(_next)
+    setTrips(prev => { _next = prev.map(t => { if (t.id !== tripId) return t; const ids = [...t.billIds]; const [m] = ids.splice(fromIdx,1); ids.splice(toIdx,0,m); return { ...t, billIds: ids } }); writeAll(_next); pushToCloud(_next); return _next })
   }, [])
 
   const getTrip = useCallback((id) => trips.find(t => t.id === id) ?? null, [trips])
