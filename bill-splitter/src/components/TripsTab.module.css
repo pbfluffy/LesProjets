@@ -133,3 +133,9 @@
 }
 .actionBtn:hover:not(:disabled) { background: var(--color-accent); color: var(--color-accent-text); border-color: transparent; }
 .actionBtn:disabled { opacity: 0.5; cursor: default; }
+
+/* shareBtnGroup — matches ResultSection layout */
+.shareBtnGroup { display: flex; gap: 6px; align-items: center; margin-bottom: 20px; }
+
+/* Toast — matches ResultSection */
+.toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--color-text); color: var(--color-bg); padding: 8px 18px; border-radius: 20px; font-size: 13px; z-index: 500; pointer-events: none; white-space: nowrap; }
