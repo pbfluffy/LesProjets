@@ -255,7 +255,10 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip }) {
       promptPay: '', bankInfo: '', notes: '', roundTotalEnabled: false,
     }
     const entry = onSaveBill('split', state)
-    if (entry) onAddBillToTrip(trip.id, entry.id)
+    if (entry) {
+      onAddBillToTrip(trip.id, entry.id)
+      // Members already set from trip in state — no extra merge needed
+    }
     setPreview(null)
   }
 
@@ -321,7 +324,7 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip }) {
 }
 
 // ── Trip detail view ────────────────────────────────────────────────────────
-function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onSetPayer, onSaveBill, onAddBillToTrip }) {
+function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onDeleteTrip, onSetPayer, onSaveBill, onAddBillToTrip }) {
   const { t } = useLang()
   const tripBills = trip.billIds.map(id => entries.find(e => e.id === id)).filter(Boolean)
   const paidBy = trip.paidBy || {}
@@ -348,7 +351,19 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
     <div className={styles.detail}>
       <div className={styles.detailHeader}>
         <button className={styles.backBtn} onClick={onBack}>← {t.tripBack ?? 'Trips'}</button>
-        <button className={styles.editBtn} onClick={onEditTrip}>✏️</button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className={styles.editBtn} onClick={onEditTrip}>✏️</button>
+          <button
+            className={styles.editBtn}
+            onClick={() => {
+              if (window.confirm(t.tripDeleteConfirm ?? `Delete "${trip.name}"? This cannot be undone.`)) {
+                onDeleteTrip(trip.id)
+              }
+            }}
+            style={{ color: 'var(--color-error, #c62828)' }}
+            title={t.tripDelete ?? 'Delete trip'}
+          >🗑️</button>
+        </div>
       </div>
       <h2 className={styles.tripTitle}>{trip.name}</h2>
       <div className={styles.tripMeta}>{fmtDate(trip.createdAt)}</div>
@@ -519,7 +534,19 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
         {available.map(entry => (
           <button key={entry.id} className={styles.pickerRow} onClick={() => {
             addBillToTrip(activeTrip.id, entry.id)
-            setActiveTrip(prev => ({ ...prev, billIds: [...prev.billIds, entry.id] }))
+            // Auto-merge members from bill into trip
+            const billMembers = entry.state?.members ?? []
+            if (billMembers.length > 0) {
+              const merged = [...new Set([...(activeTrip.members ?? []), ...billMembers])]
+              if (merged.length !== (activeTrip.members ?? []).length) {
+                updateTrip(activeTrip.id, { members: merged })
+                setActiveTrip(prev => ({ ...prev, billIds: [...prev.billIds, entry.id], members: merged }))
+              } else {
+                setActiveTrip(prev => ({ ...prev, billIds: [...prev.billIds, entry.id] }))
+              }
+            } else {
+              setActiveTrip(prev => ({ ...prev, billIds: [...prev.billIds, entry.id] }))
+            }
             setAddingBill(false)
           }}>
             <span className={styles.billCardName}>{entry.billName || t.unnamedBill}</span>
@@ -554,6 +581,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
         onRemoveBill={handleRemoveBill}
         onLoadBill={onLoadBill}
         onEditTrip={() => setView('edit')}
+        onDeleteTrip={(id) => { deleteTrip(id); handleBack() }}
         onSetPayer={handleSetPayer}
       />
     )
