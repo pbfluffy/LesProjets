@@ -9,7 +9,7 @@
  */
 import { useState } from 'react'
 import { useLang } from '../LangContext'
-import { useTripsStore } from '../hooks/useTripsStore'
+import { useTripsStore, calcBillResult } from '../hooks/useTripsStore'
 import Avatar from './Avatar'
 import styles from './TripsTab.module.css'
 
@@ -247,7 +247,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
         <p className={styles.empty}>{t.tripNoBills ?? 'No bills yet — add one below'}</p>
       )}
       {tripBills.map(entry => {
-        const totalAmt = entry.state?.result?.grandTotal
+        const { grandTotal: totalAmt, currency: billCurrency } = calcBillResult(entry)
         const payer = paidBy[entry.id] || ''
         return (
           <div key={entry.id} className={styles.billCard} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
@@ -256,7 +256,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                 <span className={styles.billCardName}>{entry.billName || t.unnamedBill}</span>
                 <span className={styles.billCardDate}>{fmtDate(entry.savedAt)}</span>
                 {totalAmt > 0 && (
-                  <span className={styles.billCardAmt}>{fmtAmount(totalAmt, trip.currency)}</span>
+                  <span className={styles.billCardAmt}>{fmtAmount(totalAmt, billCurrency)}</span>
                 )}
               </button>
               <button className={styles.billCardRemove} onClick={() => onRemoveBill(trip.id, entry.id)} aria-label="Remove from trip">×</button>
