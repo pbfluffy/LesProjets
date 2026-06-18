@@ -379,7 +379,9 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                 {totalAmt > 0 && (
                   <span className={styles.billCardAmt}>
                     {fmtAmount(totalAmt, billCurrency)}
-                    {!isTHB && rate && billCurrency !== 'THB' && <span style={{fontSize:11,color:'var(--color-text-muted)',marginLeft:4}}>≈฿{Math.round(totalAmt*rate).toLocaleString()}</span>}
+                    {rate && billCurrency !== 'THB' && (
+                      <span style={{fontSize:11,color:'var(--color-text-muted)',marginLeft:4}}>≈฿{Math.round(totalAmt*rate).toLocaleString()}</span>
+                    )}
                   </span>
                 )}
               </button>
@@ -391,10 +393,10 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                 {trip.members.map(m => totals[m] != null ? (
                   <span key={m} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
                     <Avatar name={m} size={14} />
-                    {isTHB || !rate
-                      ? fmtAmount(totals[m] ?? 0, detailCurrency)
-                      : <>{fmtAmount(totals[m] ?? 0, detailCurrency)}<span style={{fontSize:10,color:'var(--color-text-muted)',marginLeft:3}}>≈฿{Math.round((totals[m]??0)*rate).toLocaleString()}</span></>
-                    }
+                    {fmtAmount(totals[m] ?? 0, billCurrency)}
+                    {rate && billCurrency !== 'THB' && (
+                      <span style={{fontSize:10,color:'var(--color-text-muted)',marginLeft:3}}>≈฿{Math.round((totals[m]??0)*rate).toLocaleString()}</span>
+                    )}
                   </span>
                 ) : null)}
               </div>
