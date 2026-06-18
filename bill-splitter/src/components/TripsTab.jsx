@@ -102,21 +102,67 @@ function TripForm({ initial, onSave, onCancel, title }) {
 function TripSummarySection({ trip, entries, tripSummary }) {
   const summary = tripSummary(trip.id, entries)
   if (!summary) return null
-  // Show summary even if grandTotal is 0 (bills may not have saved results yet)
   const hasBills = trip.billIds.length > 0
   if (!hasBills) return null
 
   const hasOwedData = trip.members.some(m => (summary.owed[m] ?? 0) > 0)
+  const isTHB = summary.currency === 'THB'
+
+  // THB conversion toggle
+  const [converting, setConverting] = useState(false)
+  const [rate, setRate] = useState(null)       // 1 foreignCurrency = X THB
+  const [rateError, setRateError] = useState(null)
+
+  const handleConvertToggle = async () => {
+    if (converting) { setConverting(false); setRate(null); setRateError(null); return }
+    setConverting(true)
+    setRateError(null)
+    try {
+      const res = await fetch(`https://open.er-api.com/v6/latest/${summary.currency}`)
+      if (!res.ok) throw new Error('fetch failed')
+      const data = await res.json()
+      const r = data?.rates?.['THB']
+      if (!r) throw new Error('no rate')
+      setRate(r)
+    } catch {
+      setRateError('ดึงอัตราแลกเปลี่ยนไม่ได้')
+      setConverting(false)
+    }
+  }
+
+  const conv = (n) => rate !== null ? n * rate : n
+  const dispCurrency = (rate !== null) ? 'THB' : summary.currency
 
   return (
     <div className={styles.summarySection}>
-      <div className={styles.summaryTitle}>สรุปยอด</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className={styles.summaryTitle} style={{ margin: 0 }}>สรุปยอด</div>
+        {!isTHB && (
+          <button
+            onClick={handleConvertToggle}
+            style={{
+              fontSize: 11,
+              padding: '3px 8px',
+              borderRadius: 12,
+              border: '0.5px solid var(--color-border)',
+              background: converting && rate ? 'var(--color-accent, #1a1a1a)' : 'var(--color-surface)',
+              color: converting && rate ? '#fff' : 'var(--color-text-muted)',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {converting && !rate ? '…' : converting && rate ? `1 ${summary.currency} = ฿${rate.toFixed(2)}` : `แปลงเป็น ฿`}
+          </button>
+        )}
+      </div>
+      {rateError && <div style={{ fontSize: 11, color: 'var(--color-error, #c00)', marginTop: 4 }}>{rateError}</div>}
 
       {hasOwedData
         ? trip.members.map(m => (
             <div key={m} className={styles.summaryRow}>
               <span className={styles.summaryName}><Avatar name={m} size={20} />{m}</span>
-              <span className={styles.summaryAmt}>{fmtAmount(summary.owed[m] ?? 0, summary.currency)}</span>
+              <span className={styles.summaryAmt}>{fmtAmount(conv(summary.owed[m] ?? 0), dispCurrency)}</span>
             </div>
           ))
         : (
@@ -128,7 +174,7 @@ function TripSummarySection({ trip, entries, tripSummary }) {
 
       <div className={styles.summaryTotal}>
         <span>รวม</span>
-        <span>{fmtAmount(summary.grandTotal, summary.currency)}</span>
+        <span>{fmtAmount(conv(summary.grandTotal), dispCurrency)}</span>
       </div>
       {summary.mixedCurrencies && (
         <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4, textAlign: 'right' }}>
@@ -150,7 +196,7 @@ function TripSummarySection({ trip, entries, tripSummary }) {
                 <span style={{ fontSize: 13 }}>{s.to}</span>
               </span>
               <span className={styles.summaryAmt} style={{ color: 'var(--color-accent, #ff6b35)' }}>
-                {fmtAmount(s.amount, summary.currency)}
+                {fmtAmount(conv(s.amount), dispCurrency)}
               </span>
             </div>
           ))}
