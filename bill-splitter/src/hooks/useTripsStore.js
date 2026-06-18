@@ -37,7 +37,7 @@ export function calcBillResult(entry) {
 
   if (entry.tab === 'sushi') {
     // Sushiro: sum plates + snacks per person
-    const PLATE_PRICES = { p60:60, p80:80, p120:120, p150:150, p180:180, p220:220 }
+    const PLATE_PRICES = { white:30, red:40, silver:60, gold:80, black:120 }
     const people = Array.isArray(s.people) ? s.people : []
     const plates = s.plates || {}
     const snacks = s.snacks || {}
