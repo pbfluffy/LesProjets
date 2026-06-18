@@ -100,8 +100,10 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
             <div key={m} className={styles.summaryRow}>
               <span className={styles.summaryName}><Avatar name={m} size={20} />{m}</span>
               <span className={styles.summaryAmt}>
-                {orig(summary.owed[m] ?? 0)}
-                {!isTHB && <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginLeft: 4 }}>{thb(summary.owed[m] ?? 0)}</span>}
+                {rate && !isTHB
+                  ? <><span>฿{Math.round((summary.owed[m] ?? 0) * rate).toLocaleString()}</span><span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginLeft: 4 }}>{orig(summary.owed[m] ?? 0)}</span></>
+                  : orig(summary.owed[m] ?? 0)
+                }
               </span>
             </div>
           ))
@@ -115,8 +117,10 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
       <div className={styles.summaryTotal}>
         <span>รวม</span>
         <span>
-          {orig(summary.grandTotal)}
-          {!isTHB && rate && <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--color-text-muted)', marginLeft: 6 }}>≈ ฿{Math.round(summary.grandTotal * rate).toLocaleString()}</span>}
+          {rate && !isTHB
+            ? <><span>฿{Math.round(summary.grandTotal * rate).toLocaleString()}</span><span style={{ fontSize: 13, fontWeight: 400, color: 'var(--color-text-muted)', marginLeft: 6 }}>{orig(summary.grandTotal)}</span></>
+            : orig(summary.grandTotal)
+          }
         </span>
       </div>
 
@@ -135,8 +139,10 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
                 <span style={{ fontSize: 13 }}>{s.to}</span>
               </span>
               <span className={styles.summaryAmt} style={{ color: 'var(--color-accent, #ff6b35)' }}>
-                {orig(s.amount)}
-                {!isTHB && rate && <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginLeft: 4 }}>{thb(s.amount)}</span>}
+                {rate && !isTHB
+                  ? <><span>฿{Math.round(s.amount * rate).toLocaleString()}</span><span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginLeft: 4 }}>{orig(s.amount)}</span></>
+                  : orig(s.amount)
+                }
               </span>
             </div>
           ))}
@@ -151,7 +157,10 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
 
       {!summary.hasPayers && (
         <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10 }}>
-          💳 เลือกว่าใครจ่ายแต่ละบิลเพื่อคำนวณยอดโอน
+          {summary.mixedCurrencies
+            ? '⚠️ ยอดโอนคำนวณไม่ได้เมื่อมีหลายสกุลเงิน'
+            : '💳 เลือกว่าใครจ่ายแต่ละบิลเพื่อคำนวณยอดโอน'
+          }
         </div>
       )}
     </div>
