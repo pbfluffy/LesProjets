@@ -285,27 +285,25 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onScanBill,
           </div>
         )
       })}
-      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-        <button className={styles.addBillBtn} style={{ flex: 1 }} onClick={onAddBill}>
-          + {t.tripAddBill ?? 'Add bill'}
-        </button>
-        <button
-          onClick={onScanBill}
-          title={t.tripScanBill ?? 'Scan receipt → new bill'}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            padding: '0 14px', height: 44, borderRadius: 10,
-            border: '1.5px dashed var(--color-border)',
-            background: 'var(--color-surface)',
-            color: 'var(--color-text-muted)',
-            fontSize: 13, fontFamily: 'var(--font-body)',
-            cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-          }}
-        >
-          <span style={{ fontSize: 18 }}>📷</span>
-          <span>{t.tripScanNew ?? 'Scan'}</span>
-        </button>
-      </div>
+      <button className={styles.addBillBtn} style={{ marginTop: 16 }} onClick={onAddBill}>
+        + {t.tripAddBill ?? 'Add bill to trip'}
+      </button>
+      <button
+        onClick={onScanBill}
+        title={t.tripScanBill ?? 'Scan receipt → new bill'}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          width: '100%', padding: '10px 0', marginTop: 8, borderRadius: 10,
+          border: '1.5px dashed var(--color-border)',
+          background: 'none',
+          color: 'var(--color-text-muted)',
+          fontSize: 13, fontFamily: 'var(--font-body)',
+          cursor: 'pointer',
+        }}
+      >
+        <span style={{ fontSize: 16 }}>📷</span>
+        <span>{t.tripScanNew ?? 'Scan receipt → new bill'}</span>
+      </button>
     </div>
   )
 }
