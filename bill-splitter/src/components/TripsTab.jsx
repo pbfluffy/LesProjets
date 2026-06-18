@@ -60,9 +60,8 @@ function TripForm({ initial, onSave, onCancel, title }) {
 }
 
 // ── Settlement + summary section ────────────────────────────────────────────
-function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onConvertToggle }) {
+function TripSummarySection({ trip, summary, rate, rateLoading, onConvertToggle }) {
   const { t } = useLang()
-  const summary = tripSummary(trip.id, entries)
   if (!summary) return null
   if (!trip.billIds.length) return null
   if (!summary.hasData) return (
@@ -370,7 +369,9 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
         ))}
       </div>
 
-      <TripSummarySection trip={trip} entries={entries} tripSummary={tripSummary} rate={rate} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} />
+      <div ref={captureRef}>
+      <TripSummarySection trip={trip} summary={summary} rate={rate} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} />
+      </div>{/* /captureRef-summary */}
 
       {/* Share + Save image action row — matches ResultSection shareBtnGroup exactly */}
       {summary && summary.hasData && (
@@ -452,7 +453,6 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
       )}
       {toast && <div className={styles.toast}>{}</div>}
 
-      <div ref={captureRef}>
       <div className={styles.billsTitle}>{t.tripBills ?? 'Bills'} ({tripBills.length})</div>
       {tripBills.length === 0 && (
         <p className={styles.empty}>{t.tripNoBills ?? 'No bills yet — add one below'}</p>
@@ -538,7 +538,6 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           </div>
         )
       })}
-      </div>{/* /captureRef */}
       <button className={styles.addBillBtn} style={{ marginTop: 16 }} onClick={onAddBill}>
         + {t.tripAddBill ?? 'Add bill to trip'}
       </button>
