@@ -249,7 +249,7 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip }) {
             padding: '20px 16px 32px', width: '100%', maxHeight: '80vh', overflowY: 'auto',
           }}>
             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>
-              {preview.billName || t.untitledBill ?? '(untitled)'}
+              {preview.billName || (t.untitledBill ?? '(untitled)')}
               <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 8, color: 'var(--color-text-muted)' }}>
                 {CURRENCY_FLAGS[preview.currency] ?? ''} {preview.currency}
               </span>
@@ -347,9 +347,9 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <button className={styles.billCardMain} onClick={() => onLoadBill(entry)}>
                 <span className={styles.billCardName}>{(() => {
-                  const name = entry.billName || t.untitledBill ?? '(untitled)'
+                  const name = entry.billName || (t.untitledBill ?? '(untitled)')
                   const idx = tripBills.findIndex(b => b.id === entry.id)
-                  const dupesBefore = tripBills.slice(0, idx).filter(b => (b.billName || t.untitledBill ?? '(untitled)') === name).length
+                  const dupesBefore = tripBills.slice(0, idx).filter(b => (b.billName || (t.untitledBill ?? '(untitled)')) === name).length
                   return dupesBefore > 0 ? `${name} (${dupesBefore + 1})` : name
                 })()}</span>
                 <span className={styles.billCardDate}>{fmtDate(entry.savedAt)}</span>
@@ -543,7 +543,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
                 color: 'var(--color-bg)', fontSize: 11, fontWeight: 700,
               }}>{isSelected ? '✓' : ''}</span>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: 14, fontWeight: 500, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--color-text)' }}>{entry.billName || t.untitledBill ?? '(untitled)'}</span>
+                <span style={{ fontSize: 14, fontWeight: 500, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--color-text)' }}>{entry.billName || (t.untitledBill ?? '(untitled)')}</span>
                 <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{fmtDate(entry.savedAt)}</span>
               </span>
               {grandTotal > 0 && <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)', flexShrink: 0 }}>{fmtAmount(grandTotal, billCurr ?? 'THB')}</span>}
