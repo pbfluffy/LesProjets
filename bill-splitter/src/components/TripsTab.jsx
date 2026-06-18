@@ -283,7 +283,7 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip }) {
 // ── Trip detail view ────────────────────────────────────────────────────────
 function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onDeleteTrip, onSetPayer, onSaveBill, onAddBillToTrip }) {
   const { t } = useLang()
-  const tripBills = trip.billIds.map(id => entries.find(e => e.id === id)).filter(Boolean)
+  const tripBills = trip.billIds.map(id => entries.find(e => e.id === id) ?? { id, _missing: true })
   const paidBy = trip.paidBy || {}
   const summary = tripSummary(trip.id, entries)
   const detailCurrency = summary?.currency ?? trip.currency
@@ -339,6 +339,17 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
         <p className={styles.empty}>{t.tripNoBills ?? 'No bills yet — add one below'}</p>
       )}
       {tripBills.map(entry => {
+        // Missing entry — bill was deleted from history but trip still references it
+        if (entry._missing) return (
+          <div key={entry.id} className={styles.billCard} style={{ flexDirection: 'column', alignItems: 'stretch', opacity: 0.5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '10px 14px' }}>
+              <span style={{ flex: 1, fontSize: 13, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                {t.tripBillMissing ?? '(Bill deleted from history)'}
+              </span>
+              <button className={styles.billCardRemove} onClick={() => onRemoveBill(trip.id, entry.id)} aria-label="Remove from trip">×</button>
+            </div>
+          </div>
+        )
         const { grandTotal: totalAmt, currency: _billCurr, totals } = calcBillResult(entry)
         const billCurrency = _billCurr ?? detailCurrency
         const payer = paidBy[entry.id] || ''
