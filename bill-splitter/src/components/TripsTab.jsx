@@ -7,11 +7,13 @@
  *   'new'    — create trip form
  *   'edit'   — edit trip name/members/currency
  */
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useLang } from '../LangContext'
 import { useTripsStore, calcBillResult } from '../hooks/useTripsStore'
 import Avatar from './Avatar'
 import styles from './TripsTab.module.css'
+import { compressImage, scanReceipt, localizeError, getScanCount, bumpScanCount, SCAN_CAP, CURRENCY_FLAGS } from './receiptScanUtils'
+import { normaliseCurrency } from '../currencies'
 
 function fmtDate(ts) {
   if (!ts) return ''
@@ -193,8 +195,127 @@ function TripSummarySection({ trip, entries, tripSummary, rate, conv, dispCurren
   )
 }
 
+
+// ── Inline receipt scanner for trip tab ────────────────────────────────────
+function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip }) {
+  const { t } = useLang()
+  const fileRef = useRef(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [preview, setPreview] = useState(null) // { items, billName, currency, vatIncluded, scIncluded, scRate }
+
+  async function onFile(e) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    if (getScanCount() >= SCAN_CAP) { setError(t.receiptCapReached ?? 'Scan limit reached'); return }
+    setLoading(true); setError(null)
+    try {
+      const base64 = await compressImage(f)
+      const r = await scanReceipt(base64)
+      if (r.error) throw new Error(r.error)
+      bumpScanCount()
+      const items = Array.isArray(r.items) ? r.items.filter(i => i.price > 0) : []
+      setPreview({
+        items,
+        billName: r.merchantName || '',
+        currency: normaliseCurrency(r.currency),
+        vatIncluded: !!r.vatIncluded,
+        scIncluded: !!r.serviceChargeIncluded,
+        scRate: r.serviceChargeRate || 10,
+      })
+    } catch (err) {
+      setError(localizeError(err.message, t))
+    } finally {
+      setLoading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  function handleConfirm() {
+    if (!preview) return
+    const state = {
+      billName: preview.billName,
+      members: trip.members,
+      foods: preview.items.map((item, i) => ({
+        id: String(i),
+        name: item.name || item.originalName || '',
+        price: String(item.price),
+        who: [...trip.members],
+      })),
+      vatEnabled: preview.vatIncluded,
+      serviceChargeEnabled: preview.scIncluded,
+      serviceChargeRate: String(preview.scRate),
+      currency: preview.currency,
+      promptPay: '', bankInfo: '', notes: '', roundTotalEnabled: false,
+    }
+    const entry = onSaveBill('split', state)
+    if (entry) onAddBillToTrip(trip.id, entry.id)
+    setPreview(null)
+  }
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onFile} />
+      <button
+        onClick={() => fileRef.current?.click()}
+        disabled={loading}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          width: '100%', padding: '10px 0', borderRadius: 10,
+          border: '1.5px dashed var(--color-border)',
+          background: 'none', color: loading ? 'var(--color-text-muted)' : 'var(--color-text)',
+          fontSize: 13, fontFamily: 'var(--font-body)', cursor: loading ? 'default' : 'pointer',
+        }}
+      >
+        <span style={{ fontSize: 16 }}>{loading ? '⏳' : '📷'}</span>
+        <span>{loading ? (t.receiptScanning ?? 'Scanning…') : (t.tripScanNew ?? 'Scan receipt → add to trip')}</span>
+      </button>
+      {error && <div style={{ fontSize: 12, color: 'var(--color-error,#c00)', marginTop: 6, padding: '0 4px' }}>{error}</div>}
+
+      {/* Preview modal */}
+      {preview && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          zIndex: 1000, display: 'flex', alignItems: 'flex-end',
+        }} onClick={e => { if (e.target === e.currentTarget) setPreview(null) }}>
+          <div style={{
+            background: 'var(--color-bg)', borderRadius: '16px 16px 0 0',
+            padding: '20px 16px 32px', width: '100%', maxHeight: '80vh', overflowY: 'auto',
+          }}>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>
+              {preview.billName || t.unnamedBill}
+              <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 8, color: 'var(--color-text-muted)' }}>
+                {CURRENCY_FLAGS[preview.currency] ?? ''} {preview.currency}
+              </span>
+            </div>
+            {preview.items.map((item, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0', borderBottom: '0.5px solid var(--color-border)' }}>
+                <span>{item.name}{item.originalName && item.originalName !== item.name ? ` (${item.originalName})` : ''}</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{Number(item.price).toLocaleString()}</span>
+              </div>
+            ))}
+            {preview.items.length === 0 && <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12 }}>No items detected</div>}
+            <div style={{ marginTop: 12, fontSize: 12, color: 'var(--color-text-muted)' }}>
+              {preview.vatIncluded && '✓ VAT  '}{preview.scIncluded && `✓ SC ${preview.scRate}%  `}
+              {trip.members.length > 0 && `Split: ${trip.members.join(', ')}`}
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+              <button onClick={() => setPreview(null)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid var(--color-border)', background: 'none', fontFamily: 'var(--font-body)', cursor: 'pointer', color: 'var(--color-text)' }}>
+                {t.receiptCancel}
+              </button>
+              <button onClick={handleConfirm} style={{ flex: 2, padding: '10px', borderRadius: 8, border: 'none', background: 'var(--color-text)', color: 'var(--color-bg)', fontFamily: 'var(--font-body)', fontWeight: 600, cursor: 'pointer' }}>
+                ✓ {t.tripScanAdd ?? 'Add to trip'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Trip detail view ────────────────────────────────────────────────────────
-function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onScanBill, onRemoveBill, onLoadBill, onEditTrip, onSetPayer }) {
+function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onSetPayer, onSaveBill, onAddBillToTrip }) {
   const { t } = useLang()
   const tripBills = trip.billIds.map(id => entries.find(e => e.id === id)).filter(Boolean)
   const paidBy = trip.paidBy || {}
@@ -241,7 +362,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onScanBill,
         <p className={styles.empty}>{t.tripNoBills ?? 'No bills yet — add one below'}</p>
       )}
       {tripBills.map(entry => {
-        const { grandTotal: totalAmt, currency: billCurrency } = calcBillResult(entry)
+        const { grandTotal: totalAmt, currency: billCurrency, totals } = calcBillResult(entry)
         const payer = paidBy[entry.id] || ''
         return (
           <div key={entry.id} className={styles.billCard} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
@@ -255,6 +376,17 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onScanBill,
               </button>
               <button className={styles.billCardRemove} onClick={() => onRemoveBill(trip.id, entry.id)} aria-label="Remove from trip">×</button>
             </div>
+            {/* Per-person totals */}
+            {trip.members.length > 0 && Object.keys(totals).some(m => trip.members.includes(m)) && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '6px 14px 8px' }}>
+                {trip.members.map(m => totals[m] != null ? (
+                  <span key={m} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                    <Avatar name={m} size={14} />
+                    {fmtAmount(conv(totals[m]), dispCurrency)}
+                  </span>
+                ) : null)}
+              </div>
+            )}
             {trip.members.length > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px 10px', borderTop: '0.5px solid var(--color-border)' }}>
                 <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>
@@ -288,22 +420,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onScanBill,
       <button className={styles.addBillBtn} style={{ marginTop: 16 }} onClick={onAddBill}>
         + {t.tripAddBill ?? 'Add bill to trip'}
       </button>
-      <button
-        onClick={onScanBill}
-        title={t.tripScanBill ?? 'Scan receipt → new bill'}
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          width: '100%', padding: '10px 0', marginTop: 8, borderRadius: 10,
-          border: '1.5px dashed var(--color-border)',
-          background: 'none',
-          color: 'var(--color-text-muted)',
-          fontSize: 13, fontFamily: 'var(--font-body)',
-          cursor: 'pointer',
-        }}
-      >
-        <span style={{ fontSize: 16 }}>📷</span>
-        <span>{t.tripScanNew ?? 'Scan receipt → new bill'}</span>
-      </button>
+      <TripReceiptScanner trip={trip} onSaveBill={onSaveBill} onAddBillToTrip={onAddBillToTrip} />
     </div>
   )
 }
@@ -337,7 +454,7 @@ function TripList({ trips, onSelect, onNew }) {
 }
 
 // ── Main export ─────────────────────────────────────────────────────────────
-export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onScanBillForTrip }) {
+export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSaveBill }) {
   const { trips, createTrip, updateTrip, deleteTrip, addBillToTrip, removeBillFromTrip, setBillPayer, getTrip, tripSummary } = useTripsStore()
   const [view, setView] = useState('list')   // 'list' | 'detail' | 'new' | 'edit'
   const [activeTrip, setActiveTrip] = useState(null)
@@ -415,7 +532,11 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onScan
         tripSummary={tripSummary}
         onBack={handleBack}
         onAddBill={handleAddBill}
-        onScanBill={() => { onScanBillForTrip?.() }}
+        onSaveBill={onSaveBill}
+        onAddBillToTrip={(tripId, billId) => {
+          addBillToTrip(tripId, billId)
+          setActiveTrip(prev => prev ? { ...prev, billIds: [...prev.billIds, billId] } : prev)
+        }}
         onRemoveBill={handleRemoveBill}
         onLoadBill={onLoadBill}
         onEditTrip={() => setView('edit')}
