@@ -285,12 +285,25 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onScanBill,
           </div>
         )
       })}
-      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
         <button className={styles.addBillBtn} style={{ flex: 1 }} onClick={onAddBill}>
-          + {t.tripAddBill ?? 'Add bill to trip'}
+          + {t.tripAddBill ?? 'Add bill'}
         </button>
-        <button className={styles.addBillBtn} style={{ flex: 'none', padding: '0 16px', fontSize: 18 }} onClick={onScanBill} title={t.tripScanBill ?? 'Scan new bill'}>
-          📷
+        <button
+          onClick={onScanBill}
+          title={t.tripScanBill ?? 'Scan receipt → new bill'}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '0 14px', height: 44, borderRadius: 10,
+            border: '1.5px dashed var(--color-border)',
+            background: 'var(--color-surface)',
+            color: 'var(--color-text-muted)',
+            fontSize: 13, fontFamily: 'var(--font-body)',
+            cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+          }}
+        >
+          <span style={{ fontSize: 18 }}>📷</span>
+          <span>{t.tripScanNew ?? 'Scan'}</span>
         </button>
       </div>
     </div>
@@ -326,7 +339,7 @@ function TripList({ trips, onSelect, onNew }) {
 }
 
 // ── Main export ─────────────────────────────────────────────────────────────
-export default function TripsTab({ entries, onLoadBill, onNewBillForTrip }) {
+export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onScanBillForTrip }) {
   const { trips, createTrip, updateTrip, deleteTrip, addBillToTrip, removeBillFromTrip, setBillPayer, getTrip, tripSummary } = useTripsStore()
   const [view, setView] = useState('list')   // 'list' | 'detail' | 'new' | 'edit'
   const [activeTrip, setActiveTrip] = useState(null)
@@ -404,7 +417,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip }) {
         tripSummary={tripSummary}
         onBack={handleBack}
         onAddBill={handleAddBill}
-        onScanBill={() => { onNewBillForTrip?.() }}
+        onScanBill={() => { onScanBillForTrip?.() }}
         onRemoveBill={handleRemoveBill}
         onLoadBill={onLoadBill}
         onEditTrip={() => setView('edit')}
