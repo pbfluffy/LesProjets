@@ -90,7 +90,7 @@ function TripForm({ initial, onSave, onCancel, title }) {
       </div>
       <div className={styles.formActions}>
         <button className={styles.saveBtn} onClick={() => { if (name.trim()) onSave(name, members, currency) }} disabled={!name.trim()}>
-          {t.tripCreate ?? 'Save'}
+          {title === 'Edit Trip' ? (t.tripSave ?? 'Save') : (t.tripCreate ?? 'Create trip')}
         </button>
         <button className={styles.cancelBtn} onClick={onCancel}>{t.receiptCancel}</button>
       </div>
@@ -101,7 +101,10 @@ function TripForm({ initial, onSave, onCancel, title }) {
 // ── Settlement + summary section ────────────────────────────────────────────
 function TripSummarySection({ trip, entries, tripSummary }) {
   const summary = tripSummary(trip.id, entries)
-  if (!summary || summary.grandTotal === 0) return null
+  if (!summary) return null
+  // Show summary even if grandTotal is 0 (bills may not have saved results yet)
+  const hasBills = trip.billIds.length > 0
+  if (!hasBills) return null
 
   const hasOwedData = trip.members.some(m => (summary.owed[m] ?? 0) > 0)
 
