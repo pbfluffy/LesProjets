@@ -50,7 +50,8 @@ function calcBillResult(entry) {
       totals[p] = Math.round((amt + Number.EPSILON) * 100) / 100
       grand += totals[p]
     })
-    return { grandTotal: Math.round((grand + Number.EPSILON) * 100) / 100, totals }
+    const currency = s.currency || 'THB'
+    return { grandTotal: Math.round((grand + Number.EPSILON) * 100) / 100, totals, currency }
   }
 
   // Split bill
@@ -88,7 +89,8 @@ function calcBillResult(entry) {
     if (ownerAmt < 0) { ownerAmt = 0; grandTotal = round2(othersSum) }
     totals[owner] = ownerAmt
   }
-  return { grandTotal, totals }
+  const currency = s.currency || 'THB'
+  return { grandTotal, totals, currency }
 }
 
 export function useTripsStore() {
@@ -188,10 +190,12 @@ export function useTripsStore() {
     const owed = Object.fromEntries(trip.members.map(m => [m, 0]))
     const paid = Object.fromEntries(trip.members.map(m => [m, 0]))
 
+    const billCurrencies = new Set()
     trip.billIds.forEach(billId => {
       const entry = entries.find(e => e.id === billId)
       if (!entry) return
-      const { grandTotal: billTotal, totals } = calcBillResult(entry)
+      const { grandTotal: billTotal, totals, currency: billCurrency } = calcBillResult(entry)
+      billCurrencies.add(billCurrency || trip.currency)
       grandTotal += billTotal
 
       // Accumulate per-member owed amounts
@@ -205,6 +209,11 @@ export function useTripsStore() {
         paid[payer] += billTotal
       }
     })
+    // Determine effective display currency
+    // If all bills share one currency, use that. Otherwise flag as mixed.
+    const uniqueCurrencies = [...billCurrencies]
+    const effectiveCurrency = uniqueCurrencies.length === 1 ? uniqueCurrencies[0] : trip.currency
+    const mixedCurrencies = uniqueCurrencies.length > 1
 
     // --- Settlement ---
     const hasPayers = trip.billIds.some(billId => !!(trip.paidBy || {})[billId])
@@ -236,7 +245,7 @@ export function useTripsStore() {
       }
     }
 
-    return { owed, paid, grandTotal, currency: trip.currency, settlements, hasPayers }
+    return { owed, paid, grandTotal, currency: effectiveCurrency, mixedCurrencies, settlements, hasPayers }
   }, [trips])
 
   return {
