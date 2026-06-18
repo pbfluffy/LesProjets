@@ -30,21 +30,6 @@ function fmtAmount(n, currency = 'THB') {
 function TripForm({ initial, onSave, onCancel, title }) {
   const { t } = useLang()
   const [name, setName] = useState(initial?.name ?? '')
-  const [memberInput, setMemberInput] = useState('')
-  const [members, setMembers] = useState(initial?.members ?? [])
-  const [currency, setCurrency] = useState(initial?.currency ?? 'THB')
-  const CURRENCIES = [
-    { code:'THB', label:'฿ THB' }, { code:'KRW', label:'₩ KRW' },
-    { code:'JPY', label:'¥ JPY' }, { code:'USD', label:'$ USD' },
-    { code:'EUR', label:'€ EUR' }, { code:'SGD', label:'S$ SGD' },
-  ]
-
-  const addMember = () => {
-    const m = memberInput.trim()
-    if (!m || members.includes(m)) return
-    setMembers(prev => [...prev, m])
-    setMemberInput('')
-  }
 
   return (
     <div className={styles.form}>
@@ -54,44 +39,16 @@ function TripForm({ initial, onSave, onCancel, title }) {
         className={styles.input}
         value={name}
         onChange={e => setName(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && name.trim() && onSave(name)}
         placeholder={t.tripNamePlaceholder ?? 'e.g. Korea June 2026'}
         maxLength={60}
+        autoFocus
       />
-      <label className={styles.label}>{t.members}</label>
-      <div className={styles.memberInputRow}>
-        <input
-          className={styles.input}
-          value={memberInput}
-          onChange={e => setMemberInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && addMember()}
-          placeholder={t.memberPlaceholder}
-        />
-        <button className={styles.addMemberBtn} onClick={addMember}>{t.addMember}</button>
-      </div>
-      {members.length > 0 && (
-        <div className={styles.memberChips}>
-          {members.map(m => (
-            <span key={m} className={styles.memberChip}>
-              <Avatar name={m} size={18} />
-              {m}
-              <button className={styles.chipRemove} onClick={() => setMembers(prev => prev.filter(x => x !== m))}>×</button>
-            </span>
-          ))}
-        </div>
-      )}
-      <label className={styles.label}>{t.tripCurrency ?? 'Currency'}</label>
-      <div className={styles.currencyRow}>
-        {CURRENCIES.map(c => (
-          <button
-            key={c.code}
-            type="button"
-            className={`${styles.currencyChip} ${currency === c.code ? styles.currencyChipActive : ''}`}
-            onClick={() => setCurrency(c.code)}
-          >{c.label}</button>
-        ))}
+      <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 6 }}>
+        {t.tripMembersAutoHint ?? 'Members and currency are detected automatically from your bills.'}
       </div>
       <div className={styles.formActions}>
-        <button className={styles.saveBtn} onClick={() => { if (name.trim()) onSave(name, members, currency) }} disabled={!name.trim()}>
+        <button className={styles.saveBtn} onClick={() => { if (name.trim()) onSave(name) }} disabled={!name.trim()}>
           {title === 'Edit Trip' ? (t.tripSave ?? 'Save') : (t.tripCreate ?? 'Create trip')}
         </button>
         <button className={styles.cancelBtn} onClick={onCancel}>{t.receiptCancel}</button>
@@ -491,15 +448,15 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
 
   const handleNew = () => setView('new')
 
-  const handleCreate = (name, members, currency) => {
-    const trip = createTrip(name, members, currency)
+  const handleCreate = (name) => {
+    const trip = createTrip(name, [], 'THB')
     setActiveTrip(trip)
     setView('detail')
   }
 
-  const handleEdit = (name, members, currency) => {
-    updateTrip(activeTrip.id, { name: name.trim().slice(0, 60), members, currency })
-    setActiveTrip(prev => ({ ...prev, name: name.trim().slice(0, 60), members, currency }))
+  const handleEdit = (name) => {
+    updateTrip(activeTrip.id, { name: name.trim().slice(0, 60) })
+    setActiveTrip(prev => ({ ...prev, name: name.trim().slice(0, 60) }))
     setView('detail')
   }
 

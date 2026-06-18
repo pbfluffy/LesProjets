@@ -144,9 +144,10 @@ export function useTripsStore() {
     return () => { unsubAuth(); if (unsub) unsub() }
   }, [])
 
-  const pushToCloud = useCallback(async (next) => {
+  const pushToCloud = useCallback(async (next, force = false) => {
     const uid = uidRef.current
-    if (!uid || pushInFlight.current) return
+    if (!uid) return
+    if (!force && pushInFlight.current) return
     pushInFlight.current = true
     try {
       const now = Date.now()
@@ -156,7 +157,7 @@ export function useTripsStore() {
         tripsLastEdit: now,
         lastModified: serverTimestamp(),
       }, { merge: true })
-    } catch {} finally {
+    } catch (e) { console.warn('[tripsSync] push failed:', e?.code, e?.message) } finally {
       pushInFlight.current = false
     }
   }, [])
@@ -178,7 +179,7 @@ export function useTripsStore() {
   const deleteTrip = useCallback((id) => {
     let _next
     setTrips(prev => { _next = prev.filter(t => t.id !== id); writeAll(_next); return _next })
-    pushToCloud(_next)
+    pushToCloud(_next, true)
   }, [])
 
   const addBillToTrip = useCallback((tripId, billId) => {
