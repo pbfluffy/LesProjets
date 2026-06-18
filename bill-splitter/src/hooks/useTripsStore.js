@@ -147,7 +147,7 @@ export function useTripsStore() {
         tripsLastEdit: now,
         lastModified: serverTimestamp(),
       }, { merge: true })
-    } catch {} finally {
+    } catch (e) { console.warn('[tripsSync] push failed:', e?.code, e?.message) } finally {
       pushInFlight.current = false
     }
   }, [])
