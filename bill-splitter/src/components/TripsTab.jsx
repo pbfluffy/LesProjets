@@ -116,24 +116,25 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
     <div className={styles.summarySection}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <div className={styles.summaryTitle} style={{ margin: 0 }}>สรุปยอด</div>
-        {/* Mixed currencies: show notice only */}
-        {summary.mixedCurrencies && (
-          <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>⚠️ หลายสกุลเงิน</span>
-        )}
-        {/* Single non-THB currency: show toggle button */}
-        {!isTHB && !summary.mixedCurrencies && (
-          <button
-            onClick={onConvertToggle}
-            style={{
-              fontSize: 11, padding: '3px 8px', borderRadius: 12,
-              border: '0.5px solid var(--color-border)',
-              background: rate ? 'var(--color-text)' : 'var(--color-surface)',
-              color: rate ? 'var(--color-bg)' : 'var(--color-text-muted)',
-              cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
-            }}
-          >
-            {rateLoading ? '…' : rate ? `1 ${summary.currency} = ฿${rate.toFixed(2)}` : 'แปลงเป็น ฿'}
-          </button>
+        {/* Show toggle for any non-THB trip (single or mixed currencies) */}
+        {!isTHB && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {summary.mixedCurrencies && (
+              <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>⚠️ หลายสกุล</span>
+            )}
+            <button
+              onClick={onConvertToggle}
+              style={{
+                fontSize: 11, padding: '3px 8px', borderRadius: 12,
+                border: '0.5px solid var(--color-border)',
+                background: rate ? 'var(--color-text)' : 'var(--color-surface)',
+                color: rate ? 'var(--color-bg)' : 'var(--color-text-muted)',
+                cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
+              }}
+            >
+              {rateLoading ? '…' : rate ? `1 ${summary.currency} = ฿${rate.toFixed(2)}` : 'แปลงเป็น ฿'}
+            </button>
+          </div>
         )}
       </div>
 
