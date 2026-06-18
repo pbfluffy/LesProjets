@@ -25,13 +25,70 @@ function writeAll(trips) {
   } catch {}
 }
 
-// Extract grand total from a history entry regardless of bill type
-function entryTotal(entry) {
-  if (!entry?.state) return 0
-  const result = entry.state.result
-  if (result?.grandTotal) return Number(result.grandTotal) || 0
-  // Sushiro fallback: no result object, compute from plates
-  return 0
+// Recompute bill result from saved state (result is never persisted in snapshots)
+function calcBillResult(entry) {
+  if (!entry?.state) return { grandTotal: 0, totals: {} }
+  const s = entry.state
+
+  if (entry.tab === 'sushi') {
+    // Sushiro: sum plates + snacks per person
+    const PLATE_PRICES = { p60:60, p80:80, p120:120, p150:150, p180:180, p220:220 }
+    const people = Array.isArray(s.people) ? s.people : []
+    const plates = s.plates || {}
+    const snacks = s.snacks || {}
+    const totals = {}
+    let grand = 0
+    people.forEach(p => {
+      let amt = 0
+      const pp = plates[p] || {}
+      Object.entries(pp).forEach(([id, count]) => { amt += (count || 0) * (PLATE_PRICES[id] || 0) })
+      ;(snacks[p] || []).forEach(snack => { amt += Number(snack.price) || 0 })
+      let mul = 1
+      if (s.serviceChargeEnabled) mul *= 1.1
+      if (s.vatEnabled) mul *= 1.07
+      amt = amt * mul
+      totals[p] = Math.round((amt + Number.EPSILON) * 100) / 100
+      grand += totals[p]
+    })
+    return { grandTotal: Math.round((grand + Number.EPSILON) * 100) / 100, totals }
+  }
+
+  // Split bill
+  const members = Array.isArray(s.members) ? s.members : []
+  const foods = Array.isArray(s.foods) ? s.foods : []
+  const scRate = Math.max(0, Math.min(100, parseFloat(s.serviceChargeRate) || 0))
+  const scFraction = s.serviceChargeEnabled ? scRate / 100 : 0
+  let multiplier = 1 + scFraction
+  if (s.vatEnabled) multiplier *= 1.07
+  const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100
+
+  const shares = Object.fromEntries(members.map(m => [m, 0]))
+  let subtotal = 0
+  foods.forEach(f => {
+    const price = parseFloat(f.price) || 0
+    if (!price || !Array.isArray(f.who) || !f.who.length) return
+    subtotal += price
+    const split = price / f.who.length
+    f.who.forEach(m => { if (shares[m] !== undefined) shares[m] += split })
+  })
+
+  const rawGrand = subtotal * multiplier
+  let grandTotal = s.roundTotalEnabled ? Math.round(rawGrand) : round2(rawGrand)
+  const totals = {}
+  if (members.length > 0) {
+    const owner = members[0]
+    let othersSum = 0
+    members.forEach(m => {
+      if (m === owner) return
+      const r = round2(shares[m] * multiplier)
+      totals[m] = r
+      othersSum += r
+    })
+    let ownerAmt = round2(grandTotal - othersSum)
+    if (ownerAmt < 0) { ownerAmt = 0; grandTotal = round2(othersSum) }
+    totals[owner] = ownerAmt
+  }
+  return { grandTotal, totals }
 }
 
 export function useTripsStore() {
@@ -128,27 +185,19 @@ export function useTripsStore() {
 
     // --- Grand total: sum all bill totals regardless of member matching ---
     let grandTotal = 0
-    trip.billIds.forEach(billId => {
-      const entry = entries.find(e => e.id === billId)
-      grandTotal += entryTotal(entry)
-    })
-
-    // --- Per-member owed: only from bills whose result.totals keys match trip members ---
     const owed = Object.fromEntries(trip.members.map(m => [m, 0]))
     const paid = Object.fromEntries(trip.members.map(m => [m, 0]))
 
     trip.billIds.forEach(billId => {
       const entry = entries.find(e => e.id === billId)
-      if (!entry?.state) return
-      const result = entry.state.result
-      const billTotal = entryTotal(entry)
+      if (!entry) return
+      const { grandTotal: billTotal, totals } = calcBillResult(entry)
+      grandTotal += billTotal
 
       // Accumulate per-member owed amounts
-      if (result?.totals) {
-        Object.entries(result.totals).forEach(([m, v]) => {
-          if (owed[m] !== undefined) owed[m] += (Number(v) || 0)
-        })
-      }
+      Object.entries(totals).forEach(([m, v]) => {
+        if (owed[m] !== undefined) owed[m] += (Number(v) || 0)
+      })
 
       // Accumulate payer: who fronted this bill's total
       const payer = (trip.paidBy || {})[billId]
