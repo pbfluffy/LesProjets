@@ -130,6 +130,11 @@ function TripSummarySection({ trip, entries, tripSummary }) {
         <span>รวม</span>
         <span>{fmtAmount(summary.grandTotal, summary.currency)}</span>
       </div>
+      {summary.mixedCurrencies && (
+        <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4, textAlign: 'right' }}>
+          ⚠️ บิลหลายสกุลเงิน · ยอดรวมอาจไม่ตรง
+        </div>
+      )}
 
       {/* Settlement transfers */}
       {summary.hasPayers && summary.settlements.length > 0 && (
