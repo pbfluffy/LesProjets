@@ -362,7 +362,16 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
       <h2 className={styles.tripTitle}>{trip.name}</h2>
       <div className={styles.tripMeta}>{fmtDate(trip.createdAt)}</div>
       <div className={styles.memberChips} style={{ marginBottom: 16 }}>
-        {trip.members.map(m => (
+        {trip.members.filter(m => {
+          // Only show members who have amounts in at least one bill
+          const hasAmt = tripBills.some(entry => {
+            if (entry._missing) return false
+            const _pre = entry._sharedBill
+            const { totals } = _pre ?? calcBillResult(entry)
+            return (totals[m] ?? 0) > 0
+          })
+          return hasAmt
+        }).map(m => (
           <span key={m} className={styles.memberChip}>
             <Avatar name={m} size={18} />{m}
           </span>
@@ -374,7 +383,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>{trip.name}</div>
         {trip.createdAt && <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>{fmtDate(trip.createdAt)}</div>}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-          {trip.members.map(m => <span key={m} className={styles.memberChip}><Avatar name={m} size={16} />{m}</span>)}
+          {trip.members.filter(m => tripBills.some(entry => { if (entry._missing) return false; const _pre = entry._sharedBill; const { totals } = _pre ?? calcBillResult(entry); return (totals[m] ?? 0) > 0 })).map(m => <span key={m} className={styles.memberChip}><Avatar name={m} size={16} />{m}</span>)}
         </div>
       </div>
       <TripSummarySection trip={trip} summary={summary} rate={rate} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} />
@@ -440,7 +449,8 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   ? await createShortLink('trips', payload, user.uid)
                   : buildShareUrl('trips', payload)
                 const result = await shareLink({ title: trip.name, text: `Trip: ${trip.name}`, url })
-                showToast(result === 'shared' ? (t.imageShared ?? '✓ Shared') : '✓ Link copied')
+                // Only show toast for clipboard copy — share sheet is its own confirmation
+                if (result !== 'shared') showToast('✓ Link copied')
               } catch { showToast('Share failed') }
               finally { setShareStatus(null) }
             }}
