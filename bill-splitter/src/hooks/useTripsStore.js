@@ -4,10 +4,15 @@
  * Shape:
  *   Trip: { id, name, members, currency, createdAt, billIds: string[], paidBy: { [billId]: memberName } }
  */
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { v4 as uuid } from 'uuid'
+import {
+  auth, db,
+  onAuthStateChanged, doc, setDoc, serverTimestamp, onSnapshot,
+} from '../firebase.js'
 
 const TRIPS_KEY = 'bill_trips_v1'
+const TRIPS_TS_KEY = 'bill_trips_ts_v1'
 const MAX_TRIPS = 50
 
 function readAll() {
@@ -96,10 +101,55 @@ function calcBillResult(entry) {
 export function useTripsStore() {
   const [trips, setTrips] = useState(() => readAll())
 
+  const uidRef = useRef(null)
+  const pushInFlight = useRef(false)
+
+  // Cross-tab sync
   useEffect(() => {
     const onStorage = (e) => { if (e.key === TRIPS_KEY) setTrips(readAll()) }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
+  // Cloud sync — pull on auth/snapshot, push on every mutation
+  useEffect(() => {
+    let unsub = null
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (unsub) { unsub(); unsub = null }
+      uidRef.current = user?.uid ?? null
+      if (!user) return
+      const ref = doc(db, 'userBills', user.uid)
+      unsub = onSnapshot(ref, (snap) => {
+        if (!snap.exists()) return
+        const remote = snap.data().trips
+        if (!Array.isArray(remote)) return
+        const remoteTs = snap.data().tripsLastEdit || 0
+        const localTs = (() => { try { return JSON.parse(localStorage.getItem(TRIPS_TS_KEY) || '0') } catch { return 0 } })()
+        if (remoteTs > localTs) {
+          writeAll(remote)
+          localStorage.setItem(TRIPS_TS_KEY, JSON.stringify(remoteTs))
+          setTrips(remote)
+        }
+      }, () => {}) // silently ignore permission errors (anon users)
+    })
+    return () => { unsubAuth(); if (unsub) unsub() }
+  }, [])
+
+  const pushToCloud = useCallback(async (next) => {
+    const uid = uidRef.current
+    if (!uid || pushInFlight.current) return
+    pushInFlight.current = true
+    try {
+      const now = Date.now()
+      localStorage.setItem(TRIPS_TS_KEY, JSON.stringify(now))
+      await setDoc(doc(db, 'userBills', uid), {
+        trips: next,
+        tripsLastEdit: now,
+        lastModified: serverTimestamp(),
+      }, { merge: true })
+    } catch {} finally {
+      pushInFlight.current = false
+    }
   }, [])
 
   const createTrip = useCallback((name, members = [], currency = 'THB') => {
@@ -107,6 +157,7 @@ export function useTripsStore() {
     setTrips(prev => {
       const next = [trip, ...prev]
       writeAll(next)
+      pushToCloud(next)
       return next
     })
     return trip
@@ -116,6 +167,7 @@ export function useTripsStore() {
     setTrips(prev => {
       const next = prev.map(t => t.id === id ? { ...t, ...patch } : t)
       writeAll(next)
+      pushToCloud(next)
       return next
     })
   }, [])
@@ -124,6 +176,7 @@ export function useTripsStore() {
     setTrips(prev => {
       const next = prev.filter(t => t.id !== id)
       writeAll(next)
+      pushToCloud(next)
       return next
     })
   }, [])
@@ -136,6 +189,7 @@ export function useTripsStore() {
           : t
       )
       writeAll(next)
+      pushToCloud(next)
       return next
     })
   }, [])
@@ -149,6 +203,7 @@ export function useTripsStore() {
         return { ...t, billIds: t.billIds.filter(b => b !== billId), paidBy }
       })
       writeAll(next)
+      pushToCloud(next)
       return next
     })
   }, [])
@@ -161,6 +216,7 @@ export function useTripsStore() {
         return { ...t, paidBy }
       })
       writeAll(next)
+      pushToCloud(next)
       return next
     })
   }, [])
@@ -175,6 +231,7 @@ export function useTripsStore() {
         return { ...t, billIds: ids }
       })
       writeAll(next)
+      pushToCloud(next)
       return next
     })
   }, [])
