@@ -1,10 +1,9 @@
 /**
  * TripsTab — Trip mode UI (#128)
- * Hidden behind TRIPS_ENABLED flag in App.jsx — not visible to users yet.
  *
  * Views:
  *   'list'   — all trips
- *   'detail' — single trip (bills + summary)
+ *   'detail' — single trip (bills + summary + settlement)
  *   'new'    — create trip form
  */
 import { useState, useCallback } from 'react'
@@ -98,12 +97,14 @@ function NewTripForm({ onSave, onCancel }) {
   )
 }
 
-// ── Trip summary row ────────────────────────────────────────────────────────
+// ── Settlement + summary section ────────────────────────────────────────────
 function TripSummarySection({ trip, entries, tripSummary }) {
   const summary = tripSummary(trip.id, entries)
   if (!summary || summary.grandTotal === 0) return null
+
   return (
     <div className={styles.summarySection}>
+      {/* Per-person owed */}
       <div className={styles.summaryTitle}>สรุปยอด</div>
       {trip.members.map(m => (
         <div key={m} className={styles.summaryRow}>
@@ -111,23 +112,59 @@ function TripSummarySection({ trip, entries, tripSummary }) {
             <Avatar name={m} size={20} />
             {m}
           </span>
-          <span className={styles.summaryAmt}>{fmtAmount(summary.totals[m] ?? 0, summary.currency)}</span>
+          <span className={styles.summaryAmt}>{fmtAmount(summary.owed[m] ?? 0, summary.currency)}</span>
         </div>
       ))}
       <div className={styles.summaryTotal}>
         <span>รวม</span>
         <span>{fmtAmount(summary.grandTotal, summary.currency)}</span>
       </div>
+
+      {/* Settlement transfers */}
+      {summary.hasPayers && summary.settlements.length > 0 && (
+        <>
+          <div className={styles.summaryTitle} style={{ marginTop: 14 }}>
+            💸 ใครโอนให้ใคร
+          </div>
+          {summary.settlements.map((s, i) => (
+            <div key={i} className={styles.summaryRow}>
+              <span className={styles.summaryName} style={{ gap: 6 }}>
+                <Avatar name={s.from} size={18} />
+                <span style={{ fontSize: 13 }}>{s.from}</span>
+                <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>→</span>
+                <Avatar name={s.to} size={18} />
+                <span style={{ fontSize: 13 }}>{s.to}</span>
+              </span>
+              <span className={styles.summaryAmt} style={{ color: 'var(--color-accent, #ff6b35)' }}>
+                {fmtAmount(s.amount, summary.currency)}
+              </span>
+            </div>
+          ))}
+        </>
+      )}
+
+      {summary.hasPayers && summary.settlements.length === 0 && (
+        <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10, textAlign: 'center' }}>
+          ✅ ไม่มียอดค้างชำระ
+        </div>
+      )}
+
+      {!summary.hasPayers && (
+        <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10 }}>
+          💡 เลือกว่าใครจ่ายแต่ละบิลเพื่อคำนวณยอดโอน
+        </div>
+      )}
     </div>
   )
 }
 
 // ── Trip detail view ────────────────────────────────────────────────────────
-function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip }) {
+function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onSetPayer }) {
   const { t } = useLang()
   const tripBills = trip.billIds
     .map(id => entries.find(e => e.id === id))
     .filter(Boolean)
+  const paidBy = trip.paidBy || {}
 
   return (
     <div className={styles.detail}>
@@ -149,18 +186,52 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
       {tripBills.length === 0 && (
         <p className={styles.empty}>{t.tripNoBills ?? 'No bills yet — add one below'}</p>
       )}
-      {tripBills.map(entry => (
-        <div key={entry.id} className={styles.billCard}>
-          <button className={styles.billCardMain} onClick={() => onLoadBill(entry)}>
-            <span className={styles.billCardName}>{entry.billName || t.unnamedBill}</span>
-            <span className={styles.billCardDate}>{fmtDate(entry.savedAt)}</span>
-            {entry.state?.result?.grandTotal > 0 && (
-              <span className={styles.billCardAmt}>{fmtAmount(entry.state.result.grandTotal, trip.currency)}</span>
+      {tripBills.map(entry => {
+        const totalAmt = entry.state?.result?.grandTotal
+        const payer = paidBy[entry.id] || ''
+        return (
+          <div key={entry.id} className={styles.billCard} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <button className={styles.billCardMain} onClick={() => onLoadBill(entry)}>
+                <span className={styles.billCardName}>{entry.billName || t.unnamedBill}</span>
+                <span className={styles.billCardDate}>{fmtDate(entry.savedAt)}</span>
+                {totalAmt > 0 && (
+                  <span className={styles.billCardAmt}>{fmtAmount(totalAmt, trip.currency)}</span>
+                )}
+              </button>
+              <button className={styles.billCardRemove} onClick={() => onRemoveBill(trip.id, entry.id)} aria-label="Remove from trip">×</button>
+            </div>
+            {/* Payer selector — only shown when trip has members */}
+            {trip.members.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px 10px', borderTop: '0.5px solid var(--color-border)' }}>
+                <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>
+                  💳 {payer ? '' : 'ใครจ่าย?'}
+                </span>
+                {payer && <Avatar name={payer} size={16} />}
+                <select
+                  value={payer}
+                  onChange={e => onSetPayer(trip.id, entry.id, e.target.value)}
+                  style={{
+                    fontSize: 13,
+                    border: '0.5px solid var(--color-border)',
+                    borderRadius: 6,
+                    background: 'var(--color-surface)',
+                    color: payer ? 'var(--color-text)' : 'var(--color-text-muted)',
+                    padding: '3px 6px',
+                    fontFamily: 'var(--font-body)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="">— เลือก —</option>
+                  {trip.members.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
             )}
-          </button>
-          <button className={styles.billCardRemove} onClick={() => onRemoveBill(trip.id, entry.id)} aria-label="Remove from trip">×</button>
-        </div>
-      ))}
+          </div>
+        )
+      })}
       <button className={styles.addBillBtn} onClick={onAddBill}>
         + {t.tripAddBill ?? 'Add bill to trip'}
       </button>
@@ -198,7 +269,7 @@ function TripList({ trips, onSelect, onNew }) {
 
 // ── Main export ─────────────────────────────────────────────────────────────
 export default function TripsTab({ entries, onLoadBill, onNewBillForTrip }) {
-  const { trips, createTrip, updateTrip, deleteTrip, addBillToTrip, removeBillFromTrip, getTrip, tripSummary } = useTripsStore()
+  const { trips, createTrip, updateTrip, deleteTrip, addBillToTrip, removeBillFromTrip, setBillPayer, getTrip, tripSummary } = useTripsStore()
   const [view, setView] = useState('list')   // 'list' | 'detail' | 'new'
   const [activeTrip, setActiveTrip] = useState(null)
   const [addingBill, setAddingBill] = useState(false)
@@ -212,20 +283,22 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip }) {
   const handleSelect = (trip) => { setActiveTrip(trip); setView('detail') }
   const handleBack = () => { setActiveTrip(null); setView('list') }
 
-  const handleAddBill = () => {
-    // Opens bill picker — shows history entries not yet in this trip
-    setAddingBill(true)
-  }
+  const handleAddBill = () => setAddingBill(true)
 
   const handleRemoveBill = (tripId, billId) => {
     removeBillFromTrip(tripId, billId)
-    // Refresh activeTrip
     setActiveTrip(prev => prev ? { ...prev, billIds: prev.billIds.filter(b => b !== billId) } : prev)
   }
 
-  const handleLoadBill = (entry) => {
-    onLoadBill(entry)
+  const handleSetPayer = (tripId, billId, payer) => {
+    setBillPayer(tripId, billId, payer)
+    setActiveTrip(prev => {
+      if (!prev || prev.id !== tripId) return prev
+      return { ...prev, paidBy: { ...(prev.paidBy || {}), [billId]: payer } }
+    })
   }
+
+  const handleLoadBill = (entry) => { onLoadBill(entry) }
 
   // Bill picker — shows history entries to add to trip
   const BillPicker = () => {
@@ -267,6 +340,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip }) {
         onRemoveBill={handleRemoveBill}
         onLoadBill={handleLoadBill}
         onEditTrip={() => {}}
+        onSetPayer={handleSetPayer}
       />
     )
   }

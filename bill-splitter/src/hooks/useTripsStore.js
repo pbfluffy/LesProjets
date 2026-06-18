@@ -8,7 +8,7 @@
  * Cloud sync deferred — requires Firestore rules update (laptop).
  *
  * Shape:
- *   Trip: { id, name, members, currency, createdAt, billIds: string[] }
+ *   Trip: { id, name, members, currency, createdAt, billIds: string[], paidBy: { [billId]: memberName } }
  */
 import { useState, useCallback, useEffect } from 'react'
 import { v4 as uuid } from 'uuid'
@@ -48,7 +48,7 @@ export function useTripsStore() {
 
   // Create a new trip
   const createTrip = useCallback((name, members = [], currency = 'THB') => {
-    const trip = { id: uuid(), name: name.trim().slice(0, 60), members, currency, createdAt: Date.now(), billIds: [] }
+    const trip = { id: uuid(), name: name.trim().slice(0, 60), members, currency, createdAt: Date.now(), billIds: [], paidBy: {} }
     setTrips(prev => {
       const next = [trip, ...prev]
       writeAll(next)
@@ -88,12 +88,28 @@ export function useTripsStore() {
     })
   }, [])
 
-  // Remove a bill from a trip
+  // Remove a bill from a trip (also clears its paidBy entry)
   const removeBillFromTrip = useCallback((tripId, billId) => {
     setTrips(prev => {
-      const next = prev.map(t =>
-        t.id === tripId ? { ...t, billIds: t.billIds.filter(b => b !== billId) } : t
-      )
+      const next = prev.map(t => {
+        if (t.id !== tripId) return t
+        const paidBy = { ...(t.paidBy || {}) }
+        delete paidBy[billId]
+        return { ...t, billIds: t.billIds.filter(b => b !== billId), paidBy }
+      })
+      writeAll(next)
+      return next
+    })
+  }, [])
+
+  // Set who paid for a specific bill in a trip
+  const setBillPayer = useCallback((tripId, billId, payer) => {
+    setTrips(prev => {
+      const next = prev.map(t => {
+        if (t.id !== tripId) return t
+        const paidBy = { ...(t.paidBy || {}), [billId]: payer }
+        return { ...t, paidBy }
+      })
       writeAll(next)
       return next
     })
@@ -122,21 +138,54 @@ export function useTripsStore() {
   const tripSummary = useCallback((tripId, entries) => {
     const trip = trips.find(t => t.id === tripId)
     if (!trip) return null
-    const totals = Object.fromEntries(trip.members.map(m => [m, 0]))
+    const owed = Object.fromEntries(trip.members.map(m => [m, 0]))   // how much each person owes
+    const paid = Object.fromEntries(trip.members.map(m => [m, 0]))   // how much each person paid
     let grandTotal = 0
+
     trip.billIds.forEach(billId => {
       const entry = entries.find(e => e.id === billId)
       if (!entry?.state) return
-      // Re-use the snapshot's per-person result if present
       const result = entry.state.result
-      if (result?.totals) {
-        Object.entries(result.totals).forEach(([m, v]) => {
-          if (totals[m] !== undefined) totals[m] += (Number(v) || 0)
-        })
-        grandTotal += Number(result.grandTotal) || 0
+      if (!result?.totals) return
+
+      // Accumulate what each member owes from this bill
+      Object.entries(result.totals).forEach(([m, v]) => {
+        if (owed[m] !== undefined) owed[m] += (Number(v) || 0)
+      })
+      grandTotal += Number(result.grandTotal) || 0
+
+      // Accumulate what the payer fronted (full bill total)
+      const payer = (trip.paidBy || {})[billId]
+      if (payer && paid[payer] !== undefined) {
+        paid[payer] += Number(result.grandTotal) || 0
       }
     })
-    return { totals, grandTotal, currency: trip.currency }
+
+    // Settlement: net[m] = paid[m] - owed[m]. Positive = creditor, negative = debtor.
+    // Greedy algorithm to minimise number of transfers.
+    const hasPayers = trip.billIds.some(billId => (trip.paidBy || {})[billId])
+    let settlements = []
+    if (hasPayers) {
+      const net = {}
+      trip.members.forEach(m => { net[m] = (paid[m] || 0) - (owed[m] || 0) })
+      const creditors = Object.entries(net).filter(([, v]) => v > 0.005).map(([m, v]) => ({ m, v }))
+      const debtors   = Object.entries(net).filter(([, v]) => v < -0.005).map(([m, v]) => ({ m, v: -v }))
+      creditors.sort((a, b) => b.v - a.v)
+      debtors.sort((a, b) => b.v - a.v)
+      let ci = 0, di = 0
+      while (ci < creditors.length && di < debtors.length) {
+        const amount = Math.min(creditors[ci].v, debtors[di].v)
+        if (amount > 0.005) {
+          settlements.push({ from: debtors[di].m, to: creditors[ci].m, amount })
+        }
+        creditors[ci].v -= amount
+        debtors[di].v   -= amount
+        if (creditors[ci].v < 0.005) ci++
+        if (debtors[di].v   < 0.005) di++
+      }
+    }
+
+    return { owed, paid, grandTotal, currency: trip.currency, settlements, hasPayers }
   }, [trips])
 
   return {
@@ -146,6 +195,7 @@ export function useTripsStore() {
     deleteTrip,
     addBillToTrip,
     removeBillFromTrip,
+    setBillPayer,
     reorderBills,
     getTrip,
     tripSummary,
