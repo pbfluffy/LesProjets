@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useLang } from '../LangContext'
 import { normaliseCurrency } from '../currencies'
 
@@ -162,6 +162,7 @@ export default function ReceiptScanner({
   onSetServiceCharge,
   onSetServiceChargeRate,
   onSetCurrency,
+  autoOpen = false,
 }) {
   const { t } = useLang()
   const [open, setOpen] = useState(false)
@@ -177,6 +178,12 @@ export default function ReceiptScanner({
   const [detectedCurrency, setDetectedCurrency] = useState(null)
   const [capReached, setCapReached] = useState(false)
   const fileRef = useRef(null)
+  // Auto-open scanner (e.g. when navigating from trip tab 📷 button)
+  useEffect(() => {
+    if (!autoOpen) return
+    const timer = setTimeout(() => fileRef.current?.click(), 300)
+    return () => clearTimeout(timer)
+  }, [autoOpen])
   // Monotonic request id — same pattern as Nutritions PhotoTab BUG-04 fix.
   const requestIdRef = useRef(0)
 
