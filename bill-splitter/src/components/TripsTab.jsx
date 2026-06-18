@@ -15,7 +15,6 @@ import styles from './TripsTab.module.css'
 import { compressImage, scanReceipt, localizeError, getScanCount, bumpScanCount, SCAN_CAP, CURRENCY_FLAGS } from './receiptScanUtils'
 import { ShareIcon } from './icons'
 import { buildShareUrl, createShortLink, shareLink } from '../share'
-import { buildShareUrl, createShortLink, shareLink } from '../share'
 import { normaliseCurrency } from '../currencies'
 
 function fmtDate(ts) {
