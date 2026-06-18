@@ -76,5 +76,17 @@ export function useBillHistory() {
     setEntries(arr)
   }, [])
 
-  return { entries, save, remove, clear, replaceEntries }
+  const update = useCallback((id, tab, state) => {
+    const trimmedName = (state?.billName || '').trim()
+    setEntries(prev => {
+      const next = prev.map(e => e.id === id
+        ? { ...e, savedAt: Date.now(), tab, billName: trimmedName, state }
+        : e
+      )
+      writeAll(next)
+      return next
+    })
+  }, [])
+
+  return { entries, save, update, remove, clear, replaceEntries }
 }
