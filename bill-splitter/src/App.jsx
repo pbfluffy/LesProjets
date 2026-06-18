@@ -392,7 +392,7 @@ function AppInner() {
         {TRIPS_ENABLED && activeTab === 'trips' && (
           <TripsTab
             entries={history.entries}
-            onLoadBill={(entry) => { history.load?.(entry); setActiveTab(entry.tab) }}
+            onLoadBill={(entry) => { handleLoadEntry(entry); setActiveTab(entry.tab) }}
             onNewBillForTrip={() => setActiveTab('split')}
           />
         )}
