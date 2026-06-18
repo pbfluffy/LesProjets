@@ -371,12 +371,12 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
 
       <div ref={captureRef}>
       <TripSummarySection trip={trip} summary={summary} rate={rate} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} />
-      </div>{/* /captureRef-summary */}
 
-      {/* Share + Save image action row — matches ResultSection shareBtnGroup exactly */}
+      {/* Buttons: Share link | Line | Save image — matches Bill Splitter ResultSection */}
       {summary && summary.hasData && (
         <div className={styles.shareBtnGroup} data-snapshot-hide>
-          {/* Share link ↗ — purple, matches Bill Splitter */}
+
+          {/* 1. Share link ↗ — purple */}
           <button
             className={styles.shareBtn}
             style={{ background: 'var(--accent, #4f46e5)', color: 'white' }}
@@ -384,20 +384,29 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
             onClick={async () => {
               setShareStatus('creating')
               try {
+                // Use THB-converted values in snapshot if rate is active
+                const snapOwed = rate && !isTHB
+                  ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * rate)]))
+                  : summary.owed
+                const snapSettlements = rate && !isTHB && summary.settlements
+                  ? summary.settlements.map(s => ({ ...s, amount: Math.round(s.amount * rate) }))
+                  : summary.settlements
+                const snapTotal = rate && !isTHB ? Math.round(summary.grandTotal * rate) : summary.grandTotal
+                const snapCurrency = rate && !isTHB ? 'THB' : summary.currency
                 const payload = {
                   name: trip.name,
                   members: trip.members,
                   billIds: trip.billIds,
                   paidBy: trip.paidBy || {},
-                  currency: detailCurrency,
-                  snapshot: summary ? {
-                    owed: summary.owed,
+                  currency: snapCurrency,
+                  snapshot: {
+                    owed: snapOwed,
                     paid: summary.paid,
-                    grandTotal: summary.grandTotal,
-                    settlements: summary.settlements,
+                    grandTotal: snapTotal,
+                    settlements: snapSettlements,
                     hasPayers: summary.hasPayers,
-                    currency: summary.currency,
-                  } : null,
+                    currency: snapCurrency,
+                  },
                 }
                 const url = user
                   ? await createShortLink('trips', payload, user.uid)
@@ -410,7 +419,8 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           >
             {shareStatus === 'creating' ? (t.shareCreating ?? 'Creating…') : <><ShareIcon width={14} height={14} /> {t.shareLink ?? 'Share link ↗'}</>}
           </button>
-          {/* Line — green, captures image then shares */}
+
+          {/* 2. Line — green, captures image → Web Share → fallback text */}
           <button
             className={styles.shareBtn}
             style={{ background: '#06C755', color: 'white' }}
@@ -423,7 +433,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                 const el = captureRef.current
                 const prevStyle = el.getAttribute('style') || ''
                 el.setAttribute('style', (prevStyle + ';background:#ffffff;color:#1a1a1a;--color-surface:#ffffff;--color-surface-alt:#f5f5f4;--color-text:#1a1a1a;--color-text-muted:#6b7280;--color-text-faint:#9ca3af;--color-border:rgba(0,0,0,0.08);--color-border-strong:rgba(0,0,0,0.15);--color-accent:#1a1a1a;--color-accent-text:#ffffff;').replace(/^;/, ''))
-                const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2, useCORS: true, ignoreElements: (el) => el.hasAttribute && el.hasAttribute('data-snapshot-hide') })
+                const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2, useCORS: true, ignoreElements: el => el.hasAttribute && el.hasAttribute('data-snapshot-hide') })
                 el.setAttribute('style', prevStyle)
                 const blob = await new Promise(res => canvas.toBlob(res, 'image/png'))
                 if (!blob) { showToast(t.imageFailed ?? 'Failed'); return }
@@ -432,26 +442,66 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                 if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
                   try { await navigator.share({ files: [file], title: trip.name }); return } catch (e) { if (e?.name === 'AbortError') return }
                 }
+                // Fallback: LINE text — use THB-converted values if rate active
+                const dispCurrency = rate && !isTHB ? 'THB' : detailCurrency
+                const dispOwed = rate && !isTHB
+                  ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * rate)]))
+                  : summary.owed
+                const dispSettlements = rate && !isTHB && summary.settlements
+                  ? summary.settlements.map(s => ({ ...s, amount: Math.round(s.amount * rate) }))
+                  : summary.settlements
+                const dispTotal = rate && !isTHB ? Math.round(summary.grandTotal * rate) : summary.grandTotal
                 const lines = [`🧳 ${trip.name}`, '']
-                if (summary?.hasPayers && summary.settlements?.length > 0) {
+                if (summary?.hasPayers && dispSettlements?.length > 0) {
                   lines.push('💸 Who pays whom:')
-                  summary.settlements.forEach(s => lines.push(`  ${s.from} → ${s.to}: ${fmtAmount(s.amount, detailCurrency)}`))
+                  dispSettlements.forEach(s => lines.push(`  ${s.from} → ${s.to}: ${fmtAmount(s.amount, dispCurrency)}`))
                   lines.push('')
                 }
-                if (trip.members.length > 0 && summary?.owed) {
-                  trip.members.forEach(m => lines.push(`  ${m}: ${fmtAmount(summary.owed[m] ?? 0, detailCurrency)}`))
+                if (trip.members.length > 0 && dispOwed) {
+                  lines.push('Per person:')
+                  trip.members.forEach(m => lines.push(`  ${m}: ${fmtAmount(dispOwed[m] ?? 0, dispCurrency)}`))
                   lines.push('')
                 }
-                lines.push(`Total: ${fmtAmount(summary?.grandTotal ?? 0, detailCurrency)}`)
+                lines.push(`Total: ${fmtAmount(dispTotal, dispCurrency)}`)
                 window.open(`https://line.me/R/share?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener')
               } catch { showToast(t.imageFailed ?? 'Failed') } finally { setCapturing(false) }
             }}
           >
             <svg width={14} height={14} viewBox="0 0 24 24" fill="currentColor" style={{display:'inline',verticalAlign:'middle',marginRight:4}}><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.070 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg> Line
           </button>
+
+          {/* 3. Save image — matches Bill Splitter (no More dropdown) */}
+          <button
+            className={styles.shareBtn}
+            disabled={capturing}
+            onClick={async () => {
+              if (!captureRef.current || capturing) return
+              setCapturing(true)
+              try {
+                const html2canvas = (await import('html2canvas')).default
+                const el = captureRef.current
+                const prevStyle = el.getAttribute('style') || ''
+                el.setAttribute('style', (prevStyle + ';background:#ffffff;color:#1a1a1a;--color-surface:#ffffff;--color-surface-alt:#f5f5f4;--color-text:#1a1a1a;--color-text-muted:#6b7280;--color-text-faint:#9ca3af;--color-border:rgba(0,0,0,0.08);--color-border-strong:rgba(0,0,0,0.15);--color-accent:#1a1a1a;--color-accent-text:#ffffff;').replace(/^;/, ''))
+                const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2, useCORS: true, ignoreElements: el => el.hasAttribute && el.hasAttribute('data-snapshot-hide') })
+                el.setAttribute('style', prevStyle)
+                const blob = await new Promise(res => canvas.toBlob(res, 'image/png'))
+                if (!blob) { showToast(t.imageFailed ?? 'Failed'); return }
+                const safeName = (trip.name || 'trip').replace(/[^\w\u0E00-\u0E7F-]+/g, '_')
+                const file = new File([blob], `${safeName}.png`, { type: 'image/png' })
+                if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+                  try { await navigator.share({ files: [file], title: trip.name }); showToast(t.imageShared ?? '✓ Image shared'); return } catch (e) { if (e?.name === 'AbortError') return }
+                }
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${safeName}.png`; document.body.appendChild(a); a.click(); a.remove()
+                showToast(t.imageSaved ?? '✓ Image saved')
+              } catch { showToast(t.imageFailed ?? 'Failed') } finally { setCapturing(false) }
+            }}
+          >
+            {t.saveImage ?? '📷 Save image'}
+          </button>
+
         </div>
       )}
-      {toast && <div className={styles.toast}>{}</div>}
+      {toast && <div className={styles.toast}>{toast}</div>}
 
       <div className={styles.billsTitle}>{t.tripBills ?? 'Bills'} ({tripBills.length})</div>
       {tripBills.length === 0 && (
@@ -538,6 +588,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           </div>
         )
       })}
+      </div>{/* /captureRef: summary+bills */}
       <button className={styles.addBillBtn} style={{ marginTop: 16 }} onClick={onAddBill}>
         + {t.tripAddBill ?? 'Add bill to trip'}
       </button>
