@@ -11,7 +11,7 @@ import appStyles from '../App.module.css'
 
 const fieldsetReset = { border: 0, padding: 0, margin: 0, minInlineSize: 'auto' }
 
-export default function BillSplitter({ sharedState, readOnly, onSaveBill, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled }) {
+export default function BillSplitter({ sharedState, readOnly, onSaveBill, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled, autoScan = false }) {
   const { t } = useLang()
   const store = useBillStore(sharedState)
   const result = store.calculate()
@@ -33,7 +33,7 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill, savedP
   return (
     <div style={{ paddingBottom: 80 }}>
       <fieldset disabled={readOnly} style={fieldsetReset}>
-        <ReceiptScanner onAddItems={store.addFoods} onSetBillName={(name) => { if (!store.billName.trim()) store.setBillName(name) }} onSetVat={store.setVatEnabled} onSetServiceCharge={store.setServiceChargeEnabled} onSetServiceChargeRate={store.setServiceChargeRate} onSetCurrency={store.setCurrency} />
+        <ReceiptScanner onAddItems={store.addFoods} onSetBillName={(name) => { if (!store.billName.trim()) store.setBillName(name) }} onSetVat={store.setVatEnabled} onSetServiceCharge={store.setServiceChargeEnabled} onSetServiceChargeRate={store.setServiceChargeRate} onSetCurrency={store.setCurrency} autoOpen={autoScan} />
         <input
           type="text"
           className={appStyles.billNameInput}
