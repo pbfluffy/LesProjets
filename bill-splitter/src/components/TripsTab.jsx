@@ -346,7 +346,12 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           <div key={entry.id} className={styles.billCard} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <button className={styles.billCardMain} onClick={() => onLoadBill(entry)}>
-                <span className={styles.billCardName}>{entry.billName || t.unnamedBill}</span>
+                <span className={styles.billCardName}>{(() => {
+                  const name = entry.billName || t.unnamedBill
+                  const idx = tripBills.findIndex(b => b.id === entry.id)
+                  const dupesBefore = tripBills.slice(0, idx).filter(b => (b.billName || t.unnamedBill) === name).length
+                  return dupesBefore > 0 ? `${name} (${dupesBefore + 1})` : name
+                })()}</span>
                 <span className={styles.billCardDate}>{fmtDate(entry.savedAt)}</span>
                 {totalAmt > 0 && (
                   <span className={styles.billCardAmt}>
@@ -481,36 +486,70 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
   const BillPicker = () => {
     const available = entries.filter(e => !activeTrip.billIds.includes(e.id))
     const { t } = useLang()
+    const [selected, setSelected] = useState(new Set())
+    const toggleSelect = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    const selectAll = () => setSelected(available.length === selected.size ? new Set() : new Set(available.map(e => e.id)))
+
+    const handleConfirmAdd = () => {
+      if (!selected.size) return
+      let mergedMembers = [...(activeTrip.members ?? [])]
+      const newBillIds = []
+      selected.forEach(id => {
+        const entry = entries.find(e => e.id === id)
+        if (!entry) return
+        addBillToTrip(activeTrip.id, id)
+        newBillIds.push(id)
+        const billMembers = entry.state?.members ?? []
+        mergedMembers = [...new Set([...mergedMembers, ...billMembers])]
+      })
+      if (mergedMembers.length !== (activeTrip.members ?? []).length) {
+        updateTrip(activeTrip.id, { members: mergedMembers })
+      }
+      setActiveTrip(prev => ({ ...prev, billIds: [...prev.billIds, ...newBillIds], members: mergedMembers }))
+      setAddingBill(false)
+    }
+
     return (
       <div className={styles.picker}>
         <div className={styles.pickerHeader}>
-          <span>{t.tripPickBill ?? 'Pick a bill to add'}</span>
+          <span>{t.tripPickBill ?? 'Select bills to add'}</span>
           <button className={styles.closeBtn} onClick={() => setAddingBill(false)}>×</button>
         </div>
         {available.length === 0 && <p className={styles.empty}>{t.tripNoBillsToAdd ?? 'No saved bills to add'}</p>}
-        {available.map(entry => (
-          <button key={entry.id} className={styles.pickerRow} onClick={() => {
-            addBillToTrip(activeTrip.id, entry.id)
-            // Auto-merge members from bill into trip
-            const billMembers = entry.state?.members ?? []
-            if (billMembers.length > 0) {
-              const merged = [...new Set([...(activeTrip.members ?? []), ...billMembers])]
-              if (merged.length !== (activeTrip.members ?? []).length) {
-                updateTrip(activeTrip.id, { members: merged })
-                setActiveTrip(prev => ({ ...prev, billIds: [...prev.billIds, entry.id], members: merged }))
-              } else {
-                setActiveTrip(prev => ({ ...prev, billIds: [...prev.billIds, entry.id] }))
-              }
-            } else {
-              setActiveTrip(prev => ({ ...prev, billIds: [...prev.billIds, entry.id] }))
-            }
-            setAddingBill(false)
-          }}>
-            <span className={styles.billCardName}>{entry.billName || t.unnamedBill}</span>
-            <span className={styles.billCardDate}>{fmtDate(entry.savedAt)}</span>
+        {available.length > 1 && (
+          <button onClick={selectAll} style={{ fontSize: 12, color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 8px', fontFamily: 'var(--font-body)' }}>
+            {selected.size === available.length ? '☐ Deselect all' : '☑ Select all'}
           </button>
-        ))}
-        <button className={styles.cancelBtn} style={{ marginTop: 12 }} onClick={() => setAddingBill(false)}>{t.receiptCancel}</button>
+        )}
+        {available.map(entry => {
+          const isSelected = selected.has(entry.id)
+          const { grandTotal, currency: billCurr } = calcBillResult(entry)
+          return (
+            <button key={entry.id} className={styles.pickerRow}
+              onClick={() => toggleSelect(entry.id)}
+              style={{ background: isSelected ? 'var(--color-surface-hover, rgba(0,0,0,0.04))' : 'none', display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left' }}
+            >
+              <span style={{
+                width: 20, height: 20, borderRadius: 4, flexShrink: 0,
+                border: `2px solid ${isSelected ? 'var(--color-text)' : 'var(--color-border)'}`,
+                background: isSelected ? 'var(--color-text)' : 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'var(--color-bg)', fontSize: 12, fontWeight: 700, lineHeight: 1,
+              }}>{isSelected ? '✓' : ''}</span>
+              <span style={{ flex: 1 }}>
+                <span className={styles.billCardName}>{entry.billName || t.unnamedBill}</span>
+                <span className={styles.billCardDate} style={{ display: 'block' }}>{fmtDate(entry.savedAt)}</span>
+              </span>
+              {grandTotal > 0 && <span className={styles.billCardAmt}>{fmtAmount(grandTotal, billCurr ?? 'THB')}</span>}
+            </button>
+          )
+        })}
+        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <button className={styles.cancelBtn} style={{ flex: 1 }} onClick={() => setAddingBill(false)}>{t.receiptCancel}</button>
+          <button className={styles.saveBtn} style={{ flex: 2, opacity: selected.size ? 1 : 0.4 }} disabled={!selected.size} onClick={handleConfirmAdd}>
+            + {selected.size > 0 ? `Add ${selected.size} bill${selected.size !== 1 ? 's' : ''}` : 'Add bills'}
+          </button>
+        </div>
       </div>
     )
   }
