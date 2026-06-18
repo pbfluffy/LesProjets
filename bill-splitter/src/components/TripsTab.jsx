@@ -370,6 +370,13 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
       </div>
 
       <div ref={captureRef} style={{ padding: '16px 16px 8px', background: 'var(--color-bg)' }}>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>{trip.name}</div>
+        {trip.createdAt && <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>{fmtDate(trip.createdAt)}</div>}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+          {trip.members.map(m => <span key={m} className={styles.memberChip}><Avatar name={m} size={16} />{m}</span>)}
+        </div>
+      </div>
       <TripSummarySection trip={trip} summary={summary} rate={rate} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} />
 
       {/* Buttons: Share link | Line | Save image — matches Bill Splitter ResultSection */}
@@ -393,12 +400,33 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   : summary.settlements
                 const snapTotal = rate && !isTHB ? Math.round(summary.grandTotal * rate) : summary.grandTotal
                 const snapCurrency = rate && !isTHB ? 'THB' : summary.currency
+                // Embed bill display data so recipients see bill list without needing local history
+                const billsData = trip.billIds.map(id => {
+                  const entry = entries.find(e => e.id === id)
+                  if (!entry) return null
+                  const { grandTotal: bt, totals: bTotals, currency: bCurr } = calcBillResult(entry)
+                  const dispCurr = rate && !isTHB ? 'THB' : (bCurr ?? detailCurrency)
+                  const dispTotal = rate && bCurr && bCurr !== 'THB' ? Math.round(bt * rate) : bt
+                  const dispTotals = rate && bCurr && bCurr !== 'THB'
+                    ? Object.fromEntries(Object.entries(bTotals).map(([m, v]) => [m, Math.round(v * rate)]))
+                    : bTotals
+                  return {
+                    id: entry.id,
+                    billName: entry.billName || '',
+                    savedAt: entry.savedAt,
+                    grandTotal: dispTotal,
+                    currency: dispCurr,
+                    totals: dispTotals,
+                    payer: (trip.paidBy || {})[id] || '',
+                  }
+                }).filter(Boolean)
                 const payload = {
                   name: trip.name,
                   members: trip.members,
                   billIds: trip.billIds,
                   paidBy: trip.paidBy || {},
                   currency: snapCurrency,
+                  bills: billsData,
                   snapshot: {
                     owed: snapOwed,
                     paid: summary.paid,
@@ -519,8 +547,9 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
             </div>
           </div>
         )
-        const { grandTotal: totalAmt, currency: _billCurr, totals } = calcBillResult(entry)
-        const billCurrency = _billCurr ?? detailCurrency
+        const _pre = entry._sharedBill
+        const { grandTotal: totalAmt, currency: _billCurr, totals } = _pre ?? calcBillResult(entry)
+        const billCurrency = (_pre?.currency) ?? _billCurr ?? detailCurrency
         const payer = paidBy[entry.id] || ''
         return (
           <div key={entry.id} className={styles.billCard} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
@@ -542,7 +571,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   </span>
                 )}
               </button>
-              <button className={styles.billCardRemove} onClick={() => onRemoveBill(trip.id, entry.id)} aria-label="Remove from trip">×</button>
+              <button className={styles.billCardRemove} onClick={() => onRemoveBill(trip.id, entry.id)} aria-label="Remove from trip" data-snapshot-hide>×</button>
             </div>
             {/* Per-person totals */}
             {trip.members.length > 0 && Object.keys(totals).some(m => trip.members.includes(m)) && (
@@ -559,7 +588,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
               </div>
             )}
             {trip.members.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px 10px', borderTop: '0.5px solid var(--color-border)' }}>
+              <div data-snapshot-hide style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px 10px', borderTop: '0.5px solid var(--color-border)' }}>
                 <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>
                   💳 {payer ? '' : 'ใครจ่าย?'}
                 </span>
@@ -754,6 +783,18 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
     }
     // Use embedded snapshot for summary (fakeTrip id won't be found in local store)
     const sharedSnapshot = sharedTrip.snapshot || null
+    // Build fake entries from embedded bills so bill cards render without local history
+    const sharedEntries = sharedTrip.bills
+      ? sharedTrip.bills.map(b => ({
+          id: b.id,
+          billName: b.billName,
+          savedAt: b.savedAt,
+          tab: 'split',
+          // state is minimal — calcBillResult won't be called; we pass pre-computed totals via _sharedBill
+          state: {},
+          _sharedBill: { grandTotal: b.grandTotal, currency: b.currency, totals: b.totals, payer: b.payer },
+        }))
+      : entries
     return (
       <div>
         {onExitShared && (
@@ -764,7 +805,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
         )}
         <TripDetail
           trip={fakeTrip}
-          entries={entries}
+          entries={sharedEntries}
           tripSummary={tripSummary}
           sharedSnapshot={sharedSnapshot}
           onBack={onExitShared ?? (() => {})}
