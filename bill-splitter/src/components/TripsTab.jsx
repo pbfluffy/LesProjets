@@ -517,7 +517,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                 const safeName = (trip.name || 'trip').replace(/[^\w\u0E00-\u0E7F-]+/g, '_')
                 const file = new File([blob], `${safeName}.png`, { type: 'image/png' })
                 if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
-                  try { await navigator.share({ files: [file], title: trip.name }); showToast(t.imageShared ?? '✓ Image shared'); return } catch (e) { if (e?.name === 'AbortError') return }
+                  try { await navigator.share({ files: [file], title: trip.name }); return } catch (e) { if (e?.name === 'AbortError') return }
                 }
                 const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${safeName}.png`; document.body.appendChild(a); a.click(); a.remove()
                 showToast(t.imageSaved ?? '✓ Image saved')
