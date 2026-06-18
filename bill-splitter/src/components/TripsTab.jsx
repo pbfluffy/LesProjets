@@ -369,7 +369,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
         ))}
       </div>
 
-      <div ref={captureRef}>
+      <div ref={captureRef} style={{ padding: '16px 16px 8px', background: 'var(--color-bg)' }}>
       <TripSummarySection trip={trip} summary={summary} rate={rate} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} />
 
       {/* Buttons: Share link | Line | Save image — matches Bill Splitter ResultSection */}
