@@ -250,10 +250,8 @@ export function useTripsStore() {
     // --- Settlement ---
     const hasPayers = trip.billIds.some(billId => !!(trip.paidBy || {})[billId])
     let settlements = []
-    // Cannot compute settlement across mixed currencies (KRW + THB amounts are incomparable)
-    const canSettle = hasPayers && !mixedCurrencies
 
-    if (canSettle) {
+    if (hasPayers) {
       // Use per-member owed if available.
       // Fall back to even split if member names don't match bill members (e.g. Google display name vs bill name).
       const membersWithOwed = trip.members.filter(m => owed[m] > 0.5)
@@ -280,7 +278,7 @@ export function useTripsStore() {
       }
     }
 
-    return { owed, paid, grandTotal, currency: effectiveCurrency, mixedCurrencies, settlements, hasPayers: canSettle }
+    return { owed, paid, grandTotal, currency: effectiveCurrency, mixedCurrencies, settlements, hasPayers }
   }, [trips])
 
   return {
