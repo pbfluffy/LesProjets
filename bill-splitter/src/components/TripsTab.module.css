@@ -111,3 +111,25 @@
 
 /* Shared */
 .empty { font-size: 13px; color: var(--color-text-muted); text-align: center; padding: 32px 0; }
+
+/* Share + Save image action buttons — mirrors ResultSection .shareBtn */
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: center;
+  background: none;
+  border: 0.5px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  padding: 0 10px;
+  height: 32px;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.actionBtn:hover:not(:disabled) { background: var(--color-accent); color: var(--color-accent-text); border-color: transparent; }
+.actionBtn:disabled { opacity: 0.5; cursor: default; }

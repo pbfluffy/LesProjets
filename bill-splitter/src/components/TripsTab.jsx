@@ -13,6 +13,8 @@ import { useTripsStore, calcBillResult } from '../hooks/useTripsStore'
 import Avatar from './Avatar'
 import styles from './TripsTab.module.css'
 import { compressImage, scanReceipt, localizeError, getScanCount, bumpScanCount, SCAN_CAP, CURRENCY_FLAGS } from './receiptScanUtils'
+import { ShareIcon } from './icons'
+import { buildShareUrl, createShortLink, shareLink } from '../share'
 import { buildShareUrl, createShortLink, shareLink } from '../share'
 import { normaliseCurrency } from '../currencies'
 
@@ -60,24 +62,22 @@ function TripForm({ initial, onSave, onCancel, title }) {
 
 // ── Settlement + summary section ────────────────────────────────────────────
 function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onConvertToggle }) {
+  const { t } = useLang()
   const summary = tripSummary(trip.id, entries)
   if (!summary) return null
   if (!trip.billIds.length) return null
   if (!summary.hasData) return (
     <div className={styles.summarySection}>
       <div style={{ fontSize: 13, color: 'var(--color-text-muted)', textAlign: 'center', padding: '8px 0' }}>
-        ⚠️ ไม่พบข้อมูลบิล — บิลในทริปนี้ถูกลบออกจากประวัติแล้ว
+        {t.tripSummaryNoData ?? 'Bill data unavailable — bills were deleted from history'}
       </div>
     </div>
   )
 
   const hasOwedData = trip.members.some(m => (summary.owed[m] ?? 0) > 0)
   const isTHB = summary.currency === 'THB'
-  // Dual-currency helpers: show original + THB conversion side by side
   const orig = (n) => fmtAmount(n, summary.currency)
-  const thb  = (n) => rate ? ` ≈ ฿${Math.round(n * rate).toLocaleString()}` : ''
 
-  // When rate loaded + mixed currencies: recompute settlement in THB
   const convOwed = rate && !isTHB
     ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * rate)]))
     : summary.owed
@@ -106,12 +106,11 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
   return (
     <div className={styles.summarySection}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div className={styles.summaryTitle} style={{ margin: 0 }}>สรุปยอด</div>
-        {/* Show toggle for any non-THB trip (single or mixed currencies) */}
+        <div className={styles.summaryTitle} style={{ margin: 0 }}>{t.tripSummaryTitle ?? 'Summary'}</div>
         {!isTHB && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {summary.mixedCurrencies && (
-              <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>⚠️ หลายสกุล</span>
+              <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{t.tripMixedCurrencies ?? '⚠️ Mixed currencies'}</span>
             )}
             <button
               onClick={onConvertToggle}
@@ -123,7 +122,7 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
                 cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
               }}
             >
-              {rateLoading ? '…' : rate ? `1 ${summary.currency} = ฿${rate.toFixed(2)}` : 'แปลงเป็น ฿'}
+              {rateLoading ? '…' : rate ? `1 ${summary.currency} = ฿${rate.toFixed(2)}` : (t.tripConvertBtn ?? 'Convert to ฿')}
             </button>
           </div>
         )}
@@ -143,13 +142,13 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
           ))
         : (
             <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8 }}>
-              💡 เปิดแต่ละบิลและกด Save เพื่อบันทึกยอดต่อคน
+              💡 {t.tripSummaryAddHint ?? 'Open each bill and tap Save to record per-person amounts'}
             </div>
           )
       }
 
       <div className={styles.summaryTotal}>
-        <span>รวม</span>
+        <span>{t.tripSummaryTotal ?? 'Total'}</span>
         <span>
           {rate && !isTHB
             ? <><span>฿{Math.round(summary.grandTotal * rate).toLocaleString()}</span><span style={{ fontSize: 13, fontWeight: 400, color: 'var(--color-text-muted)', marginLeft: 6 }}>{orig(summary.grandTotal)}</span></>
@@ -158,11 +157,9 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
         </span>
       </div>
 
-
-      {/* Settlement transfers */}
       {summary.hasPayers && displaySettlements.length > 0 && (
         <>
-          <div className={styles.summaryTitle} style={{ marginTop: 14 }}>💸 ใครโอนให้ใคร</div>
+          <div className={styles.summaryTitle} style={{ marginTop: 14 }}>{t.tripSummaryTransfers ?? '💸 Who pays whom'}</div>
           {displaySettlements.map((s, i) => (
             <div key={i} className={styles.summaryRow}>
               <span className={styles.summaryName} style={{ gap: 6 }}>
@@ -182,13 +179,13 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
 
       {summary.hasPayers && displaySettlements.length === 0 && (
         <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10, textAlign: 'center' }}>
-          ✅ ไม่มียอดค้างชำระ
+          {t.tripSummaryAllSettled ?? '✅ All settled'}
         </div>
       )}
 
       {!summary.hasPayers && (
         <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10 }}>
-          💳 เลือกว่าใครจ่ายแต่ละบิลเพื่อคำนวณยอดโอน
+          💳 {t.tripSummaryNoPayers ?? 'Select who paid each bill to calculate transfers'}
         </div>
       )}
     </div>
@@ -376,10 +373,11 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
 
       <TripSummarySection trip={trip} entries={entries} tripSummary={tripSummary} rate={rate} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} />
 
-      {/* Share + Save image action row */}
+      {/* Share + Save image action row — matches ResultSection button style */}
       {summary && summary.hasData && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
           <button
+            className={styles.actionBtn}
             disabled={shareStatus === 'creating'}
             onClick={async () => {
               setShareStatus('creating')
@@ -392,57 +390,43 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   url = buildShareUrl('trips', payload)
                 }
                 const result = await shareLink({ title: trip.name, text: `Trip: ${trip.name}`, url })
-                setShareStatus(result === 'shared' ? 'shared' : 'copied')
-                showToast(result === 'shared' ? '✓ Shared' : '✓ Link copied')
-              } catch { setShareStatus('error'); showToast('Share failed') }
+                showToast(result === 'shared' ? (t.imageShared ?? '✓ Shared') : '✓ Link copied')
+              } catch { showToast('Share failed') }
               finally { setTimeout(() => setShareStatus(null), 2000) }
             }}
-            style={{
-              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              padding: '10px 0', borderRadius: 10,
-              border: '0.5px solid var(--color-border)',
-              background: shareStatus === 'creating' ? 'var(--color-surface-alt)' : 'var(--color-surface)',
-              color: 'var(--color-text)', fontSize: 13, fontFamily: 'var(--font-body)', cursor: shareStatus === 'creating' ? 'default' : 'pointer',
-            }}
+            style={{ background: 'var(--color-accent, #4f46e5)', color: 'white', borderColor: 'transparent' }}
           >
-            <span>{shareStatus === 'creating' ? '⏳' : '📤'}</span>
-            <span>{shareStatus === 'creating' ? 'Creating…' : (t.shareLink ?? 'Share link')}</span>
+            <ShareIcon width={14} height={14} />
+            {shareStatus === 'creating' ? (t.shareCreating ?? 'Creating…') : (t.shareLink ?? 'Share link ↗')}
           </button>
           <button
+            className={styles.actionBtn}
             disabled={capturing}
             onClick={async () => {
               if (!captureRef.current || capturing) return
               setCapturing(true)
               try {
                 const html2canvas = (await import('html2canvas')).default
-                const el = captureRef.current
-                const canvas = await html2canvas(el, {
-                  useCORS: true, backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim() || '#ffffff',
+                const canvas = await html2canvas(captureRef.current, {
+                  useCORS: true,
+                  backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim() || '#ffffff',
                   scale: 2, logging: false,
                 })
                 const blob = await new Promise(res => canvas.toBlob(res, 'image/png'))
                 const file = new File([blob], `${trip.name || 'trip'}.png`, { type: 'image/png' })
                 if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
                   await navigator.share({ files: [file], title: trip.name })
-                  showToast(t.imageShared ?? 'Image shared')
+                  showToast(t.imageShared ?? '✓ Image shared')
                 } else {
                   const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
                   a.download = `${trip.name || 'trip'}.png`; a.click()
-                  showToast(t.imageSaved ?? 'Image saved')
+                  showToast(t.imageSaved ?? '✓ Image saved')
                 }
-              } catch (e) { if (e?.name !== 'AbortError') showToast('Save failed') }
+              } catch (e) { if (e?.name !== 'AbortError') showToast(t.imageFailed ?? 'Save failed') }
               finally { setCapturing(false) }
             }}
-            style={{
-              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              padding: '10px 0', borderRadius: 10,
-              border: '0.5px solid var(--color-border)',
-              background: capturing ? 'var(--color-surface-alt)' : 'var(--color-surface)',
-              color: 'var(--color-text)', fontSize: 13, fontFamily: 'var(--font-body)', cursor: capturing ? 'default' : 'pointer',
-            }}
           >
-            <span>{capturing ? '⏳' : '📷'}</span>
-            <span>{capturing ? 'Saving…' : (t.saveImage ?? 'Save image')}</span>
+            {capturing ? '⏳' : '📷'} {capturing ? '…' : (t.saveImage ?? 'Save image')}
           </button>
         </div>
       )}
