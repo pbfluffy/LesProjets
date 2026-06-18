@@ -1,12 +1,6 @@
 /**
  * useTripsStore — Trip mode for Bill Splitter (#128)
  *
- * A trip is a named container with a shared member list, currency,
- * and an ordered list of bill IDs referencing entries in bill history.
- *
- * Stored in localStorage under TRIPS_KEY.
- * Cloud sync deferred — requires Firestore rules update (laptop).
- *
  * Shape:
  *   Trip: { id, name, members, currency, createdAt, billIds: string[], paidBy: { [billId]: memberName } }
  */
@@ -31,22 +25,24 @@ function writeAll(trips) {
   } catch {}
 }
 
+// Extract grand total from a history entry regardless of bill type
+function entryTotal(entry) {
+  if (!entry?.state) return 0
+  const result = entry.state.result
+  if (result?.grandTotal) return Number(result.grandTotal) || 0
+  // Sushiro fallback: no result object, compute from plates
+  return 0
+}
+
 export function useTripsStore() {
   const [trips, setTrips] = useState(() => readAll())
 
-  // Cross-tab sync
   useEffect(() => {
     const onStorage = (e) => { if (e.key === TRIPS_KEY) setTrips(readAll()) }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
-  const persist = useCallback((next) => {
-    writeAll(next)
-    setTrips(next)
-  }, [])
-
-  // Create a new trip
   const createTrip = useCallback((name, members = [], currency = 'THB') => {
     const trip = { id: uuid(), name: name.trim().slice(0, 60), members, currency, createdAt: Date.now(), billIds: [], paidBy: {} }
     setTrips(prev => {
@@ -57,7 +53,6 @@ export function useTripsStore() {
     return trip
   }, [])
 
-  // Update trip fields (name, members, currency)
   const updateTrip = useCallback((id, patch) => {
     setTrips(prev => {
       const next = prev.map(t => t.id === id ? { ...t, ...patch } : t)
@@ -66,7 +61,6 @@ export function useTripsStore() {
     })
   }, [])
 
-  // Delete a trip (does not delete its bills from history)
   const deleteTrip = useCallback((id) => {
     setTrips(prev => {
       const next = prev.filter(t => t.id !== id)
@@ -75,7 +69,6 @@ export function useTripsStore() {
     })
   }, [])
 
-  // Add a bill (history entry id) to a trip
   const addBillToTrip = useCallback((tripId, billId) => {
     setTrips(prev => {
       const next = prev.map(t =>
@@ -88,7 +81,6 @@ export function useTripsStore() {
     })
   }, [])
 
-  // Remove a bill from a trip (also clears its paidBy entry)
   const removeBillFromTrip = useCallback((tripId, billId) => {
     setTrips(prev => {
       const next = prev.map(t => {
@@ -102,7 +94,6 @@ export function useTripsStore() {
     })
   }, [])
 
-  // Set who paid for a specific bill in a trip
   const setBillPayer = useCallback((tripId, billId, payer) => {
     setTrips(prev => {
       const next = prev.map(t => {
@@ -115,7 +106,6 @@ export function useTripsStore() {
     })
   }, [])
 
-  // Reorder bills within a trip
   const reorderBills = useCallback((tripId, fromIdx, toIdx) => {
     setTrips(prev => {
       const next = prev.map(t => {
@@ -130,58 +120,70 @@ export function useTripsStore() {
     })
   }, [])
 
-  // Get a single trip by id
   const getTrip = useCallback((id) => trips.find(t => t.id === id) ?? null, [trips])
 
-  // Compute per-person totals across all bills in a trip
-  // entries = all history entries (from useBillHistory)
   const tripSummary = useCallback((tripId, entries) => {
     const trip = trips.find(t => t.id === tripId)
     if (!trip) return null
-    const owed = Object.fromEntries(trip.members.map(m => [m, 0]))   // how much each person owes
-    const paid = Object.fromEntries(trip.members.map(m => [m, 0]))   // how much each person paid
+
+    // --- Grand total: sum all bill totals regardless of member matching ---
     let grandTotal = 0
+    trip.billIds.forEach(billId => {
+      const entry = entries.find(e => e.id === billId)
+      grandTotal += entryTotal(entry)
+    })
+
+    // --- Per-member owed: only from bills whose result.totals keys match trip members ---
+    const owed = Object.fromEntries(trip.members.map(m => [m, 0]))
+    const paid = Object.fromEntries(trip.members.map(m => [m, 0]))
 
     trip.billIds.forEach(billId => {
       const entry = entries.find(e => e.id === billId)
       if (!entry?.state) return
       const result = entry.state.result
-      if (!result?.totals) return
+      const billTotal = entryTotal(entry)
 
-      // Accumulate what each member owes from this bill
-      Object.entries(result.totals).forEach(([m, v]) => {
-        if (owed[m] !== undefined) owed[m] += (Number(v) || 0)
-      })
-      grandTotal += Number(result.grandTotal) || 0
+      // Accumulate per-member owed amounts
+      if (result?.totals) {
+        Object.entries(result.totals).forEach(([m, v]) => {
+          if (owed[m] !== undefined) owed[m] += (Number(v) || 0)
+        })
+      }
 
-      // Accumulate what the payer fronted (full bill total)
+      // Accumulate payer: who fronted this bill's total
       const payer = (trip.paidBy || {})[billId]
       if (payer && paid[payer] !== undefined) {
-        paid[payer] += Number(result.grandTotal) || 0
+        paid[payer] += billTotal
       }
     })
 
-    // Settlement: net[m] = paid[m] - owed[m]. Positive = creditor, negative = debtor.
-    // Greedy algorithm to minimise number of transfers.
-    const hasPayers = trip.billIds.some(billId => (trip.paidBy || {})[billId])
+    // --- Settlement ---
+    const hasPayers = trip.billIds.some(billId => !!(trip.paidBy || {})[billId])
     let settlements = []
+
     if (hasPayers) {
+      // Use per-member owed if available, else split grandTotal evenly
+      const membersWithOwed = trip.members.filter(m => owed[m] > 0)
+      const owedToUse = membersWithOwed.length > 0
+        ? owed
+        : Object.fromEntries(trip.members.map(m => [m, grandTotal / (trip.members.length || 1)]))
+
       const net = {}
-      trip.members.forEach(m => { net[m] = (paid[m] || 0) - (owed[m] || 0) })
-      const creditors = Object.entries(net).filter(([, v]) => v > 0.005).map(([m, v]) => ({ m, v }))
-      const debtors   = Object.entries(net).filter(([, v]) => v < -0.005).map(([m, v]) => ({ m, v: -v }))
+      trip.members.forEach(m => { net[m] = (paid[m] || 0) - (owedToUse[m] || 0) })
+
+      const creditors = Object.entries(net).filter(([, v]) => v > 0.5).map(([m, v]) => ({ m, v }))
+      const debtors   = Object.entries(net).filter(([, v]) => v < -0.5).map(([m, v]) => ({ m, v: -v }))
       creditors.sort((a, b) => b.v - a.v)
       debtors.sort((a, b) => b.v - a.v)
+
       let ci = 0, di = 0
       while (ci < creditors.length && di < debtors.length) {
         const amount = Math.min(creditors[ci].v, debtors[di].v)
-        if (amount > 0.005) {
-          settlements.push({ from: debtors[di].m, to: creditors[ci].m, amount })
-        }
+        if (amount > 0.5) settlements.push({ from: debtors[di].m, to: creditors[ci].m, amount })
         creditors[ci].v -= amount
         debtors[di].v   -= amount
-        if (creditors[ci].v < 0.005) ci++
-        if (debtors[di].v   < 0.005) di++
+        if (creditors[ci].v < 0.5) ci++
+        if (debtors[di].v   < 0.5) di++
       }
     }
 
