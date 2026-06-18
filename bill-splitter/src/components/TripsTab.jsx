@@ -314,11 +314,11 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip }) {
 }
 
 // ── Trip detail view ────────────────────────────────────────────────────────
-function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onDeleteTrip, onSetPayer, onSaveBill, onAddBillToTrip, user }) {
+function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onDeleteTrip, onSetPayer, onSaveBill, onAddBillToTrip, user, sharedSnapshot }) {
   const { t } = useLang()
   const tripBills = trip.billIds.map(id => entries.find(e => e.id === id) ?? { id, _missing: true })
   const paidBy = trip.paidBy || {}
-  const summary = tripSummary(trip.id, entries)
+  const summary = tripSummary(trip.id, entries) ?? (sharedSnapshot ? { ...sharedSnapshot, hasData: true, mixedCurrencies: false } : null)
   const detailCurrency = summary?.currency ?? trip.currency
   const isTHB = detailCurrency === 'THB'
   const [rate, setRate] = useState(null)
@@ -328,8 +328,6 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
   const [shareStatus, setShareStatus] = useState(null) // null | 'creating' | 'copied' | 'shared' | 'error'
   const [toast, setToast] = useState(null)
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500) }
-  const [moreOpen, setMoreOpen] = useState(false)
-  const moreRef = useRef(null)
   const handleConvertToggle = async () => {
     if (rate) { setRate(null); return }
     if (isTHB) return
@@ -377,37 +375,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
       {/* Share + Save image action row — matches ResultSection shareBtnGroup exactly */}
       {summary && summary.hasData && (
         <div className={styles.shareBtnGroup} data-snapshot-hide>
-          {/* More ▾ dropdown */}
-          <div style={{ position: 'relative' }} ref={moreRef}>
-            <button className={styles.shareBtn} onClick={() => setMoreOpen(o => !o)} aria-haspopup="true" aria-expanded={moreOpen}>{t.more ?? 'More'} ▾</button>
-            {moreOpen && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 10, background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, padding: 4, minWidth: 160, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={async () => {
-                  setMoreOpen(false)
-                  if (!captureRef.current || capturing) return
-                  setCapturing(true)
-                  try {
-                    const html2canvas = (await import('html2canvas')).default
-                    const el = captureRef.current
-                    const prevStyle = el.getAttribute('style') || ''
-                    el.setAttribute('style', (prevStyle + ';background:#ffffff;color:#1a1a1a;--color-surface:#ffffff;--color-surface-alt:#f5f5f4;--color-text:#1a1a1a;--color-text-muted:#6b7280;--color-text-faint:#9ca3af;--color-border:rgba(0,0,0,0.08);--color-border-strong:rgba(0,0,0,0.15);--color-accent:#1a1a1a;--color-accent-text:#ffffff;').replace(/^;/, ''))
-                    const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2, useCORS: true, ignoreElements: (el) => el.hasAttribute && el.hasAttribute('data-snapshot-hide') })
-                    el.setAttribute('style', prevStyle)
-                    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'))
-                    if (!blob) { showToast(t.imageFailed ?? 'Failed'); return }
-                    const safeName = (trip.name || 'trip').replace(/[^\w\u0E00-\u0E7F-]+/g, '_')
-                    const file = new File([blob], `${safeName}.png`, { type: 'image/png' })
-                    if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
-                      try { await navigator.share({ files: [file], title: trip.name }); showToast(t.imageShared ?? '✓ Shared'); return } catch (e) { if (e?.name === 'AbortError') return }
-                    }
-                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${safeName}.png`; document.body.appendChild(a); a.click(); a.remove()
-                    showToast(t.imageSaved ?? '✓ Saved')
-                  } catch { showToast(t.imageFailed ?? 'Failed') } finally { setCapturing(false) }
-                }} disabled={capturing}>{t.saveImage ?? 'Save image'}</button>
-              </div>
-            )}
-          </div>
-          {/* Share link ↗ */}
+          {/* Share link ↗ — purple, matches Bill Splitter */}
           <button
             className={styles.shareBtn}
             style={{ background: 'var(--accent, #4f46e5)', color: 'white' }}
@@ -415,7 +383,6 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
             onClick={async () => {
               setShareStatus('creating')
               try {
-                // Embed computed summary into payload so recipients see full results
                 const payload = {
                   name: trip.name,
                   members: trip.members,
@@ -442,7 +409,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           >
             {shareStatus === 'creating' ? (t.shareCreating ?? 'Creating…') : <><ShareIcon width={14} height={14} /> {t.shareLink ?? 'Share link ↗'}</>}
           </button>
-          {/* Line */}
+          {/* Line — green, captures image then shares */}
           <button
             className={styles.shareBtn}
             style={{ background: '#06C755', color: 'white' }}
@@ -464,7 +431,6 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                 if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
                   try { await navigator.share({ files: [file], title: trip.name }); return } catch (e) { if (e?.name === 'AbortError') return }
                 }
-                // Fallback: LINE text share
                 const lines = [`🧳 ${trip.name}`, '']
                 if (summary?.hasPayers && summary.settlements?.length > 0) {
                   lines.push('💸 Who pays whom:')
@@ -472,7 +438,6 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   lines.push('')
                 }
                 if (trip.members.length > 0 && summary?.owed) {
-                  lines.push('Per person:')
                   trip.members.forEach(m => lines.push(`  ${m}: ${fmtAmount(summary.owed[m] ?? 0, detailCurrency)}`))
                   lines.push('')
                 }
@@ -737,6 +702,8 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
       currency: sharedTrip.currency || 'THB',
       createdAt: null,
     }
+    // Use embedded snapshot for summary (fakeTrip id won't be found in local store)
+    const sharedSnapshot = sharedTrip.snapshot || null
     return (
       <div>
         {onExitShared && (
@@ -749,6 +716,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
           trip={fakeTrip}
           entries={entries}
           tripSummary={tripSummary}
+          sharedSnapshot={sharedSnapshot}
           onBack={onExitShared ?? (() => {})}
           onAddBill={() => {}}
           onRemoveBill={() => {}}
