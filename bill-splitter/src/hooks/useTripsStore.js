@@ -55,7 +55,7 @@ export function calcBillResult(entry) {
       totals[p] = Math.round((amt + Number.EPSILON) * 100) / 100
       grand += totals[p]
     })
-    const currency = s.currency || 'THB'
+    const currency = s.currency || null
     return { grandTotal: Math.round((grand + Number.EPSILON) * 100) / 100, totals, currency }
   }
 
@@ -94,7 +94,7 @@ export function calcBillResult(entry) {
     if (ownerAmt < 0) { ownerAmt = 0; grandTotal = round2(othersSum) }
     totals[owner] = ownerAmt
   }
-  const currency = s.currency || 'THB'
+  const currency = s.currency || null
   return { grandTotal, totals, currency }
 }
 
@@ -221,7 +221,8 @@ export function useTripsStore() {
       const entry = entries.find(e => e.id === billId)
       if (!entry) return
       const { grandTotal: billTotal, totals, currency: billCurrency } = calcBillResult(entry)
-      billCurrencies.add(billCurrency || trip.currency)
+      // null currency means bill was saved before currency tracking — treat as trip currency
+      billCurrencies.add(billCurrency ?? trip.currency)
       grandTotal += billTotal
 
       // Accumulate per-member owed amounts
