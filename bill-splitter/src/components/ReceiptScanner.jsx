@@ -1,150 +1,20 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import { useLang } from '../LangContext'
 import { normaliseCurrency } from '../currencies'
-
-const CURRENCY_FLAGS = { THB: '🇹🇭', KRW: '🇰🇷', JPY: '🇯🇵', USD: '🇺🇸', EUR: '🇪🇺', SGD: '🇸🇬', HKD: '🇭🇰', GBP: '🇬🇧', AUD: '🇦🇺', CAD: '🇨🇦', CNY: '🇨🇳' }
 import styles from './ReceiptScanner.module.css'
+import {
+  CURRENCY_FLAGS, SCAN_CAP, SCAN_KEY,
+  getScanCount, bumpScanCount, localizeError, compressImage, scanReceipt,
+} from './receiptScanUtils'
 
-const WORKER_URL = 'https://bill-splitter-receipt.pbfluffygaming.workers.dev/'
-const MAX_DIM = 1568
-const JPEG_QUALITY = 0.85
-const SCAN_CAP = 10
-const SCAN_KEY = 'billSplitter_scanCount'
-
-const PROMPT = `You are extracting line items from a restaurant or shop receipt photo.
-
-Respond ONLY with valid JSON, no markdown fences, no preamble:
-
-{
-  "merchantName": "<the restaurant or shop name translated to English; null if not legible>",
-  "currency": "<ISO 4217 currency code detected from the receipt, e.g. THB, KRW, JPY, USD; null if unknown>",
-  "merchantOriginal": "<merchant name in original language, omit if already English>",
-  "items": [
-    {"name": "<item name translated to English>", "originalName": "<item name in original language, omit if already English>", "price": <number>}
-  ],
-  "vatDetected": <boolean>,
-  "serviceChargeRate": <number or null>,
-  "confidence": "high" | "medium" | "low"
-}
-
-Notes:
-- Only include items the customer actually ordered. Skip taxes, subtotals, service charges, discounts, totals.
-- If you can read a VAT/tax line item (e.g. "VAT 7%"), set vatDetected: true.
-- If you can read a service-charge line (e.g. "Service Charge 10%"), set serviceChargeRate to the percentage as a number (10), not the baht amount.
-- If neither is on the receipt, set vatDetected: false and serviceChargeRate: null.
-- Prices should be the line total (unit price * quantity).
-- Numbers must be plain numbers, no currency symbols.
-- merchantName is the business/venue name printed on the receipt translated to English (skip branch codes, addresses, tax IDs, phone numbers). If you cannot read it, use null.
-- merchantOriginal: include whenever the original merchant name was not in English (any language). Do not repeat an English name in merchantOriginal.
-- currency: detect from currency symbols or context (₩ → KRW, ¥ → JPY, $ → USD or CAD depending on context, £ → GBP, € → EUR, A$ → AUD, C$ → CAD etc.). Use THB as default for Thai receipts. For $ receipts, use store location/language clues to pick USD vs CAD vs AUD.
-- Translate item names to natural English regardless of language (e.g. "김치찌개" → "Kimchi Stew", "焼き鳥" → "Yakitori", "PAIN BLANC TRANCHÉ" → "Sliced White Bread", "Poulet rôti" → "Roast Chicken"). If the item name is already in English or Thai, leave it as-is and omit originalName.
-- For originalName: include whenever the original was not in English (any language — Korean, Japanese, French, Spanish, etc.). Do not repeat an English name in originalName.
-
-If the photo does not contain a receipt at all, respond ONLY with:
-{"error": "no receipt"}
-If the photo is a credit card payment slip or bank transaction slip (shows card number, approval code, total only — no individual items), respond ONLY with:
-{"error": "payment slip"}`
 
 // Mirrors Nutritions PhotoTab BUG-02 Leak B fix — wrap object URL in try/finally
 // so it's revoked even if Image.onerror fires or drawImage/toBlob throws.
-async function compressImage(file) {
-  const objectUrl = URL.createObjectURL(file)
-  try {
-    const img = await new Promise((resolve, reject) => {
-      const i = new Image()
-      i.onload = () => resolve(i)
-      i.onerror = () => reject(new Error('Could not load image'))
-      i.src = objectUrl
-    })
-    const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height))
-    const w = Math.round(img.width * scale)
-    const h = Math.round(img.height * scale)
-    const canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
-    canvas.getContext('2d').drawImage(img, 0, 0, w, h)
-    const blob = await new Promise((resolve, reject) =>
-      canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error('Could not encode image'))),
-        'image/jpeg',
-        JPEG_QUALITY,
-      ),
-    )
-    return await new Promise((resolve, reject) => {
-      const r = new FileReader()
-      r.onload = () => resolve(r.result.split(',')[1])
-      r.onerror = () => reject(new Error('Could not read image'))
-      r.readAsDataURL(blob)
-    })
-  } finally {
-    URL.revokeObjectURL(objectUrl)
-  }
-}
 
-async function scanReceipt(base64Image) {
-  const response = await fetch(WORKER_URL, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { inline_data: { mime_type: 'image/jpeg', data: base64Image } },
-            { text: PROMPT },
-          ],
-        },
-      ],
-      generationConfig: { responseMimeType: 'application/json' },
-    }),
-  })
-  if (!response.ok) {
-    const errText = await response.text()
-    throw new Error(`API ${response.status}: ${errText.slice(0, 200)}`)
-  }
-  const data = await response.json()
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!text) throw new Error('No text in response')
-  const cleaned = text
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```\s*$/i, '')
-    .trim()
-  try {
-    return JSON.parse(cleaned)
-  } catch {
-    throw new Error(`Bad JSON: ${cleaned.slice(0, 200)}`)
-  }
-}
 
 // Map free-form English error strings from the worker to localized UI text.
 // Mirrors the Nutritions BUG-07 fix.
-function localizeError(msg, t) {
-  if (typeof msg !== 'string') return String(msg)
-  const m = msg.toLowerCase()
-  if (m.includes('payment slip')) return t.receiptErrPaymentSlip ?? 'This looks like a payment slip — please scan the itemized order receipt instead.'
-  if (m.includes('no receipt')) return t.receiptErrNoReceipt
-  if (
-    m.includes('could not load image') ||
-    m.includes('could not read image') ||
-    m.includes('could not encode image')
-  ) {
-    return t.receiptErrReadImage
-  }
-  if (m.startsWith('api ') || m.startsWith('bad json')) return t.receiptErrService
-  return msg
-}
 
-function getScanCount() {
-  try {
-    return parseInt(sessionStorage.getItem(SCAN_KEY) || '0', 10) || 0
-  } catch {
-    return 0
-  }
-}
-function bumpScanCount() {
-  try {
-    sessionStorage.setItem(SCAN_KEY, String(getScanCount() + 1))
-  } catch {}
-}
 
 // Simple {placeholder} interpolation matching how the rest of the app uses LangContext strings.
 function format(template, vars) {
@@ -162,7 +32,6 @@ export default function ReceiptScanner({
   onSetServiceCharge,
   onSetServiceChargeRate,
   onSetCurrency,
-  autoOpen = false,
 }) {
   const { t } = useLang()
   const [open, setOpen] = useState(false)
@@ -178,12 +47,6 @@ export default function ReceiptScanner({
   const [detectedCurrency, setDetectedCurrency] = useState(null)
   const [capReached, setCapReached] = useState(false)
   const fileRef = useRef(null)
-  // Auto-open scanner (e.g. when navigating from trip tab 📷 button)
-  useEffect(() => {
-    if (!autoOpen) return
-    const timer = setTimeout(() => fileRef.current?.click(), 300)
-    return () => clearTimeout(timer)
-  }, [autoOpen])
   // Monotonic request id — same pattern as Nutritions PhotoTab BUG-04 fix.
   const requestIdRef = useRef(0)
 
