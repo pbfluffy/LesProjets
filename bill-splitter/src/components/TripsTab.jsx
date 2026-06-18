@@ -69,6 +69,32 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
   const orig = (n) => fmtAmount(n, summary.currency)
   const thb  = (n) => rate ? ` ≈ ฿${Math.round(n * rate).toLocaleString()}` : ''
 
+  // When rate loaded + mixed currencies: recompute settlement in THB
+  const convOwed = rate && !isTHB
+    ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * rate)]))
+    : summary.owed
+  const convPaid = rate && !isTHB
+    ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.paid?.[m] ?? 0) * rate)]))
+    : (summary.paid ?? {})
+  const convSettlements = (() => {
+    if (!summary.hasPayers) return []
+    const net = {}
+    trip.members.forEach(m => { net[m] = (convPaid[m] || 0) - (convOwed[m] || 0) })
+    const creditors = Object.entries(net).filter(([, v]) => v > 0.5).map(([m, v]) => ({ m, v }))
+    const debtors   = Object.entries(net).filter(([, v]) => v < -0.5).map(([m, v]) => ({ m, v: -v }))
+    creditors.sort((a, b) => b.v - a.v); debtors.sort((a, b) => b.v - a.v)
+    const result = []; let ci = 0, di = 0
+    while (ci < creditors.length && di < debtors.length) {
+      const amount = Math.min(creditors[ci].v, debtors[di].v)
+      if (amount > 0.5) result.push({ from: debtors[di].m, to: creditors[ci].m, amount })
+      creditors[ci].v -= amount; debtors[di].v -= amount
+      if (creditors[ci].v < 0.5) ci++; if (debtors[di].v < 0.5) di++
+    }
+    return result
+  })()
+  const displaySettlements = (rate && !isTHB) ? convSettlements : summary.settlements
+  const displayCurrency = (rate && !isTHB) ? 'THB' : summary.currency
+
   return (
     <div className={styles.summarySection}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -126,10 +152,10 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
 
 
       {/* Settlement transfers */}
-      {summary.hasPayers && summary.settlements.length > 0 && (
+      {summary.hasPayers && displaySettlements.length > 0 && (
         <>
           <div className={styles.summaryTitle} style={{ marginTop: 14 }}>💸 ใครโอนให้ใคร</div>
-          {summary.settlements.map((s, i) => (
+          {displaySettlements.map((s, i) => (
             <div key={i} className={styles.summaryRow}>
               <span className={styles.summaryName} style={{ gap: 6 }}>
                 <Avatar name={s.from} size={18} />
@@ -139,17 +165,14 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
                 <span style={{ fontSize: 13 }}>{s.to}</span>
               </span>
               <span className={styles.summaryAmt} style={{ color: 'var(--color-accent, #ff6b35)' }}>
-                {rate && !isTHB
-                  ? <><span>฿{Math.round(s.amount * rate).toLocaleString()}</span><span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginLeft: 4 }}>{orig(s.amount)}</span></>
-                  : orig(s.amount)
-                }
+                {fmtAmount(s.amount, displayCurrency)}
               </span>
             </div>
           ))}
         </>
       )}
 
-      {summary.hasPayers && summary.settlements.length === 0 && (
+      {summary.hasPayers && displaySettlements.length === 0 && (
         <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10, textAlign: 'center' }}>
           ✅ ไม่มียอดค้างชำระ
         </div>
@@ -157,10 +180,7 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
 
       {!summary.hasPayers && (
         <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10 }}>
-          {summary.mixedCurrencies
-            ? '⚠️ ยอดโอนคำนวณไม่ได้เมื่อมีหลายสกุลเงิน'
-            : '💳 เลือกว่าใครจ่ายแต่ละบิลเพื่อคำนวณยอดโอน'
-          }
+          💳 เลือกว่าใครจ่ายแต่ละบิลเพื่อคำนวณยอดโอน
         </div>
       )}
     </div>
