@@ -191,6 +191,9 @@ function AppInner() {
   // Loaded entries are passed in as initial state to BillSplitter/SushiroCalculator.
   // Bumping `loadEpoch` (used as react key) remounts the store so initial takes effect.
   const [loaded, setLoaded] = useState(null)
+  const [autoScan, setAutoScan] = useState(false)
+  // Clear autoScan flag once the split tab has mounted with it
+  useEffect(() => { if (autoScan && activeTab === 'split') { const t = setTimeout(() => setAutoScan(false), 1000); return () => clearTimeout(t) } }, [autoScan, activeTab])
   const [loadEpoch, setLoadEpoch] = useState(0)
 
   useEffect(() => {
@@ -368,6 +371,7 @@ function AppInner() {
         {activeTab === 'split' && (
           <BillSplitter
             key={`split-${loadEpoch}`}
+            autoScan={autoScan}
             sharedState={splitInitial}
             readOnly={!!shared}
             onSaveBill={handleSaveBill}
@@ -393,7 +397,8 @@ function AppInner() {
           <TripsTab
             entries={history.entries}
             onLoadBill={(entry) => { handleLoadEntry(entry); setActiveTab(entry.tab) }}
-            onNewBillForTrip={() => setActiveTab('split')}
+            onNewBillForTrip={() => { setActiveTab('split') }}
+            onScanBillForTrip={() => { setAutoScan(true); setActiveTab('split') }}
           />
         )}
       </main>
