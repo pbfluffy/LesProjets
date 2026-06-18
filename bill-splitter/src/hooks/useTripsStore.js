@@ -31,7 +31,7 @@ function writeAll(trips) {
 }
 
 // Recompute bill result from saved state (result is never persisted in snapshots)
-function calcBillResult(entry) {
+export function calcBillResult(entry) {
   if (!entry?.state) return { grandTotal: 0, totals: {} }
   const s = entry.state
 
