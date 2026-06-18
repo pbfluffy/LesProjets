@@ -192,6 +192,7 @@ function AppInner() {
   // Bumping `loadEpoch` (used as react key) remounts the store so initial takes effect.
   const [loaded, setLoaded] = useState(null)
   const [loadEpoch, setLoadEpoch] = useState(0)
+  const [loadedEntryId, setLoadedEntryId] = useState(null)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
@@ -204,7 +205,12 @@ function AppInner() {
   }
 
   const handleSaveBill = (tab, snapshot) => {
-    history.save(tab, snapshot)
+    if (loadedEntryId) {
+      history.update(loadedEntryId, tab, snapshot)
+      setLoadedEntryId(null)
+      return { id: loadedEntryId }
+    }
+    return history.save(tab, snapshot)
   }
 
   const handleLoadEntry = (entry) => {
@@ -213,6 +219,7 @@ function AppInner() {
     setActiveTab(entry.tab)
     setLoaded({ tab: entry.tab, state: entry.state })
     setLoadEpoch(e => e + 1)
+    setLoadedEntryId(entry.id)
     setHistoryOpen(false)
   }
 
@@ -356,7 +363,7 @@ function AppInner() {
             <button
               key={tab.id}
               className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); setLoadedEntryId(null) }}
             >
               {tab.label}
             </button>
