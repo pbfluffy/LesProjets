@@ -99,39 +99,14 @@ function TripForm({ initial, onSave, onCancel, title }) {
 }
 
 // ── Settlement + summary section ────────────────────────────────────────────
-function TripSummarySection({ trip, entries, tripSummary }) {
+function TripSummarySection({ trip, entries, tripSummary, rate, conv, dispCurrency, isTHB, converting, rateError, onConvertToggle }) {
   const summary = tripSummary(trip.id, entries)
   if (!summary) return null
   const hasBills = trip.billIds.length > 0
   if (!hasBills) return null
 
   const hasOwedData = trip.members.some(m => (summary.owed[m] ?? 0) > 0)
-  const isTHB = summary.currency === 'THB'
-
-  // THB conversion toggle
-  const [converting, setConverting] = useState(false)
-  const [rate, setRate] = useState(null)       // 1 foreignCurrency = X THB
-  const [rateError, setRateError] = useState(null)
-
-  const handleConvertToggle = async () => {
-    if (converting) { setConverting(false); setRate(null); setRateError(null); return }
-    setConverting(true)
-    setRateError(null)
-    try {
-      const res = await fetch(`https://open.er-api.com/v6/latest/${summary.currency}`)
-      if (!res.ok) throw new Error('fetch failed')
-      const data = await res.json()
-      const r = data?.rates?.['THB']
-      if (!r) throw new Error('no rate')
-      setRate(r)
-    } catch {
-      setRateError('ดึงอัตราแลกเปลี่ยนไม่ได้')
-      setConverting(false)
-    }
-  }
-
-  const conv = (n) => rate !== null ? n * rate : n
-  const dispCurrency = (rate !== null) ? 'THB' : summary.currency
+  const isTHBSummary = summary.currency === 'THB'
 
   return (
     <div className={styles.summarySection}>
@@ -139,7 +114,7 @@ function TripSummarySection({ trip, entries, tripSummary }) {
         <div className={styles.summaryTitle} style={{ margin: 0 }}>สรุปยอด</div>
         {!isTHB && (
           <button
-            onClick={handleConvertToggle}
+            onClick={onConvertToggle}
             style={{
               fontSize: 11,
               padding: '3px 8px',
@@ -219,10 +194,29 @@ function TripSummarySection({ trip, entries, tripSummary }) {
 }
 
 // ── Trip detail view ────────────────────────────────────────────────────────
-function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onSetPayer }) {
+function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onScanBill, onRemoveBill, onLoadBill, onEditTrip, onSetPayer }) {
   const { t } = useLang()
   const tripBills = trip.billIds.map(id => entries.find(e => e.id === id)).filter(Boolean)
   const paidBy = trip.paidBy || {}
+  const summary = tripSummary(trip.id, entries)
+  const isTHB = (summary?.currency ?? trip.currency) === 'THB'
+  const [converting, setConverting] = useState(false)
+  const [rate, setRate] = useState(null)
+  const [rateError, setRateError] = useState(null)
+  const conv = (n) => rate !== null ? n * rate : n
+  const dispCurrency = rate !== null ? 'THB' : (summary?.currency ?? trip.currency)
+  const handleConvertToggle = async () => {
+    if (converting) { setConverting(false); setRate(null); setRateError(null); return }
+    setConverting(true); setRateError(null)
+    try {
+      const res = await fetch(`https://open.er-api.com/v6/latest/${summary?.currency ?? trip.currency}`)
+      if (!res.ok) throw new Error('fetch failed')
+      const data = await res.json()
+      const r = data?.rates?.['THB']
+      if (!r) throw new Error('no rate')
+      setRate(r)
+    } catch { setRateError('ดึงอัตราแลกเปลี่ยนไม่ได้'); setConverting(false) }
+  }
 
   return (
     <div className={styles.detail}>
@@ -240,7 +234,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
         ))}
       </div>
 
-      <TripSummarySection trip={trip} entries={entries} tripSummary={tripSummary} />
+      <TripSummarySection trip={trip} entries={entries} tripSummary={tripSummary} rate={rate} conv={conv} dispCurrency={dispCurrency} isTHB={isTHB} converting={converting} rateError={rateError} onConvertToggle={handleConvertToggle} />
 
       <div className={styles.billsTitle}>{t.tripBills ?? 'Bills'} ({tripBills.length})</div>
       {tripBills.length === 0 && (
@@ -256,7 +250,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                 <span className={styles.billCardName}>{entry.billName || t.unnamedBill}</span>
                 <span className={styles.billCardDate}>{fmtDate(entry.savedAt)}</span>
                 {totalAmt > 0 && (
-                  <span className={styles.billCardAmt}>{fmtAmount(totalAmt, billCurrency)}</span>
+                  <span className={styles.billCardAmt}>{fmtAmount(conv(totalAmt), dispCurrency)}</span>
                 )}
               </button>
               <button className={styles.billCardRemove} onClick={() => onRemoveBill(trip.id, entry.id)} aria-label="Remove from trip">×</button>
@@ -291,9 +285,14 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           </div>
         )
       })}
-      <button className={styles.addBillBtn} onClick={onAddBill}>
-        + {t.tripAddBill ?? 'Add bill to trip'}
-      </button>
+      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+        <button className={styles.addBillBtn} style={{ flex: 1 }} onClick={onAddBill}>
+          + {t.tripAddBill ?? 'Add bill to trip'}
+        </button>
+        <button className={styles.addBillBtn} style={{ flex: 'none', padding: '0 16px', fontSize: 18 }} onClick={onScanBill} title={t.tripScanBill ?? 'Scan new bill'}>
+          📷
+        </button>
+      </div>
     </div>
   )
 }
@@ -405,6 +404,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip }) {
         tripSummary={tripSummary}
         onBack={handleBack}
         onAddBill={handleAddBill}
+        onScanBill={() => { onNewBillForTrip?.() }}
         onRemoveBill={handleRemoveBill}
         onLoadBill={onLoadBill}
         onEditTrip={() => setView('edit')}
