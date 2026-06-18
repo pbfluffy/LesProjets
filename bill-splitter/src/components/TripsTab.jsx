@@ -13,6 +13,7 @@ import { useTripsStore, calcBillResult } from '../hooks/useTripsStore'
 import Avatar from './Avatar'
 import styles from './TripsTab.module.css'
 import { compressImage, scanReceipt, localizeError, getScanCount, bumpScanCount, SCAN_CAP, CURRENCY_FLAGS } from './receiptScanUtils'
+import { buildShareUrl, createShortLink, shareLink } from '../share'
 import { normaliseCurrency } from '../currencies'
 
 function fmtDate(ts) {
@@ -62,6 +63,13 @@ function TripSummarySection({ trip, entries, tripSummary, rate, rateLoading, onC
   const summary = tripSummary(trip.id, entries)
   if (!summary) return null
   if (!trip.billIds.length) return null
+  if (!summary.hasData) return (
+    <div className={styles.summarySection}>
+      <div style={{ fontSize: 13, color: 'var(--color-text-muted)', textAlign: 'center', padding: '8px 0' }}>
+        ⚠️ ไม่พบข้อมูลบิล — บิลในทริปนี้ถูกลบออกจากประวัติแล้ว
+      </div>
+    </div>
+  )
 
   const hasOwedData = trip.members.some(m => (summary.owed[m] ?? 0) > 0)
   const isTHB = summary.currency === 'THB'
@@ -310,7 +318,7 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip }) {
 }
 
 // ── Trip detail view ────────────────────────────────────────────────────────
-function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onDeleteTrip, onSetPayer, onSaveBill, onAddBillToTrip }) {
+function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onDeleteTrip, onSetPayer, onSaveBill, onAddBillToTrip, user }) {
   const { t } = useLang()
   const tripBills = trip.billIds.map(id => entries.find(e => e.id === id) ?? { id, _missing: true })
   const paidBy = trip.paidBy || {}
@@ -319,6 +327,11 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
   const isTHB = detailCurrency === 'THB'
   const [rate, setRate] = useState(null)
   const [rateLoading, setRateLoading] = useState(false)
+  const captureRef = useRef(null)
+  const [capturing, setCapturing] = useState(false)
+  const [shareStatus, setShareStatus] = useState(null) // null | 'creating' | 'copied' | 'shared' | 'error'
+  const [toast, setToast] = useState(null)
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500) }
   const handleConvertToggle = async () => {
     if (rate) { setRate(null); return }
     if (isTHB) return
@@ -363,6 +376,86 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
 
       <TripSummarySection trip={trip} entries={entries} tripSummary={tripSummary} rate={rate} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} />
 
+      {/* Share + Save image action row */}
+      {summary && summary.hasData && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          <button
+            disabled={shareStatus === 'creating'}
+            onClick={async () => {
+              setShareStatus('creating')
+              try {
+                const payload = { name: trip.name, members: trip.members, billIds: trip.billIds, paidBy: trip.paidBy || {}, currency: detailCurrency }
+                let url
+                if (user) {
+                  url = await createShortLink('trips', payload, user.uid)
+                } else {
+                  url = buildShareUrl('trips', payload)
+                }
+                const result = await shareLink({ title: trip.name, text: `Trip: ${trip.name}`, url })
+                setShareStatus(result === 'shared' ? 'shared' : 'copied')
+                showToast(result === 'shared' ? '✓ Shared' : '✓ Link copied')
+              } catch { setShareStatus('error'); showToast('Share failed') }
+              finally { setTimeout(() => setShareStatus(null), 2000) }
+            }}
+            style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '10px 0', borderRadius: 10,
+              border: '0.5px solid var(--color-border)',
+              background: shareStatus === 'creating' ? 'var(--color-surface-alt)' : 'var(--color-surface)',
+              color: 'var(--color-text)', fontSize: 13, fontFamily: 'var(--font-body)', cursor: shareStatus === 'creating' ? 'default' : 'pointer',
+            }}
+          >
+            <span>{shareStatus === 'creating' ? '⏳' : '📤'}</span>
+            <span>{shareStatus === 'creating' ? 'Creating…' : (t.shareLink ?? 'Share link')}</span>
+          </button>
+          <button
+            disabled={capturing}
+            onClick={async () => {
+              if (!captureRef.current || capturing) return
+              setCapturing(true)
+              try {
+                const html2canvas = (await import('html2canvas')).default
+                const el = captureRef.current
+                const canvas = await html2canvas(el, {
+                  useCORS: true, backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim() || '#ffffff',
+                  scale: 2, logging: false,
+                })
+                const blob = await new Promise(res => canvas.toBlob(res, 'image/png'))
+                const file = new File([blob], `${trip.name || 'trip'}.png`, { type: 'image/png' })
+                if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+                  await navigator.share({ files: [file], title: trip.name })
+                  showToast(t.imageShared ?? 'Image shared')
+                } else {
+                  const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+                  a.download = `${trip.name || 'trip'}.png`; a.click()
+                  showToast(t.imageSaved ?? 'Image saved')
+                }
+              } catch (e) { if (e?.name !== 'AbortError') showToast('Save failed') }
+              finally { setCapturing(false) }
+            }}
+            style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '10px 0', borderRadius: 10,
+              border: '0.5px solid var(--color-border)',
+              background: capturing ? 'var(--color-surface-alt)' : 'var(--color-surface)',
+              color: 'var(--color-text)', fontSize: 13, fontFamily: 'var(--font-body)', cursor: capturing ? 'default' : 'pointer',
+            }}
+          >
+            <span>{capturing ? '⏳' : '📷'}</span>
+            <span>{capturing ? 'Saving…' : (t.saveImage ?? 'Save image')}</span>
+          </button>
+        </div>
+      )}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+          background: 'var(--color-text)', color: 'var(--color-bg)',
+          padding: '8px 18px', borderRadius: 20, fontSize: 13, zIndex: 500,
+          pointerEvents: 'none', whiteSpace: 'nowrap',
+        }}>{toast}</div>
+      )}
+
+      <div ref={captureRef}>
       <div className={styles.billsTitle}>{t.tripBills ?? 'Bills'} ({tripBills.length})</div>
       {tripBills.length === 0 && (
         <p className={styles.empty}>{t.tripNoBills ?? 'No bills yet — add one below'}</p>
@@ -448,6 +541,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           </div>
         )
       })}
+      </div>{/* /captureRef */}
       <button className={styles.addBillBtn} style={{ marginTop: 16 }} onClick={onAddBill}>
         + {t.tripAddBill ?? 'Add bill to trip'}
       </button>
@@ -485,7 +579,7 @@ function TripList({ trips, onSelect, onNew }) {
 }
 
 // ── Main export ─────────────────────────────────────────────────────────────
-export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSaveBill }) {
+export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSaveBill, user, sharedTrip, onExitShared }) {
   const { trips, createTrip, updateTrip, deleteTrip, addBillToTrip, removeBillFromTrip, setBillPayer, getTrip, tripSummary } = useTripsStore()
   const [view, setView] = useState('list')   // 'list' | 'detail' | 'new' | 'edit'
   const [activeTrip, setActiveTrip] = useState(null)
@@ -600,6 +694,45 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
     )
   }
 
+  // Shared trip read-only view
+  if (sharedTrip) {
+    const fakeTrip = {
+      id: '__shared__',
+      name: sharedTrip.name || 'Shared Trip',
+      members: sharedTrip.members || [],
+      billIds: sharedTrip.billIds || [],
+      paidBy: sharedTrip.paidBy || {},
+      currency: sharedTrip.currency || 'THB',
+      createdAt: null,
+    }
+    return (
+      <div>
+        {onExitShared && (
+          <div style={{ background: 'var(--color-surface-alt)', padding: '8px 12px', borderRadius: 8, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
+            <span style={{ color: 'var(--color-text-muted)' }}>👁️ Viewing shared trip</span>
+            <button onClick={onExitShared} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--color-text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>✕ Exit</button>
+          </div>
+        )}
+        <TripDetail
+          trip={fakeTrip}
+          entries={entries}
+          tripSummary={tripSummary}
+          onBack={onExitShared ?? (() => {})}
+          onAddBill={() => {}}
+          onRemoveBill={() => {}}
+          onLoadBill={() => {}}
+          onEditTrip={() => {}}
+          onDeleteTrip={() => {}}
+          onSetPayer={() => {}}
+          onSaveBill={onSaveBill}
+          onAddBillToTrip={() => {}}
+          user={user}
+          readOnly
+        />
+      </div>
+    )
+  }
+
   if (addingBill && activeTrip) return <BillPicker />
   if (view === 'new') return <TripForm title="New Trip" onSave={handleCreate} onCancel={() => setView('list')} />
   if (view === 'edit' && activeTrip) {
@@ -616,6 +749,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
         onBack={handleBack}
         onAddBill={handleAddBill}
         onSaveBill={onSaveBill}
+        user={user}
         onAddBillToTrip={(tripId, billId) => {
           addBillToTrip(tripId, billId)
           setActiveTrip(prev => prev ? { ...prev, billIds: [...prev.billIds, billId] } : prev)

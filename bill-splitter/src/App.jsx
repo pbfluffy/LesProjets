@@ -402,6 +402,9 @@ function AppInner() {
             onLoadBill={(entry) => { handleLoadEntry(entry); setActiveTab(entry.tab) }}
             onNewBillForTrip={() => setActiveTab('split')}
             onSaveBill={handleSaveBill}
+            user={user}
+            sharedTrip={shared?.t === 'trips' ? shared.s : null}
+            onExitShared={() => { setShared(null); clearShareHash() }}
           />
         )}
       </main>

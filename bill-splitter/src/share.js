@@ -48,7 +48,7 @@ export function encodeShare(tab, state) {
 export function decodeShare(payload) {
   try {
     const obj = JSON.parse(b64UrlToUtf8(payload))
-    if (obj && (obj.t === 'split' || obj.t === 'sushi') && obj.s) return obj
+    if (obj && (obj.t === 'split' || obj.t === 'sushi' || obj.t === 'trips') && obj.s) return obj
   } catch {}
   return null
 }

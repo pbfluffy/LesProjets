@@ -36,27 +36,42 @@ export function calcBillResult(entry) {
   const s = entry.state
 
   if (entry.tab === 'sushi') {
-    // Sushiro: sum plates + snacks per person
+    // Sushiro: accumulate subtotal first, multiply once (mirrors BillHistory entryTotal)
     const PLATE_PRICES = { white:30, red:40, silver:60, gold:80, black:120 }
     const people = Array.isArray(s.people) ? s.people : []
     const plates = s.plates || {}
     const snacks = s.snacks || {}
-    const totals = {}
-    let grand = 0
+    // Per-person raw subtotals (before SC/VAT)
+    const rawShares = {}
+    let subtotal = 0
     people.forEach(p => {
       let amt = 0
       const pp = plates[p] || {}
       Object.entries(pp).forEach(([id, count]) => { amt += (count || 0) * (PLATE_PRICES[id] || 0) })
       ;(snacks[p] || []).forEach(snack => { amt += Number(snack.price) || 0 })
-      let mul = 1
-      if (s.serviceChargeEnabled) mul *= 1.1
-      if (s.vatEnabled) mul *= 1.07
-      amt = amt * mul
-      totals[p] = Math.round((amt + Number.EPSILON) * 100) / 100
-      grand += totals[p]
+      rawShares[p] = amt
+      subtotal += amt
     })
+    let mul = 1
+    if (s.serviceChargeEnabled) mul *= 1.1
+    if (s.vatEnabled) mul *= 1.07
+    const grand = subtotal * mul
+    const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100
+    // Distribute grand total proportionally — owner absorbs rounding remainder
+    const totals = {}
+    if (people.length > 0) {
+      const owner = people[0]
+      let othersSum = 0
+      people.forEach(p => {
+        if (p === owner) return
+        const r = round2(subtotal > 0 ? (rawShares[p] / subtotal) * grand : 0)
+        totals[p] = r
+        othersSum += r
+      })
+      totals[owner] = round2(round2(grand) - othersSum)
+    }
     const currency = s.currency || null
-    return { grandTotal: Math.round((grand + Number.EPSILON) * 100) / 100, totals, currency }
+    return { grandTotal: round2(grand), totals, currency }
   }
 
   // Split bill
@@ -278,7 +293,9 @@ export function useTripsStore() {
       }
     }
 
-    return { owed, paid, grandTotal, currency: effectiveCurrency, mixedCurrencies, settlements, hasPayers }
+    // hasData: false when all bill entries are missing from history (trips still reference deleted bills)
+    const hasData = trip.billIds.length === 0 || trip.billIds.some(id => entries.find(e => e.id === id))
+    return { owed, paid, grandTotal, currency: effectiveCurrency, mixedCurrencies, settlements, hasPayers, hasData }
   }, [trips])
 
   return {
