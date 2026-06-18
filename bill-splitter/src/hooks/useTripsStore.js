@@ -237,10 +237,14 @@ export function useTripsStore() {
       }
     })
     // Determine effective display currency
-    // If all bills share one currency, use that. Otherwise flag as mixed.
     const uniqueCurrencies = [...billCurrencies]
-    const effectiveCurrency = uniqueCurrencies.length === 1 ? uniqueCurrencies[0] : trip.currency
     const mixedCurrencies = uniqueCurrencies.length > 1
+    // For mixed: use the dominant non-THB currency (for toggle rate fetch)
+    // For single: use that currency directly
+    const nonTHB = uniqueCurrencies.filter(c => c !== 'THB')
+    const effectiveCurrency = uniqueCurrencies.length === 1
+      ? uniqueCurrencies[0]
+      : nonTHB.length > 0 ? nonTHB[0] : trip.currency
 
     // --- Settlement ---
     const hasPayers = trip.billIds.some(billId => !!(trip.paidBy || {})[billId])
