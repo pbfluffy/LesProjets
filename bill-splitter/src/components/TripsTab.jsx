@@ -517,7 +517,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
         </div>
         {available.length === 0 && <p className={styles.empty}>{t.tripNoBillsToAdd ?? 'No saved bills to add'}</p>}
         {available.length > 1 && (
-          <button onClick={selectAll} style={{ fontSize: 12, color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 8px', fontFamily: 'var(--font-body)' }}>
+          <button onClick={selectAll} style={{ fontSize: 12, color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 12px 8px', fontFamily: 'var(--font-body)', display: 'block' }}>
             {selected.size === available.length ? '☐ Deselect all' : '☑ Select all'}
           </button>
         )}
@@ -525,22 +525,28 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
           const isSelected = selected.has(entry.id)
           const { grandTotal, currency: billCurr } = calcBillResult(entry)
           return (
-            <button key={entry.id} className={styles.pickerRow}
+            <button key={entry.id}
               onClick={() => toggleSelect(entry.id)}
-              style={{ background: isSelected ? 'var(--color-surface-hover, rgba(0,0,0,0.04))' : 'none', display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left' }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                width: '100%', textAlign: 'left', padding: '10px 12px',
+                background: isSelected ? 'var(--color-surface-hover, rgba(0,0,0,0.04))' : 'none',
+                border: 'none', borderBottom: '0.5px solid var(--color-border)',
+                cursor: 'pointer', fontFamily: 'var(--font-body)',
+              }}
             >
               <span style={{
-                width: 20, height: 20, borderRadius: 4, flexShrink: 0,
+                width: 18, height: 18, borderRadius: 4, flexShrink: 0,
                 border: `2px solid ${isSelected ? 'var(--color-text)' : 'var(--color-border)'}`,
                 background: isSelected ? 'var(--color-text)' : 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--color-bg)', fontSize: 12, fontWeight: 700, lineHeight: 1,
+                color: 'var(--color-bg)', fontSize: 11, fontWeight: 700,
               }}>{isSelected ? '✓' : ''}</span>
-              <span style={{ flex: 1 }}>
-                <span className={styles.billCardName}>{entry.billName || t.unnamedBill}</span>
-                <span className={styles.billCardDate} style={{ display: 'block' }}>{fmtDate(entry.savedAt)}</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 14, fontWeight: 500, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--color-text)' }}>{entry.billName || t.unnamedBill}</span>
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{fmtDate(entry.savedAt)}</span>
               </span>
-              {grandTotal > 0 && <span className={styles.billCardAmt}>{fmtAmount(grandTotal, billCurr ?? 'THB')}</span>}
+              {grandTotal > 0 && <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)', flexShrink: 0 }}>{fmtAmount(grandTotal, billCurr ?? 'THB')}</span>}
             </button>
           )
         })}
