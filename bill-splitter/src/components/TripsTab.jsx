@@ -366,7 +366,8 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
         <p className={styles.empty}>{t.tripNoBills ?? 'No bills yet — add one below'}</p>
       )}
       {tripBills.map(entry => {
-        const { grandTotal: totalAmt, currency: billCurrency, totals } = calcBillResult(entry)
+        const { grandTotal: totalAmt, currency: _billCurr, totals } = calcBillResult(entry)
+        const billCurrency = _billCurr ?? detailCurrency
         const payer = paidBy[entry.id] || ''
         return (
           <div key={entry.id} className={styles.billCard} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
