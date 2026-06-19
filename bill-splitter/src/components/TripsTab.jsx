@@ -60,7 +60,7 @@ function TripForm({ initial, onSave, onCancel, title }) {
 }
 
 // ── Settlement + summary section ────────────────────────────────────────────
-function TripSummarySection({ trip, summary, rate, rateLoading, onConvertToggle }) {
+function TripSummarySection({ trip, summary, rate, rateLoading, onConvertToggle, entries }) {
   const { t } = useLang()
   if (!summary) return null
   if (!trip.billIds.length) return null
@@ -76,12 +76,34 @@ function TripSummarySection({ trip, summary, rate, rateLoading, onConvertToggle 
   const isTHB = summary.currency === 'THB'
   const orig = (n) => fmtAmount(n, summary.currency)
 
-  const convOwed = rate && !isTHB
+  // For mixed-currency trips: re-derive owed/paid per bill with proper conversion
+  // summary.owed naively adds KRW + THB as raw numbers — wrong for mixed trips
+  const getMixedConvOwed = () => {
+    if (!rate || !summary.mixedCurrencies) return null
+    const o = Object.fromEntries(trip.members.map(m => [m, 0]))
+    const p = Object.fromEntries(trip.members.map(m => [m, 0]))
+    trip.billIds.forEach(billId => {
+      const entry = entries.find(e => e.id === billId)
+      if (!entry) return
+      const _pre = entry._sharedBill
+      const { grandTotal: bt, totals: bTotals, currency: bCurr } = _pre ?? calcBillResult(entry)
+      const factor = (bCurr && bCurr !== 'THB') ? rate : 1
+      Object.entries(bTotals || {}).forEach(([m, v]) => {
+        if (o[m] !== undefined) o[m] += Math.round((Number(v) || 0) * factor)
+      })
+      const payer = (trip.paidBy || {})[billId]
+      if (payer && p[payer] !== undefined) p[payer] += Math.round((bt || 0) * factor)
+    })
+    return { owed: o, paid: p }
+  }
+  const mixedConv = (rate && summary.mixedCurrencies) ? getMixedConvOwed() : null
+
+  const convOwed = mixedConv?.owed ?? (rate && !isTHB
     ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * rate)]))
-    : summary.owed
-  const convPaid = rate && !isTHB
+    : summary.owed)
+  const convPaid = mixedConv?.paid ?? (rate && !isTHB
     ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.paid?.[m] ?? 0) * rate)]))
-    : (summary.paid ?? {})
+    : (summary.paid ?? {}))
   const convSettlements = (() => {
     if (!summary.hasPayers) return []
     const net = {}
@@ -359,6 +381,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           >🗑️</button>
         </div>
       </div>
+      <div ref={captureRef} style={{ padding: '0 0 8px', background: 'var(--color-bg)' }}>
       <h2 className={styles.tripTitle}>{trip.name}</h2>
       <div className={styles.tripMeta}>{fmtDate(trip.createdAt)}</div>
       <div className={styles.memberChips} style={{ marginBottom: 16 }}>
@@ -377,16 +400,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           </span>
         ))}
       </div>
-
-      <div ref={captureRef} style={{ padding: '16px 16px 8px', background: 'var(--color-bg)' }}>
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>{trip.name}</div>
-        {trip.createdAt && <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>{fmtDate(trip.createdAt)}</div>}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-          {trip.members.filter(m => tripBills.some(entry => { if (entry._missing) return false; const _pre = entry._sharedBill; const { totals } = _pre ?? calcBillResult(entry); return (totals[m] ?? 0) > 0 })).map(m => <span key={m} className={styles.memberChip}><Avatar name={m} size={16} />{m}</span>)}
-        </div>
-      </div>
-      <TripSummarySection trip={trip} summary={summary} rate={rate} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} />
+      <TripSummarySection trip={trip} summary={summary} rate={rate} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} entries={entries} />
 
       {/* Buttons: Share link | Line | Save image — matches Bill Splitter ResultSection */}
       {summary && summary.hasData && (
