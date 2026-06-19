@@ -7,7 +7,7 @@
  *   'new'    — create trip form
  *   'edit'   — edit trip name/members/currency
  */
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useLang } from '../LangContext'
 import { useTripsStore, calcBillResult } from '../hooks/useTripsStore'
 import Avatar from './Avatar'
@@ -323,10 +323,28 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip })
 }
 
 // ── Trip detail view ────────────────────────────────────────────────────────
-function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onDeleteTrip, onSetPayer, onSaveBill, onAddBillToTrip, user, sharedSnapshot }) {
+function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onDeleteTrip, onSetPayer, onSaveBill, onAddBillToTrip, user, sharedSnapshot, onUpdateTrip }) {
   const { t } = useLang()
   const tripBills = trip.billIds.map(id => entries.find(e => e.id === id) ?? { id, _missing: true })
   const paidBy = trip.paidBy || {}
+
+  // Backfill members from bills when trip.members is empty (e.g. existing trips
+  // created before member-merge was implemented)
+  useEffect(() => {
+    if (sharedSnapshot) return // read-only shared view
+    const hasLocal = tripBills.some(e => !e._missing)
+    if (!hasLocal) return // no local bills to derive from
+    if (trip.members.length > 0) return // already has members
+    const derived = [...new Set(tripBills.flatMap(entry => {
+      if (entry._missing) return []
+      return [
+        ...(entry.state?.members ?? []),
+        ...(entry.state?.people ?? []),
+      ]
+    }))]
+    if (derived.length > 0) onUpdateTrip(trip.id, { members: derived })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip.id, trip.members.length])
   const summary = tripSummary(trip.id, entries) ?? (sharedSnapshot ? { ...sharedSnapshot, hasData: true, mixedCurrencies: false } : null)
   const detailCurrency = summary?.currency ?? trip.currency
   const isTHB = detailCurrency === 'THB'
@@ -929,6 +947,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
         onAddBill={handleAddBill}
         onSaveBill={onSaveBill}
         user={user}
+        onUpdateTrip={(id, patch) => { updateTrip(id, patch); setActiveTrip(prev => prev?.id === id ? { ...prev, ...patch } : prev) }}
         onAddBillToTrip={(tripId, billId) => {
           addBillToTrip(tripId, billId)
           setActiveTrip(prev => prev ? { ...prev, billIds: [...prev.billIds, billId] } : prev)
