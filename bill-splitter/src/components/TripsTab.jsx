@@ -417,21 +417,26 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
       <h2 className={styles.tripTitle}>{trip.name}</h2>
       <div className={styles.tripMeta}>{fmtDate(trip.createdAt)}</div>
       <div className={styles.memberChips} style={{ marginBottom: 16 }}>
-        {trip.members.filter(m => {
-          // Show members with amounts in any bill OR who paid any bill
-          const isPayer = Object.values(trip.paidBy || {}).includes(m)
-          if (isPayer) return true
-          return tripBills.some(entry => {
-            if (entry._missing) return false
-            const _pre = entry._sharedBill
-            const { totals } = _pre ?? calcBillResult(entry)
-            return (totals[m] ?? 0) > 0
-          })
-        }).map(m => (
-          <span key={m} className={styles.memberChip}>
-            <Avatar name={m} size={18} />{m}
-          </span>
-        ))}
+        {(() => {
+          // If no bills are locally available (e.g. viewing on another device),
+          // skip the amount filter and show all trip members
+          const hasLocalBills = tripBills.some(e => !e._missing && !e._sharedBill)
+          return trip.members.filter(m => {
+            if (!hasLocalBills) return true // can't filter by amounts — show all
+            const isPayer = Object.values(trip.paidBy || {}).includes(m)
+            if (isPayer) return true
+            return tripBills.some(entry => {
+              if (entry._missing) return false
+              const _pre = entry._sharedBill
+              const { totals } = _pre ?? calcBillResult(entry)
+              return (totals[m] ?? 0) > 0
+            })
+          }).map(m => (
+            <span key={m} className={styles.memberChip}>
+              <Avatar name={m} size={18} />{m}
+            </span>
+          ))
+        })()}
       </div>
       <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} convOwed={convOwed} convPaid={convPaid} mixedConv={mixedConv} />
 
