@@ -151,31 +151,39 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
         )}
       </div>
 
-      {hasOwedData
-        ? trip.members.map(m => (
-            <div key={m} className={styles.summaryRow}>
-              <span className={styles.summaryName}><Avatar name={m} size={20} />{m}</span>
-              <span className={styles.summaryAmt}>
-                {rate && !isTHB
-                  ? <><span>฿{Math.round((summary.owed[m] ?? 0) * rate).toLocaleString()}</span><span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginLeft: 4 }}>{orig(summary.owed[m] ?? 0)}</span></>
-                  : orig(summary.owed[m] ?? 0)
-                }
-              </span>
-            </div>
-          ))
-        : (
+      {/* For mixed-currency trips without rates: raw summary.owed is meaningless (adds different currencies).
+           Show a prompt to load rates instead of wrong numbers. */}
+      {summary.mixedCurrencies && !rates
+        ? (
             <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8 }}>
-              💡 {t.tripSummaryAddHint ?? 'Open each bill and tap Save to record per-person amounts'}
+              💱 {t.tripConvertHint ?? 'Tap "Convert to ฿" to see per-person amounts'}
             </div>
           )
+        : hasOwedData
+          ? trip.members.map(m => (
+              <div key={m} className={styles.summaryRow}>
+                <span className={styles.summaryName}><Avatar name={m} size={20} />{m}</span>
+                <span className={styles.summaryAmt}>
+                  {rates && !isTHB
+                    ? <><span>฿{(convOwed[m] ?? 0).toLocaleString()}</span>{!summary.mixedCurrencies && <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginLeft: 4 }}>{orig(summary.owed[m] ?? 0)}</span>}</>
+                    : orig(summary.owed[m] ?? 0)
+                  }
+                </span>
+              </div>
+            ))
+          : (
+              <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8 }}>
+                💡 {t.tripSummaryAddHint ?? 'Open each bill and tap Save to record per-person amounts'}
+              </div>
+            )
       }
 
       <div className={styles.summaryTotal}>
         <span>{t.tripSummaryTotal ?? 'Total'}</span>
         <span>
-          {rate && !isTHB
-            ? <><span>฿{Math.round(summary.grandTotal * rate).toLocaleString()}</span><span style={{ fontSize: 13, fontWeight: 400, color: 'var(--color-text-muted)', marginLeft: 6 }}>{orig(summary.grandTotal)}</span></>
-            : orig(summary.grandTotal)
+          {rates && !isTHB
+            ? <><span>฿{Object.values(convOwed).reduce((a,v)=>a+(v||0),0).toLocaleString()}</span>{!summary.mixedCurrencies && <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--color-text-muted)', marginLeft: 6 }}>{orig(summary.grandTotal)}</span>}</>
+            : summary.mixedCurrencies ? <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>—</span> : orig(summary.grandTotal)
           }
         </span>
       </div>
