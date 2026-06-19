@@ -459,19 +459,6 @@ html.light body{
     </div>
   </div>
 
-  <!-- BILL DETAIL MODAL -->
-  <div id="bill-modal-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:center;justify-content:center;padding:20px">
-    <div id="bill-modal-box" style="background:var(--panel);border:1px solid var(--line);border-radius:16px;width:100%;max-width:640px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.4)">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:1">
-        <div>
-          <div id="bill-modal-title" style="font-size:16px;font-weight:800"></div>
-          <div id="bill-modal-meta" style="font-size:12px;color:var(--muted);margin-top:2px;font-family:'JetBrains Mono',monospace"></div>
-        </div>
-        <button class="btn ghost small" onclick="closeBillModal()">Close</button>
-      </div>
-      <div id="bill-modal-body" style="padding:20px"></div>
-    </div>
-  </div>
 
 </main>
 
@@ -821,44 +808,45 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
         const groupSizes = trips.map(t=>Array.isArray(t.members)?t.members.length:0).filter(n=>n>0);
         const avgGroup = groupSizes.length ? (groupSizes.reduce((a,b)=>a+b,0)/groupSizes.length).toFixed(1) : '—';
         const recentTrips = [...trips].reverse().slice(0,3);
-        const allTrips = [...trips].reverse();
-        const tripRows = allTrips.slice(0,5).map((t,i)=>{
+        const recentTrips = [...trips].reverse().slice(0,3);
+        const tripRows = recentTrips.map(t=>{
           const nm  = escAdm(t.name||'Untitled');
           const ppl = Array.isArray(t.members) ? t.members.length+' people' : '—';
-          const bills_count = Array.isArray(t.bills) ? t.bills.length : (Array.isArray(t.billIds) ? t.billIds.length : 0);
-          return `<div class="bill-item" style="cursor:pointer" onclick="openBillModal('${uid}',${i})" title="Click to expand">
-            <span class="bill-name" style="color:var(--accent);text-decoration:underline;text-decoration-style:dotted">${nm}</span>
-            <span class="bill-meta">${ppl}${bills_count?' · '+bills_count+' bills':''}</span>
-          </div>`;
+          return `<div class="bill-item"><span class="bill-name">${nm}</span><span class="bill-meta">${ppl}</span></div>`;
         }).join('');
-        const recentTrips = allTrips.slice(0,5);
         billsHtml = `
           <div class="drawer-row"><span class="dk">Total trips</span><span class="dv">${trips.length}</span></div>
           <div class="drawer-row"><span class="dk">Avg people / trip</span><span class="dv">${avgGroup}</span></div>
           <div class="drawer-row" style="margin-bottom:${recentTrips.length?'10px':'0'}"><span class="dk">Share links created</span><span class="dv">${shareLabel}</span></div>
-          ${recentTrips.length ? '<div class="ds-sub">Recent trips (click to expand)</div>'+tripRows : ''}`;
+          ${recentTrips.length ? '<div class="ds-sub">Recent trips</div>'+tripRows : ''}`;
       } else if(hasLegacy){
         // Legacy single-bill mode — entries have billName + savedAt + state
         const bills = d.history;
         const recentBills = [...bills].reverse().slice(0,3);
-        const allBills = [...bills].reverse();
-        const recentBills = allBills.slice(0,5);
-        const billRows = recentBills.map((b,i)=>{
+        const recentBills = [...bills].reverse().slice(0,3);
+        const billRows = recentBills.map(b=>{
           const s      = b.state || {};
           const nm     = escAdm(b.billName || s.billName || 'Untitled');
           const date   = b.savedAt ? new Date(b.savedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
-          const foods  = Array.isArray(s.foods) ? s.foods : [];
-          const total  = foods.reduce((sum,f)=>sum + (parseFloat(f.price)||0), 0);
-          const totalStr = total > 0 ? '฿'+total.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2}) : '';
-          return `<div class="bill-item" style="cursor:pointer" onclick="openBillModal('${uid}',${i})" title="Click to see full detail">
-            <span class="bill-name" style="color:var(--accent);text-decoration:underline;text-decoration-style:dotted">${nm}</span>
-            <span class="bill-meta">${date}${totalStr?' · '+totalStr:''}</span>
+          const members = Array.isArray(s.members) && s.members.length ? escAdm(s.members.join(', ')) : '—';
+          const foods   = Array.isArray(s.foods) ? s.foods : [];
+          const total   = foods.reduce((sum,f)=>sum + (parseFloat(f.price)||0), 0);
+          const totalStr = total > 0 ? '฿'+total.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2}) : '—';
+          const itemCount = foods.length;
+          const hasPromptPay = s.promptPay && s.promptPay.trim();
+          const hasBankInfo  = s.bankInfo && s.bankInfo.trim();
+          const shareMethod  = hasPromptPay && hasBankInfo ? 'PromptPay + Bank' : hasPromptPay ? 'PromptPay' : hasBankInfo ? 'Bank info' : '—';
+          return `<div class="bill-item-detail">
+            <div class="bid-header"><span class="bill-name">${nm}</span><span class="bill-meta">${date}</span></div>
+            <div class="bid-row"><span class="dk">People</span><span class="dv-sm">${members}</span></div>
+            <div class="bid-row"><span class="dk">Items / Total</span><span class="dv-sm">${itemCount} items · ${totalStr}</span></div>
+            <div class="bid-row"><span class="dk">Payment method</span><span class="dv-sm">${shareMethod}</span></div>
           </div>`;
         }).join('');
         billsHtml = `
           <div class="drawer-row"><span class="dk">Total bills</span><span class="dv">${bills.length}</span></div>
           <div class="drawer-row" style="margin-bottom:${recentBills.length?'10px':'0'}"><span class="dk">Share links created</span><span class="dv">${shareLabel}</span></div>
-          ${recentBills.length ? '<div class="ds-sub">Recent bills (click to expand)</div>'+billRows : ''}`;
+          ${recentBills.length ? '<div class="ds-sub">Recent bills</div>'+billRows : ''}`;
       }
     }
 
@@ -883,10 +871,7 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
         ${placesHtml}
       </div>
     </div>`;
-    DRAWER_CACHE['bills_'+uid] = {
-      trips: billsSnap && billsSnap.exists() ? (billsSnap.data().trips||null) : null,
-      history: billsSnap && billsSnap.exists() ? (billsSnap.data().history||null) : null,
-    };
+
     DRAWER_CACHE[uid] = html;
     slot.innerHTML = html;
     scrollToSection(slot, section);
@@ -961,95 +946,6 @@ function renderNutrTab(){
 }
 
 
-// ---- bill detail modal ----
-window.closeBillModal = function(){
-  $('bill-modal-ov').style.display = 'none';
-};
-document.addEventListener('click', e => {
-  if(e.target && e.target.id === 'bill-modal-ov') closeBillModal();
-});
-
-window.openBillModal = function(uid, idx){
-  const cacheKey = 'bills_'+uid;
-  const cached = DRAWER_CACHE[cacheKey];
-  if(!cached) return;
-  const {trips, history: hist} = cached;
-  const hasTripMode = Array.isArray(trips) && trips.length > 0;
-  const list = hasTripMode ? trips : (hist || []);
-  const item = [...list].reverse()[idx];
-  if(!item) return;
-
-  if(hasTripMode){
-    // Trip mode item
-    const name = item.name || 'Untitled';
-    const members = Array.isArray(item.members) ? item.members : [];
-    const bills = Array.isArray(item.bills) ? item.bills : [];
-    const currency = item.currency || 'THB';
-    const sym = currency === 'THB' ? '฿' : currency;
-    const grandTotal = item.snapshot ? item.snapshot.grandTotal || 0 : 0;
-
-    $('bill-modal-title').textContent = name;
-    $('bill-modal-meta').textContent = members.length + ' people · ' + currency + (grandTotal ? ' · ' + sym + grandTotal.toLocaleString() : '');
-
-    const settlementRows = item.snapshot && item.snapshot.settlements
-      ? item.snapshot.settlements.map(s => `
-          <div class="drawer-row">
-            <span class="dk">${escAdm(s.from)} → ${escAdm(s.to)}</span>
-            <span class="dv">${sym}${(s.amount||0).toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2})}</span>
-          </div>`).join('') : '';
-
-    const billRows = bills.map(b => `
-      <div style="padding:10px 0;border-bottom:1px solid var(--line-soft)">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-          <b style="font-size:13px">${escAdm(b.billName||'Untitled')}</b>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">${sym}${(b.grandTotal||0).toLocaleString()}</span>
-        </div>
-        <div style="font-size:11px;color:var(--faint);font-family:'JetBrains Mono',monospace">${b.currency||''} · payer: ${escAdm(b.payer||'—')}</div>
-      </div>`).join('');
-
-    $('bill-modal-body').innerHTML = `
-      <div class="ds-sub" style="margin-bottom:8px">Members</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
-        ${members.map(m=>`<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--panel-2);border:1px solid var(--line);color:var(--text)">${escAdm(m)}</span>`).join('')}
-      </div>
-      ${bills.length ? `<div class="ds-sub" style="margin-bottom:8px">Bills (${bills.length})</div>${billRows}` : ''}
-      ${settlementRows ? `<div class="ds-sub" style="margin:16px 0 8px">Settlements</div>${settlementRows}` : ''}
-    `;
-  } else {
-    // Legacy bill
-    const s = item.state || {};
-    const name = item.billName || s.billName || 'Untitled';
-    const date = item.savedAt ? new Date(item.savedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
-    const members = Array.isArray(s.members) ? s.members : [];
-    const foods = Array.isArray(s.foods) ? s.foods : [];
-    const total = foods.reduce((sum,f)=>sum+(parseFloat(f.price)||0),0);
-    const sym = '฿';
-    const hasPromptPay = s.promptPay && s.promptPay.trim();
-    const hasBankInfo  = s.bankInfo && s.bankInfo.trim();
-
-    $('bill-modal-title').textContent = name;
-    $('bill-modal-meta').textContent = date + ' · ' + members.length + ' people' + (total ? ' · ฿'+total.toLocaleString() : '');
-
-    const foodRows = foods.map(f => {
-      const who = Array.isArray(f.who) ? f.who : members;
-      return `<div class="drawer-row">
-        <span class="dk">${escAdm(f.name||'Item')}<span style="color:var(--faint);font-size:10px;margin-left:6px">${escAdm(who.join(', '))}</span></span>
-        <span class="dv">${sym}${parseFloat(f.price||0).toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2})}</span>
-      </div>`;
-    }).join('');
-
-    $('bill-modal-body').innerHTML = `
-      <div class="ds-sub" style="margin-bottom:8px">People</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
-        ${members.map(m=>`<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--panel-2);border:1px solid var(--line);color:var(--text)">${escAdm(m)}</span>`).join('')}
-      </div>
-      ${foods.length ? `<div class="ds-sub" style="margin-bottom:8px">Items (${foods.length}) · Total ${sym}${total.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2})}</div>${foodRows}` : ''}
-      ${hasPromptPay ? `<div class="drawer-row" style="margin-top:12px"><span class="dk">PromptPay</span><span class="dv" style="font-size:11px">${escAdm(s.promptPay)}</span></div>` : ''}
-      ${hasBankInfo  ? `<div class="drawer-row"><span class="dk">Bank info</span><span class="dv" style="font-size:11px">${escAdm(s.bankInfo)}</span></div>` : ''}
-    `;
-  }
-  $('bill-modal-ov').style.display = 'flex';
-};
 
 // ---- controls ----
 // wire tab buttons
