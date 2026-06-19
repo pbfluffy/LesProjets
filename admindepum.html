@@ -463,27 +463,6 @@ html.light body{
 </main>
 
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
-import { getFirestore, collection, getDocs, getDoc, doc, setDoc, serverTimestamp, deleteDoc, updateDoc, query, where } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
-
-const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562';
-
-const firebaseConfig = {
-  apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
-  authDomain: 'auth.pumbafluffycorgi.com',
-  databaseURL: 'https://pumgoda-default-rtdb.asia-southeast1.firebasedatabase.app',
-  projectId: 'pumgoda',
-  storageBucket: 'pumgoda.firebasestorage.app',
-  messagingSenderId: '675478948836',
-  appId: '1:675478948836:web:3ad94d736b6a677d8495f1',
-};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const provider = new GoogleAuthProvider();
-
-
 const $ = (id) => document.getElementById(id);
 const show = (id) => ['gate','denied','app'].forEach(s => $(s).classList.toggle('hidden', s !== id));
 
