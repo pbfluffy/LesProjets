@@ -206,6 +206,7 @@ html.light body{
   margin-bottom:10px;
 }
 .ds-empty { font-size:12px; color:var(--faint); padding:6px 0; }
+.ds-sub { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin:10px 0 4px; }
 .dr {
   display:flex; justify-content:space-between; align-items:baseline;
   padding:6px 0; border-bottom:1px solid var(--line-soft); gap:8px;
@@ -330,7 +331,7 @@ html.light body{
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
-import { getFirestore, collection, getDocs, getDoc, doc, setDoc, serverTimestamp, deleteDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+import { getFirestore, collection, getDocs, getDoc, doc, setDoc, serverTimestamp, deleteDoc, updateDoc, query, where } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
 const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562';
 
@@ -603,10 +604,11 @@ async function toggleDrawer(uid){
   if(DRAWER_CACHE[uid]){ slot.innerHTML = DRAWER_CACHE[uid]; return; }
   slot.innerHTML = '<div class="drawer-loading">Loading…</div>';
   try {
-    const [nutrSnap, billsSnap, placesSnap] = await Promise.all([
+    const [nutrSnap, billsSnap, placesSnap, shareLinksSnap] = await Promise.all([
       getDoc(doc(db,'users',uid)).catch(()=>null),
       getDoc(doc(db,'userBills',uid)).catch(()=>null),
       getDoc(doc(db,'userPlaces',uid)).catch(()=>null),
+      getDocs(query(collection(db,'shareLinks'),where('createdBy','==',uid))).catch(()=>null),
     ]);
 
     // --- Nutrition ---
@@ -628,18 +630,26 @@ async function toggleDrawer(uid){
       const totalTrips = trips.length;
       const groupSizes = trips.map(t=>Array.isArray(t.members)?t.members.length:0).filter(n=>n>0);
       const avgGroup = groupSizes.length ? (groupSizes.reduce((a,b)=>a+b,0)/groupSizes.length).toFixed(1) : '—';
-      const tripsWithShare = trips.filter(t=>t.shareId||t.sharedAt).length;
+      const shareCount = shareLinksSnap ? shareLinksSnap.size : null;
+      const shareLabel = shareCount === null ? '<span style="font-size:10px;color:var(--faint)">(needs rule)</span>' : shareCount;
+      const recentTrips = [...trips].reverse().slice(0,3);
+      const tripRows = recentTrips.map(t=>{
+        const nm = escAdm(t.name||'Untitled');
+        const ppl = Array.isArray(t.members) ? t.members.length : '—';
+        return `<div class="dr"><span class="dk">${nm}</span><span class="dv">${ppl} people</span></div>`;
+      }).join('');
       billsHtml = `
-        <div class="dr"><span class="dk">Total trips saved</span><span class="dv">${totalTrips}</span></div>
+        <div class="dr"><span class="dk">Total trips</span><span class="dv">${totalTrips}</span></div>
         <div class="dr"><span class="dk">Avg people / trip</span><span class="dv">${avgGroup}</span></div>
-        <div class="dr"><span class="dk">Trips shared via link</span><span class="dv">${tripsWithShare||'—'}</span></div>`;
+        <div class="dr"><span class="dk">Share links created</span><span class="dv">${shareLabel}</span></div>
+        ${recentTrips.length ? '<div class="ds-sub">Recent trips</div>'+tripRows : ''}`;
     }
 
     // --- Places ---
     let placesHtml = '<div class="ds-empty">No data</div>';
     if(placesSnap && placesSnap.exists()){
       const ids = placesSnap.data().savedIds || [];
-      placesHtml = `<div class="dr"><span class="dk">Saved places</span><span class="dv">${ids.length}</span></div>`;
+      placesHtml = `<div class="dr"><span class="dk">Saved places</span><span class="dv">${ids.length||'—'}</span></div>`;
     }
 
     const html = `<div class="drawer-body">
