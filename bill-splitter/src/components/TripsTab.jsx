@@ -60,7 +60,7 @@ function TripForm({ initial, onSave, onCancel, title }) {
 }
 
 // ── Settlement + summary section ────────────────────────────────────────────
-function TripSummarySection({ trip, summary, rate, rateLoading, onConvertToggle, entries }) {
+function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, entries }) {
   const { t } = useLang()
   if (!summary) return null
   if (!trip.billIds.length) return null
@@ -76,10 +76,10 @@ function TripSummarySection({ trip, summary, rate, rateLoading, onConvertToggle,
   const isTHB = summary.currency === 'THB'
   const orig = (n) => fmtAmount(n, summary.currency)
 
-  // For mixed-currency trips: re-derive owed/paid per bill with proper conversion
-  // summary.owed naively adds KRW + THB as raw numbers — wrong for mixed trips
+  // For mixed-currency trips: re-derive owed/paid per bill with the correct per-currency rate
+  // summary.owed naively adds e.g. CAD + USD as raw numbers — wrong for mixed trips
   const getMixedConvOwed = () => {
-    if (!rate || !summary.mixedCurrencies) return null
+    if (!rates || !summary.mixedCurrencies) return null
     const o = Object.fromEntries(trip.members.map(m => [m, 0]))
     const p = Object.fromEntries(trip.members.map(m => [m, 0]))
     trip.billIds.forEach(billId => {
@@ -87,7 +87,8 @@ function TripSummarySection({ trip, summary, rate, rateLoading, onConvertToggle,
       if (!entry) return
       const _pre = entry._sharedBill
       const { grandTotal: bt, totals: bTotals, currency: bCurr } = _pre ?? calcBillResult(entry)
-      const factor = (bCurr && bCurr !== 'THB') ? rate : 1
+      // Use the correct rate for THIS bill's currency; THB bills need no conversion
+      const factor = (bCurr && bCurr !== 'THB') ? (rates[bCurr] ?? 1) : 1
       Object.entries(bTotals || {}).forEach(([m, v]) => {
         if (o[m] !== undefined) o[m] += Math.round((Number(v) || 0) * factor)
       })
@@ -96,13 +97,15 @@ function TripSummarySection({ trip, summary, rate, rateLoading, onConvertToggle,
     })
     return { owed: o, paid: p }
   }
-  const mixedConv = (rate && summary.mixedCurrencies) ? getMixedConvOwed() : null
+  const mixedConv = (rates && summary.mixedCurrencies) ? getMixedConvOwed() : null
+  // For single non-THB currency, fall back to single rate
+  const singleRate = rate ?? null
 
-  const convOwed = mixedConv?.owed ?? (rate && !isTHB
-    ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * rate)]))
+  const convOwed = mixedConv?.owed ?? (rates && !isTHB
+    ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * (rate ?? 1))]))
     : summary.owed)
-  const convPaid = mixedConv?.paid ?? (rate && !isTHB
-    ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.paid?.[m] ?? 0) * rate)]))
+  const convPaid = mixedConv?.paid ?? (rates && !isTHB
+    ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.paid?.[m] ?? 0) * (rate ?? 1))]))
     : (summary.paid ?? {}))
   const convSettlements = (() => {
     if (!summary.hasPayers) return []
@@ -342,22 +345,43 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
   const summary = tripSummary(trip.id, entries) ?? (sharedSnapshot ? { ...sharedSnapshot, hasData: true, mixedCurrencies: false } : null)
   const detailCurrency = summary?.currency ?? trip.currency
   const isTHB = detailCurrency === 'THB'
-  const [rate, setRate] = useState(null)
+  const [rates, setRates] = useState(null) // null | { [currency]: thbRate }
   const [rateLoading, setRateLoading] = useState(false)
+  const rate = rates ? rates[detailCurrency] ?? null : null // backwards-compat for single-currency toggle label
   const captureRef = useRef(null)
   const [capturing, setCapturing] = useState(false)
   const [shareStatus, setShareStatus] = useState(null) // null | 'creating' | 'copied' | 'shared' | 'error'
   const [toast, setToast] = useState(null)
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500) }
   const handleConvertToggle = async () => {
-    if (rate) { setRate(null); return }
+    if (rates) { setRates(null); return }
     if (isTHB) return
     setRateLoading(true)
     try {
-      const res = await fetch(`https://open.er-api.com/v6/latest/${detailCurrency}`)
+      // Collect all unique non-THB currencies across trip bills
+      const billCurrencies = new Set()
+      tripBills.forEach(entry => {
+        if (entry._missing) return
+        const _pre = entry._sharedBill
+        const { currency: bCurr } = _pre ?? calcBillResult(entry)
+        if (bCurr && bCurr !== 'THB') billCurrencies.add(bCurr)
+      })
+      if (billCurrencies.size === 0) return
+      // Fetch from dominant currency (open.er-api returns all rates in one call)
+      const res = await fetch(`https://open.er-api.com/v6/latest/THB`)
       const d = await res.json()
-      const r = d?.rates?.THB
-      if (r) setRate(r)
+      if (!d?.rates) return
+      // Build map: currency → THB rate (inverted: THB base → 1/rate gives X per THB, we want THB per X)
+      const map = {}
+      billCurrencies.forEach(c => {
+        if (d.rates[c]) map[c] = 1 / d.rates[c] // 1 X = (1 / THBperX) THB ... wait
+      })
+      // open.er-api /latest/THB gives rates[USD] = how many USD per 1 THB
+      // We want: 1 USD = ? THB → 1 / rates[USD]
+      billCurrencies.forEach(c => {
+        if (d.rates[c]) map[c] = Math.round((1 / d.rates[c]) * 10000) / 10000
+      })
+      if (Object.keys(map).length > 0) setRates(map)
     } catch {} finally { setRateLoading(false) }
   }
   const conv = (n) => rate !== null ? n * rate : n
@@ -400,7 +424,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           </span>
         ))}
       </div>
-      <TripSummarySection trip={trip} summary={summary} rate={rate} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} entries={entries} />
+      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} entries={entries} />
 
       {/* Buttons: Share link | Line | Save image — matches Bill Splitter ResultSection */}
       {summary && summary.hasData && (
@@ -414,15 +438,42 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
             onClick={async () => {
               setShareStatus('creating')
               try {
-                // Use THB-converted values in snapshot if rate is active
-                const snapOwed = rate && !isTHB
-                  ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * rate)]))
-                  : summary.owed
-                const snapSettlements = rate && !isTHB && summary.settlements
-                  ? summary.settlements.map(s => ({ ...s, amount: Math.round(s.amount * rate) }))
+                // Use THB-converted values in snapshot if rates loaded
+                // For mixed trips, re-derive per bill; for single currency use dominant rate
+                const _snapRate = rates ? rate : null
+                const snapOwed = mixedConv?.owed ?? (_snapRate && !isTHB
+                  ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * _snapRate)]))
+                  : summary.owed)
+                const _snapGrand = rates ? tripBills.reduce((acc, entry) => {
+                  if (entry._missing) return acc
+                  const _pre = entry._sharedBill
+                  const { grandTotal: bt, currency: bCurr } = _pre ?? calcBillResult(entry)
+                  const f = (bCurr && bCurr !== 'THB') ? (rates[bCurr] ?? 1) : 1
+                  return acc + Math.round((bt || 0) * f)
+                }, 0) : summary.grandTotal
+                const snapSettlements = (_snapRate || mixedConv) && summary.hasPayers
+                  ? (() => {
+                      const sOwed = snapOwed
+                      const sPaid = mixedConv?.paid ?? (_snapRate && !isTHB
+                        ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.paid?.[m] ?? 0) * _snapRate)]))
+                        : (summary.paid ?? {}))
+                      const net = {}
+                      trip.members.forEach(m => { net[m] = (sPaid[m] || 0) - (sOwed[m] || 0) })
+                      const creds = Object.entries(net).filter(([,v]) => v > 0.5).map(([m,v]) => ({m,v}))
+                      const debts = Object.entries(net).filter(([,v]) => v < -0.5).map(([m,v]) => ({m,v:-v}))
+                      creds.sort((a,b) => b.v-a.v); debts.sort((a,b) => b.v-a.v)
+                      const res = []; let ci=0,di=0
+                      while (ci<creds.length && di<debts.length) {
+                        const amt = Math.min(creds[ci].v, debts[di].v)
+                        if (amt > 0.5) res.push({from:debts[di].m, to:creds[ci].m, amount:amt})
+                        creds[ci].v -= amt; debts[di].v -= amt
+                        if (creds[ci].v < 0.5) ci++; if (debts[di].v < 0.5) di++
+                      }
+                      return res
+                    })()
                   : summary.settlements
-                const snapTotal = rate && !isTHB ? Math.round(summary.grandTotal * rate) : summary.grandTotal
-                const snapCurrency = rate && !isTHB ? 'THB' : summary.currency
+                const snapTotal = rates ? _snapGrand : (_snapRate && !isTHB ? Math.round(summary.grandTotal * _snapRate) : summary.grandTotal)
+                const snapCurrency = rates ? 'THB' : (_snapRate && !isTHB ? 'THB' : summary.currency)
                 // Embed bill display data so recipients see bill list without needing local history
                 const billsData = trip.billIds.map(id => {
                   const entry = entries.find(e => e.id === id)
@@ -494,15 +545,13 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                 if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
                   try { await navigator.share({ files: [file], title: trip.name }); return } catch (e) { if (e?.name === 'AbortError') return }
                 }
-                // Fallback: LINE text — use THB-converted values if rate active
-                const dispCurrency = rate && !isTHB ? 'THB' : detailCurrency
-                const dispOwed = rate && !isTHB
+                // Fallback: LINE text — use THB-converted values if rates loaded
+                const dispCurrency = rates ? 'THB' : detailCurrency
+                const dispOwed = mixedConv?.owed ?? (rate && !isTHB
                   ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * rate)]))
-                  : summary.owed
-                const dispSettlements = rate && !isTHB && summary.settlements
-                  ? summary.settlements.map(s => ({ ...s, amount: Math.round(s.amount * rate) }))
-                  : summary.settlements
-                const dispTotal = rate && !isTHB ? Math.round(summary.grandTotal * rate) : summary.grandTotal
+                  : summary.owed)
+                const dispSettlements = snapSettlements ?? summary.settlements
+                const dispTotal = snapTotal
                 const lines = [`🧳 ${trip.name}`, '']
                 if (summary?.hasPayers && dispSettlements?.length > 0) {
                   lines.push('💸 Who pays whom:')
