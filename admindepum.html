@@ -636,7 +636,7 @@ $('admin-body').addEventListener('click', async (e) => {
 
 // ---- render ----
 function render(){
-  const q = ($('search').value||'').toLowerCase().trim();
+  const q = ($('overall-search').value||'').toLowerCase().trim();
   let rows = DATA.filter(u => !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || u.uid.toLowerCase().includes(q));
   rows.sort((a,b) => {
     if(sortKey==='name') return (a.name||a.uid).localeCompare(b.name||b.uid);
@@ -656,9 +656,9 @@ function render(){
   ].map(([k,v,x]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}${x}</div></div>`).join('');
 
   if(rows.length===0){
-    $('rows').innerHTML = '<div class="empty">'+(DATA.length===0?'No synced users yet.':'No matches.')+'</div>';
+    $('tab-overall-rows').innerHTML = '<div class="empty">'+(DATA.length===0?'No synced users yet.':'No matches.')+'</div>';
   } else {
-    $('rows').innerHTML = rows.map(u => {
+    $('tab-overall-rows').innerHTML = rows.map(u => {
       const [s,abs,cls] = rel(u.sync);
       const apps = [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
       const m = (n,lab,sec) => n===0 ? `<div class="metric zero"><span class="lab">${lab}</span><span>—</span></div>` : `<div class="metric" onclick="toggleDrawer('${u.uid}','${sec||''}')" style="cursor:pointer" title="Click for details"><span class="lab">${lab}</span><span class="metric-clickable">${n}</span></div>`;
@@ -949,6 +949,11 @@ function renderNutrTab(){
 }
 
 // ---- controls ----
+$('themeBtn') && $('themeBtn').addEventListener('click', () => {
+  const isLight = document.documentElement.classList.toggle('light');
+  localStorage.setItem('admin_theme', isLight ? 'light' : 'dark');
+  $('themeBtn').textContent = isLight ? '☀ Light' : '☾ Dark';
+});
 $('overall-search').addEventListener('input', render);
 $('bills-search').addEventListener('input', renderBillsTab);
 $('nutr-search').addEventListener('input', renderNutrTab);
