@@ -60,7 +60,7 @@ function TripForm({ initial, onSave, onCancel, title }) {
 }
 
 // ── Settlement + summary section ────────────────────────────────────────────
-function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, entries }) {
+function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, convOwed, convPaid, mixedConv }) {
   const { t } = useLang()
   if (!summary) return null
   if (!trip.billIds.length) return null
@@ -76,37 +76,8 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
   const isTHB = summary.currency === 'THB'
   const orig = (n) => fmtAmount(n, summary.currency)
 
-  // For mixed-currency trips: re-derive owed/paid per bill with the correct per-currency rate
-  // summary.owed naively adds e.g. CAD + USD as raw numbers — wrong for mixed trips
-  const getMixedConvOwed = () => {
-    if (!rates || !summary.mixedCurrencies) return null
-    const o = Object.fromEntries(trip.members.map(m => [m, 0]))
-    const p = Object.fromEntries(trip.members.map(m => [m, 0]))
-    trip.billIds.forEach(billId => {
-      const entry = entries.find(e => e.id === billId)
-      if (!entry) return
-      const _pre = entry._sharedBill
-      const { grandTotal: bt, totals: bTotals, currency: bCurr } = _pre ?? calcBillResult(entry)
-      // Use the correct rate for THIS bill's currency; THB bills need no conversion
-      const factor = (bCurr && bCurr !== 'THB') ? (rates[bCurr] ?? 1) : 1
-      Object.entries(bTotals || {}).forEach(([m, v]) => {
-        if (o[m] !== undefined) o[m] += Math.round((Number(v) || 0) * factor)
-      })
-      const payer = (trip.paidBy || {})[billId]
-      if (payer && p[payer] !== undefined) p[payer] += Math.round((bt || 0) * factor)
-    })
-    return { owed: o, paid: p }
-  }
-  const mixedConv = (rates && summary.mixedCurrencies) ? getMixedConvOwed() : null
-  // For single non-THB currency, fall back to single rate
-  const singleRate = rate ?? null
-
-  const convOwed = mixedConv?.owed ?? (rates && !isTHB
-    ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * (rate ?? 1))]))
-    : summary.owed)
-  const convPaid = mixedConv?.paid ?? (rates && !isTHB
-    ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.paid?.[m] ?? 0) * (rate ?? 1))]))
-    : (summary.paid ?? {}))
+  // convOwed/convPaid/mixedConv passed down from TripDetail (already computed there)
+  // so share buttons and TripSummarySection both use the same values
   const convSettlements = (() => {
     if (!summary.hasPayers) return []
     const net = {}
@@ -123,8 +94,9 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
     }
     return result
   })()
-  const displaySettlements = (rate && !isTHB) ? convSettlements : summary.settlements
-  const displayCurrency = (rate && !isTHB) ? 'THB' : summary.currency
+  const _converted = (rates && !isTHB) || (rate && !isTHB)
+  const displaySettlements = _converted ? convSettlements : summary.settlements
+  const displayCurrency = _converted ? 'THB' : summary.currency
 
   return (
     <div className={styles.summarySection}>
@@ -145,7 +117,7 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
                 cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
               }}
             >
-              {rateLoading ? '…' : rate ? `1 ${summary.currency} = ฿${rate.toFixed(2)}` : (t.tripConvertBtn ?? 'Convert to ฿')}
+              {rateLoading ? '…' : rates ? (rate ? `1 ${summary.currency} = ฿${rate.toFixed(2)}` : `฿ loaded`) : (t.tripConvertBtn ?? 'Convert to ฿')}
             </button>
           </div>
         )}
@@ -379,13 +351,9 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
       const res = await fetch(`https://open.er-api.com/v6/latest/THB`)
       const d = await res.json()
       if (!d?.rates) return
-      // Build map: currency → THB rate (inverted: THB base → 1/rate gives X per THB, we want THB per X)
+      // open.er-api /latest/THB gives rates[X] = how many X per 1 THB
+      // We want: 1 X = ? THB → 1 / rates[X]
       const map = {}
-      billCurrencies.forEach(c => {
-        if (d.rates[c]) map[c] = 1 / d.rates[c] // 1 X = (1 / THBperX) THB ... wait
-      })
-      // open.er-api /latest/THB gives rates[USD] = how many USD per 1 THB
-      // We want: 1 USD = ? THB → 1 / rates[USD]
       billCurrencies.forEach(c => {
         if (d.rates[c]) map[c] = Math.round((1 / d.rates[c]) * 10000) / 10000
       })
@@ -394,6 +362,33 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
   }
   const conv = (n) => rate !== null ? n * rate : n
   const dispCurrency = rate !== null ? 'THB' : detailCurrency
+
+  // Compute mixed-currency conversion in TripDetail so both share buttons
+  // and TripSummarySection can use the same values
+  const getMixedConvOwed = () => {
+    if (!rates || !summary?.mixedCurrencies) return null
+    const o = Object.fromEntries(trip.members.map(m => [m, 0]))
+    const p = Object.fromEntries(trip.members.map(m => [m, 0]))
+    tripBills.forEach(entry => {
+      if (entry._missing) return
+      const _pre = entry._sharedBill
+      const { grandTotal: bt, totals: bTotals, currency: bCurr } = _pre ?? calcBillResult(entry)
+      const factor = (bCurr && bCurr !== 'THB') ? (rates[bCurr] ?? 1) : 1
+      Object.entries(bTotals || {}).forEach(([m, v]) => {
+        if (o[m] !== undefined) o[m] += Math.round((Number(v) || 0) * factor)
+      })
+      const payer = (trip.paidBy || {})[entry.id]
+      if (payer && p[payer] !== undefined) p[payer] += Math.round((bt || 0) * factor)
+    })
+    return { owed: o, paid: p }
+  }
+  const mixedConv = (rates && summary?.mixedCurrencies) ? getMixedConvOwed() : null
+  const convOwed = mixedConv?.owed ?? (rates && !isTHB
+    ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary?.owed[m] ?? 0) * (rate ?? 1))]))
+    : (summary?.owed ?? {}))
+  const convPaid = mixedConv?.paid ?? (rates && !isTHB
+    ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary?.paid?.[m] ?? 0) * (rate ?? 1))]))
+    : (summary?.paid ?? {}))
 
   return (
     <div className={styles.detail}>
@@ -418,21 +413,22 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
       <div className={styles.tripMeta}>{fmtDate(trip.createdAt)}</div>
       <div className={styles.memberChips} style={{ marginBottom: 16 }}>
         {trip.members.filter(m => {
-          // Only show members who have amounts in at least one bill
-          const hasAmt = tripBills.some(entry => {
+          // Show members with amounts in any bill OR who paid any bill
+          const isPayer = Object.values(trip.paidBy || {}).includes(m)
+          if (isPayer) return true
+          return tripBills.some(entry => {
             if (entry._missing) return false
             const _pre = entry._sharedBill
             const { totals } = _pre ?? calcBillResult(entry)
             return (totals[m] ?? 0) > 0
           })
-          return hasAmt
         }).map(m => (
           <span key={m} className={styles.memberChip}>
             <Avatar name={m} size={18} />{m}
           </span>
         ))}
       </div>
-      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} entries={entries} />
+      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} convOwed={convOwed} convPaid={convPaid} mixedConv={mixedConv} />
 
       {/* Buttons: Share link | Line | Save image — matches Bill Splitter ResultSection */}
       {summary && summary.hasData && (
@@ -635,7 +631,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
         return (
           <div key={entry.id} className={styles.billCard} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <button className={styles.billCardMain} onClick={() => onLoadBill(entry)}>
+              <button className={styles.billCardMain} onClick={() => !entry._sharedBill && onLoadBill(entry)} style={{ cursor: entry._sharedBill ? 'default' : undefined }}>
                 <span className={styles.billCardName}>{(() => {
                   const name = entry.billName || (t.untitledBill ?? '(untitled)')
                   const idx = tripBills.findIndex(b => b.id === entry.id)

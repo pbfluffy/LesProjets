@@ -162,16 +162,15 @@ export function useTripsStore() {
   const pushToCloud = useCallback(async (next, force = false) => {
     const uid = uidRef.current
     if (!uid) return
-    if (!force && pushInFlight.current) return
     pushInFlight.current = true
     try {
       const now = Date.now()
-      localStorage.setItem(TRIPS_TS_KEY, JSON.stringify(now))
       await setDoc(doc(db, 'userBills', uid), {
         trips: next,
         tripsLastEdit: now,
         lastModified: serverTimestamp(),
       }, { merge: true })
+      localStorage.setItem(TRIPS_TS_KEY, JSON.stringify(now))
     } catch (e) { console.warn('[tripsSync] push failed:', e?.code, e?.message) } finally {
       pushInFlight.current = false
     }
@@ -287,7 +286,7 @@ export function useTripsStore() {
     }
 
     // hasData: false when all bill entries are missing from history (trips still reference deleted bills)
-    const hasData = trip.billIds.length === 0 || trip.billIds.some(id => entries.find(e => e.id === id))
+    const hasData = trip.billIds.length > 0 && trip.billIds.some(id => entries.find(e => e.id === id))
     return { owed, paid, grandTotal, currency: effectiveCurrency, mixedCurrencies, settlements, hasPayers, hasData }
   }, [trips])
 
