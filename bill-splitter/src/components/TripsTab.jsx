@@ -745,29 +745,24 @@ function TripList({ trips, onSelect, onNew, onDelete }) {
         <p className={styles.empty}>{t.tripEmpty ?? 'No trips yet — create one to group bills together'}</p>
       )}
       {trips.map(trip => (
-        <div key={trip.id} className={styles.tripCard} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div
-            style={{ flex: 1, cursor: 'pointer', minWidth: 0 }}
-            onClick={() => onSelect(trip)}
-          >
-            <div className={styles.tripCardName}>{trip.name}</div>
-            <div className={styles.tripCardMeta}>
-              {trip.members.length} {t.tripMembers ?? 'members'} · {trip.billIds.length} {t.tripBills ?? 'bills'} · {fmtDate(trip.createdAt)}
-            </div>
-            <div className={styles.tripCardAvatars}>
-              {trip.members.slice(0, 5).map(m => <Avatar key={m} name={m} size={22} />)}
-              {trip.members.length > 5 && <span className={styles.moreAvatars}>+{trip.members.length - 5}</span>}
-            </div>
-          </div>
+        <div key={trip.id} className={styles.tripCard} style={{ position: 'relative', cursor: 'pointer' }} onClick={() => onSelect(trip)}>
           <button
             className={styles.editBtn}
-            style={{ flexShrink: 0, alignSelf: 'center' }}
+            style={{ position: 'absolute', top: 10, right: 10, fontSize: 16, opacity: 0.5 }}
             onClick={e => {
               e.stopPropagation()
               if (window.confirm(t.tripDeleteConfirm ?? `Delete "${trip.name}"?`)) onDelete(trip.id)
             }}
             aria-label="Delete trip"
           >🗑️</button>
+          <div className={styles.tripCardName} style={{ paddingRight: 28 }}>{trip.name}</div>
+          <div className={styles.tripCardMeta}>
+            {trip.members.length} {t.tripMembers ?? 'members'} · {trip.billIds.length} {t.tripBills ?? 'bills'} · {fmtDate(trip.createdAt)}
+          </div>
+          <div className={styles.tripCardAvatars}>
+            {trip.members.slice(0, 5).map(m => <Avatar key={m} name={m} size={22} />)}
+            {trip.members.length > 5 && <span className={styles.moreAvatars}>+{trip.members.length - 5}</span>}
+          </div>
         </div>
       ))}
     </div>
