@@ -184,6 +184,11 @@ html.light body{
 .row.body { border-bottom:none; cursor:pointer; transition:background .12s; }
 .row.body:hover { background:var(--bg-2); }
 .user-block.drawer-open > .row.body { background:var(--bg-2); }
+.metric-clickable {
+  text-decoration:underline; text-decoration-style:dotted;
+  text-underline-offset:3px; color:var(--accent);
+}
+.metric:hover .metric-clickable { color:var(--text); }
 .drawer-arrow {
   display:block; font-size:10px; color:var(--faint);
   transition:transform .2s; margin-top:5px; line-height:1;
@@ -556,7 +561,7 @@ function render(){
     $('rows').innerHTML = rows.map(u => {
       const [s,abs,cls] = rel(u.sync);
       const apps = [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
-      const m = (n,lab) => `<div class="metric ${n===0?'zero':''}"><span class="lab">${lab}</span><span>${n===0?'—':n}</span></div>`;
+      const m = (n,lab,sec) => n===0 ? `<div class="metric zero"><span class="lab">${lab}</span><span>—</span></div>` : `<div class="metric" onclick="toggleDrawer('${u.uid}','${sec||''}')" style="cursor:pointer" title="Click for details"><span class="lab">${lab}</span><span class="metric-clickable">${n}</span></div>`;
       const nm = u.name || (u.uid.slice(0,12)+'…');
       return `<div class="user-block" data-uid="${u.uid}">
       <div class="row body" onclick="toggleDrawer('${u.uid}')">
@@ -564,7 +569,7 @@ function render(){
           <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
           <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><span class="uid">${u.uid.slice(0,10)}…</span><div class="apps">${apps}</div></div>
         </div>
-        ${m(u.nutr,'Nutrition days')}${m(u.bills,'Bills')}${m(u.places,'Places')}
+        ${m(u.nutr,'Nutrition days','nutr')}${m(u.bills,'Bills','bills')}${m(u.places,'Places','places')}
         <div class="sync ${cls}">${s}<span class="abs">${abs}</span><span class="drawer-arrow">▶</span></div>
       </div>
       <div class="drawer-slot" id="drawer-${u.uid}" style="display:none"></div>
@@ -619,13 +624,19 @@ function renderCharts(){
 // ---- drawer ----
 const DRAWER_CACHE = {};
 
+function scrollToSection(slot, section){
+  if(!section) return;
+  const el = slot.querySelector('[data-section="'+section+'"]');
+  if(el) setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'nearest'}), 80);
+}
+
 function fmtDrawerDate(ms){
   if(!ms) return '—';
   return new Date(typeof ms==='object'&&ms.toMillis?ms.toMillis():ms)
     .toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});
 }
 
-window.toggleDrawer = async function toggleDrawer(uid){
+window.toggleDrawer = async function toggleDrawer(uid, section){
   const slot = document.getElementById('drawer-'+uid);
   const block = slot ? slot.closest('.user-block') : null;
   if(!slot||!block) return;
@@ -636,7 +647,7 @@ window.toggleDrawer = async function toggleDrawer(uid){
   if(isOpen) return; // toggle off
   block.classList.add('drawer-open');
   slot.style.display = 'block';
-  if(DRAWER_CACHE[uid]){ slot.innerHTML = DRAWER_CACHE[uid]; return; }
+  if(DRAWER_CACHE[uid]){ slot.innerHTML = DRAWER_CACHE[uid]; scrollToSection(slot, section); return; }
   slot.innerHTML = '<div class="drawer-loading">Loading…</div>';
   try {
     const [nutrSnap, billsSnap, placesSnap, shareLinksSnap] = await Promise.all([
@@ -728,21 +739,22 @@ window.toggleDrawer = async function toggleDrawer(uid){
     }
 
     const html = `<div class="drawer-body">
-      <div class="drawer-section">
+      <div class="drawer-section" data-section="nutr">
         <h4>🥗 Nutritions</h4>
         ${nutrHtml}
       </div>
-      <div class="drawer-section">
+      <div class="drawer-section" data-section="bills">
         <h4>🧾 Bill Splitter</h4>
         ${billsHtml}
       </div>
-      <div class="drawer-section">
+      <div class="drawer-section" data-section="places">
         <h4>📍 Pumgoda</h4>
         ${placesHtml}
       </div>
     </div>`;
     DRAWER_CACHE[uid] = html;
     slot.innerHTML = html;
+    scrollToSection(slot, section);
   } catch(e){
     slot.innerHTML = `<div class="drawer-loading" style="color:var(--red)">Failed to load: ${escAdm(e.message||e.code||String(e))}</div>`;
   }
