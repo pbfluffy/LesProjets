@@ -965,8 +965,8 @@ function renderNutrTab(){
 window.closeBillModal = function(){
   $('bill-modal-ov').style.display = 'none';
 };
-$('bill-modal-ov').addEventListener('click', e => {
-  if(e.target === $('bill-modal-ov')) closeBillModal();
+document.addEventListener('click', e => {
+  if(e.target && e.target.id === 'bill-modal-ov') closeBillModal();
 });
 
 window.openBillModal = function(uid, idx){
