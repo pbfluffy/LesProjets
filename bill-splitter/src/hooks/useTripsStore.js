@@ -118,6 +118,7 @@ export function useTripsStore() {
 
   const uidRef = useRef(null)
   const pushInFlight = useRef(false)
+  const pushPending = useRef(null) // latest trips array waiting to push after in-flight completes
 
   // Cross-tab sync
   useEffect(() => {
@@ -149,20 +150,39 @@ export function useTripsStore() {
         if (!Array.isArray(remote)) return
         const remoteTs = snap.data().tripsLastEdit || 0
         const localTs = (() => { try { return JSON.parse(localStorage.getItem(TRIPS_TS_KEY) || '0') } catch { return 0 } })()
-        if (remoteTs > localTs) {
-          writeAll(remote)
-          localStorage.setItem(TRIPS_TS_KEY, JSON.stringify(remoteTs))
-          setTrips(remote)
+        // Pull remote if newer timestamp, OR if remote has trip IDs not in local
+        // (handles clock skew and cases where localTs > remoteTs but remote has new content)
+        const localTrips = readAll()
+        const localIds = new Set(localTrips.map(t => t.id))
+        const remoteHasNew = remote.some(t => !localIds.has(t.id))
+        if (remoteTs > localTs || remoteHasNew) {
+          // Merge: take remote as base, but keep local trips not in remote
+          // (in case of concurrent creation on both devices)
+          const remoteIds = new Set(remote.map(t => t.id))
+          const localOnly = localTrips.filter(t => !remoteIds.has(t.id))
+          const merged = localOnly.length > 0 ? [...remote, ...localOnly] : remote
+          writeAll(merged)
+          localStorage.setItem(TRIPS_TS_KEY, JSON.stringify(Math.max(remoteTs, localTs)))
+          setTrips(merged)
         }
       }, () => {}) // silently ignore permission errors (anon users)
     })
     return () => { unsubAuth(); if (unsub) unsub() }
   }, [])
 
-  const pushToCloud = useCallback(async (next, force = false) => {
+  // Use ref so the function can call itself recursively without useCallback circular dep
+  const pushToCloudRef = useRef(null)
+  pushToCloudRef.current = async (next, force = false) => {
     const uid = uidRef.current
     if (!uid) return
+    // Serialize writes: if a push is already in-flight, queue this one
+    // (guarantees latest state wins and no out-of-order overwrites)
+    if (pushInFlight.current && !force) {
+      pushPending.current = next
+      return
+    }
     pushInFlight.current = true
+    pushPending.current = null
     try {
       const now = Date.now()
       await setDoc(doc(db, 'userBills', uid), {
@@ -173,8 +193,15 @@ export function useTripsStore() {
       localStorage.setItem(TRIPS_TS_KEY, JSON.stringify(now))
     } catch (e) { console.warn('[tripsSync] push failed:', e?.code, e?.message) } finally {
       pushInFlight.current = false
+      // If a newer mutation arrived while we were writing, push it now
+      if (pushPending.current !== null) {
+        const pending = pushPending.current
+        pushPending.current = null
+        pushToCloudRef.current(pending)
+      }
     }
-  }, [])
+  }
+  const pushToCloud = useCallback((next, force = false) => pushToCloudRef.current(next, force), [])
 
   const createTrip = useCallback((name, members = [], currency = 'THB') => {
     const trip = { id: uuid(), name: name.trim().slice(0, 60), members, currency, createdAt: Date.now(), billIds: [], paidBy: {} }
