@@ -643,23 +643,43 @@ window.toggleDrawer = async function toggleDrawer(uid){
     // --- Bills ---
     let billsHtml = '<div class="ds-empty">No data</div>';
     if(billsSnap && billsSnap.exists()){
-      const trips = billsSnap.data().trips || billsSnap.data().history || [];
-      const totalTrips = trips.length;
-      const groupSizes = trips.map(t=>Array.isArray(t.members)?t.members.length:0).filter(n=>n>0);
-      const avgGroup = groupSizes.length ? (groupSizes.reduce((a,b)=>a+b,0)/groupSizes.length).toFixed(1) : '—';
-      const shareCount = shareLinksSnap ? shareLinksSnap.size : null;
-      const shareLabel = shareCount === null ? '<span style="font-size:10px;color:var(--faint)">(needs rule)</span>' : shareCount;
-      const recentTrips = [...trips].reverse().slice(0,3);
-      const tripRows = recentTrips.map(t=>{
-        const nm = escAdm(t.name||'Untitled');
-        const ppl = Array.isArray(t.members) ? t.members.length : '—';
-        return `<div class="bill-item"><span class="bill-name">${nm}</span><span class="bill-meta">${ppl} people</span></div>`;
-      }).join('');
-      billsHtml = `
-        <div class="drawer-row"><span class="dk">Total trips</span><span class="dv">${totalTrips}</span></div>
-        <div class="drawer-row"><span class="dk">Avg people / trip</span><span class="dv">${avgGroup}</span></div>
-        <div class="drawer-row" style="margin-bottom:${recentTrips.length?'10px':'0'}"><span class="dk">Share links created</span><span class="dv">${shareLabel}</span></div>
-        ${recentTrips.length ? '<div class="ds-sub">Recent trips</div>'+tripRows : ''}`;
+      const d = billsSnap.data();
+      const hasTripMode = Array.isArray(d.trips) && d.trips.length > 0;
+      const hasLegacy   = Array.isArray(d.history) && d.history.length > 0;
+      const shareCount  = shareLinksSnap ? shareLinksSnap.size : null;
+      const shareLabel  = shareCount === null ? '<span style="font-size:10px;color:var(--faint)">(needs rule)</span>' : shareCount;
+
+      if(hasTripMode){
+        // Trip Mode — trips have name + members
+        const trips = d.trips;
+        const groupSizes = trips.map(t=>Array.isArray(t.members)?t.members.length:0).filter(n=>n>0);
+        const avgGroup = groupSizes.length ? (groupSizes.reduce((a,b)=>a+b,0)/groupSizes.length).toFixed(1) : '—';
+        const recentTrips = [...trips].reverse().slice(0,3);
+        const tripRows = recentTrips.map(t=>{
+          const nm  = escAdm(t.name||'Untitled');
+          const ppl = Array.isArray(t.members) ? t.members.length+' people' : '—';
+          return `<div class="bill-item"><span class="bill-name">${nm}</span><span class="bill-meta">${ppl}</span></div>`;
+        }).join('');
+        billsHtml = `
+          <div class="drawer-row"><span class="dk">Total trips</span><span class="dv">${trips.length}</span></div>
+          <div class="drawer-row"><span class="dk">Avg people / trip</span><span class="dv">${avgGroup}</span></div>
+          <div class="drawer-row" style="margin-bottom:${recentTrips.length?'10px':'0'}"><span class="dk">Share links created</span><span class="dv">${shareLabel}</span></div>
+          ${recentTrips.length ? '<div class="ds-sub">Recent trips</div>'+tripRows : ''}`;
+      } else if(hasLegacy){
+        // Legacy single-bill mode — entries have billName + savedAt
+        const bills = d.history;
+        const recentBills = [...bills].reverse().slice(0,3);
+        const billRows = recentBills.map(b=>{
+          const nm   = escAdm(b.billName||'Untitled');
+          const date = b.savedAt ? new Date(b.savedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
+          return `<div class="bill-item"><span class="bill-name">${nm}</span><span class="bill-meta">${date}</span></div>`;
+        }).join('');
+        billsHtml = `
+          <div class="drawer-row"><span class="dk">Total bills</span><span class="dv">${bills.length}</span></div>
+          <div class="drawer-row"><span class="dk">Mode</span><span class="dv" style="color:var(--faint);font-size:11px">Legacy (single-bill)</span></div>
+          <div class="drawer-row" style="margin-bottom:${recentBills.length?'10px':'0'}"><span class="dk">Share links created</span><span class="dv">${shareLabel}</span></div>
+          ${recentBills.length ? '<div class="ds-sub">Recent bills</div>'+billRows : ''}`;
+      }
     }
 
     // --- Places ---
