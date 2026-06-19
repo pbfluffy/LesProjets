@@ -83,8 +83,7 @@ body{
 .refreshed{font-size:11px;color:var(--faint);font-family:'JetBrains Mono',monospace;margin-left:auto}
 
 .panel{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);overflow:hidden}
-.row{display:grid;align-items:center;gap:12px;padding:13px 16px;grid-template-columns:1.7fr .7fr .7fr .7fr 1fr;border-bottom:1px solid var(--line-soft)}
-.row:last-child{border-bottom:0}
+.row{display:grid;align-items:center;gap:12px;padding:13px 16px;grid-template-columns:1.7fr .7fr .7fr .7fr 1fr}
 .row.head{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);background:var(--bg-2);padding:11px 16px}
 .row.body:hover{background:var(--panel-2)}
 .empty{padding:34px 16px;text-align:center;color:var(--faint);font-family:'JetBrains Mono',monospace;font-size:13px}
@@ -178,6 +177,49 @@ html.light body{
 .uploadbtn{display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:1px dashed var(--line);border-radius:8px;padding:8px 12px;font-size:12.5px;color:var(--accent);background:transparent}
 .uploadbtn:hover{border-color:var(--accent)}
 .photomsg{font-size:11.5px;color:var(--faint);font-family:'JetBrains Mono',monospace;margin-top:6px;min-height:14px}
+
+/* ---- drawer ---- */
+.user-block { border-bottom:1px solid var(--line-soft); }
+.user-block:last-child { border-bottom:none; }
+.row.body { border-bottom:none; cursor:pointer; transition:background .12s; }
+.row.body:hover { background:var(--bg-2); }
+.user-block.drawer-open > .row.body { background:var(--bg-2); }
+.drawer-arrow {
+  display:block; font-size:10px; color:var(--faint);
+  transition:transform .2s; margin-top:5px; line-height:1;
+}
+.user-block.drawer-open .drawer-arrow { transform:rotate(90deg); }
+.drawer-slot { padding:0 16px 16px; }
+.drawer-loading {
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  color:var(--faint); padding:14px 2px;
+}
+.drawer-body {
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;
+  background:var(--bg-2); border:1px solid var(--line);
+  border-radius:12px; padding:16px;
+}
+.drawer-section { display:flex; flex-direction:column; gap:0; }
+.ds-head {
+  font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--faint);
+  margin-bottom:10px;
+}
+.ds-empty { font-size:12px; color:var(--faint); padding:6px 0; }
+.dr {
+  display:flex; justify-content:space-between; align-items:baseline;
+  padding:6px 0; border-bottom:1px solid var(--line-soft); gap:8px;
+}
+.dr:last-child { border-bottom:none; }
+.dk { font-size:12px; color:var(--muted); }
+.dv {
+  font-family:'JetBrains Mono',monospace; font-size:12.5px;
+  font-weight:600; color:var(--text); white-space:nowrap;
+}
+@media (max-width:720px){
+  .drawer-body { grid-template-columns:1fr; }
+  .drawer-arrow { display:none; }
+}
 </style>
 
   <script>try{if(localStorage.getItem('admin_theme')==='light')document.documentElement.classList.add('light');}catch(e){}</script>
@@ -364,14 +406,14 @@ async function loadData(){
   btn.innerHTML = '<span class="spin">↻</span> Loading…'; btn.disabled = true;
   $('errbox').classList.add('hidden');
   const map = new Map();
-  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,sync:0,name:null,email:null}); return map.get(uid); };
+  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,sync:0,name:null,email:null,_drawer:null}); return map.get(uid); };
   const errors = [];
   async function scan(col, apply){
     try{ const snap = await getDocs(collection(db, col)); snap.forEach(s => apply(ensure(s.id), s.data()||{})); }
     catch(e){ errors.push(col + ': ' + (e.code||e.message)); }
   }
   await scan('users',      (u,d) => { u.nutr  = d.days ? Object.keys(d.days).length : 0; u.sync = Math.max(u.sync, ts(d.lastModified)); });
-  await scan('userBills',  (u,d) => { u.bills = Array.isArray(d.history) ? d.history.length : 0; u.sync = Math.max(u.sync, ts(d.lastModified)); });
+  await scan('userBills',  (u,d) => { u.bills = Array.isArray(d.trips) ? d.trips.length : 0; u.sync = Math.max(u.sync, ts(d.lastModified)); });
   await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; u.sync = Math.max(u.sync, ts(d.lastModified)); });
   await scan('userProfiles',(u,d) => { u.name = d.name || null; u.email = d.email || null; u.sync = Math.max(u.sync, ts(d.lastSeen)); });
 
@@ -480,14 +522,17 @@ function render(){
       const apps = [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
       const m = (n,lab) => `<div class="metric ${n===0?'zero':''}"><span class="lab">${lab}</span><span>${n===0?'—':n}</span></div>`;
       const nm = u.name || (u.uid.slice(0,12)+'…');
-      return `<div class="row body">
+      return `<div class="user-block" data-uid="${u.uid}">
+      <div class="row body" onclick="toggleDrawer('${u.uid}')">
         <div class="user">
           <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
           <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><span class="uid">${u.uid.slice(0,10)}…</span><div class="apps">${apps}</div></div>
         </div>
         ${m(u.nutr,'Nutrition days')}${m(u.bills,'Bills')}${m(u.places,'Places')}
-        <div class="sync ${cls}">${s}<span class="abs">${abs}</span></div>
-      </div>`;
+        <div class="sync ${cls}">${s}<span class="abs">${abs}</span><span class="drawer-arrow">▶</span></div>
+      </div>
+      <div class="drawer-slot" id="drawer-${u.uid}" style="display:none"></div>
+    </div>`;
     }).join('');
   }
   renderCharts();
@@ -532,6 +577,90 @@ function renderCharts(){
     .sort((x,y)=>y.t-x.t).slice(0,6);
   const max = top[0] ? top[0].t : 1;
   $('chart-top').innerHTML = top.map(u=>hbar(u.n,u.t,max,u.c,String(u.t))).join('');
+}
+
+
+// ---- drawer ----
+const DRAWER_CACHE = {};
+
+function fmtDrawerDate(ms){
+  if(!ms) return '—';
+  return new Date(typeof ms==='object'&&ms.toMillis?ms.toMillis():ms)
+    .toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});
+}
+
+async function toggleDrawer(uid){
+  const slot = document.getElementById('drawer-'+uid);
+  const block = slot ? slot.closest('.user-block') : null;
+  if(!slot||!block) return;
+  const isOpen = slot.style.display !== 'none';
+  // close any open drawer
+  document.querySelectorAll('.drawer-slot').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.user-block.drawer-open').forEach(b=>b.classList.remove('drawer-open'));
+  if(isOpen) return; // toggle off
+  block.classList.add('drawer-open');
+  slot.style.display = 'block';
+  if(DRAWER_CACHE[uid]){ slot.innerHTML = DRAWER_CACHE[uid]; return; }
+  slot.innerHTML = '<div class="drawer-loading">Loading…</div>';
+  try {
+    const [nutrSnap, billsSnap, placesSnap] = await Promise.all([
+      getDoc(doc(db,'users',uid)).catch(()=>null),
+      getDoc(doc(db,'userBills',uid)).catch(()=>null),
+      getDoc(doc(db,'userPlaces',uid)).catch(()=>null),
+    ]);
+
+    // --- Nutrition ---
+    let nutrHtml = '<div class="ds-empty">No data</div>';
+    if(nutrSnap && nutrSnap.exists()){
+      const days = nutrSnap.data().days || {};
+      const dayKeys = Object.keys(days).sort();
+      const totalDays = dayKeys.length;
+      const lastDay = dayKeys.length ? dayKeys[dayKeys.length-1] : null;
+      nutrHtml = `
+        <div class="dr"><span class="dk">Total days logged</span><span class="dv">${totalDays}</span></div>
+        <div class="dr"><span class="dk">Last logged</span><span class="dv">${lastDay||'—'}</span></div>`;
+    }
+
+    // --- Bills ---
+    let billsHtml = '<div class="ds-empty">No data</div>';
+    if(billsSnap && billsSnap.exists()){
+      const trips = billsSnap.data().trips || [];
+      const totalTrips = trips.length;
+      const groupSizes = trips.map(t=>Array.isArray(t.members)?t.members.length:0).filter(n=>n>0);
+      const avgGroup = groupSizes.length ? (groupSizes.reduce((a,b)=>a+b,0)/groupSizes.length).toFixed(1) : '—';
+      const tripsWithShare = trips.filter(t=>t.shareId||t.sharedAt).length;
+      billsHtml = `
+        <div class="dr"><span class="dk">Total trips saved</span><span class="dv">${totalTrips}</span></div>
+        <div class="dr"><span class="dk">Avg people / trip</span><span class="dv">${avgGroup}</span></div>
+        <div class="dr"><span class="dk">Trips shared via link</span><span class="dv">${tripsWithShare||'—'}</span></div>`;
+    }
+
+    // --- Places ---
+    let placesHtml = '<div class="ds-empty">No data</div>';
+    if(placesSnap && placesSnap.exists()){
+      const ids = placesSnap.data().savedIds || [];
+      placesHtml = `<div class="dr"><span class="dk">Saved places</span><span class="dv">${ids.length}</span></div>`;
+    }
+
+    const html = `<div class="drawer-body">
+      <div class="drawer-section">
+        <div class="ds-head">🥗 Nutritions</div>
+        ${nutrHtml}
+      </div>
+      <div class="drawer-section">
+        <div class="ds-head">🧾 Bill Splitter</div>
+        ${billsHtml}
+      </div>
+      <div class="drawer-section">
+        <div class="ds-head">📍 Pumgoda</div>
+        ${placesHtml}
+      </div>
+    </div>`;
+    DRAWER_CACHE[uid] = html;
+    slot.innerHTML = html;
+  } catch(e){
+    slot.innerHTML = `<div class="drawer-loading" style="color:var(--red)">Failed to load: ${escAdm(e.message||e.code||String(e))}</div>`;
+  }
 }
 
 // ---- controls ----
