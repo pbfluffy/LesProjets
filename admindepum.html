@@ -226,6 +226,24 @@ html.light body{
   padding:5px 0; border-bottom:1px solid var(--line-soft); font-size:12px;
 }
 .bill-item:last-child { border-bottom:none; }
+.bill-item-detail {
+  padding:8px 0; border-bottom:1px solid var(--line-soft);
+}
+.bill-item-detail:last-child { border-bottom:none; }
+.bid-header {
+  display:flex; justify-content:space-between; align-items:baseline;
+  margin-bottom:5px;
+}
+.bid-row {
+  display:flex; justify-content:space-between; align-items:baseline;
+  padding:2px 0; gap:8px;
+}
+.bid-row .dk { font-size:11px; color:var(--faint); }
+.dv-sm {
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  font-weight:500; color:var(--muted); text-align:right;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px;
+}
 .bill-name {
   color:var(--text); font-weight:600; white-space:nowrap;
   overflow:hidden; text-overflow:ellipsis; max-width:130px;
@@ -666,17 +684,37 @@ window.toggleDrawer = async function toggleDrawer(uid){
           <div class="drawer-row" style="margin-bottom:${recentTrips.length?'10px':'0'}"><span class="dk">Share links created</span><span class="dv">${shareLabel}</span></div>
           ${recentTrips.length ? '<div class="ds-sub">Recent trips</div>'+tripRows : ''}`;
       } else if(hasLegacy){
-        // Legacy single-bill mode — entries have billName + savedAt
+        // Legacy single-bill mode — entries have billName + savedAt + state
         const bills = d.history;
         const recentBills = [...bills].reverse().slice(0,3);
         const billRows = recentBills.map(b=>{
-          const nm   = escAdm(b.billName||'Untitled');
-          const date = b.savedAt ? new Date(b.savedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
-          return `<div class="bill-item"><span class="bill-name">${nm}</span><span class="bill-meta">${date}</span></div>`;
+          const s      = b.state || {};
+          const nm     = escAdm(b.billName || s.billName || 'Untitled');
+          const date   = b.savedAt ? new Date(b.savedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
+          const members = Array.isArray(s.members) && s.members.length ? escAdm(s.members.join(', ')) : '—';
+          const foods   = Array.isArray(s.foods) ? s.foods : [];
+          const total   = foods.reduce((sum,f)=>sum + (parseFloat(f.price)||0), 0);
+          const totalStr = total > 0 ? '฿'+total.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2}) : '—';
+          const itemCount = foods.length;
+          // How they share: promptPay / bankInfo
+          const hasPromptPay = s.promptPay && s.promptPay.trim();
+          const hasBankInfo  = s.bankInfo  && s.bankInfo.trim();
+          const shareMethod  = hasPromptPay && hasBankInfo ? 'PromptPay + Bank'
+                             : hasPromptPay ? 'PromptPay'
+                             : hasBankInfo  ? 'Bank info'
+                             : '—';
+          return `<div class="bill-item-detail">
+            <div class="bid-header">
+              <span class="bill-name">${nm}</span>
+              <span class="bill-meta">${date}</span>
+            </div>
+            <div class="bid-row"><span class="dk">People</span><span class="dv-sm">${members}</span></div>
+            <div class="bid-row"><span class="dk">Items / Total</span><span class="dv-sm">${itemCount} items · ${totalStr}</span></div>
+            <div class="bid-row"><span class="dk">Payment method</span><span class="dv-sm">${shareMethod}</span></div>
+          </div>`;
         }).join('');
         billsHtml = `
           <div class="drawer-row"><span class="dk">Total bills</span><span class="dv">${bills.length}</span></div>
-          <div class="drawer-row"><span class="dk">Mode</span><span class="dv" style="color:var(--faint);font-size:11px">Legacy (single-bill)</span></div>
           <div class="drawer-row" style="margin-bottom:${recentBills.length?'10px':'0'}"><span class="dk">Share links created</span><span class="dv">${shareLabel}</span></div>
           ${recentBills.length ? '<div class="ds-sub">Recent bills</div>'+billRows : ''}`;
       }
