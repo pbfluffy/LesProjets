@@ -1008,8 +1008,8 @@ function renderPlaces(){
   }).join('');
 }
 onAuthStateChanged(auth, async (user) => { if(!user) return; let ok = user.uid===ADMIN_UID; if(!ok){ try{ ok = (await getDoc(doc(db,'admins',user.uid))).exists(); }catch(e){ ok=false; } } if(ok) loadPlaces(); });
-$('psearch').addEventListener('input', renderPlaces);
-$('refreshBtn').addEventListener('click', loadPlaces);
+$('pumgoda-search').addEventListener('input', renderPlaces);
+// pumgoda refresh handled via main refreshBtn
 
 // ---- Pumgoda catalog editor (Feature #100, Phase 2.2 + 2.3 create/delete) ----
 let CUR = null;
