@@ -252,11 +252,11 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip })
     if (entry) {
       onAddBillToTrip(trip.id, entry.id)
       // Merge bill members into trip
-      const billMembers = entry.state?.members ?? []
+      const billMembers = [...new Set([...(entry.state?.members ?? []), ...(entry.state?.people ?? [])])]
       if (billMembers.length > 0) {
         const merged = [...new Set([...(trip.members ?? []), ...billMembers])]
         if (merged.length !== (trip.members ?? []).length) onUpdateTrip(trip.id, { members: merged })
-      }needed
+      }
     }
     setPreview(null)
   }
@@ -797,7 +797,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
         if (!entry) return
         addBillToTrip(activeTrip.id, id)
         newBillIds.push(id)
-        const billMembers = entry.state?.members ?? []
+        const billMembers = [...new Set([...(entry.state?.members ?? []), ...(entry.state?.people ?? [])])]
         mergedMembers = [...new Set([...mergedMembers, ...billMembers])]
       })
       if (mergedMembers.length !== (activeTrip.members ?? []).length) {
