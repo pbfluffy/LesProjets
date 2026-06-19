@@ -431,7 +431,7 @@ async function loadData(){
     catch(e){ errors.push(col + ': ' + (e.code||e.message)); }
   }
   await scan('users',      (u,d) => { u.nutr  = d.days ? Object.keys(d.days).length : 0; u.sync = Math.max(u.sync, ts(d.lastModified)); });
-  await scan('userBills',  (u,d) => { u.bills = Array.isArray(d.trips) ? d.trips.length : 0; u.sync = Math.max(u.sync, ts(d.lastModified)); });
+  await scan('userBills',  (u,d) => { u.bills = Array.isArray(d.trips) ? d.trips.length : (Array.isArray(d.history) ? d.history.length : 0); u.sync = Math.max(u.sync, ts(d.lastModified)); });
   await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; u.sync = Math.max(u.sync, ts(d.lastModified)); });
   await scan('userProfiles',(u,d) => { u.name = d.name || null; u.email = d.email || null; u.sync = Math.max(u.sync, ts(d.lastSeen)); });
 
@@ -643,7 +643,7 @@ window.toggleDrawer = async function toggleDrawer(uid){
     // --- Bills ---
     let billsHtml = '<div class="ds-empty">No data</div>';
     if(billsSnap && billsSnap.exists()){
-      const trips = billsSnap.data().trips || [];
+      const trips = billsSnap.data().trips || billsSnap.data().history || [];
       const totalTrips = trips.length;
       const groupSizes = trips.map(t=>Array.isArray(t.members)?t.members.length:0).filter(n=>n>0);
       const avgGroup = groupSizes.length ? (groupSizes.reduce((a,b)=>a+b,0)/groupSizes.length).toFixed(1) : '—';
