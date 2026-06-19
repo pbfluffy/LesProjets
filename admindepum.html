@@ -4,8 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex, nofollow" />
-<title>LesProjets · Admin</title>
+<title>LesProjets Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..60,400;12..60,600;12..60,700;12..60,800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <style>
+
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 :root{
@@ -261,8 +264,40 @@ html.light body{
   .drawer-body { grid-template-columns:1fr; }
   .drawer-arrow { display:none; }
 }
-</style>
 
+/* ---- tabs ---- */
+.tab-bar {
+  display:flex; gap:4px; padding:0 0 20px;
+  border-bottom:1px solid var(--line); margin-bottom:24px;
+}
+.tab-bar button {
+  font-family:'Bricolage Grotesque',sans-serif; font-size:13px; font-weight:700;
+  padding:7px 16px; border-radius:9px; border:1px solid transparent;
+  background:none; color:var(--muted); cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; gap:6px;
+}
+.tab-bar button:hover { background:var(--panel-2); color:var(--text); }
+.tab-bar button.active {
+  background:var(--accent-soft); color:var(--accent);
+  border-color:rgba(232,161,58,.25);
+}
+.tab-bar button .tb-badge {
+  font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+  background:rgba(232,161,58,.15); color:var(--accent); padding:1px 5px;
+  border-radius:5px; line-height:1.4;
+}
+.tab-pane { animation: fadeIn .15s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+
+/* ---- backyard placeholder ---- */
+.placeholder-tab {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:200px; gap:12px; color:var(--faint);
+}
+.placeholder-tab .ph-ico { font-size:40px; opacity:.4; }
+.placeholder-tab p { font-size:13px; }
+
+</style>
   <script>try{if(localStorage.getItem('admin_theme')==='light')document.documentElement.classList.add('light');}catch(e){}</script>
 </head>
 <body>
@@ -293,35 +328,55 @@ html.light body{
 
 <!-- DASHBOARD -->
 <main id="app" class="wrap hidden">
+
+  <!-- Top bar -->
   <div class="topbar">
     <div class="mark">🐾</div>
     <div class="brand"><h1>LesProjets · Admin</h1><div class="sub">activity console</div></div>
     <div class="who">
       <div class="ident"><b id="me-name">—</b><span id="me-email"></span></div>
       <div class="avatar" id="me-avatar"></div>
+      <button class="btn ghost small" id="themeBtn">☾ Dark</button>
       <button class="btn ghost small" id="signoutBtn">Sign out</button>
     </div>
   </div>
 
   <div id="errbox" class="errbox hidden"></div>
 
-  <div class="stats" id="stats"></div>
+  <!-- Tab bar -->
+  <nav class="tab-bar">
+    <button id="tab-btn-overall">📊 Overall</button>
+    <button id="tab-btn-bills">🧾 Bill Splitter</button>
+    <button id="tab-btn-nutrition">🥗 Nutrition</button>
+    <button id="tab-btn-pumgoda">📍 Pumgoda</button>
+    <button id="tab-btn-backyard">🎮 Backyard</button>
+  </nav>
 
-  <section class="charts">
-    <div class="chart"><h3>Sync recency</h3><div id="chart-recency"></div></div>
-    <div class="chart"><h3>Adoption by app</h3><div id="chart-adoption"></div></div>
-    <div class="chart"><h3>Top users · activity</h3><div id="chart-top"></div></div>
-  </section>
-
-  <div class="toolbar">
-    <label class="search"><span style="color:var(--faint)">⌕</span>
-      <input id="search" type="text" placeholder="search name / email / uid" /></label>
-    <div class="seg" role="group" aria-label="sort">
-      <button data-sort="sync" aria-pressed="true">Last sync</button>
-      <button data-sort="name" aria-pressed="false">Name</button>
-      <button data-sort="data" aria-pressed="false">Most data</button>
+  <!-- ═══════════ TAB: OVERALL ═══════════ -->
+  <div id="tab-pane-overall" class="tab-pane hidden">
+    <div class="stats" id="stats"></div>
+    <section class="charts">
+      <div class="chart"><h3>Sync recency</h3><div id="chart-recency"></div></div>
+      <div class="chart"><h3>Adoption by app</h3><div id="chart-adoption"></div></div>
+      <div class="chart"><h3>Top users · activity</h3><div id="chart-top"></div></div>
+    </section>
+    <div class="toolbar">
+      <label class="search"><span style="color:var(--faint)">⌕</span>
+        <input id="overall-search" type="text" placeholder="search name / email / uid" /></label>
+      <div class="seg" role="group" aria-label="sort">
+        <button data-sort="sync" aria-pressed="true">Last sync</button>
+        <button data-sort="name" aria-pressed="false">Name</button>
+        <button data-sort="data" aria-pressed="false">Most data</button>
+      </div>
+      <button class="btn small" id="refreshBtn">↻ Refresh</button>
+      <span class="refreshed" id="refreshed"></span>
     </div>
-<<<<<<< HEAD
+    <div class="panel">
+      <div class="row head">
+        <div>User</div><div>Nutr · days</div><div>Bills</div><div>Places</div><div>Last sync</div>
+      </div>
+      <div id="tab-overall-rows"></div>
+    </div>
     <!-- User management -->
     <div id="adminPanel" class="hidden" style="margin-top:28px">
       <div class="chart" style="background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--line-soft);border-radius:14px;padding:18px 20px">
@@ -333,28 +388,38 @@ html.light body{
         <div id="admin-body"></div>
       </div>
     </div>
-=======
-    <button class="btn small" id="refreshBtn">↻ Refresh</button>
-    <span class="refreshed" id="refreshed"></span>
->>>>>>> parent of 89c28bf (Update admindepum.html)
   </div>
 
-  <div class="panel">
-    <div class="row head">
-      <div>User</div><div>Nutr · days</div><div>Bills</div><div>Places</div><div>Last sync</div>
+  <!-- ═══════════ TAB: BILL SPLITTER ═══════════ -->
+  <div id="tab-pane-bills" class="tab-pane hidden">
+    <div class="toolbar">
+      <label class="search"><span style="color:var(--faint)">⌕</span>
+        <input id="bills-search" type="text" placeholder="search user name / email" /></label>
+      <span class="refreshed" id="bills-count"></span>
     </div>
-    <div id="rows"></div>
+    <div class="panel">
+      <div class="row head">
+        <div>User</div><div>Trips / Bills</div><div>Mode</div><div>Share links</div><div>Last sync</div>
+      </div>
+      <div id="tab-bills-rows"></div>
+    </div>
   </div>
 
-  <!-- PLACES CATALOG (Feature #100, Phase 2.1 - read-only) -->
-  <div class="toolbar" style="margin-top:28px">
-    <div class="brand" style="flex:0 0 auto"><h1 style="font-size:15px;font-weight:800;margin:0">Pumgoda catalog</h1><div class="sub" style="font-size:11px;color:var(--faint);font-family:'JetBrains Mono',monospace">places · read-only</div></div>
-    <label class="search" style="margin-left:auto"><span style="color:var(--faint)">⌕</span>
-      <input id="psearch" type="text" placeholder="search name / type / region / id" /></label>
-    <span class="refreshed" id="pcount"></span>
+  <!-- ═══════════ TAB: NUTRITION ═══════════ -->
+  <div id="tab-pane-nutrition" class="tab-pane hidden">
+    <div class="toolbar">
+      <label class="search"><span style="color:var(--faint)">⌕</span>
+        <input id="nutr-search" type="text" placeholder="search user name / email" /></label>
+      <span class="refreshed" id="nutr-count"></span>
+    </div>
+    <div class="panel">
+      <div class="row head">
+        <div>User</div><div>Days logged</div><div>Last logged</div><div>Last sync</div>
+      </div>
+      <div id="tab-nutr-rows"></div>
+    </div>
   </div>
 
-<<<<<<< HEAD
   <!-- ═══════════ TAB: PUMGODA ═══════════ -->
   <div id="tab-pane-pumgoda" class="tab-pane hidden">
     <div class="toolbar" style="margin-bottom:20px">
@@ -373,22 +438,14 @@ html.light body{
       </div>
       <div id="pumgoda-rows"></div>
     </div>
-=======
-  <div class="panel">
-    <div class="row head prow">
-      <div>Place</div><div>Type</div><div>Region</div><div>Paws</div><div>Pumba</div>
-    </div>
-    <div id="prows"></div>
->>>>>>> parent of 89c28bf (Update admindepum.html)
   </div>
 
-  <!-- ADMIN ACCESS (Feature #111) -->
-  <div id="adminPanel" class="hidden" style="margin-top:28px">
-    <div class="chart" style="background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--line-soft);border-radius:14px;padding:18px 20px">
-      <div style="margin-bottom:6px"><div style="font-size:15px;font-weight:800;letter-spacing:-.01em">Admin access</div>
-      <div id="admin-sub" class="sub" style="font-size:11px;color:var(--faint);font-family:'JetBrains Mono',monospace">owner only</div></div>
-      <div class="note" style="margin:12px 0 18px">Admins manage the catalog + photos. Only the owner can add or remove admins.</div>
-      <div id="admin-body"></div>
+  <!-- ═══════════ TAB: BACKYARD ═══════════ -->
+  <div id="tab-pane-backyard" class="tab-pane hidden">
+    <div class="placeholder-tab">
+      <div class="ph-ico">🎮</div>
+      <p style="font-weight:700;color:var(--muted)">Backyard Rampage</p>
+      <p>Leaderboard and challenge data coming soon.</p>
     </div>
   </div>
 
@@ -401,11 +458,8 @@ html.light body{
       <div class="pedit-ft"><button class="btn ghost" id="pedit-cancel">Cancel</button><button class="btn" id="pedit-save" style="border-color:var(--accent);color:var(--accent)">Save to Firestore</button></div>
     </div>
   </div>
-<<<<<<< HEAD
 
 
-=======
->>>>>>> parent of 89c28bf (Update admindepum.html)
 </main>
 
 <script type="module">
@@ -429,6 +483,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
+
 const $ = (id) => document.getElementById(id);
 const show = (id) => ['gate','denied','app'].forEach(s => $(s).classList.toggle('hidden', s !== id));
 
@@ -449,6 +504,7 @@ function rel(t){
   const abs = new Date(t).toISOString().slice(0,16).replace('T',' ');
   return [s, abs, d<7*DAY ? 'recent' : ''];
 }
+
 
 // ---- auth flow ----
 $('signinBtn').addEventListener('click', async () => {
@@ -479,7 +535,11 @@ onAuthStateChanged(auth, async (user) => {
   $('adminPanel').classList.toggle('hidden', !IS_OWNER);
   show('app');
   loadData();
+  loadPlaces();
+  const savedTab = localStorage.getItem('admin_tab') || 'overall';
+  switchTab(savedTab);
 });
+
 
 // ---- data ----
 async function loadData(){
@@ -487,7 +547,7 @@ async function loadData(){
   btn.innerHTML = '<span class="spin">↻</span> Loading…'; btn.disabled = true;
   $('errbox').classList.add('hidden');
   const map = new Map();
-  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,sync:0,name:null,email:null,_drawer:null}); return map.get(uid); };
+  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,sync:0,name:null,email:null,_drawer:null,_lastNutrDate:null,_billMode:null,_shareCount:null}); return map.get(uid); };
   const errors = [];
   async function scan(col, apply){
     try{ const snap = await getDocs(collection(db, col)); snap.forEach(s => apply(ensure(s.id), s.data()||{})); }
@@ -574,6 +634,7 @@ $('admin-body').addEventListener('click', async (e) => {
     catch(err){ remBtn.disabled=false; remBtn.textContent='Remove'; alert('Could not remove admin: '+(err.code||err.message)); } }
 });
 
+
 // ---- render ----
 function render(){
   const q = ($('overall-search').value||'').toLowerCase().trim();
@@ -617,6 +678,8 @@ function render(){
     }).join('');
   }
   renderCharts();
+  renderBillsTab();
+  renderNutrTab();
 }
 
 function donut(segs){
@@ -660,6 +723,27 @@ function renderCharts(){
   $('chart-top').innerHTML = top.map(u=>hbar(u.n,u.t,max,u.c,String(u.t))).join('');
 }
 
+
+
+
+// ---- tabs ----
+const TABS = ['overall','bills','nutrition','pumgoda','backyard'];
+function switchTab(name){
+  TABS.forEach(t => {
+    const btn = document.getElementById('tab-btn-'+t);
+    const pane = document.getElementById('tab-pane-'+t);
+    if(btn)  btn.classList.toggle('active', t===name);
+    if(pane) pane.classList.toggle('hidden', t!==name);
+  });
+  localStorage.setItem('admin_tab', name);
+}
+
+// User drill-down: switch to tab + highlight user
+window.drillUser = function(uid, tab){
+  switchTab(tab);
+  // Wait for tab to render then open drawer
+  setTimeout(()=> toggleDrawer(uid, tab==='bills'?'bills':tab==='nutrition'?'nutr':null), 80);
+};
 
 // ---- drawer ----
 const DRAWER_CACHE = {};
@@ -796,7 +880,6 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
   }
 }
 
-<<<<<<< HEAD
 
 // ---- bills tab ----
 function renderBillsTab(){
@@ -878,10 +961,6 @@ $("themeBtn") && $('themeBtn').addEventListener('click', () => {
 $('overall-search').addEventListener('input', render);
 $('bills-search').addEventListener('input', renderBillsTab);
 $('nutr-search').addEventListener('input', renderNutrTab);
-=======
-// ---- controls ----
-$('search').addEventListener('input', render);
->>>>>>> parent of 89c28bf (Update admindepum.html)
 $('refreshBtn').addEventListener('click', loadData);
 document.querySelectorAll('.seg button').forEach(btn => btn.addEventListener('click', () => {
   sortKey = btn.dataset.sort;
@@ -905,17 +984,17 @@ function pawTier(p){
   return 4;
 }
 function renderPlaces(){
-  const q = ($('psearch').value||'').toLowerCase().trim();
+  const q = ($('pumgoda-search').value||'').toLowerCase().trim();
   const en = (p)=> (p.name&&p.name.en)||'';
   const th = (p)=> (p.name&&p.name.th)||'';
   let rows = PLACES.filter(p => !q || en(p).toLowerCase().includes(q) || th(p).includes(q) || (p.type||'').toLowerCase().includes(q) || (p.region||'').toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
   rows.sort((a,b)=> a.id.localeCompare(b.id));
-  $('pcount').textContent = rows.length + ' / ' + PLACES.length + ' places';
+  $('pumgoda-count').textContent = rows.length + ' / ' + PLACES.length + ' places';
   if(rows.length===0){
-    $('prows').innerHTML = '<div class="empty">'+(PLACES.length===0?'No places in Firestore yet.':'No matches.')+'</div>';
+    $('pumgoda-rows').innerHTML = '<div class="empty">'+(PLACES.length===0?'No places in Firestore yet.':'No matches.')+'</div>';
     return;
   }
-  $('prows').innerHTML = rows.map(p => {
+  $('pumgoda-rows').innerHTML = rows.map(p => {
     const paws = '🐾'.repeat(pawTier(p));
     const reg = (p.region||'').replace(/_/g,' ');
     const ver = (p.pumba&&p.pumba.verified) ? '✓' : '—';
@@ -1015,6 +1094,7 @@ function openEditor(id){
   document.getElementById('pedit').classList.remove('hidden');
 }
 function openCreate(){
+  switchTab('pumgoda');
   CUR = null; CREATING = true;
   document.querySelector('.pedit-hd b').textContent = 'Add place';
   document.getElementById('pedit-id').textContent = 'new';
@@ -1253,6 +1333,8 @@ async function runAutofill(){
   }
 }
 document.addEventListener('click', (e)=>{ const x = e.target.closest && e.target.closest('[data-rmphoto]'); if(x) removePhoto(x.getAttribute('data-rmphoto')); });
+
+
 </script>
 </body>
 </html>
