@@ -197,7 +197,7 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
 
 
 // ── Inline receipt scanner for trip tab ────────────────────────────────────
-function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip }) {
+function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip }) {
   const { t } = useLang()
   const fileRef = useRef(null)
   const [loading, setLoading] = useState(false)
@@ -251,7 +251,12 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip }) {
     const entry = onSaveBill('split', state)
     if (entry) {
       onAddBillToTrip(trip.id, entry.id)
-      // Members already set from trip in state — no extra merge needed
+      // Merge bill members into trip
+      const billMembers = entry.state?.members ?? []
+      if (billMembers.length > 0) {
+        const merged = [...new Set([...(trip.members ?? []), ...billMembers])]
+        if (merged.length !== (trip.members ?? []).length) onUpdateTrip(trip.id, { members: merged })
+      }needed
     }
     setPreview(null)
   }
@@ -483,10 +488,11 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   const entry = entries.find(e => e.id === id)
                   if (!entry) return null
                   const { grandTotal: bt, totals: bTotals, currency: bCurr } = calcBillResult(entry)
-                  const dispCurr = rate && !isTHB ? 'THB' : (bCurr ?? detailCurrency)
-                  const dispTotal = rate && bCurr && bCurr !== 'THB' ? Math.round(bt * rate) : bt
-                  const dispTotals = rate && bCurr && bCurr !== 'THB'
-                    ? Object.fromEntries(Object.entries(bTotals).map(([m, v]) => [m, Math.round(v * rate)]))
+                  const _bRate = rates ? (rates[bCurr] ?? null) : (rate && bCurr !== 'THB' ? rate : null)
+                  const dispCurr = _bRate ? 'THB' : (bCurr ?? detailCurrency)
+                  const dispTotal = _bRate ? Math.round(bt * _bRate) : bt
+                  const dispTotals = _bRate
+                    ? Object.fromEntries(Object.entries(bTotals).map(([m, v]) => [m, Math.round(v * _bRate)]))
                     : bTotals
                   return {
                     id: entry.id,
@@ -698,7 +704,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
       <button className={styles.addBillBtn} style={{ marginTop: 16 }} onClick={onAddBill}>
         + {t.tripAddBill ?? 'Add bill to trip'}
       </button>
-      <TripReceiptScanner trip={trip} onSaveBill={onSaveBill} onAddBillToTrip={onAddBillToTrip} />
+      <TripReceiptScanner trip={trip} onSaveBill={onSaveBill} onAddBillToTrip={onAddBillToTrip} onUpdateTrip={(id, patch) => updateTrip(id, patch)} />
     </div>
   )
 }
