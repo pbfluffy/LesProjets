@@ -745,9 +745,9 @@ function TripList({ trips, onSelect, onNew, onDelete }) {
         <p className={styles.empty}>{t.tripEmpty ?? 'No trips yet — create one to group bills together'}</p>
       )}
       {trips.map(trip => (
-        <div key={trip.id} className={styles.tripCard} style={{ display: 'flex', alignItems: 'flex-start', gap: 0 }}>
-          <button
-            style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+        <div key={trip.id} className={styles.tripCard} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div
+            style={{ flex: 1, cursor: 'pointer', minWidth: 0 }}
             onClick={() => onSelect(trip)}
           >
             <div className={styles.tripCardName}>{trip.name}</div>
@@ -758,10 +758,10 @@ function TripList({ trips, onSelect, onNew, onDelete }) {
               {trip.members.slice(0, 5).map(m => <Avatar key={m} name={m} size={22} />)}
               {trip.members.length > 5 && <span className={styles.moreAvatars}>+{trip.members.length - 5}</span>}
             </div>
-          </button>
+          </div>
           <button
             className={styles.editBtn}
-            style={{ flexShrink: 0, marginTop: 2 }}
+            style={{ flexShrink: 0, alignSelf: 'center' }}
             onClick={e => {
               e.stopPropagation()
               if (window.confirm(t.tripDeleteConfirm ?? `Delete "${trip.name}"?`)) onDelete(trip.id)
