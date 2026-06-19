@@ -156,11 +156,14 @@ export function useTripsStore() {
         const localIds = new Set(localTrips.map(t => t.id))
         const remoteHasNew = remote.some(t => !localIds.has(t.id))
         if (remoteTs > localTs || remoteHasNew) {
-          // Merge: take remote as base, but keep local trips not in remote
-          // (in case of concurrent creation on both devices)
-          const remoteIds = new Set(remote.map(t => t.id))
-          const localOnly = localTrips.filter(t => !remoteIds.has(t.id))
-          const merged = localOnly.length > 0 ? [...remote, ...localOnly] : remote
+          // If remote is strictly newer: trust remote completely (handles deletes)
+          // If same timestamp but remote has new IDs: merge to handle concurrent offline creation
+          let merged = remote
+          if (remoteTs === localTs && remoteHasNew) {
+            const remoteIds = new Set(remote.map(t => t.id))
+            const localOnly = localTrips.filter(t => !remoteIds.has(t.id))
+            merged = localOnly.length > 0 ? [...remote, ...localOnly] : remote
+          }
           writeAll(merged)
           localStorage.setItem(TRIPS_TS_KEY, JSON.stringify(Math.max(remoteTs, localTs)))
           setTrips(merged)
