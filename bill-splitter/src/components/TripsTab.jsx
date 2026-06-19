@@ -733,7 +733,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
 }
 
 // ── Trip list ───────────────────────────────────────────────────────────────
-function TripList({ trips, onSelect, onNew }) {
+function TripList({ trips, onSelect, onNew, onDelete }) {
   const { t } = useLang()
   return (
     <div className={styles.list}>
@@ -745,16 +745,30 @@ function TripList({ trips, onSelect, onNew }) {
         <p className={styles.empty}>{t.tripEmpty ?? 'No trips yet — create one to group bills together'}</p>
       )}
       {trips.map(trip => (
-        <button key={trip.id} className={styles.tripCard} onClick={() => onSelect(trip)}>
-          <div className={styles.tripCardName}>{trip.name}</div>
-          <div className={styles.tripCardMeta}>
-            {trip.members.length} {t.tripMembers ?? 'members'} · {trip.billIds.length} {t.tripBills ?? 'bills'} · {fmtDate(trip.createdAt)}
-          </div>
-          <div className={styles.tripCardAvatars}>
-            {trip.members.slice(0, 5).map(m => <Avatar key={m} name={m} size={22} />)}
-            {trip.members.length > 5 && <span className={styles.moreAvatars}>+{trip.members.length - 5}</span>}
-          </div>
-        </button>
+        <div key={trip.id} className={styles.tripCard} style={{ display: 'flex', alignItems: 'flex-start', gap: 0 }}>
+          <button
+            style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+            onClick={() => onSelect(trip)}
+          >
+            <div className={styles.tripCardName}>{trip.name}</div>
+            <div className={styles.tripCardMeta}>
+              {trip.members.length} {t.tripMembers ?? 'members'} · {trip.billIds.length} {t.tripBills ?? 'bills'} · {fmtDate(trip.createdAt)}
+            </div>
+            <div className={styles.tripCardAvatars}>
+              {trip.members.slice(0, 5).map(m => <Avatar key={m} name={m} size={22} />)}
+              {trip.members.length > 5 && <span className={styles.moreAvatars}>+{trip.members.length - 5}</span>}
+            </div>
+          </button>
+          <button
+            className={styles.editBtn}
+            style={{ flexShrink: 0, marginTop: 2 }}
+            onClick={e => {
+              e.stopPropagation()
+              if (window.confirm(t.tripDeleteConfirm ?? `Delete "${trip.name}"?`)) onDelete(trip.id)
+            }}
+            aria-label="Delete trip"
+          >🗑️</button>
+        </div>
       ))}
     </div>
   )
@@ -960,5 +974,5 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
       />
     )
   }
-  return <TripList trips={trips} onSelect={handleSelect} onNew={handleNew} />
+  return <TripList trips={trips} onSelect={handleSelect} onNew={handleNew} onDelete={(id) => { deleteTrip(id); if (activeTrip?.id === id) setActiveTrip(null) }} />
 }
