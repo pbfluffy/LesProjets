@@ -949,7 +949,12 @@ function renderNutrTab(){
 }
 
 // ---- controls ----
-$('themeBtn') && $('themeBtn').addEventListener('click', () => {
+// wire tab buttons
+["overall","bills","nutrition","pumgoda","backyard"].forEach(t => {
+  const btn = document.getElementById("tab-btn-"+t);
+  if(btn) btn.addEventListener("click", ()=> switchTab(t));
+});
+$("themeBtn") && $('themeBtn').addEventListener('click', () => {
   const isLight = document.documentElement.classList.toggle('light');
   localStorage.setItem('admin_theme', isLight ? 'light' : 'dark');
   $('themeBtn').textContent = isLight ? '☀ Light' : '☾ Dark';
