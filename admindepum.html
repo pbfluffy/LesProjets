@@ -248,7 +248,7 @@ html.light body{
   padding:0; margin:0; font-family:inherit; cursor:pointer; display:block;
 }
 .bill-drill-toggle .hint{
-  font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--accent);
+  font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--muted);
   margin-top:8px; letter-spacing:.08em; text-transform:uppercase;
 }
 .bill-drill{
@@ -1422,7 +1422,7 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
       } if(hasLegacy){ // show legacy bills even if trip mode also present
         // Legacy single-bill mode — entries have billName + savedAt + state
         const bills = d.history;
-        const recentBills = [...bills].reverse().slice(0,3);
+        const recentBills = [...bills].slice(-5).reverse();
         const billRows = recentBills.map((b,idx)=>{
           const s      = b.state || {};
           const nm     = escAdm(b.billName || s.billName || 'Untitled');
