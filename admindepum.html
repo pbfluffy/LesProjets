@@ -679,7 +679,7 @@ const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
-  authDomain: 'pumgoda.firebaseapp.com',
+  authDomain: 'auth.pumbafluffycorgi.com',
   databaseURL: 'https://pumgoda-default-rtdb.asia-southeast1.firebasedatabase.app',
   projectId: 'pumgoda',
   storageBucket: 'pumgoda.firebasestorage.app',
@@ -781,8 +781,27 @@ onAuthStateChanged(auth, async (user) => {
   $('me-name').textContent = user.displayName || 'Admin';
   $('me-email').textContent = user.email || '';
   const av = $('me-avatar');
-  if(user.photoURL){ av.innerHTML = ''; const img=document.createElement('img'); img.src=user.photoURL; img.referrerPolicy='no-referrer'; av.appendChild(img); }
+  // Try saved custom photo first, fall back to OAuth photo
+  const savedPhoto = localStorage.getItem('admin_photo_'+user.uid);
+  const photoSrc = savedPhoto || user.photoURL;
+  if(photoSrc){ av.innerHTML = ''; const img=document.createElement('img'); img.src=photoSrc; img.referrerPolicy='no-referrer'; av.appendChild(img); }
   else { av.textContent = (user.displayName||'A')[0].toUpperCase(); }
+  // Click avatar to set custom photo URL
+  av.style.cursor='pointer'; av.title='Click to set profile photo';
+  av.onclick = () => {
+    const cur = localStorage.getItem('admin_photo_'+user.uid) || '';
+    const url = prompt('Paste your Google photo URL (from myaccount.google.com → Personal info → Photo → right-click → Copy image address):', cur);
+    if(url === null) return;
+    if(url.trim()){
+      localStorage.setItem('admin_photo_'+user.uid, url.trim());
+      // Also write to Firestore so it shows in roster
+      setDoc(doc(db,'userProfiles',user.uid),{photoURL:url.trim()},{merge:true}).catch(()=>{});
+      av.innerHTML = ''; const img=document.createElement('img'); img.src=url.trim(); img.referrerPolicy='no-referrer'; av.appendChild(img);
+    } else {
+      localStorage.removeItem('admin_photo_'+user.uid);
+      setDoc(doc(db,'userProfiles',user.uid),{photoURL:user.photoURL||null},{merge:true}).catch(()=>{});
+    }
+  };
   $('adminPanel').classList.toggle('hidden', !IS_OWNER);
   gateStatus('');
   // Refresh own photoURL in userProfiles so the admin avatar stays current
