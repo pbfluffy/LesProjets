@@ -321,6 +321,7 @@ html.light body{
       <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.7 3.2-7.8z"/><path fill="#34A853" d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1.1-3.6 1.1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M6 14.4a6.6 6.6 0 0 1 0-4.2V7.4H2.3a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.4L6 10.2C6.9 7.7 9.2 5.4 12 5.4z"/></svg>
       Sign in with Google
     </button>
+    <div id="gate-status" class="deny-uid" style="margin-top:12px"></div>
   </div>
 </section>
 
@@ -487,7 +488,7 @@ const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
-  authDomain: 'auth.pumbafluffycorgi.com',
+  authDomain: 'pumgoda.firebaseapp.com',
   databaseURL: 'https://pumgoda-default-rtdb.asia-southeast1.firebasedatabase.app',
   projectId: 'pumgoda',
   storageBucket: 'pumgoda.firebasestorage.app',
@@ -499,12 +500,32 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
-try { await setPersistence(auth, browserLocalPersistence); } catch(e) { console.warn('Auth persistence unavailable:', e); }
-try { await getRedirectResult(auth); } catch(e) { console.warn('Redirect sign-in result failed:', e); }
-
 
 const $ = (id) => document.getElementById(id);
-const show = (id) => ['gate','denied','app'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+const show = (id) => ['gate','denied','app'].forEach(s => { const el = $(s); if(el) el.classList.toggle('hidden', s !== id); });
+function gateStatus(msg, isErr=false){
+  const el = $('gate-status');
+  if(!el) return;
+  el.textContent = msg || '';
+  el.style.color = isErr ? 'var(--red)' : 'var(--faint)';
+}
+
+// Firebase Auth needs persistence before any sign-in/redirect result handling.
+gateStatus('Checking login session…');
+try {
+  await setPersistence(auth, browserLocalPersistence);
+} catch(e) {
+  console.warn('Auth persistence unavailable:', e);
+  gateStatus('Browser blocked local login storage. Try Safari/Chrome normal mode, not private mode.', true);
+}
+try {
+  const redirectResult = await getRedirectResult(auth);
+  if(redirectResult && redirectResult.user) gateStatus('Signed in. Loading admin…');
+} catch(e) {
+  console.warn('Redirect sign-in result failed:', e);
+  gateStatus('Google sign-in returned an error: ' + (e.code || e.message || e), true);
+}
+
 
 let DATA = [];
 let sortKey = 'sync';
@@ -534,17 +555,16 @@ $('signinBtn').addEventListener('click', async () => {
     await signInWithPopup(auth, provider);
   } catch(e){
     const code = e && e.code;
-    const useRedirect = [
-      'auth/popup-blocked',
-      'auth/popup-closed-by-user',
-      'auth/cancelled-popup-request',
-      'auth/operation-not-supported-in-this-environment'
-    ].includes(code);
-    if(useRedirect){
+    if(code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request'){
+      gateStatus('Sign-in was cancelled. Tap the button again to retry.');
+    } else if(code === 'auth/unauthorized-domain'){
+      gateStatus('This domain is not allowed in Firebase Auth. Add your site domain in Firebase Console > Authentication > Settings > Authorized domains.', true);
+    } else if(['auth/popup-blocked','auth/operation-not-supported-in-this-environment'].includes(code)){
+      gateStatus('Popup blocked. Switching to redirect sign-in…');
       try { await signInWithRedirect(auth, provider); return; }
-      catch(redirErr){ alert('Sign-in failed: ' + (redirErr.message || redirErr.code || redirErr)); }
+      catch(redirErr){ gateStatus('Redirect sign-in failed: ' + (redirErr.code || redirErr.message || redirErr), true); }
     } else {
-      alert('Sign-in failed: ' + (e.message || e.code || e));
+      gateStatus('Sign-in failed: ' + (e.code || e.message || e), true);
     }
   } finally {
     btn.disabled = false;
@@ -556,11 +576,11 @@ $('denied-signout').addEventListener('click', () => signOut(auth));
 
 let IS_OWNER = false, ME = null;
 onAuthStateChanged(auth, async (user) => {
-  if(!user){ show('gate'); return; }
+  if(!user){ gateStatus(''); show('gate'); return; }
   ME = user;
   IS_OWNER = (user.uid === ADMIN_UID);
   let allowed = IS_OWNER;
-  if(!allowed){ try{ allowed = (await getDoc(doc(db,'admins',user.uid))).exists(); }catch(e){ allowed = false; } }
+  if(!allowed){ try{ allowed = (await getDoc(doc(db,'admins',user.uid))).exists(); }catch(e){ console.warn('Admin check failed:', e); allowed = false; } }
   if(!allowed){
     $('denied-uid').textContent = 'uid: ' + user.uid;
     show('denied'); return;
@@ -571,6 +591,7 @@ onAuthStateChanged(auth, async (user) => {
   if(user.photoURL){ av.innerHTML = ''; const img=document.createElement('img'); img.src=user.photoURL; img.referrerPolicy='no-referrer'; av.appendChild(img); }
   else { av.textContent = (user.displayName||'A')[0].toUpperCase(); }
   $('adminPanel').classList.toggle('hidden', !IS_OWNER);
+  gateStatus('');
   show('app');
   loadData();
   loadPlaces();
