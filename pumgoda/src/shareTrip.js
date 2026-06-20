@@ -48,9 +48,13 @@ export function decodeTrip(payload) {
 }
 
 // Build a shareable URL that deep-links the trip via ?trip=<payload>.
+// Fix P2: also strip ?ctrip= so a snapshot share made while inside a collab
+// trip doesn't carry the join code — recipient would see the join overlay
+// after dismissing the snapshot view.
 export function buildTripShareUrl(trip) {
   const u = new URL(window.location.href)
   u.hash = ''
+  u.searchParams.delete('ctrip')
   u.searchParams.set('trip', encodeTrip(trip))
   return u.toString()
 }
