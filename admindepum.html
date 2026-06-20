@@ -1047,11 +1047,19 @@ function listValue(v){
   if(v && typeof v === 'object') return Object.values(v).filter(Boolean).join(', ');
   return v || '';
 }
+function normalizePhotoURL(url){
+  const s = url ? String(url).trim() : '';
+  if(!s) return '';
+  if(s.includes('googleusercontent.com') && !/[=?&]s\d+(-c)?/.test(s)){
+    return s + (s.includes('=') ? '' : '=s96-c');
+  }
+  return s;
+}
 function userAvatarHtml(u){
   const initial = escAdm(((u && (u.name || u.email)) || '·')[0].toUpperCase());
   const bg = colorFor(u && u.uid);
-  const photo = u && u.photoURL ? String(u.photoURL).trim() : '';
-  return `<div class="ua" style="background:${bg}" data-initial="${initial}">${photo ? `<img src="${escAdm(photo)}" referrerpolicy="no-referrer" loading="lazy" onerror="const p=this.parentNode;this.remove();p.textContent=p.dataset.initial||'·';">` : initial}</div>`;
+  const photo = normalizePhotoURL(u && u.photoURL);
+  return `<div class="ua" style="background:${bg}" data-initial="${initial}" title="${photo ? 'Photo loaded from userProfiles.photoURL' : 'No photoURL saved'}">${photo ? `<img src="${escAdm(photo)}" referrerpolicy="no-referrer" onerror="const p=this.parentNode;this.remove();p.textContent=p.dataset.initial||'·';p.title='Photo URL failed to load';">` : initial}</div>`;
 }
 function chipsHtml(values, cls='member-chip'){
   const list = Array.isArray(values) ? values.filter(Boolean) : [];
@@ -1124,14 +1132,17 @@ function setProfileAvatar(el, uid, label, photoURL){
   el.style.background = colorFor(uid);
   el.innerHTML = '';
   const initial = (label && label[0] || '?').toUpperCase();
-  if(photoURL){
+  const photo = normalizePhotoURL(photoURL);
+  if(photo){
     const img = document.createElement('img');
-    img.src = photoURL;
+    img.src = photo;
     img.referrerPolicy = 'no-referrer';
     img.onerror = () => { el.innerHTML = ''; el.textContent = initial; };
     el.appendChild(img);
+    el.title = 'Photo loaded from userProfiles.photoURL';
   } else {
     el.textContent = initial;
+    el.title = 'No photoURL saved';
   }
 }
 function profileStat(k,v){ return `<div class="uprof-stat"><div class="k">${escAdm(k)}</div><div class="v">${escAdm(v)}</div></div>`; }
@@ -1164,6 +1175,7 @@ window.openUserProfile = async function(uid){
     const history = Array.isArray(bills.history) ? bills.history : [];
     const savedIds = Array.isArray(places.savedIds) ? places.savedIds : [];
     const shareCount = shareSnap ? shareSnap.size : 0;
+    const profilePhoto = normalizePhotoURL(prof.photoURL || prof.photoUrl || prof.avatarUrl || u.photoURL);
     const billTotal = history.reduce((sum,b)=>{
       const foods = b && b.state && Array.isArray(b.state.foods) ? b.state.foods : [];
       return sum + foods.reduce((s,f)=>s+(parseFloat(f.price)||0),0);
@@ -1191,6 +1203,7 @@ window.openUserProfile = async function(uid){
       <div class="uprof-section"><h4>Raw profile summary</h4>
         <div class="drawer-row"><span class="dk">Name</span><span class="dv">${escAdm(prof.name || u.name || '—')}</span></div>
         <div class="drawer-row"><span class="dk">Email</span><span class="dv">${escAdm(prof.email || u.email || '—')}</span></div>
+        <div class="drawer-row"><span class="dk">Photo URL</span><span class="dv">${profilePhoto ? 'Available' : '—'}</span></div>
         <div class="drawer-row"><span class="dk">Last seen</span><span class="dv">${escAdm(fmtFull(prof.lastSeen || u.sync))}</span></div>
       </div>`;
   }catch(e){
