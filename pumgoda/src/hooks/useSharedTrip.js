@@ -8,6 +8,7 @@ import {
   setDoc,
   onSnapshot,
   serverTimestamp,
+  arrayUnion,
 } from '../firebase'
 
 // #97 Collaborative Trips — one shared trip backed by sharedTrips/<tripId>.
@@ -193,19 +194,20 @@ export function useSharedTrip(tripId) {
     [user]
   )
 
-  // B1 self-join: a non-member appends ONLY their own uid to members. Idempotent.
+  // Fix P1: use arrayUnion so concurrent joins are atomic — no read-modify-write
+  // race that could drop a member when two users join at the same time.
   const join = useCallback(async () => {
     if (!user || !tripId) return false
     try {
       const ref = doc(firestore, 'sharedTrips', tripId)
       const snap = await getDoc(ref)
       if (!snap.exists()) return false
-      const members = snap.data().members || []
-      if (members.includes(user.uid)) return true
+      // Quick short-circuit if already a member (avoids an unnecessary write).
+      if ((snap.data().members || []).includes(user.uid)) return true
       await setDoc(
         ref,
         {
-          members: [...members, user.uid],
+          members: arrayUnion(user.uid),
           lastModified: serverTimestamp(),
           lastModifiedBy: user.uid,
         },
