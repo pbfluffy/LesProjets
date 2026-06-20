@@ -170,6 +170,8 @@ export default function BillHistory({ entries, onLoad, onRemove, onClear, onClos
                       <span className={styles.rowMeta}>
                         {entrySummary(entry, t)} · {fmtWhen(entry.savedAt, lang)}
                       </span>
+                      <span className={styles.rowCue}>Tap to view details</span>
+                      <span className={styles.rowChevron} aria-hidden="true">›</span>
                     </button>
                     <button
                       className={styles.delBtn}
