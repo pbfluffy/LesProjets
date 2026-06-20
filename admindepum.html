@@ -415,6 +415,48 @@ html.light body{
   .who #signoutBtn{grid-column:1 / -1;width:100%}
 }
 
+
+/* ---- admin insights: activity feed + profile ---- */
+.activity-panel{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);padding:16px 18px;margin-bottom:18px}
+.activity-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.activity-head h3{margin:0;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-family:'JetBrains Mono',monospace;font-weight:700}
+.feed{display:grid;gap:8px}
+.feed-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--line-soft)}
+.feed-item:first-child{border-top:0;padding-top:0}
+.feed-ico{width:28px;height:28px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:14px;flex:0 0 auto}
+.feed-main{min-width:0}
+.feed-main b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feed-main span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.feed-time{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);white-space:nowrap}
+.profile-mini{margin-top:6px;border:1px solid var(--line-soft);background:transparent;color:var(--accent);border-radius:7px;padding:4px 7px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;width:max-content}
+.profile-mini:hover{border-color:var(--accent);background:var(--accent-soft)}
+.uprof-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:80;display:flex;align-items:flex-start;justify-content:center;padding:26px 14px;overflow:auto}
+.uprof-box{width:100%;max-width:760px;background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 22px 60px rgba(0,0,0,.35)}
+.uprof-hd{display:flex;align-items:center;gap:14px;padding:18px;border-bottom:1px solid var(--line-soft);background:linear-gradient(180deg,var(--panel-2),var(--panel))}
+.uprof-avatar{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:20px;color:#1a1408;flex:0 0 auto}
+.uprof-title{min-width:0;flex:1}
+.uprof-title b{display:block;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uprof-title span{display:block;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.uprof-body{padding:18px;display:grid;gap:16px}
+.uprof-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.uprof-stat{background:var(--bg-2);border:1px solid var(--line-soft);border-radius:12px;padding:12px}
+.uprof-stat .k{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+.uprof-stat .v{font-size:24px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}
+.uprof-section{background:var(--bg-2);border:1px solid var(--line-soft);border-radius:13px;padding:14px}
+.uprof-section h4{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--faint);letter-spacing:.09em;text-transform:uppercase;margin:0 0 10px}
+.timeline{display:grid;gap:8px}
+.timeline-item{display:grid;grid-template-columns:82px 1fr;gap:10px;border-top:1px solid var(--line-soft);padding-top:8px}
+.timeline-item:first-child{border-top:0;padding-top:0}
+.timeline-time{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)}
+.timeline-text{font-size:13px;color:var(--text);min-width:0}
+.timeline-text span{display:block;color:var(--muted);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uprof-actions{display:flex;gap:10px;justify-content:flex-end;padding:14px 18px;border-top:1px solid var(--line-soft)}
+@media(max-width:720px){
+  .feed-item{grid-template-columns:auto 1fr;gap:9px}.feed-time{grid-column:2;text-align:left}.feed-main b,.feed-main span{white-space:normal}
+  .uprof-ov{padding:10px}.uprof-hd{align-items:flex-start}.uprof-title b{white-space:normal}.uprof-title span{white-space:normal;word-break:break-word}
+  .timeline-item{grid-template-columns:1fr}.timeline-time{font-size:10.5px}.uprof-actions{position:sticky;bottom:0;background:var(--panel)}
+}
+
 </style>
   <script>try{if(localStorage.getItem('admin_theme')==='light')document.documentElement.classList.add('light');}catch(e){}</script>
 </head>
@@ -478,6 +520,10 @@ html.light body{
       <div class="chart"><h3>Sync recency</h3><div id="chart-recency"></div></div>
       <div class="chart"><h3>Adoption by app</h3><div id="chart-adoption"></div></div>
       <div class="chart"><h3>Top users · activity</h3><div id="chart-top"></div></div>
+    </section>
+    <section class="activity-panel">
+      <div class="activity-head"><h3>Global activity feed</h3><span class="refreshed" id="activity-count"></span></div>
+      <div class="feed" id="activity-feed"></div>
     </section>
     <div class="toolbar">
       <label class="search"><span style="color:var(--faint)">⌕</span>
@@ -572,6 +618,21 @@ html.light body{
       <div class="ph-ico">🎮</div>
       <p style="font-weight:700;color:var(--muted)">Backyard Rampage</p>
       <p>Leaderboard and challenge data coming soon.</p>
+    </div>
+  </div>
+
+
+
+  <!-- USER PROFILE / ACTIVITY TIMELINE -->
+  <div id="uprof" class="uprof-ov hidden" aria-modal="true" role="dialog">
+    <div class="uprof-box">
+      <div class="uprof-hd">
+        <div class="uprof-avatar" id="uprof-avatar"></div>
+        <div class="uprof-title"><b id="uprof-name">User profile</b><span id="uprof-email"></span><span id="uprof-uid"></span></div>
+        <button class="btn ghost small" id="uprof-x">Close</button>
+      </div>
+      <div class="uprof-body" id="uprof-body"><div class="drawer-loading">Loading…</div></div>
+      <div class="uprof-actions"><button class="btn" id="uprof-close">Done</button></div>
     </div>
   </div>
 
@@ -715,7 +776,7 @@ async function loadData(){
   btn.innerHTML = '<span class="spin">↻</span> Loading…'; btn.disabled = true;
   $('errbox').classList.add('hidden');
   const map = new Map();
-  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,sync:0,name:null,email:null,_drawer:null,_lastNutrDate:null,_billMode:null,_shareCount:null}); return map.get(uid); };
+  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,sync:0,name:null,email:null,_drawer:null,_lastNutrDate:null,_billMode:null,_shareCount:null,_events:[]}); return map.get(uid); };
   const errors = [];
   async function scan(col, apply){
     try{ const snap = await getDocs(collection(db, col)); snap.forEach(s => apply(ensure(s.id), s.data()||{})); }
@@ -726,6 +787,7 @@ async function loadData(){
     const keys = Object.keys(days).sort();
     u.nutr = keys.length;
     u._lastNutrDate = keys.length ? keys[keys.length - 1] : null;
+    if(u._lastNutrDate) u._events.push({type:'nutrition', title:'Logged nutrition', detail:u._lastNutrDate, time:Date.parse(u._lastNutrDate)||ts(d.lastModified)});
     u.sync = Math.max(u.sync, ts(d.lastModified));
   });
   await scan('userBills',  (u,d) => {
@@ -736,10 +798,14 @@ async function loadData(){
     u._tripCount = trips.length;
     u._legacyBillCount = history.length;
     u._memberCount = trips.reduce((sum,t)=>sum + (Array.isArray(t.members) ? t.members.length : 0), 0);
+    const lastLegacy = history.length ? history[history.length-1] : null;
+    const lastTrip = trips.length ? trips[trips.length-1] : null;
+    if(lastLegacy) u._events.push({type:'bill', title:'Saved bill', detail:lastLegacy.billName || (lastLegacy.state && lastLegacy.state.billName) || 'Untitled bill', time:ts(lastLegacy.savedAt)||Date.parse(lastLegacy.savedAt)||ts(d.lastModified)});
+    else if(lastTrip) u._events.push({type:'bill', title:'Updated trip', detail:lastTrip.name || 'Untitled trip', time:ts(lastTrip.updatedAt)||ts(lastTrip.createdAt)||ts(d.lastModified)});
     u.sync = Math.max(u.sync, ts(d.lastModified));
   });
-  await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; u.sync = Math.max(u.sync, ts(d.lastModified)); });
-  await scan('userProfiles',(u,d) => { u.name = d.name || null; u.email = d.email || null; u.sync = Math.max(u.sync, ts(d.lastSeen)); });
+  await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; if(u.places) u._events.push({type:'place', title:'Saved places', detail:u.places+' places', time:ts(d.lastModified)}); u.sync = Math.max(u.sync, ts(d.lastModified)); });
+  await scan('userProfiles',(u,d) => { u.name = d.name || null; u.email = d.email || null; if(ts(d.lastSeen)) u._events.push({type:'profile', title:'User active', detail:d.email || d.name || 'Profile seen', time:ts(d.lastSeen)}); u.sync = Math.max(u.sync, ts(d.lastSeen)); });
   try{
     const links = await getDocs(collection(db, 'shareLinks'));
     links.forEach(s => {
@@ -860,7 +926,7 @@ function render(){
       <div class="row body" onclick="toggleDrawer('${u.uid}')">
         <div class="user">
           <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
-          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><span class="uid">${u.uid.slice(0,10)}…</span><div class="apps">${apps}</div></div>
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><span class="uid">${u.uid.slice(0,10)}…</span><div class="apps">${apps}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
         ${m(u.nutr,'Nutrition days','nutr')}${m(u.bills,'Bills','bills')}${m(u.places,'Places','places')}
         <div class="sync ${cls}">${s}<span class="abs">${abs}</span><span class="drawer-arrow">▶</span></div>
@@ -870,6 +936,7 @@ function render(){
     }).join('');
   }
   renderCharts();
+  renderActivityFeed();
   renderBillsTab();
   renderNutrTab();
 }
@@ -916,6 +983,101 @@ function renderCharts(){
 }
 
 
+function feedIcon(type){ return ({nutrition:'🥗', bill:'🧾', place:'📍', profile:'👤', share:'🔗'}[type] || '•'); }
+function eventTimeLabel(t){ const r = rel(t||0); return r[0] || '—'; }
+function renderActivityFeed(){
+  const feed = $('activity-feed');
+  if(!feed) return;
+  const events = [];
+  DATA.forEach(u => {
+    (u._events||[]).forEach(ev => {
+      if(!ev.time) return;
+      events.push({ ...ev, uid:u.uid, user:u.name||u.email||u.uid.slice(0,10)+'…', email:u.email||'' });
+    });
+  });
+  events.sort((a,b)=>(b.time||0)-(a.time||0));
+  const top = events.slice(0,10);
+  $('activity-count').textContent = top.length ? top.length + ' recent' : '';
+  if(!top.length){ feed.innerHTML = '<div class="empty" style="padding:12px 0">No recent activity yet.</div>'; return; }
+  feed.innerHTML = top.map(ev => `<div class="feed-item">
+    <div class="feed-ico">${feedIcon(ev.type)}</div>
+    <div class="feed-main"><b>${escAdm(ev.user)} · ${escAdm(ev.title)}</b><span>${escAdm(ev.detail||ev.email||ev.uid)}</span><button type="button" class="profile-mini" onclick="openUserProfile('${ev.uid}')">OPEN PROFILE</button></div>
+    <div class="feed-time">${eventTimeLabel(ev.time)}</div>
+  </div>`).join('');
+}
+
+function fmtFull(t){
+  if(!t) return '—';
+  const ms = ts(t) || Date.parse(t) || (typeof t === 'number' ? t : 0);
+  return ms ? new Date(ms).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : String(t);
+}
+function userLabel(u){ return u ? (u.name || u.email || u.uid.slice(0,12)+'…') : 'Unknown user'; }
+function profileStat(k,v){ return `<div class="uprof-stat"><div class="k">${escAdm(k)}</div><div class="v">${escAdm(v)}</div></div>`; }
+function timelineItem(time,title,detail){ return `<div class="timeline-item"><div class="timeline-time">${escAdm(time||'—')}</div><div class="timeline-text">${escAdm(title)}${detail?`<span>${escAdm(detail)}</span>`:''}</div></div>`; }
+
+window.openUserProfile = async function(uid){
+  const u = DATA.find(x=>x.uid===uid) || {uid};
+  $('uprof-name').textContent = userLabel(u);
+  $('uprof-email').textContent = u.email || 'No email in profile data';
+  $('uprof-uid').textContent = 'uid: ' + uid;
+  const av = $('uprof-avatar'); av.style.background = colorFor(uid); av.textContent = (userLabel(u)[0]||'?').toUpperCase();
+  $('uprof-body').innerHTML = '<div class="drawer-loading">Loading profile…</div>';
+  $('uprof').classList.remove('hidden');
+  try{
+    const [nutrSnap,billsSnap,placesSnap,profileSnap,shareSnap] = await Promise.all([
+      getDoc(doc(db,'users',uid)).catch(()=>null),
+      getDoc(doc(db,'userBills',uid)).catch(()=>null),
+      getDoc(doc(db,'userPlaces',uid)).catch(()=>null),
+      getDoc(doc(db,'userProfiles',uid)).catch(()=>null),
+      getDocs(query(collection(db,'shareLinks'),where('createdBy','==',uid))).catch(()=>null),
+    ]);
+    const nutr = nutrSnap && nutrSnap.exists() ? nutrSnap.data() : {};
+    const bills = billsSnap && billsSnap.exists() ? billsSnap.data() : {};
+    const places = placesSnap && placesSnap.exists() ? placesSnap.data() : {};
+    const prof = profileSnap && profileSnap.exists() ? profileSnap.data() : {};
+    const days = nutr.days || {};
+    const dayKeys = Object.keys(days).sort();
+    const trips = Array.isArray(bills.trips) ? bills.trips : [];
+    const history = Array.isArray(bills.history) ? bills.history : [];
+    const savedIds = Array.isArray(places.savedIds) ? places.savedIds : [];
+    const shareCount = shareSnap ? shareSnap.size : 0;
+    const billTotal = history.reduce((sum,b)=>{
+      const foods = b && b.state && Array.isArray(b.state.foods) ? b.state.foods : [];
+      return sum + foods.reduce((s,f)=>s+(parseFloat(f.price)||0),0);
+    },0);
+    const events = [];
+    if(prof.lastSeen) events.push({time:ts(prof.lastSeen), title:'Last seen', detail:prof.email||prof.name||''});
+    if(dayKeys.length) events.push({time:Date.parse(dayKeys[dayKeys.length-1])||0, title:'Latest nutrition log', detail:dayKeys[dayKeys.length-1]});
+    history.slice(-5).reverse().forEach(b=>events.push({time:Date.parse(b.savedAt)||ts(b.savedAt)||0, title:'Saved bill: '+(b.billName || (b.state&&b.state.billName) || 'Untitled'), detail:fmtFull(b.savedAt)}));
+    trips.slice(-5).reverse().forEach(t=>events.push({time:ts(t.updatedAt)||ts(t.createdAt)||0, title:'Trip: '+(t.name||'Untitled'), detail:(Array.isArray(t.members)?t.members.length:0)+' members'}));
+    if(savedIds.length) events.push({time:ts(places.lastModified)||0, title:'Pumgoda saved places', detail:savedIds.length+' saved IDs'});
+    if(shareCount) events.push({time:0, title:'Share links created', detail:String(shareCount)});
+    events.sort((a,b)=>(b.time||0)-(a.time||0));
+    const timeline = events.length ? events.map(e=>timelineItem(e.time?eventTimeLabel(e.time):'—', e.title, e.detail)).join('') : '<div class="ds-empty">No timeline events available.</div>';
+    $('uprof-body').innerHTML = `
+      <div class="uprof-stats">
+        ${profileStat('Nutrition days', dayKeys.length)}
+        ${profileStat('Trips', trips.length)}
+        ${profileStat('Saved bills', history.length)}
+        ${profileStat('Bill total', billTotal ? '฿'+billTotal.toLocaleString('en',{maximumFractionDigits:0}) : '—')}
+        ${profileStat('Share links', shareCount)}
+        ${profileStat('Saved places', savedIds.length)}
+      </div>
+      <div class="uprof-section"><h4>Apps used</h4><div class="apps">${userApps({nutr:dayKeys.length,bills:trips.length||history.length,places:savedIds.length}) || '<span class="chip">NO DATA</span>'}</div></div>
+      <div class="uprof-section"><h4>Activity timeline</h4><div class="timeline">${timeline}</div></div>
+      <div class="uprof-section"><h4>Raw profile summary</h4>
+        <div class="drawer-row"><span class="dk">Name</span><span class="dv">${escAdm(prof.name || u.name || '—')}</span></div>
+        <div class="drawer-row"><span class="dk">Email</span><span class="dv">${escAdm(prof.email || u.email || '—')}</span></div>
+        <div class="drawer-row"><span class="dk">Last seen</span><span class="dv">${escAdm(fmtFull(prof.lastSeen || u.sync))}</span></div>
+      </div>`;
+  }catch(e){
+    $('uprof-body').innerHTML = `<div class="drawer-loading" style="color:var(--red)">Profile failed to load: ${escAdm(e.code||e.message||String(e))}</div>`;
+  }
+};
+function closeUserProfile(){ $('uprof').classList.add('hidden'); }
+$('uprof-x').addEventListener('click', closeUserProfile);
+$('uprof-close').addEventListener('click', closeUserProfile);
+$('uprof').addEventListener('click', e => { if(e.target.id === 'uprof') closeUserProfile(); });
 
 
 // ---- tabs ----
@@ -1021,15 +1183,8 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
               <div class="hint">TAP TO SEE TRIP DETAILS</div>
             </button>
             <div class="bill-drill">
-              <div class="trip-card">
-                <div class="bill-form-label">Trip setup</div>
-                <div class="bill-kv">
-                  <span class="k">Trip name</span><span class="v">${nm}</span>
-                  <span class="k">Bills in trip</span><span class="v">${billsInTrip}</span>
-                </div>
-                <div class="bill-form-label" style="margin-top:14px">Members</div>
-                <div class="member-chips">${chipList(members)}</div>
-              </div>
+              <div class="bill-detail-line"><span class="k">Members</span><span class="v">${memberList}</span></div>
+              <div class="bill-detail-line"><span class="k">Bills in trip</span><span class="v">${billsInTrip}</span></div>
             </div>
           </div>`;
         }).join('');
@@ -1044,10 +1199,6 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
         const recentBills = [...bills].reverse().slice(0,3);
         const money = (n) => { const x=parseFloat(n); return Number.isFinite(x) ? '฿'+x.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2}) : '—'; };
         const arrText = (v) => Array.isArray(v) ? v.filter(Boolean).join(', ') : (v || '—');
-        const chipList = (items, cls='member-chip') => {
-          const arr = Array.isArray(items) ? items.filter(Boolean) : (items ? [items] : []);
-          return arr.length ? arr.map(x=>`<span class="${cls}">${escAdm(x)}</span>`).join('') : '<span class="member-chip">—</span>';
-        };
         const billRows = recentBills.map((b,idx)=>{
           const s      = b.state || {};
           const nm     = escAdm(b.billName || s.billName || 'Untitled');
@@ -1065,53 +1216,34 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
           const foodRows = foods.length ? foods.map((f,i)=>{
             const fname = escAdm(f.name || f.foodName || f.title || ('Item '+(i+1)));
             const price = money(f.price || f.amount || f.total);
-            const paidByRaw = f.paidBy || f.payer || f.owner || '—';
-            const sharedRaw = f.sharedBy || f.eaters || f.members || f.splitWith || f.people;
+            const paidBy = escAdm(f.paidBy || f.payer || f.owner || '—');
+            const sharedBy = escAdm(arrText(f.sharedBy || f.eaters || f.members || f.splitWith || f.people));
             const qty = f.qty || f.quantity || '';
-            const notes = f.note || f.notes || f.remark || '';
-            return `<div class="food-card">
-              <div class="food-card-head"><div class="food-card-name">${fname}${qty?` × ${escAdm(qty)}`:''}</div><div class="food-card-price">${price}</div></div>
-              <div class="food-card-row"><span class="k">Paid by</span><span class="v">${escAdm(paidByRaw)}</span></div>
-              <div class="food-card-row"><span class="k">Shared by</span><span class="v"><span class="share-chips">${chipList(Array.isArray(sharedRaw)?sharedRaw:(sharedRaw?String(sharedRaw).split(',').map(x=>x.trim()):[]),'share-chip')}</span></span></div>
-              ${notes ? `<div class="food-card-row"><span class="k">Note</span><span class="v">${escAdm(notes)}</span></div>` : ''}
+            return `<div class="food-detail">
+              <div class="food-head"><span>${fname}${qty?` × ${escAdm(qty)}`:''}</span><span>${price}</span></div>
+              <div class="food-meta">Paid by: ${paidBy}</div>
+              <div class="food-meta">Shared by: ${sharedBy}</div>
             </div>`;
           }).join('') : '<div class="ds-empty">No item details saved.</div>';
-          const payDetails = `
-            <div class="bill-kv">
-              <span class="k">Method</span><span class="v">${shareMethod}</span>
-              ${hasPromptPay ? `<span class="k">PromptPay</span><span class="v">${escAdm(s.promptPay)}</span>` : ''}
-              ${hasBankInfo ? `<span class="k">Bank info</span><span class="v">${escAdm(s.bankInfo)}</span>` : ''}
-            </div>`;
+          const payDetails = [
+            hasPromptPay ? `<div class="bill-detail-line"><span class="k">PromptPay</span><span class="v">${escAdm(s.promptPay)}</span></div>` : '',
+            hasBankInfo ? `<div class="bill-detail-line"><span class="k">Bank info</span><span class="v">${escAdm(s.bankInfo)}</span></div>` : ''
+          ].join('');
           return `<div class="bill-item-detail">
             <button type="button" class="bill-drill-toggle" onclick="event.stopPropagation(); this.closest('.bill-item-detail').classList.toggle('open'); this.querySelector('.hint').textContent = this.closest('.bill-item-detail').classList.contains('open') ? 'TAP TO HIDE DETAILS' : 'TAP TO SEE BILL DETAILS';">
               <div class="bid-header"><span class="bill-name">${nm}</span><span class="bill-meta">${date}</span></div>
-              <div class="bid-row"><span class="dk">People</span><span class="dv-sm">${membersRaw.length} people</span></div>
+              <div class="bid-row"><span class="dk">People</span><span class="dv-sm">${members}</span></div>
               <div class="bid-row"><span class="dk">Items / Total</span><span class="dv-sm">${itemCount} items · ${totalStr}</span></div>
               <div class="bid-row"><span class="dk">Payment method</span><span class="dv-sm">${shareMethod}</span></div>
               <div class="hint">TAP TO SEE BILL DETAILS</div>
             </button>
             <div class="bill-drill">
-              <div class="bill-form-card">
-                <div class="bill-form-head">
-                  <div>
-                    <div class="bill-form-title">${nm}</div>
-                    <div class="bill-form-date">Saved ${escAdm(savedAtFull)}</div>
-                  </div>
-                  <div class="bill-form-total">${totalStr}</div>
-                </div>
-                <div class="bill-form-section">
-                  <div class="bill-form-label">Members</div>
-                  <div class="member-chips">${chipList(membersRaw)}</div>
-                </div>
-                <div class="bill-form-section">
-                  <div class="bill-form-label">Payment information</div>
-                  ${payDetails}
-                </div>
-                <div class="bill-form-section">
-                  <div class="bill-form-label">Food / item list</div>
-                  ${foodRows}
-                </div>
-              </div>
+              <div class="bill-detail-line"><span class="k">Saved at</span><span class="v">${escAdm(savedAtFull)}</span></div>
+              <div class="bill-detail-line"><span class="k">Members</span><span class="v">${members}</span></div>
+              <div class="bill-detail-line"><span class="k">Total</span><span class="v">${totalStr}</span></div>
+              ${payDetails}
+              <div class="ds-sub">Items</div>
+              ${foodRows}
             </div>
           </div>`;
         }).join('');
@@ -1204,7 +1336,7 @@ function renderBillsTab(){
       <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','bills')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','bills')}">
         <div class="user">
           <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
-          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div></div>
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
         <div class="metric"><span class="lab">Trips / bills</span><span>${u.bills}</span><span class="cell-sub">${escAdm(detail)}</span></div>
         <div class="metric"><span class="lab">Mode</span><span style="font-size:11px;color:var(--muted)">${escAdm(mode)}</span></div>
@@ -1246,7 +1378,7 @@ function renderNutrTab(){
       <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','nutr')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','nutr')}">
         <div class="user">
           <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
-          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div></div>
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
         <div class="metric"><span class="lab">Days logged</span><span>${u.nutr}</span></div>
         <div class="metric"><span class="lab">Last logged</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">${escAdm(lastDate)}</span></div>
