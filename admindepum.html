@@ -306,6 +306,56 @@ html.light body{
 .placeholder-tab .ph-ico { font-size:40px; opacity:.4; }
 .placeholder-tab p { font-size:13px; }
 
+
+
+/* ---- mobile compatibility hotfix ---- */
+@media (max-width:720px){
+  .wrap{padding:12px 12px 44px;max-width:100%;overflow-x:hidden}
+  .topbar{display:grid;grid-template-columns:44px 1fr;gap:10px 12px;align-items:center;padding-bottom:14px}
+  .topbar>.mark{width:44px;height:44px;font-size:22px}
+  .brand h1{font-size:20px;line-height:1.05;word-break:normal}
+  .brand .sub{font-size:12px;line-height:1.25}
+  .who{grid-column:1 / -1;margin-left:0;width:100%;display:grid;grid-template-columns:1fr 40px auto auto;gap:8px;align-items:center}
+  .who .ident{text-align:left;min-width:0}
+  .who .ident b,.who .ident span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .who .avatar{width:40px;height:40px}
+  .who .btn{padding:9px 10px;white-space:nowrap}
+
+  .tab-bar{overflow-x:auto;overflow-y:hidden;white-space:nowrap;gap:8px;margin:4px -12px 18px;padding:0 12px 14px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tab-bar::-webkit-scrollbar{display:none}
+  .tab-bar button{flex:0 0 auto;min-width:max-content;padding:10px 14px;font-size:13px}
+
+  .tab-summary,.stats,.charts{grid-template-columns:1fr 1fr;gap:10px}
+  .stat{padding:13px 14px}.stat .v{font-size:28px}.stat .k{font-size:10px}
+  .chart{padding:14px}
+  .toolbar{gap:8px}.search{flex:1 1 100%;min-width:0}.refreshed{width:100%;text-align:right}
+
+  .panel{border-radius:14px;overflow:hidden}
+  .row.body,.row.body[style],.row.body.prow,.row.body.prow[style]{display:grid!important;grid-template-columns:1fr!important;gap:0!important;padding:0!important}
+  .row.body>.user{padding:14px 14px 10px;min-width:0}
+  .ua{width:42px;height:42px;font-size:15px}
+  .uinfo{min-width:0;width:100%}
+  .uinfo b,.uinfo .em,.uinfo .uid{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .apps{flex-wrap:wrap}
+  .metric{display:flex!important;justify-content:space-between;align-items:center;gap:12px;font-size:14px;border-top:1px dashed var(--line-soft);padding:10px 14px!important;min-width:0}
+  .metric .lab{display:inline!important;color:var(--muted);font-size:12.5px;font-weight:700;flex:0 0 auto}
+  .metric>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:right}
+  .sync{display:flex!important;justify-content:space-between;align-items:center;gap:10px;border-top:1px dashed var(--line-soft);padding:10px 14px!important;font-size:13px;min-width:0}
+  .sync .abs{display:inline;margin-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .drawer-slot{padding:0 10px 12px}
+  .drawer-body{grid-template-columns:1fr!important;padding:14px;gap:14px}
+
+  .prow .pname,.prow .ptype,.prow .preg,.prow .ppaw,.prow .pverif{padding:10px 14px;border-top:1px dashed var(--line-soft)}
+  .prow .pname{border-top:0;padding-top:14px}
+  .pname b,.pname .pth,.pname .pid{white-space:normal;overflow-wrap:anywhere}
+}
+
+@media (max-width:420px){
+  .tab-summary,.stats,.charts{grid-template-columns:1fr}
+  .who{grid-template-columns:1fr 38px auto;grid-auto-flow:row}
+  .who #signoutBtn{grid-column:1 / -1;width:100%}
+}
+
 </style>
   <script>try{if(localStorage.getItem('admin_theme')==='light')document.documentElement.classList.add('light');}catch(e){}</script>
 </head>
