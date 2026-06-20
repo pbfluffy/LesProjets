@@ -29,6 +29,7 @@ import {
   onSnapshot,
   collection,
   deleteDoc,
+  arrayUnion,
 } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js'
 
 const firebaseConfig = {
@@ -45,4 +46,4 @@ const app = initializeApp(firebaseConfig)
 export const db = getDatabase(app)
 export const auth = getAuth(app)
 export const firestore = getFirestore(app)
-export { ref, push, set, remove, onValue, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, doc, getDoc, setDoc, serverTimestamp, onSnapshot, collection, deleteDoc }
+export { ref, push, set, remove, onValue, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, doc, getDoc, setDoc, serverTimestamp, onSnapshot, collection, deleteDoc, arrayUnion }
