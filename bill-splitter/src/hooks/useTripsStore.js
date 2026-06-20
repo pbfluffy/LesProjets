@@ -37,7 +37,7 @@ export function calcBillResult(entry) {
 
   if (entry.tab === 'sushi') {
     // Sushiro: accumulate subtotal first, multiply once (mirrors BillHistory entryTotal)
-    const PLATE_PRICES = { white:30, red:40, silver:60, gold:80, black:120 }
+    const PLATE_PRICES = { white:30, red:40, silver:60, gold:80, black:100 }
     const people = Array.isArray(s.people) ? s.people : []
     const plates = s.plates || {}
     const snacks = s.snacks || {}
