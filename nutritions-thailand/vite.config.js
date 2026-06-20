@@ -27,6 +27,19 @@ export default defineConfig({
       injectRegister: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+        // Fix P1: runtimeCaching prevents "additionalManifestEntries must be an
+        // array" PWA generation error that broke nutritions-thailand builds
+        // (bill-splitter already had this; nutritions-thailand was missing it).
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'nutritions-thailand-pages',
+              expiration: { maxEntries: 10, maxAgeSeconds: 7 * 24 * 60 * 60 },
+            },
+          },
+        ],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
       },
