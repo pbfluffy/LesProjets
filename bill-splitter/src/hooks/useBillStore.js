@@ -15,6 +15,9 @@ export function useBillStore(initial) {
   const [bankInfo, setBankInfo] = useState(initial?.bankInfo ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [currency, setCurrency] = useState(normaliseCurrency(initial?.currency) ?? DEFAULT_CURRENCY)
+  const [billOwner, setBillOwner] = useState(
+    initial?.members?.includes(initial?.billOwner) ? initial.billOwner : (initial?.members?.[0] ?? '')
+  )
 
   // Feature #76 Phase A — On new bill (no initial.members), auto-seed the
   // first member with the signed-in user's display name once auth resolves.
@@ -28,6 +31,10 @@ export function useBillStore(initial) {
     return off
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    setBillOwner(owner => members.length === 0 ? '' : (members.includes(owner) ? owner : members[0]))
+  }, [members])
 
   const addMember = useCallback((name) => {
     const trimmed = name.trim()
@@ -127,13 +134,13 @@ export function useBillStore(initial) {
     const rawGrand = subtotal * multiplier
     // #88 — reconcile per-person amounts so the column always sums exactly to the
     // grand total (fixes BUG-19). When roundTotalEnabled, the grand total snaps to
-    // the nearest whole baht. Either way the bill owner (members[0], the auto-seeded
-    // creator) absorbs the rounding delta. Guard: if the owner's natural share is too
+    // the nearest whole baht. Either way the selected bill owner absorbs the rounding
+    // delta. Guard: if the owner's natural share is too
     // small to absorb a round-down, clamp owner to >=0 and let the total settle at
     // what is actually owed rather than display a negative amount.
     const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100
     let grandTotal = roundTotalEnabled ? Math.round(rawGrand) : round2(rawGrand)
-    const owner = members[0]
+    const owner = members.includes(billOwner) ? billOwner : members[0]
     const totals = {}
     if (members.length > 0) {
       let othersSum = 0
@@ -154,7 +161,7 @@ export function useBillStore(initial) {
       vat: vatEnabled ? subtotal * (1 + scFraction) * 0.07 : 0,
       grandTotal, multiplier,
     }
-  }, [members, foods, vatEnabled, serviceChargeEnabled, serviceChargeRate, roundTotalEnabled])
+  }, [members, foods, vatEnabled, serviceChargeEnabled, serviceChargeRate, roundTotalEnabled, billOwner])
 
-  return { billName, setBillName, members, addMember, removeMember, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, duplicateFood, restoreFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, roundTotalEnabled, setRoundTotalEnabled, currency, setCurrency, calculate }
+  return { billName, setBillName, members, addMember, removeMember, billOwner, setBillOwner, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, duplicateFood, restoreFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, roundTotalEnabled, setRoundTotalEnabled, currency, setCurrency, calculate }
 }
