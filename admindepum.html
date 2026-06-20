@@ -360,6 +360,13 @@ html.light body{
 /* ---- backyard ---- */
 .backyard-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
 .backyard-board h3{font-size:14px;margin:0 0 10px;color:var(--text)}
+.sl-row{display:grid;grid-template-columns:90px 1fr 80px 72px 52px 32px;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line-soft);font-size:12px}
+.sl-row:last-child{border-bottom:none}
+.sl-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.sl-status-active{color:var(--green);font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.sl-status-expired{color:var(--red);font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.sl-del{background:none;border:1px solid var(--line);color:var(--faint);border-radius:6px;cursor:pointer;padding:2px 6px;font-size:11px}
+.sl-del:hover{border-color:var(--red);color:var(--red)}
 .backyard-row{grid-template-columns:60px minmax(140px,1fr) minmax(110px,.8fr) .85fr .7fr .75fr .95fr}
 .rank-badge{
   font-family:'JetBrains Mono',monospace;font-weight:800;color:var(--accent);
@@ -1308,7 +1315,7 @@ function switchTab(name){
     if(pane) pane.classList.toggle('hidden', !on);
   });
   localStorage.setItem('admin_tab', name);
-  if(name === 'bills') renderBillsTab();
+  if(name === 'bills'){ renderBillsTab(); loadShareLinks(); }
   if(name === 'nutrition') renderNutrTab();
   if(name === 'pumgoda') renderPlaces();
   if(name === 'backyard') renderBackyardTab();
@@ -1574,6 +1581,76 @@ function renderBackyardTab(){
   renderBoard(all, 'backyard-leaderboard-rows');
   if(!BACKYARD.loaded && !BACKYARD.loading) loadBackyardData();
 }
+
+let SHARE_LINKS = [];
+
+async function loadShareLinks(){
+  try {
+    const snap = await getDocs(collection(db,'shareLinks'));
+    const now = Date.now();
+    SHARE_LINKS = snap.docs.map(d => {
+      const data = d.data();
+      const exp = data.expiresAt?.toMillis?.() || 0;
+      const created = data.createdAt?.toMillis?.() || 0;
+      return { id:d.id, createdBy:data.createdBy||null, payloadLen:data.payload?.length||0, exp, created, expired: exp < now };
+    }).sort((a,b) => b.created - a.created);
+  } catch(e) { console.warn('loadShareLinks:', e.code||e.message); }
+  renderShareLinks();
+}
+
+function renderShareLinks(){
+  const el = $('share-links-rows');
+  const statsEl = $('share-links-stats');
+  const btn = $('delete-expired-btn');
+  if(!el) return;
+  const now = Date.now();
+  const expired = SHARE_LINKS.filter(l=>l.expired).length;
+  const active = SHARE_LINKS.length - expired;
+  if(statsEl) statsEl.textContent = `${SHARE_LINKS.length} total · ${active} active · ${expired} expired`;
+  if(btn) btn.style.display = expired > 0 ? '' : 'none';
+  if(!SHARE_LINKS.length){ el.innerHTML = '<div style="padding:16px;color:var(--faint);font-size:12px;text-align:center">No share links yet.</div>'; return; }
+  const fmtDate = ms => ms ? new Date(ms).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
+  el.innerHTML = `<div class="sl-row" style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:6px 12px;border-bottom:1px solid var(--line)">
+    <div>ID</div><div>User</div><div>Created</div><div>Status</div><div>Size</div><div></div>
+  </div>` + SHARE_LINKS.map(l => {
+    const user = DATA.find(u => u.uid === l.createdBy);
+    const userName = escAdm((user ? (user.name||user.email||'') : (l.createdBy||'—')).slice(0,20));
+    const now2 = Date.now();
+    const statusHtml = l.expired
+      ? '<span class="sl-status-expired">Expired</span>'
+      : `<span class="sl-status-active">${Math.ceil((l.exp-now2)/86400000)}d left</span>`;
+    return `<div class="sl-row">
+      <div class="sl-id">${escAdm(l.id)}</div>
+      <div style="color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${userName}</div>
+      <div style="color:var(--faint);font-size:11px">${fmtDate(l.created)}</div>
+      <div>${statusHtml}</div>
+      <div style="color:var(--faint);font-size:11px">${(l.payloadLen/1024).toFixed(1)}KB</div>
+      <div><button class="sl-del" onclick="event.stopPropagation();window.deleteLink('${escAdm(l.id)}')">✕</button></div>
+    </div>`;
+  }).join('');
+}
+
+window.deleteLink = async function(id){
+  if(!confirm('Delete share link ' + id + '?')) return;
+  try {
+    await deleteDoc(doc(db,'shareLinks',id));
+    SHARE_LINKS = SHARE_LINKS.filter(l => l.id !== id);
+    renderShareLinks();
+    renderBillsTab();
+  } catch(e) { alert('Delete failed: ' + (e.code||e.message)); }
+};
+
+window.deleteExpiredLinks = async function(){
+  const expired = SHARE_LINKS.filter(l=>l.expired);
+  if(!expired.length) return;
+  if(!confirm('Delete ' + expired.length + ' expired share links?')) return;
+  try {
+    await Promise.all(expired.map(l => deleteDoc(doc(db,'shareLinks',l.id))));
+    SHARE_LINKS = SHARE_LINKS.filter(l=>!l.expired);
+    renderShareLinks();
+    renderBillsTab();
+  } catch(e) { alert('Delete failed: ' + (e.code||e.message)); }
+};
 
 async function loadBackyardData(){
   BACKYARD.loading = true;
