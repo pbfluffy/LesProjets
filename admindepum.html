@@ -785,6 +785,15 @@ onAuthStateChanged(auth, async (user) => {
   else { av.textContent = (user.displayName||'A')[0].toUpperCase(); }
   $('adminPanel').classList.toggle('hidden', !IS_OWNER);
   gateStatus('');
+  // Refresh own photoURL in userProfiles so the admin avatar stays current
+  if(user.photoURL){
+    setDoc(doc(db,'userProfiles',user.uid),{
+      photoURL: user.photoURL,
+      name: user.displayName || null,
+      email: user.email || null,
+      lastSeen: serverTimestamp(),
+    },{merge:true}).catch(()=>{});
+  }
   show('app');
   loadData();
   loadPlaces();
