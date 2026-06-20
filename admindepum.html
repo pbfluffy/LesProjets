@@ -205,6 +205,7 @@ html.light body{
   font-family:'JetBrains Mono',monospace; font-size:12px;
   color:var(--faint); padding:14px 2px;
 }
+.drawer-body.drawer-single { grid-template-columns: 1fr !important; }
 .drawer-body {
   display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;
   background:var(--bg-2); border:1px solid var(--line);
@@ -639,6 +640,7 @@ html.light body{
           <div id="backyard-leaderboard-rows"></div>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -1283,6 +1285,7 @@ $('uprof').addEventListener('click', e => { if(e.target.id === 'uprof') closeUse
 const TABS = ['overall','bills','nutrition','pumgoda','backyard'];
 function switchTab(name){
   if(!TABS.includes(name)) name = 'overall';
+  Object.keys(DRAWER_CACHE).forEach(k => delete DRAWER_CACHE[k]);
   TABS.forEach(t => {
     const btn = document.getElementById('tab-btn-'+t);
     const pane = document.getElementById('tab-pane-'+t);
@@ -1501,14 +1504,16 @@ function renderBackyardTab(){
     ['Best wave', bestWave || '—', ''],
     ['Total rebirths', rebirthTotal, ''],
   ]);
-  const el = $('backyard-leaderboard-rows');
-  if(el){
+
+  function renderBoard(rows, elId){
+    const el = $(elId);
+    if(!el) return;
     if(BACKYARD.loading){
-      el.innerHTML = '<div class="backyard-empty">Loading Backyard data…</div>';
-    } else if(!all.length){
+      el.innerHTML = '<div class="backyard-empty">Loading…</div>';
+    } else if(!rows.length){
       el.innerHTML = '<div class="backyard-empty">'+(BACKYARD.error ? escAdm(BACKYARD.error) : 'No scores yet.')+'</div>';
     } else {
-      el.innerHTML = all.slice(0,25).map((r,i)=>{
+      el.innerHTML = rows.slice(0,25).map((r,i)=>{
         const d = r.data || {};
         const player = backyardPlayerLabel(r);
         const score = Number(d.score || d.bestScore || 0);
@@ -1526,6 +1531,7 @@ function renderBackyardTab(){
       }).join('');
     }
   }
+  renderBoard(all, 'backyard-leaderboard-rows');
   if(!BACKYARD.loaded && !BACKYARD.loading) loadBackyardData();
 }
 
@@ -1534,9 +1540,9 @@ async function loadBackyardData(){
   BACKYARD.error = '';
   renderBackyardTab();
   try{
-    const leaderSnap = await getDocs(collection(db, 'leaderboard'));
-    const normalize = (snap) => snap.docs.map(d=>({ id:d.id, data:d.data()||{} }))
-      .sort((a,b)=>Number((b.data||{}).score || (b.data||{}).bestScore || 0) - Number((a.data||{}).score || (a.data||{}).bestScore || 0));
+    const leaderSnap = await getDocs(collection(db, 'leaderboard')).catch(()=>null);
+    const normalize = (snap) => snap ? snap.docs.map(d=>({ id:d.id, data:d.data()||{} }))
+      .sort((a,b)=>Number((b.data||{}).score || (b.data||{}).bestScore || 0) - Number((a.data||{}).score || (a.data||{}).bestScore || 0)) : [];
     BACKYARD.leaderboard = normalize(leaderSnap);
     BACKYARD.loaded = true;
   }catch(e){
