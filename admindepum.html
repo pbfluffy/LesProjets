@@ -899,7 +899,7 @@ async function renderAdminsPanel(){
 
   let html = seclblA('Current admins') + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px">';
   const oNm = (ME && ME.displayName) || 'Owner';
-  html += ROWA + avA((oNm[0]||'A').toUpperCase(), true)
+  html += ROWA + userAvatarHtml(DATA.find(d=>d.uid===ADMIN_UID) || {uid:ADMIN_UID,name:oNm,photoURL:ME&&ME.photoURL})
     + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">'+escAdm(oNm)+' <span style="color:var(--faint);font-weight:600">· you</span></div>'
     + '<div style="'+monoA+'">'+escAdm(ADMIN_UID)+'</div></div>'
     + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#1a1408;background:var(--accent);border-radius:8px;padding:4px 9px;flex:0 0 auto">Owner</span></div>';
@@ -907,7 +907,7 @@ async function renderAdminsPanel(){
   else {
     admins.sort((a,b)=>((info(a.uid).name||a.name||a.uid)+'').localeCompare((info(b.uid).name||b.name||b.uid)+''));
     for(const a of admins){ const i=info(a.uid); const nm=i.name||a.name||'(unknown)'; const em=i.email||a.email||'';
-      html += ROWA + avA((nm[0]||'?').toUpperCase(), false)
+      html += ROWA + userAvatarHtml(Object.assign({},i,{uid:a.uid,photoURL:i.photoURL||a.photoURL}))
         + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">'+escAdm(nm)+'</div>'
         + '<div style="'+monoA+'">'+escAdm(em ? em+' · '+a.uid : a.uid)+'</div></div>'
         + '<button class="btn small admin-remove" data-uid="'+escAdm(a.uid)+'" data-name="'+escAdm(nm)+'" style="color:var(--red);border-color:#5a2c22;background:transparent">Remove</button></div>'; }
@@ -921,7 +921,7 @@ async function renderAdminsPanel(){
     html += '<div style="display:flex;flex-direction:column;gap:8px">';
     cand.sort((a,b)=>((a.name||a.email||'')+'').localeCompare((b.name||b.email||'')+''));
     for(const c of cand){ const nm=c.name||c.email||c.uid;
-      html += ROWA + avA((nm[0]||'?').toUpperCase(), false)
+      html += ROWA + userAvatarHtml(Object.assign({},c))
         + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600">'+escAdm(c.name||'(no name)')+'</div>'
         + '<div style="'+monoA+'">'+escAdm((c.email||'')+' · '+c.uid)+'</div></div>'
         + '<button class="btn small admin-add" data-uid="'+escAdm(c.uid)+'" data-name="'+escAdm(c.name||'')+'" data-email="'+escAdm(c.email||'')+'" style="background:var(--accent);color:#1a1408;border-color:var(--accent)">Make admin</button></div>'; }
