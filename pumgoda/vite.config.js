@@ -19,19 +19,19 @@ export default defineConfig({
       // (updateSW posts SKIP_WAITING). cleanupOutdatedCaches prevents orphan
       // precache piles. Pumgoda uses base: './' (relative); the plugin respects
       // this — the SW registers at the served path scope (/pumgoda/).
+      //
+      // Fix P1: base: './' causes vite-plugin-pwa v0.20.x to run the Workbox
+      // glob scan before Vite has flushed build output, so globPatterns always
+      // finds 0 entries and the build fails. Dropping globPatterns (no precache
+      // manifest) while keeping runtimeCaching is the correct workaround —
+      // navigation requests are still cached NetworkFirst and the SW is still
+      // generated and registered. bill-splitter uses an absolute base so it
+      // does not hit this issue.
       registerType: 'prompt',
       manifest: false,
       injectRegister: false,
       workbox: {
-        // Fix P1a: explicit globDirectory needed because base: './' causes
-        // vite-plugin-pwa v0.20.5 to resolve the wrong precache root, resulting
-        // in "0 entries" and a build failure. bill-splitter uses a absolute base
-        // so it doesn't need this; pumgoda does.
-        globDirectory: 'dist',
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
-        // Fix P1b: runtimeCaching required alongside globPatterns or Workbox
-        // throws "Couldn't find configuration for either precaching or runtime
-        // caching" when globPatterns matches 0 files.
+        globPatterns: [],
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
