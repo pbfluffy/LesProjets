@@ -1384,8 +1384,10 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
       const shareLabel  = shareCount === null ? '<span style="font-size:10px;color:var(--faint)">(needs rule)</span>' : shareCount;
 
       if(hasTripMode){
-        // Trip Mode — trips have name + members
+        // Trip Mode — trips have name + members + billIds (references to history entries)
         const trips = d.trips;
+        const historyMap = {};
+        (Array.isArray(d.history) ? d.history : []).forEach(b => { if(b && b.id) historyMap[b.id] = b; });
         const groupSizes = trips.map(t=>Array.isArray(t.members)?t.members.length:0).filter(n=>n>0);
         const avgGroup = groupSizes.length ? (groupSizes.reduce((a,b)=>a+b,0)/groupSizes.length).toFixed(1) : '—';
         const recentTrips = [...trips].reverse().slice(0,3);
@@ -1394,9 +1396,11 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
           const members = Array.isArray(t.members) ? t.members : [];
           const ppl = members.length ? members.length+' people' : '—';
           const memberList = members.length ? escAdm(members.join(', ')) : '—';
-          const tripBills = Array.isArray(t.bills) ? t.bills : (Array.isArray(t.history) ? t.history : []);
-          const billsInTrip = tripBills.length;
-          const tripBillCards = tripBills.length ? tripBills.map(renderBillFormCard).join('') : '<div class="ds-empty">No bill records saved in this trip.</div>';
+          // billIds are references — look them up in history
+          const billIds = Array.isArray(t.billIds) ? t.billIds : (Array.isArray(t.bills) ? t.bills : []);
+          const tripBills = billIds.map(id => historyMap[id]).filter(Boolean);
+          const billsInTrip = billIds.length;
+          const tripBillCards = tripBills.length ? tripBills.map(renderBillFormCard).join('') : (billIds.length ? '<div class="ds-empty">Bill data not in history (may be on another device).</div>' : '<div class="ds-empty">No bills added to this trip yet.</div>');
           return `<div class="bill-item-detail">
             <button type="button" class="bill-drill-toggle" onclick="event.stopPropagation(); this.closest('.bill-item-detail').classList.toggle('open'); this.querySelector('.hint').textContent = this.closest('.bill-item-detail').classList.contains('open') ? 'TAP TO HIDE DETAILS' : 'TAP TO SEE TRIP DETAILS';">
               <div class="bid-header"><span class="bill-name">${nm}</span><span class="bill-meta">${ppl}</span></div>
