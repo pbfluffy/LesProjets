@@ -1060,12 +1060,35 @@ function normalizePhotoURL(url){
   }
   return s;
 }
+function photoURLCandidates(url){
+  const raw = url ? String(url).trim() : '';
+  if(!raw) return [];
+  const out = [raw, normalizePhotoURL(raw)];
+  if(raw.includes('googleusercontent.com')){
+    const base = raw.split(/[?=]/)[0];
+    out.push(base + '=s128-c', base + '?sz=128');
+  }
+  return [...new Set(out.filter(Boolean))];
+}
+window.avatarTryNext = function(img){
+  const urls = (img.dataset.urls || '').split('|').filter(Boolean);
+  const idx = Number(img.dataset.idx || 0) + 1;
+  if(idx < urls.length){
+    img.dataset.idx = String(idx);
+    img.src = urls[idx];
+    return;
+  }
+  const p = img.parentNode;
+  img.remove();
+  p.textContent = p.dataset.initial || '·';
+  p.title = 'IMG FAIL: Photo URL found but all image variants failed';
+};
 function userAvatarHtml(u){
   const initial = escAdm(((u && (u.name || u.email)) || '·')[0].toUpperCase());
   const bg = colorFor(u && u.uid);
   const prof = u && PROFILE_MAP.get(u.uid) || {};
-  const photo = normalizePhotoURL((u && u.photoURL) || prof.photoURL || prof.photoUrl || prof.avatarUrl || prof.avatar || prof.picture);
-  return `<div class="ua${photo ? ' has-photo' : ''}" style="background:${bg}" data-initial="${initial}" title="${photo ? 'Photo URL found' : 'No photoURL saved'}">${photo ? `<img src="${escAdm(photo)}" referrerpolicy="no-referrer" onerror="const p=this.parentNode;this.remove();p.textContent=p.dataset.initial||'·';p.title='IMG FAIL: Photo URL found but image could not render';">` : initial}</div>`;
+  const urls = photoURLCandidates((u && u.photoURL) || prof.photoURL || prof.photoUrl || prof.avatarUrl || prof.avatar || prof.picture);
+  return `<div class="ua${urls.length ? ' has-photo' : ''}" style="background:${bg}" data-initial="${initial}" title="${urls.length ? 'Photo URL found' : 'No photoURL saved'}">${urls.length ? `<img src="${escAdm(urls[0])}" data-idx="0" data-urls="${escAdm(urls.join('|'))}" referrerpolicy="no-referrer" onerror="avatarTryNext(this)">` : initial}</div>`;
 }
 function chipsHtml(values, cls='member-chip'){
   const list = Array.isArray(values) ? values.filter(Boolean) : [];
@@ -1137,14 +1160,17 @@ function userLabel(u){ return u ? (u.name || u.email || u.uid.slice(0,12)+'…')
 function setProfileAvatar(el, uid, label, photoURL){
   el.innerHTML = '';
   const initial = (label && label[0] || '?').toUpperCase();
-  const photo = normalizePhotoURL(photoURL);
-  if(photo){
+  const urls = photoURLCandidates(photoURL);
+  if(urls.length){
     el.style.background = colorFor(uid);
     el.style.color = '#1a1408';
+    el.dataset.initial = initial;
     const img = document.createElement('img');
-    img.src = photo;
+    img.src = urls[0];
+    img.dataset.idx = '0';
+    img.dataset.urls = urls.join('|');
     img.referrerPolicy = 'no-referrer';
-    img.onerror = () => { el.innerHTML = ''; el.textContent = initial; el.title = 'IMG FAIL: Photo URL found but image could not render'; };
+    img.onerror = () => avatarTryNext(img);
     el.appendChild(img);
     el.title = 'Photo URL found';
   } else {
