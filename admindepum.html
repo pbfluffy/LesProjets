@@ -357,13 +357,16 @@ html.light body{
 .row.body[role="button"]{outline:none}
 .row.body[role="button"]:focus{box-shadow:inset 0 0 0 2px var(--accent)}
 
-/* ---- backyard placeholder ---- */
-.placeholder-tab {
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  min-height:200px; gap:12px; color:var(--faint);
+/* ---- backyard ---- */
+.backyard-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.backyard-board h3{font-size:14px;margin:0 0 10px;color:var(--text)}
+.backyard-row{grid-template-columns:52px 1.4fr .8fr .7fr .7fr .9fr}
+.rank-badge{
+  font-family:'JetBrains Mono',monospace;font-weight:800;color:var(--accent);
 }
-.placeholder-tab .ph-ico { font-size:40px; opacity:.4; }
-.placeholder-tab p { font-size:13px; }
+.score-strong{font-family:'JetBrains Mono',monospace;font-weight:800;color:var(--text)}
+.pid-chip{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)}
+.backyard-empty{padding:18px;color:var(--faint);font-size:13px}
 
 
 
@@ -385,6 +388,10 @@ html.light body{
   .tab-bar button{flex:0 0 auto;min-width:max-content;padding:10px 14px;font-size:13px}
 
   .tab-summary,.stats,.charts{grid-template-columns:1fr 1fr;gap:10px}
+  .backyard-grid{grid-template-columns:1fr}
+  .row.body.backyard-row,.backyard-row{grid-template-columns:44px 1.4fr .8fr .7fr!important}
+  .backyard-row > div:nth-child(5),
+  .backyard-row > div:nth-child(6){display:none}
   .stat{padding:13px 14px}.stat .v{font-size:28px}.stat .k{font-size:10px}
   .chart{padding:14px}
   .toolbar{gap:8px}.search{flex:1 1 100%;min-width:0}.refreshed{width:100%;text-align:right}
@@ -411,6 +418,8 @@ html.light body{
 
 @media (max-width:420px){
   .tab-summary,.stats,.charts{grid-template-columns:1fr}
+  .row.body.backyard-row,.backyard-row{grid-template-columns:38px 1fr .8fr!important}
+  .backyard-row > div:nth-child(4){display:none}
   .who{grid-template-columns:1fr 38px auto;grid-auto-flow:row}
   .who #signoutBtn{grid-column:1 / -1;width:100%}
 }
@@ -614,10 +623,26 @@ html.light body{
   <!-- ═══════════ TAB: BACKYARD ═══════════ -->
   <div id="tab-pane-backyard" class="tab-pane hidden">
     <div class="tab-summary" id="backyard-stats"></div>
-    <div class="placeholder-tab">
-      <div class="ph-ico">🎮</div>
-      <p style="font-weight:700;color:var(--muted)">Backyard Rampage</p>
-      <p>Leaderboard and challenge data coming soon.</p>
+    <p class="app-note">Backyard Rampage scores from the all-time leaderboard and challenge board.</p>
+    <div class="backyard-grid">
+      <div class="backyard-board">
+        <h3>All-time leaderboard</h3>
+        <div class="panel">
+          <div class="row head backyard-row">
+            <div>Rank</div><div>Player</div><div>Score</div><div>Wave</div><div>Rebirths</div><div>Updated</div>
+          </div>
+          <div id="backyard-leaderboard-rows"></div>
+        </div>
+      </div>
+      <div class="backyard-board">
+        <h3>Challenge board</h3>
+        <div class="panel">
+          <div class="row head backyard-row">
+            <div>Rank</div><div>Player</div><div>Score</div><div>Wave</div><div>Rebirths</div><div>Updated</div>
+          </div>
+          <div id="backyard-challenge-rows"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -698,6 +723,7 @@ try {
 
 
 let DATA = [];
+let BACKYARD = { loaded:false, loading:false, leaderboard:[], challengeBoard:[], error:'' };
 let sortKey = 'sync';
 
 const COLORS = ['#e8a13a','#7fb069','#d9694e','#5b9bd5','#c678dd','#e0a458','#56b6c2','#d98ba0'];
@@ -1011,6 +1037,83 @@ function fmtFull(t){
   const ms = ts(t) || Date.parse(t) || (typeof t === 'number' ? t : 0);
   return ms ? new Date(ms).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : String(t);
 }
+function billMoney(n){
+  const x = parseFloat(n);
+  return Number.isFinite(x) ? '฿'+x.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2}) : '—';
+}
+function firstFilled(obj, keys){
+  for(const k of keys){
+    const v = obj && obj[k];
+    if(v !== undefined && v !== null && String(v).trim() !== '') return v;
+  }
+  return '';
+}
+function listValue(v){
+  if(Array.isArray(v)) return v.filter(Boolean).join(', ');
+  if(v && typeof v === 'object') return Object.values(v).filter(Boolean).join(', ');
+  return v || '';
+}
+function chipsHtml(values, cls='member-chip'){
+  const list = Array.isArray(values) ? values.filter(Boolean) : [];
+  return list.length ? list.map(v=>`<span class="${cls}">${escAdm(v)}</span>`).join('') : '<span class="member-chip">—</span>';
+}
+function billKv(label, value){
+  if(value === undefined || value === null || String(value).trim() === '') return '';
+  return `<div class="k">${escAdm(label)}</div><div class="v">${escAdm(value)}</div>`;
+}
+function renderBillFormCard(b){
+  const s = b.state || {};
+  const foods = Array.isArray(s.foods) ? s.foods : (Array.isArray(b.foods) ? b.foods : []);
+  const members = Array.isArray(s.members) ? s.members : (Array.isArray(b.members) ? b.members : []);
+  const savedAt = b.savedAt || s.savedAt || s.updatedAt || b.updatedAt || b.createdAt;
+  const explicitTotal = firstFilled(s, ['total','grandTotal','billTotal','subtotal','amount']);
+  const foodTotal = foods.reduce((sum,f)=>sum + (parseFloat(firstFilled(f, ['price','amount','total','cost']))||0), 0);
+  const total = explicitTotal || (foodTotal > 0 ? foodTotal : '');
+  const title = b.billName || s.billName || s.name || 'Untitled bill';
+  const payFields = [
+    billKv('PromptPay', s.promptPay),
+    billKv('Bank info', s.bankInfo),
+    billKv('Account name', firstFilled(s, ['accountName','receiverName','recipientName'])),
+    billKv('Payment note', firstFilled(s, ['paymentNote','note','notes']))
+  ].filter(Boolean).join('');
+  const splitFields = [
+    billKv('Split mode', firstFilled(s, ['splitMode','mode','shareMode'])),
+    billKv('Tax', firstFilled(s, ['tax','taxPercent','taxAmount'])),
+    billKv('Service charge', firstFilled(s, ['serviceCharge','service','serviceFee'])),
+    billKv('Discount', firstFilled(s, ['discount','discountAmount'])),
+    billKv('Tip', firstFilled(s, ['tip','tipAmount']))
+  ].filter(Boolean).join('');
+  const foodRows = foods.length ? foods.map((f,i)=>{
+    const fname = firstFilled(f, ['name','foodName','title','label']) || ('Item '+(i+1));
+    const price = billMoney(firstFilled(f, ['price','amount','total','cost']));
+    const paidBy = firstFilled(f, ['paidBy','payer','owner','paid_by']);
+    const sharedBy = listValue(firstFilled(f, ['sharedBy','eaters','members','splitWith','people','shared_by']));
+    const qty = firstFilled(f, ['qty','quantity','count']);
+    const note = firstFilled(f, ['note','notes','memo']);
+    return `<div class="food-card">
+      <div class="food-card-head"><div class="food-card-name">${escAdm(fname)}${qty?` × ${escAdm(qty)}`:''}</div><div class="food-card-price">${price}</div></div>
+      ${paidBy ? `<div class="food-card-row"><span class="k">Paid by</span><span class="v">${escAdm(paidBy)}</span></div>` : ''}
+      ${sharedBy ? `<div class="food-card-row"><span class="k">Shared by</span><span class="v">${escAdm(sharedBy)}</span></div>` : ''}
+      ${note ? `<div class="food-card-row"><span class="k">Note</span><span class="v">${escAdm(note)}</span></div>` : ''}
+    </div>`;
+  }).join('') : '<div class="ds-empty">No item details saved.</div>';
+  return `<div class="bill-form-card">
+    <div class="bill-form-head">
+      <div><div class="bill-form-title">${escAdm(title)}</div><div class="bill-form-date">${escAdm(fmtFull(savedAt))}</div></div>
+      <div class="bill-form-total">${total ? billMoney(total) : '—'}</div>
+    </div>
+    <div class="bill-form-section">
+      <div class="bill-form-label">People</div>
+      <div class="member-chips">${chipsHtml(members)}</div>
+    </div>
+    ${splitFields ? `<div class="bill-form-section"><div class="bill-form-label">Split settings</div><div class="bill-kv">${splitFields}</div></div>` : ''}
+    ${payFields ? `<div class="bill-form-section"><div class="bill-form-label">Payment details</div><div class="bill-kv">${payFields}</div></div>` : ''}
+    <div class="bill-form-section">
+      <div class="bill-form-label">Items</div>
+      ${foodRows}
+    </div>
+  </div>`;
+}
 function userLabel(u){ return u ? (u.name || u.email || u.uid.slice(0,12)+'…') : 'Unknown user'; }
 function profileStat(k,v){ return `<div class="uprof-stat"><div class="k">${escAdm(k)}</div><div class="v">${escAdm(v)}</div></div>`; }
 function timelineItem(time,title,detail){ return `<div class="timeline-item"><div class="timeline-time">${escAdm(time||'—')}</div><div class="timeline-text">${escAdm(title)}${detail?`<span>${escAdm(detail)}</span>`:''}</div></div>`; }
@@ -1176,7 +1279,9 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
           const members = Array.isArray(t.members) ? t.members : [];
           const ppl = members.length ? members.length+' people' : '—';
           const memberList = members.length ? escAdm(members.join(', ')) : '—';
-          const billsInTrip = Array.isArray(t.bills) ? t.bills.length : (Array.isArray(t.history) ? t.history.length : 0);
+          const tripBills = Array.isArray(t.bills) ? t.bills : (Array.isArray(t.history) ? t.history : []);
+          const billsInTrip = tripBills.length;
+          const tripBillCards = tripBills.length ? tripBills.map(renderBillFormCard).join('') : '<div class="ds-empty">No bill records saved in this trip.</div>';
           return `<div class="bill-item-detail">
             <button type="button" class="bill-drill-toggle" onclick="event.stopPropagation(); this.closest('.bill-item-detail').classList.toggle('open'); this.querySelector('.hint').textContent = this.closest('.bill-item-detail').classList.contains('open') ? 'TAP TO HIDE DETAILS' : 'TAP TO SEE TRIP DETAILS';">
               <div class="bid-header"><span class="bill-name">${nm}</span><span class="bill-meta">${ppl}</span></div>
@@ -1185,6 +1290,8 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
             <div class="bill-drill">
               <div class="bill-detail-line"><span class="k">Members</span><span class="v">${memberList}</span></div>
               <div class="bill-detail-line"><span class="k">Bills in trip</span><span class="v">${billsInTrip}</span></div>
+              <div class="ds-sub">Trip bill details</div>
+              ${tripBillCards}
             </div>
           </div>`;
         }).join('');
@@ -1197,38 +1304,20 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
         // Legacy single-bill mode — entries have billName + savedAt + state
         const bills = d.history;
         const recentBills = [...bills].reverse().slice(0,3);
-        const money = (n) => { const x=parseFloat(n); return Number.isFinite(x) ? '฿'+x.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2}) : '—'; };
-        const arrText = (v) => Array.isArray(v) ? v.filter(Boolean).join(', ') : (v || '—');
         const billRows = recentBills.map((b,idx)=>{
           const s      = b.state || {};
           const nm     = escAdm(b.billName || s.billName || 'Untitled');
           const date   = b.savedAt ? new Date(b.savedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
-          const savedAtFull = b.savedAt ? new Date(b.savedAt).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
           const membersRaw = Array.isArray(s.members) ? s.members : [];
           const members = membersRaw.length ? escAdm(membersRaw.join(', ')) : '—';
           const foods   = Array.isArray(s.foods) ? s.foods : [];
-          const total   = foods.reduce((sum,f)=>sum + (parseFloat(f.price)||0), 0);
-          const totalStr = total > 0 ? money(total) : '—';
+          const explicitTotal = firstFilled(s, ['total','grandTotal','billTotal','subtotal','amount']);
+          const foodTotal = foods.reduce((sum,f)=>sum + (parseFloat(firstFilled(f, ['price','amount','total','cost']))||0), 0);
+          const totalStr = explicitTotal || foodTotal ? billMoney(explicitTotal || foodTotal) : '—';
           const itemCount = foods.length;
           const hasPromptPay = s.promptPay && String(s.promptPay).trim();
           const hasBankInfo  = s.bankInfo && String(s.bankInfo).trim();
           const shareMethod  = hasPromptPay && hasBankInfo ? 'PromptPay + Bank' : hasPromptPay ? 'PromptPay' : hasBankInfo ? 'Bank info' : '—';
-          const foodRows = foods.length ? foods.map((f,i)=>{
-            const fname = escAdm(f.name || f.foodName || f.title || ('Item '+(i+1)));
-            const price = money(f.price || f.amount || f.total);
-            const paidBy = escAdm(f.paidBy || f.payer || f.owner || '—');
-            const sharedBy = escAdm(arrText(f.sharedBy || f.eaters || f.members || f.splitWith || f.people));
-            const qty = f.qty || f.quantity || '';
-            return `<div class="food-detail">
-              <div class="food-head"><span>${fname}${qty?` × ${escAdm(qty)}`:''}</span><span>${price}</span></div>
-              <div class="food-meta">Paid by: ${paidBy}</div>
-              <div class="food-meta">Shared by: ${sharedBy}</div>
-            </div>`;
-          }).join('') : '<div class="ds-empty">No item details saved.</div>';
-          const payDetails = [
-            hasPromptPay ? `<div class="bill-detail-line"><span class="k">PromptPay</span><span class="v">${escAdm(s.promptPay)}</span></div>` : '',
-            hasBankInfo ? `<div class="bill-detail-line"><span class="k">Bank info</span><span class="v">${escAdm(s.bankInfo)}</span></div>` : ''
-          ].join('');
           return `<div class="bill-item-detail">
             <button type="button" class="bill-drill-toggle" onclick="event.stopPropagation(); this.closest('.bill-item-detail').classList.toggle('open'); this.querySelector('.hint').textContent = this.closest('.bill-item-detail').classList.contains('open') ? 'TAP TO HIDE DETAILS' : 'TAP TO SEE BILL DETAILS';">
               <div class="bid-header"><span class="bill-name">${nm}</span><span class="bill-meta">${date}</span></div>
@@ -1238,12 +1327,7 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
               <div class="hint">TAP TO SEE BILL DETAILS</div>
             </button>
             <div class="bill-drill">
-              <div class="bill-detail-line"><span class="k">Saved at</span><span class="v">${escAdm(savedAtFull)}</span></div>
-              <div class="bill-detail-line"><span class="k">Members</span><span class="v">${members}</span></div>
-              <div class="bill-detail-line"><span class="k">Total</span><span class="v">${totalStr}</span></div>
-              ${payDetails}
-              <div class="ds-sub">Items</div>
-              ${foodRows}
+              ${renderBillFormCard(b)}
             </div>
           </div>`;
         }).join('');
@@ -1298,11 +1382,73 @@ function safeAbs(t){
   return t ? new Date(t).toISOString().slice(0,16).replace('T',' ') : '—';
 }
 function renderBackyardTab(){
+  const board = (id, rows) => {
+    const el = $(id);
+    if(!el) return;
+    if(BACKYARD.loading){
+      el.innerHTML = '<div class="backyard-empty">Loading Backyard data…</div>';
+      return;
+    }
+    if(!rows.length){
+      el.innerHTML = '<div class="backyard-empty">'+(BACKYARD.error ? escAdm(BACKYARD.error) : 'No scores yet.')+'</div>';
+      return;
+    }
+    el.innerHTML = rows.slice(0,20).map((r,i)=>{
+      const d = r.data || {};
+      const name = d.name || d.playerName || r.id;
+      const pid = d.pid || d.playerId || r.id;
+      const score = Number(d.score || d.bestScore || 0);
+      const wave = Number(d.wave || d.bestWave || 0);
+      const rebirths = Number(d.rebirths || 0);
+      const updated = ts(d.t) || ts(d.lastModified) || ts(d.updatedAt);
+      return `<div class="row body backyard-row">
+        <div class="rank-badge">#${i+1}</div>
+        <div><b>${escAdm(name)}</b><span class="pid-chip">${escAdm(pid)}</span></div>
+        <div class="score-strong">${score.toLocaleString('en')}</div>
+        <div>${wave.toLocaleString('en')}</div>
+        <div>${rebirths.toLocaleString('en')}</div>
+        <div class="sync">${eventTimeLabel(updated)}<span class="abs">${safeAbs(updated)}</span></div>
+      </div>`;
+    }).join('');
+  };
+
+  const all = BACKYARD.leaderboard || [];
+  const chal = BACKYARD.challengeBoard || [];
+  const topScore = all.length ? Number((all[0].data||{}).score || (all[0].data||{}).bestScore || 0).toLocaleString('en') : '—';
+  const topChallenge = chal.length ? Number((chal[0].data||{}).score || (chal[0].data||{}).bestScore || 0).toLocaleString('en') : '—';
   statCards('backyard-stats', [
-    ['Status', 'Soon', ''],
-    ['Leaderboard', '—', ''],
-    ['Challenges', '—', ''],
+    ['All-time players', all.length, ''],
+    ['Top score', topScore, ''],
+    ['Challenge players', chal.length, ''],
+    ['Challenge top', topChallenge, ''],
   ]);
+  board('backyard-leaderboard-rows', all);
+  board('backyard-challenge-rows', chal);
+  if(!BACKYARD.loaded && !BACKYARD.loading) loadBackyardData();
+}
+
+async function loadBackyardData(){
+  BACKYARD.loading = true;
+  BACKYARD.error = '';
+  renderBackyardTab();
+  try{
+    const [leaderSnap, challengeSnap] = await Promise.all([
+      getDocs(collection(db, 'leaderboard')),
+      getDocs(collection(db, 'challengeBoard')),
+    ]);
+    const normalize = (snap) => snap.docs.map(d=>({ id:d.id, data:d.data()||{} }))
+      .sort((a,b)=>Number((b.data||{}).score || (b.data||{}).bestScore || 0) - Number((a.data||{}).score || (a.data||{}).bestScore || 0));
+    BACKYARD.leaderboard = normalize(leaderSnap);
+    BACKYARD.challengeBoard = normalize(challengeSnap);
+    BACKYARD.loaded = true;
+  }catch(e){
+    BACKYARD.error = 'Could not read Backyard data: ' + (e.code || e.message || String(e));
+    BACKYARD.leaderboard = [];
+    BACKYARD.challengeBoard = [];
+  }finally{
+    BACKYARD.loading = false;
+    renderBackyardTab();
+  }
 }
 
 // ---- bills tab ----
@@ -1405,7 +1551,11 @@ $("themeBtn") && $('themeBtn').addEventListener('click', () => {
 $('overall-search').addEventListener('input', render);
 $('bills-search').addEventListener('input', renderBillsTab);
 $('nutr-search').addEventListener('input', renderNutrTab);
-$('refreshBtn').addEventListener('click', loadData);
+$('refreshBtn').addEventListener('click', () => {
+  BACKYARD = { loaded:false, loading:false, leaderboard:[], challengeBoard:[], error:'' };
+  loadData();
+  if(!$('tab-pane-backyard').classList.contains('hidden')) renderBackyardTab();
+});
 document.querySelectorAll('.seg button').forEach(btn => btn.addEventListener('click', () => {
   sortKey = btn.dataset.sort;
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.sort===sortKey));
