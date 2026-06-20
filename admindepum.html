@@ -206,6 +206,7 @@ html.light body{
   color:var(--faint); padding:14px 2px;
 }
 .drawer-body.drawer-single { grid-template-columns: 1fr !important; }
+.drawer-body.drawer-single { grid-template-columns:1fr !important; }
 .drawer-body {
   display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;
   background:var(--bg-2); border:1px solid var(--line);
@@ -364,7 +365,7 @@ html.light body{
 /* ---- backyard ---- */
 .backyard-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
 .backyard-board h3{font-size:14px;margin:0 0 10px;color:var(--text)}
-.backyard-row{grid-template-columns:60px minmax(220px,1.6fr) .85fr .7fr .75fr .95fr}
+.backyard-row{grid-template-columns:60px minmax(140px,1fr) minmax(110px,.8fr) .85fr .7fr .75fr .95fr}
 .rank-badge{
   font-family:'JetBrains Mono',monospace;font-weight:800;color:var(--accent);
 }
@@ -635,7 +636,7 @@ html.light body{
         <h3>All-time leaderboard</h3>
         <div class="panel">
           <div class="row head backyard-row">
-            <div>Rank</div><div>Player</div><div>Score</div><div>Wave</div><div>Rebirths</div><div>Updated</div>
+            <div>Rank</div><div>Player</div><div>In-game name</div><div>Score</div><div>Wave</div><div>Rebirths</div><div>Updated</div>
           </div>
           <div id="backyard-leaderboard-rows"></div>
         </div>
@@ -1050,14 +1051,18 @@ function renderActivityFeed(){
     });
   });
   events.sort((a,b)=>(b.time||0)-(a.time||0));
-  const top = events.slice(0,10);
-  $('activity-count').textContent = top.length ? top.length + ' recent' : '';
-  if(!top.length){ feed.innerHTML = '<div class="empty" style="padding:12px 0">No recent activity yet.</div>'; return; }
-  feed.innerHTML = top.map(ev => `<div class="feed-item">
+  const visible = events.slice(0,5);
+  const hidden  = events.slice(5,10);
+  $('activity-count').textContent = events.length ? Math.min(events.length,10) + ' recent' : '';
+  if(!visible.length){ feed.innerHTML = '<div class="empty" style="padding:12px 0">No recent activity yet.</div>'; return; }
+  const mkItem = (ev) => `<div class="feed-item">
     <div class="feed-ico">${feedIcon(ev.type)}</div>
     <div class="feed-main"><b>${escAdm(ev.user)} · ${escAdm(ev.title)}</b><span>${escAdm(ev.detail||ev.email||ev.uid)}</span><button type="button" class="profile-mini" onclick="openUserProfile('${ev.uid}')">OPEN PROFILE</button></div>
     <div class="feed-time">${eventTimeLabel(ev.time)}</div>
-  </div>`).join('');
+  </div>`;
+  const moreHtml = hidden.length ? `<div id="feed-more" style="display:none">${hidden.map(mkItem).join('')}</div>
+  <button class="btn ghost small" id="feed-toggle" onclick="const m=document.getElementById('feed-more'),t=this;const show=m.style.display==='none';m.style.display=show?'block':'none';t.textContent=show?'Show less ▲':'Show more ▼';" style="margin:6px 0 0;font-size:11px;color:var(--faint)">Show more ▼</button>` : '';
+  feed.innerHTML = visible.map(mkItem).join('') + moreHtml;
 }
 
 function fmtFull(t){
@@ -1286,6 +1291,7 @@ const TABS = ['overall','bills','nutrition','pumgoda','backyard'];
 function switchTab(name){
   if(!TABS.includes(name)) name = 'overall';
   Object.keys(DRAWER_CACHE).forEach(k => delete DRAWER_CACHE[k]);
+  Object.keys(DRAWER_CACHE).forEach(k => delete DRAWER_CACHE[k]);
   TABS.forEach(t => {
     const btn = document.getElementById('tab-btn-'+t);
     const pane = document.getElementById('tab-pane-'+t);
@@ -1444,20 +1450,38 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
       placesHtml = `<div class="drawer-row"><span class="dk">Saved places</span><span class="dv">${ids.length||'—'}</span></div>`;
     }
 
-    const html = `<div class="drawer-body">
-      <div class="drawer-section" data-section="nutr">
-        <h4>🥗 Nutritions</h4>
-        ${nutrHtml}
-      </div>
-      <div class="drawer-section" data-section="bills">
-        <h4>🧾 Bill Splitter</h4>
-        ${billsHtml}
-      </div>
-      <div class="drawer-section" data-section="places">
-        <h4>📍 Pumgoda</h4>
-        ${placesHtml}
-      </div>
-    </div>`;
+    const activeTab = localStorage.getItem('admin_tab') || 'overall';
+    let html;
+    if(activeTab === 'bills'){
+      html = `<div class="drawer-body drawer-single">
+        <div class="drawer-section" data-section="bills">
+          <h4>🧾 Bill Splitter</h4>
+          ${billsHtml}
+        </div>
+      </div>`;
+    } else if(activeTab === 'nutrition'){
+      html = `<div class="drawer-body drawer-single">
+        <div class="drawer-section" data-section="nutr">
+          <h4>🥗 Nutritions</h4>
+          ${nutrHtml}
+        </div>
+      </div>`;
+    } else {
+      html = `<div class="drawer-body">
+        <div class="drawer-section" data-section="nutr">
+          <h4>🥗 Nutritions</h4>
+          ${nutrHtml}
+        </div>
+        <div class="drawer-section" data-section="bills">
+          <h4>🧾 Bill Splitter</h4>
+          ${billsHtml}
+        </div>
+        <div class="drawer-section" data-section="places">
+          <h4>📍 Pumgoda</h4>
+          ${placesHtml}
+        </div>
+      </div>`;
+    }
 
     DRAWER_CACHE[uid] = html;
     slot.innerHTML = html;
@@ -1523,6 +1547,7 @@ function renderBackyardTab(){
         return `<div class="row body backyard-row">
           <div class="rank-badge">#${i+1}</div>
           <div class="backyard-player"><b>${escAdm(player.display)}</b><span class="pid-chip">${escAdm(player.sub)}</span></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">${escAdm(String(d.name||d.playerName||'—').trim()||'—')}</div>
           <div class="score-strong">${score.toLocaleString('en')}</div>
           <div>${wave.toLocaleString('en')}</div>
           <div>${rebirths.toLocaleString('en')}</div>
