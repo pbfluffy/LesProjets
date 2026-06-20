@@ -190,11 +190,7 @@ html.light body{
 .row.body { border-bottom:none; cursor:pointer; transition:background .12s; }
 .row.body:hover { background:var(--bg-2); }
 .user-block.drawer-open > .row.body { background:var(--bg-2); }
-.metric-clickable {
-  text-decoration:underline; text-decoration-style:dotted;
-  text-underline-offset:3px; color:var(--accent);
-}
-.metric:hover .metric-clickable { color:var(--text); }
+
 .drawer-arrow {
   display:block; font-size:10px; color:var(--faint);
   transition:transform .2s; margin-top:5px; line-height:1;
@@ -985,7 +981,7 @@ function render(){
     $('tab-overall-rows').innerHTML = rows.map(u => {
       const [s,abs,cls] = rel(u.sync);
       const apps = [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
-      const m = (n,lab,sec) => n===0 ? `<div class="metric zero"><span class="lab">${lab}</span><span>—</span></div>` : `<div class="metric" onclick="toggleDrawer('${u.uid}','${sec||''}')" style="cursor:pointer" title="Click for details"><span class="lab">${lab}</span><span class="metric-clickable">${n}</span></div>`;
+      const m = (n,lab,sec) => n===0 ? `<div class="metric zero"><span class="lab">${lab}</span><span>—</span></div>` : `<div class="metric" onclick="toggleDrawer('${u.uid}','${sec||''}')" style="cursor:pointer" title="Click for details"><span class="lab">${lab}</span><span>${n}</span></div>`;
       const nm = u.name || (u.uid.slice(0,12)+'…');
       return `<div class="user-block" data-uid="${u.uid}">
       <div class="row body" onclick="toggleDrawer('${u.uid}')">
@@ -1627,8 +1623,8 @@ function renderBillsTab(){
           ${userAvatarHtml(u)}
           <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
-        <div class="metric" onclick="event.stopPropagation();toggleDrawer('${u.uid}','bills')" style="cursor:pointer" title="Click to expand"><span class="lab">Trips</span><span class="metric-clickable">${u._tripCount||(u._hasTripMode?'✓':'—')}</span></div>
-        <div class="metric ${u._legacyBillCount?'':'metric-zero'}" onclick="event.stopPropagation();toggleDrawer('${u.uid}','bills')" style="cursor:pointer" title="Click to expand"><span class="lab">Bills</span><span class="${u._legacyBillCount?'metric-clickable':''}">${u._legacyBillCount||'—'}</span></div>
+        <div class="metric" onclick="event.stopPropagation();toggleDrawer('${u.uid}','bills')" style="cursor:pointer" title="Click to expand"><span class="lab">Trips</span><span>${u._tripCount||(u._hasTripMode?'✓':'—')}</span></div>
+        <div class="metric ${u._legacyBillCount?'':'metric-zero'}" onclick="event.stopPropagation();toggleDrawer('${u.uid}','bills')" style="cursor:pointer" title="Click to expand"><span class="lab">Bills</span><span>${u._legacyBillCount||'—'}</span></div>
         <div class="metric"><span class="lab">Share links</span><span>${u._shareCount!=null?u._shareCount:'—'}</span></div>
         <div class="sync ${cls}">${s}<span class="abs">${safeAbs(u.sync)}</span><span class="drawer-arrow">▶</span></div>
       </div>
