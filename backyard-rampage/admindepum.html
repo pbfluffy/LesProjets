@@ -1,0 +1,1900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>LesProjets Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..60,400;12..60,600;12..60,700;12..60,800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root{
+  --bg:#15120d; --bg-2:#1d1913; --panel:#211c15; --panel-2:#2a241b;
+  --line:#3a3225; --line-soft:#2d2719; --text:#f3ece0; --muted:#b3a994;
+  --faint:#7d7560; --accent:#e8a13a; --accent-soft:#3a2c14;
+  --green:#7fb069; --red:#d9694e; --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(232,161,58,.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(127,176,105,.06), transparent 55%),
+    var(--bg);
+  color:var(--text); font-family:'Bricolage Grotesque', system-ui, sans-serif;
+  min-height:100vh; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:18px 16px 60px}
+.topbar{display:flex;align-items:center;gap:14px;padding:14px 0 18px}
+.mark{width:42px;height:42px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;font-size:22px;
+  background:linear-gradient(150deg,var(--accent),#c97f1e);box-shadow:0 6px 18px rgba(232,161,58,.25)}
+.brand h1{font-size:18px;font-weight:800;margin:0;letter-spacing:-.01em}
+.brand .sub{font-size:12px;color:var(--faint);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.who{margin-left:auto;display:flex;align-items:center;gap:10px}
+.who .ident{text-align:right;line-height:1.2}
+.who .ident b{font-size:13px}
+.who .ident span{display:block;font-size:11px;color:var(--faint)}
+.who .avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#1a1408;display:grid;place-items:center;font-weight:800;font-size:15px;overflow:hidden}
+.who .avatar img{width:100%;height:100%;object-fit:cover}
+.btn{font-family:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel-2);color:var(--text);
+  border-radius:10px;padding:8px 13px;font-size:13px;font-weight:600;transition:.15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.ghost{background:transparent}
+.btn.small{padding:6px 10px;font-size:12px}
+.btn:disabled{opacity:.6;cursor:progress}
+.note{font-size:12px;color:var(--accent);background:var(--accent-soft);border:1px solid #5a431a;border-radius:10px;
+  padding:9px 12px;margin-bottom:16px;font-family:'JetBrains Mono',monospace}
+.errbox{font-size:13px;color:#f0c9bd;background:#3a1d16;border:1px solid #6e352a;border-radius:10px;padding:12px 14px;margin-bottom:16px;line-height:1.5}
+.errbox code{font-family:'JetBrains Mono',monospace;color:#f3ece0}
+
+.stats{display:grid;gap:12px;margin-bottom:18px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.stat{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--line-soft);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden}
+.stat .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-family:'JetBrains Mono',monospace}
+.stat .v{font-size:30px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.stat .v small{font-size:13px;color:var(--muted);font-weight:600;margin-left:4px}
+.stat::after{content:"";position:absolute;right:-20px;bottom:-20px;width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,rgba(232,161,58,.10),transparent 70%)}
+
+.charts{display:grid;gap:12px;margin-bottom:18px;grid-template-columns:repeat(auto-fit,minmax(265px,1fr))}
+.chart{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--line-soft);border-radius:var(--radius);padding:16px 18px}
+.chart h3{margin:0 0 16px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-family:'JetBrains Mono',monospace;font-weight:700}
+.donut-wrap{display:flex;align-items:center;gap:18px}
+.donut{flex:0 0 auto}
+.legend{display:flex;flex-direction:column;gap:8px;font-size:12px;flex:1;min-width:0}
+.legend .li{display:flex;align-items:center;gap:8px}
+.legend .dot{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
+.legend .ln{color:var(--muted);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend .lv{font-family:'JetBrains Mono',monospace;font-weight:700;font-variant-numeric:tabular-nums}
+.hbar{margin-bottom:12px}
+.hbar:last-child{margin-bottom:0}
+.hbar .top{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;margin-bottom:5px}
+.hbar .nm{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbar .vl{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--muted);flex:0 0 auto}
+.track{height:8px;border-radius:5px;background:var(--bg-2);overflow:hidden}
+.fill{height:100%;border-radius:5px;transition:width .55s cubic-bezier(.4,0,.2,1)}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.search{flex:1 1 200px;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line-soft);border-radius:10px;padding:0 12px}
+.search input{border:0;background:transparent;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;padding:10px 0;width:100%;outline:none}
+.search input::placeholder{color:var(--faint)}
+.seg{display:flex;border:1px solid var(--line-soft);border-radius:10px;overflow:hidden}
+.seg button{font-family:inherit;border:0;background:var(--panel);color:var(--muted);padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.seg button+button{border-left:1px solid var(--line-soft)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#1a1408}
+.refreshed{font-size:11px;color:var(--faint);font-family:'JetBrains Mono',monospace;margin-left:auto}
+
+.panel{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);overflow:hidden}
+.row{display:grid;align-items:center;gap:12px;padding:13px 16px;grid-template-columns:1.7fr .7fr .7fr .7fr 1fr}
+.row.head{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);background:var(--bg-2);padding:11px 16px}
+.row.body:hover{background:var(--panel-2)}
+.empty{padding:34px 16px;text-align:center;color:var(--faint);font-family:'JetBrains Mono',monospace;font-size:13px}
+.user{display:flex;align-items:center;gap:11px;min-width:0}
+.ua{width:36px;height:36px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-weight:800;font-size:14px;color:#1a1408}
+.uinfo{min-width:0}
+.uinfo b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uinfo .em{font-size:11.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uinfo .uid{font-size:10px;color:var(--faint);font-family:'JetBrains Mono',monospace}
+.metric{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
+.metric.zero{color:var(--faint)}
+.metric .lab{display:none}
+.sync{font-family:'JetBrains Mono',monospace;font-size:12.5px}
+.sync.recent{color:var(--green)}
+.sync .abs{display:block;font-size:10px;color:var(--faint)}
+.apps{display:flex;gap:4px;margin-top:5px}
+.chip{font-size:9px;font-family:'JetBrains Mono',monospace;padding:2px 5px;border-radius:5px;background:var(--accent-soft);color:var(--accent);letter-spacing:.04em}
+
+.center{min-height:78vh;display:grid;place-items:center;text-align:center;padding:24px}
+.card{background:var(--panel);border:1px solid var(--line-soft);border-radius:18px;padding:34px 30px;max-width:380px;width:100%}
+.card .mark{width:54px;height:54px;font-size:28px;margin:0 auto 18px}
+.card h2{margin:0 0 6px;font-size:20px;font-weight:800}
+.card p{margin:0 0 22px;color:var(--muted);font-size:13.5px;line-height:1.5}
+.gbtn{display:inline-flex;align-items:center;gap:10px;cursor:pointer;background:#fff;color:#1a1408;border:0;border-radius:11px;padding:12px 20px;font-family:inherit;font-weight:700;font-size:14px;width:100%;justify-content:center}
+.gbtn:hover{opacity:.92}
+.gbtn:disabled{opacity:.6;cursor:progress}
+.deny-ico{font-size:40px;margin-bottom:14px}
+.deny-uid{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);margin-top:10px;word-break:break-all}
+.hidden{display:none !important}
+.spin{display:inline-block;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+@media (max-width:720px){
+  .row.head{display:none}
+  .row.body{grid-template-columns:1fr;gap:10px;padding:15px}
+  .metric{display:flex;justify-content:space-between;font-size:14px;border-top:1px dashed var(--line-soft);padding-top:8px}
+  .metric .lab{display:inline;font-family:'Bricolage Grotesque',sans-serif;font-weight:600;color:var(--muted);font-size:12.5px}
+  .sync{display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed var(--line-soft);padding-top:8px}
+  .sync::before{content:"Last sync";font-family:'Bricolage Grotesque',sans-serif;font-weight:600;color:var(--muted);font-size:12.5px}
+  .sync .abs{display:inline;margin-left:6px}
+  .refreshed{width:100%;text-align:right}
+}
+
+.prow{grid-template-columns:2fr .9fr 1fr .8fr .6fr}
+.pname b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pname .pth{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.pname .pid{font-size:10px;color:var(--faint);font-family:'JetBrains Mono',monospace}
+.ptype{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);text-transform:capitalize}
+.preg{font-size:12px;color:var(--faint);font-family:'JetBrains Mono',monospace;text-transform:capitalize}
+.ppaw{font-size:13px;letter-spacing:1px}
+.pverif{font-size:13px;color:var(--green)}
+
+.pedit-ov{position:fixed;inset:0;background:rgba(0,0,0,.62);display:flex;align-items:flex-start;justify-content:center;padding:38px 16px;overflow:auto;z-index:60}
+.pedit-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:660px;width:100%;margin:auto}
+.pedit-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line-soft)}
+.pedit-hd b{font-size:16px}
+.pedit-idtag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);margin-left:8px}
+.pedit-bd{padding:16px 18px;display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.pedit-ft{display:flex;justify-content:flex-end;gap:10px;padding:14px 18px;border-top:1px solid var(--line-soft)}
+.fld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fld.full{grid-column:1 / -1}
+.fld label{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-family:'JetBrains Mono',monospace}
+.fld input[type=text],.fld input[type=number],.fld select,.fld textarea{background:var(--bg-2);border:1px solid var(--line-soft);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 10px;outline:none;width:100%}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--accent)}
+.fld textarea{resize:vertical;min-height:54px}
+.pol{grid-column:1 / -1;display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px}
+.pol label{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text);font-family:inherit;text-transform:none;letter-spacing:0;cursor:pointer}
+.pol input{width:16px;height:16px;accent-color:var(--accent)}
+.fld-sec{grid-column:1 / -1;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);margin-top:4px;border-top:1px solid var(--line-soft);padding-top:12px}
+@media(max-width:560px){.pedit-bd{grid-template-columns:1fr}}
+
+html.light{
+  --bg:#f7f3ea; --bg-2:#efe9dc; --panel:#fffdf8; --panel-2:#f3ede1;
+  --line:#dcd2c0; --line-soft:#e9e1d3; --text:#2b2418; --muted:#6e6451;
+  --faint:#9b917f; --accent:#bf7714; --accent-soft:#f6e7cd;
+  --green:#4e7a36; --red:#c0492f;
+}
+html.light body{
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(191,119,20,.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(78,122,54,.07), transparent 55%),
+    var(--bg);
+}
+
+.photogrid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.thumb{position:relative;width:84px;height:84px;border-radius:8px;overflow:hidden;border:1px solid var(--line-soft);background:var(--bg-2)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thx{position:absolute;top:3px;right:3px;width:20px;height:20px;border:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:13px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.thx:hover{background:var(--red)}
+.photoempty{font-size:12px;color:var(--faint);font-family:'JetBrains Mono',monospace;padding:6px 0}
+.uploadbtn{display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:1px dashed var(--line);border-radius:8px;padding:8px 12px;font-size:12.5px;color:var(--accent);background:transparent}
+.uploadbtn:hover{border-color:var(--accent)}
+.photomsg{font-size:11.5px;color:var(--faint);font-family:'JetBrains Mono',monospace;margin-top:6px;min-height:14px}
+
+/* ---- drawer ---- */
+.user-block { border-bottom:1px solid var(--line-soft); }
+.user-block:last-child { border-bottom:none; }
+.row.body { border-bottom:none; cursor:pointer; transition:background .12s; }
+.row.body:hover { background:var(--bg-2); }
+.user-block.drawer-open > .row.body { background:var(--bg-2); }
+.metric-clickable {
+  text-decoration:underline; text-decoration-style:dotted;
+  text-underline-offset:3px; color:var(--accent);
+}
+.metric:hover .metric-clickable { color:var(--text); }
+.drawer-arrow {
+  display:block; font-size:10px; color:var(--faint);
+  transition:transform .2s; margin-top:5px; line-height:1;
+}
+.user-block.drawer-open .drawer-arrow { transform:rotate(90deg); }
+.drawer-slot { padding:0 16px 16px; }
+.drawer-loading {
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  color:var(--faint); padding:14px 2px;
+}
+.drawer-body {
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;
+  background:var(--bg-2); border:1px solid var(--line);
+  border-radius:12px; padding:18px; margin-top:4px;
+}
+.drawer-section { display:flex; flex-direction:column; }
+.drawer-section h4 {
+  font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--faint);
+  margin:0 0 10px 0;
+}
+.ds-empty { font-size:12px; color:var(--faint); padding:6px 0; }
+.ds-sub {
+  font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--faint); margin:10px 0 4px;
+}
+.drawer-row {
+  display:flex; justify-content:space-between; align-items:baseline;
+  padding:5px 0; border-bottom:1px solid var(--line-soft); gap:8px;
+}
+.drawer-row:last-child { border-bottom:none; }
+.drawer-row .dk { font-size:12px; color:var(--muted); }
+.drawer-row .dv {
+  font-family:'JetBrains Mono',monospace; font-size:12.5px;
+  font-weight:600; color:var(--text); white-space:nowrap;
+}
+.drawer-row .dv.good { color:var(--green); }
+.bill-item {
+  display:flex; justify-content:space-between; align-items:baseline;
+  padding:5px 0; border-bottom:1px solid var(--line-soft); font-size:12px;
+}
+.bill-item:last-child { border-bottom:none; }
+.bill-item-detail {
+  padding:8px 0; border-bottom:1px solid var(--line-soft);
+}
+.bill-item-detail:last-child { border-bottom:none; }
+.bill-drill-toggle{
+  width:100%; text-align:left; border:0; background:transparent; color:inherit;
+  padding:0; margin:0; font-family:inherit; cursor:pointer; display:block;
+}
+.bill-drill-toggle .hint{
+  font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--accent);
+  margin-top:8px; letter-spacing:.08em; text-transform:uppercase;
+}
+.bill-drill{
+  display:none; margin-top:12px; padding:0; border:0; background:transparent;
+}
+.bill-item-detail.open .bill-drill{display:block}
+.bill-item-detail.open .hint{color:var(--green)}
+.bill-form-card{
+  border:1px solid var(--line); border-radius:14px; background:var(--bg-2);
+  overflow:hidden; box-shadow:0 8px 28px rgba(0,0,0,.12);
+}
+.bill-form-head{
+  padding:14px 14px 12px; border-bottom:1px solid var(--line-soft);
+  display:flex; justify-content:space-between; gap:12px; align-items:flex-start;
+}
+.bill-form-title{font-size:18px;font-weight:800;color:var(--text);line-height:1.15;word-break:break-word}
+.bill-form-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);white-space:nowrap;margin-top:3px}
+.bill-form-total{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:800;color:var(--accent);white-space:nowrap}
+.bill-form-section{padding:13px 14px;border-bottom:1px solid var(--line-soft)}
+.bill-form-section:last-child{border-bottom:none}
+.bill-form-label{
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:10px;
+}
+.bill-kv{display:grid;grid-template-columns:1fr auto;gap:8px 14px;font-size:12.5px}
+.bill-kv .k{color:var(--muted)}
+.bill-kv .v{font-family:'JetBrains Mono',monospace;color:var(--text);text-align:right;word-break:break-word}
+.member-chips,.share-chips{display:flex;flex-wrap:wrap;gap:7px}
+.member-chip,.share-chip{
+  font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid var(--line-soft);
+  background:var(--panel);color:var(--text);border-radius:999px;padding:5px 8px;max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.food-card{
+  border:1px solid var(--line-soft);background:var(--panel);border-radius:12px;
+  padding:11px 12px;margin-bottom:9px;
+}
+.food-card:last-child{margin-bottom:0}
+.food-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}
+.food-card-name{font-size:14px;font-weight:800;color:var(--text);line-height:1.2;word-break:break-word}
+.food-card-price{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;color:var(--accent);white-space:nowrap}
+.food-card-row{display:grid;grid-template-columns:76px 1fr;gap:8px;font-size:11.5px;margin-top:6px}
+.food-card-row .k{color:var(--faint)}
+.food-card-row .v{font-family:'JetBrains Mono',monospace;color:var(--muted);min-width:0;word-break:break-word}
+.trip-card{border:1px solid var(--line);border-radius:14px;background:var(--bg-2);padding:14px}
+@media(max-width:720px){
+  .bill-form-head{flex-direction:column;gap:6px}
+  .bill-form-date,.bill-form-total{white-space:normal}
+  .bill-kv{grid-template-columns:1fr}
+  .bill-kv .v{text-align:left}
+  .food-card-row{grid-template-columns:1fr}
+}
+
+.bid-header {
+  display:flex; justify-content:space-between; align-items:baseline;
+  margin-bottom:5px;
+}
+.bid-row {
+  display:flex; justify-content:space-between; align-items:baseline;
+  padding:2px 0; gap:8px;
+}
+.bid-row .dk { font-size:11px; color:var(--faint); }
+.dv-sm {
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  font-weight:500; color:var(--muted); text-align:right;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px;
+}
+.bill-name {
+  color:var(--text); font-weight:600; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; max-width:130px;
+}
+.bill-meta {
+  color:var(--muted); font-family:'JetBrains Mono',monospace;
+  font-size:11px; white-space:nowrap; margin-left:8px;
+}
+@media (max-width:720px){
+  .drawer-body { grid-template-columns:1fr; }
+  .drawer-arrow { display:none; }
+}
+
+/* ---- tabs ---- */
+.tab-bar {
+  display:flex; gap:4px; padding:0 0 20px;
+  border-bottom:1px solid var(--line); margin-bottom:24px;
+}
+.tab-bar button {
+  font-family:'Bricolage Grotesque',sans-serif; font-size:13px; font-weight:700;
+  padding:7px 16px; border-radius:9px; border:1px solid transparent;
+  background:none; color:var(--muted); cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; gap:6px;
+}
+.tab-bar button:hover { background:var(--panel-2); color:var(--text); }
+.tab-bar button.active {
+  background:var(--accent-soft); color:var(--accent);
+  border-color:rgba(232,161,58,.25);
+}
+.tab-bar button .tb-badge {
+  font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+  background:rgba(232,161,58,.15); color:var(--accent); padding:1px 5px;
+  border-radius:5px; line-height:1.4;
+}
+.tab-pane { animation: fadeIn .15s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+
+
+
+/* ---- app tab summaries ---- */
+.tab-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.app-note{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);margin:0 0 12px}
+.cell-sub{display:block;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--faint);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row.body[role="button"]{outline:none}
+.row.body[role="button"]:focus{box-shadow:inset 0 0 0 2px var(--accent)}
+
+/* ---- backyard placeholder ---- */
+.placeholder-tab {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:200px; gap:12px; color:var(--faint);
+}
+.placeholder-tab .ph-ico { font-size:40px; opacity:.4; }
+.placeholder-tab p { font-size:13px; }
+
+
+
+/* ---- mobile compatibility hotfix ---- */
+@media (max-width:720px){
+  .wrap{padding:12px 12px 44px;max-width:100%;overflow-x:hidden}
+  .topbar{display:grid;grid-template-columns:44px 1fr;gap:10px 12px;align-items:center;padding-bottom:14px}
+  .topbar>.mark{width:44px;height:44px;font-size:22px}
+  .brand h1{font-size:20px;line-height:1.05;word-break:normal}
+  .brand .sub{font-size:12px;line-height:1.25}
+  .who{grid-column:1 / -1;margin-left:0;width:100%;display:grid;grid-template-columns:1fr 40px auto auto;gap:8px;align-items:center}
+  .who .ident{text-align:left;min-width:0}
+  .who .ident b,.who .ident span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .who .avatar{width:40px;height:40px}
+  .who .btn{padding:9px 10px;white-space:nowrap}
+
+  .tab-bar{overflow-x:auto;overflow-y:hidden;white-space:nowrap;gap:8px;margin:4px -12px 18px;padding:0 12px 14px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tab-bar::-webkit-scrollbar{display:none}
+  .tab-bar button{flex:0 0 auto;min-width:max-content;padding:10px 14px;font-size:13px}
+
+  .tab-summary,.stats,.charts{grid-template-columns:1fr 1fr;gap:10px}
+  .stat{padding:13px 14px}.stat .v{font-size:28px}.stat .k{font-size:10px}
+  .chart{padding:14px}
+  .toolbar{gap:8px}.search{flex:1 1 100%;min-width:0}.refreshed{width:100%;text-align:right}
+
+  .panel{border-radius:14px;overflow:hidden}
+  .row.body,.row.body[style],.row.body.prow,.row.body.prow[style]{display:grid!important;grid-template-columns:1fr!important;gap:0!important;padding:0!important}
+  .row.body>.user{padding:14px 14px 10px;min-width:0}
+  .ua{width:42px;height:42px;font-size:15px}
+  .uinfo{min-width:0;width:100%}
+  .uinfo b,.uinfo .em,.uinfo .uid{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .apps{flex-wrap:wrap}
+  .metric{display:flex!important;justify-content:space-between;align-items:center;gap:12px;font-size:14px;border-top:1px dashed var(--line-soft);padding:10px 14px!important;min-width:0}
+  .metric .lab{display:inline!important;color:var(--muted);font-size:12.5px;font-weight:700;flex:0 0 auto}
+  .metric>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:right}
+  .sync{display:flex!important;justify-content:space-between;align-items:center;gap:10px;border-top:1px dashed var(--line-soft);padding:10px 14px!important;font-size:13px;min-width:0}
+  .sync .abs{display:inline;margin-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .drawer-slot{padding:0 10px 12px}
+  .drawer-body{grid-template-columns:1fr!important;padding:14px;gap:14px}
+
+  .prow .pname,.prow .ptype,.prow .preg,.prow .ppaw,.prow .pverif{padding:10px 14px;border-top:1px dashed var(--line-soft)}
+  .prow .pname{border-top:0;padding-top:14px}
+  .pname b,.pname .pth,.pname .pid{white-space:normal;overflow-wrap:anywhere}
+}
+
+@media (max-width:420px){
+  .tab-summary,.stats,.charts{grid-template-columns:1fr}
+  .who{grid-template-columns:1fr 38px auto;grid-auto-flow:row}
+  .who #signoutBtn{grid-column:1 / -1;width:100%}
+}
+
+
+/* ---- admin insights: activity feed + profile ---- */
+.activity-panel{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);padding:16px 18px;margin-bottom:18px}
+.activity-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.activity-head h3{margin:0;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-family:'JetBrains Mono',monospace;font-weight:700}
+.feed{display:grid;gap:8px}
+.feed-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--line-soft)}
+.feed-item:first-child{border-top:0;padding-top:0}
+.feed-ico{width:28px;height:28px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:14px;flex:0 0 auto}
+.feed-main{min-width:0}
+.feed-main b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feed-main span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.feed-time{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);white-space:nowrap}
+.profile-mini{margin-top:6px;border:1px solid var(--line-soft);background:transparent;color:var(--accent);border-radius:7px;padding:4px 7px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;width:max-content}
+.profile-mini:hover{border-color:var(--accent);background:var(--accent-soft)}
+.uprof-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:80;display:flex;align-items:flex-start;justify-content:center;padding:26px 14px;overflow:auto}
+.uprof-box{width:100%;max-width:760px;background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 22px 60px rgba(0,0,0,.35)}
+.uprof-hd{display:flex;align-items:center;gap:14px;padding:18px;border-bottom:1px solid var(--line-soft);background:linear-gradient(180deg,var(--panel-2),var(--panel))}
+.uprof-avatar{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:20px;color:#1a1408;flex:0 0 auto}
+.uprof-title{min-width:0;flex:1}
+.uprof-title b{display:block;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uprof-title span{display:block;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.uprof-body{padding:18px;display:grid;gap:16px}
+.uprof-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.uprof-stat{background:var(--bg-2);border:1px solid var(--line-soft);border-radius:12px;padding:12px}
+.uprof-stat .k{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+.uprof-stat .v{font-size:24px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}
+.uprof-section{background:var(--bg-2);border:1px solid var(--line-soft);border-radius:13px;padding:14px}
+.uprof-section h4{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--faint);letter-spacing:.09em;text-transform:uppercase;margin:0 0 10px}
+.timeline{display:grid;gap:8px}
+.timeline-item{display:grid;grid-template-columns:82px 1fr;gap:10px;border-top:1px solid var(--line-soft);padding-top:8px}
+.timeline-item:first-child{border-top:0;padding-top:0}
+.timeline-time{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)}
+.timeline-text{font-size:13px;color:var(--text);min-width:0}
+.timeline-text span{display:block;color:var(--muted);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uprof-actions{display:flex;gap:10px;justify-content:flex-end;padding:14px 18px;border-top:1px solid var(--line-soft)}
+@media(max-width:720px){
+  .feed-item{grid-template-columns:auto 1fr;gap:9px}.feed-time{grid-column:2;text-align:left}.feed-main b,.feed-main span{white-space:normal}
+  .uprof-ov{padding:10px}.uprof-hd{align-items:flex-start}.uprof-title b{white-space:normal}.uprof-title span{white-space:normal;word-break:break-word}
+  .timeline-item{grid-template-columns:1fr}.timeline-time{font-size:10.5px}.uprof-actions{position:sticky;bottom:0;background:var(--panel)}
+}
+
+
+/* ---- backyard real data ---- */
+.backyard-panel{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);overflow:hidden;margin-top:14px}
+.backyard-head{display:grid;grid-template-columns:1.6fr .7fr .7fr .8fr 1fr;gap:12px;padding:11px 16px;background:var(--bg-2);font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint)}
+.backyard-row{display:grid;grid-template-columns:1.6fr .7fr .7fr .8fr 1fr;gap:12px;align-items:center;padding:13px 16px;border-top:1px solid var(--line-soft);cursor:pointer}
+.backyard-row:hover{background:var(--panel-2)}
+.bplayer{min-width:0}.bplayer b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bplayer span{display:block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bnum{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}.bmuted{font-family:'JetBrains Mono',monospace;color:var(--muted);font-size:12px}
+.backyard-note{font-size:12px;color:var(--faint);font-family:'JetBrains Mono',monospace;margin:12px 0 0;line-height:1.6}
+.backyard-error{font-size:12px;color:#f0c9bd;background:#3a1d16;border:1px solid #6e352a;border-radius:10px;padding:10px 12px;margin-top:12px;line-height:1.5}
+.bdetail{display:grid;gap:10px;margin-top:10px;padding:12px;background:var(--bg-2);border:1px solid var(--line);border-radius:10px;grid-column:1 / -1}
+.bdetail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}.bdetail-card{background:var(--panel);border:1px solid var(--line-soft);border-radius:10px;padding:10px}.bdetail-card .k{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.07em;text-transform:uppercase}.bdetail-card .v{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;margin-top:5px}
+@media(max-width:720px){.backyard-head{display:none}.backyard-row{grid-template-columns:1fr;gap:8px;border:1px solid var(--line-soft);border-radius:14px;margin:10px;padding:14px}.bnum,.bmuted{display:flex;justify-content:space-between;border-top:1px dashed var(--line-soft);padding-top:8px}.bnum::before,.bmuted::before{content:attr(data-label);font-family:'Bricolage Grotesque',sans-serif;font-size:12.5px;color:var(--muted);font-weight:700}.placeholder-tab{display:none!important}}
+
+</style>
+  <script>try{if(localStorage.getItem('admin_theme')==='light')document.documentElement.classList.add('light');}catch(e){}</script>
+</head>
+<body>
+
+<!-- SIGN-IN GATE -->
+<section id="gate" class="center">
+  <div class="card">
+    <div class="mark">🐾</div>
+    <h2>LesProjets Admin</h2>
+    <p>Owner-only console. Sign in with the admin Google account to view synced-user activity.</p>
+    <button class="gbtn" id="signinBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.7 3.2-7.8z"/><path fill="#34A853" d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1.1-3.6 1.1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M6 14.4a6.6 6.6 0 0 1 0-4.2V7.4H2.3a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.4L6 10.2C6.9 7.7 9.2 5.4 12 5.4z"/></svg>
+      Sign in with Google
+    </button>
+    <div id="gate-status" class="deny-uid" style="margin-top:12px"></div>
+  </div>
+</section>
+
+<!-- NOT AUTHORIZED -->
+<section id="denied" class="center hidden">
+  <div class="card">
+    <div class="deny-ico">🔒</div>
+    <h2>Not authorized</h2>
+    <p>This account is signed in but is not the admin. Data is gated by Firestore rules — nothing was fetched.</p>
+    <div class="deny-uid" id="denied-uid"></div>
+    <button class="btn ghost" style="margin-top:18px" id="denied-signout">Sign out</button>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<main id="app" class="wrap hidden">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="mark">🐾</div>
+    <div class="brand"><h1>LesProjets · Admin</h1><div class="sub">activity console</div></div>
+    <div class="who">
+      <div class="ident"><b id="me-name">—</b><span id="me-email"></span></div>
+      <div class="avatar" id="me-avatar"></div>
+      <button class="btn ghost small" id="themeBtn">☾ Dark</button>
+      <button class="btn ghost small" id="signoutBtn">Sign out</button>
+    </div>
+  </div>
+
+  <div id="errbox" class="errbox hidden"></div>
+
+  <!-- Tab bar -->
+  <nav class="tab-bar">
+    <button type="button" id="tab-btn-overall" aria-pressed="false">📊 Overall</button>
+    <button type="button" id="tab-btn-bills" aria-pressed="false">🧾 Bill Splitter</button>
+    <button type="button" id="tab-btn-nutrition" aria-pressed="false">🥗 Nutrition</button>
+    <button type="button" id="tab-btn-pumgoda" aria-pressed="false">📍 Pumgoda</button>
+    <button type="button" id="tab-btn-backyard" aria-pressed="false">🎮 Backyard</button>
+  </nav>
+
+  <!-- ═══════════ TAB: OVERALL ═══════════ -->
+  <div id="tab-pane-overall" class="tab-pane hidden">
+    <div class="stats" id="stats"></div>
+    <section class="charts">
+      <div class="chart"><h3>Sync recency</h3><div id="chart-recency"></div></div>
+      <div class="chart"><h3>Adoption by app</h3><div id="chart-adoption"></div></div>
+      <div class="chart"><h3>Top users · activity</h3><div id="chart-top"></div></div>
+    </section>
+    <section class="activity-panel">
+      <div class="activity-head"><h3>Global activity feed</h3><span class="refreshed" id="activity-count"></span></div>
+      <div class="feed" id="activity-feed"></div>
+    </section>
+    <div class="toolbar">
+      <label class="search"><span style="color:var(--faint)">⌕</span>
+        <input id="overall-search" type="text" placeholder="search name / email / uid" /></label>
+      <div class="seg" role="group" aria-label="sort">
+        <button data-sort="sync" aria-pressed="true">Last sync</button>
+        <button data-sort="name" aria-pressed="false">Name</button>
+        <button data-sort="data" aria-pressed="false">Most data</button>
+      </div>
+      <button class="btn small" id="refreshBtn">↻ Refresh</button>
+      <span class="refreshed" id="refreshed"></span>
+    </div>
+    <div class="panel">
+      <div class="row head">
+        <div>User</div><div>Nutr · days</div><div>Bills</div><div>Places</div><div>Last sync</div>
+      </div>
+      <div id="tab-overall-rows"></div>
+    </div>
+    <!-- User management -->
+    <div id="adminPanel" class="hidden" style="margin-top:28px">
+      <div class="chart" style="background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--line-soft);border-radius:14px;padding:18px 20px">
+        <div style="margin-bottom:6px">
+          <div style="font-size:15px;font-weight:800;letter-spacing:-.01em">User management</div>
+          <div id="admin-sub" class="sub" style="font-size:11px;color:var(--faint);font-family:'JetBrains Mono',monospace">owner only</div>
+        </div>
+        <div class="note" style="margin:12px 0 18px">Admins can manage the catalog + photos. Only the owner can add or remove admins.</div>
+        <div id="admin-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ TAB: BILL SPLITTER ═══════════ -->
+  <div id="tab-pane-bills" class="tab-pane hidden">
+    <div class="tab-summary" id="bills-stats"></div>
+    <p class="app-note">Click any user row to open all Bill Splitter details, including trips, legacy bills, members, totals, and share links.</p>
+    <div class="toolbar">
+      <label class="search"><span style="color:var(--faint)">⌕</span>
+        <input id="bills-search" type="text" placeholder="search user name / email" /></label>
+      <span class="refreshed" id="bills-count"></span>
+    </div>
+    <div class="panel">
+      <div class="row head">
+        <div>User</div><div>Trips / Bills</div><div>Mode</div><div>Share links</div><div>Last sync</div>
+      </div>
+      <div id="tab-bills-rows"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ TAB: NUTRITION ═══════════ -->
+  <div id="tab-pane-nutrition" class="tab-pane hidden">
+    <div class="tab-summary" id="nutr-stats"></div>
+    <p class="app-note">Click any user row to open all Nutrition details, including total logged days and the latest logged date.</p>
+    <div class="toolbar">
+      <label class="search"><span style="color:var(--faint)">⌕</span>
+        <input id="nutr-search" type="text" placeholder="search user name / email" /></label>
+      <span class="refreshed" id="nutr-count"></span>
+    </div>
+    <div class="panel">
+      <div class="row head">
+        <div>User</div><div>Days logged</div><div>Last logged</div><div>Last sync</div>
+      </div>
+      <div id="tab-nutr-rows"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ TAB: PUMGODA ═══════════ -->
+  <div id="tab-pane-pumgoda" class="tab-pane hidden">
+    <div class="tab-summary" id="pumgoda-stats"></div>
+    <p class="app-note">Click any place row to edit catalog details, policies, verification, notes, and photos.</p>
+    <div class="toolbar" style="margin-bottom:20px">
+      <div class="brand" style="flex:0 0 auto">
+        <h1 style="font-size:15px;font-weight:800;margin:0">Pumgoda catalog</h1>
+        <div class="sub" style="font-size:11px;color:var(--faint);font-family:'JetBrains Mono',monospace">places</div>
+      </div>
+      <label class="search" style="margin-left:auto"><span style="color:var(--faint)">⌕</span>
+        <input id="pumgoda-search" type="text" placeholder="search name / type / region / id" /></label>
+      <span class="refreshed" id="pumgoda-count"></span>
+      <button class="btn small" id="pumgoda-add-btn" onclick="openCreate()" style="border-color:var(--accent);color:var(--accent)">+ Add place</button>
+    </div>
+    <div class="panel">
+      <div class="row head prow">
+        <div>Place</div><div>Type</div><div>Region</div><div>Paws</div><div>Pumba</div>
+      </div>
+      <div id="pumgoda-rows"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ TAB: BACKYARD ═══════════ -->
+  <div id="tab-pane-backyard" class="tab-pane hidden">
+    <div class="tab-summary" id="backyard-stats"></div>
+    <p class="app-note">Backyard data is loaded from Firestore leaderboard / score collections when available. Click a player row to see run details.</p>
+    <div class="toolbar">
+      <label class="search"><span style="color:var(--faint)">⌕</span>
+        <input id="backyard-search" type="text" placeholder="search player / email / uid" /></label>
+      <button class="btn small" id="backyard-refresh">↻ Refresh Backyard</button>
+      <span class="refreshed" id="backyard-count"></span>
+    </div>
+    <div id="backyard-error" class="backyard-error hidden"></div>
+    <div class="backyard-panel">
+      <div class="backyard-head"><div>Player</div><div>Best score</div><div>Runs</div><div>Last wave</div><div>Last played</div></div>
+      <div id="backyard-rows"><div class="empty">Loading Backyard data…</div></div>
+    </div>
+    <div class="backyard-note" id="backyard-source-note"></div>
+  </div>
+
+
+
+  <!-- USER PROFILE / ACTIVITY TIMELINE -->
+  <div id="uprof" class="uprof-ov hidden" aria-modal="true" role="dialog">
+    <div class="uprof-box">
+      <div class="uprof-hd">
+        <div class="uprof-avatar" id="uprof-avatar"></div>
+        <div class="uprof-title"><b id="uprof-name">User profile</b><span id="uprof-email"></span><span id="uprof-uid"></span></div>
+        <button class="btn ghost small" id="uprof-x">Close</button>
+      </div>
+      <div class="uprof-body" id="uprof-body"><div class="drawer-loading">Loading…</div></div>
+      <div class="uprof-actions"><button class="btn" id="uprof-close">Done</button></div>
+    </div>
+  </div>
+
+  <!-- PLACE EDITOR (Feature #100, Phase 2.2) -->
+  <div id="pedit" class="pedit-ov hidden">
+    <div class="pedit-box">
+      <div class="pedit-hd"><div><b>Edit place</b><span class="pedit-idtag" id="pedit-id"></span></div><button class="btn ghost small" id="pedit-x">Close</button></div>
+      <div id="pedit-err" class="errbox hidden" style="margin:14px 18px 0"></div>
+      <div class="pedit-bd" id="pedit-bd"></div>
+      <div class="pedit-ft"><button class="btn ghost" id="pedit-cancel">Cancel</button><button class="btn" id="pedit-save" style="border-color:var(--accent);color:var(--accent)">Save to Firestore</button></div>
+    </div>
+  </div>
+
+
+</main>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
+import { getFirestore, collection, getDocs, getDoc, doc, setDoc, serverTimestamp, deleteDoc, updateDoc, query, where } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+
+const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
+  authDomain: 'pumgoda.firebaseapp.com',
+  databaseURL: 'https://pumgoda-default-rtdb.asia-southeast1.firebasedatabase.app',
+  projectId: 'pumgoda',
+  storageBucket: 'pumgoda.firebasestorage.app',
+  messagingSenderId: '675478948836',
+  appId: '1:675478948836:web:3ad94d736b6a677d8495f1',
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+provider.setCustomParameters({ prompt: 'select_account' });
+
+const $ = (id) => document.getElementById(id);
+const show = (id) => ['gate','denied','app'].forEach(s => { const el = $(s); if(el) el.classList.toggle('hidden', s !== id); });
+function gateStatus(msg, isErr=false){
+  const el = $('gate-status');
+  if(!el) return;
+  el.textContent = msg || '';
+  el.style.color = isErr ? 'var(--red)' : 'var(--faint)';
+}
+
+// Firebase Auth needs persistence before any sign-in/redirect result handling.
+gateStatus('Checking login session…');
+try {
+  await setPersistence(auth, browserLocalPersistence);
+} catch(e) {
+  console.warn('Auth persistence unavailable:', e);
+  gateStatus('Browser blocked local login storage. Try Safari/Chrome normal mode, not private mode.', true);
+}
+try {
+  const redirectResult = await getRedirectResult(auth);
+  if(redirectResult && redirectResult.user) gateStatus('Signed in. Loading admin…');
+} catch(e) {
+  console.warn('Redirect sign-in result failed:', e);
+  gateStatus('Google sign-in returned an error: ' + (e.code || e.message || e), true);
+}
+
+
+let DATA = [];
+let BACKYARD = { rows: [], sources: [], errors: [], loaded:false };
+let sortKey = 'sync';
+
+const COLORS = ['#e8a13a','#7fb069','#d9694e','#5b9bd5','#c678dd','#e0a458','#56b6c2','#d98ba0'];
+function colorFor(s){let h=0;for(const c of (s||''))h=(h*31+c.charCodeAt(0))>>>0;return COLORS[h%COLORS.length];}
+
+const DAY = 86400000, HR = 3600000, MIN = 60000;
+function ts(v){ if(!v) return 0; if(typeof v === 'number') return v; if(typeof v.toMillis === 'function') return v.toMillis(); if(typeof v.seconds === 'number') return v.seconds*1000; return 0; }
+function rel(t){
+  if(!t) return ['—','',''];
+  const d = Date.now()-t; let s;
+  if(d<HR) s = Math.max(1,Math.round(d/MIN))+'m ago';
+  else if(d<DAY) s = Math.round(d/HR)+'h ago';
+  else s = Math.round(d/DAY)+'d ago';
+  const abs = new Date(t).toISOString().slice(0,16).replace('T',' ');
+  return [s, abs, d<7*DAY ? 'recent' : ''];
+}
+
+
+// ---- auth flow ----
+$('signinBtn').addEventListener('click', async () => {
+  const btn = $('signinBtn');
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  try {
+    await signInWithPopup(auth, provider);
+  } catch(e){
+    const code = e && e.code;
+    if(code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request'){
+      gateStatus('Sign-in was cancelled. Tap the button again to retry.');
+    } else if(code === 'auth/unauthorized-domain'){
+      gateStatus('This domain is not allowed in Firebase Auth. Add your site domain in Firebase Console > Authentication > Settings > Authorized domains.', true);
+    } else if(['auth/popup-blocked','auth/operation-not-supported-in-this-environment'].includes(code)){
+      gateStatus('Popup blocked. Switching to redirect sign-in…');
+      try { await signInWithRedirect(auth, provider); return; }
+      catch(redirErr){ gateStatus('Redirect sign-in failed: ' + (redirErr.code || redirErr.message || redirErr), true); }
+    } else {
+      gateStatus('Sign-in failed: ' + (e.code || e.message || e), true);
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.7 3.2-7.8z"/><path fill="#34A853" d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1.1-3.6 1.1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M6 14.4a6.6 6.6 0 0 1 0-4.2V7.4H2.3a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.4L6 10.2C6.9 7.7 9.2 5.4 12 5.4z"/></svg> Sign in with Google`;
+  }
+});
+$('signoutBtn').addEventListener('click', () => signOut(auth));
+$('denied-signout').addEventListener('click', () => signOut(auth));
+
+let IS_OWNER = false, ME = null;
+onAuthStateChanged(auth, async (user) => {
+  if(!user){ gateStatus(''); show('gate'); return; }
+  ME = user;
+  IS_OWNER = (user.uid === ADMIN_UID);
+  let allowed = IS_OWNER;
+  if(!allowed){ try{ allowed = (await getDoc(doc(db,'admins',user.uid))).exists(); }catch(e){ console.warn('Admin check failed:', e); allowed = false; } }
+  if(!allowed){
+    $('denied-uid').textContent = 'uid: ' + user.uid;
+    show('denied'); return;
+  }
+  $('me-name').textContent = user.displayName || 'Admin';
+  $('me-email').textContent = user.email || '';
+  const av = $('me-avatar');
+  if(user.photoURL){ av.innerHTML = ''; const img=document.createElement('img'); img.src=user.photoURL; img.referrerPolicy='no-referrer'; av.appendChild(img); }
+  else { av.textContent = (user.displayName||'A')[0].toUpperCase(); }
+  $('adminPanel').classList.toggle('hidden', !IS_OWNER);
+  gateStatus('');
+  show('app');
+  loadData();
+  loadPlaces();
+  loadBackyardData();
+  const savedTab = localStorage.getItem('admin_tab') || 'overall';
+  switchTab(savedTab);
+});
+
+
+// ---- data ----
+async function loadData(){
+  const btn = $('refreshBtn');
+  btn.innerHTML = '<span class="spin">↻</span> Loading…'; btn.disabled = true;
+  $('errbox').classList.add('hidden');
+  const map = new Map();
+  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,sync:0,name:null,email:null,_drawer:null,_lastNutrDate:null,_billMode:null,_shareCount:null,_events:[]}); return map.get(uid); };
+  const errors = [];
+  async function scan(col, apply){
+    try{ const snap = await getDocs(collection(db, col)); snap.forEach(s => apply(ensure(s.id), s.data()||{})); }
+    catch(e){ errors.push(col + ': ' + (e.code||e.message)); }
+  }
+  await scan('users',      (u,d) => {
+    const days = d.days || {};
+    const keys = Object.keys(days).sort();
+    u.nutr = keys.length;
+    u._lastNutrDate = keys.length ? keys[keys.length - 1] : null;
+    if(u._lastNutrDate) u._events.push({type:'nutrition', title:'Logged nutrition', detail:u._lastNutrDate, time:Date.parse(u._lastNutrDate)||ts(d.lastModified)});
+    u.sync = Math.max(u.sync, ts(d.lastModified));
+  });
+  await scan('userBills',  (u,d) => {
+    const trips = Array.isArray(d.trips) ? d.trips : [];
+    const history = Array.isArray(d.history) ? d.history : [];
+    u.bills = trips.length || history.length;
+    u._billMode = trips.length ? 'Trip mode' : (history.length ? 'Legacy' : null);
+    u._tripCount = trips.length;
+    u._legacyBillCount = history.length;
+    u._memberCount = trips.reduce((sum,t)=>sum + (Array.isArray(t.members) ? t.members.length : 0), 0);
+    const lastLegacy = history.length ? history[history.length-1] : null;
+    const lastTrip = trips.length ? trips[trips.length-1] : null;
+    if(lastLegacy) u._events.push({type:'bill', title:'Saved bill', detail:lastLegacy.billName || (lastLegacy.state && lastLegacy.state.billName) || 'Untitled bill', time:ts(lastLegacy.savedAt)||Date.parse(lastLegacy.savedAt)||ts(d.lastModified)});
+    else if(lastTrip) u._events.push({type:'bill', title:'Updated trip', detail:lastTrip.name || 'Untitled trip', time:ts(lastTrip.updatedAt)||ts(lastTrip.createdAt)||ts(d.lastModified)});
+    u.sync = Math.max(u.sync, ts(d.lastModified));
+  });
+  await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; if(u.places) u._events.push({type:'place', title:'Saved places', detail:u.places+' places', time:ts(d.lastModified)}); u.sync = Math.max(u.sync, ts(d.lastModified)); });
+  await scan('userProfiles',(u,d) => { u.name = d.name || null; u.email = d.email || null; if(ts(d.lastSeen)) u._events.push({type:'profile', title:'User active', detail:d.email || d.name || 'Profile seen', time:ts(d.lastSeen)}); u.sync = Math.max(u.sync, ts(d.lastSeen)); });
+  try{
+    const links = await getDocs(collection(db, 'shareLinks'));
+    links.forEach(s => {
+      const d = s.data() || {};
+      if(!d.createdBy) return;
+      const u = ensure(d.createdBy);
+      u._shareCount = (u._shareCount || 0) + 1;
+    });
+  }catch(e){ errors.push('shareLinks: ' + (e.code||e.message)); }
+
+  DATA = [...map.values()];
+
+  if(errors.length){
+    $('errbox').innerHTML = 'Firestore denied some reads — publish the admin rules, then Refresh.<br><code>'+errors.join('<br>')+'</code>';
+    $('errbox').classList.remove('hidden');
+  }
+  render();
+  if(IS_OWNER) renderAdminsPanel();
+  $('refreshed').textContent = 'refreshed ' + new Date().toTimeString().slice(0,8);
+  btn.innerHTML = '↻ Refresh'; btn.disabled = false;
+}
+
+// ---- admins (Feature #111) ----
+const escAdm = (s) => String(s==null?"":s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+const avA = (initial, owner) => '<div style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;flex:0 0 auto;'+(owner?'background:var(--accent);color:#1a1408':'background:var(--panel-2);color:var(--muted);border:1px solid var(--line)')+'">'+escAdm(initial)+'</div>';
+const seclblA = (t) => '<div style="font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-family:\'JetBrains Mono\',monospace;font-weight:700;margin-bottom:9px">'+t+'</div>';
+const ROWA = '<div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:var(--bg-2);border:1px solid var(--line-soft);border-radius:12px">';
+const monoA = 'font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+
+async function renderAdminsPanel(){
+  if(!IS_OWNER) return;
+  const body = $('admin-body');
+  body.innerHTML = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--faint);padding:8px 2px">Loading…</div>';
+  let admins = [];
+  try{ const snap = await getDocs(collection(db,'admins')); snap.forEach(s => admins.push(Object.assign({uid:s.id}, s.data()||{}))); }
+  catch(e){ body.innerHTML = '<div class="errbox">Could not read admins — publish the admin rules, then Refresh.<br><code>'+escAdm(e.code||e.message)+'</code></div>'; return; }
+  const adminUids = new Set(admins.map(a=>a.uid));
+  const info = (uid) => DATA.find(d=>d.uid===uid) || {};
+
+  let html = seclblA('Current admins') + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px">';
+  const oNm = (ME && ME.displayName) || 'Owner';
+  html += ROWA + avA((oNm[0]||'A').toUpperCase(), true)
+    + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">'+escAdm(oNm)+' <span style="color:var(--faint);font-weight:600">· you</span></div>'
+    + '<div style="'+monoA+'">'+escAdm(ADMIN_UID)+'</div></div>'
+    + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#1a1408;background:var(--accent);border-radius:8px;padding:4px 9px;flex:0 0 auto">Owner</span></div>';
+  if(admins.length===0){ html += '<div style="'+monoA+';white-space:normal">No additional admins yet.</div>'; }
+  else {
+    admins.sort((a,b)=>((info(a.uid).name||a.name||a.uid)+'').localeCompare((info(b.uid).name||b.name||b.uid)+''));
+    for(const a of admins){ const i=info(a.uid); const nm=i.name||a.name||'(unknown)'; const em=i.email||a.email||'';
+      html += ROWA + avA((nm[0]||'?').toUpperCase(), false)
+        + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">'+escAdm(nm)+'</div>'
+        + '<div style="'+monoA+'">'+escAdm(em ? em+' · '+a.uid : a.uid)+'</div></div>'
+        + '<button class="btn small admin-remove" data-uid="'+escAdm(a.uid)+'" data-name="'+escAdm(nm)+'" style="color:var(--red);border-color:#5a2c22;background:transparent">Remove</button></div>'; }
+  }
+  html += '</div>';
+
+  const cand = DATA.filter(d => d.uid!==ADMIN_UID && !adminUids.has(d.uid) && (d.name||d.email));
+  html += seclblA('Add admin') + '<div style="'+monoA+';white-space:normal;margin-bottom:10px">Signed-in users you can promote — pick from the roster.</div>';
+  if(cand.length===0){ html += '<div style="'+monoA+';white-space:normal">No one to add — users appear here after they sign in on the landing page.</div>'; }
+  else {
+    html += '<div style="display:flex;flex-direction:column;gap:8px">';
+    cand.sort((a,b)=>((a.name||a.email||'')+'').localeCompare((b.name||b.email||'')+''));
+    for(const c of cand){ const nm=c.name||c.email||c.uid;
+      html += ROWA + avA((nm[0]||'?').toUpperCase(), false)
+        + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600">'+escAdm(c.name||'(no name)')+'</div>'
+        + '<div style="'+monoA+'">'+escAdm((c.email||'')+' · '+c.uid)+'</div></div>'
+        + '<button class="btn small admin-add" data-uid="'+escAdm(c.uid)+'" data-name="'+escAdm(c.name||'')+'" data-email="'+escAdm(c.email||'')+'" style="background:var(--accent);color:#1a1408;border-color:var(--accent)">Make admin</button></div>'; }
+    html += '</div>';
+  }
+  body.innerHTML = html;
+  const n = admins.length+1; $('admin-sub').textContent = 'owner only · ' + n + (n===1?' admin':' admins');
+}
+
+$('admin-body').addEventListener('click', async (e) => {
+  const addBtn = e.target.closest('.admin-add');
+  const remBtn = e.target.closest('.admin-remove');
+  if(addBtn){ const uid = addBtn.dataset.uid; addBtn.disabled = true; addBtn.textContent = 'Adding…';
+    try{ await setDoc(doc(db,'admins',uid), { addedBy: ADMIN_UID, addedAt: serverTimestamp(), name: addBtn.dataset.name||null, email: addBtn.dataset.email||null }); await renderAdminsPanel(); }
+    catch(err){ addBtn.disabled=false; addBtn.textContent='Make admin'; alert('Could not add admin: '+(err.code||err.message)); } return; }
+  if(remBtn){ const uid = remBtn.dataset.uid, nm = remBtn.dataset.name || uid;
+    if(!confirm('Remove ' + nm + ' as admin?')) return;
+    remBtn.disabled = true; remBtn.textContent = 'Removing…';
+    try{ await deleteDoc(doc(db,'admins',uid)); await renderAdminsPanel(); }
+    catch(err){ remBtn.disabled=false; remBtn.textContent='Remove'; alert('Could not remove admin: '+(err.code||err.message)); } }
+});
+
+
+// ---- render ----
+function render(){
+  const q = ($('overall-search').value||'').toLowerCase().trim();
+  let rows = DATA.filter(u => !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || u.uid.toLowerCase().includes(q));
+  rows.sort((a,b) => {
+    if(sortKey==='name') return (a.name||a.uid).localeCompare(b.name||b.uid);
+    if(sortKey==='data') return (b.nutr+b.bills+b.places)-(a.nutr+a.bills+a.places);
+    return b.sync-a.sync;
+  });
+
+  const synced = DATA.length;
+  const active7 = DATA.filter(u => Date.now()-u.sync < 7*DAY && u.sync>0).length;
+  const sum = (k) => DATA.reduce((s,u)=>s+u[k],0);
+  $('stats').innerHTML = [
+    ['Synced users', synced, ''],
+    ['Active · 7d', active7, '<small>/ '+synced+'</small>'],
+    ['Nutrition days', sum('nutr'), ''],
+    ['Saved bills', sum('bills'), ''],
+    ['Saved places', sum('places'), ''],
+  ].map(([k,v,x]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}${x}</div></div>`).join('');
+
+  if(rows.length===0){
+    $('tab-overall-rows').innerHTML = '<div class="empty">'+(DATA.length===0?'No synced users yet.':'No matches.')+'</div>';
+  } else {
+    $('tab-overall-rows').innerHTML = rows.map(u => {
+      const [s,abs,cls] = rel(u.sync);
+      const apps = [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
+      const m = (n,lab,sec) => n===0 ? `<div class="metric zero"><span class="lab">${lab}</span><span>—</span></div>` : `<div class="metric" onclick="toggleDrawer('${u.uid}','${sec||''}')" style="cursor:pointer" title="Click for details"><span class="lab">${lab}</span><span class="metric-clickable">${n}</span></div>`;
+      const nm = u.name || (u.uid.slice(0,12)+'…');
+      return `<div class="user-block" data-uid="${u.uid}">
+      <div class="row body" onclick="toggleDrawer('${u.uid}')">
+        <div class="user">
+          <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><span class="uid">${u.uid.slice(0,10)}…</span><div class="apps">${apps}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
+        </div>
+        ${m(u.nutr,'Nutrition days','nutr')}${m(u.bills,'Bills','bills')}${m(u.places,'Places','places')}
+        <div class="sync ${cls}">${s}<span class="abs">${abs}</span><span class="drawer-arrow">▶</span></div>
+      </div>
+      <div class="drawer-slot" id="drawer-${u.uid}" style="display:none"></div>
+    </div>`;
+    }).join('');
+  }
+  renderCharts();
+  renderActivityFeed();
+  renderBillsTab();
+  renderNutrTab();
+}
+
+function donut(segs){
+  const total = segs.reduce((s,x)=>s+x.v,0)||1;
+  const r=54, C=2*Math.PI*r; let off=0;
+  const arcs = segs.map(s => { const len=C*s.v/total;
+    const c=`<circle cx="64" cy="64" r="${r}" fill="none" stroke="${s.color}" stroke-width="15" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 64 64)"/>`;
+    off+=len; return c; }).join('');
+  return `<svg class="donut" width="124" height="124" viewBox="0 0 128 128" aria-hidden="true">${arcs}
+    <text x="64" y="61" text-anchor="middle" style="fill:var(--text)" font-size="27" font-weight="800" font-family="JetBrains Mono">${total}</text>
+    <text x="64" y="79" text-anchor="middle" style="fill:var(--faint)" font-size="9" font-family="JetBrains Mono" letter-spacing="1.5">USERS</text></svg>`;
+}
+function hbar(name,val,max,color,vlabel){
+  const pct = Math.round(100*val/(max||1));
+  return `<div class="hbar"><div class="top"><span class="nm">${escAdm(name)}</span><span class="vl">${vlabel}</span></div>
+    <div class="track"><div class="fill" style="width:${pct}%;background:${color}"></div></div></div>`;
+}
+function renderCharts(){
+  const b = [
+    {label:'Active · <24h', color:'#7fb069', v:0},
+    {label:'This week',     color:'#e8a13a', v:0},
+    {label:'This month',    color:'#5b9bd5', v:0},
+    {label:'Dormant · 30d+',color:'#d9694e', v:0},
+  ];
+  DATA.forEach(u => { const d = u.sync ? Date.now()-u.sync : Infinity;
+    if(d<DAY) b[0].v++; else if(d<7*DAY) b[1].v++; else if(d<30*DAY) b[2].v++; else b[3].v++; });
+  $('chart-recency').innerHTML = `<div class="donut-wrap">${donut(b)}<div class="legend">`+
+    b.map(s=>`<div class="li"><span class="dot" style="background:${s.color}"></span><span class="ln">${s.label}</span><span class="lv">${s.v}</span></div>`).join('')+`</div></div>`;
+
+  const total = DATA.length;
+  const apps = [
+    {label:'Nutritions',    color:'#7fb069', v:DATA.filter(u=>u.nutr>0).length},
+    {label:'Bill Splitter', color:'#e8a13a', v:DATA.filter(u=>u.bills>0).length},
+    {label:'Pumgoda',       color:'#5b9bd5', v:DATA.filter(u=>u.places>0).length},
+  ];
+  $('chart-adoption').innerHTML = apps.map(a=>hbar(a.label,a.v,total,a.color,a.v+' / '+total)).join('');
+
+  const top = [...DATA].map(u=>({n:u.name||u.uid.slice(0,8), t:u.nutr+u.bills+u.places, c:colorFor(u.uid)}))
+    .sort((x,y)=>y.t-x.t).slice(0,6);
+  const max = top[0] ? top[0].t : 1;
+  $('chart-top').innerHTML = top.map(u=>hbar(u.n,u.t,max,u.c,String(u.t))).join('');
+}
+
+
+function feedIcon(type){ return ({nutrition:'🥗', bill:'🧾', place:'📍', profile:'👤', share:'🔗'}[type] || '•'); }
+function eventTimeLabel(t){ const r = rel(t||0); return r[0] || '—'; }
+function renderActivityFeed(){
+  const feed = $('activity-feed');
+  if(!feed) return;
+  const events = [];
+  DATA.forEach(u => {
+    (u._events||[]).forEach(ev => {
+      if(!ev.time) return;
+      events.push({ ...ev, uid:u.uid, user:u.name||u.email||u.uid.slice(0,10)+'…', email:u.email||'' });
+    });
+  });
+  events.sort((a,b)=>(b.time||0)-(a.time||0));
+  const top = events.slice(0,10);
+  $('activity-count').textContent = top.length ? top.length + ' recent' : '';
+  if(!top.length){ feed.innerHTML = '<div class="empty" style="padding:12px 0">No recent activity yet.</div>'; return; }
+  feed.innerHTML = top.map(ev => `<div class="feed-item">
+    <div class="feed-ico">${feedIcon(ev.type)}</div>
+    <div class="feed-main"><b>${escAdm(ev.user)} · ${escAdm(ev.title)}</b><span>${escAdm(ev.detail||ev.email||ev.uid)}</span><button type="button" class="profile-mini" onclick="openUserProfile('${ev.uid}')">OPEN PROFILE</button></div>
+    <div class="feed-time">${eventTimeLabel(ev.time)}</div>
+  </div>`).join('');
+}
+
+function fmtFull(t){
+  if(!t) return '—';
+  const ms = ts(t) || Date.parse(t) || (typeof t === 'number' ? t : 0);
+  return ms ? new Date(ms).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : String(t);
+}
+function userLabel(u){ return u ? (u.name || u.email || u.uid.slice(0,12)+'…') : 'Unknown user'; }
+function profileStat(k,v){ return `<div class="uprof-stat"><div class="k">${escAdm(k)}</div><div class="v">${escAdm(v)}</div></div>`; }
+function timelineItem(time,title,detail){ return `<div class="timeline-item"><div class="timeline-time">${escAdm(time||'—')}</div><div class="timeline-text">${escAdm(title)}${detail?`<span>${escAdm(detail)}</span>`:''}</div></div>`; }
+
+window.openUserProfile = async function(uid){
+  const u = DATA.find(x=>x.uid===uid) || {uid};
+  $('uprof-name').textContent = userLabel(u);
+  $('uprof-email').textContent = u.email || 'No email in profile data';
+  $('uprof-uid').textContent = 'uid: ' + uid;
+  const av = $('uprof-avatar'); av.style.background = colorFor(uid); av.textContent = (userLabel(u)[0]||'?').toUpperCase();
+  $('uprof-body').innerHTML = '<div class="drawer-loading">Loading profile…</div>';
+  $('uprof').classList.remove('hidden');
+  try{
+    const [nutrSnap,billsSnap,placesSnap,profileSnap,shareSnap] = await Promise.all([
+      getDoc(doc(db,'users',uid)).catch(()=>null),
+      getDoc(doc(db,'userBills',uid)).catch(()=>null),
+      getDoc(doc(db,'userPlaces',uid)).catch(()=>null),
+      getDoc(doc(db,'userProfiles',uid)).catch(()=>null),
+      getDocs(query(collection(db,'shareLinks'),where('createdBy','==',uid))).catch(()=>null),
+    ]);
+    const nutr = nutrSnap && nutrSnap.exists() ? nutrSnap.data() : {};
+    const bills = billsSnap && billsSnap.exists() ? billsSnap.data() : {};
+    const places = placesSnap && placesSnap.exists() ? placesSnap.data() : {};
+    const prof = profileSnap && profileSnap.exists() ? profileSnap.data() : {};
+    const days = nutr.days || {};
+    const dayKeys = Object.keys(days).sort();
+    const trips = Array.isArray(bills.trips) ? bills.trips : [];
+    const history = Array.isArray(bills.history) ? bills.history : [];
+    const savedIds = Array.isArray(places.savedIds) ? places.savedIds : [];
+    const shareCount = shareSnap ? shareSnap.size : 0;
+    const billTotal = history.reduce((sum,b)=>{
+      const foods = b && b.state && Array.isArray(b.state.foods) ? b.state.foods : [];
+      return sum + foods.reduce((s,f)=>s+(parseFloat(f.price)||0),0);
+    },0);
+    const events = [];
+    if(prof.lastSeen) events.push({time:ts(prof.lastSeen), title:'Last seen', detail:prof.email||prof.name||''});
+    if(dayKeys.length) events.push({time:Date.parse(dayKeys[dayKeys.length-1])||0, title:'Latest nutrition log', detail:dayKeys[dayKeys.length-1]});
+    history.slice(-5).reverse().forEach(b=>events.push({time:Date.parse(b.savedAt)||ts(b.savedAt)||0, title:'Saved bill: '+(b.billName || (b.state&&b.state.billName) || 'Untitled'), detail:fmtFull(b.savedAt)}));
+    trips.slice(-5).reverse().forEach(t=>events.push({time:ts(t.updatedAt)||ts(t.createdAt)||0, title:'Trip: '+(t.name||'Untitled'), detail:(Array.isArray(t.members)?t.members.length:0)+' members'}));
+    if(savedIds.length) events.push({time:ts(places.lastModified)||0, title:'Pumgoda saved places', detail:savedIds.length+' saved IDs'});
+    if(shareCount) events.push({time:0, title:'Share links created', detail:String(shareCount)});
+    events.sort((a,b)=>(b.time||0)-(a.time||0));
+    const timeline = events.length ? events.map(e=>timelineItem(e.time?eventTimeLabel(e.time):'—', e.title, e.detail)).join('') : '<div class="ds-empty">No timeline events available.</div>';
+    $('uprof-body').innerHTML = `
+      <div class="uprof-stats">
+        ${profileStat('Nutrition days', dayKeys.length)}
+        ${profileStat('Trips', trips.length)}
+        ${profileStat('Saved bills', history.length)}
+        ${profileStat('Bill total', billTotal ? '฿'+billTotal.toLocaleString('en',{maximumFractionDigits:0}) : '—')}
+        ${profileStat('Share links', shareCount)}
+        ${profileStat('Saved places', savedIds.length)}
+      </div>
+      <div class="uprof-section"><h4>Apps used</h4><div class="apps">${userApps({nutr:dayKeys.length,bills:trips.length||history.length,places:savedIds.length}) || '<span class="chip">NO DATA</span>'}</div></div>
+      <div class="uprof-section"><h4>Activity timeline</h4><div class="timeline">${timeline}</div></div>
+      <div class="uprof-section"><h4>Raw profile summary</h4>
+        <div class="drawer-row"><span class="dk">Name</span><span class="dv">${escAdm(prof.name || u.name || '—')}</span></div>
+        <div class="drawer-row"><span class="dk">Email</span><span class="dv">${escAdm(prof.email || u.email || '—')}</span></div>
+        <div class="drawer-row"><span class="dk">Last seen</span><span class="dv">${escAdm(fmtFull(prof.lastSeen || u.sync))}</span></div>
+      </div>`;
+  }catch(e){
+    $('uprof-body').innerHTML = `<div class="drawer-loading" style="color:var(--red)">Profile failed to load: ${escAdm(e.code||e.message||String(e))}</div>`;
+  }
+};
+function closeUserProfile(){ $('uprof').classList.add('hidden'); }
+$('uprof-x').addEventListener('click', closeUserProfile);
+$('uprof-close').addEventListener('click', closeUserProfile);
+$('uprof').addEventListener('click', e => { if(e.target.id === 'uprof') closeUserProfile(); });
+
+
+// ---- tabs ----
+const TABS = ['overall','bills','nutrition','pumgoda','backyard'];
+function switchTab(name){
+  if(!TABS.includes(name)) name = 'overall';
+  TABS.forEach(t => {
+    const btn = document.getElementById('tab-btn-'+t);
+    const pane = document.getElementById('tab-pane-'+t);
+    const on = t === name;
+    if(btn){ btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+    if(pane) pane.classList.toggle('hidden', !on);
+  });
+  localStorage.setItem('admin_tab', name);
+  if(name === 'bills') renderBillsTab();
+  if(name === 'nutrition') renderNutrTab();
+  if(name === 'pumgoda') renderPlaces();
+  if(name === 'backyard') renderBackyardTab();
+}
+
+// User drill-down: switch to tab + highlight user
+window.drillUser = function(uid, tab){
+  switchTab(tab);
+  // Wait for tab to render then open drawer
+  setTimeout(()=> toggleDrawer(uid, tab==='bills'?'bills':tab==='nutrition'?'nutr':null), 80);
+};
+
+// ---- drawer ----
+const DRAWER_CACHE = {};
+
+function scrollToSection(slot, section){
+  if(!section) return;
+  const el = slot.querySelector('[data-section="'+section+'"]');
+  if(el) setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'nearest'}), 80);
+}
+
+function fmtDrawerDate(ms){
+  if(!ms) return '—';
+  return new Date(typeof ms==='object'&&ms.toMillis?ms.toMillis():ms)
+    .toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});
+}
+
+window.toggleDrawer = async function toggleDrawer(uid, section){
+  const visiblePane = document.querySelector('.tab-pane:not(.hidden)');
+  const block = (visiblePane
+    ? [...visiblePane.querySelectorAll('.user-block')].find(b => b.dataset.uid === uid)
+    : null) || [...document.querySelectorAll('.user-block')].find(b => b.dataset.uid === uid);
+  const slot = block ? block.querySelector('.drawer-slot') : null;
+  if(!slot||!block) return;
+  const isOpen = slot.style.display !== 'none';
+  // close any open drawer
+  document.querySelectorAll('.drawer-slot').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.user-block.drawer-open').forEach(b=>b.classList.remove('drawer-open'));
+  if(isOpen) return; // toggle off
+  block.classList.add('drawer-open');
+  slot.style.display = 'block';
+  if(DRAWER_CACHE[uid]){ slot.innerHTML = DRAWER_CACHE[uid]; scrollToSection(slot, section); return; }
+  slot.innerHTML = '<div class="drawer-loading">Loading…</div>';
+  try {
+    const [nutrSnap, billsSnap, placesSnap, shareLinksSnap] = await Promise.all([
+      getDoc(doc(db,'users',uid)).catch(()=>null),
+      getDoc(doc(db,'userBills',uid)).catch(()=>null),
+      getDoc(doc(db,'userPlaces',uid)).catch(()=>null),
+      getDocs(query(collection(db,'shareLinks'),where('createdBy','==',uid))).catch(()=>null),
+    ]);
+
+    // --- Nutrition ---
+    let nutrHtml = '<div class="ds-empty">No data</div>';
+    if(nutrSnap && nutrSnap.exists()){
+      const days = nutrSnap.data().days || {};
+      const dayKeys = Object.keys(days).sort();
+      const totalDays = dayKeys.length;
+      const lastDay = dayKeys.length ? dayKeys[dayKeys.length-1] : null;
+      nutrHtml = `
+        <div class="drawer-row"><span class="dk">Total days logged</span><span class="dv">${totalDays}</span></div>
+        <div class="drawer-row"><span class="dk">Last logged</span><span class="dv">${lastDay||'—'}</span></div>`;
+    }
+
+    // --- Bills ---
+    let billsHtml = '<div class="ds-empty">No data</div>';
+    if(billsSnap && billsSnap.exists()){
+      const d = billsSnap.data();
+      const hasTripMode = Array.isArray(d.trips) && d.trips.length > 0;
+      const hasLegacy   = Array.isArray(d.history) && d.history.length > 0;
+      const shareCount  = shareLinksSnap ? shareLinksSnap.size : null;
+      const shareLabel  = shareCount === null ? '<span style="font-size:10px;color:var(--faint)">(needs rule)</span>' : shareCount;
+
+      if(hasTripMode){
+        // Trip Mode — trips have name + members
+        const trips = d.trips;
+        const groupSizes = trips.map(t=>Array.isArray(t.members)?t.members.length:0).filter(n=>n>0);
+        const avgGroup = groupSizes.length ? (groupSizes.reduce((a,b)=>a+b,0)/groupSizes.length).toFixed(1) : '—';
+        const recentTrips = [...trips].reverse().slice(0,3);
+        const tripRows = recentTrips.map(t=>{
+          const nm  = escAdm(t.name||'Untitled');
+          const members = Array.isArray(t.members) ? t.members : [];
+          const ppl = members.length ? members.length+' people' : '—';
+          const memberList = members.length ? escAdm(members.join(', ')) : '—';
+          const billsInTrip = Array.isArray(t.bills) ? t.bills.length : (Array.isArray(t.history) ? t.history.length : 0);
+          return `<div class="bill-item-detail">
+            <button type="button" class="bill-drill-toggle" onclick="event.stopPropagation(); this.closest('.bill-item-detail').classList.toggle('open'); this.querySelector('.hint').textContent = this.closest('.bill-item-detail').classList.contains('open') ? 'TAP TO HIDE DETAILS' : 'TAP TO SEE TRIP DETAILS';">
+              <div class="bid-header"><span class="bill-name">${nm}</span><span class="bill-meta">${ppl}</span></div>
+              <div class="hint">TAP TO SEE TRIP DETAILS</div>
+            </button>
+            <div class="bill-drill">
+              <div class="bill-detail-line"><span class="k">Members</span><span class="v">${memberList}</span></div>
+              <div class="bill-detail-line"><span class="k">Bills in trip</span><span class="v">${billsInTrip}</span></div>
+            </div>
+          </div>`;
+        }).join('');
+        billsHtml = `
+          <div class="drawer-row"><span class="dk">Total trips</span><span class="dv">${trips.length}</span></div>
+          <div class="drawer-row"><span class="dk">Avg people / trip</span><span class="dv">${avgGroup}</span></div>
+          <div class="drawer-row" style="margin-bottom:${recentTrips.length?'10px':'0'}"><span class="dk">Share links created</span><span class="dv">${shareLabel}</span></div>
+          ${recentTrips.length ? '<div class="ds-sub">Recent trips</div>'+tripRows : ''}`;
+      } else if(hasLegacy){
+        // Legacy single-bill mode — entries have billName + savedAt + state
+        const bills = d.history;
+        const recentBills = [...bills].reverse().slice(0,3);
+        const money = (n) => { const x=parseFloat(n); return Number.isFinite(x) ? '฿'+x.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2}) : '—'; };
+        const arrText = (v) => Array.isArray(v) ? v.filter(Boolean).join(', ') : (v || '—');
+        const billRows = recentBills.map((b,idx)=>{
+          const s      = b.state || {};
+          const nm     = escAdm(b.billName || s.billName || 'Untitled');
+          const date   = b.savedAt ? new Date(b.savedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
+          const savedAtFull = b.savedAt ? new Date(b.savedAt).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+          const membersRaw = Array.isArray(s.members) ? s.members : [];
+          const members = membersRaw.length ? escAdm(membersRaw.join(', ')) : '—';
+          const foods   = Array.isArray(s.foods) ? s.foods : [];
+          const total   = foods.reduce((sum,f)=>sum + (parseFloat(f.price)||0), 0);
+          const totalStr = total > 0 ? money(total) : '—';
+          const itemCount = foods.length;
+          const hasPromptPay = s.promptPay && String(s.promptPay).trim();
+          const hasBankInfo  = s.bankInfo && String(s.bankInfo).trim();
+          const shareMethod  = hasPromptPay && hasBankInfo ? 'PromptPay + Bank' : hasPromptPay ? 'PromptPay' : hasBankInfo ? 'Bank info' : '—';
+          const foodRows = foods.length ? foods.map((f,i)=>{
+            const fname = escAdm(f.name || f.foodName || f.title || ('Item '+(i+1)));
+            const price = money(f.price || f.amount || f.total);
+            const paidBy = escAdm(f.paidBy || f.payer || f.owner || '—');
+            const sharedBy = escAdm(arrText(f.sharedBy || f.eaters || f.members || f.splitWith || f.people));
+            const qty = f.qty || f.quantity || '';
+            return `<div class="food-detail">
+              <div class="food-head"><span>${fname}${qty?` × ${escAdm(qty)}`:''}</span><span>${price}</span></div>
+              <div class="food-meta">Paid by: ${paidBy}</div>
+              <div class="food-meta">Shared by: ${sharedBy}</div>
+            </div>`;
+          }).join('') : '<div class="ds-empty">No item details saved.</div>';
+          const payDetails = [
+            hasPromptPay ? `<div class="bill-detail-line"><span class="k">PromptPay</span><span class="v">${escAdm(s.promptPay)}</span></div>` : '',
+            hasBankInfo ? `<div class="bill-detail-line"><span class="k">Bank info</span><span class="v">${escAdm(s.bankInfo)}</span></div>` : ''
+          ].join('');
+          return `<div class="bill-item-detail">
+            <button type="button" class="bill-drill-toggle" onclick="event.stopPropagation(); this.closest('.bill-item-detail').classList.toggle('open'); this.querySelector('.hint').textContent = this.closest('.bill-item-detail').classList.contains('open') ? 'TAP TO HIDE DETAILS' : 'TAP TO SEE BILL DETAILS';">
+              <div class="bid-header"><span class="bill-name">${nm}</span><span class="bill-meta">${date}</span></div>
+              <div class="bid-row"><span class="dk">People</span><span class="dv-sm">${members}</span></div>
+              <div class="bid-row"><span class="dk">Items / Total</span><span class="dv-sm">${itemCount} items · ${totalStr}</span></div>
+              <div class="bid-row"><span class="dk">Payment method</span><span class="dv-sm">${shareMethod}</span></div>
+              <div class="hint">TAP TO SEE BILL DETAILS</div>
+            </button>
+            <div class="bill-drill">
+              <div class="bill-detail-line"><span class="k">Saved at</span><span class="v">${escAdm(savedAtFull)}</span></div>
+              <div class="bill-detail-line"><span class="k">Members</span><span class="v">${members}</span></div>
+              <div class="bill-detail-line"><span class="k">Total</span><span class="v">${totalStr}</span></div>
+              ${payDetails}
+              <div class="ds-sub">Items</div>
+              ${foodRows}
+            </div>
+          </div>`;
+        }).join('');
+        billsHtml = `
+          <div class="drawer-row"><span class="dk">Total bills</span><span class="dv">${bills.length}</span></div>
+          <div class="drawer-row" style="margin-bottom:${recentBills.length?'10px':'0'}"><span class="dk">Share links created</span><span class="dv">${shareLabel}</span></div>
+          ${recentBills.length ? '<div class="ds-sub">Recent bills</div>'+billRows : ''}`;
+      }
+    }
+
+    // --- Places ---
+    let placesHtml = '<div class="ds-empty">No data</div>';
+    if(placesSnap && placesSnap.exists()){
+      const ids = placesSnap.data().savedIds || [];
+      placesHtml = `<div class="drawer-row"><span class="dk">Saved places</span><span class="dv">${ids.length||'—'}</span></div>`;
+    }
+
+    const html = `<div class="drawer-body">
+      <div class="drawer-section" data-section="nutr">
+        <h4>🥗 Nutritions</h4>
+        ${nutrHtml}
+      </div>
+      <div class="drawer-section" data-section="bills">
+        <h4>🧾 Bill Splitter</h4>
+        ${billsHtml}
+      </div>
+      <div class="drawer-section" data-section="places">
+        <h4>📍 Pumgoda</h4>
+        ${placesHtml}
+      </div>
+    </div>`;
+
+    DRAWER_CACHE[uid] = html;
+    slot.innerHTML = html;
+    scrollToSection(slot, section);
+  } catch(e){
+    slot.innerHTML = `<div class="drawer-loading" style="color:var(--red)">Failed to load: ${escAdm(e.message||e.code||String(e))}</div>`;
+  }
+}
+
+
+
+function statCards(target, cards){
+  const el = $(target);
+  if(!el) return;
+  el.innerHTML = cards.map(([k,v,x]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}${x||''}</div></div>`).join('');
+}
+function userApps(u){
+  return [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
+}
+function safeAbs(t){
+  return t ? new Date(t).toISOString().slice(0,16).replace('T',' ') : '—';
+}
+function pickNum(obj, keys){
+  for(const k of keys){ const v = obj && obj[k]; if(v !== undefined && v !== null && v !== '' && !isNaN(Number(v))) return Number(v); }
+  return 0;
+}
+function pickText(obj, keys, fallback='—'){
+  for(const k of keys){ const v = obj && obj[k]; if(v !== undefined && v !== null && String(v).trim() !== '') return String(v); }
+  return fallback;
+}
+function normalizeBackyardDoc(id, d, source){
+  const uid = pickText(d, ['uid','userId','playerUid','createdBy','ownerUid'], id);
+  const profile = DATA.find(u => u.uid === uid) || {};
+  const name = pickText(d, ['displayName','playerName','name','username'], profile.name || uid.slice(0,12));
+  const email = pickText(d, ['email','userEmail'], profile.email || '');
+  const score = pickNum(d, ['score','bestScore','highScore','points','totalScore']);
+  const runs = pickNum(d, ['runs','runCount','games','plays','attempts']) || 1;
+  const wave = pickNum(d, ['wave','lastWave','maxWave','level','stage']);
+  const weapon = pickText(d, ['weapon','lastWeapon','favoriteWeapon'], '—');
+  const duration = pickText(d, ['duration','runTime','time','survivalTime'], '—');
+  const played = Math.max(ts(d.updatedAt), ts(d.createdAt), ts(d.lastPlayed), ts(d.lastSeen), ts(d.savedAt), ts(d.timestamp));
+  return { id, source, uid, name, email, score, runs, wave, weapon, duration, played, raw:d };
+}
+function mergeBackyardRows(rows){
+  const map = new Map();
+  for(const r of rows){
+    const key = r.uid || r.name || r.id;
+    const cur = map.get(key);
+    if(!cur){ map.set(key, {...r, docs:[r]}); continue; }
+    cur.score = Math.max(cur.score||0, r.score||0);
+    cur.runs = (cur.runs||0) + (r.runs||0);
+    if((r.played||0) > (cur.played||0)){
+      cur.played = r.played; cur.wave = r.wave; cur.weapon = r.weapon; cur.duration = r.duration; cur.source = r.source;
+    }
+    cur.docs.push(r);
+  }
+  return [...map.values()].sort((a,b)=> (b.score-a.score) || (b.played-a.played));
+}
+async function loadBackyardData(){
+  const candidateCollections = ['backyardLeaderboard','backyardScores','backyardRuns','backyard','gameScores','leaderboard','scores','runs','userGameStats','backyardStats'];
+  const found = [], errors = [];
+  for(const col of candidateCollections){
+    try{
+      const snap = await getDocs(collection(db, col));
+      if(!snap.empty){
+        found.push(col);
+        snap.forEach(d => BACKYARD.rows.push(normalizeBackyardDoc(d.id, d.data()||{}, col)));
+      }
+    }catch(e){
+      const code = e.code || e.message || String(e);
+      if(!String(code).includes('permission-denied')) errors.push(col + ': ' + code);
+    }
+  }
+  BACKYARD.rows = mergeBackyardRows(BACKYARD.rows);
+  BACKYARD.sources = found;
+  BACKYARD.errors = errors;
+  BACKYARD.loaded = true;
+  renderBackyardTab();
+}
+function backyardDetailHtml(r){
+  const last = r.docs && r.docs[0] ? r.docs.slice(0,3) : [];
+  return `<div class="bdetail">
+    <div class="bdetail-grid">
+      <div class="bdetail-card"><div class="k">Best score</div><div class="v">${r.score||'—'}</div></div>
+      <div class="bdetail-card"><div class="k">Total runs</div><div class="v">${r.runs||'—'}</div></div>
+      <div class="bdetail-card"><div class="k">Last wave</div><div class="v">${r.wave||'—'}</div></div>
+      <div class="bdetail-card"><div class="k">Weapon</div><div class="v">${escAdm(r.weapon||'—')}</div></div>
+      <div class="bdetail-card"><div class="k">Duration</div><div class="v">${escAdm(r.duration||'—')}</div></div>
+      <div class="bdetail-card"><div class="k">Source</div><div class="v">${escAdm(r.source||'—')}</div></div>
+    </div>
+    <div class="backyard-note">Recent raw docs: ${last.map(x=>escAdm(x.source+'/'+x.id)).join(', ') || '—'}</div>
+  </div>`;
+}
+window.toggleBackyardDetail = function(idx){
+  const el = document.getElementById('bdetail-'+idx);
+  if(!el) return;
+  const open = el.style.display !== 'none';
+  document.querySelectorAll('[id^="bdetail-"]').forEach(x=>x.style.display='none');
+  el.style.display = open ? 'none' : 'block';
+};
+function renderBackyardTab(){
+  const rowsAll = BACKYARD.rows || [];
+  const best = rowsAll[0] ? rowsAll[0].score : 0;
+  const totalRuns = rowsAll.reduce((s,r)=>s+(r.runs||0),0);
+  const active7 = rowsAll.filter(r=>r.played && Date.now()-r.played < 7*DAY).length;
+  statCards('backyard-stats', [
+    ['Players', rowsAll.length || '—', ''],
+    ['Best score', best || '—', ''],
+    ['Runs', totalRuns || '—', ''],
+    ['Active · 7d', active7 || '—', ''],
+  ]);
+  const qEl = $('backyard-search');
+  const q = (qEl && qEl.value || '').toLowerCase().trim();
+  const rows = rowsAll.filter(r => !q || (r.name||'').toLowerCase().includes(q) || (r.email||'').toLowerCase().includes(q) || (r.uid||'').toLowerCase().includes(q));
+  const count = $('backyard-count'); if(count) count.textContent = rows.length + ' players';
+  const note = $('backyard-source-note');
+  if(note) note.textContent = BACKYARD.sources.length ? ('Loaded from: ' + BACKYARD.sources.join(', ')) : 'No Backyard Firestore collection found yet. This tab checks common collection names; tell me your real collection name if your game uses a different one.';
+  const err = $('backyard-error');
+  if(err){
+    if(BACKYARD.errors.length){ err.innerHTML = 'Some Backyard reads failed:<br><code>'+BACKYARD.errors.map(escAdm).join('<br>')+'</code>'; err.classList.remove('hidden'); }
+    else err.classList.add('hidden');
+  }
+  const target = $('backyard-rows'); if(!target) return;
+  if(!BACKYARD.loaded){ target.innerHTML = '<div class="empty">Loading Backyard data…</div>'; return; }
+  if(!rows.length){ target.innerHTML = '<div class="empty">No Backyard data found yet.</div>'; return; }
+  target.innerHTML = rows.map((r,i)=>{
+    const [ago,abs,cls] = rel(r.played);
+    return `<div class="backyard-row" onclick="toggleBackyardDetail(${i})">
+      <div class="bplayer"><b>${escAdm(r.name||'Unknown player')}</b><span>${escAdm(r.email || r.uid || '—')}</span></div>
+      <div class="bnum" data-label="Best score">${r.score||'—'}</div>
+      <div class="bnum" data-label="Runs">${r.runs||'—'}</div>
+      <div class="bmuted" data-label="Last wave">${r.wave||'—'}</div>
+      <div class="sync ${cls}" data-label="Last played">${r.played?ago:'—'}<span class="abs">${r.played?abs:''}</span></div>
+      <div id="bdetail-${i}" style="display:none">${backyardDetailHtml(r)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ---- bills tab ----
+function renderBillsTab(){
+  const users = DATA.filter(u => u.bills > 0);
+  const q = ($('bills-search').value||'').toLowerCase().trim();
+  let rows = users.filter(u =>
+    !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || u.uid.toLowerCase().includes(q)
+  );
+  rows.sort((a,b) => b.bills - a.bills || b.sync - a.sync);
+  const totalBills = users.reduce((sum,u)=>sum+u.bills,0);
+  const tripUsers = users.filter(u=>u._tripCount>0).length;
+  const shareTotal = users.reduce((sum,u)=>sum+(u._shareCount||0),0);
+  statCards('bills-stats', [
+    ['Bill users', users.length, ''],
+    ['Trips / bills', totalBills, ''],
+    ['Trip-mode users', tripUsers, ''],
+    ['Share links', shareTotal, ''],
+  ]);
+  $('bills-count').textContent = rows.length + ' users';
+  if(!rows.length){
+    $('tab-bills-rows').innerHTML = '<div class="empty">No bill splitter users yet.</div>';
+    return;
+  }
+  $('tab-bills-rows').innerHTML = rows.map(u => {
+    const [s,,cls] = rel(u.sync);
+    const nm = u.name || (u.uid.slice(0,12)+'…');
+    const mode = u._billMode || '—';
+    const detail = u._tripCount ? `${u._tripCount} trips · ${u._memberCount||0} members` : (u._legacyBillCount ? `${u._legacyBillCount} saved bills` : '—');
+    return `<div class="user-block" data-uid="${u.uid}">
+      <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','bills')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','bills')}">
+        <div class="user">
+          <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
+        </div>
+        <div class="metric"><span class="lab">Trips / bills</span><span>${u.bills}</span><span class="cell-sub">${escAdm(detail)}</span></div>
+        <div class="metric"><span class="lab">Mode</span><span style="font-size:11px;color:var(--muted)">${escAdm(mode)}</span></div>
+        <div class="metric"><span class="lab">Share links</span><span>${u._shareCount!=null?u._shareCount:'—'}</span></div>
+        <div class="sync ${cls}">${s}<span class="abs">${safeAbs(u.sync)}</span><span class="drawer-arrow">▶</span></div>
+      </div>
+      <div class="drawer-slot" style="display:none"></div>
+    </div>`;
+  }).join('');
+}
+
+// ---- nutrition tab ----
+function renderNutrTab(){
+  const users = DATA.filter(u => u.nutr > 0);
+  const q = ($('nutr-search').value||'').toLowerCase().trim();
+  let rows = users.filter(u =>
+    !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || u.uid.toLowerCase().includes(q)
+  );
+  rows.sort((a,b) => b.nutr - a.nutr || b.sync - a.sync);
+  const totalDays = users.reduce((sum,u)=>sum+u.nutr,0);
+  const active7 = users.filter(u => u.sync && Date.now()-u.sync < 7*DAY).length;
+  const latest = users.map(u=>u._lastNutrDate).filter(Boolean).sort().pop() || '—';
+  statCards('nutr-stats', [
+    ['Nutrition users', users.length, ''],
+    ['Total logged days', totalDays, ''],
+    ['Active · 7d', active7, '<small>/ '+users.length+'</small>'],
+    ['Latest log', escAdm(latest), ''],
+  ]);
+  $('nutr-count').textContent = rows.length + ' users';
+  if(!rows.length){
+    $('tab-nutr-rows').innerHTML = '<div class="empty">No nutrition users yet.</div>';
+    return;
+  }
+  $('tab-nutr-rows').innerHTML = rows.map(u => {
+    const [s,,cls] = rel(u.sync);
+    const nm = u.name || (u.uid.slice(0,12)+'…');
+    const lastDate = u._lastNutrDate || '—';
+    return `<div class="user-block" data-uid="${u.uid}">
+      <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','nutr')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','nutr')}">
+        <div class="user">
+          <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
+        </div>
+        <div class="metric"><span class="lab">Days logged</span><span>${u.nutr}</span></div>
+        <div class="metric"><span class="lab">Last logged</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">${escAdm(lastDate)}</span></div>
+        <div class="sync ${cls}">${s}<span class="abs">${safeAbs(u.sync)}</span><span class="drawer-arrow">▶</span></div>
+      </div>
+      <div class="drawer-slot" style="display:none"></div>
+    </div>`;
+  }).join('');
+}
+
+
+
+// ---- controls ----
+// wire tab buttons
+["overall","bills","nutrition","pumgoda","backyard"].forEach(t => {
+  const btn = document.getElementById("tab-btn-"+t);
+  if(btn) btn.addEventListener("click", ()=> switchTab(t));
+});
+const backyardSearchEl = document.getElementById('backyard-search');
+if(backyardSearchEl) backyardSearchEl.addEventListener('input', renderBackyardTab);
+const backyardRefreshEl = document.getElementById('backyard-refresh');
+if(backyardRefreshEl) backyardRefreshEl.addEventListener('click', async ()=>{ BACKYARD = { rows: [], sources: [], errors: [], loaded:false }; renderBackyardTab(); await loadBackyardData(); });
+$("themeBtn") && $('themeBtn').addEventListener('click', () => {
+  const isLight = document.documentElement.classList.toggle('light');
+  localStorage.setItem('admin_theme', isLight ? 'light' : 'dark');
+  $('themeBtn').textContent = isLight ? '☀ Light' : '☾ Dark';
+});
+$('overall-search').addEventListener('input', render);
+$('bills-search').addEventListener('input', renderBillsTab);
+$('nutr-search').addEventListener('input', renderNutrTab);
+$('refreshBtn').addEventListener('click', loadData);
+document.querySelectorAll('.seg button').forEach(btn => btn.addEventListener('click', () => {
+  sortKey = btn.dataset.sort;
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.sort===sortKey));
+  render();
+}));
+
+// ---- Pumgoda catalog (Feature #100, Phase 2.1: read-only) ----
+let PLACES = [];
+async function loadPlaces(){
+  try{
+    const snap = await getDocs(collection(db, 'places'));
+    PLACES = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }catch(e){ PLACES = []; console.warn('places load failed', e.code||e.message); }
+  renderPlaces();
+}
+function pawTier(p){
+  if(p.stroller_required) return 1;
+  if(!p.indoor_allowed) return 2;
+  if(!p.pet_menu) return 3;
+  return 4;
+}
+function renderPlaces(){
+  const q = ($('pumgoda-search').value||'').toLowerCase().trim();
+  const en = (p)=> (p.name&&p.name.en)||'';
+  const th = (p)=> (p.name&&p.name.th)||'';
+  let rows = PLACES.filter(p => !q || en(p).toLowerCase().includes(q) || th(p).includes(q) || (p.type||'').toLowerCase().includes(q) || (p.region||'').toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+  rows.sort((a,b)=> a.id.localeCompare(b.id));
+  $('pumgoda-count').textContent = rows.length + ' / ' + PLACES.length + ' places';
+  if(rows.length===0){
+    $('pumgoda-rows').innerHTML = '<div class="empty">'+(PLACES.length===0?'No places in Firestore yet.':'No matches.')+'</div>';
+    return;
+  }
+  $('pumgoda-rows').innerHTML = rows.map(p => {
+    const paws = '🐾'.repeat(pawTier(p));
+    const reg = (p.region||'').replace(/_/g,' ');
+    const ver = (p.pumba&&p.pumba.verified) ? '✓' : '—';
+    return `<div class="row body prow" data-pid="${escAdm(p.id)}" style="cursor:pointer" title="Edit">
+      <div class="pname"><b>${escAdm(en(p)||p.id)}</b><span class="pth">${escAdm(th(p)||'')}</span><span class="pid">${escAdm(p.id)}</span></div>
+      <div class="ptype">${escAdm(p.type||'—')}</div>
+      <div class="preg">${escAdm(reg||'—')}</div>
+      <div class="ppaw">${paws}</div>
+      <div class="pverif">${ver}</div>
+    </div>`;
+  }).join('');
+}
+$('pumgoda-search').addEventListener('input', renderPlaces);
+// pumgoda refresh handled via main refreshBtn
+
+// ---- Pumgoda catalog editor (Feature #100, Phase 2.2 + 2.3 create/delete) ----
+let CUR = null;
+let CREATING = false;
+const TYPE_BASE = ['Cafe','Restaurant','Hotel','Pet Hotel','Park','Mall','Beach','Vet','Pet shop','Grooming','Clinic'];
+const LOOKUP_WORKER = 'https://pumgoda-places-lookup.pbfluffygaming.workers.dev';
+const AUTOFILL_BLOCK =
+  '<div class="fld full" style="border:1px solid var(--line-soft);border-radius:10px;padding:10px 12px;background:var(--panel-2)">' +
+    '<label style="font-weight:600">Auto-fill from Google Maps link</label>' +
+    '<div style="display:flex;gap:8px;margin-top:2px">' +
+      '<input type="text" id="f_autofill_url" placeholder="paste a Google Maps link" style="flex:1" />' +
+      '<button type="button" class="btn" id="btn_autofill" style="white-space:nowrap">Auto-fill</button>' +
+    '</div>' +
+    '<div id="autofill_msg" class="photomsg"></div>' +
+  '</div>';
+const REGION_BASE = ['bangkok_metro','weekend_escape'];
+const vget = (id) => (document.getElementById(id)?.value || '').trim();
+const nextPlaceId = () => { const ns = PLACES.map(x=>{ const m=/^P0*(\d+)$/.exec(x.id||''); return m?parseInt(m[1],10):0; }); return 'P'+String((ns.length?Math.max(...ns):0)+1).padStart(3,'0'); };
+const esc = (v) => (v ?? '').toString().replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+const escA = esc;
+const optList = (list, cur) => [...new Set([...list, cur].filter(v=>v!==undefined&&v!==null&&v!==''))].map(v=>`<option value="${esc(v)}"${v===cur?' selected':''}>${v}</option>`).join('');
+const field = (label,id,val,type) => `<div class="fld"><label>${label}</label><input type="${type||'text'}" id="${id}" value="${esc(val)}" /></div>`;
+const area = (label,id,val) => `<div class="fld full"><label>${label}</label><textarea id="${id}">${escA(val)}</textarea></div>`;
+const chk = (label,id,on) => `<label><input type="checkbox" id="${id}"${on?' checked':''} /> ${label}</label>`;
+function blankPlace(){ return { name:{en:'',th:''}, type:'', region:'bangkok_metro', province:'', neighborhood:'', coords:null, address:{en:'',th:''}, googleMapsUrl:'', phone:'', website:'', instagram:'', hours:'', policy:{}, pumba:{}, priceTier:null, notes:{en:'',th:''}, tags:[], lastVerified:null, photos:[] }; }
+function buildForm(p, creating){
+  const pol = p.policy || {};
+  const b = (k) => (k in p) ? !!p[k] : !!pol[k];
+  const idField = creating ? `<div class="fld full"><label>Place ID (unique \u2014 e.g. P012)</label><input type="text" id="f_id" value="${nextPlaceId()}" placeholder="P012" /></div>` : '';
+  document.getElementById('pedit-bd').innerHTML = idField + AUTOFILL_BLOCK +
+    field('Name (EN)','f_name_en',(p.name&&p.name.en)||'') +
+    field('Name (TH)','f_name_th',(p.name&&p.name.th)||'') +
+    `<div class="fld"><label>Type</label><select id="f_type">${optList(TYPE_BASE, p.type||'')}</select></div>` +
+    `<div class="fld"><label>Region</label><select id="f_region">${optList(REGION_BASE, p.region||'')}</select></div>` +
+    field('Province','f_province',p.province||'') +
+    field('Neighborhood','f_neighborhood',p.neighborhood||'') +
+    field('Latitude','f_lat',(p.coords&&p.coords[0]!=null)?p.coords[0]:'','number') +
+    field('Longitude','f_lng',(p.coords&&p.coords[1]!=null)?p.coords[1]:'','number') +
+    field('Address (EN)','f_address_en',(p.address&&p.address.en)||'') +
+    field('Address (TH)','f_address_th',(p.address&&p.address.th)||'') +
+    `<div class="fld-sec">Contact</div>` +
+    field('Phone','f_phone',p.phone||'') +
+    field('Website','f_website',p.website||'') +
+    field('Instagram','f_instagram',p.instagram||'') +
+    field('Google Maps URL','f_google_maps_url',p.googleMapsUrl||'') +
+    field('Hours','f_hours',p.hours||'') +
+    `<div class="fld-sec">Policy</div><div class="pol">` +
+      chk('Indoor allowed','f_indoor_allowed',b('indoor_allowed')) +
+      chk('No size limit','f_no_size_limit',b('no_size_limit')) +
+      chk('Water bowl','f_water_bowl',b('water_bowl')) +
+      chk('No fee','f_no_fee',b('no_fee')) +
+      chk('Pet menu','f_pet_menu',b('pet_menu')) +
+      chk('Off-leash zone','f_off_leash_zone',b('off_leash_zone')) +
+      chk('Pet bed / toys','f_pet_bed_toys',b('pet_bed_toys')) +
+      chk('Pool / play / grooming','f_pet_pool_play_grooming',b('pet_pool_play_grooming')) +
+      chk('Overnight','f_overnight',b('overnight')) +
+      chk('Stroller required','f_stroller_required',b('stroller_required')) +
+      chk('Staff welcoming','f_staff_welcoming',b('staff_welcoming')) +
+    `</div>` +
+    field('Size limit (kg)','f_size_limit_kg',(pol.size_limit_kg!=null?pol.size_limit_kg:''),'number') +
+    field('Fee (baht)','f_fee_baht',(pol.fee_baht!=null?pol.fee_baht:''),'number') +
+    `<div class="fld"><label>Price tier</label><select id="f_price">${['','$','$$','$$$'].map(v=>`<option value="${v}"${v===(p.priceTier||'')?' selected':''}>${v||'\u2014'}</option>`).join('')}</select></div>` +
+    `<div class="fld-sec">Pumba</div><div class="pol">` + chk('Pumba verified','f_pumba_verified',!!(p.pumba&&p.pumba.verified)) + chk('Favorite','f_pumba_favorite',!!(p.pumba&&p.pumba.favorite)) + `</div>` +
+    field('Visit date','f_pumba_visit_date',(p.pumba&&p.pumba.visitDate)||'') +
+    field('Pumba photo URL','f_pumba_photo_url',(p.pumba&&p.pumba.photoUrl)||'') +
+    `<div class="fld-sec">Meta</div>` +
+    area('Notes (EN)','f_notes_en',(p.notes&&p.notes.en)||'') +
+    area('Notes (TH)','f_notes_th',(p.notes&&p.notes.th)||'') +
+    field('Tags (; separated)','f_tags',(p.tags||[]).join('; ')) +
+    field('Last verified','f_last_verified',p.lastVerified||'') +
+    (creating ? '' : '<div class="fld-sec">Photos</div><div class="fld full"><div id="f_photos" class="photogrid"></div><label class="uploadbtn"><input type="file" id="f_photofile" accept="image/*" hidden multiple /><span>+ Upload photo</span></label><div id="f_photomsg" class="photomsg"></div></div>');
+  if(!creating) renderThumbs();
+}
+function openEditor(id){
+  const p = PLACES.find(x=>x.id===id); if(!p) return;
+  CUR = id; CREATING = false;
+  document.querySelector('.pedit-hd b').textContent = 'Edit place';
+  document.getElementById('pedit-id').textContent = id;
+  if(delBtn) delBtn.style.display = '';
+  document.getElementById('pedit-err').classList.add('hidden');
+  buildForm(p, false);
+  document.getElementById('pedit').classList.remove('hidden');
+}
+function openCreate(){
+  switchTab('pumgoda');
+  CUR = null; CREATING = true;
+  document.querySelector('.pedit-hd b').textContent = 'Add place';
+  document.getElementById('pedit-id').textContent = 'new';
+  if(delBtn) delBtn.style.display = 'none';
+  document.getElementById('pedit-err').classList.add('hidden');
+  buildForm(blankPlace(), true);
+  document.getElementById('pedit').classList.remove('hidden');
+}
+function closeEditor(){ document.getElementById('pedit').classList.add('hidden'); CUR = null; CREATING = false; }
+window.openCreate = openCreate;
+window.openEditor = openEditor;
+function numOrNull(id){ const v=vget(id); if(v==='') return null; const n=parseFloat(v); return isNaN(n)?null:n; }
+function buildBody(){
+  const orig = CREATING ? {} : (PLACES.find(x=>x.id===CUR) || {});
+  const bk = ['indoor_allowed','no_size_limit','water_bowl','no_fee','pet_menu','off_leash_zone','pet_bed_toys','pet_pool_play_grooming','overnight','stroller_required','staff_welcoming'];
+  const bools = {}; bk.forEach(k=> bools[k] = document.getElementById('f_'+k).checked);
+  const lat=vget('f_lat'), lng=vget('f_lng'); const pt = vget('f_price');
+  const body = {
+    ...orig,
+    name:{ en:vget('f_name_en'), th:vget('f_name_th') },
+    type:vget('f_type'), region:vget('f_region'), province:vget('f_province'), neighborhood:vget('f_neighborhood'),
+    coords: lat==='' ? null : [parseFloat(lat), parseFloat(lng)],
+    address:{ en:vget('f_address_en'), th:vget('f_address_th') },
+    googleMapsUrl:vget('f_google_maps_url'), phone:vget('f_phone'), website:vget('f_website'), instagram:vget('f_instagram'), hours:vget('f_hours'),
+    policy:{ ...bools, size_limit_kg:numOrNull('f_size_limit_kg'), fee_baht:numOrNull('f_fee_baht') },
+    ...bools,
+    pumba:{ verified:document.getElementById('f_pumba_verified').checked, favorite:document.getElementById('f_pumba_favorite').checked, visitDate:vget('f_pumba_visit_date')||null, photoUrl:vget('f_pumba_photo_url')||null },
+    priceTier: pt==='' ? null : pt,
+    notes:{ en:vget('f_notes_en'), th:vget('f_notes_th') },
+    tags: vget('f_tags').split(';').map(t=>t.trim()).filter(Boolean),
+    lastVerified: vget('f_last_verified')||null,
+    photos: Array.isArray(orig.photos) ? orig.photos : [],
+  };
+  delete body.id;
+  body.lastModified = serverTimestamp();
+  return body;
+}
+async function saveEditor(){
+  const err = document.getElementById('pedit-err');
+  const fail = (m)=>{ err.textContent=m; err.classList.remove('hidden'); };
+  if(!vget('f_name_en') && !vget('f_name_th')) return fail('Name (EN or TH) is required.');
+  if(!vget('f_type')) return fail('Type is required.');
+  let targetId = CUR;
+  if(CREATING){
+    targetId = vget('f_id');
+    if(!targetId) return fail('Place ID is required.');
+    if(!/^[A-Za-z0-9_-]+$/.test(targetId)) return fail('Place ID may use letters, numbers, hyphen and underscore only.');
+    if(PLACES.some(x=>x.id===targetId)) return fail('Place ID "'+targetId+'" already exists.');
+  }
+  if(!targetId) return fail('No target id.');
+  const lat=vget('f_lat'), lng=vget('f_lng');
+  if((lat==='')!==(lng==='')) return fail('Latitude and longitude must both be set, or both empty.');
+  if(lat!=='' && (isNaN(parseFloat(lat))||isNaN(parseFloat(lng)))) return fail('Coordinates must be valid numbers.');
+  const body = buildBody();
+  const btn = document.getElementById('pedit-save'); btn.disabled=true; btn.textContent='Saving\u2026';
+  try{
+    await setDoc(doc(db,'places',targetId), body);
+    closeEditor();
+    await loadPlaces();
+  }catch(e){ fail('Save failed: '+(e.code||e.message)); }
+  finally{ btn.disabled=false; btn.textContent='Save to Firestore'; }
+}
+async function deletePlace(){
+  if(!CUR || CREATING) return;
+  if(!window.confirm('Delete place '+CUR+'? This cannot be undone.')) return;
+  const err = document.getElementById('pedit-err');
+  delBtn.disabled=true; delBtn.textContent='Deleting\u2026';
+  try{
+    await deleteDoc(doc(db,'places',CUR));
+    closeEditor();
+    await loadPlaces();
+  }catch(e){ err.textContent='Delete failed: '+(e.code||e.message); err.classList.remove('hidden'); }
+  finally{ delBtn.disabled=false; delBtn.textContent='Delete'; }
+}
+const addBtn = document.createElement('button');
+addBtn.className = 'btn small'; addBtn.id = 'padd'; addBtn.textContent = '+ Add place';
+addBtn.style.borderColor = 'var(--accent)'; addBtn.style.color = 'var(--accent)';
+addBtn.addEventListener('click', openCreate);
+const pcountEl = document.getElementById('pcount');
+if(pcountEl && pcountEl.parentNode) pcountEl.parentNode.insertBefore(addBtn, pcountEl);
+const delBtn = document.createElement('button');
+delBtn.className = 'btn'; delBtn.id = 'pedit-del'; delBtn.textContent = 'Delete';
+delBtn.style.borderColor = 'var(--red)'; delBtn.style.color = 'var(--red)'; delBtn.style.marginRight = 'auto';
+delBtn.addEventListener('click', deletePlace);
+const ftEl = document.querySelector('.pedit-ft');
+if(ftEl) ftEl.insertBefore(delBtn, ftEl.firstChild);
+document.getElementById('pumgoda-rows').addEventListener('click', (e)=>{ const row=e.target.closest('.row.body.prow'); if(row && row.dataset.pid) openEditor(row.dataset.pid); });
+document.getElementById('pumgoda-rows').addEventListener('keydown', (e)=>{ if(e.key!=='Enter' && e.key!==' ') return; const row=e.target.closest('.row.body.prow'); if(row && row.dataset.pid){ e.preventDefault(); openEditor(row.dataset.pid); } });
+document.getElementById('pedit-x').addEventListener('click', closeEditor);
+document.getElementById('pedit-cancel').addEventListener('click', closeEditor);
+document.getElementById('pedit-save').addEventListener('click', saveEditor);
+document.getElementById('pedit').addEventListener('click', (e)=>{ if(e.target.id==='pedit') closeEditor(); });
+
+// ---- Pumgoda photo upload (Feature #100, Phase 3.1) ----
+const PHOTO_WORKER = 'https://pumgoda-photo.pbfluffygaming.workers.dev';
+const PHOTO_MAX = 12;
+function placePhotos(){ const p = PLACES.find(x=>x.id===CUR); return (p && Array.isArray(p.photos)) ? p.photos : []; }
+function renderThumbs(){
+  const wrap = document.getElementById('f_photos'); if(!wrap) return;
+  const ph = placePhotos();
+  wrap.innerHTML = ph.length
+    ? ph.map(u=>`<div class="thumb"><img src="${u}" alt="" loading="lazy" /><button type="button" class="thx" data-rmphoto="${u.replace(/"/g,'&quot;')}" title="Remove">\u00d7</button></div>`).join('')
+    : '<div class="photoempty">No photos yet.</div>';
+}
+function setPhotoMsg(m, isErr){ const el=document.getElementById('f_photomsg'); if(el){ el.textContent=m||''; el.style.color = isErr ? 'var(--red)' : 'var(--faint)'; } }
+async function uploadPhotos(fileList){
+  if(!CUR || CREATING) return;
+  const files = [...(fileList||[])];
+  if(!files.length) return;
+  const cur = placePhotos().slice();
+  if(cur.length + files.length > PHOTO_MAX){ setPhotoMsg('Max '+PHOTO_MAX+' photos per place.', true); return; }
+  let token; try{ token = await auth.currentUser.getIdToken(); }catch(e){ setPhotoMsg('Auth error.', true); return; }
+  const added = [];
+  const warns = [];
+  for(let i=0;i<files.length;i++){
+    const f = files[i];
+    if(!/^image\//.test(f.type)){ setPhotoMsg('Skipped non-image: '+f.name, true); continue; }
+    if(f.size > 8*1024*1024){ setPhotoMsg('Skipped >8MB: '+f.name, true); continue; }
+    try{
+      const bmp = await createImageBitmap(f, { imageOrientation: 'from-image' });
+      const longEdge = Math.max(bmp.width, bmp.height);
+      if(longEdge < 800) warns.push(f.name+': low resolution ('+longEdge+'px) — may look soft when enlarged');
+      if(bmp.height > bmp.width) warns.push(f.name+': vertical photo — the card cover banner crops the top & bottom');
+      if(bmp.close) bmp.close();
+    }catch(_){ warns.push(f.name+': could not read image — it may not display in browsers (e.g. HEIC); JPEG/PNG/WebP recommended'); }
+    setPhotoMsg('Uploading '+(i+1)+' / '+files.length+'\u2026');
+    const fd = new FormData(); fd.append('file', f); fd.append('placeId', CUR);
+    try{
+      const r = await fetch(PHOTO_WORKER, { method:'POST', headers:{ Authorization:'Bearer '+token }, body: fd });
+      const b = await r.json().catch(()=>({}));
+      if(!r.ok || !b.url){ setPhotoMsg('Upload failed: '+(b.error||r.status), true); continue; }
+      added.push(b.url);
+    }catch(e){ setPhotoMsg('Upload error: '+e.message, true); }
+  }
+  if(added.length){
+    const next = cur.concat(added);
+    try{
+      await updateDoc(doc(db,'places',CUR), { photos: next, lastModified: serverTimestamp() });
+      const p = PLACES.find(x=>x.id===CUR); if(p) p.photos = next;
+      renderThumbs(); renderPlaces();
+      setPhotoMsg(added.length+' photo'+(added.length>1?'s':'')+' added.' + (warns.length ? '  ⚠ '+warns.join('  ·  ') : ''));
+    }catch(e){ setPhotoMsg('Uploaded to storage but DB update failed: '+(e.code||e.message), true); }
+  }
+  const inp=document.getElementById('f_photofile'); if(inp) inp.value='';
+  if(!added.length && warns.length) setPhotoMsg('⚠ '+warns.join('  ·  '));
+}
+async function removePhoto(url){
+  if(!CUR || CREATING || !url) return;
+  if(!window.confirm('Remove this photo?')) return;
+  let token; try{ token = await auth.currentUser.getIdToken(); }catch(e){ setPhotoMsg('Auth error.', true); return; }
+  try{ await fetch(PHOTO_WORKER + '?key=' + encodeURIComponent(url), { method:'DELETE', headers:{ Authorization:'Bearer '+token } }); }catch(e){}
+  const next = placePhotos().filter(u=>u!==url);
+  try{
+    await updateDoc(doc(db,'places',CUR), { photos: next, lastModified: serverTimestamp() });
+    const p = PLACES.find(x=>x.id===CUR); if(p) p.photos = next;
+    renderThumbs(); renderPlaces();
+    setPhotoMsg('Photo removed.');
+  }catch(e){ setPhotoMsg('Remove failed: '+(e.code||e.message), true); }
+}
+document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='f_photofile') uploadPhotos(e.target.files); });
+document.addEventListener('click', (e)=>{ if(e.target && e.target.id==='btn_autofill') runAutofill(); });
+
+function setAutofillMsg(m, isErr){ const el=document.getElementById('autofill_msg'); if(el){ el.textContent=m||''; el.style.color = isErr ? 'var(--red)' : 'var(--faint)'; } }
+const AUTOFILL_HI = 'var(--accent-soft)';
+function setIfEmpty(id, val){
+  const el=document.getElementById(id); if(!el || val==null || val==='') return;
+  if(el.value && el.value.trim()) return;           // never clobber typed text
+  el.value = val; el.style.background = AUTOFILL_HI;
+}
+function selectIfEmpty(id, val){
+  const el=document.getElementById(id); if(!el || val==null || val==='') return;
+  if(!CREATING && el.value && el.value.trim()) return; // on edit, keep existing choice
+  if(![...el.options].some(o=>o.value===val)){ const o=document.createElement('option'); o.value=val; o.textContent=val; el.appendChild(o); }
+  el.value = val; el.style.background = AUTOFILL_HI;
+}
+function applyAutofill(p){
+  if(!p) return;
+  setIfEmpty('f_name_en', p.name && p.name.en);
+  setIfEmpty('f_name_th', p.name && p.name.th);
+  if(p.coords){ setIfEmpty('f_lat', p.coords[0]); setIfEmpty('f_lng', p.coords[1]); }
+  setIfEmpty('f_address_en', p.address && p.address.en);
+  setIfEmpty('f_address_th', p.address && p.address.th);
+  setIfEmpty('f_phone', p.phone);
+  setIfEmpty('f_website', p.website);
+  setIfEmpty('f_google_maps_url', p.googleMapsUrl);
+  setIfEmpty('f_hours', p.hours);
+  setIfEmpty('f_province', p.province);
+  setIfEmpty('f_neighborhood', p.neighborhood);
+  if(p.type)  selectIfEmpty('f_type', p.type);
+  if(p.price) selectIfEmpty('f_price', p.price);
+}
+async function runAutofill(){
+  const url = vget('f_autofill_url');
+  if(!url){ setAutofillMsg('Paste a Google Maps link first.', true); return; }
+  const btn = document.getElementById('btn_autofill');
+  if(btn) btn.disabled = true;
+  setAutofillMsg('Looking up\u2026');
+  try{
+    const token = await auth.currentUser.getIdToken(); const r = await fetch(LOOKUP_WORKER, {
+      method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token }, body: JSON.stringify({ url })
+    });
+    const data = await r.json();
+    if(!data.ok){
+      const map = { bad_url:'That doesn\u2019t look like a valid link.', resolve_failed:'Couldn\u2019t read that link \u2014 try opening it and pasting the expanded URL.', not_found:'No matching place found.', places_error:'Lookup service error \u2014 try again.' };
+      setAutofillMsg(map[data.error] || ('Lookup failed: ' + data.error), true);
+      return;
+    }
+    applyAutofill(data.place);
+    const partial = !data.meta || data.meta.placeId == null;
+    setAutofillMsg(partial
+      ? 'Got coordinates only \u2014 fill the rest, then set pet policy.'
+      : 'Filled \u2014 review highlighted fields, then set pet policy.');
+  }catch(e){
+    setAutofillMsg('Network error.', true);
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
+document.addEventListener('click', (e)=>{ const x = e.target.closest && e.target.closest('[data-rmphoto]'); if(x) removePhoto(x.getAttribute('data-rmphoto')); });
+
+
+</script>
+</body>
+</html>
