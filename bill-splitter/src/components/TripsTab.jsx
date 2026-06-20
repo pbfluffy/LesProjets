@@ -97,27 +97,29 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
   const _converted = (rates && !isTHB) || (rate && !isTHB)
   const displaySettlements = _converted ? convSettlements : summary.settlements
   const displayCurrency = _converted ? 'THB' : summary.currency
+  const currencyFlag = CURRENCY_FLAGS[summary.currency] ?? ''
+  const currencyLabel = summary.mixedCurrencies
+    ? (t.tripMixedCurrencies ?? 'Mixed currencies')
+    : `${currencyFlag ? `${currencyFlag} ` : ''}${summary.currency} Bill`
 
   return (
     <div className={styles.summarySection}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+      <div className={styles.summaryHeader}>
         <div className={styles.summaryTitle} style={{ margin: 0 }}>{t.tripSummaryTitle ?? 'Summary'}</div>
         {!isTHB && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {summary.mixedCurrencies && (
-              <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{t.tripMixedCurrencies ?? '⚠️ Mixed currencies'}</span>
-            )}
+          <div className={styles.currencyStatus}>
+            <div className={styles.currencyStatusText}>
+              <span>{summary.mixedCurrencies ? 'Original: mixed' : `Original: ${summary.currency}`}</span>
+              <strong>{currencyLabel}</strong>
+              <span>Display: {_converted ? 'THB' : summary.currency}</span>
+              {rate && <span>1 {summary.currency} = ฿{rate.toFixed(4)}</span>}
+              {rates && !rate && <span>THB rates loaded</span>}
+            </div>
             <button
               onClick={onConvertToggle}
-              style={{
-                fontSize: 11, padding: '3px 8px', borderRadius: 12,
-                border: '0.5px solid var(--color-border)',
-                background: rate ? 'var(--color-text)' : 'var(--color-surface)',
-                color: rate ? 'var(--color-bg)' : 'var(--color-text-muted)',
-                cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
-              }}
+              className={`${styles.currencyToggle} ${_converted ? styles.currencyToggleOn : ''}`}
             >
-              {rateLoading ? '…' : rates ? (rate ? `1 ${summary.currency} = ฿${rate.toFixed(2)}` : `฿ loaded`) : (t.tripConvertBtn ?? 'Convert to ฿')}
+              {rateLoading ? '…' : _converted ? 'THB' : (t.tripConvertBtn ?? 'Convert to ฿')}
             </button>
           </div>
         )}
@@ -164,17 +166,19 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
         <>
           <div className={styles.summaryTitle} style={{ marginTop: 14 }}>{t.tripSummaryTransfers ?? '💸 Who pays whom'}</div>
           {displaySettlements.map((s, i) => (
-            <div key={i} className={styles.summaryRow}>
-              <span className={styles.summaryName} style={{ gap: 6 }}>
-                <Avatar name={s.from} size={18} />
-                <span style={{ fontSize: 13 }}>{s.from}</span>
-                <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>→</span>
-                <Avatar name={s.to} size={18} />
-                <span style={{ fontSize: 13 }}>{s.to}</span>
-              </span>
-              <span className={styles.summaryAmt} style={{ color: 'var(--color-accent, #ff6b35)' }}>
-                {fmtAmount(s.amount, displayCurrency)}
-              </span>
+            <div key={i} className={styles.paymentCard}>
+              <div className={styles.paymentPeople}>
+                <div className={styles.paymentPerson}>
+                  <Avatar name={s.from} size={20} />
+                  <span><strong>{s.from}</strong> pays</span>
+                </div>
+                <div className={styles.paymentTo}>
+                  <span>to</span>
+                  <Avatar name={s.to} size={20} />
+                  <strong>{s.to}</strong>
+                </div>
+              </div>
+              <div className={styles.paymentAmount}>{fmtAmount(s.amount, displayCurrency)}</div>
             </div>
           ))}
         </>
