@@ -848,9 +848,13 @@ async function loadData(){
   await scan('userBills',  (u,d) => {
     const trips = Array.isArray(d.trips) ? d.trips : [];
     const history = Array.isArray(d.history) ? d.history : [];
+    // Note: trips may also live in userBills/{uid}/trips subcollection (Trip Mode v2)
+    // We detect Trip Mode by presence of tripsLastEdit field
+    const hasTripMode = trips.length > 0 || (d.tripsLastEdit != null);
     u.bills = trips.length || history.length;
-    u._billMode = trips.length ? 'Trip mode' : (history.length ? 'Legacy' : null);
-    u._tripCount = trips.length;
+    u._billMode = hasTripMode ? 'Trip mode' : (history.length ? 'Legacy' : null);
+    u._tripCount = trips.length; // top-level array; subcollection counted separately
+    u._hasTripMode = hasTripMode;
     u._legacyBillCount = history.length;
     u._memberCount = trips.reduce((sum,t)=>sum + (Array.isArray(t.members) ? t.members.length : 0), 0);
     const lastLegacy = history.length ? history[history.length-1] : null;
@@ -1588,7 +1592,7 @@ function renderBillsTab(){
   );
   rows.sort((a,b) => b.bills - a.bills || b.sync - a.sync);
   const totalBills = users.reduce((sum,u)=>sum+u.bills,0);
-  const tripUsers = users.filter(u=>u._tripCount>0).length;
+  const tripUsers = users.filter(u=>u._hasTripMode).length;
   const shareTotal = users.reduce((sum,u)=>sum+(u._shareCount||0),0);
   statCards('bills-stats', [
     ['Bill users', users.length, ''],
@@ -1613,7 +1617,7 @@ function renderBillsTab(){
           <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
         <div class="metric"><span class="lab">Trips / bills</span><span>${u.bills}</span><span class="cell-sub">${escAdm(detail)}</span></div>
-        <div class="metric"><span class="lab">Mode</span><span style="font-size:11px;color:var(--muted)">${escAdm(mode)}</span></div>
+        <div class="metric"><span class="lab">Mode</span><span style="font-size:11px;color:var(--muted)">${escAdm(u._billMode||'—')}</span></div>
         <div class="metric"><span class="lab">Share links</span><span>${u._shareCount!=null?u._shareCount:'—'}</span></div>
         <div class="sync ${cls}">${s}<span class="abs">${safeAbs(u.sync)}</span><span class="drawer-arrow">▶</span></div>
       </div>
