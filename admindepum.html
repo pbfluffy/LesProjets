@@ -1065,10 +1065,7 @@ function userAvatarHtml(u){
   const bg = colorFor(u && u.uid);
   const prof = u && PROFILE_MAP.get(u.uid) || {};
   const photo = normalizePhotoURL((u && u.photoURL) || prof.photoURL || prof.photoUrl || prof.avatarUrl || prof.avatar || prof.picture);
-  const style = photo
-    ? `background-color:${bg};background-image:url('${escAdm(photo).replace(/'/g,'&#39;')}');color:transparent`
-    : `background:${bg}`;
-  return `<div class="ua${photo ? ' has-photo' : ''}" style="${style}" data-initial="${initial}" title="${photo ? 'Photo URL found' : 'No photoURL saved'}">${initial}</div>`;
+  return `<div class="ua${photo ? ' has-photo' : ''}" style="background:${bg}" data-initial="${initial}" title="${photo ? 'Photo URL found' : 'No photoURL saved'}">${photo ? `<img src="${escAdm(photo)}" referrerpolicy="no-referrer" onerror="const p=this.parentNode;this.remove();p.textContent=p.dataset.initial||'·';p.title='IMG FAIL: Photo URL found but image could not render';">` : initial}</div>`;
 }
 function chipsHtml(values, cls='member-chip'){
   const list = Array.isArray(values) ? values.filter(Boolean) : [];
@@ -1142,12 +1139,13 @@ function setProfileAvatar(el, uid, label, photoURL){
   const initial = (label && label[0] || '?').toUpperCase();
   const photo = normalizePhotoURL(photoURL);
   if(photo){
-    el.style.backgroundColor = colorFor(uid);
-    el.style.backgroundImage = `url("${photo.replace(/"/g, '%22')}")`;
-    el.style.backgroundSize = 'cover';
-    el.style.backgroundPosition = 'center';
-    el.style.color = 'transparent';
-    el.textContent = initial;
+    el.style.background = colorFor(uid);
+    el.style.color = '#1a1408';
+    const img = document.createElement('img');
+    img.src = photo;
+    img.referrerPolicy = 'no-referrer';
+    img.onerror = () => { el.innerHTML = ''; el.textContent = initial; el.title = 'IMG FAIL: Photo URL found but image could not render'; };
+    el.appendChild(img);
     el.title = 'Photo URL found';
   } else {
     el.style.background = colorFor(uid);
