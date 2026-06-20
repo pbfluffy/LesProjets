@@ -313,8 +313,9 @@ html.light body{
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px;
 }
 .bill-name {
-  color:var(--text); font-weight:600; white-space:nowrap;
-  overflow:hidden; text-overflow:ellipsis; max-width:130px;
+  color:var(--text); font-weight:600;
+  overflow:hidden; text-overflow:ellipsis;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
 }
 .bill-meta {
   color:var(--muted); font-family:'JetBrains Mono',monospace;
@@ -1398,9 +1399,9 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
           const billsInTrip = billIds.length;
           const tripBillCards = tripBills.length ? tripBills.map(renderBillFormCard).join('') : (billIds.length ? '<div class="ds-empty">Bill data not in history (may be on another device).</div>' : '<div class="ds-empty">No bills added to this trip yet.</div>');
           return `<div class="bill-item-detail">
-            <button type="button" class="bill-drill-toggle" onclick="event.stopPropagation(); this.closest('.bill-item-detail').classList.toggle('open'); this.querySelector('.hint').textContent = this.closest('.bill-item-detail').classList.contains('open') ? '▲ Hide' : '▶ Details';">
+            <button type="button" class="bill-drill-toggle" onclick="event.stopPropagation(); this.closest('.bill-item-detail').classList.toggle('open'); ">
               <div class="bid-header"><span class="bill-name">${nm}</span><span class="bill-meta">${ppl}</span></div>
-              <div class="hint">▶ Details</div>
+              
             </button>
             <div class="bill-drill">
               <div class="bill-detail-line"><span class="k">Members</span><span class="v">${memberList}</span></div>
@@ -1434,12 +1435,12 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
           const hasBankInfo  = s.bankInfo && String(s.bankInfo).trim();
           const shareMethod  = hasPromptPay && hasBankInfo ? 'PromptPay + Bank' : hasPromptPay ? 'PromptPay' : hasBankInfo ? 'Bank info' : '—';
           return `<div class="bill-item-detail">
-            <button type="button" class="bill-drill-toggle" onclick="event.stopPropagation(); this.closest('.bill-item-detail').classList.toggle('open'); this.querySelector('.hint').textContent = this.closest('.bill-item-detail').classList.contains('open') ? '▲ Hide' : '▶ Details';">
+            <button type="button" class="bill-drill-toggle" onclick="event.stopPropagation(); this.closest('.bill-item-detail').classList.toggle('open'); ">
               <div class="bid-header"><span class="bill-name">${nm}</span><span class="bill-meta">${date}</span></div>
               <div class="bid-row"><span class="dk">People</span><span class="dv-sm">${members}</span></div>
               <div class="bid-row"><span class="dk">Items / Total</span><span class="dv-sm">${itemCount} items · ${totalStr}</span></div>
-              <div class="bid-row"><span class="dk">Payment method</span><span class="dv-sm">${shareMethod}</span></div>
-              <div class="hint">▶ Details</div>
+              ${shareMethod !== '—' ? `<div class="bid-row"><span class="dk">Payment method</span><span class="dv-sm">${shareMethod}</span></div>` : ''}
+              
             </button>
             <div class="bill-drill">
               ${renderBillFormCard(b)}
@@ -1447,7 +1448,7 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
           </div>`;
         }).join('');
         const legacySection = `
-          ${hasTripMode ? '<div class="ds-sub" style="margin-top:12px">Legacy bills</div>' : ''}
+          ${hasTripMode ? '<div class="ds-sub" style="margin-top:12px">Bills</div>' : ''}
           <div class="drawer-row"><span class="dk">Total bills</span><span class="dv">${bills.length}</span></div>
           ${!hasTripMode ? `<div class="drawer-row" style="margin-bottom:${recentBills.length?'10px':'0'}"><span class="dk">Share links created</span><span class="dv">${shareLabel}</span></div>` : ''}
           ${recentBills.length ? '<div class="ds-sub">Recent bills</div>'+billRows : ''}`;
