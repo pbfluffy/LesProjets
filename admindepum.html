@@ -819,8 +819,7 @@ onAuthStateChanged(auth, async (user) => {
   show('app');
   loadData();
   loadPlaces();
-  const savedTab = localStorage.getItem('admin_tab') || 'overall';
-  switchTab(savedTab);
+  switchTab('overall');
 });
 
 
@@ -848,12 +847,10 @@ async function loadData(){
   await scan('userBills',  (u,d) => {
     const trips = Array.isArray(d.trips) ? d.trips : [];
     const history = Array.isArray(d.history) ? d.history : [];
-    // Note: trips may also live in userBills/{uid}/trips subcollection (Trip Mode v2)
-    // We detect Trip Mode by presence of tripsLastEdit field
     const hasTripMode = trips.length > 0 || (d.tripsLastEdit != null);
     u.bills = trips.length || history.length;
     u._billMode = hasTripMode ? 'Trip mode' : (history.length ? 'Legacy' : null);
-    u._tripCount = trips.length; // top-level array; subcollection counted separately
+    u._tripCount = trips.length;
     u._hasTripMode = hasTripMode;
     u._legacyBillCount = history.length;
     u._memberCount = trips.reduce((sum,t)=>sum + (Array.isArray(t.members) ? t.members.length : 0), 0);
@@ -863,6 +860,15 @@ async function loadData(){
     else if(lastTrip) u._events.push({type:'bill', title:'Updated trip', detail:lastTrip.name || 'Untitled trip', time:ts(lastTrip.updatedAt)||ts(lastTrip.createdAt)||ts(d.lastModified)});
     u.sync = Math.max(u.sync, ts(d.lastModified));
   });
+  // Fetch subcollection trip counts for Trip Mode users
+  await Promise.all([...map.values()].filter(u=>u._hasTripMode && u._tripCount===0).map(async u => {
+    try {
+      const subSnap = await getDocs(collection(db,'userBills',u.uid,'trips'));
+      u._tripCount = subSnap.size;
+      u.bills = u._tripCount || u._legacyBillCount;
+    } catch(e) {}
+  }));
+
   await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; if(u.places) u._events.push({type:'place', title:'Saved places', detail:u.places+' places', time:ts(d.lastModified)}); u.sync = Math.max(u.sync, ts(d.lastModified)); });
   await scan('userProfiles',(u,d) => { PROFILE_MAP.set(u.uid, d); u.name = d.name || null; u.email = d.email || null; u.photoURL = d.photoURL || d.photoUrl || d.avatarUrl || d.avatar || d.picture || null; if(ts(d.lastSeen)) u._events.push({type:'profile', title:'User active', detail:d.email || d.name || 'Profile seen', time:ts(d.lastSeen)}); u.sync = Math.max(u.sync, ts(d.lastSeen)); });
   try{
