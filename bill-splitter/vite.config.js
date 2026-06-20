@@ -22,6 +22,16 @@ export default defineConfig({
       injectRegister: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'bill-splitter-pages',
+              expiration: { maxEntries: 10, maxAgeSeconds: 7 * 24 * 60 * 60 },
+            },
+          },
+        ],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
       },

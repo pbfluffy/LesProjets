@@ -321,7 +321,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
           )}
 
           <div className={styles.perPersonList}>
-            {members.map(m => { const amount=result.totals[m]??0; const pct=result.grandTotal>0?(amount/result.grandTotal)*100:0; const isPaid=paid.has(m); return(
+            {members.map(m => { const amount=result.totals[m]??0; const pct=result.grandTotal>0?(amount/result.grandTotal)*100:0; const isPaid=paid.has(m); const qrAmount=isTHB ? amount : (convertRate !== null ? conv(amount) : null); return(
               <div key={m} className={isPaid ? styles.paid : undefined}>
                 <div className={styles.personHeader}><div className={styles.personLeft}><button type="button" className={`${styles.payCheck} ${isPaid ? styles.payCheckOn : ''}`} onClick={() => togglePaid(m)} aria-pressed={isPaid} aria-label={isPaid ? t.markUnpaid : t.markPaid} title={isPaid ? t.markUnpaid : t.markPaid}>{isPaid && (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)}</button><Avatar name={m} photoURL={user && ownerName && m.trim().toLowerCase() === ownerName ? user.photoURL : null} size={24} /><span className={styles.personName}>{m}</span></div><span className={styles.personAmount}>{sym}{fmtC(amount)}</span></div>
                 <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
@@ -335,8 +335,8 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
                     ))}
                   </div>
                 )}
-                {showQR && ppValid && amount > 0 && (
-                  <PromptPayQR promptPay={promptPay} amount={amount} />
+                {showQR && ppValid && qrAmount > 0 && (
+                  <PromptPayQR promptPay={promptPay} amount={qrAmount} />
                 )}
               </div>
               )})}

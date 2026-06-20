@@ -583,8 +583,27 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                 const dispOwed = mixedConv?.owed ?? (rate && !isTHB
                   ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * rate)]))
                   : summary.owed)
-                const dispSettlements = snapSettlements ?? summary.settlements
-                const dispTotal = snapTotal
+                const dispPaid = mixedConv?.paid ?? (rate && !isTHB
+                  ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.paid?.[m] ?? 0) * rate)]))
+                  : (summary.paid ?? {}))
+                const dispSettlements = (rates || (rate && !isTHB)) && summary.hasPayers
+                  ? (() => {
+                      const net = {}
+                      trip.members.forEach(m => { net[m] = (dispPaid[m] || 0) - (dispOwed[m] || 0) })
+                      const creds = Object.entries(net).filter(([,v]) => v > 0.5).map(([m,v]) => ({m,v}))
+                      const debts = Object.entries(net).filter(([,v]) => v < -0.5).map(([m,v]) => ({m,v:-v}))
+                      creds.sort((a,b) => b.v-a.v); debts.sort((a,b) => b.v-a.v)
+                      const res = []; let ci=0,di=0
+                      while (ci<creds.length && di<debts.length) {
+                        const amt = Math.min(creds[ci].v, debts[di].v)
+                        if (amt > 0.5) res.push({from:debts[di].m, to:creds[ci].m, amount:amt})
+                        creds[ci].v -= amt; debts[di].v -= amt
+                        if (creds[ci].v < 0.5) ci++; if (debts[di].v < 0.5) di++
+                      }
+                      return res
+                    })()
+                  : summary.settlements
+                const dispTotal = rates ? Object.values(dispOwed).reduce((a, v) => a + (v || 0), 0) : (rate && !isTHB ? Math.round(summary.grandTotal * rate) : summary.grandTotal)
                 const lines = [`🧳 ${trip.name}`, '']
                 if (summary?.hasPayers && dispSettlements?.length > 0) {
                   lines.push('💸 Who pays whom:')
