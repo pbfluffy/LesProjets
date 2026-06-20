@@ -491,6 +491,7 @@ html.light body{
 </section>
 
 <!-- NOT AUTHORIZED -->
+<div id="loading" class="center" style="color:var(--faint);font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.05em">Loading…</div>
 <section id="denied" class="center hidden">
   <div class="card">
     <div class="deny-ico">🔒</div>
@@ -769,7 +770,9 @@ $('signoutBtn').addEventListener('click', () => signOut(auth));
 $('denied-signout').addEventListener('click', () => signOut(auth));
 
 let IS_OWNER = false, ME = null;
+let _authReady = false;
 onAuthStateChanged(auth, async (user) => {
+  if(!_authReady){ _authReady = true; const l = document.getElementById('loading'); if(l) l.classList.add('hidden'); }
   if(!user){ gateStatus(''); show('gate'); return; }
   ME = user;
   IS_OWNER = (user.uid === ADMIN_UID);
