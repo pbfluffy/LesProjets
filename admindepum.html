@@ -589,6 +589,18 @@ html.light body{
       </div>
       <div id="tab-bills-rows"></div>
     </div>
+
+    <!-- Share Links Manager -->
+    <div class="panel" id="share-links-panel" style="margin-top:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px;border-bottom:1px solid var(--line)">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Share Links</div>
+          <div id="share-links-stats" style="font-size:12px;color:var(--faint);margin-top:2px"></div>
+        </div>
+        <button class="btn small" id="delete-expired-btn" onclick="deleteExpiredLinks()" style="display:none;background:var(--red);border-color:var(--red);color:#fff;font-size:11px">Delete expired</button>
+      </div>
+      <div id="share-links-rows" style="padding:0 4px 8px"></div>
+    </div>
   </div>
 
   <!-- ═══════════ TAB: NUTRITION ═══════════ -->
