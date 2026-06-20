@@ -91,7 +91,8 @@ body{
 .row.body:hover{background:var(--panel-2)}
 .empty{padding:34px 16px;text-align:center;color:var(--faint);font-family:'JetBrains Mono',monospace;font-size:13px}
 .user{display:flex;align-items:center;gap:11px;min-width:0}
-.ua{width:36px;height:36px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-weight:800;font-size:14px;color:#1a1408}
+.ua{width:36px;height:36px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-weight:800;font-size:14px;color:#1a1408;overflow:hidden;background-size:cover;background-position:center}
+.ua img,.uprof-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .uinfo{min-width:0}
 .uinfo b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .uinfo .em{font-size:11.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -444,7 +445,7 @@ html.light body{
 .uprof-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:80;display:flex;align-items:flex-start;justify-content:center;padding:26px 14px;overflow:auto}
 .uprof-box{width:100%;max-width:760px;background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 22px 60px rgba(0,0,0,.35)}
 .uprof-hd{display:flex;align-items:center;gap:14px;padding:18px;border-bottom:1px solid var(--line-soft);background:linear-gradient(180deg,var(--panel-2),var(--panel))}
-.uprof-avatar{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:20px;color:#1a1408;flex:0 0 auto}
+.uprof-avatar{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:20px;color:#1a1408;flex:0 0 auto;overflow:hidden}
 .uprof-title{min-width:0;flex:1}
 .uprof-title b{display:block;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .uprof-title span{display:block;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
@@ -795,7 +796,7 @@ async function loadData(){
   btn.innerHTML = '<span class="spin">↻</span> Loading…'; btn.disabled = true;
   $('errbox').classList.add('hidden');
   const map = new Map();
-  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,sync:0,name:null,email:null,_drawer:null,_lastNutrDate:null,_billMode:null,_shareCount:null,_events:[]}); return map.get(uid); };
+  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,sync:0,name:null,email:null,photoURL:null,_drawer:null,_lastNutrDate:null,_billMode:null,_shareCount:null,_events:[]}); return map.get(uid); };
   const errors = [];
   async function scan(col, apply){
     try{ const snap = await getDocs(collection(db, col)); snap.forEach(s => apply(ensure(s.id), s.data()||{})); }
@@ -824,7 +825,7 @@ async function loadData(){
     u.sync = Math.max(u.sync, ts(d.lastModified));
   });
   await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; if(u.places) u._events.push({type:'place', title:'Saved places', detail:u.places+' places', time:ts(d.lastModified)}); u.sync = Math.max(u.sync, ts(d.lastModified)); });
-  await scan('userProfiles',(u,d) => { u.name = d.name || null; u.email = d.email || null; if(ts(d.lastSeen)) u._events.push({type:'profile', title:'User active', detail:d.email || d.name || 'Profile seen', time:ts(d.lastSeen)}); u.sync = Math.max(u.sync, ts(d.lastSeen)); });
+  await scan('userProfiles',(u,d) => { u.name = d.name || null; u.email = d.email || null; u.photoURL = d.photoURL || d.photoUrl || d.avatarUrl || d.avatar || d.picture || null; if(ts(d.lastSeen)) u._events.push({type:'profile', title:'User active', detail:d.email || d.name || 'Profile seen', time:ts(d.lastSeen)}); u.sync = Math.max(u.sync, ts(d.lastSeen)); });
   try{
     const links = await getDocs(collection(db, 'shareLinks'));
     links.forEach(s => {
@@ -944,7 +945,7 @@ function render(){
       return `<div class="user-block" data-uid="${u.uid}">
       <div class="row body" onclick="toggleDrawer('${u.uid}')">
         <div class="user">
-          <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
+          ${userAvatarHtml(u)}
           <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><span class="uid">${u.uid.slice(0,10)}…</span><div class="apps">${apps}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
         ${m(u.nutr,'Nutrition days','nutr')}${m(u.bills,'Bills','bills')}${m(u.places,'Places','places')}
@@ -1046,6 +1047,12 @@ function listValue(v){
   if(v && typeof v === 'object') return Object.values(v).filter(Boolean).join(', ');
   return v || '';
 }
+function userAvatarHtml(u){
+  const initial = escAdm(((u && (u.name || u.email)) || '·')[0].toUpperCase());
+  const bg = colorFor(u && u.uid);
+  const photo = u && u.photoURL ? String(u.photoURL).trim() : '';
+  return `<div class="ua" style="background:${bg}" data-initial="${initial}">${photo ? `<img src="${escAdm(photo)}" referrerpolicy="no-referrer" loading="lazy" onerror="const p=this.parentNode;this.remove();p.textContent=p.dataset.initial||'·';">` : initial}</div>`;
+}
 function chipsHtml(values, cls='member-chip'){
   const list = Array.isArray(values) ? values.filter(Boolean) : [];
   return list.length ? list.map(v=>`<span class="${cls}">${escAdm(v)}</span>`).join('') : '<span class="member-chip">—</span>';
@@ -1113,6 +1120,20 @@ function renderBillFormCard(b){
   </div>`;
 }
 function userLabel(u){ return u ? (u.name || u.email || u.uid.slice(0,12)+'…') : 'Unknown user'; }
+function setProfileAvatar(el, uid, label, photoURL){
+  el.style.background = colorFor(uid);
+  el.innerHTML = '';
+  const initial = (label && label[0] || '?').toUpperCase();
+  if(photoURL){
+    const img = document.createElement('img');
+    img.src = photoURL;
+    img.referrerPolicy = 'no-referrer';
+    img.onerror = () => { el.innerHTML = ''; el.textContent = initial; };
+    el.appendChild(img);
+  } else {
+    el.textContent = initial;
+  }
+}
 function profileStat(k,v){ return `<div class="uprof-stat"><div class="k">${escAdm(k)}</div><div class="v">${escAdm(v)}</div></div>`; }
 function timelineItem(time,title,detail){ return `<div class="timeline-item"><div class="timeline-time">${escAdm(time||'—')}</div><div class="timeline-text">${escAdm(title)}${detail?`<span>${escAdm(detail)}</span>`:''}</div></div>`; }
 
@@ -1121,7 +1142,7 @@ window.openUserProfile = async function(uid){
   $('uprof-name').textContent = userLabel(u);
   $('uprof-email').textContent = u.email || 'No email in profile data';
   $('uprof-uid').textContent = 'uid: ' + uid;
-  const av = $('uprof-avatar'); av.style.background = colorFor(uid); av.textContent = (userLabel(u)[0]||'?').toUpperCase();
+  const av = $('uprof-avatar'); setProfileAvatar(av, uid, userLabel(u), u.photoURL);
   $('uprof-body').innerHTML = '<div class="drawer-loading">Loading profile…</div>';
   $('uprof').classList.remove('hidden');
   try{
@@ -1136,6 +1157,7 @@ window.openUserProfile = async function(uid){
     const bills = billsSnap && billsSnap.exists() ? billsSnap.data() : {};
     const places = placesSnap && placesSnap.exists() ? placesSnap.data() : {};
     const prof = profileSnap && profileSnap.exists() ? profileSnap.data() : {};
+    setProfileAvatar(av, uid, prof.name || u.name || prof.email || u.email || uid, prof.photoURL || prof.photoUrl || prof.avatarUrl || u.photoURL);
     const days = nutr.days || {};
     const dayKeys = Object.keys(days).sort();
     const trips = Array.isArray(bills.trips) ? bills.trips : [];
@@ -1480,7 +1502,7 @@ function renderBillsTab(){
     return `<div class="user-block" data-uid="${u.uid}">
       <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','bills')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','bills')}">
         <div class="user">
-          <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
+          ${userAvatarHtml(u)}
           <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
         <div class="metric"><span class="lab">Trips / bills</span><span>${u.bills}</span><span class="cell-sub">${escAdm(detail)}</span></div>
@@ -1522,7 +1544,7 @@ function renderNutrTab(){
     return `<div class="user-block" data-uid="${u.uid}">
       <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','nutr')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','nutr')}">
         <div class="user">
-          <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
+          ${userAvatarHtml(u)}
           <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
         <div class="metric"><span class="lab">Days logged</span><span>${u.nutr}</span></div>
