@@ -1387,7 +1387,8 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
         const historyMap = {};
         (Array.isArray(d.history) ? d.history : []).forEach(b => { if(b && b.id) historyMap[b.id] = b; });
         const groupSizes = trips.map(t=>Array.isArray(t.members)?t.members.length:0).filter(n=>n>0);
-        const avgGroup = groupSizes.length ? (groupSizes.reduce((a,b)=>a+b,0)/groupSizes.length).toFixed(1) : '—';
+        const _avg = groupSizes.length ? groupSizes.reduce((a,b)=>a+b,0)/groupSizes.length : null;
+        const avgGroup = _avg === null ? '—' : (_avg % 1 === 0 ? String(_avg) : _avg.toFixed(1));
         const recentTrips = [...trips].reverse().slice(0,3);
         const tripRows = recentTrips.map(t=>{
           const nm  = escAdm(t.name||'Untitled');
@@ -1413,7 +1414,7 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
           </div>`;
         }).join('');
         billsHtml = `
-          <div class="drawer-row"><span class="dk">Total trips</span><span class="dv">${trips.length}</span></div>
+          <div class="drawer-row"><span class="dk">Total trips</span><span class="dv" style="color:var(--accent)">${trips.length}</span></div>
           <div class="drawer-row"><span class="dk">Avg people / trip</span><span class="dv">${avgGroup}</span></div>
           <div class="drawer-row" style="margin-bottom:${recentTrips.length?'10px':'0'}"><span class="dk">Share links created</span><span class="dv">${shareLabel}</span></div>
           ${recentTrips.length ? '<div class="ds-sub">Recent trips</div>'+tripRows : ''}`;
@@ -1450,7 +1451,7 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
         }).join('');
         const legacySection = `
           ${hasTripMode ? '<div class="ds-sub" style="margin-top:12px">Bills</div>' : ''}
-          <div class="drawer-row"><span class="dk">Total bills</span><span class="dv">${bills.length}</span></div>
+          <div class="drawer-row"><span class="dk">Total bills</span><span class="dv" style="color:var(--accent)">${bills.length}</span></div>
           ${!hasTripMode ? `<div class="drawer-row" style="margin-bottom:${recentBills.length?'10px':'0'}"><span class="dk">Share links created</span><span class="dv">${shareLabel}</span></div>` : ''}
           ${recentBills.length ? '<div class="ds-sub">Recent bills</div>'+billRows : ''}`;
         billsHtml = hasTripMode ? billsHtml + legacySection : legacySection;
