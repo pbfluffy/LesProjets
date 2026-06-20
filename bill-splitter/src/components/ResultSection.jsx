@@ -50,6 +50,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
   const conv = (n) => convertRate !== null ? (n * convertRate) : n
   const sym = convertRate !== null ? '฿' : currencySymbol
   const fmtC = (n) => conv(n).toFixed(2)
+  const displayCurrency = convertRate !== null ? 'THB' : currency
   // #91 mark-as-paid — session-only set of member names marked paid.
   // Deliberately NOT persisted to store/history/cloud (resets on new bill).
   // Seeds from initialPaid when opening a share link that carried paid names.
@@ -287,10 +288,12 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
             )}
             {!isTHB && (
               <div className={styles.roundRow} data-snapshot-hide>
-                <span className={styles.roundLabel}>
+                <span className={`${styles.roundLabel} ${styles.currencyLabel}`}>
+                  <span>Original: {currency}</span>
+                  <span>Display: {displayCurrency}</span>
                   {convertRate !== null
-                    ? `1 ${currencySymbol} = ${convertRate.toFixed(4)} ฿`
-                    : (t.convertTo ?? `Convert to ฿`)}
+                    ? <span>1 {currencySymbol} = {convertRate.toFixed(4)} ฿</span>
+                    : <span>{t.convertTo ?? 'Convert to ฿'}</span>}
                 </span>
                 <button
                   type="button"
