@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLang } from '../LangContext'
 import { buildShareUrl, createShortLink } from '../share'
@@ -51,6 +52,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
   const sym = convertRate !== null ? '฿' : currencySymbol
   const fmtC = (n) => conv(n).toFixed(2)
   const displayCurrency = convertRate !== null ? 'THB' : currency
+    const billOwner = members[0]
   // #91 mark-as-paid — session-only set of member names marked paid.
   // Deliberately NOT persisted to store/history/cloud (resets on new bill).
   // Seeds from initialPaid when opening a share link that carried paid names.
@@ -324,9 +326,9 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
           )}
 
           <div className={styles.perPersonList}>
-            {members.map(m => { const amount=result.totals[m]??0; const pct=result.grandTotal>0?(amount/result.grandTotal)*100:0; const isPaid=paid.has(m); const qrAmount=isTHB ? amount : (convertRate !== null ? conv(amount) : null); return(
+            {members.map(m => { const amount=result.totals[m]??0; const pct=result.grandTotal>0?(amount/result.grandTotal)*100:0; const isOwner=m===billOwner; const isPaid=!isOwner&&paid.has(m); const qrAmount=isTHB ? amount : (convertRate !== null ? conv(amount) : null); return(
               <div key={m} className={isPaid ? styles.paid : undefined}>
-                <div className={styles.personHeader}><div className={styles.personLeft}><button type="button" className={`${styles.payCheck} ${isPaid ? styles.payCheckOn : ''}`} onClick={() => togglePaid(m)} aria-pressed={isPaid} aria-label={isPaid ? t.markUnpaid : t.markPaid} title={isPaid ? t.markUnpaid : t.markPaid}>{isPaid && (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)}</button><Avatar name={m} photoURL={user && ownerName && m.trim().toLowerCase() === ownerName ? user.photoURL : null} size={24} /><span className={styles.personName}>{m}</span><span className={`${styles.payStatus} ${isPaid ? styles.payStatusPaid : styles.payStatusPending}`}>{isPaid ? 'Paid' : 'Pending'}</span></div><span className={styles.personAmount}>{sym}{fmtC(amount)}</span></div>
+                <div className={styles.personHeader}><div className={styles.personLeft}>{isOwner ? <span className={styles.payCheckPlaceholder} aria-hidden="true" /> : <button type="button" className={`${styles.payCheck} ${isPaid ? styles.payCheckOn : ''}`} onClick={() => togglePaid(m)} aria-pressed={isPaid} aria-label={isPaid ? t.markUnpaid : t.markPaid} title={isPaid ? t.markUnpaid : t.markPaid}>{isPaid && (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)}</button>}<Avatar name={m} photoURL={user && ownerName && m.trim().toLowerCase() === ownerName ? user.photoURL : null} size={24} /><span className={styles.personName}>{m}</span><span className={`${styles.payStatus} ${isOwner ? styles.payStatusOwner : (isPaid ? styles.payStatusPaid : styles.payStatusPending)}`}>{isOwner ? 'Owner' : (isPaid ? 'Paid' : 'Pending')}</span></div><span className={styles.personAmount}>{sym}{fmtC(amount)}</span></div>
                 <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
                 {foods.filter(f => f.who && f.who.includes(m) && f.name && parseFloat(f.price) > 0).length > 0 && (
                   <div className={styles.itemList}>
