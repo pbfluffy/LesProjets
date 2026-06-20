@@ -23,10 +23,15 @@ export default defineConfig({
       manifest: false,
       injectRegister: false,
       workbox: {
+        // Fix P1a: explicit globDirectory needed because base: './' causes
+        // vite-plugin-pwa v0.20.5 to resolve the wrong precache root, resulting
+        // in "0 entries" and a build failure. bill-splitter uses a absolute base
+        // so it doesn't need this; pumgoda does.
+        globDirectory: 'dist',
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
-        // Fix P1: runtimeCaching prevents "additionalManifestEntries must be an
-        // array" PWA generation error that broke pumgoda builds (bill-splitter
-        // already had this; pumgoda was missing it).
+        // Fix P1b: runtimeCaching required alongside globPatterns or Workbox
+        // throws "Couldn't find configuration for either precaching or runtime
+        // caching" when globPatterns matches 0 files.
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
