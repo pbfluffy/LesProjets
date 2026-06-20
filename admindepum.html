@@ -358,15 +358,18 @@ html.light body{
 .row.body[role="button"]:focus{box-shadow:inset 0 0 0 2px var(--accent)}
 
 /* ---- backyard ---- */
-.backyard-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.backyard-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
 .backyard-board h3{font-size:14px;margin:0 0 10px;color:var(--text)}
-.backyard-row{grid-template-columns:52px 1.4fr .8fr .7fr .7fr .9fr}
+.backyard-row{grid-template-columns:60px minmax(220px,1.6fr) .85fr .7fr .75fr .95fr}
 .rank-badge{
   font-family:'JetBrains Mono',monospace;font-weight:800;color:var(--accent);
 }
+.backyard-player{min-width:0}
+.backyard-player b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .score-strong{font-family:'JetBrains Mono',monospace;font-weight:800;color:var(--text)}
-.pid-chip{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)}
+.pid-chip{display:block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .backyard-empty{padding:18px;color:var(--faint);font-size:13px}
+.item-owner-missing{color:var(--faint);font-style:italic}
 
 
 
@@ -388,7 +391,6 @@ html.light body{
   .tab-bar button{flex:0 0 auto;min-width:max-content;padding:10px 14px;font-size:13px}
 
   .tab-summary,.stats,.charts{grid-template-columns:1fr 1fr;gap:10px}
-  .backyard-grid{grid-template-columns:1fr}
   .row.body.backyard-row,.backyard-row{grid-template-columns:44px 1.4fr .8fr .7fr!important}
   .backyard-row > div:nth-child(5),
   .backyard-row > div:nth-child(6){display:none}
@@ -623,7 +625,7 @@ html.light body{
   <!-- ═══════════ TAB: BACKYARD ═══════════ -->
   <div id="tab-pane-backyard" class="tab-pane hidden">
     <div class="tab-summary" id="backyard-stats"></div>
-    <p class="app-note">Backyard Rampage scores from the all-time leaderboard and challenge board.</p>
+    <p class="app-note">Backyard Rampage all-time scores from the leaderboard.</p>
     <div class="backyard-grid">
       <div class="backyard-board">
         <h3>All-time leaderboard</h3>
@@ -632,15 +634,6 @@ html.light body{
             <div>Rank</div><div>Player</div><div>Score</div><div>Wave</div><div>Rebirths</div><div>Updated</div>
           </div>
           <div id="backyard-leaderboard-rows"></div>
-        </div>
-      </div>
-      <div class="backyard-board">
-        <h3>Challenge board</h3>
-        <div class="panel">
-          <div class="row head backyard-row">
-            <div>Rank</div><div>Player</div><div>Score</div><div>Wave</div><div>Rebirths</div><div>Updated</div>
-          </div>
-          <div id="backyard-challenge-rows"></div>
         </div>
       </div>
     </div>
@@ -723,7 +716,7 @@ try {
 
 
 let DATA = [];
-let BACKYARD = { loaded:false, loading:false, leaderboard:[], challengeBoard:[], error:'' };
+let BACKYARD = { loaded:false, loading:false, leaderboard:[], error:'' };
 let sortKey = 'sync';
 
 const COLORS = ['#e8a13a','#7fb069','#d9694e','#5b9bd5','#c678dd','#e0a458','#56b6c2','#d98ba0'];
@@ -1090,10 +1083,13 @@ function renderBillFormCard(b){
     const sharedBy = listValue(firstFilled(f, ['sharedBy','eaters','members','splitWith','people','shared_by']));
     const qty = firstFilled(f, ['qty','quantity','count']);
     const note = firstFilled(f, ['note','notes','memo']);
+    const ownerRows = paidBy || sharedBy
+      ? `${paidBy ? `<div class="food-card-row"><span class="k">Paid by</span><span class="v">${escAdm(paidBy)}</span></div>` : ''}
+         ${sharedBy ? `<div class="food-card-row"><span class="k">Shared by</span><span class="v">${escAdm(sharedBy)}</span></div>` : ''}`
+      : `<div class="food-card-row item-owner-missing"><span class="k">Owner</span><span class="v">No payer or split-member data saved</span></div>`;
     return `<div class="food-card">
       <div class="food-card-head"><div class="food-card-name">${escAdm(fname)}${qty?` × ${escAdm(qty)}`:''}</div><div class="food-card-price">${price}</div></div>
-      ${paidBy ? `<div class="food-card-row"><span class="k">Paid by</span><span class="v">${escAdm(paidBy)}</span></div>` : ''}
-      ${sharedBy ? `<div class="food-card-row"><span class="k">Shared by</span><span class="v">${escAdm(sharedBy)}</span></div>` : ''}
+      ${ownerRows}
       ${note ? `<div class="food-card-row"><span class="k">Note</span><span class="v">${escAdm(note)}</span></div>` : ''}
     </div>`;
   }).join('') : '<div class="ds-empty">No item details saved.</div>';
@@ -1382,48 +1378,43 @@ function safeAbs(t){
   return t ? new Date(t).toISOString().slice(0,16).replace('T',' ') : '—';
 }
 function renderBackyardTab(){
-  const board = (id, rows) => {
-    const el = $(id);
-    if(!el) return;
+  const all = BACKYARD.leaderboard || [];
+  const top = all[0] && all[0].data || {};
+  const topScore = all.length ? Number(top.score || top.bestScore || 0).toLocaleString('en') : '—';
+  const bestWave = all.reduce((max,r)=>Math.max(max, Number((r.data||{}).wave || (r.data||{}).bestWave || 0)), 0);
+  const rebirthTotal = all.reduce((sum,r)=>sum + Number((r.data||{}).rebirths || 0), 0);
+  statCards('backyard-stats', [
+    ['Players', all.length, ''],
+    ['Top score', topScore, ''],
+    ['Best wave', bestWave || '—', ''],
+    ['Total rebirths', rebirthTotal, ''],
+  ]);
+  const el = $('backyard-leaderboard-rows');
+  if(el){
     if(BACKYARD.loading){
       el.innerHTML = '<div class="backyard-empty">Loading Backyard data…</div>';
-      return;
-    }
-    if(!rows.length){
+    } else if(!all.length){
       el.innerHTML = '<div class="backyard-empty">'+(BACKYARD.error ? escAdm(BACKYARD.error) : 'No scores yet.')+'</div>';
-      return;
+    } else {
+      el.innerHTML = all.slice(0,25).map((r,i)=>{
+        const d = r.data || {};
+        const name = d.name || d.playerName || r.id;
+        const pid = d.pid || d.playerId || r.id;
+        const score = Number(d.score || d.bestScore || 0);
+        const wave = Number(d.wave || d.bestWave || 0);
+        const rebirths = Number(d.rebirths || 0);
+        const updated = ts(d.t) || ts(d.lastModified) || ts(d.updatedAt);
+        return `<div class="row body backyard-row">
+          <div class="rank-badge">#${i+1}</div>
+          <div class="backyard-player"><b>${escAdm(name)}</b><span class="pid-chip">${escAdm(pid)}</span></div>
+          <div class="score-strong">${score.toLocaleString('en')}</div>
+          <div>${wave.toLocaleString('en')}</div>
+          <div>${rebirths.toLocaleString('en')}</div>
+          <div class="sync">${eventTimeLabel(updated)}<span class="abs">${safeAbs(updated)}</span></div>
+        </div>`;
+      }).join('');
     }
-    el.innerHTML = rows.slice(0,20).map((r,i)=>{
-      const d = r.data || {};
-      const name = d.name || d.playerName || r.id;
-      const pid = d.pid || d.playerId || r.id;
-      const score = Number(d.score || d.bestScore || 0);
-      const wave = Number(d.wave || d.bestWave || 0);
-      const rebirths = Number(d.rebirths || 0);
-      const updated = ts(d.t) || ts(d.lastModified) || ts(d.updatedAt);
-      return `<div class="row body backyard-row">
-        <div class="rank-badge">#${i+1}</div>
-        <div><b>${escAdm(name)}</b><span class="pid-chip">${escAdm(pid)}</span></div>
-        <div class="score-strong">${score.toLocaleString('en')}</div>
-        <div>${wave.toLocaleString('en')}</div>
-        <div>${rebirths.toLocaleString('en')}</div>
-        <div class="sync">${eventTimeLabel(updated)}<span class="abs">${safeAbs(updated)}</span></div>
-      </div>`;
-    }).join('');
-  };
-
-  const all = BACKYARD.leaderboard || [];
-  const chal = BACKYARD.challengeBoard || [];
-  const topScore = all.length ? Number((all[0].data||{}).score || (all[0].data||{}).bestScore || 0).toLocaleString('en') : '—';
-  const topChallenge = chal.length ? Number((chal[0].data||{}).score || (chal[0].data||{}).bestScore || 0).toLocaleString('en') : '—';
-  statCards('backyard-stats', [
-    ['All-time players', all.length, ''],
-    ['Top score', topScore, ''],
-    ['Challenge players', chal.length, ''],
-    ['Challenge top', topChallenge, ''],
-  ]);
-  board('backyard-leaderboard-rows', all);
-  board('backyard-challenge-rows', chal);
+  }
   if(!BACKYARD.loaded && !BACKYARD.loading) loadBackyardData();
 }
 
@@ -1432,19 +1423,14 @@ async function loadBackyardData(){
   BACKYARD.error = '';
   renderBackyardTab();
   try{
-    const [leaderSnap, challengeSnap] = await Promise.all([
-      getDocs(collection(db, 'leaderboard')),
-      getDocs(collection(db, 'challengeBoard')),
-    ]);
+    const leaderSnap = await getDocs(collection(db, 'leaderboard'));
     const normalize = (snap) => snap.docs.map(d=>({ id:d.id, data:d.data()||{} }))
       .sort((a,b)=>Number((b.data||{}).score || (b.data||{}).bestScore || 0) - Number((a.data||{}).score || (a.data||{}).bestScore || 0));
     BACKYARD.leaderboard = normalize(leaderSnap);
-    BACKYARD.challengeBoard = normalize(challengeSnap);
     BACKYARD.loaded = true;
   }catch(e){
     BACKYARD.error = 'Could not read Backyard data: ' + (e.code || e.message || String(e));
     BACKYARD.leaderboard = [];
-    BACKYARD.challengeBoard = [];
   }finally{
     BACKYARD.loading = false;
     renderBackyardTab();
@@ -1552,7 +1538,7 @@ $('overall-search').addEventListener('input', render);
 $('bills-search').addEventListener('input', renderBillsTab);
 $('nutr-search').addEventListener('input', renderNutrTab);
 $('refreshBtn').addEventListener('click', () => {
-  BACKYARD = { loaded:false, loading:false, leaderboard:[], challengeBoard:[], error:'' };
+  BACKYARD = { loaded:false, loading:false, leaderboard:[], error:'' };
   loadData();
   if(!$('tab-pane-backyard').classList.contains('hidden')) renderBackyardTab();
 });
