@@ -289,6 +289,15 @@ html.light body{
 .tab-pane { animation: fadeIn .15s ease; }
 @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
 
+
+
+/* ---- app tab summaries ---- */
+.tab-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.app-note{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);margin:0 0 12px}
+.cell-sub{display:block;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--faint);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row.body[role="button"]{outline:none}
+.row.body[role="button"]:focus{box-shadow:inset 0 0 0 2px var(--accent)}
+
 /* ---- backyard placeholder ---- */
 .placeholder-tab {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -345,11 +354,11 @@ html.light body{
 
   <!-- Tab bar -->
   <nav class="tab-bar">
-    <button id="tab-btn-overall">📊 Overall</button>
-    <button id="tab-btn-bills">🧾 Bill Splitter</button>
-    <button id="tab-btn-nutrition">🥗 Nutrition</button>
-    <button id="tab-btn-pumgoda">📍 Pumgoda</button>
-    <button id="tab-btn-backyard">🎮 Backyard</button>
+    <button type="button" id="tab-btn-overall" aria-pressed="false">📊 Overall</button>
+    <button type="button" id="tab-btn-bills" aria-pressed="false">🧾 Bill Splitter</button>
+    <button type="button" id="tab-btn-nutrition" aria-pressed="false">🥗 Nutrition</button>
+    <button type="button" id="tab-btn-pumgoda" aria-pressed="false">📍 Pumgoda</button>
+    <button type="button" id="tab-btn-backyard" aria-pressed="false">🎮 Backyard</button>
   </nav>
 
   <!-- ═══════════ TAB: OVERALL ═══════════ -->
@@ -392,6 +401,8 @@ html.light body{
 
   <!-- ═══════════ TAB: BILL SPLITTER ═══════════ -->
   <div id="tab-pane-bills" class="tab-pane hidden">
+    <div class="tab-summary" id="bills-stats"></div>
+    <p class="app-note">Click any user row to open all Bill Splitter details, including trips, legacy bills, members, totals, and share links.</p>
     <div class="toolbar">
       <label class="search"><span style="color:var(--faint)">⌕</span>
         <input id="bills-search" type="text" placeholder="search user name / email" /></label>
@@ -407,6 +418,8 @@ html.light body{
 
   <!-- ═══════════ TAB: NUTRITION ═══════════ -->
   <div id="tab-pane-nutrition" class="tab-pane hidden">
+    <div class="tab-summary" id="nutr-stats"></div>
+    <p class="app-note">Click any user row to open all Nutrition details, including total logged days and the latest logged date.</p>
     <div class="toolbar">
       <label class="search"><span style="color:var(--faint)">⌕</span>
         <input id="nutr-search" type="text" placeholder="search user name / email" /></label>
@@ -422,6 +435,8 @@ html.light body{
 
   <!-- ═══════════ TAB: PUMGODA ═══════════ -->
   <div id="tab-pane-pumgoda" class="tab-pane hidden">
+    <div class="tab-summary" id="pumgoda-stats"></div>
+    <p class="app-note">Click any place row to edit catalog details, policies, verification, notes, and photos.</p>
     <div class="toolbar" style="margin-bottom:20px">
       <div class="brand" style="flex:0 0 auto">
         <h1 style="font-size:15px;font-weight:800;margin:0">Pumgoda catalog</h1>
@@ -442,6 +457,7 @@ html.light body{
 
   <!-- ═══════════ TAB: BACKYARD ═══════════ -->
   <div id="tab-pane-backyard" class="tab-pane hidden">
+    <div class="tab-summary" id="backyard-stats"></div>
     <div class="placeholder-tab">
       <div class="ph-ico">🎮</div>
       <p style="font-weight:700;color:var(--muted)">Backyard Rampage</p>
@@ -553,10 +569,34 @@ async function loadData(){
     try{ const snap = await getDocs(collection(db, col)); snap.forEach(s => apply(ensure(s.id), s.data()||{})); }
     catch(e){ errors.push(col + ': ' + (e.code||e.message)); }
   }
-  await scan('users',      (u,d) => { u.nutr  = d.days ? Object.keys(d.days).length : 0; u.sync = Math.max(u.sync, ts(d.lastModified)); });
-  await scan('userBills',  (u,d) => { u.bills = Array.isArray(d.trips) ? d.trips.length : (Array.isArray(d.history) ? d.history.length : 0); u.sync = Math.max(u.sync, ts(d.lastModified)); });
+  await scan('users',      (u,d) => {
+    const days = d.days || {};
+    const keys = Object.keys(days).sort();
+    u.nutr = keys.length;
+    u._lastNutrDate = keys.length ? keys[keys.length - 1] : null;
+    u.sync = Math.max(u.sync, ts(d.lastModified));
+  });
+  await scan('userBills',  (u,d) => {
+    const trips = Array.isArray(d.trips) ? d.trips : [];
+    const history = Array.isArray(d.history) ? d.history : [];
+    u.bills = trips.length || history.length;
+    u._billMode = trips.length ? 'Trip mode' : (history.length ? 'Legacy' : null);
+    u._tripCount = trips.length;
+    u._legacyBillCount = history.length;
+    u._memberCount = trips.reduce((sum,t)=>sum + (Array.isArray(t.members) ? t.members.length : 0), 0);
+    u.sync = Math.max(u.sync, ts(d.lastModified));
+  });
   await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; u.sync = Math.max(u.sync, ts(d.lastModified)); });
   await scan('userProfiles',(u,d) => { u.name = d.name || null; u.email = d.email || null; u.sync = Math.max(u.sync, ts(d.lastSeen)); });
+  try{
+    const links = await getDocs(collection(db, 'shareLinks'));
+    links.forEach(s => {
+      const d = s.data() || {};
+      if(!d.createdBy) return;
+      const u = ensure(d.createdBy);
+      u._shareCount = (u._shareCount || 0) + 1;
+    });
+  }catch(e){ errors.push('shareLinks: ' + (e.code||e.message)); }
 
   DATA = [...map.values()];
 
@@ -729,13 +769,19 @@ function renderCharts(){
 // ---- tabs ----
 const TABS = ['overall','bills','nutrition','pumgoda','backyard'];
 function switchTab(name){
+  if(!TABS.includes(name)) name = 'overall';
   TABS.forEach(t => {
     const btn = document.getElementById('tab-btn-'+t);
     const pane = document.getElementById('tab-pane-'+t);
-    if(btn)  btn.classList.toggle('active', t===name);
-    if(pane) pane.classList.toggle('hidden', t!==name);
+    const on = t === name;
+    if(btn){ btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+    if(pane) pane.classList.toggle('hidden', !on);
   });
   localStorage.setItem('admin_tab', name);
+  if(name === 'bills') renderBillsTab();
+  if(name === 'nutrition') renderNutrTab();
+  if(name === 'pumgoda') renderPlaces();
+  if(name === 'backyard') renderBackyardTab();
 }
 
 // User drill-down: switch to tab + highlight user
@@ -882,13 +928,43 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
 }
 
 
+
+function statCards(target, cards){
+  const el = $(target);
+  if(!el) return;
+  el.innerHTML = cards.map(([k,v,x]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}${x||''}</div></div>`).join('');
+}
+function userApps(u){
+  return [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
+}
+function safeAbs(t){
+  return t ? new Date(t).toISOString().slice(0,16).replace('T',' ') : '—';
+}
+function renderBackyardTab(){
+  statCards('backyard-stats', [
+    ['Status', 'Soon', ''],
+    ['Leaderboard', '—', ''],
+    ['Challenges', '—', ''],
+  ]);
+}
+
 // ---- bills tab ----
 function renderBillsTab(){
+  const users = DATA.filter(u => u.bills > 0);
   const q = ($('bills-search').value||'').toLowerCase().trim();
-  let rows = DATA.filter(u => u.bills > 0).filter(u =>
-    !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)
+  let rows = users.filter(u =>
+    !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || u.uid.toLowerCase().includes(q)
   );
-  rows.sort((a,b) => b.bills - a.bills);
+  rows.sort((a,b) => b.bills - a.bills || b.sync - a.sync);
+  const totalBills = users.reduce((sum,u)=>sum+u.bills,0);
+  const tripUsers = users.filter(u=>u._tripCount>0).length;
+  const shareTotal = users.reduce((sum,u)=>sum+(u._shareCount||0),0);
+  statCards('bills-stats', [
+    ['Bill users', users.length, ''],
+    ['Trips / bills', totalBills, ''],
+    ['Trip-mode users', tripUsers, ''],
+    ['Share links', shareTotal, ''],
+  ]);
   $('bills-count').textContent = rows.length + ' users';
   if(!rows.length){
     $('tab-bills-rows').innerHTML = '<div class="empty">No bill splitter users yet.</div>';
@@ -896,31 +972,42 @@ function renderBillsTab(){
   }
   $('tab-bills-rows').innerHTML = rows.map(u => {
     const [s,,cls] = rel(u.sync);
-    const nm = u.name || (u.uid.slice(0,12)+'\u2026');
-    const apps = [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
+    const nm = u.name || (u.uid.slice(0,12)+'…');
+    const mode = u._billMode || '—';
+    const detail = u._tripCount ? `${u._tripCount} trips · ${u._memberCount||0} members` : (u._legacyBillCount ? `${u._legacyBillCount} saved bills` : '—');
     return `<div class="user-block" data-uid="${u.uid}">
-      <div class="row body" style="grid-template-columns:1.8fr .8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','bills')">
+      <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','bills')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','bills')}">
         <div class="user">
-          <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'\u00b7')[0].toUpperCase())}</div>
-          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'\u2014')}</span><div class="apps">${apps}</div></div>
+          <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div></div>
         </div>
-        <div class="metric"><span>${u.bills}</span></div>
-        <div class="metric"><span style="font-size:11px;color:var(--muted)">${u._billMode||'\u2014'}</span></div>
-        <div class="metric"><span>${u._shareCount!=null?u._shareCount:'\u2014'}</span></div>
-        <div class="sync ${cls}">${s}<span class="abs">${new Date(u.sync).toISOString().slice(0,16).replace('T',' ')}</span><span class="drawer-arrow">\u25ba</span></div>
+        <div class="metric"><span class="lab">Trips / bills</span><span>${u.bills}</span><span class="cell-sub">${escAdm(detail)}</span></div>
+        <div class="metric"><span class="lab">Mode</span><span style="font-size:11px;color:var(--muted)">${escAdm(mode)}</span></div>
+        <div class="metric"><span class="lab">Share links</span><span>${u._shareCount!=null?u._shareCount:'—'}</span></div>
+        <div class="sync ${cls}">${s}<span class="abs">${safeAbs(u.sync)}</span><span class="drawer-arrow">▶</span></div>
       </div>
-      <div class="drawer-slot" id="drawer-${u.uid}" style="display:none"></div>
+      <div class="drawer-slot" style="display:none"></div>
     </div>`;
   }).join('');
 }
 
 // ---- nutrition tab ----
 function renderNutrTab(){
+  const users = DATA.filter(u => u.nutr > 0);
   const q = ($('nutr-search').value||'').toLowerCase().trim();
-  let rows = DATA.filter(u => u.nutr > 0).filter(u =>
-    !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)
+  let rows = users.filter(u =>
+    !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || u.uid.toLowerCase().includes(q)
   );
-  rows.sort((a,b) => b.nutr - a.nutr);
+  rows.sort((a,b) => b.nutr - a.nutr || b.sync - a.sync);
+  const totalDays = users.reduce((sum,u)=>sum+u.nutr,0);
+  const active7 = users.filter(u => u.sync && Date.now()-u.sync < 7*DAY).length;
+  const latest = users.map(u=>u._lastNutrDate).filter(Boolean).sort().pop() || '—';
+  statCards('nutr-stats', [
+    ['Nutrition users', users.length, ''],
+    ['Total logged days', totalDays, ''],
+    ['Active · 7d', active7, '<small>/ '+users.length+'</small>'],
+    ['Latest log', escAdm(latest), ''],
+  ]);
   $('nutr-count').textContent = rows.length + ' users';
   if(!rows.length){
     $('tab-nutr-rows').innerHTML = '<div class="empty">No nutrition users yet.</div>';
@@ -928,20 +1015,19 @@ function renderNutrTab(){
   }
   $('tab-nutr-rows').innerHTML = rows.map(u => {
     const [s,,cls] = rel(u.sync);
-    const nm = u.name || (u.uid.slice(0,12)+'\u2026');
-    const apps = [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
-    const lastDate = u._lastNutrDate || '\u2014';
+    const nm = u.name || (u.uid.slice(0,12)+'…');
+    const lastDate = u._lastNutrDate || '—';
     return `<div class="user-block" data-uid="${u.uid}">
-      <div class="row body" style="grid-template-columns:1.8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','nutr')">
+      <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','nutr')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','nutr')}">
         <div class="user">
-          <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'\u00b7')[0].toUpperCase())}</div>
-          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'\u2014')}</span><div class="apps">${apps}</div></div>
+          <div class="ua" style="background:${colorFor(u.uid)}">${escAdm((u.name||'·')[0].toUpperCase())}</div>
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div></div>
         </div>
-        <div class="metric"><span>${u.nutr}</span></div>
-        <div class="metric"><span style="font-family:'JetBrains Mono',monospace;font-size:12px">${escAdm(lastDate)}</span></div>
-        <div class="sync ${cls}">${s}<span class="abs">${new Date(u.sync).toISOString().slice(0,16).replace('T',' ')}</span><span class="drawer-arrow">\u25ba</span></div>
+        <div class="metric"><span class="lab">Days logged</span><span>${u.nutr}</span></div>
+        <div class="metric"><span class="lab">Last logged</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">${escAdm(lastDate)}</span></div>
+        <div class="sync ${cls}">${s}<span class="abs">${safeAbs(u.sync)}</span><span class="drawer-arrow">▶</span></div>
       </div>
-      <div class="drawer-slot" id="drawer-nutr-${u.uid}" style="display:none"></div>
+      <div class="drawer-slot" style="display:none"></div>
     </div>`;
   }).join('');
 }
@@ -985,6 +1071,12 @@ function pawTier(p){
   return 4;
 }
 function renderPlaces(){
+  statCards('pumgoda-stats', [
+    ['Catalog places', PLACES.length, ''],
+    ['Pumba verified', PLACES.filter(p=>p.pumba&&p.pumba.verified).length, ''],
+    ['Favorites', PLACES.filter(p=>p.pumba&&p.pumba.favorite).length, ''],
+    ['With photos', PLACES.filter(p=>Array.isArray(p.photos)&&p.photos.length).length, ''],
+  ]);
   const q = ($('pumgoda-search').value||'').toLowerCase().trim();
   const en = (p)=> (p.name&&p.name.en)||'';
   const th = (p)=> (p.name&&p.name.th)||'';
@@ -999,7 +1091,7 @@ function renderPlaces(){
     const paws = '🐾'.repeat(pawTier(p));
     const reg = (p.region||'').replace(/_/g,' ');
     const ver = (p.pumba&&p.pumba.verified) ? '✓' : '—';
-    return `<div class="row body prow" data-pid="${escAdm(p.id)}" style="cursor:pointer" title="Edit">
+    return `<div class="row body prow" role="button" tabindex="0" data-pid="${escAdm(p.id)}" style="cursor:pointer" title="Edit">
       <div class="pname"><b>${escAdm(en(p)||p.id)}</b><span class="pth">${escAdm(th(p)||'')}</span><span class="pid">${escAdm(p.id)}</span></div>
       <div class="ptype">${escAdm(p.type||'—')}</div>
       <div class="preg">${escAdm(reg||'—')}</div>
@@ -1008,7 +1100,6 @@ function renderPlaces(){
     </div>`;
   }).join('');
 }
-onAuthStateChanged(auth, async (user) => { if(!user) return; let ok = user.uid===ADMIN_UID; if(!ok){ try{ ok = (await getDoc(doc(db,'admins',user.uid))).exists(); }catch(e){ ok=false; } } if(ok) loadPlaces(); });
 $('pumgoda-search').addEventListener('input', renderPlaces);
 // pumgoda refresh handled via main refreshBtn
 
@@ -1183,6 +1274,7 @@ delBtn.addEventListener('click', deletePlace);
 const ftEl = document.querySelector('.pedit-ft');
 if(ftEl) ftEl.insertBefore(delBtn, ftEl.firstChild);
 document.getElementById('pumgoda-rows').addEventListener('click', (e)=>{ const row=e.target.closest('.row.body.prow'); if(row && row.dataset.pid) openEditor(row.dataset.pid); });
+document.getElementById('pumgoda-rows').addEventListener('keydown', (e)=>{ if(e.key!=='Enter' && e.key!==' ') return; const row=e.target.closest('.row.body.prow'); if(row && row.dataset.pid){ e.preventDefault(); openEditor(row.dataset.pid); } });
 document.getElementById('pedit-x').addEventListener('click', closeEditor);
 document.getElementById('pedit-cancel').addEventListener('click', closeEditor);
 document.getElementById('pedit-save').addEventListener('click', saveEditor);
