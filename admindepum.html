@@ -1050,8 +1050,9 @@ function listValue(v){
 function normalizePhotoURL(url){
   const s = url ? String(url).trim() : '';
   if(!s) return '';
-  if(s.includes('googleusercontent.com') && !/[=?&]s\d+(-c)?/.test(s)){
-    return s + (s.includes('=') ? '' : '=s96-c');
+  if(s.includes('googleusercontent.com')){
+    if(/[=?&]s\d+(-c)?/.test(s)) return s.replace(/[=?&]s\d+(-c)?/, '=s128-c');
+    return s + (s.includes('=') ? '' : '=s128-c');
   }
   return s;
 }
@@ -1059,7 +1060,7 @@ function userAvatarHtml(u){
   const initial = escAdm(((u && (u.name || u.email)) || '·')[0].toUpperCase());
   const bg = colorFor(u && u.uid);
   const photo = normalizePhotoURL(u && u.photoURL);
-  return `<div class="ua" style="background:${bg}" data-initial="${initial}" title="${photo ? 'Photo loaded from userProfiles.photoURL' : 'No photoURL saved'}">${photo ? `<img src="${escAdm(photo)}" referrerpolicy="no-referrer" onerror="const p=this.parentNode;this.remove();p.textContent=p.dataset.initial||'·';p.title='Photo URL failed to load';">` : initial}</div>`;
+  return `<div class="ua" style="background:${bg}" data-initial="${initial}" title="${photo ? 'Photo URL found' : 'No photoURL saved'}">${photo ? `<img src="${escAdm(photo)}" referrerpolicy="no-referrer" onerror="const p=this.parentNode;this.remove();p.textContent=p.dataset.initial||'·';p.title='Photo URL found, but image failed to load';">` : initial}</div>`;
 }
 function chipsHtml(values, cls='member-chip'){
   const list = Array.isArray(values) ? values.filter(Boolean) : [];
@@ -1137,9 +1138,9 @@ function setProfileAvatar(el, uid, label, photoURL){
     const img = document.createElement('img');
     img.src = photo;
     img.referrerPolicy = 'no-referrer';
-    img.onerror = () => { el.innerHTML = ''; el.textContent = initial; };
+    img.onerror = () => { el.innerHTML = ''; el.textContent = initial; el.title = 'Photo URL found, but image failed to load'; };
     el.appendChild(img);
-    el.title = 'Photo loaded from userProfiles.photoURL';
+    el.title = 'Photo URL found';
   } else {
     el.textContent = initial;
     el.title = 'No photoURL saved';
@@ -1203,7 +1204,7 @@ window.openUserProfile = async function(uid){
       <div class="uprof-section"><h4>Raw profile summary</h4>
         <div class="drawer-row"><span class="dk">Name</span><span class="dv">${escAdm(prof.name || u.name || '—')}</span></div>
         <div class="drawer-row"><span class="dk">Email</span><span class="dv">${escAdm(prof.email || u.email || '—')}</span></div>
-        <div class="drawer-row"><span class="dk">Photo URL</span><span class="dv">${profilePhoto ? 'Available' : '—'}</span></div>
+        <div class="drawer-row"><span class="dk">Photo URL</span><span class="dv">${profilePhoto ? `<a class="profile-mini" href="${escAdm(profilePhoto)}" target="_blank" rel="noopener noreferrer">OPEN PHOTO</a>` : '—'}</span></div>
         <div class="drawer-row"><span class="dk">Last seen</span><span class="dv">${escAdm(fmtFull(prof.lastSeen || u.sync))}</span></div>
       </div>`;
   }catch(e){
