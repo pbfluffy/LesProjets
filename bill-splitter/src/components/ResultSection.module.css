@@ -51,6 +51,7 @@
 .roundFrom { font-size: 11px; color: var(--color-text-muted); font-family: var(--font-mono); margin-top: 2px; }
 .roundRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 0.5px solid var(--color-border); margin-top: 6px; padding-top: 10px; }
 .roundLabel { font-size: 13px; color: var(--color-text-muted); }
+.currencyLabel { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1.35; }
 .roundSwitch { position: relative; width: 40px; height: 24px; flex: none; border-radius: var(--radius-pill); border: 0.5px solid var(--color-border-strong); background: var(--color-border); cursor: pointer; padding: 0; transition: background 0.15s, border-color 0.15s; }
 .roundSwitch[aria-checked="true"] { background: var(--color-accent); border-color: var(--color-accent); }
 .roundSwitchKnob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--color-text-muted); transition: left 0.15s, background 0.15s; }
