@@ -1080,12 +1080,14 @@ function renderBillFormCard(b){
     const fname = firstFilled(f, ['name','foodName','title','label']) || ('Item '+(i+1));
     const price = billMoney(firstFilled(f, ['price','amount','total','cost']));
     const paidBy = firstFilled(f, ['paidBy','payer','owner','paid_by']);
-    const sharedBy = listValue(firstFilled(f, ['sharedBy','eaters','members','splitWith','people','shared_by']));
+    const whoValue = firstFilled(f, ['who']);
+    const sharedBy = listValue(whoValue || firstFilled(f, ['sharedBy','eaters','members','splitWith','people','shared_by']));
+    const sharedLabel = whoValue ? 'Belongs to' : 'Shared by';
     const qty = firstFilled(f, ['qty','quantity','count']);
     const note = firstFilled(f, ['note','notes','memo']);
     const ownerRows = paidBy || sharedBy
       ? `${paidBy ? `<div class="food-card-row"><span class="k">Paid by</span><span class="v">${escAdm(paidBy)}</span></div>` : ''}
-         ${sharedBy ? `<div class="food-card-row"><span class="k">Shared by</span><span class="v">${escAdm(sharedBy)}</span></div>` : ''}`
+         ${sharedBy ? `<div class="food-card-row"><span class="k">${sharedLabel}</span><span class="v">${escAdm(sharedBy)}</span></div>` : ''}`
       : `<div class="food-card-row item-owner-missing"><span class="k">Owner</span><span class="v">No payer or split-member data saved</span></div>`;
     return `<div class="food-card">
       <div class="food-card-head"><div class="food-card-name">${escAdm(fname)}${qty?` × ${escAdm(qty)}`:''}</div><div class="food-card-price">${price}</div></div>
@@ -1377,6 +1379,18 @@ function userApps(u){
 function safeAbs(t){
   return t ? new Date(t).toISOString().slice(0,16).replace('T',' ') : '—';
 }
+function backyardPlayerLabel(row){
+  const d = row.data || {};
+  const prof = DATA.find(u => u.uid === row.id);
+  const pid = d.pid || d.playerId || '';
+  const rawName = String(d.name || d.playerName || '').trim();
+  const uidLike = !rawName || rawName === row.id || /^[A-Za-z0-9_-]{20,}$/.test(rawName);
+  const display = prof && (prof.name || prof.email)
+    ? (prof.name || String(prof.email).split('@')[0])
+    : (uidLike ? (pid ? `Player #${pid}` : 'Player') : rawName);
+  const sub = pid ? `#${pid}` : row.id.slice(0,8)+'…';
+  return { display, sub };
+}
 function renderBackyardTab(){
   const all = BACKYARD.leaderboard || [];
   const top = all[0] && all[0].data || {};
@@ -1398,15 +1412,14 @@ function renderBackyardTab(){
     } else {
       el.innerHTML = all.slice(0,25).map((r,i)=>{
         const d = r.data || {};
-        const name = d.name || d.playerName || r.id;
-        const pid = d.pid || d.playerId || r.id;
+        const player = backyardPlayerLabel(r);
         const score = Number(d.score || d.bestScore || 0);
         const wave = Number(d.wave || d.bestWave || 0);
         const rebirths = Number(d.rebirths || 0);
         const updated = ts(d.t) || ts(d.lastModified) || ts(d.updatedAt);
         return `<div class="row body backyard-row">
           <div class="rank-badge">#${i+1}</div>
-          <div class="backyard-player"><b>${escAdm(name)}</b><span class="pid-chip">${escAdm(pid)}</span></div>
+          <div class="backyard-player"><b>${escAdm(player.display)}</b><span class="pid-chip">${escAdm(player.sub)}</span></div>
           <div class="score-strong">${score.toLocaleString('en')}</div>
           <div>${wave.toLocaleString('en')}</div>
           <div>${rebirths.toLocaleString('en')}</div>
