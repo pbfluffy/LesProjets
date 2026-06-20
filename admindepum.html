@@ -93,6 +93,8 @@ body{
 .user{display:flex;align-items:center;gap:11px;min-width:0}
 .ua{width:36px;height:36px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-weight:800;font-size:14px;color:#1a1408;overflow:hidden;background-size:cover;background-position:center}
 .ua img,.uprof-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.ua.has-photo{position:relative}
+.ua.has-photo::after{content:"";position:absolute;right:0;bottom:0;width:9px;height:9px;border-radius:50%;background:var(--green);border:2px solid var(--panel)}
 .uinfo{min-width:0}
 .uinfo b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .uinfo .em{font-size:11.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -717,6 +719,7 @@ try {
 
 
 let DATA = [];
+let PROFILE_MAP = new Map();
 let BACKYARD = { loaded:false, loading:false, leaderboard:[], error:'' };
 let sortKey = 'sync';
 
@@ -795,6 +798,7 @@ async function loadData(){
   const btn = $('refreshBtn');
   btn.innerHTML = '<span class="spin">↻</span> Loading…'; btn.disabled = true;
   $('errbox').classList.add('hidden');
+  PROFILE_MAP = new Map();
   const map = new Map();
   const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,sync:0,name:null,email:null,photoURL:null,_drawer:null,_lastNutrDate:null,_billMode:null,_shareCount:null,_events:[]}); return map.get(uid); };
   const errors = [];
@@ -825,7 +829,7 @@ async function loadData(){
     u.sync = Math.max(u.sync, ts(d.lastModified));
   });
   await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; if(u.places) u._events.push({type:'place', title:'Saved places', detail:u.places+' places', time:ts(d.lastModified)}); u.sync = Math.max(u.sync, ts(d.lastModified)); });
-  await scan('userProfiles',(u,d) => { u.name = d.name || null; u.email = d.email || null; u.photoURL = d.photoURL || d.photoUrl || d.avatarUrl || d.avatar || d.picture || null; if(ts(d.lastSeen)) u._events.push({type:'profile', title:'User active', detail:d.email || d.name || 'Profile seen', time:ts(d.lastSeen)}); u.sync = Math.max(u.sync, ts(d.lastSeen)); });
+  await scan('userProfiles',(u,d) => { PROFILE_MAP.set(u.uid, d); u.name = d.name || null; u.email = d.email || null; u.photoURL = d.photoURL || d.photoUrl || d.avatarUrl || d.avatar || d.picture || null; if(ts(d.lastSeen)) u._events.push({type:'profile', title:'User active', detail:d.email || d.name || 'Profile seen', time:ts(d.lastSeen)}); u.sync = Math.max(u.sync, ts(d.lastSeen)); });
   try{
     const links = await getDocs(collection(db, 'shareLinks'));
     links.forEach(s => {
@@ -1059,8 +1063,12 @@ function normalizePhotoURL(url){
 function userAvatarHtml(u){
   const initial = escAdm(((u && (u.name || u.email)) || '·')[0].toUpperCase());
   const bg = colorFor(u && u.uid);
-  const photo = normalizePhotoURL(u && u.photoURL);
-  return `<div class="ua" style="background:${bg}" data-initial="${initial}" title="${photo ? 'Photo URL found' : 'No photoURL saved'}">${photo ? `<img src="${escAdm(photo)}" referrerpolicy="no-referrer" onerror="const p=this.parentNode;this.remove();p.textContent=p.dataset.initial||'·';p.title='Photo URL found, but image failed to load';">` : initial}</div>`;
+  const prof = u && PROFILE_MAP.get(u.uid) || {};
+  const photo = normalizePhotoURL((u && u.photoURL) || prof.photoURL || prof.photoUrl || prof.avatarUrl || prof.avatar || prof.picture);
+  const style = photo
+    ? `background-color:${bg};background-image:url('${escAdm(photo).replace(/'/g,'&#39;')}');color:transparent`
+    : `background:${bg}`;
+  return `<div class="ua${photo ? ' has-photo' : ''}" style="${style}" data-initial="${initial}" title="${photo ? 'Photo URL found' : 'No photoURL saved'}">${initial}</div>`;
 }
 function chipsHtml(values, cls='member-chip'){
   const list = Array.isArray(values) ? values.filter(Boolean) : [];
@@ -1130,18 +1138,20 @@ function renderBillFormCard(b){
 }
 function userLabel(u){ return u ? (u.name || u.email || u.uid.slice(0,12)+'…') : 'Unknown user'; }
 function setProfileAvatar(el, uid, label, photoURL){
-  el.style.background = colorFor(uid);
   el.innerHTML = '';
   const initial = (label && label[0] || '?').toUpperCase();
   const photo = normalizePhotoURL(photoURL);
   if(photo){
-    const img = document.createElement('img');
-    img.src = photo;
-    img.referrerPolicy = 'no-referrer';
-    img.onerror = () => { el.innerHTML = ''; el.textContent = initial; el.title = 'Photo URL found, but image failed to load'; };
-    el.appendChild(img);
+    el.style.backgroundColor = colorFor(uid);
+    el.style.backgroundImage = `url("${photo.replace(/"/g, '%22')}")`;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.style.color = 'transparent';
+    el.textContent = initial;
     el.title = 'Photo URL found';
   } else {
+    el.style.background = colorFor(uid);
+    el.style.color = '#1a1408';
     el.textContent = initial;
     el.title = 'No photoURL saved';
   }
