@@ -238,6 +238,36 @@ html.light body{
   padding:8px 0; border-bottom:1px solid var(--line-soft);
 }
 .bill-item-detail:last-child { border-bottom:none; }
+.bill-drill-toggle{
+  width:100%; text-align:left; border:0; background:transparent; color:inherit;
+  padding:0; margin:0; font-family:inherit; cursor:pointer; display:block;
+}
+.bill-drill-toggle .hint{
+  font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--accent);
+  margin-top:6px; letter-spacing:.04em;
+}
+.bill-drill{
+  display:none; margin-top:10px; padding:12px; border:1px solid var(--line-soft);
+  border-radius:10px; background:rgba(0,0,0,.12);
+}
+.bill-item-detail.open .bill-drill{display:block}
+.bill-item-detail.open .hint{color:var(--green)}
+.bill-detail-line{
+  display:flex; justify-content:space-between; gap:10px; padding:5px 0;
+  border-bottom:1px solid var(--line-soft); font-size:12px;
+}
+.bill-detail-line:last-child{border-bottom:none}
+.bill-detail-line .k{color:var(--faint)}
+.bill-detail-line .v{font-family:'JetBrains Mono',monospace; color:var(--text); text-align:right; word-break:break-word}
+.food-detail{padding:8px 0;border-bottom:1px solid var(--line-soft)}
+.food-detail:last-child{border-bottom:none}
+.food-detail .food-head{display:flex;justify-content:space-between;gap:10px;font-weight:700}
+.food-detail .food-meta{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.35}
+@media(max-width:720px){
+  .bill-drill{padding:10px}
+  .bill-detail-line{align-items:flex-start}
+}
+
 .bid-header {
   display:flex; justify-content:space-between; align-items:baseline;
   margin-bottom:5px;
@@ -952,8 +982,20 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
         const recentTrips = [...trips].reverse().slice(0,3);
         const tripRows = recentTrips.map(t=>{
           const nm  = escAdm(t.name||'Untitled');
-          const ppl = Array.isArray(t.members) ? t.members.length+' people' : '—';
-          return `<div class="bill-item"><span class="bill-name">${nm}</span><span class="bill-meta">${ppl}</span></div>`;
+          const members = Array.isArray(t.members) ? t.members : [];
+          const ppl = members.length ? members.length+' people' : '—';
+          const memberList = members.length ? escAdm(members.join(', ')) : '—';
+          const billsInTrip = Array.isArray(t.bills) ? t.bills.length : (Array.isArray(t.history) ? t.history.length : 0);
+          return `<div class="bill-item-detail">
+            <button type="button" class="bill-drill-toggle" onclick="event.stopPropagation(); this.closest('.bill-item-detail').classList.toggle('open'); this.querySelector('.hint').textContent = this.closest('.bill-item-detail').classList.contains('open') ? 'TAP TO HIDE DETAILS' : 'TAP TO SEE TRIP DETAILS';">
+              <div class="bid-header"><span class="bill-name">${nm}</span><span class="bill-meta">${ppl}</span></div>
+              <div class="hint">TAP TO SEE TRIP DETAILS</div>
+            </button>
+            <div class="bill-drill">
+              <div class="bill-detail-line"><span class="k">Members</span><span class="v">${memberList}</span></div>
+              <div class="bill-detail-line"><span class="k">Bills in trip</span><span class="v">${billsInTrip}</span></div>
+            </div>
+          </div>`;
         }).join('');
         billsHtml = `
           <div class="drawer-row"><span class="dk">Total trips</span><span class="dv">${trips.length}</span></div>
@@ -964,23 +1006,54 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
         // Legacy single-bill mode — entries have billName + savedAt + state
         const bills = d.history;
         const recentBills = [...bills].reverse().slice(0,3);
-        const billRows = recentBills.map(b=>{
+        const money = (n) => { const x=parseFloat(n); return Number.isFinite(x) ? '฿'+x.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2}) : '—'; };
+        const arrText = (v) => Array.isArray(v) ? v.filter(Boolean).join(', ') : (v || '—');
+        const billRows = recentBills.map((b,idx)=>{
           const s      = b.state || {};
           const nm     = escAdm(b.billName || s.billName || 'Untitled');
           const date   = b.savedAt ? new Date(b.savedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
-          const members = Array.isArray(s.members) && s.members.length ? escAdm(s.members.join(', ')) : '—';
+          const savedAtFull = b.savedAt ? new Date(b.savedAt).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+          const membersRaw = Array.isArray(s.members) ? s.members : [];
+          const members = membersRaw.length ? escAdm(membersRaw.join(', ')) : '—';
           const foods   = Array.isArray(s.foods) ? s.foods : [];
           const total   = foods.reduce((sum,f)=>sum + (parseFloat(f.price)||0), 0);
-          const totalStr = total > 0 ? '฿'+total.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2}) : '—';
+          const totalStr = total > 0 ? money(total) : '—';
           const itemCount = foods.length;
-          const hasPromptPay = s.promptPay && s.promptPay.trim();
-          const hasBankInfo  = s.bankInfo && s.bankInfo.trim();
+          const hasPromptPay = s.promptPay && String(s.promptPay).trim();
+          const hasBankInfo  = s.bankInfo && String(s.bankInfo).trim();
           const shareMethod  = hasPromptPay && hasBankInfo ? 'PromptPay + Bank' : hasPromptPay ? 'PromptPay' : hasBankInfo ? 'Bank info' : '—';
+          const foodRows = foods.length ? foods.map((f,i)=>{
+            const fname = escAdm(f.name || f.foodName || f.title || ('Item '+(i+1)));
+            const price = money(f.price || f.amount || f.total);
+            const paidBy = escAdm(f.paidBy || f.payer || f.owner || '—');
+            const sharedBy = escAdm(arrText(f.sharedBy || f.eaters || f.members || f.splitWith || f.people));
+            const qty = f.qty || f.quantity || '';
+            return `<div class="food-detail">
+              <div class="food-head"><span>${fname}${qty?` × ${escAdm(qty)}`:''}</span><span>${price}</span></div>
+              <div class="food-meta">Paid by: ${paidBy}</div>
+              <div class="food-meta">Shared by: ${sharedBy}</div>
+            </div>`;
+          }).join('') : '<div class="ds-empty">No item details saved.</div>';
+          const payDetails = [
+            hasPromptPay ? `<div class="bill-detail-line"><span class="k">PromptPay</span><span class="v">${escAdm(s.promptPay)}</span></div>` : '',
+            hasBankInfo ? `<div class="bill-detail-line"><span class="k">Bank info</span><span class="v">${escAdm(s.bankInfo)}</span></div>` : ''
+          ].join('');
           return `<div class="bill-item-detail">
-            <div class="bid-header"><span class="bill-name">${nm}</span><span class="bill-meta">${date}</span></div>
-            <div class="bid-row"><span class="dk">People</span><span class="dv-sm">${members}</span></div>
-            <div class="bid-row"><span class="dk">Items / Total</span><span class="dv-sm">${itemCount} items · ${totalStr}</span></div>
-            <div class="bid-row"><span class="dk">Payment method</span><span class="dv-sm">${shareMethod}</span></div>
+            <button type="button" class="bill-drill-toggle" onclick="event.stopPropagation(); this.closest('.bill-item-detail').classList.toggle('open'); this.querySelector('.hint').textContent = this.closest('.bill-item-detail').classList.contains('open') ? 'TAP TO HIDE DETAILS' : 'TAP TO SEE BILL DETAILS';">
+              <div class="bid-header"><span class="bill-name">${nm}</span><span class="bill-meta">${date}</span></div>
+              <div class="bid-row"><span class="dk">People</span><span class="dv-sm">${members}</span></div>
+              <div class="bid-row"><span class="dk">Items / Total</span><span class="dv-sm">${itemCount} items · ${totalStr}</span></div>
+              <div class="bid-row"><span class="dk">Payment method</span><span class="dv-sm">${shareMethod}</span></div>
+              <div class="hint">TAP TO SEE BILL DETAILS</div>
+            </button>
+            <div class="bill-drill">
+              <div class="bill-detail-line"><span class="k">Saved at</span><span class="v">${escAdm(savedAtFull)}</span></div>
+              <div class="bill-detail-line"><span class="k">Members</span><span class="v">${members}</span></div>
+              <div class="bill-detail-line"><span class="k">Total</span><span class="v">${totalStr}</span></div>
+              ${payDetails}
+              <div class="ds-sub">Items</div>
+              ${foodRows}
+            </div>
           </div>`;
         }).join('');
         billsHtml = `
