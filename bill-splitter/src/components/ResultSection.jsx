@@ -11,7 +11,7 @@ import styles from './ResultSection.module.css'
 
 function fmt(n) { return n.toFixed(2) }
 
-export default function ResultSection({ result, members, foods = [], promptPay, bankInfo, notes, billName, snapshot, tab, onSave, initialPaid, roundTotalEnabled, onRoundTotalChange, readOnly, currency = 'THB', currencySymbol = '฿' }) {
+export default function ResultSection({ result, members, foods = [], promptPay, bankInfo, notes, billName, snapshot, tab, onSave, initialPaid, billOwner, onBillOwnerChange, roundTotalEnabled, onRoundTotalChange, readOnly, currency = 'THB', currencySymbol = '฿' }) {
   const { t } = useLang()
   const [toast, setToast] = useState('')
   const [showQR, setShowQR] = useState(false)
@@ -52,7 +52,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
   const sym = convertRate !== null ? '฿' : currencySymbol
   const fmtC = (n) => conv(n).toFixed(2)
   const displayCurrency = convertRate !== null ? 'THB' : currency
-    const billOwner = members[0]
+  const currentOwner = members.includes(billOwner) ? billOwner : members[0]
   // #91 mark-as-paid — session-only set of member names marked paid.
   // Deliberately NOT persisted to store/history/cloud (resets on new bill).
   // Seeds from initialPaid when opening a share link that carried paid names.
@@ -62,6 +62,15 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
     if (next.has(m)) next.delete(m); else next.add(m)
     return next
   })
+  const handleOwnerChange = (owner) => {
+    setPaid(prev => {
+      if (!prev.has(owner)) return prev
+      const next = new Set(prev)
+      next.delete(owner)
+      return next
+    })
+    onBillOwnerChange?.(owner)
+  }
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
 
@@ -288,6 +297,19 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
                 <button type="button" className={styles.roundSwitch} role="switch" aria-checked={!!roundTotalEnabled} aria-label={t.roundTotal} onClick={() => onRoundTotalChange(!roundTotalEnabled)}><span className={styles.roundSwitchKnob} /></button>
               </div>
             )}
+            {!readOnly && onBillOwnerChange && members.length > 1 && (
+              <div className={styles.ownerRow} data-snapshot-hide>
+                <label className={styles.ownerLabel} htmlFor="bill-owner-select">Bill owner</label>
+                <select
+                  id="bill-owner-select"
+                  className={styles.ownerSelect}
+                  value={currentOwner ?? ''}
+                  onChange={e => handleOwnerChange(e.target.value)}
+                >
+                  {members.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+            )}
             {!isTHB && (
               <div className={styles.roundRow} data-snapshot-hide>
                 <span className={`${styles.roundLabel} ${styles.currencyLabel}`}>
@@ -326,7 +348,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
           )}
 
           <div className={styles.perPersonList}>
-            {members.map(m => { const amount=result.totals[m]??0; const pct=result.grandTotal>0?(amount/result.grandTotal)*100:0; const isOwner=m===billOwner; const isPaid=!isOwner&&paid.has(m); const qrAmount=isTHB ? amount : (convertRate !== null ? conv(amount) : null); return(
+            {members.map(m => { const amount=result.totals[m]??0; const pct=result.grandTotal>0?(amount/result.grandTotal)*100:0; const isOwner=m===currentOwner; const isPaid=!isOwner&&paid.has(m); const qrAmount=isTHB ? amount : (convertRate !== null ? conv(amount) : null); return(
               <div key={m} className={isPaid ? styles.paid : undefined}>
                 <div className={styles.personHeader}><div className={styles.personLeft}>{isOwner ? <span className={styles.payCheckPlaceholder} aria-hidden="true" /> : <button type="button" className={`${styles.payCheck} ${isPaid ? styles.payCheckOn : ''}`} onClick={() => togglePaid(m)} aria-pressed={isPaid} aria-label={isPaid ? t.markUnpaid : t.markPaid} title={isPaid ? t.markUnpaid : t.markPaid}>{isPaid && (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)}</button>}<Avatar name={m} photoURL={user && ownerName && m.trim().toLowerCase() === ownerName ? user.photoURL : null} size={24} /><span className={styles.personName}>{m}</span><span className={`${styles.payStatus} ${isOwner ? styles.payStatusOwner : (isPaid ? styles.payStatusPaid : styles.payStatusPending)}`}>{isOwner ? 'Owner' : (isPaid ? 'Paid' : 'Pending')}</span></div><span className={styles.personAmount}>{sym}{fmtC(amount)}</span></div>
                 <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
