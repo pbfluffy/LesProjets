@@ -244,28 +244,57 @@ html.light body{
 }
 .bill-drill-toggle .hint{
   font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--accent);
-  margin-top:6px; letter-spacing:.04em;
+  margin-top:8px; letter-spacing:.08em; text-transform:uppercase;
 }
 .bill-drill{
-  display:none; margin-top:10px; padding:12px; border:1px solid var(--line-soft);
-  border-radius:10px; background:rgba(0,0,0,.12);
+  display:none; margin-top:12px; padding:0; border:0; background:transparent;
 }
 .bill-item-detail.open .bill-drill{display:block}
 .bill-item-detail.open .hint{color:var(--green)}
-.bill-detail-line{
-  display:flex; justify-content:space-between; gap:10px; padding:5px 0;
-  border-bottom:1px solid var(--line-soft); font-size:12px;
+.bill-form-card{
+  border:1px solid var(--line); border-radius:14px; background:var(--bg-2);
+  overflow:hidden; box-shadow:0 8px 28px rgba(0,0,0,.12);
 }
-.bill-detail-line:last-child{border-bottom:none}
-.bill-detail-line .k{color:var(--faint)}
-.bill-detail-line .v{font-family:'JetBrains Mono',monospace; color:var(--text); text-align:right; word-break:break-word}
-.food-detail{padding:8px 0;border-bottom:1px solid var(--line-soft)}
-.food-detail:last-child{border-bottom:none}
-.food-detail .food-head{display:flex;justify-content:space-between;gap:10px;font-weight:700}
-.food-detail .food-meta{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.35}
+.bill-form-head{
+  padding:14px 14px 12px; border-bottom:1px solid var(--line-soft);
+  display:flex; justify-content:space-between; gap:12px; align-items:flex-start;
+}
+.bill-form-title{font-size:18px;font-weight:800;color:var(--text);line-height:1.15;word-break:break-word}
+.bill-form-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);white-space:nowrap;margin-top:3px}
+.bill-form-total{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:800;color:var(--accent);white-space:nowrap}
+.bill-form-section{padding:13px 14px;border-bottom:1px solid var(--line-soft)}
+.bill-form-section:last-child{border-bottom:none}
+.bill-form-label{
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:10px;
+}
+.bill-kv{display:grid;grid-template-columns:1fr auto;gap:8px 14px;font-size:12.5px}
+.bill-kv .k{color:var(--muted)}
+.bill-kv .v{font-family:'JetBrains Mono',monospace;color:var(--text);text-align:right;word-break:break-word}
+.member-chips,.share-chips{display:flex;flex-wrap:wrap;gap:7px}
+.member-chip,.share-chip{
+  font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid var(--line-soft);
+  background:var(--panel);color:var(--text);border-radius:999px;padding:5px 8px;max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.food-card{
+  border:1px solid var(--line-soft);background:var(--panel);border-radius:12px;
+  padding:11px 12px;margin-bottom:9px;
+}
+.food-card:last-child{margin-bottom:0}
+.food-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}
+.food-card-name{font-size:14px;font-weight:800;color:var(--text);line-height:1.2;word-break:break-word}
+.food-card-price{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;color:var(--accent);white-space:nowrap}
+.food-card-row{display:grid;grid-template-columns:76px 1fr;gap:8px;font-size:11.5px;margin-top:6px}
+.food-card-row .k{color:var(--faint)}
+.food-card-row .v{font-family:'JetBrains Mono',monospace;color:var(--muted);min-width:0;word-break:break-word}
+.trip-card{border:1px solid var(--line);border-radius:14px;background:var(--bg-2);padding:14px}
 @media(max-width:720px){
-  .bill-drill{padding:10px}
-  .bill-detail-line{align-items:flex-start}
+  .bill-form-head{flex-direction:column;gap:6px}
+  .bill-form-date,.bill-form-total{white-space:normal}
+  .bill-kv{grid-template-columns:1fr}
+  .bill-kv .v{text-align:left}
+  .food-card-row{grid-template-columns:1fr}
 }
 
 .bid-header {
@@ -992,8 +1021,15 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
               <div class="hint">TAP TO SEE TRIP DETAILS</div>
             </button>
             <div class="bill-drill">
-              <div class="bill-detail-line"><span class="k">Members</span><span class="v">${memberList}</span></div>
-              <div class="bill-detail-line"><span class="k">Bills in trip</span><span class="v">${billsInTrip}</span></div>
+              <div class="trip-card">
+                <div class="bill-form-label">Trip setup</div>
+                <div class="bill-kv">
+                  <span class="k">Trip name</span><span class="v">${nm}</span>
+                  <span class="k">Bills in trip</span><span class="v">${billsInTrip}</span>
+                </div>
+                <div class="bill-form-label" style="margin-top:14px">Members</div>
+                <div class="member-chips">${chipList(members)}</div>
+              </div>
             </div>
           </div>`;
         }).join('');
@@ -1008,6 +1044,10 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
         const recentBills = [...bills].reverse().slice(0,3);
         const money = (n) => { const x=parseFloat(n); return Number.isFinite(x) ? '฿'+x.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:2}) : '—'; };
         const arrText = (v) => Array.isArray(v) ? v.filter(Boolean).join(', ') : (v || '—');
+        const chipList = (items, cls='member-chip') => {
+          const arr = Array.isArray(items) ? items.filter(Boolean) : (items ? [items] : []);
+          return arr.length ? arr.map(x=>`<span class="${cls}">${escAdm(x)}</span>`).join('') : '<span class="member-chip">—</span>';
+        };
         const billRows = recentBills.map((b,idx)=>{
           const s      = b.state || {};
           const nm     = escAdm(b.billName || s.billName || 'Untitled');
@@ -1025,34 +1065,53 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
           const foodRows = foods.length ? foods.map((f,i)=>{
             const fname = escAdm(f.name || f.foodName || f.title || ('Item '+(i+1)));
             const price = money(f.price || f.amount || f.total);
-            const paidBy = escAdm(f.paidBy || f.payer || f.owner || '—');
-            const sharedBy = escAdm(arrText(f.sharedBy || f.eaters || f.members || f.splitWith || f.people));
+            const paidByRaw = f.paidBy || f.payer || f.owner || '—';
+            const sharedRaw = f.sharedBy || f.eaters || f.members || f.splitWith || f.people;
             const qty = f.qty || f.quantity || '';
-            return `<div class="food-detail">
-              <div class="food-head"><span>${fname}${qty?` × ${escAdm(qty)}`:''}</span><span>${price}</span></div>
-              <div class="food-meta">Paid by: ${paidBy}</div>
-              <div class="food-meta">Shared by: ${sharedBy}</div>
+            const notes = f.note || f.notes || f.remark || '';
+            return `<div class="food-card">
+              <div class="food-card-head"><div class="food-card-name">${fname}${qty?` × ${escAdm(qty)}`:''}</div><div class="food-card-price">${price}</div></div>
+              <div class="food-card-row"><span class="k">Paid by</span><span class="v">${escAdm(paidByRaw)}</span></div>
+              <div class="food-card-row"><span class="k">Shared by</span><span class="v"><span class="share-chips">${chipList(Array.isArray(sharedRaw)?sharedRaw:(sharedRaw?String(sharedRaw).split(',').map(x=>x.trim()):[]),'share-chip')}</span></span></div>
+              ${notes ? `<div class="food-card-row"><span class="k">Note</span><span class="v">${escAdm(notes)}</span></div>` : ''}
             </div>`;
           }).join('') : '<div class="ds-empty">No item details saved.</div>';
-          const payDetails = [
-            hasPromptPay ? `<div class="bill-detail-line"><span class="k">PromptPay</span><span class="v">${escAdm(s.promptPay)}</span></div>` : '',
-            hasBankInfo ? `<div class="bill-detail-line"><span class="k">Bank info</span><span class="v">${escAdm(s.bankInfo)}</span></div>` : ''
-          ].join('');
+          const payDetails = `
+            <div class="bill-kv">
+              <span class="k">Method</span><span class="v">${shareMethod}</span>
+              ${hasPromptPay ? `<span class="k">PromptPay</span><span class="v">${escAdm(s.promptPay)}</span>` : ''}
+              ${hasBankInfo ? `<span class="k">Bank info</span><span class="v">${escAdm(s.bankInfo)}</span>` : ''}
+            </div>`;
           return `<div class="bill-item-detail">
             <button type="button" class="bill-drill-toggle" onclick="event.stopPropagation(); this.closest('.bill-item-detail').classList.toggle('open'); this.querySelector('.hint').textContent = this.closest('.bill-item-detail').classList.contains('open') ? 'TAP TO HIDE DETAILS' : 'TAP TO SEE BILL DETAILS';">
               <div class="bid-header"><span class="bill-name">${nm}</span><span class="bill-meta">${date}</span></div>
-              <div class="bid-row"><span class="dk">People</span><span class="dv-sm">${members}</span></div>
+              <div class="bid-row"><span class="dk">People</span><span class="dv-sm">${membersRaw.length} people</span></div>
               <div class="bid-row"><span class="dk">Items / Total</span><span class="dv-sm">${itemCount} items · ${totalStr}</span></div>
               <div class="bid-row"><span class="dk">Payment method</span><span class="dv-sm">${shareMethod}</span></div>
               <div class="hint">TAP TO SEE BILL DETAILS</div>
             </button>
             <div class="bill-drill">
-              <div class="bill-detail-line"><span class="k">Saved at</span><span class="v">${escAdm(savedAtFull)}</span></div>
-              <div class="bill-detail-line"><span class="k">Members</span><span class="v">${members}</span></div>
-              <div class="bill-detail-line"><span class="k">Total</span><span class="v">${totalStr}</span></div>
-              ${payDetails}
-              <div class="ds-sub">Items</div>
-              ${foodRows}
+              <div class="bill-form-card">
+                <div class="bill-form-head">
+                  <div>
+                    <div class="bill-form-title">${nm}</div>
+                    <div class="bill-form-date">Saved ${escAdm(savedAtFull)}</div>
+                  </div>
+                  <div class="bill-form-total">${totalStr}</div>
+                </div>
+                <div class="bill-form-section">
+                  <div class="bill-form-label">Members</div>
+                  <div class="member-chips">${chipList(membersRaw)}</div>
+                </div>
+                <div class="bill-form-section">
+                  <div class="bill-form-label">Payment information</div>
+                  ${payDetails}
+                </div>
+                <div class="bill-form-section">
+                  <div class="bill-form-label">Food / item list</div>
+                  ${foodRows}
+                </div>
+              </div>
             </div>
           </div>`;
         }).join('');
