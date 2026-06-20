@@ -678,7 +678,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
 import { getFirestore, collection, getDocs, getDoc, doc, setDoc, serverTimestamp, deleteDoc, updateDoc, query, where } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
-const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562';
+const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs850562';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
@@ -866,7 +866,7 @@ async function loadData(){
       const subSnap = await getDocs(collection(db,'userBills',u.uid,'trips'));
       u._tripCount = subSnap.size;
       u.bills = u._tripCount || u._legacyBillCount;
-    } catch(e) {}
+    } catch(e) { console.warn('[tripCount]', u.uid, e.code||e.message); }
   }));
 
   await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; if(u.places) u._events.push({type:'place', title:'Saved places', detail:u.places+' places', time:ts(d.lastModified)}); u.sync = Math.max(u.sync, ts(d.lastModified)); });
