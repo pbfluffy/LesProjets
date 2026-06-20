@@ -582,7 +582,7 @@ html.light body{
     </div>
     <div class="panel">
       <div class="row head">
-        <div>User</div><div>Trips / Bills</div><div>Mode</div><div>Share links</div><div>Last sync</div>
+        <div>User</div><div>Trips</div><div>Bills</div><div>Share links</div><div>Last sync</div>
       </div>
       <div id="tab-bills-rows"></div>
     </div>
@@ -1608,16 +1608,15 @@ function renderBillsTab(){
   $('tab-bills-rows').innerHTML = rows.map(u => {
     const [s,,cls] = rel(u.sync);
     const nm = u.name || (u.uid.slice(0,12)+'…');
-    const mode = u._billMode || '—';
-    const detail = u._tripCount ? `${u._tripCount} trips · ${u._memberCount||0} members` : (u._legacyBillCount ? `${u._legacyBillCount} saved bills` : '—');
+
     return `<div class="user-block" data-uid="${u.uid}">
-      <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','bills')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','bills')}">
+      <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .6fr .6fr .6fr 1fr" onclick="toggleDrawer('${u.uid}','bills')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','bills')}">
         <div class="user">
           ${userAvatarHtml(u)}
           <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
-        <div class="metric"><span class="lab">Trips / bills</span><span>${u.bills}</span><span class="cell-sub">${escAdm(detail)}</span></div>
-        <div class="metric"><span class="lab">Mode</span><span style="font-size:11px;color:var(--muted)">${escAdm(u._billMode||'—')}</span></div>
+        <div class="metric"><span class="lab">Trips</span><span class="${(u._hasTripMode||u._tripCount)?'''metric-zero'}">${u._tripCount||(u._hasTripMode?'✓':'—')}</span></div>
+        <div class="metric"><span class="lab">Bills</span><span class="${u._legacyBillCount?'''metric-zero'}">${u._legacyBillCount||'—'}</span></div>
         <div class="metric"><span class="lab">Share links</span><span>${u._shareCount!=null?u._shareCount:'—'}</span></div>
         <div class="sync ${cls}">${s}<span class="abs">${safeAbs(u.sync)}</span><span class="drawer-arrow">▶</span></div>
       </div>
