@@ -255,7 +255,7 @@ html.light body{
   display:none; margin-top:12px; padding:0; border:0; background:transparent;
 }
 .bill-item-detail.open .bill-drill{display:block}
-.bill-item-detail.open .hint{color:var(--green)}
+.bill-item-detail.open .bill-item-detail.open .hint{color:var(--muted)}
 .bill-form-card{
   border:1px solid var(--line); border-radius:14px; background:var(--bg-2);
   overflow:hidden; box-shadow:0 8px 28px rgba(0,0,0,.12);
@@ -1422,7 +1422,7 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
       } if(hasLegacy){ // show legacy bills even if trip mode also present
         // Legacy single-bill mode — entries have billName + savedAt + state
         const bills = d.history;
-        const recentBills = [...bills].slice(-5).reverse();
+        const recentBills = [...bills].slice(0,5);
         const billRows = recentBills.map((b,idx)=>{
           const s      = b.state || {};
           const nm     = escAdm(b.billName || s.billName || 'Untitled');
