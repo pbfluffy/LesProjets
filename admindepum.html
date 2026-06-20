@@ -1615,8 +1615,8 @@ function renderBillsTab(){
           ${userAvatarHtml(u)}
           <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
-        <div class="metric"><span class="lab">Trips</span><span class="${(u._hasTripMode||u._tripCount)?'''metric-zero'}">${u._tripCount||(u._hasTripMode?'✓':'—')}</span></div>
-        <div class="metric"><span class="lab">Bills</span><span class="${u._legacyBillCount?'''metric-zero'}">${u._legacyBillCount||'—'}</span></div>
+        <div class="metric"><span class="lab">Trips</span><span>${u._tripCount||(u._hasTripMode?'✓':'—')}</span></div>
+        <div class="metric"><span class="lab">Bills</span><span class="${u._legacyBillCount?'':'metric-zero'}">${u._legacyBillCount||'—'}</span></div>
         <div class="metric"><span class="lab">Share links</span><span>${u._shareCount!=null?u._shareCount:'—'}</span></div>
         <div class="sync ${cls}">${s}<span class="abs">${safeAbs(u.sync)}</span><span class="drawer-arrow">▶</span></div>
       </div>
