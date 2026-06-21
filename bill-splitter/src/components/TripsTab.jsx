@@ -16,6 +16,7 @@ import { compressImage, scanReceipt, localizeError, getScanCount, bumpScanCount,
 import { ShareIcon } from './icons'
 import { buildShareUrl, createShortLink, shareLink } from '../share'
 import { normaliseCurrency } from '../currencies'
+import { shareToLine } from '../liff.js'
 
 function fmtDate(ts) {
   if (!ts) return ''
@@ -620,7 +621,8 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   lines.push('')
                 }
                 lines.push(`Total: ${fmtAmount(dispTotal, dispCurrency)}`)
-                window.open(`https://line.me/R/share?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener')
+                await shareToLine(lines.join('
+'))
               } catch { showToast(t.imageFailed ?? 'Failed') } finally { setCapturing(false) }
             }}
           >
