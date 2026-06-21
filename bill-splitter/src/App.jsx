@@ -6,6 +6,8 @@ import SushiroCalculator from './components/SushiroCalculator'
 import TripsTab from './components/TripsTab'
 
 // #128 — Trip mode. Flip to true when UI is ready to ship.
+// LIFF — init once on mount; silent no-op in browser
+const _liffInit = initLiff()
 const TRIPS_ENABLED = true
 import BillHistory from './components/BillHistory'
 import { LangProvider, useLang } from './LangContext'
@@ -14,6 +16,7 @@ import { useBillHistory } from './hooks/useBillHistory'
 import { useCloudSync } from './hooks/useCloudSync'
 import { useSavedPayees } from './hooks/useSavedPayees'
 import styles from './App.module.css'
+import { initLiff } from './liff.js'
 
 // Read share data once at module load (before any component renders)
 const initialShare = readShareFromHash()
