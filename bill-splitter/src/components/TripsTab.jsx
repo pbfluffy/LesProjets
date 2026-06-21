@@ -621,8 +621,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   lines.push('')
                 }
                 lines.push(`Total: ${fmtAmount(dispTotal, dispCurrency)}`)
-                await shareToLine(lines.join('
-'))
+                await shareToLine(lines.join('\n'))
               } catch { showToast(t.imageFailed ?? 'Failed') } finally { setCapturing(false) }
             }}
           >
