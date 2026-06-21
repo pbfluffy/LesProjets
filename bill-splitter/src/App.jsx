@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { HistoryIcon, HomeIcon, MoonIcon, SunIcon } from './components/icons'
-import { auth, db, doc, setDoc, GoogleAuthProvider, signInWithPopup, signOut } from './firebase.js'
+import { auth, db, doc, setDoc, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from './firebase.js'
 import BillSplitter from './components/BillSplitter'
 import SushiroCalculator from './components/SushiroCalculator'
 import TripsTab from './components/TripsTab'
@@ -8,6 +8,11 @@ import TripsTab from './components/TripsTab'
 // #128 — Trip mode. Flip to true when UI is ready to ship.
 // LIFF — init once on mount; silent no-op in browser
 const _liffInit = initLiff()
+
+// Handle Google redirect result (for Line in-app browser sign-in)
+getRedirectResult(auth).catch((e) => {
+  console.warn('[acct] redirect result error:', e)
+})
 const TRIPS_ENABLED = true
 import BillHistory from './components/BillHistory'
 import { LangProvider, useLang } from './LangContext'
@@ -16,7 +21,7 @@ import { useBillHistory } from './hooks/useBillHistory'
 import { useCloudSync } from './hooks/useCloudSync'
 import { useSavedPayees } from './hooks/useSavedPayees'
 import styles from './App.module.css'
-import { initLiff } from './liff.js'
+import { initLiff, isInLine } from './liff.js'
 
 // Read share data once at module load (before any component renders)
 const initialShare = readShareFromHash()
@@ -174,6 +179,12 @@ function AppInner() {
     if (signingIn) return
     setSigningIn(true)
     try {
+      if (isInLine()) {
+        // Line in-app browser blocks popup — use redirect instead
+        await signInWithRedirect(auth, new GoogleAuthProvider())
+        // page will reload; setSigningIn(false) won't run here
+        return
+      }
       await signInWithPopup(auth, new GoogleAuthProvider())
       setPopoverOpen(false)
     } catch (e) {
