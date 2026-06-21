@@ -16,7 +16,7 @@ import { compressImage, scanReceipt, localizeError, getScanCount, bumpScanCount,
 import { ShareIcon } from './icons'
 import { buildShareUrl, createShortLink, shareLink } from '../share'
 import { normaliseCurrency } from '../currencies'
-import { shareToLine } from '../liff.js'
+import { shareToLine, isInLine } from '../liff.js'
 
 function fmtDate(ts) {
   if (!ts) return ''
@@ -561,29 +561,15 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
             {shareStatus === 'creating' ? (t.shareCreating ?? 'Creating…') : <><ShareIcon width={14} height={14} /> {t.shareLink ?? 'Share link ↗'}</>}
           </button>
 
-          {/* 2. Line — green, captures image → Web Share → fallback text */}
+          {/* 2. Line — inside Line app: skip image, go straight to shareTargetPicker with text */}
           <button
             className={styles.shareBtn}
             style={{ background: '#06C755', color: 'white' }}
             disabled={capturing}
             onClick={async () => {
-              if (!captureRef.current || capturing) return
               setCapturing(true)
               try {
-                const html2canvas = (await import('html2canvas')).default
-                const el = captureRef.current
-                const prevStyle = el.getAttribute('style') || ''
-                el.setAttribute('style', (prevStyle + ';background:#ffffff;color:#1a1a1a;--color-surface:#ffffff;--color-surface-alt:#f5f5f4;--color-text:#1a1a1a;--color-text-muted:#6b7280;--color-text-faint:#9ca3af;--color-border:rgba(0,0,0,0.08);--color-border-strong:rgba(0,0,0,0.15);--color-accent:#1a1a1a;--color-accent-text:#ffffff;').replace(/^;/, ''))
-                const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2, useCORS: true, ignoreElements: el => el.hasAttribute && el.hasAttribute('data-snapshot-hide') })
-                el.setAttribute('style', prevStyle)
-                const blob = await new Promise(res => canvas.toBlob(res, 'image/png'))
-                if (!blob) { showToast(t.imageFailed ?? 'Failed'); return }
-                const safeName = (trip.name || 'trip').replace(/[^\w\u0E00-\u0E7F-]+/g, '_')
-                const file = new File([blob], `${safeName}.png`, { type: 'image/png' })
-                if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
-                  try { await navigator.share({ files: [file], title: trip.name }); return } catch (e) { if (e?.name === 'AbortError') return }
-                }
-                // Fallback: LINE text — use THB-converted values if rates loaded
+                // Build text summary (shared by both paths)
                 const dispCurrency = rates ? 'THB' : detailCurrency
                 const dispOwed = mixedConv?.owed ?? (rate && !isTHB
                   ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * rate)]))
@@ -621,7 +607,30 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   lines.push('')
                 }
                 lines.push(`Total: ${fmtAmount(dispTotal, dispCurrency)}`)
-                await shareToLine(lines.join('\n'))
+                const text = lines.join('\n')
+
+                // Inside Line: skip image capture, go straight to shareTargetPicker
+                if (isInLine()) {
+                  await shareToLine(text)
+                  return
+                }
+
+                // Browser: capture image → Web Share → text fallback
+                if (!captureRef.current) return
+                const html2canvas = (await import('html2canvas')).default
+                const el = captureRef.current
+                const prevStyle = el.getAttribute('style') || ''
+                el.setAttribute('style', (prevStyle + ';background:#ffffff;color:#1a1a1a;--color-surface:#ffffff;--color-surface-alt:#f5f5f4;--color-text:#1a1a1a;--color-text-muted:#6b7280;--color-text-faint:#9ca3af;--color-border:rgba(0,0,0,0.08);--color-border-strong:rgba(0,0,0,0.15);--color-accent:#1a1a1a;--color-accent-text:#ffffff;').replace(/^;/, ''))
+                const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2, useCORS: true, ignoreElements: el => el.hasAttribute && el.hasAttribute('data-snapshot-hide') })
+                el.setAttribute('style', prevStyle)
+                const blob = await new Promise(res => canvas.toBlob(res, 'image/png'))
+                if (!blob) { showToast(t.imageFailed ?? 'Failed'); return }
+                const safeName = (trip.name || 'trip').replace(/[^\w\u0E00-\u0E7F-]+/g, '_')
+                const file = new File([blob], `${safeName}.png`, { type: 'image/png' })
+                if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+                  try { await navigator.share({ files: [file], title: trip.name }); return } catch (e) { if (e?.name === 'AbortError') return }
+                }
+                await shareToLine(text)
               } catch { showToast(t.imageFailed ?? 'Failed') } finally { setCapturing(false) }
             }}
           >
