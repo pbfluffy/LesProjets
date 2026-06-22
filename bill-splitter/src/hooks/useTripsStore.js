@@ -12,6 +12,18 @@ import {
 } from '../firebase.js'
 
 const TRIPS_KEY = 'bill_trips_v1'
+
+// Derive members from a list of bill entries (union of all members/people across bills)
+function deriveMembersFromEntries(billIds, entries) {
+  const set = new Set()
+  billIds.forEach(id => {
+    const entry = entries.find(e => e.id === id)
+    if (!entry) return
+    ;(entry.state?.members ?? []).forEach(m => set.add(m))
+    ;(entry.state?.people ?? []).forEach(m => set.add(m))
+  })
+  return [...set]
+}
 const TRIPS_TS_KEY = 'bill_trips_ts_v1'
 const MAX_TRIPS = 50
 
@@ -225,12 +237,29 @@ export function useTripsStore() {
 
   const addBillToTrip = useCallback((tripId, billId) => {
     let _next
-    setTrips(prev => { _next = prev.map(t => t.id === tripId && !t.billIds.includes(billId) ? { ...t, billIds: [...t.billIds, billId] } : t); writeAll(_next); pushToCloud(_next); return _next })
+    setTrips(prev => {
+      _next = prev.map(t => {
+        if (t.id !== tripId || t.billIds.includes(billId)) return t
+        const newBillIds = [...t.billIds, billId]
+        const members = deriveMembersFromEntries(newBillIds, entries)
+        return { ...t, billIds: newBillIds, members }
+      })
+      writeAll(_next); pushToCloud(_next); return _next
+    })
   }, [])
 
   const removeBillFromTrip = useCallback((tripId, billId) => {
     let _next
-    setTrips(prev => { _next = prev.map(t => { if (t.id !== tripId) return t; const pb = { ...(t.paidBy||{}) }; delete pb[billId]; return { ...t, billIds: t.billIds.filter(b => b !== billId), paidBy: pb } }); writeAll(_next); pushToCloud(_next); return _next })
+    setTrips(prev => {
+      _next = prev.map(t => {
+        if (t.id !== tripId) return t
+        const pb = { ...(t.paidBy || {}) }; delete pb[billId]
+        const newBillIds = t.billIds.filter(b => b !== billId)
+        const members = deriveMembersFromEntries(newBillIds, entries)
+        return { ...t, billIds: newBillIds, paidBy: pb, members }
+      })
+      writeAll(_next); pushToCloud(_next); return _next
+    })
   }, [])
 
   const setBillPayer = useCallback((tripId, billId, payer) => {
