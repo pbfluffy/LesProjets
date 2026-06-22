@@ -187,6 +187,7 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
                 const savedPP = savedPayees.find(p => p.name === s.to && p.promptPay)?.promptPay
                 const promptPayId = tripPP || savedPP
                 if (!promptPayId) return null
+                if (displayCurrency !== 'THB') return null
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: 8, paddingTop: 8, borderTop: '0.5px solid var(--color-border)' }}>
                     <PromptPayQR promptPay={promptPayId} amount={Math.round(s.amount)} size={100} />
@@ -495,7 +496,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   <span style={{ fontSize: 13, minWidth: 80 }}>{m}</span>
                   <input
                     type="tel"
-                    placeholder="0812345678"
+                    placeholder="PromptPay"
                     value={trip.memberPromptPay?.[m] ?? ''}
                     onChange={e => {
                       const val = e.target.value.replace(/\D/g, '').slice(0, 13)
