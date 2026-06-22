@@ -851,7 +851,13 @@ function TripList({ trips, onSelect, onNew, onDelete }) {
 
 // ── Main export ─────────────────────────────────────────────────────────────
 export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSaveBill, user, sharedTrip, onExitShared, savedPayees = [] }) {
-  const { trips, createTrip, updateTrip, deleteTrip, addBillToTrip, removeBillFromTrip, setBillPayer, getTrip, tripSummary, syncTripMembers } = useTripsStore()
+  const { trips, createTrip, updateTrip, deleteTrip, addBillToTrip, removeBillFromTrip, setBillPayer, getTrip, tripSummary, syncTripMembers, recomputeAllTripMembers } = useTripsStore()
+
+  // Resync all trip members whenever entries change (covers edits from the main split tab)
+  useEffect(() => {
+    if (!entries?.length || !trips?.length) return
+    recomputeAllTripMembers(entries)
+  }, [entries])
   const [view, setView] = useState('list')   // 'list' | 'detail' | 'new' | 'edit'
   const [activeTrip, setActiveTrip] = useState(null)
   const [addingBill, setAddingBill] = useState(false)
