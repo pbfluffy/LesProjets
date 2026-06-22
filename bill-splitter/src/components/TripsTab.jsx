@@ -62,7 +62,7 @@ function TripForm({ initial, onSave, onCancel, title }) {
 }
 
 // ── Settlement + summary section ────────────────────────────────────────────
-function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, convOwed, convPaid, mixedConv, savedPayees = [] }) {
+function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, convOwed, convPaid, mixedConv, savedPayees = [], tripBills = [] }) {
   const { t } = useLang()
   if (!summary) return null
   if (!trip.billIds.length) return null
@@ -182,11 +182,23 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
               </div>
               <div className={styles.paymentAmount}>{fmtAmount(s.amount, displayCurrency)}</div>
               {(() => {
-                const payee = savedPayees.find(p => p.name === s.to && p.promptPay)
-                if (!payee) return null
+                // 1. Check saved payees first
+                let promptPayId = savedPayees.find(p => p.name === s.to && p.promptPay)?.promptPay
+                // 2. Fallback: scan bills in this trip for a matching member's promptPay
+                if (!promptPayId) {
+                  for (const entry of tripBills) {
+                    if (entry._missing || entry._sharedBill) continue
+                    const members = [...(entry.state?.members ?? []), ...(entry.state?.people ?? [])]
+                    if (members.includes(s.to) && entry.state?.promptPay) {
+                      promptPayId = entry.state.promptPay
+                      break
+                    }
+                  }
+                }
+                if (!promptPayId) return null
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: 8, paddingTop: 8, borderTop: '0.5px solid var(--color-border)' }}>
-                    <PromptPayQR promptPay={payee.promptPay} amount={Math.round(s.amount)} size={100} />
+                    <PromptPayQR promptPay={promptPayId} amount={Math.round(s.amount)} size={100} />
                     <img src="https://pumbafluffycorgi.com/promptpay-logo.png" alt="PromptPay" style={{ height: 20, objectFit: 'contain', opacity: 0.85 }} />
                   </div>
                 )
@@ -472,7 +484,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           ))
         })()}
       </div>
-      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} convOwed={convOwed} convPaid={convPaid} mixedConv={mixedConv} savedPayees={savedPayees} />
+      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} convOwed={convOwed} convPaid={convPaid} mixedConv={mixedConv} savedPayees={savedPayees} tripBills={tripBills} />
 
       {/* Buttons: Share link | Line | Save image — matches Bill Splitter ResultSection */}
       {summary && summary.hasData && (
