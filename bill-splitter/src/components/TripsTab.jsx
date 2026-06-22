@@ -191,7 +191,7 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: 8, paddingTop: 8, borderTop: '0.5px solid var(--color-border)' }}>
                     <PromptPayQR promptPay={promptPayId} amount={Math.round(s.amount)} size={100} />
-                    <img src="https://pumbafluffycorgi.com/promptpay-logo.png" alt="PromptPay" style={{ height: 20, objectFit: 'contain', opacity: 0.85 }} />
+                    <img src="https://pumbafluffycorgi.com/promptpay-logo.png" alt="PromptPay" style={{ height: 28, objectFit: 'contain', opacity: 0.9, marginTop: 4 }} />
                   </div>
                 )
               })()}
