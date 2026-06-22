@@ -270,7 +270,7 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip })
     }
     const entry = onSaveBill('split', state)
     if (entry) {
-      onAddBillToTrip(trip.id, entry.id)
+      onAddBillToTrip(trip.id, entry.id, entries)
       // members are auto-derived from bills in useTripsStore
     }
     setPreview(null)
@@ -875,7 +875,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
   const handleAddBill = () => setAddingBill(true)
 
   const handleRemoveBill = (tripId, billId) => {
-    removeBillFromTrip(tripId, billId)
+    removeBillFromTrip(tripId, billId, entries)
     setActiveTrip(prev => prev ? { ...prev, billIds: prev.billIds.filter(b => b !== billId) } : prev)
   }
 
@@ -900,7 +900,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
       const newBillIds = []
       selected.forEach(id => {
         if (!entries.find(e => e.id === id)) return
-        addBillToTrip(activeTrip.id, id) // members auto-derived in useTripsStore
+        addBillToTrip(activeTrip.id, id, entries) // members auto-derived in useTripsStore
         newBillIds.push(id)
       })
       setActiveTrip(prev => ({ ...prev, billIds: [...prev.billIds, ...newBillIds] }))
@@ -1031,7 +1031,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
         user={user}
         onUpdateTrip={(id, patch) => { updateTrip(id, patch); setActiveTrip(prev => prev?.id === id ? { ...prev, ...patch } : prev) }}
         onAddBillToTrip={(tripId, billId) => {
-          addBillToTrip(tripId, billId)
+          addBillToTrip(tripId, billId, entries)
           setActiveTrip(prev => prev ? { ...prev, billIds: [...prev.billIds, billId] } : prev)
         }}
         onRemoveBill={handleRemoveBill}
