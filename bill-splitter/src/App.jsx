@@ -177,14 +177,13 @@ function AppInner() {
   }, [popoverOpen])
   const handleSignIn = async () => {
     if (signingIn) return
+    if (isInLine()) {
+      // Google blocks OAuth in Line's in-app browser — open in external browser
+      window.open(window.location.href, '_blank')
+      return
+    }
     setSigningIn(true)
     try {
-      if (isInLine()) {
-        // Line in-app browser blocks popup — use redirect instead
-        await signInWithRedirect(auth, new GoogleAuthProvider())
-        // page will reload; setSigningIn(false) won't run here
-        return
-      }
       await signInWithPopup(auth, new GoogleAuthProvider())
       setPopoverOpen(false)
     } catch (e) {
@@ -340,7 +339,18 @@ function AppInner() {
                   ) : (
                     <>
                       <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>{t.acctSignIn}</div>
-                      <button onClick={handleSignIn} disabled={signingIn} style={{ width: '100%', padding: '8px 12px', border: 'none', background: 'var(--accent, #ff6b35)', color: 'white', borderRadius: 6, cursor: signingIn ? 'default' : 'pointer', font: 'inherit', fontWeight: 600 }}>{signingIn ? t.acctSigningIn : t.acctContinueWithGoogle}</button>
+                      {isInLine() ? (
+                        <>
+                          <div style={{ fontSize: 12, color: 'var(--color-text-muted, #666)', marginBottom: 8, lineHeight: 1.5 }}>
+                            {lang === 'th' ? 'กรุณาเปิดในเบราว์เซอร์เพื่อเข้าสู่ระบบ' : 'Please open in a browser to sign in'}
+                          </div>
+                          <button onClick={handleSignIn} style={{ width: '100%', padding: '8px 12px', border: 'none', background: '#06C755', color: 'white', borderRadius: 6, cursor: 'pointer', font: 'inherit', fontWeight: 600 }}>
+                            {lang === 'th' ? 'เปิดในเบราว์เซอร์ ↗' : 'Open in Browser ↗'}
+                          </button>
+                        </>
+                      ) : (
+                        <button onClick={handleSignIn} disabled={signingIn} style={{ width: '100%', padding: '8px 12px', border: 'none', background: 'var(--accent, #ff6b35)', color: 'white', borderRadius: 6, cursor: signingIn ? 'default' : 'pointer', font: 'inherit', fontWeight: 600 }}>{signingIn ? t.acctSigningIn : t.acctContinueWithGoogle}</button>
+                      )}
                     </>
                   )}
                 </div>
