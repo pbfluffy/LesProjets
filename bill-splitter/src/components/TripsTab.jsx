@@ -373,6 +373,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
   const captureRef = useRef(null)
   const [capturing, setCapturing] = useState(false)
   const [shareStatus, setShareStatus] = useState(null) // null | 'creating' | 'copied' | 'shared' | 'error'
+  const [showPPSettings, setShowPPSettings] = useState(false)
   const [toast, setToast] = useState(null)
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500) }
   const handleConvertToggle = async () => {
