@@ -1029,7 +1029,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
         onAddBill={handleAddBill}
         onSaveBill={(tab, snapshot) => {
           const saved = onSaveBill(tab, snapshot)
-          if (saved?.id) syncTripMembers(saved.id, entries)
+          if (saved?.id) syncTripMembers(saved.id, entries, { id: saved.id, state: snapshot })
           return saved
         }}
         user={user}
