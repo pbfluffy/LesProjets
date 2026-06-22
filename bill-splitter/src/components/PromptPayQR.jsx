@@ -24,6 +24,11 @@ export default function PromptPayQR({ promptPay, amount, size = 132 }) {
           level="M"
         />
       </div>
+      <img
+        src="https://pumbafluffycorgi.com/promptpay-logo.png"
+        alt="PromptPay"
+        style={{ height: 28, objectFit: 'contain', opacity: 0.9, marginTop: 6, display: 'block', margin: '6px auto 0' }}
+      />
     </div>
   )
 }
