@@ -235,20 +235,20 @@ export function useTripsStore() {
     setTrips(prev => { _next = prev.filter(t => t.id !== id); writeAll(_next); pushToCloud(_next, true); return _next })
   }, [])
 
-  const addBillToTrip = useCallback((tripId, billId) => {
+  const addBillToTrip = useCallback((tripId, billId, entries = []) => {
     let _next
     setTrips(prev => {
       _next = prev.map(t => {
         if (t.id !== tripId || t.billIds.includes(billId)) return t
         const newBillIds = [...t.billIds, billId]
         const members = deriveMembersFromEntries(newBillIds, entries)
-        return { ...t, billIds: newBillIds, members }
+        return { ...t, billIds: newBillIds, members: members.length > 0 ? members : t.members }
       })
       writeAll(_next); pushToCloud(_next); return _next
     })
   }, [])
 
-  const removeBillFromTrip = useCallback((tripId, billId) => {
+  const removeBillFromTrip = useCallback((tripId, billId, entries = []) => {
     let _next
     setTrips(prev => {
       _next = prev.map(t => {
