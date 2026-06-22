@@ -271,12 +271,7 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip })
     const entry = onSaveBill('split', state)
     if (entry) {
       onAddBillToTrip(trip.id, entry.id)
-      // Merge bill members into trip
-      const billMembers = [...new Set([...(entry.state?.members ?? []), ...(entry.state?.people ?? [])])]
-      if (billMembers.length > 0) {
-        const merged = [...new Set([...(trip.members ?? []), ...billMembers])]
-        if (merged.length !== (trip.members ?? []).length) onUpdateTrip(trip.id, { members: merged })
-      }
+      // members are auto-derived from bills in useTripsStore
     }
     setPreview(null)
   }
@@ -902,20 +897,13 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
 
     const handleConfirmAdd = () => {
       if (!selected.size) return
-      let mergedMembers = [...(activeTrip.members ?? [])]
       const newBillIds = []
       selected.forEach(id => {
-        const entry = entries.find(e => e.id === id)
-        if (!entry) return
-        addBillToTrip(activeTrip.id, id)
+        if (!entries.find(e => e.id === id)) return
+        addBillToTrip(activeTrip.id, id) // members auto-derived in useTripsStore
         newBillIds.push(id)
-        const billMembers = [...new Set([...(entry.state?.members ?? []), ...(entry.state?.people ?? [])])]
-        mergedMembers = [...new Set([...mergedMembers, ...billMembers])]
       })
-      if (mergedMembers.length !== (activeTrip.members ?? []).length) {
-        updateTrip(activeTrip.id, { members: mergedMembers })
-      }
-      setActiveTrip(prev => ({ ...prev, billIds: [...prev.billIds, ...newBillIds], members: mergedMembers }))
+      setActiveTrip(prev => ({ ...prev, billIds: [...prev.billIds, ...newBillIds] }))
       setAddingBill(false)
     }
 
