@@ -136,7 +136,7 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
             </div>
           )
         : hasOwedData
-          ? trip.members.map(m => (
+          ? trip.members.filter(m => (summary.owed[m] ?? 0) > 0 || (summary.paid?.[m] ?? 0) > 0).map(m => (
               <div key={m} className={styles.summaryRow}>
                 <span className={styles.summaryName}><Avatar name={m} size={20} />{m}</span>
                 <span className={styles.summaryAmt}>
