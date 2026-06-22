@@ -268,14 +268,19 @@ export function useTripsStore() {
   }, [])
 
   // Call after a bill is saved/updated to recompute members for all trips containing that bill
-  const syncTripMembers = useCallback((billId, entries = []) => {
+  // Pass updatedEntry = { id, state } so we can use fresh member data without waiting for entries re-render
+  const syncTripMembers = useCallback((billId, entries = [], updatedEntry = null) => {
     let _next
     setTrips(prev => {
       const needsUpdate = prev.some(t => t.billIds.includes(billId))
       if (!needsUpdate) return prev
+      // Merge updatedEntry into entries for fresh data
+      const freshEntries = updatedEntry
+        ? entries.map(e => e.id === updatedEntry.id ? { ...e, state: updatedEntry.state } : e)
+        : entries
       _next = prev.map(t => {
         if (!t.billIds.includes(billId)) return t
-        const members = deriveMembersFromEntries(t.billIds, entries)
+        const members = deriveMembersFromEntries(t.billIds, freshEntries)
         return members.length > 0 ? { ...t, members } : t
       })
       writeAll(_next); pushToCloud(_next); return _next
