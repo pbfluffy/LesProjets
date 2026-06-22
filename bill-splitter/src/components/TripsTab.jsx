@@ -62,7 +62,7 @@ function TripForm({ initial, onSave, onCancel, title }) {
 }
 
 // ── Settlement + summary section ────────────────────────────────────────────
-function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, convOwed, convPaid, mixedConv, savedPayees = [], tripBills = [] }) {
+function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, convOwed, convPaid, mixedConv, savedPayees = [] }) {
   const { t } = useLang()
   if (!summary) return null
   if (!trip.billIds.length) return null
@@ -182,19 +182,10 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
               </div>
               <div className={styles.paymentAmount}>{fmtAmount(s.amount, displayCurrency)}</div>
               {(() => {
-                // 1. Check saved payees first
-                let promptPayId = savedPayees.find(p => p.name === s.to && p.promptPay)?.promptPay
-                // 2. Fallback: scan bills in this trip for a matching member's promptPay
-                if (!promptPayId) {
-                  for (const entry of tripBills) {
-                    if (entry._missing || entry._sharedBill) continue
-                    const members = [...(entry.state?.members ?? []), ...(entry.state?.people ?? [])]
-                    if (members.includes(s.to) && entry.state?.promptPay) {
-                      promptPayId = entry.state.promptPay
-                      break
-                    }
-                  }
-                }
+                // Trip-level member promptPay map (trip.memberPromptPay) takes priority
+                const tripPP = trip.memberPromptPay?.[s.to]
+                const savedPP = savedPayees.find(p => p.name === s.to && p.promptPay)?.promptPay
+                const promptPayId = tripPP || savedPP
                 if (!promptPayId) return null
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: 8, paddingTop: 8, borderTop: '0.5px solid var(--color-border)' }}>
@@ -352,7 +343,7 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip })
 
 // ── Trip detail view ────────────────────────────────────────────────────────
 function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onDeleteTrip, onSetPayer, onSaveBill, onAddBillToTrip, user, sharedSnapshot, onUpdateTrip, savedPayees = [] }) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const tripBills = trip.billIds.map(id => entries.find(e => e.id === id) ?? { id, _missing: true })
   const paidBy = trip.paidBy || {}
 
@@ -484,7 +475,43 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           ))
         })()}
       </div>
-      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} convOwed={convOwed} convPaid={convPaid} mixedConv={mixedConv} savedPayees={savedPayees} tripBills={tripBills} />
+
+      {/* PromptPay per-member settings — data-snapshot-hide so it doesn't appear in share image */}
+      {trip.members.length > 0 && (
+        <div data-snapshot-hide style={{ marginBottom: 12 }}>
+          <button
+            onClick={() => setShowPPSettings(v => !v)}
+            style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--color-text-muted)', cursor: 'pointer', padding: '2px 0', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            <img src="https://pumbafluffycorgi.com/promptpay-logo.png" alt="PromptPay" style={{ height: 14, objectFit: 'contain', opacity: 0.7 }} />
+            {showPPSettings ? '▲' : '▼'} {lang === 'th' ? 'ตั้งค่า PromptPay สมาชิก' : 'Member PromptPay'}
+          </button>
+          {showPPSettings && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {trip.members.map(m => (
+                <div key={m} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Avatar name={m} size={20} />
+                  <span style={{ fontSize: 13, minWidth: 80 }}>{m}</span>
+                  <input
+                    type="tel"
+                    placeholder="0812345678"
+                    value={trip.memberPromptPay?.[m] ?? ''}
+                    onChange={e => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 13)
+                      onUpdateTrip(trip.id, {
+                        memberPromptPay: { ...(trip.memberPromptPay ?? {}), [m]: val }
+                      })
+                    }}
+                    style={{ flex: 1, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--color-border)', fontSize: 13, fontFamily: 'var(--font-body)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} convOwed={convOwed} convPaid={convPaid} mixedConv={mixedConv} savedPayees={savedPayees} />
 
       {/* Buttons: Share link | Line | Save image — matches Bill Splitter ResultSection */}
       {summary && summary.hasData && (
