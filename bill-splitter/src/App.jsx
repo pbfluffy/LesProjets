@@ -430,6 +430,7 @@ function AppInner() {
             user={user}
             sharedTrip={shared?.t === 'trips' ? shared.s : null}
             onExitShared={() => { setShared(null); clearShareHash() }}
+            savedPayees={savedPayees.payees}
           />
         )}
       </main>
