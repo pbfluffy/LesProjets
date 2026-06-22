@@ -287,6 +287,25 @@ export function useTripsStore() {
     })
   }, [])
 
+  // Recompute members for ALL trips from current entries — call when entries change
+  const recomputeAllTripMembers = useCallback((entries = []) => {
+    let changed = false
+    let _next
+    setTrips(prev => {
+      _next = prev.map(t => {
+        if (!t.billIds?.length) return t
+        const members = deriveMembersFromEntries(t.billIds, entries)
+        if (members.length === 0) return t
+        const same = members.length === t.members?.length && members.every((m, i) => m === t.members?.[i])
+        if (same) return t
+        changed = true
+        return { ...t, members }
+      })
+      if (!changed) return prev
+      writeAll(_next); pushToCloud(_next); return _next
+    })
+  }, [])
+
   const reorderBills = useCallback((tripId, fromIdx, toIdx) => {
     let _next
     setTrips(prev => { _next = prev.map(t => { if (t.id !== tripId) return t; const ids = [...t.billIds]; const [m] = ids.splice(fromIdx,1); ids.splice(toIdx,0,m); return { ...t, billIds: ids } }); writeAll(_next); pushToCloud(_next); return _next })
@@ -376,6 +395,7 @@ export function useTripsStore() {
     deleteTrip,
     addBillToTrip,
     syncTripMembers,
+    recomputeAllTripMembers,
     removeBillFromTrip,
     setBillPayer,
     reorderBills,
