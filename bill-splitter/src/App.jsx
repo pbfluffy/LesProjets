@@ -179,7 +179,8 @@ function AppInner() {
     if (signingIn) return
     if (isInLine()) {
       // Google blocks OAuth in Line's in-app browser — open in external browser
-      window.open(window.location.href, '_blank')
+      // liff.openWindow with external:true forces Safari/Chrome instead of Line in-app browser
+      window.liff.openWindow({ url: window.location.href, external: true })
       return
     }
     setSigningIn(true)
