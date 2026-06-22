@@ -851,7 +851,7 @@ function TripList({ trips, onSelect, onNew, onDelete }) {
 
 // ── Main export ─────────────────────────────────────────────────────────────
 export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSaveBill, user, sharedTrip, onExitShared, savedPayees = [] }) {
-  const { trips, createTrip, updateTrip, deleteTrip, addBillToTrip, removeBillFromTrip, setBillPayer, getTrip, tripSummary } = useTripsStore()
+  const { trips, createTrip, updateTrip, deleteTrip, addBillToTrip, removeBillFromTrip, setBillPayer, getTrip, tripSummary, syncTripMembers } = useTripsStore()
   const [view, setView] = useState('list')   // 'list' | 'detail' | 'new' | 'edit'
   const [activeTrip, setActiveTrip] = useState(null)
   const [addingBill, setAddingBill] = useState(false)
@@ -1027,7 +1027,11 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
         tripSummary={tripSummary}
         onBack={handleBack}
         onAddBill={handleAddBill}
-        onSaveBill={onSaveBill}
+        onSaveBill={(tab, snapshot) => {
+          const saved = onSaveBill(tab, snapshot)
+          if (saved?.id) syncTripMembers(saved.id, entries)
+          return saved
+        }}
         user={user}
         onUpdateTrip={(id, patch) => { updateTrip(id, patch); setActiveTrip(prev => prev?.id === id ? { ...prev, ...patch } : prev) }}
         onAddBillToTrip={(tripId, billId) => {
