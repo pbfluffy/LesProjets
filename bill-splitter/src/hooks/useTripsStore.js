@@ -267,6 +267,21 @@ export function useTripsStore() {
     setTrips(prev => { _next = prev.map(t => t.id !== tripId ? t : { ...t, paidBy: { ...(t.paidBy||{}), [billId]: payer } }); writeAll(_next); pushToCloud(_next); return _next })
   }, [])
 
+  // Call after a bill is saved/updated to recompute members for all trips containing that bill
+  const syncTripMembers = useCallback((billId, entries = []) => {
+    let _next
+    setTrips(prev => {
+      const needsUpdate = prev.some(t => t.billIds.includes(billId))
+      if (!needsUpdate) return prev
+      _next = prev.map(t => {
+        if (!t.billIds.includes(billId)) return t
+        const members = deriveMembersFromEntries(t.billIds, entries)
+        return members.length > 0 ? { ...t, members } : t
+      })
+      writeAll(_next); pushToCloud(_next); return _next
+    })
+  }, [])
+
   const reorderBills = useCallback((tripId, fromIdx, toIdx) => {
     let _next
     setTrips(prev => { _next = prev.map(t => { if (t.id !== tripId) return t; const ids = [...t.billIds]; const [m] = ids.splice(fromIdx,1); ids.splice(toIdx,0,m); return { ...t, billIds: ids } }); writeAll(_next); pushToCloud(_next); return _next })
@@ -355,6 +370,7 @@ export function useTripsStore() {
     updateTrip,
     deleteTrip,
     addBillToTrip,
+    syncTripMembers,
     removeBillFromTrip,
     setBillPayer,
     reorderBills,
