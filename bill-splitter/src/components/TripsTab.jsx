@@ -17,6 +17,7 @@ import { ShareIcon } from './icons'
 import { buildShareUrl, createShortLink, shareLink } from '../share'
 import { normaliseCurrency } from '../currencies'
 import { shareToLine, isInLine } from '../liff.js'
+import PromptPayQR from './PromptPayQR'
 
 function fmtDate(ts) {
   if (!ts) return ''
@@ -61,7 +62,7 @@ function TripForm({ initial, onSave, onCancel, title }) {
 }
 
 // ── Settlement + summary section ────────────────────────────────────────────
-function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, convOwed, convPaid, mixedConv }) {
+function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, convOwed, convPaid, mixedConv, savedPayees = [] }) {
   const { t } = useLang()
   if (!summary) return null
   if (!trip.billIds.length) return null
@@ -180,6 +181,16 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
                 </div>
               </div>
               <div className={styles.paymentAmount}>{fmtAmount(s.amount, displayCurrency)}</div>
+              {(() => {
+                const payee = savedPayees.find(p => p.name === s.to && p.promptPay)
+                if (!payee) return null
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: 8, paddingTop: 8, borderTop: '0.5px solid var(--color-border)' }}>
+                    <PromptPayQR promptPay={payee.promptPay} amount={Math.round(s.amount)} size={100} />
+                    <img src="https://pumbafluffycorgi.com/promptpay-logo.png" alt="PromptPay" style={{ height: 20, objectFit: 'contain', opacity: 0.85 }} />
+                  </div>
+                )
+              })()}
             </div>
           ))}
         </>
@@ -328,7 +339,7 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip })
 }
 
 // ── Trip detail view ────────────────────────────────────────────────────────
-function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onDeleteTrip, onSetPayer, onSaveBill, onAddBillToTrip, user, sharedSnapshot, onUpdateTrip }) {
+function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBill, onLoadBill, onEditTrip, onDeleteTrip, onSetPayer, onSaveBill, onAddBillToTrip, user, sharedSnapshot, onUpdateTrip, savedPayees = [] }) {
   const { t } = useLang()
   const tripBills = trip.billIds.map(id => entries.find(e => e.id === id) ?? { id, _missing: true })
   const paidBy = trip.paidBy || {}
@@ -461,7 +472,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           ))
         })()}
       </div>
-      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} convOwed={convOwed} convPaid={convPaid} mixedConv={mixedConv} />
+      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} convOwed={convOwed} convPaid={convPaid} mixedConv={mixedConv} savedPayees={savedPayees} />
 
       {/* Buttons: Share link | Line | Save image — matches Bill Splitter ResultSection */}
       {summary && summary.hasData && (
@@ -803,7 +814,7 @@ function TripList({ trips, onSelect, onNew, onDelete }) {
 }
 
 // ── Main export ─────────────────────────────────────────────────────────────
-export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSaveBill, user, sharedTrip, onExitShared }) {
+export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSaveBill, user, sharedTrip, onExitShared, savedPayees = [] }) {
   const { trips, createTrip, updateTrip, deleteTrip, addBillToTrip, removeBillFromTrip, setBillPayer, getTrip, tripSummary } = useTripsStore()
   const [view, setView] = useState('list')   // 'list' | 'detail' | 'new' | 'edit'
   const [activeTrip, setActiveTrip] = useState(null)
@@ -999,6 +1010,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
         onEditTrip={() => setView('edit')}
         onDeleteTrip={(id) => { deleteTrip(id); handleBack() }}
         onSetPayer={handleSetPayer}
+        savedPayees={savedPayees}
       />
     )
   }
