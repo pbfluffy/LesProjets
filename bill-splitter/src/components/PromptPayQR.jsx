@@ -14,11 +14,11 @@ export default function PromptPayQR({ promptPay, amount, size = 132 }) {
   const payload = buildPromptPayPayload(promptPay, amount)
   if (!payload) return null
   return (
-    <div className={styles.qrWrap}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0 4px' }}>
       <img
         src="https://pumbafluffycorgi.com/promptpay-logo.png"
         alt="PromptPay"
-        style={{ height: 28, objectFit: 'contain', opacity: 0.9, display: 'block', margin: '0 auto 6px' }}
+        style={{ height: 28, objectFit: 'contain', opacity: 0.9, marginBottom: 8 }}
       />
       <div className={styles.qrBox} style={{ width: size + 16, height: size + 16 }}>
         <QRCode
