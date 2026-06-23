@@ -264,13 +264,13 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
         <h2 className={styles.title}>{t.result}</h2>
         {hasData && (
           <div className={styles.shareBtnGroup} data-snapshot-hide>
+            {onSave && (
+              <button className={styles.shareBtn} onClick={handleSave}>{t.saveBill}</button>
+            )}
             <div style={{ position: 'relative' }} ref={moreRef}>
               <button className={styles.shareBtn} onClick={() => setMoreOpen(o => !o)} aria-haspopup="true" aria-expanded={moreOpen}>{t.more} ▾</button>
               {moreOpen && (
                 <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 10, background: 'var(--color-surface, #fff)', border: '1px solid var(--color-border, #ddd)', borderRadius: 8, padding: 4, minWidth: 160, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {onSave && (
-                    <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleSave(); setMoreOpen(false) }}>{t.saveBill}</button>
-                  )}
                   <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleCopyText(); setMoreOpen(false) }}><CopyIcon width={15} height={15} /> {t.copy}</button>
                   <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleSaveImage(); setMoreOpen(false) }} disabled={capturing} title={t.saveImage}>{t.saveImage}</button>
                 </div>
