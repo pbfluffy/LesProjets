@@ -15,6 +15,11 @@ export default function PromptPayQR({ promptPay, amount, size = 132 }) {
   if (!payload) return null
   return (
     <div className={styles.qrWrap}>
+      <img
+        src="https://pumbafluffycorgi.com/promptpay-logo.png"
+        alt="PromptPay"
+        style={{ height: 28, objectFit: 'contain', opacity: 0.9, display: 'block', margin: '0 auto 6px' }}
+      />
       <div className={styles.qrBox} style={{ width: size + 16, height: size + 16 }}>
         <QRCode
           value={payload}
@@ -24,11 +29,6 @@ export default function PromptPayQR({ promptPay, amount, size = 132 }) {
           level="M"
         />
       </div>
-      <img
-        src="https://pumbafluffycorgi.com/promptpay-logo.png"
-        alt="PromptPay"
-        style={{ height: 28, objectFit: 'contain', opacity: 0.9, marginTop: 6, display: 'block', margin: '6px auto 0' }}
-      />
     </div>
   )
 }
