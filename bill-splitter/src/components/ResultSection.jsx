@@ -11,8 +11,8 @@ import styles from './ResultSection.module.css'
 
 function fmt(n) { return n.toFixed(2) }
 
-export default function ResultSection({ result, members, foods = [], promptPay, bankInfo, notes, billName, snapshot, tab, onSave, initialPaid, billOwner, onBillOwnerChange, roundTotalEnabled, onRoundTotalChange, readOnly, currency = 'THB', currencySymbol = '฿' }) {
-  const { t } = useLang()
+export default function ResultSection({ result, members, foods = [], promptPay, bankInfo, notes, billName, snapshot, tab, onSave, onNewBill, initialPaid, billOwner, onBillOwnerChange, roundTotalEnabled, onRoundTotalChange, readOnly, currency = 'THB', currencySymbol = '฿' }) {
+  const { t, lang } = useLang()
   const [toast, setToast] = useState('')
   const [showQR, setShowQR] = useState(false)
   const [capturing, setCapturing] = useState(false)
@@ -264,14 +264,28 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
         <h2 className={styles.title}>{t.result}</h2>
         {hasData && (
           <div data-snapshot-hide>
-            {onSave && (
-              <button
-                onClick={handleSave}
-                style={{ display: 'block', width: '100%', padding: '10px', marginBottom: 8, border: 'none', background: 'var(--color-surface-alt)', color: 'var(--color-text)', borderRadius: 8, cursor: 'pointer', font: 'inherit', fontWeight: 600, fontSize: 14, textAlign: 'center' }}
-              >
-                {t.saveBill}
-              </button>
+            {/* Primary action row: Save + New Bill */}
+            {(onSave || onNewBill) && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                {onSave && (
+                  <button
+                    onClick={handleSave}
+                    style={{ flex: 1, padding: '9px 12px', border: 'none', background: 'var(--color-accent)', color: 'var(--color-accent-text)', borderRadius: 8, cursor: 'pointer', font: 'inherit', fontWeight: 600, fontSize: 13 }}
+                  >
+                    {t.saveBill}
+                  </button>
+                )}
+                {onNewBill && (
+                  <button
+                    onClick={onNewBill}
+                    style={{ flex: 1, padding: '9px 12px', border: '1.5px solid var(--color-border-strong)', background: 'transparent', color: 'var(--color-text)', borderRadius: 8, cursor: 'pointer', font: 'inherit', fontWeight: 600, fontSize: 13 }}
+                  >
+                    + {lang === 'th' ? 'บิลใหม่' : 'New Bill'}
+                  </button>
+                )}
+              </div>
             )}
+            {/* Secondary action row: More · Share link · Line */}
             <div className={styles.shareBtnGroup}>
               <div style={{ position: 'relative' }} ref={moreRef}>
                 <button className={styles.shareBtn} onClick={() => setMoreOpen(o => !o)} aria-haspopup="true" aria-expanded={moreOpen}>{t.more} ▾</button>
