@@ -403,6 +403,7 @@ function AppInner() {
             sharedState={splitInitial}
             readOnly={!!shared}
             onSaveBill={handleSaveBill}
+            onNewBill={() => { setLoadEpoch(e => e + 1) }}
             savedPayees={savedPayees.payees}
             onSavePayee={savedPayees.addPayee}
             onRemovePayee={savedPayees.removePayee}
