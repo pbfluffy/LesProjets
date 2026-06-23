@@ -270,7 +270,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
                 {onSave && (
                   <button
                     onClick={handleSave}
-                    style={{ flex: 1, padding: '9px 12px', border: 'none', background: 'var(--color-accent)', color: 'var(--color-accent-text)', borderRadius: 8, cursor: 'pointer', font: 'inherit', fontWeight: 600, fontSize: 13 }}
+                    style={{ flex: 1, padding: '9px 12px', border: 'none', background: 'var(--accent, #4f46e5)', color: 'white', borderRadius: 8, cursor: 'pointer', font: 'inherit', fontWeight: 600, fontSize: 13 }}
                   >
                     {t.saveBill}
                   </button>
@@ -278,7 +278,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
                 {onNewBill && (
                   <button
                     onClick={onNewBill}
-                    style={{ flex: 1, padding: '9px 12px', border: '1.5px solid var(--color-border-strong)', background: 'transparent', color: 'var(--color-text)', borderRadius: 8, cursor: 'pointer', font: 'inherit', fontWeight: 600, fontSize: 13 }}
+                    style={{ flex: 1, padding: '9px 12px', border: '1px solid var(--color-border-strong)', background: 'var(--color-surface-alt)', color: 'var(--color-text-muted)', borderRadius: 8, cursor: 'pointer', font: 'inherit', fontWeight: 500, fontSize: 13 }}
                   >
                     + {lang === 'th' ? 'บิลใหม่' : 'New Bill'}
                   </button>
