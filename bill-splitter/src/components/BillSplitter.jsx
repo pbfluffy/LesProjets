@@ -11,7 +11,7 @@ import appStyles from '../App.module.css'
 
 const fieldsetReset = { border: 0, padding: 0, margin: 0, minInlineSize: 'auto' }
 
-export default function BillSplitter({ sharedState, readOnly, onSaveBill, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled }) {
+export default function BillSplitter({ sharedState, readOnly, onSaveBill, onNewBill, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled }) {
   const { t } = useLang()
   const store = useBillStore(sharedState)
   const result = store.calculate()
@@ -48,7 +48,7 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill, savedP
         <FoodList foods={store.foods} members={store.members} onAdd={store.addFood} onUpdate={store.updateFood} onToggleMember={store.toggleFoodMember} onRemove={store.removeFood} onDuplicate={store.duplicateFood} onRestore={store.restoreFood} onSelectAll={store.setAllMembers} currencySymbol={currencySymbol} />
         <ExtrasSection vatEnabled={store.vatEnabled} onVatChange={store.setVatEnabled} serviceChargeEnabled={store.serviceChargeEnabled} onServiceChargeChange={store.setServiceChargeEnabled} serviceChargeRate={store.serviceChargeRate} onServiceChargeRateChange={store.setServiceChargeRate} promptPay={store.promptPay} onPromptPayChange={store.setPromptPay} bankInfo={store.bankInfo} onBankInfoChange={store.setBankInfo} notes={store.notes} onNotesChange={store.setNotes} savedPayees={savedPayees} onSavePayee={onSavePayee} onRemovePayee={onRemovePayee} payeesEnabled={payeesEnabled && !readOnly} />
       </fieldset>
-      <ResultSection result={result} members={store.members} foods={store.foods} promptPay={store.promptPay} bankInfo={store.bankInfo} notes={store.notes} billName={store.billName} snapshot={snapshot} tab="split" onSave={handleSave} initialPaid={sharedState?.paid} billOwner={store.billOwner} onBillOwnerChange={store.setBillOwner} roundTotalEnabled={store.roundTotalEnabled} onRoundTotalChange={store.setRoundTotalEnabled} readOnly={readOnly} currency={store.currency} currencySymbol={currencySymbol} />
+      <ResultSection result={result} members={store.members} foods={store.foods} promptPay={store.promptPay} bankInfo={store.bankInfo} notes={store.notes} billName={store.billName} snapshot={snapshot} tab="split" onSave={handleSave} onNewBill={!readOnly ? onNewBill : undefined} initialPaid={sharedState?.paid} billOwner={store.billOwner} onBillOwnerChange={store.setBillOwner} roundTotalEnabled={store.roundTotalEnabled} onRoundTotalChange={store.setRoundTotalEnabled} readOnly={readOnly} currency={store.currency} currencySymbol={currencySymbol} />
       <StickyBottomBar memberCount={store.members.length} grandTotal={result.grandTotal} rawSubtotal={result.rawSubtotal} currencySymbol={currencySymbol} />
     </div>
   )
