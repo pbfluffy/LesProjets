@@ -17,6 +17,7 @@ export default function ExtrasSection({
   // #96 saved payees
   const [managing, setManaging] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showBank, setShowBank] = useState(false)
   const [payeeName, setPayeeName] = useState('')
 
   const ppTrim = (promptPay || '').trim()
@@ -159,14 +160,23 @@ export default function ExtrasSection({
         )
       )}
       <div className={styles.divider} />
-      <label className={styles.fieldLabel}>{t.bankLabel}</label>
-      <textarea
-        className={styles.textarea}
-        rows={3}
-        placeholder={t.bankPlaceholder}
-        value={bankInfo}
-        onChange={e => onBankInfoChange(e.target.value)}
-      />
+      <button
+        type="button"
+        onClick={() => setShowBank(v => !v)}
+        style={{ background: 'none', border: 'none', fontSize: 13, color: 'var(--color-text-muted)', cursor: 'pointer', padding: '2px 0', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 4, userSelect: 'none' }}
+      >
+        {t.bankLabel} <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: showBank ? 'rotate(90deg)' : 'rotate(0deg)' }}>›</span>
+      </button>
+      {showBank && (
+        <textarea
+          className={styles.textarea}
+          rows={3}
+          placeholder={t.bankPlaceholder}
+          value={bankInfo}
+          onChange={e => onBankInfoChange(e.target.value)}
+          style={{ marginTop: 6 }}
+        />
+      )}
       <label className={styles.fieldLabel} style={{ marginTop: 10 }}>{t.notesLabel}</label>
       <textarea
         className={styles.textarea}
