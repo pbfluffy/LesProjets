@@ -287,22 +287,22 @@ export function useTripsStore() {
     })
   }, [])
 
-  // Recompute members for ALL trips from current entries — call when entries change
+  // Recompute members for ALL trips from current entries — only writes if something changed
   const recomputeAllTripMembers = useCallback((entries = []) => {
-    let changed = false
-    let _next
     setTrips(prev => {
-      _next = prev.map(t => {
+      let changed = false
+      const next = prev.map(t => {
         if (!t.billIds?.length) return t
         const members = deriveMembersFromEntries(t.billIds, entries)
         if (members.length === 0) return t
-        const same = members.length === t.members?.length && members.every((m, i) => m === t.members?.[i])
+        const same = members.length === (t.members?.length ?? 0) &&
+          members.every((m, i) => m === (t.members?.[i]))
         if (same) return t
         changed = true
         return { ...t, members }
       })
-      if (!changed) return prev
-      writeAll(_next); pushToCloud(_next); return _next
+      if (!changed) return prev // no re-render, no Firestore write
+      writeAll(next); pushToCloud(next); return next
     })
   }, [])
 
