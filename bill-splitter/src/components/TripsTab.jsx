@@ -188,10 +188,10 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
                 const promptPayId = tripPP || savedPP
                 if (!promptPayId) return null
                 if (displayCurrency !== 'THB') return null
+                if (!s.amount || s.amount < 1) return null
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: 8, paddingTop: 8, borderTop: '0.5px solid var(--color-border)' }}>
                     <PromptPayQR promptPay={promptPayId} amount={Math.round(s.amount)} size={100} />
-                    <img src="https://pumbafluffycorgi.com/promptpay-logo.png" alt="PromptPay" style={{ height: 28, objectFit: 'contain', opacity: 0.9, marginTop: 4 }} />
                   </div>
                 )
               })()}
@@ -474,14 +474,14 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
       </div>
 
       {/* PromptPay per-member settings — data-snapshot-hide so it doesn't appear in share image */}
-      {trip.members.length > 0 && (
+      {trip.members.length > 0 && !sharedSnapshot && (
         <div data-snapshot-hide style={{ marginBottom: 12 }}>
           <button
             onClick={() => setShowPPSettings(v => !v)}
-            style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--color-text-muted)', cursor: 'pointer', padding: '2px 0', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 4 }}
+            style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--color-text-muted)', cursor: 'pointer', padding: '2px 0', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 4, userSelect: 'none' }}
           >
             <img src="https://pumbafluffycorgi.com/promptpay-logo.png" alt="PromptPay" style={{ height: 14, objectFit: 'contain', opacity: 0.7 }} />
-            {showPPSettings ? '▲' : '▼'} {lang === 'th' ? 'ตั้งค่า PromptPay สมาชิก' : 'Member PromptPay'}
+            {lang === 'th' ? 'ตั้งค่า PromptPay สมาชิก' : 'Member PromptPay'} <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: showPPSettings ? 'rotate(90deg)' : 'rotate(0deg)' }}>›</span>
           </button>
           {showPPSettings && (
             <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -494,12 +494,12 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                     placeholder="PromptPay"
                     value={trip.memberPromptPay?.[m] ?? ''}
                     onChange={e => {
-                      const val = e.target.value.replace(/\D/g, '').slice(0, 13)
+                      const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 13)
                       onUpdateTrip(trip.id, {
                         memberPromptPay: { ...(trip.memberPromptPay ?? {}), [m]: val }
                       })
                     }}
-                    style={{ flex: 1, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--color-border)', fontSize: 13, fontFamily: 'var(--font-body)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
+                    style={{ flex: 1, padding: '4px 8px', borderRadius: 6, border: `1px solid ${(() => { const v = trip.memberPromptPay?.[m] ?? ''; return v.length > 0 && (v.length < 10 || v.length > 13) ? '#e53e3e' : 'var(--color-border)' })()}`, fontSize: 13, fontFamily: 'var(--font-body)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
                   />
                 </div>
               ))}
