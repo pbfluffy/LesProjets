@@ -5,6 +5,7 @@ import styles from './PhotoTab.module.css';
 const WORKER_URL = 'https://nutritions-photo.pbfluffygaming.workers.dev/';
 const MAX_DIM = 1568;
 const JPEG_QUALITY = 0.85;
+const THUMB_MAX = 200; // max px for custom-food thumbnail stored in localStorage
 
 const PROMPT = `You are a food identifier for a nutrition tracker used in Thailand. Identify the dish in the photo, estimate portion size, and estimate macros.
 
@@ -67,6 +68,32 @@ async function compressImage(file) {
       r.onerror = () => reject(new Error('Could not read image'));
       r.readAsDataURL(blob);
     });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+// Compress a File to a small square-ish JPEG thumbnail for localStorage storage.
+// Returns a data: URL string, or null on error.
+async function compressToThumbnail(file) {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error('load failed'));
+      i.src = objectUrl;
+    });
+    const scale = Math.min(1, THUMB_MAX / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL('image/jpeg', 0.7);
+  } catch {
+    return null;
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
@@ -235,12 +262,21 @@ export default function PhotoTab({ store }) {
     setLogged(true);
     setTimeout(() => setLogged(false), 2500);
   };
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!result) return;
     const name =
       lang === 'th'
         ? result.dishNameTh || result.dishNameEn || 'อาหารจากรูปภาพ'
         : result.dishNameEn || result.dishNameTh || 'Photo dish';
+    // Compress the original file to a small thumbnail for localStorage storage.
+    let image = null;
+    if (imageFile) {
+      try {
+        image = await compressToThumbnail(imageFile);
+      } catch {
+        // image stays null — food still saves without photo
+      }
+    }
     store.addCustomFood({
       name,
       kcal: Math.round(result.kcal || 0),
@@ -248,6 +284,7 @@ export default function PhotoTab({ store }) {
       fat: Math.round(result.fat || 0),
       carbs: Math.round(result.carbs || 0),
       note: t('photo.logNote'),
+      image,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
