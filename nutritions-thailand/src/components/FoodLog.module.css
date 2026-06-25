@@ -71,3 +71,25 @@
 .removeBtn:hover {
   opacity: 0.8;
 }
+
+.saveBtn {
+  padding: 3px 7px;
+  font-size: 13px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  line-height: 1;
+}
+
+.saveBtn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.saveBtnDone {
+  color: var(--green);
+  border-color: var(--green);
+}
