@@ -2,7 +2,33 @@ import { useRef, useState } from 'react';
 import { useLang } from '../LangContext.jsx';
 import styles from './CustomTab.module.css';
 
-const EMPTY_FORM = { name: '', kcal: '', protein: '', fat: '', carbs: '', note: '' };
+const EMPTY_FORM = { name: '', kcal: '', protein: '', fat: '', carbs: '', note: '', image: null };
+
+// Compress an image File to a square thumbnail (max 200px) as a base64 data URL.
+// Returns a Promise<string|null>. Never throws — returns null on any error.
+function compressToThumbnail(file) {
+  return new Promise((resolve) => {
+    const MAX = 200;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const side = Math.min(img.width, img.height, MAX);
+        const scale = side / Math.min(img.width, img.height);
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = () => resolve(null);
+      img.src = String(e.target.result);
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
 
 // Feature #59 — RFC 4180 CSV serialize/parse for customFoods.
 // Columns: name, kcal, protein, fat, carbs, note. `name` + `kcal` required;
@@ -110,8 +136,19 @@ export default function CustomTab({ store }) {
   const [csvMsg, setCsvMsg] = useState(null);
   const [csvErr, setCsvErr] = useState(false);
   const fileRef = useRef(null);
+  const photoRef = useRef(null);
 
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  // Image picker: compress on selection, store data URL in form state.
+  const onPhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const dataUrl = await compressToThumbnail(file);
+    setForm((f) => ({ ...f, image: dataUrl }));
+    // Reset so the same file can be re-selected after removal.
+    if (photoRef.current) photoRef.current.value = '';
+  };
 
   const submit = () => {
     if (!form.name || !form.kcal) return;
@@ -122,6 +159,7 @@ export default function CustomTab({ store }) {
       fat: Number(form.fat || 0),
       carbs: Number(form.carbs || 0),
       note: form.note || t('custom.defaultNote'),
+      image: form.image || null,
     });
     setForm(EMPTY_FORM);
   };
@@ -225,8 +263,40 @@ export default function CustomTab({ store }) {
             value={form.note}
             onChange={update('note')}
           />
-
         </div>
+
+        {/* Photo picker */}
+        <div className={styles.photoPicker}>
+          {form.image ? (
+            <div className={styles.photoPreviewWrap}>
+              <img src={form.image} alt="preview" className={styles.photoPreview} />
+              <button
+                className={styles.photoRemove}
+                onClick={() => setForm((f) => ({ ...f, image: null }))}
+                aria-label={t('custom.removePhoto')}
+                title={t('custom.removePhoto')}
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              className={styles.photoAddBtn}
+              onClick={() => photoRef.current?.click()}
+              type="button"
+            >
+              📷 {t('custom.photo')}
+            </button>
+          )}
+          <input
+            ref={photoRef}
+            type="file"
+            accept="image/*"
+            onChange={onPhotoChange}
+            style={{ display: 'none' }}
+          />
+        </div>
+
         <button className={styles.submit} onClick={submit}>
           {t('custom.submit')}
         </button>
@@ -237,7 +307,10 @@ export default function CustomTab({ store }) {
           <div className={styles.title}>{t('custom.list', { n: customFoods.length })}</div>
           {customFoods.map((item, i) => (
             <div className={styles.row} key={i}>
-              <div>
+              {item.image && (
+                <img src={item.image} alt={item.name} className={styles.rowThumb} />
+              )}
+              <div className={styles.rowInfo}>
                 <div className={styles.name}>{item.name}</div>
                 <div className={styles.macros}>
                   {item.kcal}kcal · P:{item.protein}g · F:{item.fat}g · C:{item.carbs}g
