@@ -49,6 +49,8 @@ const en = {
 
   'log.title': 'Food logged today',
   'log.empty': 'Nothing logged yet — pick from 🍱 Food',
+  'log.saveToCustom': 'Save to my foods',
+  'log.savedToCustom': 'Saved!',
 
   'food.search': '🔍 Search food…',
   'food.all': 'All',
@@ -251,6 +253,8 @@ const th = {
 
   'log.title': 'บันทึกอาหารวันนี้',
   'log.empty': 'ยังไม่มีอาหาร — เลือกจากแท็บ 🍱 อาหาร',
+  'log.saveToCustom': 'บันทึกลงอาหารของฉัน',
+  'log.savedToCustom': 'บันทึกแล้ว!',
 
   'food.search': '🔍 ค้นหาอาหาร...',
   'food.all': 'ทั้งหมด',
