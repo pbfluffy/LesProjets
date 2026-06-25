@@ -123,6 +123,8 @@ const en = {
   'custom.csvExportEmpty': 'No custom foods yet.',
   'custom.csvImportError': 'Import failed: {msg}',
   'custom.csvImportResult': 'Imported {n} new · {skip} skipped',
+  'custom.photo': 'Photo (optional)',
+  'custom.removePhoto': 'Remove photo',
 
   'data.title': 'Backup',
   'data.export': '⬇ Save backup',
@@ -323,6 +325,8 @@ const th = {
   'custom.csvExportEmpty': 'ยังไม่มีอาหารของฉัน',
   'custom.csvImportError': 'นำเข้าล้มเหลว: {msg}',
   'custom.csvImportResult': 'นำเข้า {n} รายการ · ข้าม {skip}',
+  'custom.photo': 'รูปภาพ (ไม่จำเป็น)',
+  'custom.removePhoto': 'ลบรูป',
 
   'data.title': 'สำรองข้อมูล',
   'data.export': '⬇ บันทึกสำรอง',
