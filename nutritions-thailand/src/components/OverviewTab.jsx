@@ -94,7 +94,23 @@ export default function OverviewTab({ store }) {
         proteinTarget={proteinTarget}
       />
       <WaterTracker value={water} onChange={store.setWater} />
-      <FoodLog log={log} onRemove={store.removeFromLog} />
+      <FoodLog
+        log={log}
+        onRemove={store.removeFromLog}
+        onSaveToCustom={(item) => {
+          const exists = (store.customFoods || []).some((f) => f.name === item.name);
+          if (exists) return false;
+          store.addCustomFood({
+            name: item.name,
+            kcal: item.kcal,
+            protein: item.protein,
+            fat: item.fat,
+            carbs: item.carbs,
+            note: item.note || '',
+            image: item.image || null,
+          });
+        }}
+      />
       <TrendChart weights={store.weights} days={store.days} calorieTarget={target} proteinTarget={proteinTarget} />
     </>
   );
