@@ -131,8 +131,9 @@ function parseCsv(text) {
 
 export default function CustomTab({ store }) {
   const { t } = useLang();
-  const { customFoods, addCustomFood, addCustomFoods, removeCustomFood, addToLog } = store;
+  const { customFoods, addCustomFood, addCustomFoods, removeCustomFood, updateCustomFood, addToLog } = store;
   const [form, setForm] = useState(EMPTY_FORM);
+  const [editIndex, setEditIndex] = useState(null);
   const [csvMsg, setCsvMsg] = useState(null);
   const [csvErr, setCsvErr] = useState(false);
   const fileRef = useRef(null);
@@ -148,6 +149,16 @@ export default function CustomTab({ store }) {
     setForm((f) => ({ ...f, image: dataUrl }));
     // Reset so the same file can be re-selected after removal.
     if (photoRef.current) photoRef.current.value = '';
+  };
+
+  // Photo picker for editing an existing food in the list.
+  const editPhotoRef = useRef(null);
+  const onEditPhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const dataUrl = await compressToThumbnail(file);
+    if (editIndex !== null) updateCustomFood(editIndex, { image: dataUrl });
+    if (editPhotoRef.current) editPhotoRef.current.value = '';
   };
 
   const submit = () => {
@@ -306,28 +317,70 @@ export default function CustomTab({ store }) {
         <div className={styles.card}>
           <div className={styles.title}>{t('custom.list', { n: customFoods.length })}</div>
           {customFoods.map((item, i) => (
-            <div className={styles.row} key={i}>
-              {item.image && (
-                <img src={item.image} alt={item.name} className={styles.rowThumb} />
-              )}
-              <div className={styles.rowInfo}>
-                <div className={styles.name}>{item.name}</div>
-                <div className={styles.macros}>
-                  {item.kcal}kcal · P:{item.protein}g · F:{item.fat}g · C:{item.carbs}g
+            <div key={i}>
+              <div className={styles.row}>
+                {item.image && (
+                  <img src={item.image} alt={item.name} className={styles.rowThumb} />
+                )}
+                <div className={styles.rowInfo}>
+                  <div className={styles.name}>{item.name}</div>
+                  <div className={styles.macros}>
+                    {item.kcal}kcal · P:{item.protein}g · F:{item.fat}g · C:{item.carbs}g
+                  </div>
+                </div>
+                <div className={styles.actions}>
+                  <button className={styles.logBtn} onClick={() => addToLog(item)}>
+                    {t('custom.log')}
+                  </button>
+                  <button
+                    className={styles.editBtn}
+                    onClick={() => setEditIndex(editIndex === i ? null : i)}
+                    aria-label="Edit"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    className={styles.removeBtn}
+                    onClick={() => { removeCustomFood(i); if (editIndex === i) setEditIndex(null); }}
+                    aria-label="Remove"
+                  >
+                    ✕
+                  </button>
                 </div>
               </div>
-              <div className={styles.actions}>
-                <button className={styles.logBtn} onClick={() => addToLog(item)}>
-                  {t('custom.log')}
-                </button>
-                <button
-                  className={styles.removeBtn}
-                  onClick={() => removeCustomFood(i)}
-                  aria-label="Remove"
-                >
-                  ✕
-                </button>
-              </div>
+
+              {editIndex === i && (
+                <div className={styles.editPanel}>
+                  {item.image ? (
+                    <div className={styles.photoPreviewWrap}>
+                      <img src={item.image} alt="preview" className={styles.photoPreview} />
+                      <button
+                        className={styles.photoRemove}
+                        onClick={() => updateCustomFood(i, { image: null })}
+                        aria-label={t('custom.removePhoto')}
+                        title={t('custom.removePhoto')}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className={styles.photoAddBtn}
+                      onClick={() => editPhotoRef.current?.click()}
+                      type="button"
+                    >
+                      📷 {t('custom.photo')}
+                    </button>
+                  )}
+                  <input
+                    ref={editPhotoRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={onEditPhotoChange}
+                    style={{ display: 'none' }}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>
