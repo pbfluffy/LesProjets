@@ -192,6 +192,27 @@
   opacity: 0.8;
 }
 
+.editBtn {
+  padding: 5px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: opacity 0.2s, border-color 0.2s;
+}
+
+.editBtn:hover {
+  border-color: var(--accent);
+}
+
+/* Inline edit panel that appears below a row */
+.editPanel {
+  padding: 10px 0 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
 /* Feature #59 — CSV import/export */
 .csvActions {
   display: flex;
