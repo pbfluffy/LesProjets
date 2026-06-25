@@ -189,6 +189,13 @@ export function useNutritionStore() {
     setState((s) => ({ ...s, customFoods: s.customFoods.filter((_, i) => i !== index) }));
   }, []);
 
+  const updateCustomFood = useCallback((index, patch) => {
+    setState((s) => ({
+      ...s,
+      customFoods: s.customFoods.map((f, i) => (i === index ? { ...f, ...patch } : f)),
+    }));
+  }, []);
+
   // Feature #90 — pin/unpin a food to favorites. Stored in the shared store so
   // it persists locally and rides the existing cloud sync; no new Firestore
   // path or rule needed. Keyed by `name` because built-in foods have no stable
@@ -293,6 +300,7 @@ export function useNutritionStore() {
     addCustomFood,
     addCustomFoods,
     removeCustomFood,
+    updateCustomFood,
     toggleFavorite, // Feature #90
     shiftDate,
     goToday,
