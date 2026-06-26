@@ -367,7 +367,7 @@
   "achievements": {
     "kills": {
       "name": "Slayer",
-      "icon": "\ud83e\uddb4",
+      "icon": "🦴",
       "kind": "dmg",
       "per": 1.5,
       "tiers": [
@@ -385,7 +385,7 @@
     },
     "bossKills": {
       "name": "Boss Hunter",
-      "icon": "\ud83d\udc79",
+      "icon": "👹",
       "kind": "dmg",
       "per": 2,
       "tiers": [
@@ -403,7 +403,7 @@
     },
     "eliteKills": {
       "name": "Champion",
-      "icon": "\u2b50",
+      "icon": "⭐",
       "kind": "dmg",
       "per": 1.5,
       "tiers": [
@@ -421,7 +421,7 @@
     },
     "wave": {
       "name": "Survivor",
-      "icon": "\ud83c\udf0a",
+      "icon": "🌊",
       "kind": "hp",
       "per": 2,
       "tiers": [
@@ -439,7 +439,7 @@
     },
     "combo": {
       "name": "Combo King",
-      "icon": "\ud83d\udd25",
+      "icon": "🔥",
       "kind": "pull",
       "per": 8,
       "tiers": [
@@ -457,7 +457,7 @@
     },
     "reborn": {
       "name": "Reborn",
-      "icon": "\ud83c\udf1f",
+      "icon": "🌟",
       "kind": "pull",
       "per": 10,
       "tiers": [
@@ -475,7 +475,7 @@
     },
     "outfits": {
       "name": "Collector",
-      "icon": "\ud83d\udc54",
+      "icon": "👔",
       "kind": "pull",
       "per": 9,
       "tiers": [
@@ -491,27 +491,9 @@
         14
       ]
     },
-    "veteran": {
-      "name": "Veteran",
-      "icon": "\ud83c\udfae",
-      "kind": "pull",
-      "per": 7,
-      "tiers": [
-        5,
-        15,
-        30,
-        50,
-        75,
-        110,
-        160,
-        230,
-        320,
-        450
-      ]
-    },
     "score": {
       "name": "Speed Demon",
-      "icon": "\u26a1",
+      "icon": "⚡",
       "kind": "speed",
       "per": 0.2,
       "tiers": [
@@ -525,6 +507,24 @@
         110000,
         180000,
         300000
+      ]
+    },
+    "dogMode": {
+      "name": "Dog Mode",
+      "icon": "🐾",
+      "kind": "dog",
+      "per": 20,
+      "tiers": [
+        5,
+        15,
+        30,
+        50,
+        75,
+        110,
+        160,
+        230,
+        320,
+        450
       ]
     }
   }
