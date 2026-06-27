@@ -14,6 +14,12 @@ Work in this order:
 2. If it is clearly NOT Thai, still identify it as the international or Western dish it actually is (e.g. a ham & cheese toastie, spaghetti carbonara, a croissant). Give its common English name and a Thai name (the usual Thai term, or a transliteration).
 3. Only treat the photo as having no food if it genuinely contains no edible food at all (a receipt, a person, an empty table, scenery). Any real dish — Thai or not — must be identified, never reported as "no food".
 
+Portion sizing rules — apply these strictly:
+- Default to a standard Thai street-food / restaurant portion: one rice plate ~200g cooked rice + topping, one bowl of noodles ~350ml, one stir-fry portion ~150g protein+veg. Do NOT scale up just because the container looks large in the photo.
+- Without a clear size reference object (coin, hand, standard plate) visible in the image, assume the SMALLER of two plausible portion sizes, not the larger.
+- When uncertain about oil or sauce quantity, assume a moderate home-cook amount, not a deep-fry or heavy-sauce default.
+- Report calories conservatively: if your estimate range is e.g. 400–600 kcal, return 400, not 500 or 600.
+
 Be honest about uncertainty — portion estimation from a photo alone typically has \u00b120-40% error, especially without a reference object for scale.
 
 Respond ONLY with valid JSON, no markdown fences, no preamble:
@@ -177,6 +183,7 @@ export default function PhotoTab({ store }) {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [portionSize, setPortionSize] = useState('M'); // S / M / L
   const fileRef = useRef(null);
   // BUG-04 — monotonically increasing request id. Each onIdentify captures the
   // current id; any setResult/setError after that checks the id is still
@@ -202,6 +209,7 @@ export default function PhotoTab({ store }) {
     setResult(null);
     setError(null);
     setLoading(false);
+    setPortionSize('M');
   }
 
   function onClear() {
@@ -211,6 +219,7 @@ export default function PhotoTab({ store }) {
     setResult(null);
     setError(null);
     setLoading(false);
+    setPortionSize('M');
     if (fileRef.current) fileRef.current.value = '';
   }
 
@@ -239,6 +248,16 @@ export default function PhotoTab({ store }) {
     }
   }
 
+  const PORTION_MULT = { S: 0.7, M: 1.0, L: 1.4 };
+  const mult = PORTION_MULT[portionSize] ?? 1.0;
+  const scaledResult = result ? {
+    ...result,
+    kcal:    Math.round((result.kcal    || 0) * mult),
+    protein: Math.round((result.protein || 0) * mult),
+    fat:     Math.round((result.fat     || 0) * mult),
+    carbs:   Math.round((result.carbs   || 0) * mult),
+  } : null;
+
   const dishName = result
     ? lang === 'th'
       ? result.dishNameTh || result.dishNameEn
@@ -253,10 +272,10 @@ export default function PhotoTab({ store }) {
         : result.dishNameEn || result.dishNameTh || 'Photo dish';
     store.addToLog({
       name,
-      kcal: Math.round(result.kcal || 0),
-      protein: Math.round(result.protein || 0),
-      fat: Math.round(result.fat || 0),
-      carbs: Math.round(result.carbs || 0),
+      kcal: scaledResult.kcal,
+      protein: scaledResult.protein,
+      fat: scaledResult.fat,
+      carbs: scaledResult.carbs,
       note: t('photo.logNote'),
     });
     setLogged(true);
@@ -279,10 +298,10 @@ export default function PhotoTab({ store }) {
     }
     store.addCustomFood({
       name,
-      kcal: Math.round(result.kcal || 0),
-      protein: Math.round(result.protein || 0),
-      fat: Math.round(result.fat || 0),
-      carbs: Math.round(result.carbs || 0),
+      kcal: scaledResult.kcal,
+      protein: scaledResult.protein,
+      fat: scaledResult.fat,
+      carbs: scaledResult.carbs,
       note: t('photo.logNote'),
       image,
     });
@@ -366,22 +385,37 @@ export default function PhotoTab({ store }) {
             {t('photo.portion', { v: result.estimatedPortion || '—' })}
           </div>
 
+          {/* S / M / L portion selector */}
+          <div className={styles.portionRow}>
+            {['S', 'M', 'L'].map((sz) => (
+              <button
+                key={sz}
+                className={`${styles.portionBtn} ${portionSize === sz ? styles.portionActive : ''}`}
+                onClick={() => setPortionSize(sz)}
+              >
+                {sz === 'S' ? (lang === 'th' ? 'เล็ก' : 'Small') :
+                 sz === 'M' ? (lang === 'th' ? 'กลาง' : 'Medium') :
+                              (lang === 'th' ? 'ใหญ่' : 'Large')}
+              </button>
+            ))}
+          </div>
+
           {/* Macro grid */}
           <div className={styles.macros}>
             <div className={styles.macroCell}>
-              <div className={styles.macroVal}>{result.kcal ?? '—'}</div>
+              <div className={styles.macroVal}>{scaledResult.kcal ?? '—'}</div>
               <div className={styles.macroLbl}>kcal</div>
             </div>
             <div className={styles.macroCell}>
-              <div className={styles.macroVal}>{result.protein ?? '—'}g</div>
+              <div className={styles.macroVal}>{scaledResult.protein ?? '—'}g</div>
               <div className={styles.macroLbl}>{t('macro.protein')}</div>
             </div>
             <div className={styles.macroCell}>
-              <div className={styles.macroVal}>{result.fat ?? '—'}g</div>
+              <div className={styles.macroVal}>{scaledResult.fat ?? '—'}g</div>
               <div className={styles.macroLbl}>{t('macro.fat')}</div>
             </div>
             <div className={styles.macroCell}>
-              <div className={styles.macroVal}>{result.carbs ?? '—'}g</div>
+              <div className={styles.macroVal}>{scaledResult.carbs ?? '—'}g</div>
               <div className={styles.macroLbl}>{t('macro.carbs')}</div>
             </div>
           </div>
