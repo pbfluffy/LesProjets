@@ -70,9 +70,12 @@ Respond ONLY with valid JSON, no markdown fences, no preamble:
   "vatIncluded": <true|false|null>,
   "serviceChargeIncluded": <true|false|null>,
   "serviceChargeRate": <number|null>,
+  "billDiscount": <positive number if there is a bill-level discount/coupon/promo deduction shown on the receipt, otherwise null>,
+  "billDiscountLabel": "<short description of the discount reason e.g. promo name, null if none>",
   "confidence": "<high|medium|low>"
 }
 
+IMPORTANT: Do NOT include discount line items inside "items". Extract them as "billDiscount" instead.
 If the image is not a receipt or is a payment slip:
 {"error": "no receipt"}
 {"error": "payment slip"}`
