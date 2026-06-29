@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     // procedural sprites, silent-audio and relative-path fallbacks. Log for devs, never show players.
     if (tag) { if (window.console && console.warn) console.warn('[bundle] resource load failed:', tag, (tgt.src || tgt.href || '')); return; }
     if (!e.message) { if (window.console && console.warn) console.warn('[bundle] suppressed error event with no message'); return; }
+    // Cross-origin masked errors: Script error. with no file/object — always from 3rd-party imports (Firebase, etc.) Never actionable.
+    if (e.message === 'Script error.' && !e.filename && !e.error) { if (window.console && console.warn) console.warn('[bundle] suppressed cross-origin Script error.'); return; }
     var p = document.body || document.documentElement;
     var d = document.getElementById('__bundler_err') || p.appendChild(document.createElement('div'));
     d.id = '__bundler_err';
