@@ -43,3 +43,20 @@
 .payeeSaveBtn { font-size: 12px; font-weight: 600; padding: 7px 13px; border: none; border-radius: var(--radius-sm); background: var(--color-accent); color: var(--color-accent-text); cursor: pointer; white-space: nowrap; }
 .payeeSaveBtn:disabled { opacity: 0.45; cursor: default; }
 .payeeCancelBtn { font-size: 12px; padding: 7px 10px; border: 0.5px solid var(--color-border); border-radius: var(--radius-sm); background: none; color: var(--color-text-muted); cursor: pointer; white-space: nowrap; }
+
+/* Bill discount block */
+.discountHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.discountBody { margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+.discountAmtRow { display: flex; gap: 8px; align-items: center; }
+.discountLabelInput { flex: 1; min-width: 0; border: 0.5px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface-alt); color: var(--color-text); font: inherit; font-size: 13px; padding: 7px 10px; }
+.discountLabelInput:focus { outline: none; border-color: var(--color-text); }
+.discountAmtField { display: flex; align-items: center; border: 0.5px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface-alt); overflow: hidden; flex-shrink: 0; }
+.discountAmtIcon { font-size: 13px; color: var(--color-text-muted); padding: 0 6px 0 10px; }
+.discountAmtInput { width: 72px; border: none; background: transparent; font: inherit; font-size: 13px; font-family: var(--font-mono); color: var(--color-text); padding: 7px 8px 7px 0; -moz-appearance: textfield; }
+.discountAmtInput::-webkit-outer-spin-button, .discountAmtInput::-webkit-inner-spin-button { -webkit-appearance: none; }
+.discountAmtInput:focus { outline: none; }
+.discountWhoRow { display: flex; flex-direction: column; gap: 6px; }
+.discountWhoLabel { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
+.discountWhoChips { display: flex; flex-wrap: wrap; gap: 6px; }
+.discountWhoChip { font-size: 12px; padding: 4px 12px; border-radius: var(--radius-pill); border: 0.5px solid var(--color-border-strong); background: none; color: var(--color-text-muted); font-family: var(--font-body); cursor: pointer; transition: all 0.12s; }
+.discountWhoChipOn { background: var(--color-text); color: var(--color-surface); border-color: var(--color-text); }

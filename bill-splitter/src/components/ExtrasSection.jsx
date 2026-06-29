@@ -10,6 +10,10 @@ export default function ExtrasSection({
   bankInfo, onBankInfoChange,
   notes, onNotesChange,
   savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled = false,
+  billDiscount = 0, onBillDiscountChange,
+  billDiscountLabel = '', onBillDiscountLabelChange,
+  billDiscountWho = null, onBillDiscountWhoChange,
+  members = [],
 }) {
   const { t } = useLang()
   const [ppOpen, setPpOpen] = useState(false)
@@ -18,6 +22,7 @@ export default function ExtrasSection({
   const [managing, setManaging] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showBank, setShowBank] = useState(false)
+  const [discountOpen, setDiscountOpen] = useState(false)
   const [payeeName, setPayeeName] = useState('')
 
   const ppTrim = (promptPay || '').trim()
@@ -71,6 +76,65 @@ export default function ExtrasSection({
           </span>
         </div>
       </div>
+      <div className={styles.divider} />
+      {/* Bill-level pre-tax discount */}
+      <div className={styles.discountHeader}>
+        <span className={styles.ppLabel}>{t.billDiscount ?? 'Bill Discount'}</span>
+        <button className={styles.toggleBtn} onClick={() => setDiscountOpen(o => !o)}>
+          {discountOpen ? t.close : (billDiscount > 0 ? `−฿${parseFloat(billDiscount).toFixed(2)}` : t.edit)}
+        </button>
+      </div>
+      {discountOpen && (
+        <div className={styles.discountBody}>
+          <div className={styles.discountAmtRow}>
+            <input
+              type="text"
+              className={styles.discountLabelInput}
+              value={billDiscountLabel}
+              onChange={e => onBillDiscountLabelChange?.(e.target.value)}
+              placeholder={t.discountLabelPh ?? 'Reason (optional)'}
+              maxLength={60}
+            />
+            <div className={styles.discountAmtField}>
+              <span className={styles.discountAmtIcon}>฿</span>
+              <input
+                type="number"
+                className={styles.discountAmtInput}
+                value={billDiscount || ''}
+                min="0"
+                inputMode="decimal"
+                placeholder="0"
+                onChange={e => onBillDiscountChange?.(e.target.value)}
+              />
+            </div>
+          </div>
+          {members.length > 0 && parseFloat(billDiscount) > 0 && (
+            <div className={styles.discountWhoRow}>
+              <span className={styles.discountWhoLabel}>{t.discountAppliesTo ?? 'Applies to'}</span>
+              <div className={styles.discountWhoChips}>
+                {members.map(m => {
+                  const selected = billDiscountWho === null || billDiscountWho.includes(m)
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      className={`${styles.discountWhoChip} ${selected ? styles.discountWhoChipOn : ''}`}
+                      onClick={() => {
+                        const current = billDiscountWho === null ? members : billDiscountWho
+                        const next = selected
+                          ? current.filter(x => x !== m)
+                          : [...current, m]
+                        // If all selected, collapse back to null (= everyone)
+                        onBillDiscountWhoChange?.(next.length === members.length ? null : next)
+                      }}
+                    >{m}</button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       <div className={styles.divider} />
       <div className={styles.ppHeader}>
         <span className={styles.ppLabel}>PromptPay</span>

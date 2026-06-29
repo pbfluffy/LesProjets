@@ -32,6 +32,7 @@ export default function ReceiptScanner({
   onSetServiceCharge,
   onSetServiceChargeRate,
   onSetCurrency,
+  onSetBillDiscount,
 }) {
   const { t } = useLang()
   const [open, setOpen] = useState(false)
@@ -46,6 +47,7 @@ export default function ReceiptScanner({
   const [merchantEng, setMerchantEng] = useState('')
   const [detectedCurrency, setDetectedCurrency] = useState(null)
   const [capReached, setCapReached] = useState(false)
+  const [detectedDiscount, setDetectedDiscount] = useState(null)  // { amount, label }
   const fileRef = useRef(null)
   // Monotonic request id — same pattern as Nutritions PhotoTab BUG-04 fix.
   const requestIdRef = useRef(0)
@@ -63,6 +65,7 @@ export default function ReceiptScanner({
     setMerchantOriginal('')
     setMerchantEng('')
     setDetectedCurrency(null)
+    setDetectedDiscount(null)
     if (fileRef.current) fileRef.current.value = ''
   }
 
@@ -126,6 +129,10 @@ export default function ReceiptScanner({
       )
       const detCurrency = normaliseCurrency(r.currency)
       setDetectedCurrency(detCurrency)
+      const discAmt = parseFloat(r.billDiscount)
+      if (Number.isFinite(discAmt) && discAmt > 0) {
+        setDetectedDiscount({ amount: discAmt, label: typeof r.billDiscountLabel === 'string' ? r.billDiscountLabel.trim().slice(0, 60) : '' })
+      }
     } catch (err) {
       if (reqId !== requestIdRef.current) return
       const msg = err?.message || String(err)
@@ -165,6 +172,7 @@ export default function ReceiptScanner({
     }
     if (merchant.trim()) onSetBillName?.(merchant.trim())
     if (detectedCurrency && onSetCurrency) onSetCurrency(detectedCurrency)
+    if (detectedDiscount && onSetBillDiscount) onSetBillDiscount(detectedDiscount.amount, detectedDiscount.label)
     reset()
   }
 
@@ -248,13 +256,18 @@ export default function ReceiptScanner({
                   <p className={styles.confidence}>
                     {format(t.receiptConfidence, { level: confLabel })}
                   </p>
-                  {(vatDetected || (scRate !== null && scRate > 0)) && (
+                  {(vatDetected || (scRate !== null && scRate > 0) || detectedDiscount) && (
                     <div className={styles.detected}>
                       <span className={styles.detectedLabel}>{t.receiptDetected}</span>
                       {vatDetected && <span className={styles.badge}>{t.receiptVat}</span>}
                       {scRate !== null && scRate > 0 && (
                         <span className={styles.badge}>
                           {format(t.receiptSvc, { rate: scRate })}
+                        </span>
+                      )}
+                      {detectedDiscount && (
+                        <span className={styles.badge} style={{ background: 'var(--color-green-bg)', color: 'var(--color-green)' }}>
+                          −฿{detectedDiscount.amount.toFixed(2)}{detectedDiscount.label ? ` (${detectedDiscount.label})` : ''}
                         </span>
                       )}
                     </div>
