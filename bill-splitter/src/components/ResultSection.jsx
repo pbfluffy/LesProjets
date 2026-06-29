@@ -312,6 +312,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
           <div className={styles.breakdown}>
             <div className={styles.row}><span className={styles.rowLabel}>{t.foodSubtotal}</span><span className={styles.rowVal}>{sym}{fmtC(result.subtotal)}</span></div>
             {(result.billDiscount ?? 0) > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.billDiscount ?? 'Bill Discount'}</span><span className={styles.rowValDiscount}>− {sym}{fmtC(result.billDiscount)}</span></div>}
+            {(result.billDiscount ?? 0) > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.billDiscount ?? 'Bill Discount'}</span><span className={styles.rowValDiscount}>− {sym}{fmtC(result.billDiscount)}</span></div>}
             {result.serviceCharge > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.serviceCharge} ({result.serviceChargeRate}%)</span><span className={styles.rowVal}>{sym}{fmtC(result.serviceCharge)}</span></div>}
             {result.vat > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.vat} (7%)</span><span className={styles.rowVal}>{sym}{fmtC(result.vat)}</span></div>}
             <div className={`${styles.row} ${styles.totalRow}`}><span>{t.total}</span><span className={styles.totalRight}><span className={styles.grandTotal}>{sym}{convertRate !== null ? fmtC(result.grandTotal) : (roundTotalEnabled ? Math.round(result.grandTotal) : fmt(result.grandTotal))}</span>{showRoundedFrom && convertRate === null && <span className={styles.roundFrom}>{t.roundedFrom} ฿{rawGrand.toFixed(2)}</span>}</span></div>
@@ -372,25 +373,45 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
           )}
 
           <div className={styles.perPersonList}>
-            {members.map(m => { const amount=result.totals[m]??0; const pct=result.grandTotal>0?(amount/result.grandTotal)*100:0; const isOwner=m===currentOwner; const isPaid=!isOwner&&paid.has(m); const qrAmount=isTHB ? amount : (convertRate !== null ? conv(amount) : null); return(
-              <div key={m} className={isPaid ? styles.paid : undefined}>
-                <div className={styles.personHeader}><div className={styles.personLeft}>{isOwner ? <span className={styles.payCheckPlaceholder} aria-hidden="true" /> : <button type="button" className={`${styles.payCheck} ${isPaid ? styles.payCheckOn : ''}`} onClick={() => togglePaid(m)} aria-pressed={isPaid} aria-label={isPaid ? t.markUnpaid : t.markPaid} title={isPaid ? t.markUnpaid : t.markPaid}>{isPaid && (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)}</button>}<Avatar name={m} photoURL={user && ownerName && m.trim().toLowerCase() === ownerName ? user.photoURL : null} size={24} /><span className={styles.personName}>{m}</span><span className={`${styles.payStatus} ${isOwner ? styles.payStatusOwner : (isPaid ? styles.payStatusPaid : styles.payStatusPending)}`}>{isOwner ? 'Owner' : (isPaid ? 'Paid' : 'Pending')}</span></div><span className={styles.personAmount}>{sym}{fmtC(amount)}</span></div>
-                <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
-                {foods.filter(f => f.who && f.who.includes(m) && f.name && parseFloat(f.price) > 0).length > 0 && (
-                  <div className={styles.itemList}>
-                    {foods.filter(f => f.who && f.who.includes(m) && f.name && parseFloat(f.price) > 0).map(f => (
-                      <div key={f.id} className={styles.itemRow}>
-                        <span className={styles.itemName}>· {f.name}</span>
-                        <span className={styles.itemAmt}>{sym}{fmtC((parseFloat(f.price) / f.who.length) * result.multiplier)}</span>
-                      </div>
-                    ))}
+            {members.map(m => {
+              const finalAmt = result.totals[m] ?? 0
+              // Pre-discount amount: undiscounted share × multiplier
+              const undiscountedAmt = (result.shares[m] ?? 0) * (result.multiplier ?? 1)
+              const hasBillDisc = undiscountedAmt - finalAmt > 0.005
+              const pct = result.grandTotal > 0 ? (finalAmt / result.grandTotal) * 100 : 0
+              const isOwner = m === currentOwner
+              const isPaid = !isOwner && paid.has(m)
+              const qrAmount = isTHB ? finalAmt : (convertRate !== null ? conv(finalAmt) : null)
+              return (
+                <div key={m} className={isPaid ? styles.paid : undefined}>
+                  <div className={styles.personHeader}>
+                    <div className={styles.personLeft}>
+                      {isOwner ? <span className={styles.payCheckPlaceholder} aria-hidden="true" /> : <button type="button" className={`${styles.payCheck} ${isPaid ? styles.payCheckOn : ''}`} onClick={() => togglePaid(m)} aria-pressed={isPaid} aria-label={isPaid ? t.markUnpaid : t.markPaid} title={isPaid ? t.markUnpaid : t.markPaid}>{isPaid && (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)}</button>}
+                      <Avatar name={m} photoURL={user && ownerName && m.trim().toLowerCase() === ownerName ? user.photoURL : null} size={24} />
+                      <span className={styles.personName}>{m}</span>
+                      <span className={`${styles.payStatus} ${isOwner ? styles.payStatusOwner : (isPaid ? styles.payStatusPaid : styles.payStatusPending)}`}>{isOwner ? 'Owner' : (isPaid ? 'Paid' : 'Pending')}</span>
+                    </div>
+                    {hasBillDisc
+                      ? <span className={styles.personAmountGroup}><span className={styles.personAmountPre}>{sym}{fmtC(undiscountedAmt)}</span><span className={styles.personAmountArrow}>→</span><span className={styles.personAmountPost}>{sym}{fmtC(finalAmt)}</span></span>
+                      : <span className={styles.personAmount}>{sym}{fmtC(finalAmt)}</span>}
                   </div>
-                )}
-                {showQR && ppValid && qrAmount > 0 && !isOwner && (
-                  <PromptPayQR promptPay={promptPay} amount={qrAmount} />
-                )}
-              </div>
-              )})}
+                  <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
+                  {foods.filter(f => f.who && f.who.includes(m) && f.name && parseFloat(f.price) > 0).length > 0 && (
+                    <div className={styles.itemList}>
+                      {foods.filter(f => f.who && f.who.includes(m) && f.name && parseFloat(f.price) > 0).map(f => (
+                        <div key={f.id} className={styles.itemRow}>
+                          <span className={styles.itemName}>· {f.name}</span>
+                          <span className={styles.itemAmt}>{sym}{fmtC((parseFloat(f.price) / f.who.length) * result.multiplier)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {showQR && ppValid && qrAmount > 0 && !isOwner && (
+                    <PromptPayQR promptPay={promptPay} amount={qrAmount} />
+                  )}
+                </div>
+              )
+            })}
           </div>
           {(promptPay||bankInfo) && <div className={styles.payInfo}>{promptPay && <p className={styles.payLine}><span className={styles.payIcon}><SmartphoneIcon width={16} height={16} /></span>PromptPay: <strong>{promptPay}</strong>{!ppValid && <span className={styles.payWarn}><WarnIcon width={14} height={14} /> {t.promptPayInvalid}</span>}</p>}{bankInfo && <p className={styles.payLine} style={{whiteSpace:'pre-line'}}><span className={styles.payIcon}><BankIcon width={16} height={16} /></span>{bankInfo}</p>}</div>}
           {notes && <div className={styles.notes}><span className={styles.notesIcon}><NoteIcon width={16} height={16} /></span><span>{notes}</span></div>}

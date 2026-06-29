@@ -60,3 +60,6 @@
 .discountWhoChips { display: flex; flex-wrap: wrap; gap: 6px; }
 .discountWhoChip { font-size: 12px; padding: 4px 12px; border-radius: var(--radius-pill); border: 0.5px solid var(--color-border-strong); background: none; color: var(--color-text-muted); font-family: var(--font-body); cursor: pointer; transition: all 0.12s; }
 .discountWhoChipOn { background: var(--color-text); color: var(--color-surface); border-color: var(--color-text); }
+
+/* Active discount toggle */
+.toggleBtnActive { background: var(--color-green-bg, #dcfce7); color: var(--color-green, #16a34a); border-color: var(--color-green, #16a34a); font-weight: 600; }

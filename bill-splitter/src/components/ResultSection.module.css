@@ -82,3 +82,11 @@
 .itemName { color: var(--color-text-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 8px; }
 .itemAmt { font-family: var(--font-mono); color: var(--color-text-muted); flex-shrink: 0; }
 .billNameDisplay { font-size: 15px; font-weight: 600; color: var(--color-text); margin: -4px 0 10px; }
+
+/* Bill discount arrow display in result row */
+.personAmountGroup { display: flex; align-items: center; gap: 4px; }
+.personAmountPre { font-family: var(--font-mono); font-size: 13px; color: var(--color-text-muted); text-decoration: line-through; }
+.personAmountArrow { font-size: 11px; color: var(--color-text-faint); }
+.personAmountPost { font-family: var(--font-mono); font-size: 15px; font-weight: 600; color: var(--color-green, #16a34a); }
+/* Bill discount row in breakdown */
+.rowValDiscount { font-family: var(--font-mono); color: var(--color-green, #16a34a); font-size: 13px; }

@@ -80,7 +80,7 @@ export default function ExtrasSection({
       {/* Bill-level pre-tax discount */}
       <div className={styles.discountHeader}>
         <span className={styles.ppLabel}>{t.billDiscount ?? 'Bill Discount'}</span>
-        <button className={styles.toggleBtn} onClick={() => setDiscountOpen(o => !o)}>
+        <button className={`${styles.toggleBtn} ${!discountOpen && parseFloat(billDiscount) > 0 ? styles.toggleBtnActive : ''}`} onClick={() => setDiscountOpen(o => !o)}>
           {discountOpen ? t.close : (billDiscount > 0 ? `−฿${parseFloat(billDiscount).toFixed(2)}` : t.edit)}
         </button>
       </div>
