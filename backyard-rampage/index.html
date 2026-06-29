@@ -53,7 +53,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     d.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;font:12px/1.4 ui-monospace,monospace;background:#2a1215;color:#ff8a80;padding:10px 14px;border-radius:8px;border:1px solid #5c2b2e;z-index:99999;white-space:pre-wrap;max-height:40vh;overflow:auto';
     d.textContent = (d.textContent ? d.textContent + String.fromCharCode(10) : '') +
       '[bundle] ' + (e.message || e.type) +
-      (e.filename ? ' (' + e.filename.slice(0, 60) + ':' + e.lineno + ')' : '') +
+      (e.filename ? ' (' + e.filename.slice(0, 60) + ':' + e.lineno + ':' + e.colno + ')' : ' (no file)') +
+      ' [' + (e.error ? e.error.name + ': ' + e.error.message : 'no error obj') + ']' +
       ((tgt && (tgt.src || tgt.href)) ? ' <' + String(tgt.src || tgt.href).slice(-90) + '>' : '');
   }, true);
 
