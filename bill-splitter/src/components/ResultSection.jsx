@@ -106,8 +106,9 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
       })
       lines.push('')
     })
-    if (result.serviceCharge > 0 || result.vat > 0) {
+    if (result.serviceCharge > 0 || result.vat > 0 || (result.billDiscount ?? 0) > 0) {
       lines.push(`${t.foodSubtotal}: ${sym}${fmtC(result.subtotal)}`)
+      if ((result.billDiscount ?? 0) > 0) lines.push(`${t.billDiscount ?? 'Bill Discount'}: −${sym}${fmtC(result.billDiscount)}`)
       if (result.serviceCharge > 0) lines.push(`${t.serviceCharge} (${result.serviceChargeRate}%): ${sym}${fmtC(result.serviceCharge)}`)
       if (result.vat > 0) lines.push(`${t.vat} (7%): ${sym}${fmtC(result.vat)}`)
       lines.push('')
@@ -310,6 +311,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
         <>
           <div className={styles.breakdown}>
             <div className={styles.row}><span className={styles.rowLabel}>{t.foodSubtotal}</span><span className={styles.rowVal}>{sym}{fmtC(result.subtotal)}</span></div>
+            {(result.billDiscount ?? 0) > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.billDiscount ?? 'Bill Discount'}</span><span className={styles.rowValDiscount}>− {sym}{fmtC(result.billDiscount)}</span></div>}
             {result.serviceCharge > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.serviceCharge} ({result.serviceChargeRate}%)</span><span className={styles.rowVal}>{sym}{fmtC(result.serviceCharge)}</span></div>}
             {result.vat > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.vat} (7%)</span><span className={styles.rowVal}>{sym}{fmtC(result.vat)}</span></div>}
             <div className={`${styles.row} ${styles.totalRow}`}><span>{t.total}</span><span className={styles.totalRight}><span className={styles.grandTotal}>{sym}{convertRate !== null ? fmtC(result.grandTotal) : (roundTotalEnabled ? Math.round(result.grandTotal) : fmt(result.grandTotal))}</span>{showRoundedFrom && convertRate === null && <span className={styles.roundFrom}>{t.roundedFrom} ฿{rawGrand.toFixed(2)}</span>}</span></div>

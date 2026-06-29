@@ -28,13 +28,16 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill, onNewB
     notes: store.notes,
     roundTotalEnabled: store.roundTotalEnabled,
     currency: store.currency,
+    billDiscount: store.billDiscount,
+    billDiscountLabel: store.billDiscountLabel,
+    billDiscountWho: store.billDiscountWho,
   }
   const currencySymbol = symbolFor(store.currency)
   const handleSave = (onSaveBill && !readOnly) ? () => onSaveBill('split', snapshot) : undefined
   return (
     <div style={{ paddingBottom: 80 }}>
       <fieldset disabled={readOnly} style={fieldsetReset}>
-        <ReceiptScanner onAddItems={store.addFoods} onSetBillName={(name) => { if (!store.billName.trim()) store.setBillName(name) }} onSetVat={store.setVatEnabled} onSetServiceCharge={store.setServiceChargeEnabled} onSetServiceChargeRate={store.setServiceChargeRate} onSetCurrency={store.setCurrency} />
+        <ReceiptScanner onAddItems={store.addFoods} onSetBillName={(name) => { if (!store.billName.trim()) store.setBillName(name) }} onSetVat={store.setVatEnabled} onSetServiceCharge={store.setServiceChargeEnabled} onSetServiceChargeRate={store.setServiceChargeRate} onSetCurrency={store.setCurrency} onSetBillDiscount={(amt, label) => { store.setBillDiscount(amt); store.setBillDiscountLabel(label) }} />
         <input
           type="text"
           className={appStyles.billNameInput}
@@ -46,7 +49,7 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill, onNewB
 
         <MemberSection members={store.members} onAdd={store.addMember} onRemove={store.removeMember} />
         <FoodList foods={store.foods} members={store.members} onAdd={store.addFood} onUpdate={store.updateFood} onToggleMember={store.toggleFoodMember} onRemove={store.removeFood} onDuplicate={store.duplicateFood} onRestore={store.restoreFood} onSelectAll={store.setAllMembers} currencySymbol={currencySymbol} />
-        <ExtrasSection vatEnabled={store.vatEnabled} onVatChange={store.setVatEnabled} serviceChargeEnabled={store.serviceChargeEnabled} onServiceChargeChange={store.setServiceChargeEnabled} serviceChargeRate={store.serviceChargeRate} onServiceChargeRateChange={store.setServiceChargeRate} promptPay={store.promptPay} onPromptPayChange={store.setPromptPay} bankInfo={store.bankInfo} onBankInfoChange={store.setBankInfo} notes={store.notes} onNotesChange={store.setNotes} savedPayees={savedPayees} onSavePayee={onSavePayee} onRemovePayee={onRemovePayee} payeesEnabled={payeesEnabled && !readOnly} />
+        <ExtrasSection vatEnabled={store.vatEnabled} onVatChange={store.setVatEnabled} serviceChargeEnabled={store.serviceChargeEnabled} onServiceChargeChange={store.setServiceChargeEnabled} serviceChargeRate={store.serviceChargeRate} onServiceChargeRateChange={store.setServiceChargeRate} promptPay={store.promptPay} onPromptPayChange={store.setPromptPay} bankInfo={store.bankInfo} onBankInfoChange={store.setBankInfo} notes={store.notes} onNotesChange={store.setNotes} savedPayees={savedPayees} onSavePayee={onSavePayee} onRemovePayee={onRemovePayee} payeesEnabled={payeesEnabled && !readOnly} billDiscount={store.billDiscount} onBillDiscountChange={store.setBillDiscount} billDiscountLabel={store.billDiscountLabel} onBillDiscountLabelChange={store.setBillDiscountLabel} billDiscountWho={store.billDiscountWho} onBillDiscountWhoChange={store.setBillDiscountWho} members={store.members} />
       </fieldset>
       <ResultSection result={result} members={store.members} foods={store.foods} promptPay={store.promptPay} bankInfo={store.bankInfo} notes={store.notes} billName={store.billName} snapshot={snapshot} tab="split" onSave={handleSave} onNewBill={!readOnly ? onNewBill : undefined} initialPaid={sharedState?.paid} billOwner={store.billOwner} onBillOwnerChange={store.setBillOwner} roundTotalEnabled={store.roundTotalEnabled} onRoundTotalChange={store.setRoundTotalEnabled} readOnly={readOnly} currency={store.currency} currencySymbol={currencySymbol} />
       <StickyBottomBar memberCount={store.members.length} grandTotal={result.grandTotal} rawSubtotal={result.rawSubtotal} currencySymbol={currencySymbol} />
