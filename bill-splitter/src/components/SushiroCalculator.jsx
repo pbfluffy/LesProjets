@@ -379,7 +379,7 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
                   </div>
                   <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
                   {showQR && ppValid && total > 0 && (
-                    <PromptPayQR promptPay={store.promptPay} amount={total} />
+                    <PromptPayQR promptPay={store.promptPay} amount={total} name={name} />
                   )}
                 </div>
               )
