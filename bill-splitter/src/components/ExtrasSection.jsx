@@ -10,9 +10,7 @@ export default function ExtrasSection({
   bankInfo, onBankInfoChange,
   notes, onNotesChange,
   savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled = false,
-  billDiscount = 0, onBillDiscountChange,
-  billDiscountLabel = '', onBillDiscountLabelChange,
-  billDiscountWho = null, onBillDiscountWhoChange,
+  billDiscounts = [], onAddBillDiscount, onUpdateBillDiscount, onRemoveBillDiscount,
   members = [],
 }) {
   const { t } = useLang()
@@ -27,6 +25,7 @@ export default function ExtrasSection({
 
   const ppTrim = (promptPay || '').trim()
   const alreadySaved = savedPayees.some(p => p.promptPay === ppTrim)
+  const totalDiscount = billDiscounts.reduce((sum, d) => sum + (Math.max(0, parseFloat(d.amount)) || 0), 0)
 
   const handleSavePayee = () => {
     const n = payeeName.trim()
@@ -77,25 +76,35 @@ export default function ExtrasSection({
         </div>
       </div>
       <div className={styles.divider} />
-      {/* Bill-level pre-tax discount */}
+      {/* Bill-level pre-tax discounts */}
       <div className={styles.discountHeader}>
         <span className={styles.ppLabel}>{t.billDiscount ?? 'Bill Discount'}</span>
-        <button className={`${styles.toggleBtn} ${!discountOpen && parseFloat(billDiscount) > 0 ? styles.toggleBtnActive : ''}`} onClick={() => setDiscountOpen(o => !o)}>
+        <button
+          className={`${styles.toggleBtn} ${!discountOpen && totalDiscount > 0 ? styles.toggleBtnActive : ''}`}
+          onClick={() => {
+            if (discountOpen) {
+              setDiscountOpen(false)
+            } else {
+              if (billDiscounts.length === 0) onAddBillDiscount?.()
+              setDiscountOpen(true)
+            }
+          }}
+        >
           {discountOpen
             ? t.close
-            : billDiscount > 0
-              ? <span className={styles.toggleBtnContent}>−฿{parseFloat(billDiscount).toFixed(2)}<span className={styles.toggleChevron}>{discountOpen ? '▲' : '▼'}</span></span>
+            : totalDiscount > 0
+              ? <span className={styles.toggleBtnContent}>−฿{totalDiscount.toFixed(2)}<span className={styles.toggleChevron}>{discountOpen ? '▲' : '▼'}</span></span>
               : <span className={styles.toggleBtnContent}>{t.add ?? '+ Add'}<span className={styles.toggleChevron}>▼</span></span>}
         </button>
       </div>
-      {discountOpen && (
-        <div className={styles.discountBody}>
+      {discountOpen && billDiscounts.map(d => (
+        <div key={d.id} className={styles.discountBody}>
           <div className={styles.discountAmtRow}>
             <input
               type="text"
               className={styles.discountLabelInput}
-              value={billDiscountLabel}
-              onChange={e => onBillDiscountLabelChange?.(e.target.value)}
+              value={d.label}
+              onChange={e => onUpdateBillDiscount?.(d.id, 'label', e.target.value)}
               placeholder={t.discountLabelPh ?? 'Reason (optional)'}
               maxLength={60}
             />
@@ -104,32 +113,40 @@ export default function ExtrasSection({
               <input
                 type="number"
                 className={styles.discountAmtInput}
-                value={billDiscount || ''}
+                value={d.amount || ''}
                 min="0"
                 inputMode="decimal"
                 placeholder="0"
-                onChange={e => onBillDiscountChange?.(e.target.value)}
+                onChange={e => onUpdateBillDiscount?.(d.id, 'amount', e.target.value)}
               />
             </div>
+            <button
+              type="button"
+              className={styles.payeeRemove}
+              onClick={() => onRemoveBillDiscount?.(d.id)}
+              aria-label={t.removeDiscount ?? 'Remove discount'}
+            >
+              ×
+            </button>
           </div>
-          {members.length > 0 && parseFloat(billDiscount) > 0 && (
+          {members.length > 0 && parseFloat(d.amount) > 0 && (
             <div className={styles.discountWhoRow}>
               <span className={styles.discountWhoLabel}>{t.discountAppliesTo ?? 'Applies to'}</span>
               <div className={styles.discountWhoChips}>
                 {members.map(m => {
-                  const selected = billDiscountWho === null || billDiscountWho.includes(m)
+                  const selected = d.who === null || d.who.includes(m)
                   return (
                     <button
                       key={m}
                       type="button"
                       className={`${styles.discountWhoChip} ${selected ? styles.discountWhoChipOn : ''}`}
                       onClick={() => {
-                        const current = billDiscountWho === null ? members : billDiscountWho
+                        const current = d.who === null ? members : d.who
                         const next = selected
                           ? current.filter(x => x !== m)
                           : [...current, m]
                         // If all selected, collapse back to null (= everyone)
-                        onBillDiscountWhoChange?.(next.length === members.length ? null : next)
+                        onUpdateBillDiscount?.(d.id, 'who', next.length === members.length ? null : next)
                       }}
                     >{m}</button>
                   )
@@ -138,6 +155,11 @@ export default function ExtrasSection({
             </div>
           )}
         </div>
+      ))}
+      {discountOpen && billDiscounts.length > 0 && (
+        <button type="button" className={styles.addDiscountLink} onClick={() => onAddBillDiscount?.()}>
+          {t.addAnotherDiscount ?? '+ Add another discount'}
+        </button>
       )}
       <div className={styles.divider} />
       <div className={styles.ppHeader}>
