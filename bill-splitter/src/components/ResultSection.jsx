@@ -287,7 +287,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
                 + {lang === 'th' ? 'บิลใหม่' : 'New Bill'}
               </button>
             )}
-            <div style={{ position: 'relative' }} ref={moreRef}>
+            <div style={{ position: 'relative', marginLeft: 'auto' }} ref={moreRef}>
               <button onClick={() => setMoreOpen(o => !o)} style={{ padding: '4px 8px', border: 'none', background: 'transparent', color: 'var(--color-text-muted)', font: 'inherit', fontSize: 12, cursor: 'pointer' }} aria-haspopup="true" aria-expanded={moreOpen}>
                 {t.more} ▾
               </button>
@@ -406,7 +406,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
                     </div>
                   )}
                   {showQR && ppValid && qrAmount > 0 && !isOwner && (
-                    <PromptPayQR promptPay={promptPay} amount={qrAmount} />
+                    <PromptPayQR promptPay={promptPay} amount={qrAmount} name={m} />
                   )}
                 </div>
               )
