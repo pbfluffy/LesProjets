@@ -11,10 +11,41 @@ export function useBillStore(initial) {
   const [serviceChargeEnabled, setServiceChargeEnabled] = useState(initial?.serviceChargeEnabled ?? false)
   const [serviceChargeRate, setServiceChargeRate] = useState(initial?.serviceChargeRate ?? 10)
   const [roundTotalEnabled, setRoundTotalEnabled] = useState(initial?.roundTotalEnabled ?? false)
-  // Bill-level pre-tax discount (e.g. promo, coupon) — assigned to specific members
-  const [billDiscount, setBillDiscount] = useState(initial?.billDiscount ?? 0)
-  const [billDiscountLabel, setBillDiscountLabel] = useState(initial?.billDiscountLabel ?? '')
-  const [billDiscountWho, setBillDiscountWho] = useState(initial?.billDiscountWho ?? null)  // null = all members
+  // Bill-level pre-tax discounts (e.g. promo, coupon) — each entry can be assigned
+  // to its own subset of members. Backward compat: bills saved before multi-discount
+  // support only have a single billDiscount/billDiscountLabel/billDiscountWho — those
+  // get upgraded into a one-item list on load; the array is what gets saved from now on.
+  const [billDiscounts, setBillDiscounts] = useState(() => {
+    if (Array.isArray(initial?.billDiscounts)) return initial.billDiscounts
+    const legacyAmt = parseFloat(initial?.billDiscount)
+    if (legacyAmt > 0) {
+      return [{
+        id: uuid(),
+        amount: initial.billDiscount,
+        label: initial.billDiscountLabel ?? '',
+        who: initial.billDiscountWho ?? null,
+      }]
+    }
+    return []
+  })
+  const addBillDiscount = useCallback(() => {
+    setBillDiscounts(prev => [...prev, { id: uuid(), amount: '', label: '', who: null }])
+  }, [])
+  // Bulk-add from receipt OCR — each item: { amount, label }. `who` defaults to
+  // all members (null), same as a manually-added discount.
+  const addBillDiscounts = useCallback((items) => {
+    if (!Array.isArray(items) || items.length === 0) return
+    setBillDiscounts(prev => [
+      ...prev,
+      ...items.map(({ amount, label }) => ({ id: uuid(), amount, label: label ?? '', who: null })),
+    ])
+  }, [])
+  const updateBillDiscount = useCallback((id, field, value) => {
+    setBillDiscounts(prev => prev.map(d => d.id === id ? { ...d, [field]: value } : d))
+  }, [])
+  const removeBillDiscount = useCallback((id) => {
+    setBillDiscounts(prev => prev.filter(d => d.id !== id))
+  }, [])
   const [promptPay, setPromptPay] = useState(initial?.promptPay ?? '')
   const [bankInfo, setBankInfo] = useState(initial?.bankInfo ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
@@ -55,7 +86,7 @@ export function useBillStore(initial) {
   const removeMember = useCallback((name) => {
     setMembers(prev => prev.filter(m => m !== name))
     setFoods(prev => prev.map(f => ({ ...f, who: f.who.filter(w => w !== name) })))
-    setBillDiscountWho(prev => prev === null ? null : prev.filter(m => m !== name))
+    setBillDiscounts(prev => prev.map(d => d.who === null ? d : { ...d, who: d.who.filter(m => m !== name) }))
   }, [])
 
   const addFood = useCallback(() => {
@@ -131,12 +162,21 @@ export function useBillStore(initial) {
       f.who.forEach(m => { if (shares[m] !== undefined) shares[m] += split })
       subtotal += price
     })
-    // Bill-level pre-tax discount — split equally among selected members (null = all)
-    const discAmt = Math.max(0, parseFloat(billDiscount) || 0)
-    const discWho = (billDiscountWho === null || billDiscountWho?.length === 0) ? members : billDiscountWho.filter(m => members.includes(m))
-    const discPerMember = discWho.length > 0 && discAmt > 0 ? discAmt / discWho.length : 0
+    // Bill-level pre-tax discounts — each entry split equally among its own selected
+    // members (null/empty who = all members), then combined per member.
+    const discountByMember = Object.fromEntries(members.map(m => [m, 0]))
+    let discAmt = 0
+    billDiscounts.forEach(d => {
+      const amt = Math.max(0, parseFloat(d.amount) || 0)
+      if (!amt) return
+      const who = (d.who === null || d.who?.length === 0) ? members : d.who.filter(m => members.includes(m))
+      if (who.length === 0) return
+      const per = amt / who.length
+      who.forEach(m => { discountByMember[m] += per })
+      discAmt += amt
+    })
     const preTaxShares = Object.fromEntries(members.map(m => [
-      m, Math.max(0, shares[m] - (discWho.includes(m) ? discPerMember : 0))
+      m, Math.max(0, shares[m] - discountByMember[m])
     ]))
     const effectiveSubtotal = Math.max(0, subtotal - discAmt)
     const scRate = Math.max(0, Math.min(100, parseFloat(serviceChargeRate) || 0))
@@ -169,13 +209,13 @@ export function useBillStore(initial) {
     }
     return {
       shares, preTaxShares, totals, subtotal, rawSubtotal,
-      billDiscount: discAmt, billDiscountWho: discWho,
+      billDiscount: discAmt, billDiscounts,
       serviceCharge: effectiveSubtotal * scFraction,
       serviceChargeRate: scRate,
       vat: vatEnabled ? effectiveSubtotal * (1 + scFraction) * 0.07 : 0,
       grandTotal, multiplier,
     }
-  }, [members, foods, vatEnabled, serviceChargeEnabled, serviceChargeRate, roundTotalEnabled, billOwner, billDiscount, billDiscountWho])
+  }, [members, foods, vatEnabled, serviceChargeEnabled, serviceChargeRate, roundTotalEnabled, billOwner, billDiscounts])
 
-  return { billName, setBillName, members, addMember, removeMember, billOwner, setBillOwner, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, duplicateFood, restoreFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, roundTotalEnabled, setRoundTotalEnabled, currency, setCurrency, billDiscount, setBillDiscount, billDiscountLabel, setBillDiscountLabel, billDiscountWho, setBillDiscountWho, calculate }
+  return { billName, setBillName, members, addMember, removeMember, billOwner, setBillOwner, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, duplicateFood, restoreFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, roundTotalEnabled, setRoundTotalEnabled, currency, setCurrency, billDiscounts, setBillDiscounts, addBillDiscount, addBillDiscounts, updateBillDiscount, removeBillDiscount, calculate }
 }
