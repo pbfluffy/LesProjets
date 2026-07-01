@@ -382,7 +382,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
               const isPaid = !isOwner && paid.has(m)
               const qrAmount = isTHB ? finalAmt : (convertRate !== null ? conv(finalAmt) : null)
               return (
-                <div key={m} className={isPaid ? styles.paid : undefined}>
+                <div key={m} className={`${styles.personCard} ${isPaid ? styles.paid : ''}`}>
                   <div className={styles.personHeader}>
                     <div className={styles.personLeft}>
                       {isOwner ? <span className={styles.payCheckPlaceholder} aria-hidden="true" /> : <button type="button" className={`${styles.payCheck} ${isPaid ? styles.payCheckOn : ''}`} onClick={() => togglePaid(m)} aria-pressed={isPaid} aria-label={isPaid ? t.markUnpaid : t.markPaid} title={isPaid ? t.markUnpaid : t.markPaid}>{isPaid && (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)}</button>}
