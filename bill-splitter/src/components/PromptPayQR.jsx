@@ -84,7 +84,7 @@ export default function PromptPayQR({ promptPay, amount, size = 132, name }) {
         type="button"
         onClick={handleSave}
         disabled={saving}
-        style={{ marginTop: 6, fontSize: 11, padding: '3px 8px', border: '1px solid var(--color-border-strong, #ccc)', borderRadius: 6, background: 'transparent', color: 'var(--color-text-muted, #666)', cursor: 'pointer' }}
+        className={styles.saveBtn}
       >
         {saving ? '…' : '💾 Save QR'}
       </button>
