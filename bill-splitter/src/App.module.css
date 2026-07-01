@@ -6,6 +6,12 @@
   flex-direction: column;
 }
 
+@media (min-width: 768px) {
+  .app {
+    max-width: 680px;
+  }
+}
+
 .header {
   background: var(--color-surface);
   border-bottom: 0.5px solid var(--color-border);
