@@ -293,7 +293,32 @@
   .food-item .name{ font-weight:600; font-size:0.95rem; }
   .food-item .note{ font-size:0.8rem; color:var(--ink-soft); margin-top:3px; }
 
-  /* ---------- PACKING ---------- */
+  /* ---------- PACKING / CHECKLIST ---------- */
+  .checklist-progress{
+    display:flex; align-items:center; gap:14px;
+    background:var(--cream); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px 18px; margin-bottom:22px;
+  }
+  .checklist-progress .bar-track{
+    flex:1; height:8px; border-radius:8px; background:var(--parchment-2);
+    overflow:hidden;
+  }
+  .checklist-progress .bar-fill{
+    height:100%; border-radius:8px;
+    background:linear-gradient(90deg, var(--moss), var(--amber));
+    width:0%; transition:width .3s ease;
+  }
+  .checklist-progress .count{
+    font-family:'IBM Plex Mono',monospace; font-size:0.85rem; color:var(--ink-soft);
+    white-space:nowrap;
+  }
+  .checklist-progress .reset-btn{
+    background:none; border:1px solid var(--line); border-radius:8px;
+    padding:5px 10px; font-size:0.76rem; color:var(--ink-soft);
+    cursor:pointer; font-family:inherit; white-space:nowrap;
+  }
+  .checklist-progress .reset-btn:hover{ color:var(--maple-deep); border-color:var(--maple-deep); }
+
   .pack-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; }
   .pack-card{
     background:var(--cream); border:1px solid var(--line); border-radius:var(--radius);
@@ -305,10 +330,52 @@
   }
   .pack-dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
   .pack-card ul{ margin:0; padding:0; list-style:none; }
-  .pack-card li{ margin-bottom:12px; }
+  .pack-card li{ margin-bottom:4px; }
   .pack-card li:last-child{ margin-bottom:0; }
-  .pack-item{ font-weight:600; font-size:0.9rem; }
+  .pack-check{
+    display:flex; align-items:flex-start; gap:10px;
+    padding:8px 6px; border-radius:8px; cursor:pointer;
+    transition:background .15s ease;
+  }
+  .pack-check:hover{ background:var(--parchment-2); }
+  .pack-check input[type="checkbox"]{
+    margin-top:3px; width:16px; height:16px; flex-shrink:0;
+    accent-color:var(--maple); cursor:pointer;
+  }
+  .pack-item{ font-weight:600; font-size:0.9rem; transition:color .15s ease; }
   .pack-detail{ font-size:0.82rem; color:var(--ink-soft); margin-top:2px; }
+  .pack-check.checked .pack-item{
+    text-decoration:line-through; color:var(--ink-soft); font-weight:500;
+  }
+  .pack-check.checked .pack-detail{ opacity:0.6; }
+
+  .pack-row{ display:flex; align-items:flex-start; }
+  .pack-row .pack-check{ flex:1; }
+  .expand-toggle{
+    background:none; border:none; cursor:pointer;
+    color:var(--ink-soft); font-size:0.7rem;
+    padding:8px 4px; margin-top:2px;
+    transition:transform .18s ease;
+    flex-shrink:0;
+  }
+  .expand-toggle.open{ transform:rotate(90deg); }
+  .sub-wrap{
+    display:none; margin:0 0 8px 42px; padding:8px 0 4px 12px;
+    border-left:2px solid var(--line);
+  }
+  .sub-wrap.open{ display:block; }
+  .sub-progress{
+    font-size:0.72rem; color:var(--moss); margin-bottom:6px; font-weight:600;
+    text-transform:uppercase; letter-spacing:0.04em;
+  }
+  .sub-item{
+    display:flex; align-items:flex-start; gap:8px;
+    padding:4px 0; font-size:0.83rem; cursor:pointer;
+  }
+  .sub-item input[type="checkbox"]{
+    margin-top:2px; width:14px; height:14px; accent-color:var(--moss); cursor:pointer; flex-shrink:0;
+  }
+  .sub-item.checked span{ text-decoration:line-through; color:var(--ink-soft); }
 
   footer{
     text-align:center; color:var(--ink-soft); font-size:0.78rem;
@@ -473,6 +540,11 @@
       <p class="kicker">Before you go</p>
       <h2>Packing &amp; travel tips</h2>
     </div>
+    <div class="checklist-progress">
+      <span class="count" id="checklist-count">0 / 0 ready</span>
+      <div class="bar-track"><div class="bar-fill" id="checklist-bar"></div></div>
+      <button class="reset-btn" id="checklist-reset" type="button">Reset</button>
+    </div>
     <div class="pack-grid" id="pack-grid"></div>
   </section>
 
@@ -530,9 +602,24 @@ const foodItems = [
 
 const packing = [
   {title:"Visa & Docs", color:"var(--moss)", items:[
-    {n:"Valid Passport + Approved Visitor Visa (TRV)", d:"Must apply 8–12 weeks in advance via the IRCC Portal."},
-    {n:"Bank Statement (6 Months) & Bank Certificate (CAD)", d:"Proof of financial sufficiency from bank, in English."},
-    {n:"Detailed Trip Itinerary + Hotel Booking Confirmation", d:"Keep digital and printed copies for border control."}
+    {n:"Valid Passport + Approved Visitor Visa (TRV)", d:"Must apply 8–12 weeks in advance via the IRCC Portal.", sub:[
+      "Check passport has 6+ months validity beyond your return date",
+      "Create an IRCC secure account and start the TRV application online",
+      "Pay the visa application fee and book a biometrics appointment",
+      "Wait for processing (8–12 weeks), then download the approval letter"
+    ]},
+    {n:"Bank Statement (6 Months) & Bank Certificate (CAD)", d:"Proof of financial sufficiency from bank, in English.", sub:[
+      "Request a 6-month statement from your bank's English-service desk",
+      "Ask for an official bank certificate showing balance in CAD-equivalent",
+      "Get the certificate stamped and signed by the branch",
+      "Photocopy everything — keep one set separate from the originals"
+    ]},
+    {n:"Detailed Trip Itinerary + Hotel Booking Confirmation", d:"Keep digital and printed copies for border control.", sub:[
+      "Print this itinerary page (or export it to PDF)",
+      "Print the WERFY hotel booking confirmation",
+      "Save PDF copies on your phone and in cloud storage",
+      "Pack printed copies in your carry-on, not checked luggage"
+    ]}
   ]},
   {title:"Clothing", color:"var(--amber)", items:[
     {n:"Layered Apparel (The Layering Rule)", d:"Base layer (thermal), mid-layer (sweater/fleece), outer layer (wind/waterproof jacket)."},
@@ -620,14 +707,116 @@ function renderFood(filter){
 }
 renderFood('All');
 
-// ---------------- RENDER: PACKING ----------------
-const packGrid = document.getElementById('pack-grid');
+// ---------------- RENDER: PACKING CHECKLIST ----------------
+const CHECKLIST_KEY = 'montreal2026_checklist_v1';
+function loadChecked(){
+  try{
+    const raw = localStorage.getItem(CHECKLIST_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  }catch(e){ return new Set(); }
+}
+function saveChecked(set){
+  try{ localStorage.setItem(CHECKLIST_KEY, JSON.stringify([...set])); }catch(e){}
+}
+let checkedItems = loadChecked();
+
+// give every packing item a stable id: "<group-slug>-<index>"
 packing.forEach(group=>{
-  const card = document.createElement('div');
-  card.className = 'pack-card';
-  card.innerHTML = `<h3><span class="pack-dot" style="background:${group.color}"></span>${group.title}</h3>
-    <ul>${group.items.map(it=>`<li><div class="pack-item">${it.n}</div><div class="pack-detail">${it.d}</div></li>`).join('')}</ul>`;
-  packGrid.appendChild(card);
+  const slug = group.title.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+  group.items.forEach((it,i)=>{ it.id = `${slug}-${i}`; });
+});
+const totalItems = packing.reduce((sum,g)=> sum + g.items.length, 0);
+
+const packGrid = document.getElementById('pack-grid');
+const countEl = document.getElementById('checklist-count');
+const barEl = document.getElementById('checklist-bar');
+const resetBtn = document.getElementById('checklist-reset');
+
+function updateProgress(){
+  const done = [...checkedItems].filter(id => packing.some(g=>g.items.some(it=>it.id===id))).length;
+  countEl.textContent = `${done} / ${totalItems} ready`;
+  barEl.style.width = totalItems ? `${(done/totalItems)*100}%` : '0%';
+}
+
+function renderPacking(){
+  packGrid.innerHTML = '';
+  packing.forEach(group=>{
+    const card = document.createElement('div');
+    card.className = 'pack-card';
+    const itemsHtml = group.items.map(it=>{
+      const isChecked = checkedItems.has(it.id);
+      const hasSub = Array.isArray(it.sub) && it.sub.length;
+      const subDone = hasSub ? it.sub.filter((_,si)=> checkedItems.has(`${it.id}-s${si}`)).length : 0;
+      const rowHtml = `<div class="pack-row">
+          <label class="pack-check${isChecked ? ' checked':''}" data-id="${it.id}">
+            <input type="checkbox" ${isChecked ? 'checked':''} aria-label="Mark '${it.n.replace(/'/g,"&#39;")}' as ready">
+            <span>
+              <div class="pack-item">${it.n}</div>
+              <div class="pack-detail">${it.d}</div>
+            </span>
+          </label>
+          ${hasSub ? `<button class="expand-toggle" type="button" data-target="sub-${it.id}" aria-expanded="false" title="Show preparation steps">▶</button>` : ''}
+        </div>
+        ${hasSub ? `<div class="sub-wrap" id="sub-${it.id}">
+            <div class="sub-progress">${subDone} / ${it.sub.length} steps done</div>
+            ${it.sub.map((s,si)=>{
+              const sid = `${it.id}-s${si}`;
+              const sChecked = checkedItems.has(sid);
+              return `<label class="sub-item${sChecked?' checked':''}" data-subid="${sid}" data-parent="${it.id}">
+                <input type="checkbox" ${sChecked?'checked':''}><span>${s}</span>
+              </label>`;
+            }).join('')}
+          </div>` : ''}`;
+      return `<li>${rowHtml}</li>`;
+    }).join('');
+    card.innerHTML = `<h3><span class="pack-dot" style="background:${group.color}"></span>${group.title}</h3><ul>${itemsHtml}</ul>`;
+    packGrid.appendChild(card);
+  });
+
+  packGrid.querySelectorAll('.pack-check input[type="checkbox"]').forEach(cb=>{
+    cb.addEventListener('change', (e)=>{
+      const label = e.target.closest('.pack-check');
+      const id = label.dataset.id;
+      if(e.target.checked){ checkedItems.add(id); label.classList.add('checked'); }
+      else{ checkedItems.delete(id); label.classList.remove('checked'); }
+      saveChecked(checkedItems);
+      updateProgress();
+    });
+  });
+
+  packGrid.querySelectorAll('.expand-toggle').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const target = document.getElementById(btn.dataset.target);
+      const open = target.classList.toggle('open');
+      btn.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', open ? 'true':'false');
+    });
+  });
+
+  packGrid.querySelectorAll('.sub-item input[type="checkbox"]').forEach(cb=>{
+    cb.addEventListener('change', (e)=>{
+      const label = e.target.closest('.sub-item');
+      const sid = label.dataset.subid;
+      const parentId = label.dataset.parent;
+      if(e.target.checked){ checkedItems.add(sid); label.classList.add('checked'); }
+      else{ checkedItems.delete(sid); label.classList.remove('checked'); }
+      saveChecked(checkedItems);
+      const wrap = label.closest('.sub-wrap');
+      const parentItem = packing.flatMap(g=>g.items).find(it=>it.id===parentId);
+      if(parentItem){
+        const done = parentItem.sub.filter((_,si)=> checkedItems.has(`${parentId}-s${si}`)).length;
+        wrap.querySelector('.sub-progress').textContent = `${done} / ${parentItem.sub.length} steps done`;
+      }
+    });
+  });
+
+  updateProgress();
+}
+renderPacking();
+resetBtn.addEventListener('click', ()=>{
+  checkedItems = new Set();
+  saveChecked(checkedItems);
+  renderPacking();
 });
 
 // ---------------- TABS ----------------
