@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Montréal Autumn Itinerary 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bark:#271812;
+    --bark-2:#3a251c;
+    --parchment:#EAE2D0;
+    --parchment-2:#E0D7C2;
+    --ink:#231710;
+    --ink-soft:#5a4d3f;
+    --moss:#57654a;
+    --amber:#c1892a;
+    --maple:#a8342a;
+    --maple-deep:#7c2620;
+    --cream:#F4EEDD;
+    --line:#c9bd9f;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--parchment);
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(168,52,42,0.05), transparent 40%),
+      radial-gradient(circle at 85% 92%, rgba(87,101,74,0.06), transparent 45%);
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+  h1,h2,h3,.display{ font-family:'Fraunces', serif; }
+  .mono{ font-family:'IBM Plex Mono', monospace; letter-spacing:0.02em; }
+  a{ color:inherit; }
+  ::selection{ background:var(--amber); color:var(--cream); }
+
+  /* focus visibility */
+  a:focus-visible, button:focus-visible{
+    outline:2px solid var(--maple);
+    outline-offset:3px;
+    border-radius:4px;
+  }
+
+  /* ---------- NAV ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    background:linear-gradient(180deg, var(--bark), var(--bark-2));
+    color:var(--cream);
+    box-shadow:0 6px 18px rgba(20,10,5,0.25);
+  }
+  .topbar-inner{
+    max-width:1080px; margin:0 auto;
+    display:flex; align-items:center; gap:24px;
+    padding:14px 20px;
+    flex-wrap:wrap;
+  }
+  .brand{
+    font-size:1.05rem; font-weight:600; letter-spacing:0.01em;
+    white-space:nowrap;
+    display:flex; align-items:baseline; gap:8px;
+  }
+  .brand .leaf-mark{ width:16px; height:16px; display:inline-block; }
+  .tabs{
+    display:flex; gap:4px; flex-wrap:wrap;
+    margin-left:auto;
+  }
+  .tab-btn{
+    background:none; border:none; cursor:pointer;
+    color:rgba(244,238,221,0.68);
+    font-family:'Work Sans',sans-serif;
+    font-size:0.86rem; font-weight:500;
+    padding:8px 12px; border-radius:8px;
+    transition:color .18s ease, background .18s ease;
+  }
+  .tab-btn:hover{ color:var(--cream); background:rgba(244,238,221,0.06); }
+  .tab-btn[aria-selected="true"]{
+    color:var(--cream);
+    background:rgba(193,137,42,0.18);
+    box-shadow:inset 0 -2px 0 var(--amber);
+  }
+
+  main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
+  .panel{ display:none; animation:fadein .35s ease; }
+  .panel.active{ display:block; }
+  @keyframes fadein{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+  @media (prefers-reduced-motion: reduce){
+    .panel{ animation:none; }
+    html{ scroll-behavior:auto; }
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    background:linear-gradient(160deg, var(--bark) 0%, var(--bark-2) 100%);
+    color:var(--cream);
+    border-radius:0 0 28px 28px;
+    margin:0 -20px 36px;
+    padding:56px 28px 40px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::after{
+    content:"";
+    position:absolute; right:-60px; top:-40px;
+    width:320px; height:320px;
+    background:radial-gradient(circle, rgba(193,137,42,0.16), transparent 68%);
+  }
+  .hero-inner{ max-width:720px; position:relative; }
+  .eyebrow{
+    text-transform:uppercase; font-size:0.72rem; letter-spacing:0.14em;
+    color:var(--amber); margin:0 0 10px; font-weight:600;
+  }
+  .hero h1{
+    font-size:clamp(2.1rem, 5vw, 3.2rem);
+    font-weight:700; margin:0 0 10px; line-height:1.05;
+  }
+  .hero .sub{
+    font-style:italic; font-weight:400; color:rgba(244,238,221,0.78);
+    font-size:1.05rem; margin:0 0 30px;
+  }
+  .stat-strip{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:18px 24px;
+    border-top:1px solid rgba(244,238,221,0.16);
+    padding-top:22px;
+  }
+  .stat-strip div span{ display:block; }
+  .stat-label{
+    font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em;
+    color:rgba(244,238,221,0.55); margin-bottom:4px;
+  }
+  .stat-value{ font-size:0.98rem; font-weight:500; }
+
+  .quicklinks{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:16px; margin-bottom:10px;
+  }
+  .qcard{
+    background:var(--cream); border:1px solid var(--line);
+    border-radius:var(--radius); padding:18px 20px;
+    cursor:pointer; text-align:left;
+    transition:transform .15s ease, box-shadow .15s ease;
+    font-family:inherit; color:var(--ink);
+  }
+  .qcard:hover{ transform:translateY(-2px); box-shadow:0 10px 22px rgba(60,40,20,0.12); }
+  .qcard h3{ margin:0 0 6px; font-size:1.05rem; }
+  .qcard p{ margin:0; color:var(--ink-soft); font-size:0.87rem; }
+
+  section.block{ margin:52px 0; }
+  .block-head{ margin-bottom:22px; }
+  .block-head .kicker{
+    text-transform:uppercase; font-size:0.72rem; letter-spacing:0.12em;
+    color:var(--maple); font-weight:600; margin:0 0 6px;
+  }
+  .block-head h2{ margin:0; font-size:1.7rem; }
+
+  /* ---------- ITINERARY TIMELINE (signature element) ---------- */
+  .week-label{
+    font-family:'Fraunces',serif; font-style:italic; color:var(--moss);
+    font-size:1.05rem; margin:38px 0 18px; padding-left:44px;
+  }
+  .timeline{ position:relative; padding-left:44px; }
+  .timeline::before{
+    content:""; position:absolute; left:15px; top:6px; bottom:6px; width:2px;
+    background:linear-gradient(180deg, var(--moss), var(--amber) 55%, var(--maple));
+    border-radius:2px;
+  }
+  .day-card{
+    position:relative; background:var(--cream);
+    border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px 16px 20px; margin-bottom:16px;
+  }
+  .leaf-node{
+    position:absolute; left:-44px; top:18px;
+    width:26px; height:26px; border-radius:50% 0 50% 50%;
+    transform:rotate(45deg);
+    border:2px solid var(--cream);
+    box-shadow:0 0 0 2px currentColor;
+  }
+  .day-card .top-row{
+    display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:6px;
+  }
+  .date-badge{
+    font-family:'IBM Plex Mono',monospace; font-size:0.78rem;
+    font-weight:500; color:var(--ink-soft);
+  }
+  .time-pill{
+    font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em;
+    background:rgba(193,137,42,0.16); color:var(--maple-deep);
+    padding:3px 9px; border-radius:20px; font-weight:600;
+  }
+  .flag{
+    font-size:0.68rem; text-transform:uppercase; letter-spacing:0.06em;
+    background:var(--maple); color:var(--cream);
+    padding:3px 9px; border-radius:20px; font-weight:600;
+  }
+  .day-card h3{ margin:2px 0 6px; font-size:1.12rem; }
+  .day-card p{ margin:0 0 8px; color:var(--ink-soft); font-size:0.92rem; }
+  .loc-row{
+    display:flex; align-items:center; gap:6px; font-size:0.83rem;
+  }
+  .loc-row a{ color:var(--maple-deep); text-decoration:none; border-bottom:1px dotted var(--maple-deep); }
+  .loc-row a:hover{ color:var(--maple); }
+
+  /* ---------- FLIGHTS ---------- */
+  .flight-grid{ display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+  @media (max-width:720px){ .flight-grid{ grid-template-columns:1fr; } }
+  .ticket{
+    background:var(--cream); border:1px solid var(--line);
+    border-radius:var(--radius); overflow:hidden;
+    position:relative;
+  }
+  .ticket-head{
+    background:var(--bark); color:var(--cream);
+    padding:14px 18px; display:flex; justify-content:space-between; align-items:center;
+  }
+  .ticket-head .route{ font-family:'IBM Plex Mono',monospace; font-size:1rem; font-weight:500; }
+  .ticket-head .route .arrow{ color:var(--amber); margin:0 4px; }
+  .ticket-head .label{ font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em; color:rgba(244,238,221,0.65); }
+  .leg{ padding:14px 18px; border-bottom:1px dashed var(--line); }
+  .leg:last-of-type{ border-bottom:none; }
+  .leg-time{ display:flex; justify-content:space-between; align-items:center; font-family:'IBM Plex Mono',monospace; font-size:0.95rem; }
+  .leg-time .arrow-line{ flex:1; text-align:center; color:var(--ink-soft); font-size:0.72rem; margin:0 10px; }
+  .leg-meta{ font-size:0.8rem; color:var(--ink-soft); margin-top:4px; }
+  .layover{
+    text-align:center; font-size:0.78rem; color:var(--maple-deep);
+    background:rgba(168,52,42,0.06);
+    padding:6px; border-top:1px dashed var(--line); border-bottom:1px dashed var(--line);
+  }
+  .ticket-foot{
+    padding:12px 18px; display:flex; justify-content:space-between; align-items:center;
+    font-size:0.82rem; color:var(--ink-soft);
+  }
+  .ticket::before, .ticket::after{
+    content:""; position:absolute; top:64px; width:18px; height:18px;
+    background:var(--parchment); border-radius:50%;
+  }
+  .ticket::before{ left:-9px; }
+  .ticket::after{ right:-9px; }
+  .price-note{
+    margin-top:18px; text-align:center; font-size:0.88rem; color:var(--ink-soft);
+  }
+  .price-note strong{ color:var(--maple-deep); font-size:1rem; }
+
+  /* ---------- HOTEL VOUCHER ---------- */
+  .voucher{
+    background:var(--cream); border:1px solid var(--line); border-radius:var(--radius);
+    padding:26px 28px; margin-top:26px;
+  }
+  .voucher h3{ margin:0 0 4px; font-size:1.3rem; }
+  .voucher .addr{ color:var(--ink-soft); font-size:0.9rem; margin-bottom:18px; }
+  .voucher .addr a{ color:var(--maple-deep); text-decoration:none; border-bottom:1px dotted var(--maple-deep); }
+  .vgrid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:16px 22px; margin-bottom:18px;
+  }
+  .vgrid .stat-label{ color:var(--ink-soft); }
+  .vgrid .stat-value{ color:var(--ink); font-family:'IBM Plex Mono',monospace; font-size:0.92rem; }
+  .callout{
+    background:rgba(87,101,74,0.10); border-left:3px solid var(--moss);
+    padding:12px 16px; border-radius:6px; font-size:0.87rem; color:var(--ink);
+    margin-bottom:12px;
+  }
+  .callout.warn{ background:rgba(168,52,42,0.07); border-left-color:var(--maple); }
+  .callout b{ color:var(--maple-deep); }
+
+  /* ---------- FOOD / TIPS ---------- */
+  .chips{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:22px; }
+  .chip{
+    border:1px solid var(--line); background:var(--cream);
+    padding:7px 14px; border-radius:20px; font-size:0.83rem;
+    cursor:pointer; font-family:inherit; color:var(--ink-soft);
+    transition:all .15s ease;
+  }
+  .chip[aria-pressed="true"]{
+    background:var(--maple); color:var(--cream); border-color:var(--maple);
+  }
+  .food-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+  .food-item{
+    background:var(--cream); border:1px solid var(--line); border-radius:10px;
+    padding:14px 16px;
+  }
+  .food-item .cat{
+    font-size:0.66rem; text-transform:uppercase; letter-spacing:0.08em;
+    color:var(--moss); font-weight:600; margin-bottom:4px; display:block;
+  }
+  .food-item .name{ font-weight:600; font-size:0.95rem; }
+  .food-item .note{ font-size:0.8rem; color:var(--ink-soft); margin-top:3px; }
+
+  /* ---------- PACKING ---------- */
+  .pack-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; }
+  .pack-card{
+    background:var(--cream); border:1px solid var(--line); border-radius:var(--radius);
+    padding:18px 20px;
+  }
+  .pack-card h3{
+    margin:0 0 12px; font-size:1.02rem;
+    display:flex; align-items:center; gap:8px;
+  }
+  .pack-dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .pack-card ul{ margin:0; padding:0; list-style:none; }
+  .pack-card li{ margin-bottom:12px; }
+  .pack-card li:last-child{ margin-bottom:0; }
+  .pack-item{ font-weight:600; font-size:0.9rem; }
+  .pack-detail{ font-size:0.82rem; color:var(--ink-soft); margin-top:2px; }
+
+  footer{
+    text-align:center; color:var(--ink-soft); font-size:0.78rem;
+    padding:30px 20px 50px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <svg class="leaf-mark" viewBox="0 0 24 24" fill="none"><path d="M12 2C7 6 3 10 3 15a9 9 0 0018 0c0-5-4-9-9-13z" fill="#c1892a"/><path d="M12 4v17" stroke="#271812" stroke-width="1.1"/></svg>
+      Montréal · Autumn 2026
+    </div>
+    <div class="tabs" role="tablist" aria-label="Trip sections">
+      <button class="tab-btn" role="tab" aria-selected="true" data-tab="overview">Overview</button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="itinerary">Itinerary</button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="travel">Flights &amp; Hotel</button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="food">Food &amp; Local Tips</button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="packing">Packing</button>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <!-- OVERVIEW -->
+  <section class="panel active" id="overview">
+    <div class="hero">
+      <div class="hero-inner">
+        <p class="eyebrow">14-Day Peak Fall Foliage Experience</p>
+        <h1>Montréal Autumn<br>Itinerary 2026</h1>
+        <p class="sub">October 2 – October 15, 2026 · Griffintown, Montréal</p>
+        <div class="stat-strip">
+          <div><span class="stat-label">Travel Dates</span><span class="stat-value mono">Oct 2 – Oct 15, 2026</span></div>
+          <div><span class="stat-label">Duration</span><span class="stat-value mono">14 days / 13 nights</span></div>
+          <div><span class="stat-label">Base Hotel</span><span class="stat-value">WERFY Luxury Apart-Hotel</span></div>
+          <div><span class="stat-label">Season</span><span class="stat-value">Peak maple leaf colour change</span></div>
+          <div><span class="stat-label">Expected Weather</span><span class="stat-value mono">5°C – 15°C, chilly &amp; windy</span></div>
+        </div>
+      </div>
+    </div>
+
+    <section class="block">
+      <div class="block-head">
+        <p class="kicker">Jump to</p>
+        <h2>Trip at a glance</h2>
+      </div>
+      <div class="quicklinks">
+        <button class="qcard" data-goto="itinerary">
+          <h3>Day-by-day plan</h3>
+          <p>20 stops across 14 days — Old Montréal, Mount Royal, Quebec City &amp; more.</p>
+        </button>
+        <button class="qcard" data-goto="travel">
+          <h3>Flights &amp; hotel</h3>
+          <p>Emirates via Dubai, both ways · WERFY Apart-Hotel in Griffintown.</p>
+        </button>
+        <button class="qcard" data-goto="food">
+          <h3>Food &amp; local tips</h3>
+          <p>Cafés, poutine legends, and where to find a pharmacy at midnight.</p>
+        </button>
+        <button class="qcard" data-goto="packing">
+          <h3>Packing &amp; documents</h3>
+          <p>Visa checklist, layering strategy, and Thanksgiving closures.</p>
+        </button>
+      </div>
+    </section>
+  </section>
+
+  <!-- ITINERARY -->
+  <section class="panel" id="itinerary">
+    <div class="block-head">
+      <p class="kicker">Day by day</p>
+      <h2>The full route</h2>
+    </div>
+    <div id="timeline-mount"></div>
+  </section>
+
+  <!-- FLIGHTS + HOTEL -->
+  <section class="panel" id="travel">
+    <div class="block-head">
+      <p class="kicker">Getting there &amp; staying</p>
+      <h2>Flights &amp; hotel</h2>
+    </div>
+
+    <div class="flight-grid">
+      <div class="ticket">
+        <div class="ticket-head">
+          <div>
+            <div class="label">Outbound · Thu Oct 1, 2026</div>
+            <div class="route">BKK <span class="arrow">✈</span> YUL</div>
+          </div>
+          <div class="label" style="text-align:right">Emirates<br>2 stops legs</div>
+        </div>
+        <div class="leg">
+          <div class="leg-time"><span>21:35 BKK</span><span class="arrow-line">EK373 · 6h15m</span><span>00:50 DXB <sup>+1</sup></span></div>
+          <div class="leg-meta">Suvarnabhumi → Dubai Terminal 3 · Airbus A380</div>
+        </div>
+        <div class="layover">1h 40m layover · Dubai (DXB)</div>
+        <div class="leg">
+          <div class="leg-time"><span>02:30 DXB <sup>+1</sup></span><span class="arrow-line">EK243 · 13h30m</span><span>08:00 YUL <sup>+1</sup></span></div>
+          <div class="leg-meta">Dubai Terminal 3 → Montréal-Trudeau · Airbus A350</div>
+        </div>
+        <div class="ticket-foot"><span>Total travel time</span><span class="mono">21h 25m</span></div>
+      </div>
+
+      <div class="ticket">
+        <div class="ticket-head">
+          <div>
+            <div class="label">Return · Thu Oct 15, 2026</div>
+            <div class="route">YUL <span class="arrow">✈</span> BKK</div>
+          </div>
+          <div class="label" style="text-align:right">Emirates<br>Best fare</div>
+        </div>
+        <div class="leg">
+          <div class="leg-time"><span>10:15 YUL</span><span class="arrow-line">EK244 · 12h15m</span><span>06:30 DXB <sup>+1</sup></span></div>
+          <div class="leg-meta">Montréal-Trudeau → Dubai Terminal 3 · Airbus A350</div>
+        </div>
+        <div class="layover">2h 30m layover · Dubai (DXB)</div>
+        <div class="leg">
+          <div class="leg-time"><span>09:00 DXB <sup>+1</sup></span><span class="arrow-line">EK370 · 6h25m</span><span>18:25 BKK <sup>+1</sup></span></div>
+          <div class="leg-meta">Dubai Terminal 3 → Suvarnabhumi · Boeing 777-300ER</div>
+        </div>
+        <div class="ticket-foot"><span>Total travel time</span><span class="mono">21h 10m</span></div>
+      </div>
+    </div>
+
+    <p class="price-note">2 adults, round-trip · Base fare ฿33,585 + taxes ฿24,609.21 per adult, less ฿7,044.71 discount<br><strong>Total ฿109,343.71</strong></p>
+
+    <div class="voucher">
+      <h3>WERFY Luxury Apart-Hotel</h3>
+      <p class="addr">1222 Rue des Bassins, Griffintown, Montréal (QC), Canada H3C 0X7 &nbsp;·&nbsp;
+        <a href="https://www.google.com/maps/search/?api=1&query=WERFY+Luxury+Apart-Hotel+Montreal" target="_blank" rel="noopener">View on map ↗</a>
+      </p>
+      <div class="vgrid">
+        <div><span class="stat-label">Booking ref</span><span class="stat-value">2607030012528274734</span></div>
+        <div><span class="stat-label">Check-in</span><span class="stat-value">Oct 2, 2026</span></div>
+        <div><span class="stat-label">Check-out</span><span class="stat-value">Oct 15, 2026</span></div>
+        <div><span class="stat-label">Room</span><span class="stat-value">1 × Comfort, 2 adults</span></div>
+        <div><span class="stat-label">Property phone</span><span class="stat-value">+1 514 758 2738</span></div>
+        <div><span class="stat-label">Payment on file</span><span class="stat-value">Mastercard ···· 7428</span></div>
+      </div>
+      <div class="callout">Non-smoking room, large bed requested. Special requests are subject to availability upon arrival.</div>
+      <div class="callout warn"><b>Cancellation policy:</b> Free cancellation before Sept 30, 2026. Cancelling within 2 days of arrival or no-show incurs a charge for the full stay.</div>
+    </div>
+  </section>
+
+  <!-- FOOD & LOCAL TIPS -->
+  <section class="panel" id="food">
+    <div class="block-head">
+      <p class="kicker">Where to eat &amp; run errands</p>
+      <h2>Food &amp; local guide</h2>
+    </div>
+    <div class="chips" id="food-chips"></div>
+    <div class="food-grid" id="food-grid"></div>
+  </section>
+
+  <!-- PACKING -->
+  <section class="panel" id="packing">
+    <div class="block-head">
+      <p class="kicker">Before you go</p>
+      <h2>Packing &amp; travel tips</h2>
+    </div>
+    <div class="pack-grid" id="pack-grid"></div>
+  </section>
+
+</main>
+
+<footer>Built from the trip planning sheet · Montréal, Oct 2–15 2026</footer>
+
+<script>
+// ---------------- DATA ----------------
+const itinerary = [
+  {date:"Fri · Oct 2", time:"Morning · Arrival", title:"Arrive in Montréal &amp; Check-in", desc:"Land at Montréal-Trudeau International Airport (YUL). Head to the hotel and unpack.", loc:"WERFY Luxury Apart-Hotel", map:"https://www.google.com/maps/search/?api=1&query=WERFY+Luxury+Apart-Hotel+Montreal"},
+  {date:"Fri · Oct 2", time:"Evening", title:"Lachine Canal Relaxing Walk", desc:"Take a gentle evening stroll along the historic canal path right behind your hotel.", loc:"Lachine Canal", map:"https://www.google.com/maps/search/?api=1&query=Lachine+Canal+Montreal"},
+  {date:"Sat · Oct 3", time:"Morning / Afternoon", title:"Old Montréal Exploration", desc:"Walk down cobblestone streets, see French colonial architecture, visit Notre-Dame Basilica.", loc:"Old Montréal &amp; Notre-Dame Basilica", map:"https://www.google.com/maps/search/?api=1&query=Notre-Dame+Basilica+Montreal"},
+  {date:"Sat · Oct 3", time:"Evening", title:"Old Port Sunset &amp; Ferris Wheel", desc:"Ride La Grande Roue de Montréal for a panoramic view of the St. Lawrence River at golden hour.", loc:"Old Port of Montréal", map:"https://www.google.com/maps/search/?api=1&query=Old+Port+of+Montreal"},
+  {date:"Sun · Oct 4", time:"Full Day", title:"Mount Royal Park — Autumn Peak", desc:"Hike or walk up the mountain. Peak season for brilliant red and orange maple leaves. Visit Kondiaronk Belvedere.", loc:"Mount Royal Park", map:"https://www.google.com/maps/search/?api=1&query=Mount+Royal+Park+Montreal"},
+  {date:"Mon · Oct 5", time:"Morning", title:"Jean-Talon Market", desc:"Explore one of the largest open-air markets in North America. Taste fresh local apples, cheeses, and maple treats.", loc:"Jean-Talon Market", map:"https://www.google.com/maps/search/?api=1&query=Jean-Talon+Market+Montreal"},
+  {date:"Mon · Oct 5", time:"Afternoon", title:"Mile End Hip Neighborhood &amp; Bagels", desc:"Stroll through the artistic Mile End. Grab fresh hot wood-fired bagels at St-Viateur or Fairmount Bagel.", loc:"Mile End", map:"https://www.google.com/maps/search/?api=1&query=Mile+End+Montreal"},
+  {date:"Tue · Oct 6", time:"Afternoon", title:"Montréal Botanical Garden", desc:"Explore greenhouse collections and beautifully landscaped outdoor gardens before the winter chill.", loc:"Jardin botanique de Montréal", map:"https://www.google.com/maps/search/?api=1&query=Montreal+Botanical+Garden"},
+  {date:"Tue · Oct 6", time:"Evening", title:"Gardens of Light Festival", desc:"Iconic annual autumn lantern festival illuminated inside the Chinese and Japanese gardens.", loc:"Jardin botanique de Montréal", map:"https://www.google.com/maps/search/?api=1&query=Montreal+Botanical+Garden", flag:"Must-see"},
+  {date:"Wed · Oct 7", time:"Morning", title:"Saint Joseph's Oratory", desc:"Visit Canada's largest church, featuring one of the largest domed structures in the world.", loc:"Saint Joseph's Oratory", map:"https://www.google.com/maps/search/?api=1&query=Saint+Joseph+Oratory+Montreal"},
+  {date:"Wed · Oct 7", time:"Afternoon", title:"Westmount Architecture Walk", desc:"Walk past stunning Victorian-style luxury homes framed by vibrant changing trees.", loc:"Westmount Neighborhood", map:"https://www.google.com/maps/search/?api=1&query=Westmount+Montreal"},
+  {date:"Thu · Oct 8", time:"Full Day", title:"Downtown &amp; Underground City (RÉSO)", desc:"Shop along Rue Sainte-Catherine. Explore the 32km subterranean network if the weather turns cold or rainy.", loc:"Downtown Montréal / RÉSO", map:"https://www.google.com/maps/search/?api=1&query=Rue+Sainte-Catherine+Montreal"},
+  {date:"Fri · Oct 9", time:"Full Day", title:"Day Trip to Québec City", desc:"Take a scenic 3-hour VIA Rail train to Québec City. Walk through old-world European fairytale settings.", loc:"Québec City", map:"https://www.google.com/maps/search/?api=1&query=Old+Quebec", flag:"Optional"},
+  {date:"Sat · Oct 10", time:"Morning", title:"Pointe-à-Callière Museum", desc:"Fascinating archaeology and history museum built over authentic historic foundations of the city.", loc:"Pointe-à-Callière", map:"https://www.google.com/maps/search/?api=1&query=Pointe-a-Calliere+Montreal"},
+  {date:"Sat · Oct 10", time:"Afternoon", title:"Authentic Poutine Lunch", desc:"Try Québec's signature dish: crispy fries, squeaky fresh cheese curds, and rich hot gravy at La Banquise.", loc:"La Banquise", map:"https://www.google.com/maps/search/?api=1&query=La+Banquise+Montreal"},
+  {date:"Sun · Oct 11", time:"Full Day", title:"Parc Jean-Drapeau &amp; Biosphère", desc:"Visit the island park in the St. Lawrence River. Check out the environmental museum inside the geodesic sphere.", loc:"Parc Jean-Drapeau", map:"https://www.google.com/maps/search/?api=1&query=Parc+Jean-Drapeau+Montreal"},
+  {date:"Mon · Oct 12", time:"Full Day", title:"Lachine Canal Cycling &amp; Atwater Market", desc:"Rent a bike, ride along the canal, and pick up local picnic goods at Marché Atwater.", loc:"Marché Atwater", map:"https://www.google.com/maps/search/?api=1&query=Atwater+Market+Montreal", flag:"Thanksgiving (CA)"},
+  {date:"Tue · Oct 13", time:"Full Day", title:"Le Plateau-Mont-Royal Leisurely Walk", desc:"Photograph the famous spiral outdoor staircases, vibrant murals, and cozy local cafés.", loc:"Le Plateau-Mont-Royal", map:"https://www.google.com/maps/search/?api=1&query=Le+Plateau-Mont-Royal+Montreal"},
+  {date:"Wed · Oct 14", time:"Full Day", title:"Souvenirs &amp; Fine Dining Farewell", desc:"Pick up local maple syrup, maple cookies, and artisan crafts. Enjoy a spectacular final French dinner in Old Montréal.", loc:"Old Montréal Area", map:"https://www.google.com/maps/search/?api=1&query=Old+Montreal"},
+  {date:"Thu · Oct 15", time:"Morning", title:"Pack &amp; Check-out", desc:"Enjoy a final morning coffee near Griffintown, check out of WERFY, and head to YUL airport.", loc:"WERFY Luxury Apart-Hotel", map:"https://www.google.com/maps/search/?api=1&query=WERFY+Luxury+Apart-Hotel+Montreal"}
+];
+
+const foodItems = [
+  {cat:"Cafés", name:"Alfred Café Buvette par Le Petit Dep"},
+  {cat:"Cafés", name:"Spanel Crêpes et Gourmets"},
+  {cat:"Cafés", name:"Café BRUT"},
+  {cat:"Cafés", name:"Crew Collective & Café", note:"Old Montréal area"},
+  {cat:"Cafés", name:"Café Olimpico", note:"Several branches, e.g. Mile End / Old Montréal"},
+  {cat:"Restaurants", name:"Shay"},
+  {cat:"Restaurants", name:"Mauvais Garçons"},
+  {cat:"Local Legends", name:"La Banquise", note:"Plateau area"},
+  {cat:"Local Legends", name:"St-Viateur Bagel or Fairmount Bagel", note:"Mile End area"},
+  {cat:"Local Legends", name:"Schwartz's Deli", note:"Saint-Laurent street"},
+  {cat:"Zoo", name:"Ecomuseum Zoo"},
+  {cat:"Zoo", name:"Montréal Biodôme"},
+  {cat:"Convenience", name:"Metro Plus De La Montagne", note:"Open 8:00 – 23:00"},
+  {cat:"Convenience", name:"Dépanneur Manhattan"},
+  {cat:"Convenience", name:"Dépanneur Griffintown", note:"Weekday 7:30 – 0:00am · Weekend 8:00 – 0:00am"},
+  {cat:"Convenience", name:"KaleMart24"},
+  {cat:"Convenience", name:"Adonis Downtown", note:"Griffintown, open 8:00 – 22:00"},
+  {cat:"Convenience", name:"Popeye's Supplements", note:"Downtown Montréal branch"},
+  {cat:"Convenience", name:"GNC (General Nutrition Centres)", note:"Downtown mall branches, e.g. Rue Sainte-Catherine area"},
+  {cat:"Convenience", name:"Pharmaprix", note:"Branches near Metro stations / city centre"}
+];
+
+const packing = [
+  {title:"Visa & Docs", color:"var(--moss)", items:[
+    {n:"Valid Passport + Approved Visitor Visa (TRV)", d:"Must apply 8–12 weeks in advance via the IRCC Portal."},
+    {n:"Bank Statement (6 Months) & Bank Certificate (CAD)", d:"Proof of financial sufficiency from bank, in English."},
+    {n:"Detailed Trip Itinerary + Hotel Booking Confirmation", d:"Keep digital and printed copies for border control."}
+  ]},
+  {title:"Clothing", color:"var(--amber)", items:[
+    {n:"Layered Apparel (The Layering Rule)", d:"Base layer (thermal), mid-layer (sweater/fleece), outer layer (wind/waterproof jacket)."},
+    {n:"Comfortable Walking Shoes / Waterproof Boots", d:"Crucial for cobblestones in Old Montréal and mountain trails."},
+    {n:"Autumn Accessories", d:"Scarves, light beanies, and gloves for breezy evenings."}
+  ]},
+  {title:"Transportation", color:"var(--maple)", items:[
+    {n:"OPUS Card (Transit Pass)", d:"Purchase at metro stations. Best value is the Weekly or Multi-Day pass."}
+  ]},
+  {title:"Local Tips", color:"var(--maple-deep)", items:[
+    {n:"Language Focus", d:"Montréal is predominantly French-speaking, but English is widely understood in tourism."},
+    {n:"Thanksgiving Holiday (Oct 12)", d:"Banks, offices, and some shops will be closed on this Monday."}
+  ]}
+];
+
+// ---------------- RENDER: TIMELINE ----------------
+function lerpColor(a, b, t){
+  const ah = a.match(/\w\w/g).map(x=>parseInt(x,16));
+  const bh = b.match(/\w\w/g).map(x=>parseInt(x,16));
+  const c = ah.map((v,i)=>Math.round(v + (bh[i]-v)*t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function nodeColor(t){
+  return t < 0.5 ? lerpColor("57654a","c1892a", t/0.5) : lerpColor("c1892a","a8342a",(t-0.5)/0.5);
+}
+
+const mount = document.getElementById('timeline-mount');
+let weekOpened = null;
+const weeks = [
+  {label:"Week One · Oct 2 – Oct 8", range:[0,11]},
+  {label:"Week Two · Oct 9 – Oct 15", range:[12,19]}
+];
+weeks.forEach(wk=>{
+  const label = document.createElement('div');
+  label.className = 'week-label';
+  label.textContent = wk.label;
+  mount.appendChild(label);
+  const tl = document.createElement('div');
+  tl.className = 'timeline';
+  for(let i=wk.range[0]; i<=wk.range[1]; i++){
+    const item = itinerary[i];
+    const t = i/(itinerary.length-1);
+    const card = document.createElement('div');
+    card.className = 'day-card';
+    card.innerHTML = `
+      <div class="leaf-node" style="color:${nodeColor(t)}; background:${nodeColor(t)}"></div>
+      <div class="top-row">
+        <span class="date-badge">${item.date}</span>
+        <span class="time-pill">${item.time}</span>
+        ${item.flag ? `<span class="flag">${item.flag}</span>` : ''}
+      </div>
+      <h3>${item.title}</h3>
+      <p>${item.desc}</p>
+      <div class="loc-row">📍 <a href="${item.map}" target="_blank" rel="noopener">${item.loc}</a></div>
+    `;
+    tl.appendChild(card);
+  }
+  mount.appendChild(tl);
+});
+
+// ---------------- RENDER: FOOD ----------------
+const categories = ["All", ...new Set(foodItems.map(f=>f.cat))];
+const chipsEl = document.getElementById('food-chips');
+const gridEl = document.getElementById('food-grid');
+categories.forEach((c,idx)=>{
+  const b = document.createElement('button');
+  b.className = 'chip';
+  b.textContent = c;
+  b.setAttribute('aria-pressed', idx===0 ? 'true':'false');
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    renderFood(c);
+  });
+  chipsEl.appendChild(b);
+});
+function renderFood(filter){
+  gridEl.innerHTML = '';
+  foodItems.filter(f=> filter==='All' || f.cat===filter).forEach(f=>{
+    const el = document.createElement('div');
+    el.className = 'food-item';
+    el.innerHTML = `<span class="cat">${f.cat}</span><div class="name">${f.name}</div>${f.note ? `<div class="note">${f.note}</div>`:''}`;
+    gridEl.appendChild(el);
+  });
+}
+renderFood('All');
+
+// ---------------- RENDER: PACKING ----------------
+const packGrid = document.getElementById('pack-grid');
+packing.forEach(group=>{
+  const card = document.createElement('div');
+  card.className = 'pack-card';
+  card.innerHTML = `<h3><span class="pack-dot" style="background:${group.color}"></span>${group.title}</h3>
+    <ul>${group.items.map(it=>`<li><div class="pack-item">${it.n}</div><div class="pack-detail">${it.d}</div></li>`).join('')}</ul>`;
+  packGrid.appendChild(card);
+});
+
+// ---------------- TABS ----------------
+const tabBtns = document.querySelectorAll('.tab-btn');
+function activateTab(name){
+  tabBtns.forEach(b=> b.setAttribute('aria-selected', b.dataset.tab===name ? 'true':'false'));
+  document.querySelectorAll('.panel').forEach(p=> p.classList.toggle('active', p.id===name));
+  window.scrollTo({top:0, behavior:'auto'});
+}
+tabBtns.forEach(b=> b.addEventListener('click', ()=> activateTab(b.dataset.tab)));
+document.querySelectorAll('.qcard').forEach(c=> c.addEventListener('click', ()=> activateTab(c.dataset.goto)));
+</script>
+</body>
+</html>
