@@ -327,7 +327,7 @@
     transition:all .15s ease;
   }
   .chip[aria-pressed="true"]{
-    background:var(--maple); color:var(--cream); border-color:var(--maple);
+    background:var(--chip-color, var(--maple)); color:var(--cream); border-color:var(--chip-color, var(--maple));
   }
   .food-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
   .food-item{
@@ -803,6 +803,13 @@ collapseAllBtn.addEventListener('click', ()=>{
 });
 
 // ---------------- RENDER: FOOD ----------------
+const categoryColors = {
+  "Cafés": "var(--amber)",
+  "Restaurants": "var(--maple)",
+  "Local Legends": "var(--maple-deep)",
+  "Zoo": "var(--moss)",
+  "Convenience": "var(--slate)"
+};
 const categories = ["All", ...new Set(foodItems.map(f=>f.cat))];
 const chipsEl = document.getElementById('food-chips');
 const gridEl = document.getElementById('food-grid');
@@ -811,6 +818,10 @@ categories.forEach((c,idx)=>{
   b.className = 'chip';
   b.textContent = c;
   b.setAttribute('aria-pressed', idx===0 ? 'true':'false');
+  const color = categoryColors[c];
+  if(color){
+    b.style.setProperty('--chip-color', color);
+  }
   b.addEventListener('click', ()=>{
     document.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed','false'));
     b.setAttribute('aria-pressed','true');
@@ -822,8 +833,10 @@ function renderFood(filter){
   gridEl.innerHTML = '';
   foodItems.filter(f=> filter==='All' || f.cat===filter).forEach(f=>{
     const el = document.createElement('div');
+    const color = categoryColors[f.cat] || 'var(--ink-soft)';
     el.className = 'food-item';
-    el.innerHTML = `<span class="cat">${f.cat}</span><div class="name">${f.name}</div>${f.note ? `<div class="note">${f.note}</div>`:''}`;
+    el.style.borderLeft = `4px solid ${color}`;
+    el.innerHTML = `<span class="cat" style="color:${color}">${f.cat}</span><div class="name">${f.name}</div>${f.note ? `<div class="note">${f.note}</div>`:''}`;
     gridEl.appendChild(el);
   });
 }
