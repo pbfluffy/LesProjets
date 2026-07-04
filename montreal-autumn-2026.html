@@ -86,6 +86,21 @@
     background:rgba(193,137,42,0.18);
     box-shadow:inset 0 -2px 0 var(--amber);
   }
+  .sync-control{
+    display:flex; align-items:center; gap:10px;
+    margin-left:8px; padding-left:14px;
+    border-left:1px solid rgba(244,238,221,0.16);
+  }
+  .sync-status{
+    font-size:0.72rem; color:rgba(244,238,221,0.55); white-space:nowrap;
+  }
+  .sync-btn{
+    background:rgba(244,238,221,0.08); border:1px solid rgba(244,238,221,0.2);
+    color:var(--cream); border-radius:8px; padding:6px 12px;
+    font-size:0.78rem; font-family:inherit; cursor:pointer; white-space:nowrap;
+    transition:background .15s ease;
+  }
+  .sync-btn:hover{ background:rgba(244,238,221,0.16); }
 
   main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
   .panel{ display:none; animation:fadein .35s ease; }
@@ -399,6 +414,10 @@
       <button class="tab-btn" role="tab" aria-selected="false" data-tab="food">Food &amp; Local Tips</button>
       <button class="tab-btn" role="tab" aria-selected="false" data-tab="packing">Packing</button>
     </div>
+    <div class="sync-control">
+      <span class="sync-status" id="sync-status"></span>
+      <button class="sync-btn" id="sync-btn" type="button">Sign in to sync</button>
+    </div>
   </div>
 </div>
 
@@ -557,7 +576,31 @@
 
 <footer>Built from the trip planning sheet · Montréal, Oct 2–15 2026</footer>
 
-<script>
+<script type="module">
+// ---------------- FIREBASE (cross-device sync) ----------------
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
+import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut }
+  from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp }
+  from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
+  authDomain: 'auth.pumbafluffycorgi.com',
+  projectId: 'pumgoda',
+  storageBucket: 'pumgoda.firebasestorage.app',
+  messagingSenderId: '675478948836',
+  appId: '1:675478948836:web:3ad94d736b6a677d8495f1',
+};
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const firestore = getFirestore(fbApp);
+
+let currentUser = null;
+let cloudUnsubscribe = null;
+let cloudSyncBroken = false;
+const cloudDocRef = (uid) => doc(firestore, 'montrealChecklist', uid);
+
 // ---------------- DATA ----------------
 const itinerary = [
   {date:"Fri · Oct 2", time:"Morning · Arrival", title:"Arrive in Montréal &amp; Check-in", desc:"Land at Montréal-Trudeau International Airport (YUL). Head to the hotel and unpack.", loc:"WERFY Luxury Apart-Hotel", map:"https://www.google.com/maps/search/?api=1&query=WERFY+Luxury+Apart-Hotel+Montreal"},
@@ -764,6 +807,7 @@ function loadChecked(){
 }
 function saveChecked(set){
   try{ localStorage.setItem(CHECKLIST_KEY, JSON.stringify([...set])); }catch(e){}
+  if(currentUser) pushToCloud(currentUser.uid);
 }
 let checkedItems = loadChecked();
 
@@ -864,6 +908,80 @@ resetBtn.addEventListener('click', ()=>{
   checkedItems = new Set();
   saveChecked(checkedItems);
   renderPacking();
+});
+
+// ---------------- CLOUD SYNC ----------------
+async function pushToCloud(uid){
+  if(cloudSyncBroken) return;
+  try{
+    await setDoc(cloudDocRef(uid), { checkedItems:[...checkedItems], updatedAt: serverTimestamp() });
+  }catch(e){
+    console.warn('Cloud write unavailable:', e.message);
+    markSyncBroken();
+  }
+}
+function listenToCloud(uid){
+  if(cloudUnsubscribe) cloudUnsubscribe();
+  cloudUnsubscribe = onSnapshot(cloudDocRef(uid), (snap)=>{
+    if(!snap.exists()) return;
+    const cloudIds = snap.data().checkedItems || [];
+    let changed = false;
+    cloudIds.forEach(id=>{ if(!checkedItems.has(id)){ checkedItems.add(id); changed = true; } });
+    if(changed){
+      try{ localStorage.setItem(CHECKLIST_KEY, JSON.stringify([...checkedItems])); }catch(e){}
+      renderPacking();
+    }
+  }, (err)=>{
+    console.warn('Sync listener unavailable:', err.message);
+    markSyncBroken();
+  });
+}
+async function pullAndMergeCloud(uid){
+  try{
+    const snap = await getDoc(cloudDocRef(uid));
+    if(snap.exists()){
+      (snap.data().checkedItems || []).forEach(id => checkedItems.add(id));
+      try{ localStorage.setItem(CHECKLIST_KEY, JSON.stringify([...checkedItems])); }catch(e){}
+      renderPacking();
+    }
+    await pushToCloud(uid);
+    listenToCloud(uid);
+  }catch(e){
+    console.warn('Cloud sync unavailable yet:', e.message);
+    markSyncBroken();
+  }
+}
+function markSyncBroken(){
+  cloudSyncBroken = true;
+  const status = document.getElementById('sync-status');
+  if(status) status.textContent = 'Sync not set up yet';
+}
+function updateSyncUI(){
+  const btn = document.getElementById('sync-btn');
+  const status = document.getElementById('sync-status');
+  if(!btn) return;
+  if(currentUser){
+    btn.textContent = 'Sign out';
+    status.textContent = cloudSyncBroken ? 'Sync not set up yet' : `Synced as ${currentUser.displayName || currentUser.email}`;
+  }else{
+    btn.textContent = 'Sign in to sync';
+    status.textContent = '';
+  }
+}
+document.getElementById('sync-btn').addEventListener('click', async ()=>{
+  if(currentUser){
+    if(cloudUnsubscribe){ cloudUnsubscribe(); cloudUnsubscribe = null; }
+    await signOut(auth);
+  }else{
+    try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
+    catch(e){ console.warn('Sign-in failed:', e.message); }
+  }
+});
+onAuthStateChanged(auth, (user)=>{
+  currentUser = user;
+  cloudSyncBroken = false;
+  updateSyncUI();
+  if(user) pullAndMergeCloud(user.uid);
 });
 
 // ---------------- TABS ----------------
