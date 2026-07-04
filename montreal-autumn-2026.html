@@ -21,6 +21,7 @@
     --maple-deep:#7c2620;
     --cream:#F4EEDD;
     --line:#c9bd9f;
+    --slate:#4d6470;
     --radius:14px;
   }
   *{box-sizing:border-box;}
@@ -506,6 +507,10 @@
 
     <p class="price-note">2 adults, round-trip · Base fare ฿33,585 + taxes ฿24,609.21 per adult, less ฿7,044.71 discount<br><strong>Total ฿109,343.71</strong></p>
 
+    <div class="callout" style="margin-top:18px;">
+      <b>Dubai layover:</b> both legs connect through Terminal 3 on one Emirates booking. As long as you stay airside and don't clear immigration, no UAE transit visa is needed for a Thai passport. Full prep checklist is under the Packing tab → Flight Prep.
+    </div>
+
     <div class="voucher">
       <h3>WERFY Luxury Apart-Hotel</h3>
       <p class="addr">1222 Rue des Bassins, Griffintown, Montréal (QC), Canada H3C 0X7 &nbsp;·&nbsp;
@@ -619,6 +624,47 @@ const packing = [
       "Print the WERFY hotel booking confirmation",
       "Save PDF copies on your phone and in cloud storage",
       "Pack printed copies in your carry-on, not checked luggage"
+    ]},
+    {n:"Visa Application Forms (IMM 5257 + IMM 5645)", d:"Required forms IRCC checks against your other documents — easy to miss.", sub:[
+      "Complete IMM 5257 (Application for Visitor Visa) online, one per traveller",
+      "Complete IMM 5645 (Family Information Form) and sign/date it",
+      "Double-check names, dates, and passport numbers match your passport exactly",
+      "Save and print the final validated PDF of both forms"
+    ]},
+    {n:"Passport-Style Photos", d:"Two recent, identical photos to IRCC spec — needed for the application.", sub:[
+      "Take 2 recent, identical photos (35×45mm, plain light background)",
+      "Confirm no glasses or headwear, unless worn for religious reasons",
+      "Write name and date of birth lightly in pencil on the back if your VAC requires it",
+      "Keep spare copies in case a form needs an extra photo"
+    ]},
+    {n:"Proof of Ties to Thailand (Return Intent)", d:"Shows the officer you plan to return home — a common reason for refusal if missing.", sub:[
+      "Get an approved leave letter or employment letter from your employer",
+      "Gather property, lease, or family documents showing ties at home",
+      "Write a short cover letter explaining the trip purpose and planned return date",
+      "Include copies of ongoing commitments in Thailand (work, study, family)"
+    ]}
+  ]},
+  {title:"Flight Prep", color:"var(--slate)", items:[
+    {n:"Online Check-in", d:"Emirates opens check-in 48 hours before each departure.", sub:[
+      "Check in online 48h before each flight, via app or website",
+      "Select seats for both the outbound and return legs",
+      "Download or print both boarding passes"
+    ]},
+    {n:"Save Booking Confirmation", d:"Keep your Emirates PNR / e-ticket accessible offline.", sub:[
+      "Save the Emirates booking reference (PNR) and e-ticket number",
+      "Add the booking to the Emirates app for offline access",
+      "Email yourself a copy of the full itinerary as backup"
+    ]},
+    {n:"Dubai Layover — No Transit Visa Needed", d:"Both legs connect through Terminal 3 on one Emirates booking, staying airside.", sub:[
+      "Confirm you're not leaving the airport during either layover",
+      "Head straight to the transfer/security desk after landing",
+      "Keep your connecting boarding pass ready at transfer security",
+      "Be back at the gate 30–45 min before the next departure"
+    ]},
+    {n:"Airport Arrival Timing", d:"Arrive with enough buffer for an international departure.", sub:[
+      "Arrive at Suvarnabhumi (BKK) at least 3 hours before the Oct 1 flight",
+      "Arrive at Montréal-Trudeau (YUL) at least 3 hours before the Oct 15 return",
+      "Have printed and digital copies of passport, visa, and boarding pass ready"
     ]}
   ]},
   {title:"Clothing", color:"var(--amber)", items:[
@@ -631,7 +677,8 @@ const packing = [
   ]},
   {title:"Local Tips", color:"var(--maple-deep)", items:[
     {n:"Language Focus", d:"Montréal is predominantly French-speaking, but English is widely understood in tourism."},
-    {n:"Thanksgiving Holiday (Oct 12)", d:"Banks, offices, and some shops will be closed on this Monday."}
+    {n:"Thanksgiving Holiday (Oct 12)", d:"Banks, offices, and some shops will be closed on this Monday."},
+    {n:"Travel Insurance (Recommended)", d:"Not mandatory for a TRV, but strongly advised — Canadian medical care is expensive without it."}
   ]}
 ];
 
