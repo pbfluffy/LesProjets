@@ -591,31 +591,8 @@
 <footer>Built from the trip planning sheet · Montréal, Oct 2–15 2026</footer>
 
 <script type="module">
-// ---------------- FIREBASE (cross-device sync) ----------------
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
-import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut }
-  from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp }
-  from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
-
-const firebaseConfig = {
-  apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
-  authDomain: 'auth.pumbafluffycorgi.com',
-  projectId: 'pumgoda',
-  storageBucket: 'pumgoda.firebasestorage.app',
-  messagingSenderId: '675478948836',
-  appId: '1:675478948836:web:3ad94d736b6a677d8495f1',
-};
-const fbApp = initializeApp(firebaseConfig);
-const auth = getAuth(fbApp);
-const firestore = getFirestore(fbApp);
-
-let currentUser = null;
-let cloudUnsubscribe = null;
-let cloudSyncBroken = false;
-let lastSyncErrorCode = null;
-const cloudDocRef = (uid) => doc(firestore, 'montrealChecklist', uid);
-
+// This script has zero external dependencies. It must always run,
+// even if the Firebase sync script below fails to load (offline, ad blocker, etc).
 // ---------------- DATA ----------------
 const itinerary = [
   {date:"Fri · Oct 2", time:"Morning · Arrival", title:"Arrive in Montréal &amp; Check-in", desc:"Land at Montréal-Trudeau International Airport (YUL). Head to the hotel and unpack.", loc:"WERFY Luxury Apart-Hotel", map:"https://www.google.com/maps/search/?api=1&query=WERFY+Luxury+Apart-Hotel+Montreal"},
@@ -842,7 +819,7 @@ function renderFood(filter){
 }
 renderFood('All');
 
-// ---------------- RENDER: PACKING CHECKLIST ----------------
+// ---------------- RENDER: PACKING CHECKLIST (core, local-only) ----------------
 const CHECKLIST_KEY = 'montreal2026_checklist_v1';
 function loadChecked(){
   try{
@@ -852,9 +829,22 @@ function loadChecked(){
 }
 function saveChecked(set){
   try{ localStorage.setItem(CHECKLIST_KEY, JSON.stringify([...set])); }catch(e){}
-  if(currentUser) pushToCloud(currentUser.uid);
+  if(typeof window.checklistBridge.onChange === 'function'){
+    try{ window.checklistBridge.onChange([...set]); }catch(e){ console.warn('Cloud sync hook failed:', e); }
+  }
 }
 let checkedItems = loadChecked();
+
+// bridge so the (optional) sync script can read/replace state without a hard dependency
+window.checklistBridge = {
+  get: () => [...checkedItems],
+  set: (idsArray) => {
+    checkedItems = new Set(idsArray);
+    try{ localStorage.setItem(CHECKLIST_KEY, JSON.stringify(idsArray)); }catch(e){}
+    renderPacking();
+  },
+  onChange: null
+};
 
 // give every packing item a stable id: "<group-slug>-<index>"
 packing.forEach(group=>{
@@ -950,16 +940,78 @@ function renderPacking(){
 }
 renderPacking();
 resetBtn.addEventListener('click', ()=>{
+  if(!confirm('Reset the whole packing checklist? This clears every checked box.')) return;
   checkedItems = new Set();
   saveChecked(checkedItems);
   renderPacking();
 });
 
-// ---------------- CLOUD SYNC ----------------
-async function pushToCloud(uid){
+// ---------------- TABS ----------------
+const tabBtns = document.querySelectorAll('.tab-btn');
+function activateTab(name){
+  tabBtns.forEach(b=> b.setAttribute('aria-selected', b.dataset.tab===name ? 'true':'false'));
+  document.querySelectorAll('.panel').forEach(p=> p.classList.toggle('active', p.id===name));
+  window.scrollTo({top:0, behavior:'auto'});
+}
+tabBtns.forEach(b=> b.addEventListener('click', ()=> activateTab(b.dataset.tab)));
+document.querySelectorAll('.qcard').forEach(c=> c.addEventListener('click', ()=> activateTab(c.dataset.goto)));
+
+</script>
+
+<script type="module">
+// This script is best-effort. If Firebase fails to load (offline, ad blocker,
+// blocked domain), everything above (itinerary, food guide, packing checklist,
+// tabs) still works fully — this script only adds cross-device sync and the
+// login-gated flight/hotel tab on top.
+let auth, firestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp;
+let currentUser = null;
+let cloudUnsubscribe = null;
+let cloudSyncBroken = false;
+let lastSyncErrorCode = null;
+let cloudDocRef;
+
+function markSyncUnavailable(){
+  const btn = document.getElementById('sync-btn');
+  const status = document.getElementById('sync-status');
+  if(btn){ btn.textContent = 'Sync unavailable'; btn.disabled = true; btn.style.opacity = '0.5'; btn.style.cursor = 'not-allowed'; }
+  if(status){ status.textContent = 'Offline — cloud sync could not load'; status.classList.add('status-warn'); }
+  const travelLocked = document.getElementById('travel-locked');
+  if(travelLocked){
+    travelLocked.querySelector('p').textContent = '⚠️ Flight/hotel details need cloud sync, which could not load right now (offline, ad blocker, or network issue). Try reloading the page.';
+    const travelBtn = document.getElementById('travel-signin-btn');
+    if(travelBtn){ travelBtn.disabled = true; travelBtn.style.opacity = '0.5'; travelBtn.style.cursor = 'not-allowed'; travelBtn.textContent = 'Unavailable'; }
+  }
+}
+
+(async () => {
+  try{
+    const [{ initializeApp }, authMod, fsMod] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js'),
+      import('https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js'),
+    ]);
+    const { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } = authMod;
+    const { getFirestore } = fsMod;
+    ({ doc, getDoc, setDoc, onSnapshot, serverTimestamp } = fsMod);
+
+    const firebaseConfig = {
+      apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
+      authDomain: 'auth.pumbafluffycorgi.com',
+      projectId: 'pumgoda',
+      storageBucket: 'pumgoda.firebasestorage.app',
+      messagingSenderId: '675478948836',
+      appId: '1:675478948836:web:3ad94d736b6a677d8495f1',
+    };
+    const fbApp = initializeApp(firebaseConfig);
+    auth = getAuth(fbApp);
+    firestore = getFirestore(fbApp);
+    cloudDocRef = (uid) => doc(firestore, 'montrealChecklist', uid);
+
+    // ---------------- CLOUD SYNC (uses window.checklistBridge, never touches checkedItems directly) ----------------
+async function pushToCloud(uid, idsArray){
   if(cloudSyncBroken) return;
   try{
-    await setDoc(cloudDocRef(uid), { checkedItems:[...checkedItems], updatedAt: serverTimestamp() });
+    await setDoc(cloudDocRef(uid), { checkedItems: idsArray, updatedAt: serverTimestamp() });
   }catch(e){
     console.warn('Cloud write unavailable:', e.code || e.message);
     markSyncBroken(e.code);
@@ -969,13 +1021,12 @@ function listenToCloud(uid){
   if(cloudUnsubscribe) cloudUnsubscribe();
   cloudUnsubscribe = onSnapshot(cloudDocRef(uid), (snap)=>{
     if(!snap.exists()) return;
-    const cloudIds = new Set(snap.data().checkedItems || []);
-    const same = cloudIds.size === checkedItems.size && [...cloudIds].every(id => checkedItems.has(id));
+    const cloudIds = snap.data().checkedItems || [];
+    const localIds = window.checklistBridge.get();
+    const same = cloudIds.length === localIds.length && cloudIds.every(id => localIds.includes(id));
     if(!same){
       // full replace (not union) so unchecks made on another device propagate too
-      checkedItems = cloudIds;
-      try{ localStorage.setItem(CHECKLIST_KEY, JSON.stringify([...checkedItems])); }catch(e){}
-      renderPacking();
+      window.checklistBridge.set(cloudIds);
     }
   }, (err)=>{
     console.warn('Sync listener unavailable:', err.code || err.message);
@@ -989,20 +1040,17 @@ async function pullAndMergeCloud(uid){
     const alreadyMerged = localStorage.getItem(MERGE_DONE_KEY) === uid;
     if(!alreadyMerged){
       // first sign-in on this device: combine local + cloud so nothing is lost
+      const merged = new Set(window.checklistBridge.get());
       if(snap.exists()){
-        (snap.data().checkedItems || []).forEach(id => checkedItems.add(id));
+        (snap.data().checkedItems || []).forEach(id => merged.add(id));
       }
-      try{
-        localStorage.setItem(CHECKLIST_KEY, JSON.stringify([...checkedItems]));
-        localStorage.setItem(MERGE_DONE_KEY, uid);
-      }catch(e){}
-      renderPacking();
-      await pushToCloud(uid);
+      const mergedArr = [...merged];
+      window.checklistBridge.set(mergedArr);
+      try{ localStorage.setItem(MERGE_DONE_KEY, uid); }catch(e){}
+      await pushToCloud(uid, mergedArr);
     }else if(snap.exists()){
       // every later page load: cloud is the source of truth, adopt it directly
-      checkedItems = new Set(snap.data().checkedItems || []);
-      try{ localStorage.setItem(CHECKLIST_KEY, JSON.stringify([...checkedItems])); }catch(e){}
-      renderPacking();
+      window.checklistBridge.set(snap.data().checkedItems || []);
     }
     listenToCloud(uid);
   }catch(e){
@@ -1010,6 +1058,9 @@ async function pullAndMergeCloud(uid){
     markSyncBroken(e.code);
   }
 }
+window.checklistBridge.onChange = (idsArray) => {
+  if(currentUser) pushToCloud(currentUser.uid, idsArray);
+};
 function markSyncBroken(errCode){
   cloudSyncBroken = true;
   lastSyncErrorCode = errCode || null;
@@ -1048,7 +1099,7 @@ async function attemptSignIn(){
   catch(e){ console.warn('Sign-in failed:', e.message); }
 }
 
-// ---------------- GATED FLIGHTS & HOTEL (single JSON field) ----------------
+    // ---------------- GATED FLIGHTS & HOTEL (single JSON field) ----------------
 function renderLeg(leg){
   return `<div class="leg">
       <div class="leg-time"><span>${leg.time1} ${leg.code1}${leg.plus1_1 ? ' <sup>+1</sup>':''}</span><span class="arrow-line">${leg.flight} · ${leg.duration}</span><span>${leg.time2} ${leg.code2}${leg.plus1_2 ? ' <sup>+1</sup>':''}</span></div>
@@ -1146,15 +1197,12 @@ onAuthStateChanged(auth, (user)=>{
   if(user) pullAndMergeCloud(user.uid);
 });
 
-// ---------------- TABS ----------------
-const tabBtns = document.querySelectorAll('.tab-btn');
-function activateTab(name){
-  tabBtns.forEach(b=> b.setAttribute('aria-selected', b.dataset.tab===name ? 'true':'false'));
-  document.querySelectorAll('.panel').forEach(p=> p.classList.toggle('active', p.id===name));
-  window.scrollTo({top:0, behavior:'auto'});
-}
-tabBtns.forEach(b=> b.addEventListener('click', ()=> activateTab(b.dataset.tab)));
-document.querySelectorAll('.qcard').forEach(c=> c.addEventListener('click', ()=> activateTab(c.dataset.goto)));
+  }catch(e){
+    console.warn('Firebase failed to load — page still works, cloud sync/gated content unavailable:', e);
+    markSyncUnavailable();
+  }
+})();
+
 </script>
 </body>
 </html>
