@@ -94,6 +94,9 @@
   .sync-status{
     font-size:0.72rem; color:rgba(244,238,221,0.55); white-space:nowrap;
   }
+  .sync-status.status-ok{ color:#8fb37a; }
+  .sync-status.status-warn{ color:#e0a83e; }
+  .sync-status.status-error{ color:#e07a5f; }
   .sync-btn{
     background:rgba(244,238,221,0.08); border:1px solid rgba(244,238,221,0.2);
     color:var(--cream); border-radius:8px; padding:6px 12px;
@@ -309,6 +312,11 @@
     flex-shrink:0;
   }
   .locked-panel .sync-btn:hover{ background:#3a4e58; }
+  .locked-panel.status-denied{
+    background:rgba(224,122,95,0.08); border-color:#e07a5f;
+  }
+  .locked-panel.status-denied p{ color:#c65a3f; }
+  .locked-panel .error-code{ display:block; font-size:0.72rem; color:var(--ink-soft); margin-top:4px; font-family:'IBM Plex Mono',monospace; }
 
   /* ---------- FOOD / TIPS ---------- */
   .chips{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:22px; }
@@ -605,6 +613,7 @@ const firestore = getFirestore(fbApp);
 let currentUser = null;
 let cloudUnsubscribe = null;
 let cloudSyncBroken = false;
+let lastSyncErrorCode = null;
 const cloudDocRef = (uid) => doc(firestore, 'montrealChecklist', uid);
 
 // ---------------- DATA ----------------
@@ -939,8 +948,8 @@ async function pushToCloud(uid){
   try{
     await setDoc(cloudDocRef(uid), { checkedItems:[...checkedItems], updatedAt: serverTimestamp() });
   }catch(e){
-    console.warn('Cloud write unavailable:', e.message);
-    markSyncBroken();
+    console.warn('Cloud write unavailable:', e.code || e.message);
+    markSyncBroken(e.code);
   }
 }
 function listenToCloud(uid){
@@ -956,8 +965,8 @@ function listenToCloud(uid){
       renderPacking();
     }
   }, (err)=>{
-    console.warn('Sync listener unavailable:', err.message);
-    markSyncBroken();
+    console.warn('Sync listener unavailable:', err.code || err.message);
+    markSyncBroken(err.code);
   });
 }
 const MERGE_DONE_KEY = 'montreal2026_cloud_merge_done';
@@ -984,22 +993,29 @@ async function pullAndMergeCloud(uid){
     }
     listenToCloud(uid);
   }catch(e){
-    console.warn('Cloud sync unavailable yet:', e.message);
-    markSyncBroken();
+    console.warn('Cloud sync unavailable yet:', e.code || e.message);
+    markSyncBroken(e.code);
   }
 }
-function markSyncBroken(){
+function markSyncBroken(errCode){
   cloudSyncBroken = true;
-  const status = document.getElementById('sync-status');
-  if(status) status.textContent = 'Sync not set up yet';
+  lastSyncErrorCode = errCode || null;
+  updateSyncUI();
 }
 function updateSyncUI(){
   const btn = document.getElementById('sync-btn');
   const status = document.getElementById('sync-status');
   if(!btn) return;
+  status.classList.remove('status-ok', 'status-warn', 'status-error');
   if(currentUser){
     btn.textContent = 'Sign out';
-    status.textContent = cloudSyncBroken ? 'Sync not set up yet' : `Synced as ${currentUser.displayName || currentUser.email}`;
+    if(cloudSyncBroken){
+      status.textContent = 'Checklist sync error' + (lastSyncErrorCode ? ` (${lastSyncErrorCode})` : '');
+      status.classList.add('status-warn');
+    }else{
+      status.textContent = `Synced as ${currentUser.displayName || currentUser.email}`;
+      status.classList.add('status-ok');
+    }
   }else{
     btn.textContent = 'Sign in to sync';
     status.textContent = '';
@@ -1078,7 +1094,9 @@ function renderTravelContent(data){
 async function loadTravelContent(){
   const lockedEl = document.getElementById('travel-locked');
   const contentEl = document.getElementById('travel-content');
+  lockedEl.classList.remove('status-denied');
   if(!currentUser){
+    lockedEl.querySelector('p').innerHTML = '🔒 Flight and hotel details are only visible after signing in.';
     lockedEl.style.display = 'flex';
     contentEl.style.display = 'none';
     return;
@@ -1091,13 +1109,17 @@ async function loadTravelContent(){
       lockedEl.style.display = 'none';
       contentEl.style.display = 'block';
     }else{
-      lockedEl.querySelector('p').textContent = "🔒 Signed in, but flight/hotel details haven't been added yet.";
+      lockedEl.querySelector('p').innerHTML = "🔒 Signed in — but flight/hotel details haven't been added to the database yet.";
       lockedEl.style.display = 'flex';
       contentEl.style.display = 'none';
     }
   }catch(e){
-    console.warn('Travel content unavailable:', e.message);
-    lockedEl.querySelector('p').textContent = "🔒 Signed in, but flight/hotel details aren't accessible yet.";
+    console.warn('Travel content unavailable:', e.code || e.message);
+    const isDenied = e.code === 'permission-denied';
+    lockedEl.classList.add('status-denied');
+    lockedEl.querySelector('p').innerHTML = isDenied
+      ? `🚫 Access denied — this Google account isn't on the allowed list for these details.<span class="error-code">${e.code}</span>`
+      : `⚠️ Signed in, but couldn't load flight/hotel details right now.<span class="error-code">${e.code || e.message}</span>`;
     lockedEl.style.display = 'flex';
     contentEl.style.display = 'none';
   }
