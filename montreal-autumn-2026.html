@@ -924,10 +924,11 @@ function listenToCloud(uid){
   if(cloudUnsubscribe) cloudUnsubscribe();
   cloudUnsubscribe = onSnapshot(cloudDocRef(uid), (snap)=>{
     if(!snap.exists()) return;
-    const cloudIds = snap.data().checkedItems || [];
-    let changed = false;
-    cloudIds.forEach(id=>{ if(!checkedItems.has(id)){ checkedItems.add(id); changed = true; } });
-    if(changed){
+    const cloudIds = new Set(snap.data().checkedItems || []);
+    const same = cloudIds.size === checkedItems.size && [...cloudIds].every(id => checkedItems.has(id));
+    if(!same){
+      // full replace (not union) so unchecks made on another device propagate too
+      checkedItems = cloudIds;
       try{ localStorage.setItem(CHECKLIST_KEY, JSON.stringify([...checkedItems])); }catch(e){}
       renderPacking();
     }
