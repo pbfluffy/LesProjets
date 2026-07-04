@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Montréal Autumn Itinerary 2026</title>
+<meta name="description" content="A 14-day autumn Montréal trip itinerary: day-by-day plan, flights, hotel, packing checklist, and local food guide.">
+<meta property="og:title" content="Montréal Autumn Itinerary 2026">
+<meta property="og:description" content="A 14-day autumn Montréal trip itinerary: day-by-day plan, flights, hotel, packing checklist, and local food guide.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2C7 6 3 10 3 15a9 9 0 0018 0c0-5-4-9-9-13z' fill='%23c1892a'/%3E%3Cpath d='M12 4v17' stroke='%23271812' stroke-width='1.1'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -456,6 +461,7 @@
     </div>
     <div class="sync-control">
       <span class="sync-status" id="sync-status"></span>
+      <button class="sync-btn" id="sync-retry-btn" type="button" style="display:none;">Retry</button>
       <button class="sync-btn" id="sync-btn" type="button">Sign in to sync</button>
     </div>
   </div>
@@ -492,7 +498,7 @@
         </button>
         <button class="qcard" data-goto="travel">
           <h3>Flights &amp; hotel</h3>
-          <p>Emirates via Dubai, both ways · WERFY Apart-Hotel in Griffintown.</p>
+          <p>Emirates via Dubai, both ways · WERFY Apart-Hotel in Griffintown. <em>Sign-in required for full details.</em></p>
         </button>
         <button class="qcard" data-goto="food">
           <h3>Food &amp; local tips</h3>
@@ -1069,6 +1075,7 @@ function markSyncBroken(errCode){
 function updateSyncUI(){
   const btn = document.getElementById('sync-btn');
   const status = document.getElementById('sync-status');
+  const retryBtn = document.getElementById('sync-retry-btn');
   if(!btn) return;
   status.classList.remove('status-ok', 'status-warn', 'status-error');
   if(currentUser){
@@ -1076,15 +1083,26 @@ function updateSyncUI(){
     if(cloudSyncBroken){
       status.textContent = 'Checklist sync error' + (lastSyncErrorCode ? ` (${lastSyncErrorCode})` : '');
       status.classList.add('status-warn');
+      if(retryBtn) retryBtn.style.display = 'inline-block';
     }else{
       status.textContent = `Synced as ${currentUser.displayName || currentUser.email}`;
       status.classList.add('status-ok');
+      if(retryBtn) retryBtn.style.display = 'none';
     }
   }else{
     btn.textContent = 'Sign in to sync';
     status.textContent = '';
+    if(retryBtn) retryBtn.style.display = 'none';
   }
 }
+document.getElementById('sync-retry-btn').addEventListener('click', ()=>{
+  if(!currentUser) return;
+  cloudSyncBroken = false;
+  lastSyncErrorCode = null;
+  updateSyncUI();
+  pullAndMergeCloud(currentUser.uid);
+  loadTravelContent();
+});
 document.getElementById('sync-btn').addEventListener('click', async ()=>{
   if(currentUser){
     if(cloudUnsubscribe){ cloudUnsubscribe(); cloudUnsubscribe = null; }
