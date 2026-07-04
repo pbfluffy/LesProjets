@@ -173,8 +173,12 @@
     font-family:inherit; color:var(--ink);
   }
   .qcard:hover{ transform:translateY(-2px); box-shadow:0 10px 22px rgba(60,40,20,0.12); }
-  .qcard-static{ cursor:default; }
+  .qcard-static{
+    cursor:default; background:transparent; border:1px solid var(--line);
+    border-style:dashed;
+  }
   .qcard-static:hover{ transform:none; box-shadow:none; }
+  .qcard-static h3{ color:var(--ink-soft); font-size:0.95rem; }
   .qcard h3{ margin:0 0 6px; font-size:1.05rem; }
   .qcard p{ margin:0; color:var(--ink-soft); font-size:0.87rem; }
 
@@ -200,7 +204,7 @@
   .day-card{
     position:relative; background:var(--cream);
     border:1px solid var(--line); border-radius:var(--radius);
-    padding:16px 18px 16px 20px; margin-bottom:16px;
+    padding:16px 34px 16px 20px; margin-bottom:16px;
     cursor:pointer;
   }
   .day-card .day-body{
@@ -370,6 +374,10 @@
     padding:5px 10px; font-size:0.76rem; color:var(--ink-soft);
     cursor:pointer; font-family:inherit; white-space:nowrap;
   }
+  .reset-btn.danger{
+    border-color:rgba(168,52,42,0.35); color:var(--maple-deep);
+  }
+  .reset-btn.danger:hover{ background:var(--maple); border-color:var(--maple); color:var(--cream); }
   .checklist-progress .reset-btn:hover{ color:var(--maple-deep); border-color:var(--maple-deep); }
 
   .pack-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; }
@@ -587,7 +595,7 @@
     <div class="checklist-progress">
       <span class="count" id="checklist-count">0 / 0 ready</span>
       <div class="bar-track"><div class="bar-fill" id="checklist-bar"></div></div>
-      <button class="reset-btn" id="checklist-reset" type="button">Reset</button>
+      <button class="reset-btn danger" id="checklist-reset" type="button">Reset</button>
     </div>
     <div class="pack-grid" id="pack-grid"></div>
   </section>
@@ -1113,8 +1121,18 @@ document.getElementById('sync-btn').addEventListener('click', async ()=>{
 });
 document.getElementById('travel-signin-btn').addEventListener('click', attemptSignIn);
 async function attemptSignIn(){
+  const status = document.getElementById('sync-status');
+  const travelLocked = document.getElementById('travel-locked');
+  if(status) status.textContent = 'Signing in…';
+  if(travelLocked && travelLocked.style.display !== 'none'){
+    travelLocked.querySelector('p').textContent = 'Signing in…';
+  }
   try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
-  catch(e){ console.warn('Sign-in failed:', e.message); }
+  catch(e){
+    console.warn('Sign-in failed:', e.message);
+    if(status) status.textContent = '';
+    updateSyncUI();
+  }
 }
 
     // ---------------- GATED FLIGHTS & HOTEL (single JSON field) ----------------
@@ -1183,6 +1201,9 @@ async function loadTravelContent(){
     contentEl.style.display = 'none';
     return;
   }
+  lockedEl.querySelector('p').textContent = 'Loading flight & hotel details…';
+  lockedEl.style.display = 'flex';
+  contentEl.style.display = 'none';
   try{
     const snap = await getDoc(doc(firestore, 'tripSecrets', 'montreal2026'));
     if(snap.exists() && snap.data().flightsHotel){
