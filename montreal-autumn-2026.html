@@ -285,6 +285,17 @@
   }
   .callout.warn{ background:rgba(168,52,42,0.07); border-left-color:var(--maple); }
   .callout b{ color:var(--maple-deep); }
+  .locked-panel{
+    margin-top:14px; padding:16px 18px; border-radius:10px;
+    background:rgba(77,100,112,0.08); border:1px dashed var(--slate);
+    display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  }
+  .locked-panel p{ margin:0; font-size:0.85rem; color:var(--ink-soft); flex:1; min-width:200px; }
+  .locked-panel .sync-btn{
+    background:var(--slate); border:1px solid var(--slate); color:var(--cream);
+    flex-shrink:0;
+  }
+  .locked-panel .sync-btn:hover{ background:#3a4e58; }
 
   /* ---------- FOOD / TIPS ---------- */
   .chips{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:22px; }
@@ -536,15 +547,25 @@
         <a href="https://www.google.com/maps/search/?api=1&query=WERFY+Luxury+Apart-Hotel+Montreal" target="_blank" rel="noopener">View on map ↗</a>
       </p>
       <div class="vgrid">
-        <div><span class="stat-label">Booking ref</span><span class="stat-value">2607030012528274734</span></div>
         <div><span class="stat-label">Check-in</span><span class="stat-value">Oct 2, 2026</span></div>
         <div><span class="stat-label">Check-out</span><span class="stat-value">Oct 15, 2026</span></div>
         <div><span class="stat-label">Room</span><span class="stat-value">1 × Comfort, 2 adults</span></div>
-        <div><span class="stat-label">Property phone</span><span class="stat-value">+1 514 758 2738</span></div>
-        <div><span class="stat-label">Payment on file</span><span class="stat-value">Mastercard ···· 7428</span></div>
       </div>
       <div class="callout">Non-smoking room, large bed requested. Special requests are subject to availability upon arrival.</div>
-      <div class="callout warn"><b>Cancellation policy:</b> Free cancellation before Sept 30, 2026. Cancelling within 2 days of arrival or no-show incurs a charge for the full stay.</div>
+
+      <div id="voucher-locked" class="locked-panel">
+        <p>🔒 Booking reference, property phone, payment on file, and cancellation policy are only visible after signing in.</p>
+        <button class="sync-btn" id="voucher-signin-btn" type="button">Sign in to view</button>
+      </div>
+
+      <div id="voucher-secure-wrap" style="display:none;">
+        <div class="vgrid" style="margin-top:14px;">
+          <div><span class="stat-label">Booking ref</span><span class="stat-value" id="secure-booking-ref">—</span></div>
+          <div><span class="stat-label">Property phone</span><span class="stat-value" id="secure-phone">—</span></div>
+          <div><span class="stat-label">Payment on file</span><span class="stat-value" id="secure-payment">—</span></div>
+        </div>
+        <div class="callout warn"><b>Cancellation policy:</b> <span id="secure-cancellation-text">—</span></div>
+      </div>
     </div>
   </section>
 
@@ -988,14 +1009,52 @@ document.getElementById('sync-btn').addEventListener('click', async ()=>{
     if(cloudUnsubscribe){ cloudUnsubscribe(); cloudUnsubscribe = null; }
     await signOut(auth);
   }else{
-    try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
-    catch(e){ console.warn('Sign-in failed:', e.message); }
+    await attemptSignIn();
   }
 });
+document.getElementById('voucher-signin-btn').addEventListener('click', attemptSignIn);
+async function attemptSignIn(){
+  try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch(e){ console.warn('Sign-in failed:', e.message); }
+}
+
+// ---------------- GATED VOUCHER DETAILS ----------------
+async function loadVoucherSecrets(){
+  const lockedEl = document.getElementById('voucher-locked');
+  const secureEl = document.getElementById('voucher-secure-wrap');
+  if(!currentUser){
+    lockedEl.style.display = 'flex';
+    secureEl.style.display = 'none';
+    return;
+  }
+  try{
+    const snap = await getDoc(doc(firestore, 'tripSecrets', 'montreal2026'));
+    if(snap.exists()){
+      const d = snap.data();
+      document.getElementById('secure-booking-ref').textContent = d.bookingRef || '—';
+      document.getElementById('secure-phone').textContent = d.phone || '—';
+      document.getElementById('secure-payment').textContent = d.payment || '—';
+      document.getElementById('secure-cancellation-text').textContent = d.cancellationPolicy || '—';
+      lockedEl.style.display = 'none';
+      secureEl.style.display = 'block';
+    }else{
+      lockedEl.querySelector('p').textContent = "🔒 Signed in, but booking details haven't been added yet.";
+      lockedEl.style.display = 'flex';
+      secureEl.style.display = 'none';
+    }
+  }catch(e){
+    console.warn('Voucher secrets unavailable:', e.message);
+    lockedEl.querySelector('p').textContent = '🔒 Signed in, but booking details aren\'t accessible yet.';
+    lockedEl.style.display = 'flex';
+    secureEl.style.display = 'none';
+  }
+}
+
 onAuthStateChanged(auth, (user)=>{
   currentUser = user;
   cloudSyncBroken = false;
   updateSyncUI();
+  loadVoucherSecrets();
   if(user) pullAndMergeCloud(user.uid);
 });
 
