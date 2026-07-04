@@ -744,6 +744,17 @@ const packing = [
     ]}
   ]},
   {title:"Flight Prep", color:"var(--slate)", items:[
+    {n:"Book Flights (Emirates via Dubai)", d:"Not booked yet — this is the plan, not a confirmed ticket.", sub:[
+      "Compare fares for Oct 1 outbound / Oct 15 return",
+      "Confirm the Dubai layover times still work for you",
+      "Complete payment and get the e-ticket",
+      "Save the confirmation email somewhere safe"
+    ]},
+    {n:"Book &amp; Confirm Hotel (WERFY Griffintown)", d:"Confirm once the reservation is actually paid/locked in.", sub:[
+      "Double-check the cancellation policy before paying",
+      "Complete payment or confirm the reservation",
+      "Save the booking confirmation email"
+    ]},
     {n:"Save Booking Confirmation", d:"Keep your Emirates PNR / e-ticket accessible offline.", sub:[
       "Save the Emirates booking reference (PNR) and e-ticket number",
       "Add the booking to the Emirates app for offline access",
@@ -1042,6 +1053,9 @@ function renderTripStatus(){
   else if(anyVisaChecked){ visaValue = 'In progress'; visaClass = 'ts-pending'; }
   else{ visaValue = 'Not started'; visaClass = 'ts-pending'; }
 
+  const flightsBooked = checkedItems.has('flight-prep-0');
+  const hotelBooked = checkedItems.has('flight-prep-1');
+
   mount.innerHTML = `
     <div class="ts-item">
       <div class="ts-label">🗓️ Countdown</div>
@@ -1055,11 +1069,13 @@ function renderTripStatus(){
     </div>
     <div class="ts-item">
       <div class="ts-label">✈️ Flights</div>
-      <div class="ts-value ts-ok">✓ Booked</div>
+      <div class="ts-value ${flightsBooked ? 'ts-ok' : 'ts-pending'}">${flightsBooked ? '✓ Booked' : 'Not booked yet'}</div>
+      <div class="ts-note">from your Packing checklist</div>
     </div>
     <div class="ts-item">
       <div class="ts-label">🏨 Hotel</div>
-      <div class="ts-value ts-ok">✓ Booked</div>
+      <div class="ts-value ${hotelBooked ? 'ts-ok' : 'ts-pending'}">${hotelBooked ? '✓ Booked' : 'Not booked yet'}</div>
+      <div class="ts-note">from your Packing checklist</div>
     </div>
     <div class="ts-item">
       <div class="ts-label">🌤️ Weather</div>
