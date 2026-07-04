@@ -546,83 +546,12 @@
       <h2>Flights &amp; hotel</h2>
     </div>
 
-    <div class="flight-grid">
-      <div class="ticket">
-        <div class="ticket-head">
-          <div>
-            <div class="label">Outbound · Thu Oct 1, 2026</div>
-            <div class="route">BKK <span class="arrow">✈</span> YUL</div>
-          </div>
-          <div class="label" style="text-align:right">Emirates<br>2 stops legs</div>
-        </div>
-        <div class="leg">
-          <div class="leg-time"><span>21:35 BKK</span><span class="arrow-line">EK373 · 6h15m</span><span>00:50 DXB <sup>+1</sup></span></div>
-          <div class="leg-meta">Suvarnabhumi → Dubai Terminal 3 · Airbus A380</div>
-        </div>
-        <div class="layover">1h 40m layover · Dubai (DXB)</div>
-        <div class="leg">
-          <div class="leg-time"><span>02:30 DXB <sup>+1</sup></span><span class="arrow-line">EK243 · 13h30m</span><span>08:00 YUL <sup>+1</sup></span></div>
-          <div class="leg-meta">Dubai Terminal 3 → Montréal-Trudeau · Airbus A350</div>
-        </div>
-        <div class="ticket-foot"><span>Total travel time</span><span class="mono">21h 25m</span></div>
-      </div>
-
-      <div class="ticket">
-        <div class="ticket-head">
-          <div>
-            <div class="label">Return · Thu Oct 15, 2026</div>
-            <div class="route">YUL <span class="arrow">✈</span> BKK</div>
-          </div>
-          <div class="label" style="text-align:right">Emirates<br>Best fare</div>
-        </div>
-        <div class="leg">
-          <div class="leg-time"><span>10:15 YUL</span><span class="arrow-line">EK244 · 12h15m</span><span>06:30 DXB <sup>+1</sup></span></div>
-          <div class="leg-meta">Montréal-Trudeau → Dubai Terminal 3 · Airbus A350</div>
-        </div>
-        <div class="layover">2h 30m layover · Dubai (DXB)</div>
-        <div class="leg">
-          <div class="leg-time"><span>09:00 DXB <sup>+1</sup></span><span class="arrow-line">EK370 · 6h25m</span><span>18:25 BKK <sup>+1</sup></span></div>
-          <div class="leg-meta">Dubai Terminal 3 → Suvarnabhumi · Boeing 777-300ER</div>
-        </div>
-        <div class="ticket-foot"><span>Total travel time</span><span class="mono">21h 10m</span></div>
-      </div>
+    <div id="travel-locked" class="locked-panel" style="padding:40px 28px; flex-direction:column; text-align:center; gap:14px;">
+      <p style="margin:0; font-size:0.95rem;">🔒 Flight and hotel details are only visible after signing in.</p>
+      <button class="sync-btn" id="travel-signin-btn" type="button">Sign in to view</button>
     </div>
 
-    <p class="price-note">2 adults, round-trip · Base fare ฿33,585 + taxes ฿24,609.21 per adult, less ฿7,044.71 discount<br><strong>Total ฿109,343.71</strong></p>
-
-    <div class="callout" style="margin-top:18px;">
-      <b>Dubai layover:</b> both legs connect through Terminal 3 on one Emirates booking. As long as you stay airside and don't clear immigration, no UAE transit visa is needed for a Thai passport. Full prep checklist is under the Packing tab → Flight Prep.
-    </div>
-
-    <div class="voucher">
-      <h3>WERFY Luxury Apart-Hotel</h3>
-      <p class="addr">1222 Rue des Bassins, Griffintown, Montréal (QC), Canada H3C 0X7 &nbsp;·&nbsp;
-        <a href="https://www.google.com/maps/search/?api=1&query=WERFY+Luxury+Apart-Hotel+Montreal" target="_blank" rel="noopener">View on map ↗</a>
-      </p>
-      <div class="vgrid">
-        <div><span class="stat-label">Check-in</span><span class="stat-value">Oct 2, 2026 · from 3:00 PM*</span></div>
-        <div><span class="stat-label">Check-out</span><span class="stat-value">Oct 15, 2026 · by 11:00 AM*</span></div>
-        <div><span class="stat-label">Room</span><span class="stat-value">1 × Comfort, 2 adults</span></div>
-        <div><span class="stat-label">Nearest Metro</span><span class="stat-value">Bonaventure / Georges-Vanier*</span></div>
-        <div><span class="stat-label">Walk to Metro</span><span class="stat-value">~10–15 min*</span></div>
-      </div>
-      <p style="font-size:0.76rem; color:var(--ink-soft); margin:6px 0 0;">*Check-in/out times are standard apart-hotel defaults — confirm exact times with WERFY. Metro distance is an estimate from Rue des Bassins — worth double-checking once you're there.</p>
-      <div class="callout">Non-smoking room, large bed requested. Special requests are subject to availability upon arrival.</div>
-
-      <div id="voucher-locked" class="locked-panel">
-        <p>🔒 Booking reference, property phone, payment on file, and cancellation policy are only visible after signing in.</p>
-        <button class="sync-btn" id="voucher-signin-btn" type="button">Sign in to view</button>
-      </div>
-
-      <div id="voucher-secure-wrap" style="display:none;">
-        <div class="vgrid" style="margin-top:14px;">
-          <div><span class="stat-label">Booking ref</span><span class="stat-value" id="secure-booking-ref">—</span></div>
-          <div><span class="stat-label">Property phone</span><span class="stat-value" id="secure-phone">—</span></div>
-          <div><span class="stat-label">Payment on file</span><span class="stat-value" id="secure-payment">—</span></div>
-        </div>
-        <div class="callout warn"><b>Cancellation policy:</b> <span id="secure-cancellation-text">—</span></div>
-      </div>
-    </div>
+    <div id="travel-content" style="display:none;"></div>
   </section>
 
   <!-- FOOD & LOCAL TIPS -->
@@ -1084,41 +1013,93 @@ document.getElementById('sync-btn').addEventListener('click', async ()=>{
     await attemptSignIn();
   }
 });
-document.getElementById('voucher-signin-btn').addEventListener('click', attemptSignIn);
+document.getElementById('travel-signin-btn').addEventListener('click', attemptSignIn);
 async function attemptSignIn(){
   try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
   catch(e){ console.warn('Sign-in failed:', e.message); }
 }
 
-// ---------------- GATED VOUCHER DETAILS ----------------
-async function loadVoucherSecrets(){
-  const lockedEl = document.getElementById('voucher-locked');
-  const secureEl = document.getElementById('voucher-secure-wrap');
+// ---------------- GATED FLIGHTS & HOTEL (single JSON field) ----------------
+function renderLeg(leg){
+  return `<div class="leg">
+      <div class="leg-time"><span>${leg.time1} ${leg.code1}${leg.plus1_1 ? ' <sup>+1</sup>':''}</span><span class="arrow-line">${leg.flight} · ${leg.duration}</span><span>${leg.time2} ${leg.code2}${leg.plus1_2 ? ' <sup>+1</sup>':''}</span></div>
+      <div class="leg-meta">${leg.route}</div>
+    </div>`;
+}
+function renderTicket(dir){
+  const legsHtml = dir.legs.map((leg, i) => {
+    const layoverHtml = i > 0 && dir.layovers && dir.layovers[i-1]
+      ? `<div class="layover">${dir.layovers[i-1]}</div>` : '';
+    return layoverHtml + renderLeg(leg);
+  }).join('');
+  return `<div class="ticket">
+      <div class="ticket-head">
+        <div>
+          <div class="label">${dir.label} · ${dir.date}</div>
+          <div class="route">${dir.from} <span class="arrow">✈</span> ${dir.to}</div>
+        </div>
+        <div class="label" style="text-align:right">${dir.airline || ''}<br>${dir.fareNote || ''}</div>
+      </div>
+      ${legsHtml}
+      <div class="ticket-foot"><span>Total travel time</span><span class="mono">${dir.totalTime}</span></div>
+    </div>`;
+}
+function renderTravelContent(data){
+  const mount = document.getElementById('travel-content');
+  const h = data.hotel || {};
+  mount.innerHTML = `
+    <div class="flight-grid">
+      ${renderTicket(data.outbound)}
+      ${renderTicket(data.return)}
+    </div>
+    <p class="price-note">${data.priceNote || ''}<br><strong>${data.priceTotal || ''}</strong></p>
+    ${data.layoverNote ? `<div class="callout" style="margin-top:18px;">${data.layoverNote}</div>` : ''}
+    <div class="voucher">
+      <h3>${h.name || ''}</h3>
+      <p class="addr">${h.address || ''} &nbsp;·&nbsp;
+        <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.mapQuery || h.name || '')}" target="_blank" rel="noopener">View on map ↗</a>
+      </p>
+      <div class="vgrid">
+        <div><span class="stat-label">Check-in</span><span class="stat-value">${h.checkIn || '—'}</span></div>
+        <div><span class="stat-label">Check-out</span><span class="stat-value">${h.checkOut || '—'}</span></div>
+        <div><span class="stat-label">Room</span><span class="stat-value">${h.room || '—'}</span></div>
+        <div><span class="stat-label">Nearest Metro</span><span class="stat-value">${h.nearestMetro || '—'}</span></div>
+        <div><span class="stat-label">Walk to Metro</span><span class="stat-value">${h.walkToMetro || '—'}</span></div>
+        <div><span class="stat-label">Booking ref</span><span class="stat-value">${h.bookingRef || '—'}</span></div>
+        <div><span class="stat-label">Property phone</span><span class="stat-value">${h.phone || '—'}</span></div>
+        <div><span class="stat-label">Payment on file</span><span class="stat-value">${h.payment || '—'}</span></div>
+      </div>
+      ${h.timesNote ? `<p style="font-size:0.76rem; color:var(--ink-soft); margin:6px 0 0;">${h.timesNote}</p>` : ''}
+      ${h.notes ? `<div class="callout">${h.notes}</div>` : ''}
+      ${h.cancellationPolicy ? `<div class="callout warn"><b>Cancellation policy:</b> ${h.cancellationPolicy}</div>` : ''}
+    </div>
+  `;
+}
+async function loadTravelContent(){
+  const lockedEl = document.getElementById('travel-locked');
+  const contentEl = document.getElementById('travel-content');
   if(!currentUser){
     lockedEl.style.display = 'flex';
-    secureEl.style.display = 'none';
+    contentEl.style.display = 'none';
     return;
   }
   try{
     const snap = await getDoc(doc(firestore, 'tripSecrets', 'montreal2026'));
-    if(snap.exists()){
-      const d = snap.data();
-      document.getElementById('secure-booking-ref').textContent = d.bookingRef || '—';
-      document.getElementById('secure-phone').textContent = d.phone || '—';
-      document.getElementById('secure-payment').textContent = d.payment || '—';
-      document.getElementById('secure-cancellation-text').textContent = d.cancellationPolicy || '—';
+    if(snap.exists() && snap.data().flightsHotel){
+      const data = JSON.parse(snap.data().flightsHotel);
+      renderTravelContent(data);
       lockedEl.style.display = 'none';
-      secureEl.style.display = 'block';
+      contentEl.style.display = 'block';
     }else{
-      lockedEl.querySelector('p').textContent = "🔒 Signed in, but booking details haven't been added yet.";
+      lockedEl.querySelector('p').textContent = "🔒 Signed in, but flight/hotel details haven't been added yet.";
       lockedEl.style.display = 'flex';
-      secureEl.style.display = 'none';
+      contentEl.style.display = 'none';
     }
   }catch(e){
-    console.warn('Voucher secrets unavailable:', e.message);
-    lockedEl.querySelector('p').textContent = '🔒 Signed in, but booking details aren\'t accessible yet.';
+    console.warn('Travel content unavailable:', e.message);
+    lockedEl.querySelector('p').textContent = "🔒 Signed in, but flight/hotel details aren't accessible yet.";
     lockedEl.style.display = 'flex';
-    secureEl.style.display = 'none';
+    contentEl.style.display = 'none';
   }
 }
 
@@ -1126,7 +1107,7 @@ onAuthStateChanged(auth, (user)=>{
   currentUser = user;
   cloudSyncBroken = false;
   updateSyncUI();
-  loadVoucherSecrets();
+  loadTravelContent();
   if(user) pullAndMergeCloud(user.uid);
 });
 
