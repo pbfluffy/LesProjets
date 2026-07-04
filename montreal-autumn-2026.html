@@ -165,6 +165,8 @@
     font-family:inherit; color:var(--ink);
   }
   .qcard:hover{ transform:translateY(-2px); box-shadow:0 10px 22px rgba(60,40,20,0.12); }
+  .qcard-static{ cursor:default; }
+  .qcard-static:hover{ transform:none; box-shadow:none; }
   .qcard h3{ margin:0 0 6px; font-size:1.05rem; }
   .qcard p{ margin:0; color:var(--ink-soft); font-size:0.87rem; }
 
@@ -191,7 +193,18 @@
     position:relative; background:var(--cream);
     border:1px solid var(--line); border-radius:var(--radius);
     padding:16px 18px 16px 20px; margin-bottom:16px;
+    cursor:pointer;
   }
+  .day-card .day-body{
+    display:grid; grid-template-rows:1fr; transition:grid-template-rows .2s ease;
+  }
+  .day-card.collapsed .day-body{ grid-template-rows:0fr; }
+  .day-card .day-body-inner{ overflow:hidden; }
+  .day-card .collapse-hint{
+    position:absolute; right:16px; top:18px; font-size:0.7rem; color:var(--ink-soft);
+    transition:transform .2s ease;
+  }
+  .day-card.collapsed .collapse-hint{ transform:rotate(-90deg); }
   .leaf-node{
     position:absolute; left:-44px; top:18px;
     width:26px; height:26px; border-radius:50% 0 50% 50%;
@@ -408,6 +421,14 @@
     text-align:center; color:var(--ink-soft); font-size:0.78rem;
     padding:30px 20px 50px;
   }
+  @media (max-width: 480px){
+    .tab-btn{ padding:12px 14px; min-height:44px; font-size:0.88rem; }
+    .chip{ padding:12px 16px; min-height:44px; }
+    .sync-btn{ padding:12px 16px; min-height:44px; }
+    .reset-btn{ padding:11px 14px; min-height:44px; }
+    .expand-toggle{ padding:14px 10px; min-width:44px; }
+    .qcard{ padding:20px; }
+  }
 </style>
 </head>
 <body>
@@ -438,14 +459,14 @@
   <section class="panel active" id="overview">
     <div class="hero">
       <div class="hero-inner">
-        <p class="eyebrow">14-Day Peak Fall Foliage Experience</p>
+        <p class="eyebrow">14 Days of Autumn Colour in Montréal</p>
         <h1>Montréal Autumn<br>Itinerary 2026</h1>
         <p class="sub">October 2 – October 15, 2026 · Griffintown, Montréal</p>
         <div class="stat-strip">
           <div><span class="stat-label">Travel Dates</span><span class="stat-value mono">Oct 2 – Oct 15, 2026</span></div>
           <div><span class="stat-label">Duration</span><span class="stat-value mono">14 days / 13 nights</span></div>
           <div><span class="stat-label">Base Hotel</span><span class="stat-value">WERFY Luxury Apart-Hotel</span></div>
-          <div><span class="stat-label">Season</span><span class="stat-value">Peak maple leaf colour change</span></div>
+          <div><span class="stat-label">Season</span><span class="stat-value">Expected autumn colours (good chance of peak)</span></div>
           <div><span class="stat-label">Expected Weather</span><span class="stat-value mono">5°C – 15°C, chilly &amp; windy</span></div>
         </div>
       </div>
@@ -475,13 +496,45 @@
         </button>
       </div>
     </section>
+
+    <section class="block">
+      <div class="block-head">
+        <p class="kicker">Good to know</p>
+        <h2>Quick facts &amp; emergency info</h2>
+      </div>
+      <div class="quicklinks">
+        <div class="qcard qcard-static">
+          <h3>Quick Facts</h3>
+          <div class="vgrid" style="margin-top:10px;">
+            <div><span class="stat-label">Language</span><span class="stat-value">French (official) · English widely understood</span></div>
+            <div><span class="stat-label">Currency</span><span class="stat-value">Canadian Dollar (CAD)</span></div>
+            <div><span class="stat-label">Outlets</span><span class="stat-value">Type A/B, 120V</span></div>
+            <div><span class="stat-label">Time Zone</span><span class="stat-value">Eastern Time (EDT, UTC-4 in Oct)</span></div>
+            <div><span class="stat-label">Tipping</span><span class="stat-value">15–20% at restaurants is standard</span></div>
+          </div>
+        </div>
+        <div class="qcard qcard-static">
+          <h3>Emergency Info</h3>
+          <div class="vgrid" style="margin-top:10px;">
+            <div><span class="stat-label">Emergency</span><span class="stat-value">911 (police, fire, ambulance)</span></div>
+            <div><span class="stat-label">Nearest Hospital</span><span class="stat-value">Montréal General Hospital (MUHC), downtown*</span></div>
+            <div><span class="stat-label">Thai Embassy</span><span class="stat-value">Ottawa · +1 (613) 722-4444</span></div>
+            <div><span class="stat-label">Hotel Contact</span><span class="stat-value">See Flights &amp; Hotel tab (sign in)</span></div>
+          </div>
+          <p style="font-size:0.76rem; color:var(--ink-soft); margin:10px 0 0;">*The Thai Embassy is in Ottawa, not Montréal — it's the right first call for lost passports or serious legal trouble. Hospital distance is approximate; ask your hotel for the closest walk-in clinic for anything non-urgent.</p>
+        </div>
+      </div>
+    </section>
   </section>
 
   <!-- ITINERARY -->
   <section class="panel" id="itinerary">
-    <div class="block-head">
-      <p class="kicker">Day by day</p>
-      <h2>The full route</h2>
+    <div class="block-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <div>
+        <p class="kicker">Day by day</p>
+        <h2>The full route</h2>
+      </div>
+      <button class="reset-btn" id="collapse-all-btn" type="button" style="margin-bottom:4px;">Collapse all days</button>
     </div>
     <div id="timeline-mount"></div>
   </section>
@@ -547,10 +600,13 @@
         <a href="https://www.google.com/maps/search/?api=1&query=WERFY+Luxury+Apart-Hotel+Montreal" target="_blank" rel="noopener">View on map ↗</a>
       </p>
       <div class="vgrid">
-        <div><span class="stat-label">Check-in</span><span class="stat-value">Oct 2, 2026</span></div>
-        <div><span class="stat-label">Check-out</span><span class="stat-value">Oct 15, 2026</span></div>
+        <div><span class="stat-label">Check-in</span><span class="stat-value">Oct 2, 2026 · from 3:00 PM*</span></div>
+        <div><span class="stat-label">Check-out</span><span class="stat-value">Oct 15, 2026 · by 11:00 AM*</span></div>
         <div><span class="stat-label">Room</span><span class="stat-value">1 × Comfort, 2 adults</span></div>
+        <div><span class="stat-label">Nearest Metro</span><span class="stat-value">Bonaventure / Georges-Vanier*</span></div>
+        <div><span class="stat-label">Walk to Metro</span><span class="stat-value">~10–15 min*</span></div>
       </div>
+      <p style="font-size:0.76rem; color:var(--ink-soft); margin:6px 0 0;">*Check-in/out times are standard apart-hotel defaults — confirm exact times with WERFY. Metro distance is an estimate from Rue des Bassins — worth double-checking once you're there.</p>
       <div class="callout">Non-smoking room, large bed requested. Special requests are subject to availability upon arrival.</div>
 
       <div id="voucher-locked" class="locked-panel">
@@ -628,7 +684,7 @@ const itinerary = [
   {date:"Fri · Oct 2", time:"Evening", title:"Lachine Canal Relaxing Walk", desc:"Take a gentle evening stroll along the historic canal path right behind your hotel.", loc:"Lachine Canal", map:"https://www.google.com/maps/search/?api=1&query=Lachine+Canal+Montreal"},
   {date:"Sat · Oct 3", time:"Morning / Afternoon", title:"Old Montréal Exploration", desc:"Walk down cobblestone streets, see French colonial architecture, visit Notre-Dame Basilica.", loc:"Old Montréal &amp; Notre-Dame Basilica", map:"https://www.google.com/maps/search/?api=1&query=Notre-Dame+Basilica+Montreal"},
   {date:"Sat · Oct 3", time:"Evening", title:"Old Port Sunset &amp; Ferris Wheel", desc:"Ride La Grande Roue de Montréal for a panoramic view of the St. Lawrence River at golden hour.", loc:"Old Port of Montréal", map:"https://www.google.com/maps/search/?api=1&query=Old+Port+of+Montreal"},
-  {date:"Sun · Oct 4", time:"Full Day", title:"Mount Royal Park — Autumn Peak", desc:"Hike or walk up the mountain. Peak season for brilliant red and orange maple leaves. Visit Kondiaronk Belvedere.", loc:"Mount Royal Park", map:"https://www.google.com/maps/search/?api=1&query=Mount+Royal+Park+Montreal"},
+  {date:"Sun · Oct 4", time:"Full Day", title:"Mount Royal Park — Autumn Colours", desc:"Hike or walk up the mountain. Good chance of vivid red and orange maple leaves this week. Visit Kondiaronk Belvedere.", loc:"Mount Royal Park", map:"https://www.google.com/maps/search/?api=1&query=Mount+Royal+Park+Montreal"},
   {date:"Mon · Oct 5", time:"Morning", title:"Jean-Talon Market", desc:"Explore one of the largest open-air markets in North America. Taste fresh local apples, cheeses, and maple treats.", loc:"Jean-Talon Market", map:"https://www.google.com/maps/search/?api=1&query=Jean-Talon+Market+Montreal"},
   {date:"Mon · Oct 5", time:"Afternoon", title:"Mile End Hip Neighborhood &amp; Bagels", desc:"Stroll through the artistic Mile End. Grab fresh hot wood-fired bagels at St-Viateur or Fairmount Bagel.", loc:"Mile End", map:"https://www.google.com/maps/search/?api=1&query=Mile+End+Montreal"},
   {date:"Tue · Oct 6", time:"Afternoon", title:"Montréal Botanical Garden", desc:"Explore greenhouse collections and beautifully landscaped outdoor gardens before the winter chill.", loc:"Jardin botanique de Montréal", map:"https://www.google.com/maps/search/?api=1&query=Montreal+Botanical+Garden"},
@@ -738,10 +794,12 @@ const packing = [
     {n:"Autumn Accessories", d:"Scarves, light beanies, and gloves for breezy evenings."}
   ]},
   {title:"Transportation", color:"var(--maple)", items:[
-    {n:"OPUS Card (Transit Pass)", d:"Purchase at metro stations. Best value is the Weekly or Multi-Day pass."}
+    {n:"OPUS Card (Transit Pass)", d:"Purchase at metro stations. Best value is the Weekly or Multi-Day pass."},
+    {n:"Contactless Payment Also Works", d:"A tap-to-pay Visa/Mastercard or phone wallet works directly on STM buses and metro turnstiles — handy as a backup to the OPUS card."}
   ]},
   {title:"Local Tips", color:"var(--maple-deep)", items:[
     {n:"Language Focus", d:"Montréal is predominantly French-speaking, but English is widely understood in tourism."},
+    {n:"Currency & Cards", d:"Visa and Mastercard are accepted almost everywhere, including small cafés. Carry only a small amount of cash for exceptions."},
     {n:"Thanksgiving Holiday (Oct 12)", d:"Banks, offices, and some shops will be closed on this Monday."},
     {n:"Travel Insurance (Recommended)", d:"Not mandatory for a TRV, but strongly advised — Canadian medical care is expensive without it."}
   ]}
@@ -778,18 +836,32 @@ weeks.forEach(wk=>{
     card.className = 'day-card';
     card.innerHTML = `
       <div class="leaf-node" style="color:${nodeColor(t)}; background:${nodeColor(t)}"></div>
+      <span class="collapse-hint">▼</span>
       <div class="top-row">
         <span class="date-badge">${item.date}</span>
         <span class="time-pill">${item.time}</span>
         ${item.flag ? `<span class="flag">${item.flag}</span>` : ''}
       </div>
       <h3>${item.title}</h3>
-      <p>${item.desc}</p>
-      <div class="loc-row">📍 <a href="${item.map}" target="_blank" rel="noopener">${item.loc}</a></div>
+      <div class="day-body"><div class="day-body-inner">
+        <p>${item.desc}</p>
+        <div class="loc-row">📍 <a href="${item.map}" target="_blank" rel="noopener">${item.loc}</a></div>
+      </div></div>
     `;
+    card.addEventListener('click', (e)=>{
+      if(e.target.closest('a')) return;
+      card.classList.toggle('collapsed');
+    });
     tl.appendChild(card);
   }
   mount.appendChild(tl);
+});
+const collapseAllBtn = document.getElementById('collapse-all-btn');
+let allCollapsed = false;
+collapseAllBtn.addEventListener('click', ()=>{
+  allCollapsed = !allCollapsed;
+  document.querySelectorAll('.day-card').forEach(c => c.classList.toggle('collapsed', allCollapsed));
+  collapseAllBtn.textContent = allCollapsed ? 'Expand all days' : 'Collapse all days';
 });
 
 // ---------------- RENDER: FOOD ----------------
