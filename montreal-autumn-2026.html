@@ -135,6 +135,32 @@
     width:320px; height:320px;
     background:radial-gradient(circle, rgba(193,137,42,0.16), transparent 68%);
   }
+  .hero-art{
+    position:absolute; left:0; right:0; bottom:0; width:100%; height:100%;
+    pointer-events:none;
+  }
+
+  .trip-status{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:0; background:var(--cream); border:1px solid var(--line); border-radius:var(--radius);
+    margin-top:-14px; overflow:hidden;
+  }
+  .trip-status .ts-item{
+    padding:16px 18px; border-right:1px solid var(--line);
+  }
+  .trip-status .ts-item:last-child{ border-right:none; }
+  .trip-status .ts-label{
+    font-size:0.68rem; text-transform:uppercase; letter-spacing:0.08em;
+    color:var(--ink-soft); margin-bottom:4px; display:flex; align-items:center; gap:5px;
+  }
+  .trip-status .ts-value{ font-size:0.95rem; font-weight:600; }
+  .trip-status .ts-value.ts-ok{ color:var(--moss); }
+  .trip-status .ts-value.ts-pending{ color:var(--amber); }
+  .trip-status .ts-note{ font-size:0.72rem; color:var(--ink-soft); margin-top:2px; font-weight:400; }
+  @media (max-width:700px){
+    .trip-status .ts-item{ border-right:none; border-bottom:1px solid var(--line); }
+    .trip-status .ts-item:last-child{ border-bottom:none; }
+  }
   .hero-inner{ max-width:720px; position:relative; }
   .eyebrow{
     text-transform:uppercase; font-size:0.72rem; letter-spacing:0.14em;
@@ -182,8 +208,8 @@
   .qcard h3{ margin:0 0 6px; font-size:1.05rem; }
   .qcard p{ margin:0; color:var(--ink-soft); font-size:0.87rem; }
 
-  section.block{ margin:52px 0; }
-  .block-head{ margin-bottom:22px; }
+  section.block{ margin:68px 0; }
+  .block-head{ margin-bottom:30px; }
   .block-head .kicker{
     text-transform:uppercase; font-size:0.72rem; letter-spacing:0.12em;
     color:var(--maple); font-weight:600; margin:0 0 6px;
@@ -206,7 +232,9 @@
     border:1px solid var(--line); border-radius:var(--radius);
     padding:16px 34px 16px 20px; margin-bottom:16px;
     cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease;
   }
+  .day-card:hover{ transform:translateY(-2px); box-shadow:0 10px 20px rgba(60,40,20,0.10); }
   .day-card .day-body{
     display:grid; grid-template-rows:1fr; transition:grid-template-rows .2s ease;
   }
@@ -342,7 +370,9 @@
   .food-item{
     background:var(--cream); border:1px solid var(--line); border-radius:10px;
     padding:14px 16px;
+    transition:transform .15s ease, box-shadow .15s ease;
   }
+  .food-item:hover{ transform:translateY(-2px); box-shadow:0 8px 16px rgba(60,40,20,0.08); }
   .food-item .cat{
     font-size:0.66rem; text-transform:uppercase; letter-spacing:0.08em;
     color:var(--moss); font-weight:600; margin-bottom:4px; display:block;
@@ -384,7 +414,9 @@
   .pack-card{
     background:var(--cream); border:1px solid var(--line); border-radius:var(--radius);
     padding:18px 20px;
+    transition:box-shadow .15s ease;
   }
+  .pack-card:hover{ box-shadow:0 8px 18px rgba(60,40,20,0.08); }
   .pack-card h3{
     margin:0 0 12px; font-size:1.02rem;
     display:flex; align-items:center; gap:8px;
@@ -480,6 +512,21 @@
   <!-- OVERVIEW -->
   <section class="panel active" id="overview">
     <div class="hero">
+      <svg class="hero-art" viewBox="0 0 1080 340" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+        <g opacity="0.16" fill="none" stroke="#c1892a" stroke-width="1.5">
+          <path d="M760 340 L760 210 L800 190 L800 150 L840 150 L840 120 L880 120 L880 170 L920 170 L920 210 L960 210 L960 250 L1000 250 L1000 200 L1040 200 L1040 340 Z"/>
+          <path d="M840 340 L840 260 L860 260 L860 230 L900 230 L900 260 L920 260 L920 340 Z"/>
+        </g>
+        <g opacity="0.14" fill="#a8342a">
+          <path d="M120 60c-14 10-26 24-26 42a28 28 0 0056 0c0-18-12-32-26-42z" transform="rotate(15 120 90)"/>
+        </g>
+        <g opacity="0.12" fill="#c1892a">
+          <path d="M950 40c-11 8-21 19-21 34a22 22 0 0044 0c0-15-10-26-21-34z" transform="rotate(-20 950 65)"/>
+        </g>
+        <g opacity="0.1" fill="#57654a">
+          <path d="M60 140c-10 7-18 17-18 30a19 19 0 0038 0c0-13-9-23-18-30z" transform="rotate(30 60 160)"/>
+        </g>
+      </svg>
       <div class="hero-inner">
         <p class="eyebrow">14 Days of Autumn Colour in Montréal</p>
         <h1>Montréal Autumn<br>Itinerary 2026</h1>
@@ -493,6 +540,8 @@
         </div>
       </div>
     </div>
+
+    <div class="trip-status" id="trip-status"></div>
 
     <section class="block">
       <div class="block-head">
@@ -951,6 +1000,7 @@ function renderPacking(){
   });
 
   updateProgress();
+  renderTripStatus();
 }
 renderPacking();
 resetBtn.addEventListener('click', ()=>{
@@ -959,6 +1009,65 @@ resetBtn.addEventListener('click', ()=>{
   saveChecked(checkedItems);
   renderPacking();
 });
+
+// ---------------- TRIP STATUS DASHBOARD ----------------
+function renderTripStatus(){
+  const mount = document.getElementById('trip-status');
+  if(!mount) return;
+
+  // Countdown — computed live from the visitor's actual clock, not a fixed date
+  const tripStart = new Date('2026-10-02T00:00:00');
+  const tripEnd = new Date('2026-10-16T00:00:00'); // exclusive, day after last day
+  const now = new Date();
+  let countdownValue, countdownNote = '';
+  if(now < tripStart){
+    const days = Math.ceil((tripStart - now) / 86400000);
+    countdownValue = `${days} day${days===1?'':'s'}`;
+    countdownNote = 'until departure';
+  }else if(now < tripEnd){
+    countdownValue = "You're there!";
+    countdownNote = 'enjoy the trip';
+  }else{
+    countdownValue = 'Completed';
+    countdownNote = 'hope it was great';
+  }
+
+  // Visa status — reads real checklist state, not hardcoded
+  const visaIds = packing.find(g=>g.title==='Visa & Docs').items.map(it=>it.id);
+  const visaSubmittedId = 'visa-docs-5'; // "Complete & Submit Visa Application"
+  const anyVisaChecked = visaIds.some(id=>checkedItems.has(id));
+  const visaSubmitted = checkedItems.has(visaSubmittedId);
+  let visaValue, visaClass;
+  if(visaSubmitted){ visaValue = '✓ Submitted'; visaClass = 'ts-ok'; }
+  else if(anyVisaChecked){ visaValue = 'In progress'; visaClass = 'ts-pending'; }
+  else{ visaValue = 'Not started'; visaClass = 'ts-pending'; }
+
+  mount.innerHTML = `
+    <div class="ts-item">
+      <div class="ts-label">🗓️ Countdown</div>
+      <div class="ts-value">${countdownValue}</div>
+      <div class="ts-note">${countdownNote}</div>
+    </div>
+    <div class="ts-item">
+      <div class="ts-label">🛂 Visa</div>
+      <div class="ts-value ${visaClass}">${visaValue}</div>
+      <div class="ts-note">from your Packing checklist</div>
+    </div>
+    <div class="ts-item">
+      <div class="ts-label">✈️ Flights</div>
+      <div class="ts-value ts-ok">✓ Booked</div>
+    </div>
+    <div class="ts-item">
+      <div class="ts-label">🏨 Hotel</div>
+      <div class="ts-value ts-ok">✓ Booked</div>
+    </div>
+    <div class="ts-item">
+      <div class="ts-label">🌤️ Weather</div>
+      <div class="ts-value">5–15°C</div>
+      <div class="ts-note">climate normal — live forecast closer to departure</div>
+    </div>
+  `;
+}
 
 // ---------------- TABS ----------------
 const tabBtns = document.querySelectorAll('.tab-btn');
