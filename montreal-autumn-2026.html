@@ -482,6 +482,22 @@
     .expand-toggle{ padding:14px 10px; min-width:44px; }
     .qcard{ padding:20px; }
   }
+  @media (max-width: 680px){
+    .topbar-inner{ padding:10px 16px 8px; gap:8px; }
+    .brand{ font-size:0.95rem; }
+    .sync-control{
+      order:2; margin-left:auto; border-left:none; padding-left:0;
+    }
+    .sync-status{ display:none; }
+    .tabs{
+      order:3; flex-basis:100%; flex-wrap:nowrap;
+      overflow-x:auto; -webkit-overflow-scrolling:touch;
+      margin-left:0; gap:2px; padding-bottom:4px;
+      scrollbar-width:none;
+    }
+    .tabs::-webkit-scrollbar{ display:none; }
+    .tab-btn{ white-space:nowrap; flex-shrink:0; }
+  }
 </style>
 </head>
 <body>
