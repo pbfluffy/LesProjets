@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Critical Thinking Assessment</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --card: rgba(255,255,255,.88);
+      --text: #1d1d1f;
+      --muted: #6e6e73;
+      --line: #d2d2d7;
+      --primary: #0071e3;
+      --primary-dark: #005bb5;
+      --good: #188038;
+      --warn: #b26a00;
+      --bad: #c5221f;
+      --shadow: 0 18px 60px rgba(0,0,0,.10);
+      --radius: 28px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(0,113,227,.18), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(88,86,214,.14), transparent 32%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .app { width: min(980px, 100%); margin: 0 auto; padding: 20px; }
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,.65);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(24px, 5vw, 52px);
+      margin: 24px 0;
+    }
+    .hero { text-align: center; padding-top: 72px; padding-bottom: 72px; }
+    h1 { font-size: clamp(34px, 7vw, 72px); line-height: 1.02; margin: 0 0 16px; letter-spacing: -0.06em; }
+    h2 { font-size: clamp(24px, 4vw, 40px); margin: 0 0 18px; letter-spacing: -0.04em; }
+    h3 { margin: 28px 0 12px; }
+    p { line-height: 1.7; color: var(--muted); font-size: 17px; }
+    .lead { font-size: clamp(18px, 2.6vw, 24px); color: #3a3a3c; max-width: 780px; margin: 0 auto 30px; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 26px 0 34px; }
+    .pill { border: 1px solid var(--line); border-radius: 999px; padding: 10px 14px; color: #3a3a3c; background: rgba(255,255,255,.6); font-size: 14px; }
+    button {
+      border: 0; border-radius: 999px; padding: 15px 24px; font-weight: 700; font-size: 16px;
+      cursor: pointer; transition: .18s ease; min-height: 48px;
+    }
+    .primary { background: var(--primary); color: white; }
+    .primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    .ghost { background: rgba(0,0,0,.05); color: var(--text); }
+    .ghost:hover { background: rgba(0,0,0,.09); }
+    .topbar { display: flex; gap: 14px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .progress-wrap { height: 10px; background: rgba(0,0,0,.08); border-radius: 999px; overflow: hidden; flex: 1; }
+    .progress { height: 100%; background: var(--primary); width: 0%; border-radius: 999px; transition: width .25s ease; }
+    .counter { color: var(--muted); font-weight: 700; white-space: nowrap; }
+    .scenario { background: rgba(0,0,0,.035); border: 1px solid rgba(0,0,0,.06); border-radius: 20px; padding: 18px; line-height: 1.8; margin: 18px 0; }
+    .question { font-size: clamp(20px, 3vw, 28px); font-weight: 800; letter-spacing: -.03em; line-height: 1.35; margin: 18px 0 22px; }
+    .choices { display: grid; gap: 12px; }
+    .choice {
+      text-align: left; width: 100%; border-radius: 18px; padding: 17px 18px; background: white;
+      border: 1.5px solid rgba(0,0,0,.08); color: var(--text); font-weight: 600; line-height: 1.5;
+    }
+    .choice:hover { border-color: rgba(0,113,227,.45); background: rgba(0,113,227,.04); }
+    .choice.selected { border-color: var(--primary); background: rgba(0,113,227,.10); }
+    .nav { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+    .hidden { display: none !important; }
+    .score-big { font-size: clamp(54px, 13vw, 116px); font-weight: 900; letter-spacing: -.07em; margin: 8px 0; }
+    .profile { display: inline-block; background: rgba(0,113,227,.10); color: #004a99; border-radius: 999px; padding: 10px 16px; font-weight: 800; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .metric { padding: 18px; background: rgba(255,255,255,.72); border: 1px solid rgba(0,0,0,.06); border-radius: 20px; }
+    .metric-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-weight: 800; }
+    .bar { height: 9px; background: rgba(0,0,0,.08); border-radius: 99px; overflow: hidden; }
+    .bar > span { display: block; height: 100%; background: var(--primary); border-radius: 99px; }
+    .explain-item { border-top: 1px solid var(--line); padding: 22px 0; }
+    .tag { display:inline-block; font-size: 13px; padding: 5px 10px; border-radius: 99px; background: rgba(0,0,0,.07); margin: 6px 6px 8px 0; }
+    .correct { color: var(--good); font-weight: 800; }
+    .wrong { color: var(--bad); font-weight: 800; }
+    .footer-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
+    @media (max-width: 720px) {
+      .app { padding: 12px; }
+      .card { border-radius: 22px; padding: 22px; }
+      .hero { padding-top: 36px; padding-bottom: 40px; }
+      .grid { grid-template-columns: 1fr; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .progress-wrap { width: 100%; }
+      button { width: 100%; }
+      .nav { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section id="start" class="card hero">
+      <h1>คุณใช้เหตุผลได้ดีแค่ไหน?</h1>
+      <p class="lead">แบบทดสอบ Critical Thinking ภาษาไทย ที่วัดการประเมินหลักฐาน ตรรกะวิบัติ และอคติทางความคิด ผ่านสถานการณ์ทั่วไป การเมือง ศาสนา ข่าว โซเชียล สุขภาพ และการลงทุน</p>
+      <div class="pill-row">
+        <span class="pill">50 ข้อ</span>
+        <span class="pill">ไม่เฉลยระหว่างทำ</span>
+        <span class="pill">เหมาะกับมือถือ</span>
+        <span class="pill">มีโปรไฟล์ผลลัพธ์</span>
+      </div>
+      <button class="primary" onclick="startTest()">เริ่มทำแบบทดสอบ</button>
+      <p style="font-size:14px;margin-top:22px">หมายเหตุ: แบบทดสอบนี้เป็นเครื่องมือสะท้อนแนวโน้มการคิด ไม่ใช่การวินิจฉัย IQ หรือคุณค่าของบุคคล</p>
+    </section>
+
+    <section id="quiz" class="card hidden">
+      <div class="topbar">
+        <div class="counter" id="counter"></div>
+        <div class="progress-wrap"><div id="progress" class="progress"></div></div>
+      </div>
+      <div class="tag" id="levelTag"></div>
+      <div class="tag" id="catTag"></div>
+      <div id="scenario" class="scenario"></div>
+      <div id="question" class="question"></div>
+      <div id="choices" class="choices"></div>
+      <div class="nav"><button id="nextBtn" class="primary" onclick="nextQuestion()" disabled>ถัดไป</button></div>
+    </section>
+
+    <section id="result" class="card hidden"></section>
+    <section id="review" class="card hidden"></section>
+  </main>
+
+  <script>
+    const questions = [
+      {level:1, category:'Media Literacy', fallacy:'Appeal to Popularity', scenario:'คลิปหนึ่งถูกแชร์มากกว่า 5 ล้านครั้งในคืนเดียว', question:'ข้อสรุปใดเหมาะสมที่สุด?', choices:['คลิปนี้น่าจะจริง เพราะคนแชร์เยอะ','จำนวนการแชร์บอกความนิยม ไม่ได้ยืนยันความจริง ต้องตรวจสอบแหล่งที่มาและหลักฐาน','คนส่วนใหญ่ไม่มีทางผิด','ถ้าเพจใหญ่แชร์ แปลว่าจริง'], answer:1, explanation:'ความนิยมไม่ใช่หลักฐานยืนยันความจริง การแชร์จำนวนมากอาจเกิดจากอารมณ์ ความตกใจ หรืออัลกอริทึมได้'},
+      {level:1, category:'Evidence Evaluation', fallacy:'Anecdotal Evidence', scenario:'ลูกค้า 2 คนโพสต์ว่าร้านอาหารแห่งหนึ่งไม่อร่อย แต่ร้านมีรีวิวรวม 8,000 รีวิว', question:'คุณควรสรุปอย่างไร?', choices:['ร้านนี้ไม่อร่อยแน่นอน','ยังสรุปไม่ได้จากตัวอย่างน้อย ควรดูรีวิวรวม จำนวนผู้รีวิว และรายละเอียด','คนที่บ่นอาหารมักพูดจริงเสมอ','ถ้ามีคนบ่น แปลว่าร้านแย่'], answer:1, explanation:'ประสบการณ์ไม่กี่กรณีอาจมีประโยชน์ แต่ไม่พอแทนภาพรวม ต้องดูขนาดตัวอย่างและแนวโน้มรวม'},
+      {level:1, category:'Source Evaluation', fallacy:'Appeal to Authority', scenario:'ดาราดังคนหนึ่งบอกว่าอาหารเสริมตัวหนึ่งช่วยป้องกันโรคได้', question:'สิ่งที่ควรทำคืออะไร?', choices:['เชื่อ เพราะเขามีชื่อเสียง','ตรวจสอบหลักฐานทางวิทยาศาสตร์และคำเตือนจากหน่วยงานที่น่าเชื่อถือ','ซื้อทันที เพราะดาราคงไม่หลอก','แชร์ต่อก่อน เดี๋ยวค่อยอ่านทีหลัง'], answer:1, explanation:'ชื่อเสียงไม่เท่ากับความเชี่ยวชาญ และต่อให้เป็นผู้เชี่ยวชาญก็ยังต้องดูหลักฐาน'},
+      {level:1, category:'Statistical Thinking', fallacy:'Correlation vs Causation', scenario:'ช่วงหน้าร้อน ยอดขายไอศกรีมและจำนวนคนเป็นลมกลางแจ้งเพิ่มขึ้นพร้อมกัน', question:'ข้อใดสมเหตุสมผลที่สุด?', choices:['ไอศกรีมทำให้คนเป็นลม','คนเป็นลมทำให้ยอดขายไอศกรีมเพิ่ม','อากาศร้อนอาจเป็นปัจจัยร่วม ต้องดูข้อมูลเพิ่ม','สองอย่างนี้พิสูจน์ว่าเกี่ยวกันโดยตรง'], answer:2, explanation:'สองสิ่งเพิ่มพร้อมกันไม่ได้แปลว่าสิ่งหนึ่งเป็นสาเหตุของอีกสิ่ง อาจมีตัวแปรที่สาม'},
+      {level:1, category:'Open-mindedness', fallacy:'Confirmation Bias', scenario:'คุณเห็นข่าวที่ตรงกับความเชื่อเดิมของคุณมาก', question:'สิ่งที่เหมาะสมที่สุดคืออะไร?', choices:['แชร์ทันที เพราะตรงกับที่คิด','ตรวจสอบแหล่งที่มา หลักฐาน และดูว่ามีข้อมูลโต้แย้งหรือไม่','เชื่อไว้ก่อน เพราะเคยคิดแบบนี้อยู่แล้ว','อ่านเฉพาะคอมเมนต์ที่เห็นด้วย'], answer:1, explanation:'ข้อมูลที่ตรงกับความเชื่อเดิมมักทำให้เราตรวจสอบน้อยลง จึงควรระวังเป็นพิเศษ'},
+      {level:1, category:'Logical Consistency', fallacy:'False Dilemma', scenario:'เพื่อนพูดว่า “ถ้าไม่เห็นด้วยกับวิธีของฉัน แปลว่าไม่อยากแก้ปัญหา”', question:'ประโยคนี้มีปัญหาตรงไหน?', choices:['ไม่มีปัญหา เพราะจริงใจ','บังคับให้เหลือสองทางเลือก ทั้งที่อาจมีวิธีอื่นในการแก้ปัญหา','พิสูจน์ว่าวิธีของเขาถูก','ทำให้การถกเถียงจบเร็วขึ้น'], answer:1, explanation:'นี่คือการสร้างทางเลือกปลอม ๆ ว่าเห็นด้วยหรือไม่อยากแก้ปัญหา ทั้งที่อาจไม่เห็นด้วยแต่ยังอยากแก้ปัญหา'},
+      {level:1, category:'Evidence Evaluation', fallacy:'Hasty Generalization', scenario:'เพื่อนคุณอ่านหนังสือคืนเดียวแล้วสอบได้คะแนนดี', question:'สรุปว่า “อ่านคืนเดียวดีที่สุด” ได้ไหม?', choices:['ได้ เพราะมีตัวอย่างจริง','ยังไม่ได้ เพราะตัวอย่างเดียวไม่พอ และอาจมีปัจจัยอื่น','ได้ ถ้าเพื่อนฉลาด','ได้ เพราะคะแนนคือหลักฐานสุดท้าย'], answer:1, explanation:'การสรุปจากตัวอย่างเดียวเร็วเกินไป ต้องดูคนจำนวนมากและปัจจัยอื่น เช่น พื้นฐานเดิมหรือความยากของข้อสอบ'},
+      {level:1, category:'Source Evaluation', fallacy:'Genetic Fallacy', scenario:'บทความหนึ่งมาจากเว็บที่คุณไม่ชอบ แต่มีการอ้างอิงเอกสารหลายแหล่ง', question:'ควรทำอย่างไร?', choices:['ปัดทิ้งทันทีเพราะไม่ชอบเว็บนี้','ตรวจสอบคุณภาพของแหล่งอ้างอิงและเนื้อหา ไม่ตัดสินจากความรู้สึกต่อเว็บอย่างเดียว','เชื่อทันทีเพราะมีลิงก์เยอะ','ไม่อ่านเพราะมาจากฝั่งที่ไม่ชอบ'], answer:1, explanation:'แหล่งที่มาเป็นข้อมูลหนึ่งที่ควรพิจารณา แต่ไม่ควรแทนการประเมินหลักฐานทั้งหมด'},
+      {level:1, category:'Media Literacy', fallacy:'Misleading Headline', scenario:'หัวข่าวเขียนแรงมาก แต่เนื้อหาข่าวมีรายละเอียดซับซ้อนกว่า', question:'คุณควรทำอย่างไร?', choices:['เชื่อหัวข่าว เพราะสรุปมาแล้ว','อ่านเนื้อหาและตรวจสอบบริบทก่อนสรุป','คอมเมนต์ก่อนแล้วค่อยอ่าน','หัวข่าวแรงแปลว่าข่าวสำคัญเสมอ'], answer:1, explanation:'หัวข่าวมีหน้าที่ดึงความสนใจ อาจตัดบริบทหรือทำให้เข้าใจเกินจริงได้'},
+      {level:1, category:'Statistical Thinking', fallacy:'Base Rate Neglect', scenario:'บริษัทบอกว่า “ลูกค้า 98% พึงพอใจ”', question:'คำถามใดสำคัญที่สุดก่อนเชื่อ?', choices:['โลโก้บริษัทสวยไหม','สำรวจจากกี่คน เก็บข้อมูลอย่างไร และใครเป็นคนสำรวจ','สินค้าแพงไหม','มีคนดังใช้ไหม'], answer:1, explanation:'เปอร์เซ็นต์ดูน่าเชื่อถือ แต่ต้องรู้ขนาดตัวอย่าง วิธีเก็บข้อมูล และผลประโยชน์ทับซ้อน'},
+
+      {level:2, category:'Logical Consistency', fallacy:'Ad Hominem', scenario:'นักการเมืองคนหนึ่งเคยโกหกเมื่อ 10 ปีก่อน วันนี้เสนอแผนจัดการน้ำท่วม', question:'ข้อใดเหมาะสมที่สุด?', choices:['แผนนี้ผิดแน่นอน เพราะคนเสนอเคยโกหก','แผนนี้ถูกแน่นอน เพราะชื่อแผนฟังดูดี','ควรประเมินแผนจากข้อมูล ความเป็นไปได้ และผลกระทบ แม้ประวัติผู้เสนอมีผลต่อความน่าเชื่อถือ','ไม่จำเป็นต้องอ่านแผน'], answer:2, explanation:'ประวัติผู้เสนอมีผลต่อความไว้วางใจ แต่ไม่ได้พิสูจน์ว่าเนื้อหาแผนถูกหรือผิดโดยตัวมันเอง'},
+      {level:2, category:'Logical Consistency', fallacy:'Strawman', scenario:'คนหนึ่งบอกว่า “ควรตรวจสอบงบประมาณโครงการนี้ให้ละเอียดขึ้น” อีกคนตอบว่า “คุณคงไม่อยากให้ประเทศพัฒนาเลยสินะ”', question:'ปัญหาของคำตอบนี้คืออะไร?', choices:['เป็นการสรุปจุดยืนอีกฝ่ายผิดให้สุดโต่งขึ้น','เป็นการตอบตรงประเด็น','เป็นหลักฐานว่าโครงการดี','เป็นการถามข้อมูลเพิ่ม'], answer:0, explanation:'อีกฝ่ายพูดเรื่องการตรวจสอบ ไม่ได้บอกว่าไม่อยากพัฒนา นี่คือการบิดประเด็นให้โจมตีง่ายขึ้น'},
+      {level:2, category:'Statistical Thinking', fallacy:'Correlation vs Causation', scenario:'เมืองหนึ่งติดกล้องวงจรปิดเพิ่มขึ้น และอาชญากรรมลดลงในปีเดียวกัน', question:'สรุปอะไรได้อย่างรัดกุมที่สุด?', choices:['กล้องทำให้อาชญากรรมลดลงแน่นอน','อาชญากรรมลดลงเพราะคนย้ายเมือง','อาจเกี่ยวข้องกัน แต่ต้องดูปัจจัยอื่นและข้อมูลเปรียบเทียบก่อนสรุปเหตุผล','กล้องไม่มีประโยชน์แน่นอน'], answer:2, explanation:'ความสัมพันธ์ในเวลาเดียวกันยังไม่พอพิสูจน์สาเหตุ ต้องดูตัวแปรอื่นและการออกแบบข้อมูล'},
+      {level:2, category:'Fallacy Detection', fallacy:'Slippery Slope', scenario:'มีคนพูดว่า “ถ้าอนุญาตให้พนักงานทำงานจากบ้านสัปดาห์ละ 1 วัน ต่อไปทุกคนจะไม่มาทำงานเลย”', question:'ปัญหาคืออะไร?', choices:['สรุปผลลัพธ์สุดโต่งโดยไม่มีหลักฐานเชื่อมแต่ละขั้น','เป็นการคำนวณต้นทุนที่ดี','พิสูจน์ว่างานที่บ้านไม่มีประสิทธิภาพ','เป็นข้อเท็จจริงทั่วไป'], answer:0, explanation:'การอ้างว่าจะไหลไปสู่ผลลัพธ์สุดโต่งต้องมีหลักฐาน ไม่ใช่สมมติเป็นลูกโซ่เอง'},
+      {level:2, category:'Evidence Evaluation', fallacy:'Cherry Picking', scenario:'ร้านค้าโชว์เฉพาะรีวิว 5 ดาว 20 รีวิว แต่ซ่อนรีวิวอื่น', question:'ควรถามอะไรต่อ?', choices:['มีรีวิวรวมทั้งหมดกี่รีวิว และคะแนนกระจายอย่างไร','รีวิว 5 ดาวต้องจริงทั้งหมด','ถ้าโชว์ 20 รีวิวก็พอแล้ว','ร้านคงเลือกมาให้ดีที่สุดจึงน่าเชื่อ'], answer:0, explanation:'การเลือกเฉพาะข้อมูลที่สนับสนุนภาพที่ต้องการอาจทำให้เข้าใจผิด ต้องดูข้อมูลทั้งหมด'},
+      {level:2, category:'Logical Consistency', fallacy:'Circular Reasoning', scenario:'คนหนึ่งบอกว่า “กฎนี้ถูกต้อง เพราะมันเป็นกฎที่ถูกต้อง”', question:'นี่คือปัญหาแบบใด?', choices:['ใช้ข้อสรุปเป็นเหตุผลสนับสนุนตัวเอง','อ้างหลักฐานภายนอกชัดเจน','เปรียบเทียบข้อมูลหลายชุด','แยกเหตุและผลได้ดี'], answer:0, explanation:'เหตุผลไม่ได้เพิ่มข้อมูลใหม่ แต่หมุนกลับไปยืนยันข้อสรุปเดิม'},
+      {level:2, category:'Fallacy Detection', fallacy:'Appeal to Tradition', scenario:'มีคนบอกว่า “เราทำแบบนี้มานานแล้ว แปลว่ามันดีที่สุด”', question:'ข้อใดสมเหตุสมผลที่สุด?', choices:['ของเก่าดีที่สุดเสมอ','ความเก่าอาจมีคุณค่า แต่ไม่ได้พิสูจน์ว่าเป็นวิธีที่ดีที่สุดในปัจจุบัน','สิ่งที่ทำมานานไม่มีวันผิด','ไม่ต้องวัดผลแล้ว'], answer:1, explanation:'ประเพณีหรือความเคยชินไม่ใช่หลักฐานเพียงพอว่าดีที่สุด ต้องดูผลลัพธ์และบริบทปัจจุบัน'},
+      {level:2, category:'Logical Consistency', fallacy:'Tu Quoque', scenario:'คุณบอกเพื่อนว่าควรลดขยะพลาสติก เพื่อนตอบว่า “แล้วเมื่อวานคุณยังซื้อกาแฟแก้วพลาสติกอยู่เลย”', question:'คำตอบของเพื่อนมีปัญหาอย่างไร?', choices:['ชี้ความไม่สม่ำเสมอได้ แต่ยังไม่ได้ตอบว่าข้อเสนอเรื่องลดขยะถูกหรือผิด','พิสูจน์ว่าการลดขยะผิด','เป็นหลักฐานทางวิทยาศาสตร์','ทำให้ข้อเสนอหมดความหมายทั้งหมด'], answer:0, explanation:'การชี้ความย้อนแย้งของผู้พูดอาจเกี่ยวกับความน่าเชื่อถือ แต่ไม่ได้หักล้างข้อเสนอโดยตรง'},
+      {level:2, category:'Evidence Evaluation', fallacy:'Burden of Proof', scenario:'คนหนึ่งอ้างว่า “หินก้อนนี้ป้องกันอุบัติเหตุได้ ถ้าคุณไม่เชื่อ คุณต้องพิสูจน์ว่ามันใช้ไม่ได้”', question:'ภาระการพิสูจน์ควรอยู่ที่ใคร?', choices:['คนที่ไม่เชื่อเสมอ','คนที่กล่าวอ้างว่าหินป้องกันอุบัติเหตุได้','คนที่เดินผ่านหิน','ไม่มีใครต้องพิสูจน์อะไร'], answer:1, explanation:'ผู้กล่าวอ้างเป็นฝ่ายต้องเสนอหลักฐาน ไม่ใช่โยนภาระให้คนอื่นพิสูจน์ว่าไม่จริง'},
+      {level:2, category:'Source Evaluation', fallacy:'False Authority', scenario:'นักแสดงที่ไม่ได้มีความเชี่ยวชาญด้านการเงินแนะนำหุ้นตัวหนึ่งอย่างมั่นใจ', question:'ควรให้น้ำหนักอย่างไร?', choices:['เชื่อ เพราะพูดมั่นใจ','ดูเป็นความเห็นหนึ่ง แต่ต้องตรวจสอบข้อมูลการเงิน ความเสี่ยง และแหล่งข้อมูลมืออาชีพ','ซื้อทันทีเพราะคนดังมีทีมดี','ถ้าคนติดตามเยอะก็น่าเชื่อถือ'], answer:1, explanation:'ความมั่นใจหรือชื่อเสียงนอกสาขาไม่ใช่หลักฐานด้านการเงิน'},
+
+      {level:3, category:'Confirmation Bias Resistance', fallacy:'Confirmation Bias', scenario:'คุณเชื่อมานานว่าเมืองหนึ่งไม่ปลอดภัย แล้วเห็นข่าวอาชญากรรมหนึ่งครั้งจากเมืองนั้น', question:'ข้อใดเป็นการคิดที่รัดกุมที่สุด?', choices:['เห็นไหม เมืองนี้ไม่ปลอดภัยจริง','ข่าวเดียวสนับสนุนความรู้สึกได้ แต่ยังต้องดูสถิติรวมและเปรียบเทียบกับเมืองอื่น','ไม่ต้องดูข้อมูลอื่นแล้ว','ข่าวที่ขัดกับความเชื่อนี้คงถูกปิดบัง'], answer:1, explanation:'ข้อมูลที่ตรงกับความเชื่อเดิมทำให้เราสรุปเร็ว ควรดูฐานข้อมูลรวมและอัตราเทียบประชากร'},
+      {level:3, category:'Open-mindedness', fallacy:'Motivated Reasoning', scenario:'งานวิจัยใหม่ขัดกับความเชื่อของคุณ แต่ใช้วิธีวิจัยดีและมีข้อมูลเปิดเผย', question:'คุณควรทำอย่างไร?', choices:['ปฏิเสธ เพราะขัดกับสิ่งที่เชื่อ','อ่านวิธีวิจัย ดูข้อจำกัด และปรับความเชื่อเท่าที่หลักฐานรองรับ','หาแต่บทความที่โจมตีงานนี้','เชื่อทันทีโดยไม่ตรวจสอบ'], answer:1, explanation:'ความเปิดใจไม่ใช่เชื่อทุกอย่าง แต่คือประเมินหลักฐานแม้ไม่ถูกใจ'},
+      {level:3, category:'Evidence Evaluation', fallacy:'Sunk Cost Bias', scenario:'คุณลงทุนเวลาเรียนคอร์สหนึ่งไป 80 ชั่วโมงแล้ว แต่พบว่าคอร์สไม่ตรงเป้าหมายและมีทางเลือกที่ดีกว่า', question:'ควรตัดสินใจจากอะไร?', choices:['เรียนต่อเพราะเสียเวลาไปมากแล้ว','ประเมินประโยชน์ในอนาคตเทียบกับต้นทุนต่อจากนี้ ไม่ยึดติดกับเวลาที่เสียไปแล้ว','เรียนต่อเพื่อไม่ให้รู้สึกผิด','ยิ่งเสียเวลาเยอะยิ่งต้องทำต่อ'], answer:1, explanation:'ต้นทุนที่จ่ายไปแล้วเอาคืนไม่ได้ การตัดสินใจควรมองผลลัพธ์ในอนาคต'},
+      {level:3, category:'Statistical Thinking', fallacy:'Availability Bias', scenario:'หลังเห็นข่าวเครื่องบินตก คุณรู้สึกว่าการบินอันตรายมากขึ้นทันที', question:'การคิดที่เหมาะสมคืออะไร?', choices:['ความรู้สึกกลัวพิสูจน์ว่าความเสี่ยงเพิ่ม','ดูสถิติความปลอดภัยโดยรวม ไม่ใช้ความสดใหม่ของข่าวแทนความน่าจะเป็น','เลิกขึ้นเครื่องทันที','ข่าวใหญ่แปลว่าเกิดบ่อย'], answer:1, explanation:'เหตุการณ์ที่จำง่ายหรือสะเทือนใจมักทำให้เราประเมินความถี่สูงเกินจริง'},
+      {level:3, category:'Source Evaluation', fallacy:'Halo Effect', scenario:'คุณชอบอินฟลูเอนเซอร์คนหนึ่งมาก เขารีวิวแอปการเงินว่า “ปลอดภัยแน่นอน”', question:'ควรทำอย่างไร?', choices:['เชื่อ เพราะเขาเป็นคนดี','ตรวจสอบใบอนุญาต เงื่อนไข ความเสี่ยง และรีวิวจากแหล่งอื่น','โหลดทันที','คนที่เราชอบไม่น่าหลอก'], answer:1, explanation:'ความชอบส่วนตัวต่อคนพูดอาจทำให้ประเมินคำกล่าวอ้างดีเกินจริง'},
+      {level:3, category:'Open-mindedness', fallacy:'Backfire Risk', scenario:'คุณกำลังถกกับคนที่เห็นต่าง เขาให้หลักฐานที่ดูมีน้ำหนัก', question:'คำตอบใดสะท้อนการคิดเชิงวิพากษ์ที่สุด?', choices:['เปลี่ยนเรื่องทันที','ยอมรับว่าหลักฐานนี้ควรนำไปพิจารณา แม้ยังไม่ต้องสรุปทันที','โจมตีตัวเขาแทน','บอกว่าแหล่งข้อมูลทั้งหมดของเขาต้องปลอม'], answer:1, explanation:'การคิดดีไม่ได้แปลว่าต้องยอมแพ้ แต่ต้องแยกหลักฐานที่มีน้ำหนักออกจากอารมณ์และอัตตา'},
+      {level:3, category:'Evidence Evaluation', fallacy:'Anecdotal Evidence', scenario:'ญาติคุณบอกว่า “ฉันไม่เคยออกกำลังกายแต่สุขภาพดี แปลว่าออกกำลังกายไม่จำเป็น”', question:'ข้อใดเหมาะสมที่สุด?', choices:['จริง เพราะมีตัวอย่างจริง','ประสบการณ์รายบุคคลไม่พอหักล้างหลักฐานภาพรวมเกี่ยวกับสุขภาพ','ทุกคนควรเลิกออกกำลังกาย','สุขภาพดีเกิดจากโชคเท่านั้น'], answer:1, explanation:'ตัวอย่างรายบุคคลอาจมีปัจจัยเฉพาะ เช่น พันธุกรรม อาหาร หรืออายุ ไม่พอแทนข้อสรุปทั่วไป'},
+      {level:3, category:'Logical Consistency', fallacy:'Black-and-White Thinking', scenario:'เพื่อนบอกว่า “ถ้านโยบายนี้ไม่สมบูรณ์แบบ ก็ไม่ควรทำเลย”', question:'ปัญหาคืออะไร?', choices:['มองแค่สมบูรณ์แบบหรือไม่ทำ ทั้งที่อาจปรับปรุงหรือลดความเสียหายได้','เป็นการคิดที่ละเอียด','พิสูจน์ว่านโยบายแย่','แปลว่าทางเลือกอื่นดีเสมอ'], answer:0, explanation:'หลายเรื่องมีระดับของผลดีผลเสีย ไม่ได้มีแค่สมบูรณ์แบบหรือไร้ค่า'},
+      {level:3, category:'Media Literacy', fallacy:'Framing Effect', scenario:'ข่าวสองสำนักรายงานข้อมูลเดียวกัน แต่ใช้คำพาดหัวต่างกันมาก ทำให้รู้สึกคนละทาง', question:'ควรทำอย่างไร?', choices:['เชื่อสำนักที่ใช้คำแรงกว่า','เปรียบเทียบข้อมูลดิบ บริบท และถ้อยคำที่ใช้ framing','เลือกข่าวที่ทำให้สบายใจ','สำนักที่ตรงกับความเชื่อเดิมต้องถูก'], answer:1, explanation:'การจัดกรอบถ้อยคำมีผลต่อความรู้สึก แม้ข้อมูลพื้นฐานเหมือนกัน'},
+      {level:3, category:'Statistical Thinking', fallacy:'Regression to the Mean', scenario:'นักกีฬาคนหนึ่งทำผลงานแย่มากในแมตช์แรก แล้วแมตช์ต่อมาดีขึ้นหลังเปลี่ยนถุงเท้า', question:'สรุปอะไรได้ดีที่สุด?', choices:['ถุงเท้าทำให้ฟอร์มดีขึ้นแน่นอน','อาจเป็นการกลับสู่ค่าเฉลี่ยหรือปัจจัยอื่น ต้องมีข้อมูลเพิ่ม','ควรขายถุงเท้านี้เป็นสินค้าเพิ่มพลัง','นักกีฬาทุกคนควรใช้ถุงเท้านี้'], answer:1, explanation:'ผลงานที่แย่มากหรือดีมากมักมีแนวโน้มกลับเข้าใกล้ค่าเฉลี่ยในครั้งถัดไปโดยไม่จำเป็นต้องมีสาเหตุใหม่'},
+
+      {level:4, category:'Society & Politics', fallacy:'Appeal to Popularity', scenario:'มีผู้ชุมนุมจำนวนมากเรียกร้องให้แก้กฎหมายหนึ่งฉบับ', question:'ข้อใดเหมาะสมที่สุด?', choices:['ข้อเรียกร้องต้องถูก เพราะคนเยอะ','จำนวนผู้สนับสนุนสะท้อนความสำคัญทางสังคม แต่ความถูกต้องของข้อเรียกร้องต้องดูเหตุผลและผลกระทบ','คนเยอะผิดไม่ได้','ถ้าคนน้อยคัดค้านก็ไม่ต้องฟัง'], answer:1, explanation:'จำนวนคนมีความหมายทางประชาธิปไตยและสังคม แต่ไม่ใช่หลักฐานเชิงเหตุผลเพียงพอว่าข้อเสนอถูกทุกด้าน'},
+      {level:4, category:'Society & Religion', fallacy:'Anecdotal Evidence', scenario:'คนหนึ่งเล่าว่า “ฉันอธิษฐานแล้วหายป่วย ดังนั้นการอธิษฐานรักษาโรคได้”', question:'ข้อใดรัดกุมที่สุด?', choices:['จริงแน่นอน','เป็นประสบการณ์ส่วนบุคคล อาจมีคุณค่าทางจิตใจ แต่ยังไม่พอพิสูจน์สาเหตุทางการแพทย์','การแพทย์ไม่จำเป็น','คนไม่อธิษฐานไม่มีวันหาย'], answer:1, explanation:'ประสบการณ์ส่วนบุคคลไม่พอพิสูจน์เหตุและผล โดยเฉพาะเรื่องสุขภาพที่มีปัจจัยมาก'},
+      {level:4, category:'Society & Religion', fallacy:'Genetic Fallacy', scenario:'นักวิจัยคนหนึ่งนับถือศาสนา X มีคนบอกว่างานวิจัยของเขาไม่น่าเชื่อถือเพราะศาสนาของเขา', question:'ควรประเมินอย่างไร?', choices:['งานวิจัยไม่น่าเชื่อถือทันที','ดูวิธีวิจัย ข้อมูล การทบทวนโดยผู้เชี่ยวชาญ และผลประโยชน์ทับซ้อน ไม่ตัดสินจากศาสนาอย่างเดียว','ศาสนาเป็นหลักฐานพอแล้ว','ถ้าศาสนาเดียวกับเราแปลว่าน่าเชื่อ'], answer:1, explanation:'ความน่าเชื่อถือของงานวิจัยต้องประเมินจากกระบวนการและหลักฐาน ไม่ใช่ตัวตนของผู้วิจัยเพียงอย่างเดียว'},
+      {level:4, category:'Politics & Evidence', fallacy:'Post Hoc', scenario:'หลังรัฐบาลใหม่เข้ามา 3 เดือน ราคาสินค้าบางอย่างลดลง มีคนสรุปว่ารัฐบาลใหม่ทำให้ราคาลดทั้งหมด', question:'ข้อใดเหมาะสมที่สุด?', choices:['ถูกแน่นอน เพราะเกิดหลังจากรัฐบาลใหม่','ยังสรุปไม่ได้ ต้องดูมาตรการ ปัจจัยตลาดโลก ฤดูกาล และข้อมูลเปรียบเทียบ','ผิดแน่นอน เพราะรัฐบาลไม่มีผลอะไรเลย','ถ้าคนส่วนใหญ่เชื่อก็พอ'], answer:1, explanation:'เกิดหลังไม่ได้แปลว่าเกิดเพราะ ต้องดูกลไกและปัจจัยอื่นร่วมด้วย'},
+      {level:4, category:'Media Literacy', fallacy:'Selective Evidence', scenario:'เพจหนึ่งนำเสนอเฉพาะตัวเลขเศรษฐกิจที่ดีเพื่อบอกว่าประเทศกำลังดีมาก', question:'ควรถามอะไรเพิ่ม?', choices:['ตัวเลขที่ดีพอแล้ว','มีตัวชี้วัดอื่นที่แย่ลงหรือไม่ วิธีเก็บข้อมูลคืออะไร และเทียบกับช่วงไหน','เพจนี้รักประเทศจึงต้องจริง','ไม่ต้องดูแหล่งอื่น'], answer:1, explanation:'การเลือกตัวเลขบางชุดอาจทำให้เห็นภาพไม่ครบ ต้องดูหลายมิติและบริบท'},
+      {level:4, category:'Society & Health', fallacy:'False Balance', scenario:'รายการทีวีให้แพทย์ 1 คนกับคนไม่มีความเชี่ยวชาญ 1 คนถกกันเรื่องการรักษา ทำให้ดูเหมือนสองฝ่ายมีน้ำหนักเท่ากัน', question:'ข้อใดควรระวัง?', choices:['ทุกความเห็นมีน้ำหนักเท่ากันเสมอ','ความสมดุลของเวลาออกอากาศไม่เท่ากับความสมดุลของหลักฐาน','คนพูดเสียงดังน่าเชื่อกว่า','ถ้าถกกันแปลว่ายังไม่มีข้อสรุปใดเลย'], answer:1, explanation:'การให้พื้นที่เท่ากันอาจทำให้คนเข้าใจว่าน้ำหนักหลักฐานเท่ากัน ทั้งที่อาจไม่ใช่'},
+      {level:4, category:'AI & Technology', fallacy:'Appeal to Novelty', scenario:'บริษัทหนึ่งบอกว่า “ระบบนี้ใช้ AI จึงแม่นยำและยุติธรรมกว่าแน่นอน”', question:'ข้อใดเหมาะสมที่สุด?', choices:['AI จึงดีกว่าแน่นอน','ควรดูข้อมูลทดสอบ ความแม่นยำ อคติของข้อมูล และผลกระทบจริง','เทคโนโลยีใหม่ไม่มีอคติ','ถ้าบริษัทใหญ่ทำต้องถูก'], answer:1, explanation:'ความใหม่หรือการใช้ AI ไม่ได้พิสูจน์ความแม่นยำหรือความยุติธรรม ต้องตรวจสอบการทดสอบและข้อมูล'},
+      {level:4, category:'Investment Thinking', fallacy:'Survivorship Bias', scenario:'คุณเห็นคน 10 คนที่รวยจากคริปโตเล่าว่ากลยุทธ์ของเขาได้ผลมาก', question:'ควรถามอะไรเพิ่ม?', choices:['มีคนที่ใช้วิธีเดียวกันแล้วขาดทุนกี่คน','คนรวยพูดแปลว่าถูก','ถ้าทำตามทุกคนจะรวย','ไม่ต้องดูความเสี่ยง'], answer:0, explanation:'การเห็นเฉพาะผู้ชนะทำให้ประเมินโอกาสสำเร็จสูงเกินจริง ต้องดูคนที่ล้มเหลวด้วย'},
+      {level:4, category:'Society & Politics', fallacy:'No True Scotsman', scenario:'เมื่อสมาชิกกลุ่มหนึ่งทำผิด หัวหน้ากลุ่มพูดว่า “คนของเราที่แท้จริงไม่มีวันทำแบบนั้น ดังนั้นเขาไม่ใช่คนของเรา”', question:'ปัญหาคืออะไร?', choices:['เปลี่ยนนิยามเพื่อกันตัวอย่างที่ขัดแย้งออกไป','เป็นการพิสูจน์ที่ชัดเจน','เป็นสถิติที่ดี','ทำให้กลุ่มไม่มีความรับผิดชอบเสมอ'], answer:0, explanation:'การเปลี่ยนนิยามหลังเจอตัวอย่างที่ไม่เข้ากับภาพเดิมเป็นวิธีหลบการตรวจสอบ'},
+      {level:4, category:'Society & Ethics', fallacy:'Moral Licensing', scenario:'องค์กรหนึ่งทำกิจกรรมการกุศลใหญ่ แล้วใช้เรื่องนั้นตอบทุกคำถามเกี่ยวกับปัญหาการเอาเปรียบแรงงาน', question:'ข้อใดเหมาะสมที่สุด?', choices:['ทำบุญแล้วจึงไม่มีปัญหาอื่น','กิจกรรมดีควรถูกนับเป็นเรื่องหนึ่ง แต่ไม่ได้ลบล้างข้อกล่าวหาอื่น ต้องตรวจสอบแยกกัน','องค์กรดีทั้งหมด','คนวิจารณ์ใจร้าย'], answer:1, explanation:'การทำเรื่องดีบางอย่างไม่ใช่หลักฐานว่าปราศจากปัญหาในเรื่องอื่น'},
+
+      {level:5, category:'Advanced Reasoning', fallacy:'Causal Inference', scenario:'โรงเรียน A ใช้แท็บเล็ตในการเรียน และคะแนนเฉลี่ยสูงกว่าโรงเรียน B ที่ไม่ใช้แท็บเล็ต แต่โรงเรียน A มีงบประมาณสูงกว่า ครูมากกว่า และผู้ปกครองมีรายได้เฉลี่ยสูงกว่า', question:'ข้อสรุปใดรัดกุมที่สุด?', choices:['แท็บเล็ตทำให้คะแนนสูงกว่าแน่นอน','ยังสรุปผลของแท็บเล็ตไม่ได้ เพราะมีปัจจัยกวนหลายอย่าง ต้องออกแบบการเปรียบเทียบให้ควบคุมปัจจัยเหล่านี้','โรงเรียน B แย่กว่าแน่นอน','งบประมาณไม่เกี่ยว เพราะคะแนนคือคำตอบสุดท้าย'], answer:1, explanation:'เมื่อมีกลุ่มที่ต่างกันหลายด้าน การสรุปว่าสาเหตุคือแท็บเล็ตอย่างเดียวไม่รัดกุม'},
+      {level:5, category:'Advanced Evidence', fallacy:'Confounding Variables', scenario:'งานสำรวจพบว่าคนที่ดื่มกาแฟมากมีรายได้สูงกว่า แต่กลุ่มนี้อยู่ในเมืองใหญ่และทำงานออฟฟิศมากกว่า', question:'ควรตีความอย่างไร?', choices:['กาแฟทำให้รายได้สูง','รายได้สูงทำให้ต้องดื่มกาแฟเท่านั้น','อาจมีตัวแปรกวน เช่น อาชีพ เมือง การศึกษา ต้องวิเคราะห์เพิ่ม','ทุกคนควรดื่มกาแฟเพื่อรวย'], answer:2, explanation:'ความสัมพันธ์ระหว่างกาแฟกับรายได้อาจเกิดจากปัจจัยอื่นที่เกี่ยวข้องกับทั้งสองสิ่ง'},
+      {level:5, category:'Advanced Logic', fallacy:'Necessary vs Sufficient', scenario:'ทุกคนที่เป็นหมอเรียนแพทย์ แต่ไม่ใช่ทุกคนที่เรียนแพทย์จะได้เป็นหมอ', question:'ข้อใดถูกต้อง?', choices:['เรียนแพทย์เป็นเงื่อนไขที่อาจจำเป็น แต่ไม่เพียงพอเสมอสำหรับการเป็นหมอ','เรียนแพทย์แล้วเป็นหมอแน่นอน','ไม่เรียนแพทย์ก็เป็นหมอได้เสมอ','หมอทุกคนไม่จำเป็นต้องเรียนอะไร'], answer:0, explanation:'ต้องแยกเงื่อนไขจำเป็นกับเงื่อนไขเพียงพอ การมีเงื่อนไขหนึ่งไม่ได้รับประกันผลลัพธ์เสมอ'},
+      {level:5, category:'Advanced Media', fallacy:'Data Visualization Bias', scenario:'กราฟข่าวหนึ่งตัดแกน Y เริ่มที่ 95 ทำให้ความแตกต่างระหว่าง 98 กับ 99 ดูใหญ่มาก', question:'ควรระวังอะไร?', choices:['กราฟโกหกเสมอ','การตัดแกนอาจขยายความรู้สึกของความแตกต่าง ต้องดูสเกลและค่าจริง','ความต่าง 1 หน่วยใหญ่มากเสมอ','กราฟที่สวยน่าเชื่อกว่า'], answer:1, explanation:'การออกแบบกราฟมีผลต่อการรับรู้ ต้องอ่านสเกลและบริบทของตัวเลข'},
+      {level:5, category:'Advanced Reasoning', fallacy:'Selection Bias', scenario:'แอปฟิตเนสรายงานว่าผู้ใช้ 80% น้ำหนักลดลง แต่ข้อมูลมาจากเฉพาะคนที่ใช้แอปต่อเนื่องครบ 6 เดือน', question:'คำถามสำคัญคืออะไร?', choices:['คนที่เลิกใช้แอปมีผลลัพธ์อย่างไร','คนที่ใช้ต่อเนื่องต้องแทนทุกคนได้','แอปนี้สำเร็จแน่นอน','ตัวเลข 80% พอแล้ว'], answer:0, explanation:'ถ้านับเฉพาะคนที่อยู่ต่อ อาจตัดคนที่ไม่ได้ผลหรือเลิกใช้ไป ทำให้ผลดูดีเกินจริง'},
+      {level:5, category:'Advanced Ethics', fallacy:'Trade-off Evaluation', scenario:'นโยบายหนึ่งช่วยลดอุบัติเหตุได้ 10% แต่เพิ่มต้นทุนให้ประชาชนจำนวนมาก และมีผลกระทบกับรายได้น้อยมากกว่ารายได้สูง', question:'การประเมินที่ดีที่สุดควรทำอย่างไร?', choices:['ดูแค่ลดอุบัติเหตุได้ก็พอ','ชั่งน้ำหนักประโยชน์ ต้นทุน ผลกระทบต่อกลุ่มต่าง ๆ และทางเลือกอื่น','ปฏิเสธทันทีเพราะมีต้นทุน','เลือกตามความรู้สึก'], answer:1, explanation:'นโยบายสาธารณะมักมี trade-off ต้องประเมินหลายมิติ ไม่ใช่ตัวเลขเดียว'},
+      {level:5, category:'Advanced Logic', fallacy:'Equivocation', scenario:'คนหนึ่งพูดว่า “เสรีภาพคือการทำอะไรก็ได้ ดังนั้นกฎจราจรทุกอย่างขัดกับเสรีภาพ”', question:'ปัญหาคืออะไร?', choices:['ใช้ความหมายของเสรีภาพแบบง่ายเกินไป และละเลยเสรีภาพ/ความปลอดภัยของผู้อื่น','พิสูจน์ว่ากฎจราจรผิดทั้งหมด','ไม่มีปัญหา','เสรีภาพแปลว่าไม่มีข้อจำกัดเสมอ'], answer:0, explanation:'คำว่าเสรีภาพมีหลายมิติ การใช้ความหมายเดียวแบบสุดโต่งทำให้เหตุผลอ่อน'},
+      {level:5, category:'Advanced Evidence', fallacy:'Overfitting / Pattern Seeking', scenario:'นักลงทุนพบรูปแบบว่า “ถ้าวันจันทร์ฝนตกและตลาดเปิดบวก หุ้น X จะขึ้นในวันพุธ” จากข้อมูลย้อนหลัง 12 ครั้ง', question:'ควรระวังอะไร?', choices:['รูปแบบนี้ใช้ได้แน่นอน','อาจเป็นการจับแพตเทิร์นจากข้อมูลน้อย ต้องทดสอบกับข้อมูลใหม่และดูเหตุผลรองรับ','ฝนควบคุมตลาดหุ้น','ข้อมูลย้อนหลังไม่เคยหลอก'], answer:1, explanation:'สมองมนุษย์เก่งในการหาแพตเทิร์น แม้บางครั้งเป็นความบังเอิญจากข้อมูลน้อย'},
+      {level:5, category:'Advanced Source Evaluation', fallacy:'Conflict of Interest', scenario:'รายงานหนึ่งสรุปว่าสินค้าของบริษัท A ดีที่สุด โดยรายงานได้รับทุนจากบริษัท A แต่มีข้อมูลการทดสอบบางส่วนเปิดเผย', question:'ควรประเมินอย่างไร?', choices:['ปัดทิ้งทั้งหมดทันที','เชื่อทั้งหมดเพราะมีข้อมูล','พิจารณาผลประโยชน์ทับซ้อน ตรวจวิธีทดสอบ และเปรียบเทียบกับแหล่งอิสระ','บริษัทให้ทุนแปลว่าข้อมูลดีแน่นอน'], answer:2, explanation:'ผลประโยชน์ทับซ้อนไม่ได้ทำให้ข้อมูลผิดอัตโนมัติ แต่เพิ่มเหตุผลให้ตรวจสอบอย่างเข้มขึ้น'},
+      {level:5, category:'Advanced Reasoning', fallacy:'Best Explanation', scenario:'มีหลักฐาน 3 อย่าง: ยอดขายตก คู่แข่งลดราคา และรีวิวลูกค้าบ่นเรื่องบริการเพิ่มขึ้น ผู้บริหารสรุปว่า “ยอดขายตกเพราะเศรษฐกิจไม่ดีอย่างเดียว”', question:'ข้อใดรัดกุมที่สุด?', choices:['สรุปได้ทันทีว่าเศรษฐกิจเป็นสาเหตุเดียว','ควรพิจารณาคำอธิบายหลายปัจจัยและดูข้อมูลแยกผลกระทบของแต่ละปัจจัย','รีวิวลูกค้าไม่เกี่ยวแน่นอน','คู่แข่งลดราคาเป็นเรื่องบังเอิญเสมอ'], answer:1, explanation:'เมื่อมีหลายหลักฐานที่อาจชี้หลายสาเหตุ การเลือกสาเหตุเดียวโดยไม่เปรียบเทียบคำอธิบายอื่นไม่รัดกุม'}
+    ];
+
+    const categoryMap = {
+      'Media Literacy':'การอ่านข่าว/สื่อ', 'Evidence Evaluation':'การประเมินหลักฐาน', 'Source Evaluation':'การประเมินแหล่งข้อมูล',
+      'Statistical Thinking':'การคิดเชิงสถิติ', 'Open-mindedness':'ความเปิดใจต่อหลักฐาน', 'Logical Consistency':'ความสอดคล้องทางตรรกะ',
+      'Fallacy Detection':'การจับตรรกะวิบัติ', 'Confirmation Bias Resistance':'การต้าน Confirmation Bias',
+      'Society & Politics':'สังคม/การเมือง', 'Society & Religion':'สังคม/ศาสนา', 'Politics & Evidence':'การเมือง/หลักฐาน',
+      'Society & Health':'สังคม/สุขภาพ', 'AI & Technology':'AI/เทคโนโลยี', 'Investment Thinking':'การลงทุน', 'Society & Ethics':'จริยธรรมสังคม',
+      'Advanced Reasoning':'เหตุผลขั้นสูง', 'Advanced Evidence':'หลักฐานขั้นสูง', 'Advanced Logic':'ตรรกะขั้นสูง', 'Advanced Media':'สื่อขั้นสูง',
+      'Advanced Ethics':'จริยธรรมขั้นสูง', 'Advanced Source Evaluation':'แหล่งข้อมูลขั้นสูง'
+    };
+
+    let index = 0;
+    let answers = Array(questions.length).fill(null);
+
+    function $(id){ return document.getElementById(id); }
+    function startTest(){ $('start').classList.add('hidden'); $('quiz').classList.remove('hidden'); renderQuestion(); window.scrollTo(0,0); }
+    function renderQuestion(){
+      const q = questions[index];
+      $('counter').textContent = `ข้อ ${index + 1} / ${questions.length}`;
+      $('progress').style.width = `${(index / questions.length) * 100}%`;
+      $('levelTag').textContent = `Level ${q.level}`;
+      $('catTag').textContent = categoryMap[q.category] || q.category;
+      $('scenario').textContent = q.scenario;
+      $('question').textContent = q.question;
+      $('choices').innerHTML = '';
+      q.choices.forEach((choice, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'choice' + (answers[index] === i ? ' selected' : '');
+        btn.textContent = `${String.fromCharCode(65+i)}. ${choice}`;
+        btn.onclick = () => selectChoice(i);
+        $('choices').appendChild(btn);
+      });
+      $('nextBtn').disabled = answers[index] === null;
+      $('nextBtn').textContent = index === questions.length - 1 ? 'ดูผลลัพธ์' : 'ถัดไป';
+    }
+    function selectChoice(i){ answers[index] = i; renderQuestion(); }
+    function nextQuestion(){
+      if (answers[index] === null) return;
+      if (index < questions.length - 1) { index++; renderQuestion(); window.scrollTo(0,0); }
+      else showResult();
+    }
+    function showResult(){
+      $('quiz').classList.add('hidden');
+      $('progress').style.width = '100%';
+      const correct = answers.reduce((sum, a, i) => sum + (a === questions[i].answer ? 1 : 0), 0);
+      const percent = Math.round(correct / questions.length * 100);
+      const profile = getProfile(percent);
+      const grouped = {};
+      questions.forEach((q, i) => {
+        const key = categoryMap[q.category] || q.category;
+        if(!grouped[key]) grouped[key] = {correct:0,total:0};
+        grouped[key].total++;
+        if(answers[i] === q.answer) grouped[key].correct++;
+      });
+      const metricHtml = Object.entries(grouped).map(([name, v]) => {
+        const p = Math.round(v.correct/v.total*100);
+        return `<div class="metric"><div class="metric-head"><span>${name}</span><span>${p}%</span></div><div class="bar"><span style="width:${p}%"></span></div><p style="font-size:13px;margin:8px 0 0">${v.correct}/${v.total} ข้อ</p></div>`;
+      }).join('');
+      $('result').innerHTML = `
+        <h2>ผลลัพธ์ของคุณ</h2>
+        <div class="score-big">${percent}%</div>
+        <div class="profile">${profile.title}</div>
+        <p>${profile.desc}</p>
+        <h3>คะแนนรายหมวด</h3>
+        <div class="grid">${metricHtml}</div>
+        <div class="footer-actions">
+          <button class="primary" onclick="showReview()">ดูเฉลยทั้งหมด</button>
+          <button class="ghost" onclick="restart()">ทำใหม่</button>
+        </div>`;
+      $('result').classList.remove('hidden');
+      window.scrollTo(0,0);
+    }
+    function getProfile(p){
+      if (p >= 90) return {title:'Evidence Seeker ระดับสูง', desc:'คุณประเมินหลักฐานและหลีกเลี่ยงกับดักทางเหตุผลได้สม่ำเสมอ เหมาะกับงานที่ต้องตัดสินใจจากข้อมูลหลายด้าน'};
+      if (p >= 80) return {title:'Analytical Thinker', desc:'คุณมีพื้นฐานการคิดเชิงเหตุผลดีมาก ยังมีบางหมวดที่อาจพัฒนาได้ โดยเฉพาะเมื่อโจทย์มีอารมณ์ ความเชื่อ หรือแรงกดดันทางสังคม'};
+      if (p >= 70) return {title:'Balanced Thinker', desc:'คุณคิดเป็นระบบได้ดีในหลายสถานการณ์ แต่ยังอาจตกหลุมอคติหรือสรุปเร็วในโจทย์ที่ดูคุ้นเคย'};
+      if (p >= 60) return {title:'Developing Thinker', desc:'คุณมีฐานการคิดที่ใช้ได้ แต่ควรฝึกแยกหลักฐาน ความเห็น และความรู้สึกออกจากกันให้ชัดขึ้น'};
+      return {title:'Intuitive Thinker', desc:'คุณอาจพึ่งสัญชาตญาณหรือความเชื่อเดิมค่อนข้างมาก แนะนำให้เริ่มจากการตรวจสอบแหล่งที่มาและถามว่า “หลักฐานพอหรือยัง” ก่อนสรุป'};
+    }
+    function showReview(){
+      const html = questions.map((q, i) => {
+        const ok = answers[i] === q.answer;
+        const your = answers[i] === null ? '-' : String.fromCharCode(65 + answers[i]);
+        const ans = String.fromCharCode(65 + q.answer);
+        return `<div class="explain-item">
+          <div class="tag">ข้อ ${i+1}</div><div class="tag">Level ${q.level}</div><div class="tag">${q.fallacy}</div>
+          <h3>${q.scenario}</h3>
+          <p><strong>${q.question}</strong></p>
+          <p class="${ok ? 'correct':'wrong'}">คุณตอบ ${your} ${ok ? 'ถูกต้อง' : 'ไม่ถูก'} · คำตอบที่เหมาะสมคือ ${ans}</p>
+          <p><strong>${ans}. ${q.choices[q.answer]}</strong></p>
+          <p>${q.explanation}</p>
+        </div>`;
+      }).join('');
+      $('review').innerHTML = `<h2>เฉลยและคำอธิบาย</h2>${html}<div class="footer-actions"><button class="ghost" onclick="restart()">ทำใหม่</button></div>`;
+      $('review').classList.remove('hidden');
+      window.scrollTo({top:$('review').offsetTop - 10, behavior:'smooth'});
+    }
+    function restart(){ index = 0; answers = Array(questions.length).fill(null); $('result').classList.add('hidden'); $('review').classList.add('hidden'); $('start').classList.remove('hidden'); window.scrollTo(0,0); }
+  </script>
+</body>
+</html>
