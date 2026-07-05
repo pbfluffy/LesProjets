@@ -50,6 +50,7 @@ jobs:
           cp korea2026-d6718e8d.html _site/korea2026-d6718e8d.html
           cp temp.html _site/temp.html
           cp montreal-autumn-2026.html _site/montreal-autumn-2026.html
+          cp critical-thinking-test.html _site/critical-thinking-test.html
           mkdir -p _site/backyard-rampage && cp -r backyard-rampage/. _site/backyard-rampage/
           cp -r studio/. _site/studio/
           cp -r bill-splitter/dist/. _site/bill-splitter/
