@@ -50,9 +50,37 @@ export function useBillStore(initial) {
   const [bankInfo, setBankInfo] = useState(initial?.bankInfo ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [currency, setCurrency] = useState(normaliseCurrency(initial?.currency) ?? DEFAULT_CURRENCY)
-  const [billOwner, setBillOwner] = useState(
+  const [billOwner, setBillOwnerState] = useState(
     initial?.members?.includes(initial?.billOwner) ? initial.billOwner : (initial?.members?.[0] ?? '')
   )
+  // #91 mark-as-paid — persisted in store so it round-trips through Save,
+  // bill history, cloud sync, and share links (all of which just serialise
+  // whatever is in the snapshot object). Stored as a Set internally; the
+  // snapshot builder in BillSplitter.jsx converts it to a plain array.
+  const [paid, setPaidState] = useState(
+    () => new Set(Array.isArray(initial?.paid) ? initial.paid : [])
+  )
+  const togglePaid = useCallback((name) => {
+    setPaidState(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name); else next.add(name)
+      return next
+    })
+  }, [])
+  const setPaid = useCallback((names) => {
+    setPaidState(new Set(Array.isArray(names) ? names : []))
+  }, [])
+  // Owner never shows as "paid" (they're the one collecting) — strip them
+  // from the paid set whenever the owner changes.
+  const setBillOwner = useCallback((owner) => {
+    setPaidState(prev => {
+      if (!prev.has(owner)) return prev
+      const next = new Set(prev)
+      next.delete(owner)
+      return next
+    })
+    setBillOwnerState(owner)
+  }, [])
 
   // Feature #76 Phase A — On new bill (no initial.members), auto-seed the
   // first member with the signed-in user's display name once auth resolves.
@@ -68,7 +96,7 @@ export function useBillStore(initial) {
   }, [])
 
   useEffect(() => {
-    setBillOwner(owner => members.length === 0 ? '' : (members.includes(owner) ? owner : members[0]))
+    setBillOwnerState(owner => members.length === 0 ? '' : (members.includes(owner) ? owner : members[0]))
   }, [members])
 
   const addMember = useCallback((name) => {
@@ -87,6 +115,12 @@ export function useBillStore(initial) {
     setMembers(prev => prev.filter(m => m !== name))
     setFoods(prev => prev.map(f => ({ ...f, who: f.who.filter(w => w !== name) })))
     setBillDiscounts(prev => prev.map(d => d.who === null ? d : { ...d, who: d.who.filter(m => m !== name) }))
+    setPaidState(prev => {
+      if (!prev.has(name)) return prev
+      const next = new Set(prev)
+      next.delete(name)
+      return next
+    })
   }, [])
 
   const addFood = useCallback(() => {
@@ -217,5 +251,5 @@ export function useBillStore(initial) {
     }
   }, [members, foods, vatEnabled, serviceChargeEnabled, serviceChargeRate, roundTotalEnabled, billOwner, billDiscounts])
 
-  return { billName, setBillName, members, addMember, removeMember, billOwner, setBillOwner, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, duplicateFood, restoreFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, roundTotalEnabled, setRoundTotalEnabled, currency, setCurrency, billDiscounts, setBillDiscounts, addBillDiscount, addBillDiscounts, updateBillDiscount, removeBillDiscount, calculate }
+  return { billName, setBillName, members, addMember, removeMember, billOwner, setBillOwner, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, duplicateFood, restoreFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, roundTotalEnabled, setRoundTotalEnabled, currency, setCurrency, billDiscounts, setBillDiscounts, addBillDiscount, addBillDiscounts, updateBillDiscount, removeBillDiscount, paid, togglePaid, setPaid, calculate }
 }
