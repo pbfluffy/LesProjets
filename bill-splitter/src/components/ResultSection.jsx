@@ -11,7 +11,7 @@ import styles from './ResultSection.module.css'
 
 function fmt(n) { return n.toFixed(2) }
 
-export default function ResultSection({ result, members, foods = [], promptPay, bankInfo, notes, billName, snapshot, tab, onSave, onNewBill, initialPaid, billOwner, onBillOwnerChange, roundTotalEnabled, onRoundTotalChange, readOnly, currency = 'THB', currencySymbol = '฿' }) {
+export default function ResultSection({ result, members, foods = [], promptPay, bankInfo, notes, billName, snapshot, tab, onSave, onNewBill, paid, onTogglePaid, billOwner, onBillOwnerChange, roundTotalEnabled, onRoundTotalChange, readOnly, currency = 'THB', currencySymbol = '฿' }) {
   const { t, lang } = useLang()
   const [toast, setToast] = useState('')
   const [showQR, setShowQR] = useState(false)
@@ -53,22 +53,12 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
   const fmtC = (n) => conv(n).toFixed(2)
   const displayCurrency = convertRate !== null ? 'THB' : currency
   const currentOwner = members.includes(billOwner) ? billOwner : members[0]
-  // #91 mark-as-paid — session-only set of member names marked paid.
-  // Deliberately NOT persisted to store/history/cloud (resets on new bill).
-  // Seeds from initialPaid when opening a share link that carried paid names.
-  const [paid, setPaid] = useState(() => new Set(Array.isArray(initialPaid) ? initialPaid : []))
-  const togglePaid = (m) => setPaid(prev => {
-    const next = new Set(prev)
-    if (next.has(m)) next.delete(m); else next.add(m)
-    return next
-  })
+  // #91 mark-as-paid — persisted via the store (paid/onTogglePaid props), so
+  // it now survives Save, bill history reload, cloud sync, and share links.
+  // Owner-stripping when the bill owner changes is handled in useBillStore's
+  // setBillOwner, which onBillOwnerChange is wired to.
+  const paidSet = paid ?? new Set()
   const handleOwnerChange = (owner) => {
-    setPaid(prev => {
-      if (!prev.has(owner)) return prev
-      const next = new Set(prev)
-      next.delete(owner)
-      return next
-    })
     onBillOwnerChange?.(owner)
   }
 
@@ -130,10 +120,9 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
 
   const handleShareLink = async () => {
     const text = buildSummaryText()
-    // #91 follow-up — carry the session-only paid set in the SHARE PAYLOAD only,
-    // so checks show for whoever opens the link. Never written to store/history/cloud:
-    // we spread into a fresh object and leave `snapshot` (used by Save) untouched.
-    const shareSnapshot = paid.size > 0 ? { ...snapshot, paid: [...paid] } : snapshot
+    // #91 — paid is already part of `snapshot` (persisted via the store), so
+    // share links carry it automatically; no separate payload needed.
+    const shareSnapshot = snapshot
     let url
     setCreatingLink(true)
     try {
@@ -379,13 +368,13 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
               const hasBillDisc = undiscountedAmt - finalAmt > 0.005
               const pct = result.grandTotal > 0 ? (finalAmt / result.grandTotal) * 100 : 0
               const isOwner = m === currentOwner
-              const isPaid = !isOwner && paid.has(m)
+              const isPaid = !isOwner && paidSet.has(m)
               const qrAmount = isTHB ? finalAmt : (convertRate !== null ? conv(finalAmt) : null)
               return (
                 <div key={m} className={`${styles.personCard} ${isPaid ? styles.paid : ''}`}>
                   <div className={styles.personHeader}>
                     <div className={styles.personLeft}>
-                      {isOwner ? <span className={styles.payCheckPlaceholder} aria-hidden="true" /> : <button type="button" className={`${styles.payCheck} ${isPaid ? styles.payCheckOn : ''}`} onClick={() => togglePaid(m)} aria-pressed={isPaid} aria-label={isPaid ? t.markUnpaid : t.markPaid} title={isPaid ? t.markUnpaid : t.markPaid}>{isPaid && (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)}</button>}
+                      {isOwner ? <span className={styles.payCheckPlaceholder} aria-hidden="true" /> : <button type="button" className={`${styles.payCheck} ${isPaid ? styles.payCheckOn : ''}`} onClick={() => onTogglePaid?.(m)} aria-pressed={isPaid} aria-label={isPaid ? t.markUnpaid : t.markPaid} title={isPaid ? t.markUnpaid : t.markPaid}>{isPaid && (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)}</button>}
                       <Avatar name={m} photoURL={user && ownerName && m.trim().toLowerCase() === ownerName ? user.photoURL : null} size={24} />
                       <span className={styles.personName}>{m}</span>
                       <span className={`${styles.payStatus} ${isOwner ? styles.payStatusOwner : (isPaid ? styles.payStatusPaid : styles.payStatusPending)}`}>{isOwner ? 'Owner' : (isPaid ? 'Paid' : 'Pending')}</span>
