@@ -384,7 +384,10 @@
   .checklist-progress{
     display:flex; align-items:center; gap:14px;
     background:var(--cream); border:1px solid var(--line); border-radius:var(--radius);
-    padding:14px 18px; margin-bottom:22px;
+    padding:14px 18px; margin-bottom:8px;
+  }
+  .starters-note{
+    font-size:0.78rem; color:var(--ink-soft); margin:0 0 22px 4px; min-height:1em;
   }
   .checklist-progress .bar-track{
     flex:1; height:8px; border-radius:8px; background:var(--parchment-2);
@@ -662,6 +665,7 @@
       <div class="bar-track"><div class="bar-fill" id="checklist-bar"></div></div>
       <button class="reset-btn danger" id="checklist-reset" type="button">Reset</button>
     </div>
+    <p class="starters-note" id="starters-note"></p>
     <div class="pack-grid" id="pack-grid"></div>
   </section>
 
@@ -1118,7 +1122,7 @@ document.querySelectorAll('.qcard').forEach(c=> c.addEventListener('click', ()=>
 // blocked domain), everything above (itinerary, food guide, packing checklist,
 // tabs) still works fully — this script only adds cross-device sync and the
 // login-gated flight/hotel tab on top.
-let auth, firestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp;
+let auth, firestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, arrayUnion;
 let currentUser = null;
 let cloudUnsubscribe = null;
 let cloudSyncBroken = false;
@@ -1147,7 +1151,7 @@ function markSyncUnavailable(){
     ]);
     const { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } = authMod;
     const { getFirestore } = fsMod;
-    ({ doc, getDoc, setDoc, onSnapshot, serverTimestamp } = fsMod);
+    ({ doc, getDoc, setDoc, onSnapshot, serverTimestamp, arrayUnion } = fsMod);
 
     const firebaseConfig = {
       apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
@@ -1161,16 +1165,36 @@ function markSyncUnavailable(){
     auth = getAuth(fbApp);
     firestore = getFirestore(fbApp);
     cloudDocRef = (uid) => doc(firestore, 'montrealChecklist', uid);
+    const statsDocRef = doc(firestore, 'checklistStats', 'montreal2026');
+    let hasRecordedStart = false;
 
     // ---------------- CLOUD SYNC (uses window.checklistBridge, never touches checkedItems directly) ----------------
 async function pushToCloud(uid, idsArray){
   if(cloudSyncBroken) return;
   try{
     await setDoc(cloudDocRef(uid), { checkedItems: idsArray, updatedAt: serverTimestamp() });
+    if(idsArray.length > 0 && !hasRecordedStart){
+      hasRecordedStart = true;
+      setDoc(statsDocRef, { starterUids: arrayUnion(uid) }, { merge: true }).catch(e=>{
+        console.warn('Starter count write failed:', e.code || e.message);
+      });
+    }
   }catch(e){
     console.warn('Cloud write unavailable:', e.code || e.message);
     markSyncBroken(e.code);
   }
+}
+function listenToStarterCount(){
+  const noteEl = document.getElementById('starters-note');
+  if(!noteEl) return;
+  onSnapshot(statsDocRef, (snap)=>{
+    const n = snap.exists() ? (snap.data().starterUids || []).length : 0;
+    noteEl.textContent = n === 0
+      ? 'Be the first to start this checklist.'
+      : `🎒 ${n} traveler${n===1?'':'s'} ${n===1?'has':'have'} started this checklist.`;
+  }, (err)=>{
+    console.warn('Starter count unavailable:', err.code || err.message);
+  });
 }
 function listenToCloud(uid){
   if(cloudUnsubscribe) cloudUnsubscribe();
@@ -1374,7 +1398,13 @@ onAuthStateChanged(auth, (user)=>{
   cloudSyncBroken = false;
   updateSyncUI();
   loadTravelContent();
-  if(user) pullAndMergeCloud(user.uid);
+  if(user){
+    pullAndMergeCloud(user.uid);
+    listenToStarterCount();
+  }else{
+    const noteEl = document.getElementById('starters-note');
+    if(noteEl) noteEl.textContent = '';
+  }
 });
 
   }catch(e){
