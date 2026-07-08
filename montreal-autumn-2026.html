@@ -904,7 +904,7 @@ document.querySelectorAll('.qcard').forEach(c=> c.addEventListener('click', ()=>
 // blocked domain), everything above (itinerary, food guide, packing checklist,
 // tabs) still works fully — this script only adds cross-device sync and the
 // login-gated flight/hotel tab on top.
-let auth, firestore, doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp;
+let auth, firestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp;
 let currentUser = null;
 let cloudSyncBroken = false;
 let lastSyncErrorCode = null;
@@ -938,7 +938,7 @@ function markSyncUnavailable(){
     ]);
     const { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } = authMod;
     const { getFirestore } = fsMod;
-    ({ doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp } = fsMod);
+    ({ doc, getDoc, setDoc, onSnapshot, serverTimestamp } = fsMod);
 
     const firebaseConfig = {
       apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
@@ -1104,16 +1104,15 @@ function initPackingTab(){
 
   if(tripTasksUnsub) tripTasksUnsub();
   tripTasksUnsub = onSnapshot(tripTasksRef, (snap)=>{
-    if(snap.exists()){
-      const d = snap.data();
-      packingState.tasks = d.tasks || {};
-      packingState.taskChecked = d.checked || {};
-      packingState.assignees.flightsUid = (d.tasks && d.tasks['book-flights'] && d.tasks['book-flights'].assigneeUid) || null;
-      packingState.assignees.hotelUid = (d.tasks && d.tasks['book-hotel'] && d.tasks['book-hotel'].assigneeUid) || null;
-    }else{
-      packingState.tasks = {};
-      packingState.taskChecked = {};
+    let parsed = { tasks: {}, checked: {} };
+    if(snap.exists() && snap.data().tasksJson){
+      try{ parsed = JSON.parse(snap.data().tasksJson); }
+      catch(e){ console.warn('tripTasks JSON parse failed:', e.message); }
     }
+    packingState.tasks = parsed.tasks || {};
+    packingState.taskChecked = parsed.checked || {};
+    packingState.assignees.flightsUid = (parsed.tasks && parsed.tasks['book-flights'] && parsed.tasks['book-flights'].assigneeUid) || null;
+    packingState.assignees.hotelUid = (parsed.tasks && parsed.tasks['book-hotel'] && parsed.tasks['book-hotel'].assigneeUid) || null;
     lockedEl.style.display = 'none';
     contentEl.style.display = 'block';
     renderPackingUI();
@@ -1201,8 +1200,11 @@ function renderSharedPanel(panelEl){
     cb.addEventListener('change', async (e)=>{
       const tid = e.target.closest('.pack-check').dataset.taskid;
       const newVal = e.target.checked;
+      const updatedChecked = { ...packingState.taskChecked, [tid]: newVal };
       try{
-        await updateDoc(tripTasksRef, { [`checked.${tid}`]: newVal });
+        await setDoc(tripTasksRef, {
+          tasksJson: JSON.stringify({ tasks: packingState.tasks, checked: updatedChecked })
+        }, { merge: true });
       }catch(err){
         console.warn('Failed to update shared task:', err.code || err.message);
         e.target.checked = !newVal;
