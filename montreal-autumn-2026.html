@@ -1187,6 +1187,7 @@ async function pushToCloud(uid, idsArray){
 function listenToStarterCount(){
   const noteEl = document.getElementById('starters-note');
   if(!noteEl) return;
+  noteEl.textContent = 'Loading counter…';
   onSnapshot(statsDocRef, (snap)=>{
     const n = snap.exists() ? (snap.data().starterUids || []).length : 0;
     noteEl.textContent = n === 0
@@ -1194,6 +1195,7 @@ function listenToStarterCount(){
       : `🎒 ${n} traveler${n===1?'':'s'} ${n===1?'has':'have'} started this checklist.`;
   }, (err)=>{
     console.warn('Starter count unavailable:', err.code || err.message);
+    noteEl.textContent = `Counter unavailable (${err.code || err.message}) — likely the Firestore rule isn't published yet.`;
   });
 }
 function listenToCloud(uid){
