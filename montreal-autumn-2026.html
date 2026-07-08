@@ -1088,6 +1088,23 @@ const packingState = {
 let tripTasksUnsub = null;
 const personUnsubs = {};
 
+async function ensureOwnDisplayName(){
+  if(!currentUser) return;
+  try{
+    const snap = await getDoc(cloudDocRef(currentUser.uid));
+    const existingData = snap.exists() ? snap.data() : {};
+    const myName = currentUser.displayName || currentUser.email;
+    if(existingData.displayName !== myName){
+      await setDoc(cloudDocRef(currentUser.uid), {
+        checkedItems: existingData.checkedItems || [],
+        displayName: myName,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
+  }catch(e){
+    console.warn('Failed to write displayName:', e.code || e.message);
+  }
+}
 function initPackingTab(){
   const lockedEl = document.getElementById('packing-locked');
   const contentEl = document.getElementById('packing-content');
@@ -1101,6 +1118,7 @@ function initPackingTab(){
     return;
   }
   packingState.selectedUid = currentUser.uid;
+  ensureOwnDisplayName();
 
   if(tripTasksUnsub) tripTasksUnsub();
   tripTasksUnsub = onSnapshot(tripTasksRef, (snap)=>{
