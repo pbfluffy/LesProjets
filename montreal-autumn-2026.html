@@ -357,6 +357,17 @@
 
   /* ---------- FOOD / TIPS ---------- */
   .chips{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:22px; }
+  .ppl-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+  .ppl-tab{
+    border:1px solid var(--line); background:var(--cream);
+    padding:9px 18px; border-radius:20px; font-size:0.88rem; font-weight:600;
+    cursor:pointer; font-family:inherit; color:var(--ink-soft);
+    transition:all .15s ease;
+  }
+  .ppl-tab:hover{ border-color:var(--maple-deep); color:var(--maple-deep); }
+  .ppl-tab[aria-pressed="true"]{
+    background:var(--maple); color:var(--cream); border-color:var(--maple);
+  }
   .chip{
     border:1px solid var(--line); background:var(--cream);
     padding:7px 14px; border-radius:20px; font-size:0.83rem;
@@ -385,9 +396,6 @@
     display:flex; align-items:center; gap:14px;
     background:var(--cream); border:1px solid var(--line); border-radius:var(--radius);
     padding:14px 18px; margin-bottom:8px;
-  }
-  .starters-note{
-    font-size:0.78rem; color:var(--ink-soft); margin:0 0 22px 4px; min-height:1em;
   }
   .checklist-progress .bar-track{
     flex:1; height:8px; border-radius:8px; background:var(--parchment-2);
@@ -660,13 +668,16 @@
       <p class="kicker">Before you go</p>
       <h2>Packing &amp; travel tips</h2>
     </div>
-    <div class="checklist-progress">
-      <span class="count" id="checklist-count">0 / 0 ready</span>
-      <div class="bar-track"><div class="bar-fill" id="checklist-bar"></div></div>
-      <button class="reset-btn danger" id="checklist-reset" type="button">Reset</button>
+
+    <div id="packing-locked" class="locked-panel" style="padding:40px 28px; flex-direction:column; text-align:center; gap:14px;">
+      <p style="margin:0; font-size:0.95rem;">🔒 The packing checklist is only visible after signing in.</p>
+      <button class="sync-btn" id="packing-signin-btn" type="button">Sign in to view</button>
     </div>
-    <p class="starters-note" id="starters-note"></p>
-    <div class="pack-grid" id="pack-grid"></div>
+
+    <div id="packing-content" style="display:none;">
+      <div class="ppl-tabs" id="ppl-tabs"></div>
+      <div id="ppl-panel"></div>
+    </div>
   </section>
 
 </main>
@@ -723,96 +734,7 @@ const foodItems = [
   {cat:"Convenience", name:"Pharmaprix", note:"Branches near Metro stations / city centre"}
 ];
 
-const packing = [
-  {title:"Visa & Docs", color:"var(--moss)", items:[
-    {n:"Check Passport Validity", d:"Do this first — a short-validity passport can delay everything else.", sub:[
-      "Check passport has 6+ months validity beyond your return date",
-      "If it needs renewing, do that before starting anything else below",
-      "Make 2–3 photocopies of the passport's photo page for later steps"
-    ]},
-    {n:"Passport-Style Photos", d:"Two recent, identical photos to IRCC spec — needed for the application form.", sub:[
-      "Take 2 recent, identical photos (35×45mm, plain light background)",
-      "Confirm no glasses or headwear, unless worn for religious reasons",
-      "Write name and date of birth lightly in pencil on the back if your VAC requires it",
-      "Keep spare copies in case a form needs an extra photo"
-    ]},
-    {n:"Bank Statement (6 Months) & Bank Certificate (CAD)", d:"Proof of financial sufficiency — prepare before filling the forms.", sub:[
-      "Visit your home branch (not just any branch) with your passbook and ID",
-      "Request a 6-month statement + official bank certificate (หนังสือรับรองฐานะการเงิน) in English — a routine visa service at any teller, no special desk needed",
-      "Ask about a week ahead, since the certificate takes a few days to issue",
-      "Photocopy everything — keep one set separate from the originals"
-    ]},
-    {n:"Proof of Ties to Thailand (Return Intent)", d:"Shows the officer you plan to return home — a common reason for refusal if missing.", sub:[
-      "Get an approved leave letter or employment letter from your employer",
-      "Gather property, lease, or family documents showing ties at home",
-      "Write a short cover letter explaining the trip purpose and planned return date",
-      "Include copies of ongoing commitments in Thailand (work, study, family)"
-    ]},
-    {n:"Detailed Trip Itinerary + Hotel Booking Confirmation", d:"Prepare this to attach to the application, then keep it for border control too.", sub:[
-      "Print this itinerary page (or export it to PDF)",
-      "Print the WERFY hotel booking confirmation",
-      "Save PDF copies on your phone and in cloud storage",
-      "Pack printed copies in your carry-on, not checked luggage"
-    ]},
-    {n:"Complete & Submit Visa Application (IMM 5257 + IMM 5645)", d:"The final step — do this only once everything above is ready to attach.", sub:[
-      "Complete IMM 5257 (Application for Visitor Visa) online, one per traveller",
-      "Complete IMM 5645 (Family Information Form) and sign/date it",
-      "Double-check names, dates, and passport numbers match your passport exactly",
-      "Create an IRCC secure account, attach all documents above, and submit",
-      "Pay the visa application fee and book a biometrics appointment",
-      "Wait for processing (8–12 weeks), then download the approval letter"
-    ]}
-  ]},
-  {title:"Flight Prep", color:"var(--slate)", items:[
-    {n:"Book Flights (Emirates via Dubai)", d:"Not booked yet — this is the plan, not a confirmed ticket.", sub:[
-      "Compare fares for Oct 1 outbound / Oct 15 return",
-      "Confirm the Dubai layover times still work for you",
-      "Complete payment and get the e-ticket",
-      "Save the confirmation email somewhere safe"
-    ]},
-    {n:"Book &amp; Confirm Hotel (WERFY Griffintown)", d:"Confirm once the reservation is actually paid/locked in.", sub:[
-      "Double-check the cancellation policy before paying",
-      "Complete payment or confirm the reservation",
-      "Save the booking confirmation email"
-    ]},
-    {n:"Save Booking Confirmation", d:"Keep your Emirates PNR / e-ticket accessible offline.", sub:[
-      "Save the Emirates booking reference (PNR) and e-ticket number",
-      "Add the booking to the Emirates app for offline access",
-      "Email yourself a copy of the full itinerary as backup"
-    ]},
-    {n:"Online Check-in", d:"Emirates opens check-in 48 hours before each departure.", sub:[
-      "Check in online 48h before each flight, via app or website",
-      "Select seats for both the outbound and return legs",
-      "Download or print both boarding passes"
-    ]},
-    {n:"Airport Arrival Timing", d:"Arrive with enough buffer for an international departure.", sub:[
-      "Arrive at Suvarnabhumi (BKK) at least 3 hours before the Oct 1 flight",
-      "Arrive at Montréal-Trudeau (YUL) at least 3 hours before the Oct 15 return",
-      "Have printed and digital copies of passport, visa, and boarding pass ready"
-    ]},
-    {n:"Dubai Layover — No Transit Visa Needed", d:"Both legs connect through Terminal 3 on one Emirates booking, staying airside.", sub:[
-      "Confirm you're not leaving the airport during either layover",
-      "Head straight to the transfer/security desk after landing",
-      "Keep your connecting boarding pass ready at transfer security",
-      "Be back at the gate 30–45 min before the next departure"
-    ]}
-  ]},
-  {title:"Clothing", color:"var(--amber)", items:[
-    {n:"Layered Apparel (The Layering Rule)", d:"Base layer (thermal), mid-layer (sweater/fleece), outer layer (wind/waterproof jacket)."},
-    {n:"Comfortable Walking Shoes / Waterproof Boots", d:"Crucial for cobblestones in Old Montréal and mountain trails."},
-    {n:"Autumn Accessories", d:"Scarves, light beanies, and gloves for breezy evenings."}
-  ]},
-  {title:"Transportation", color:"var(--maple)", items:[
-    {n:"OPUS Card (Transit Pass)", d:"Purchase at metro stations. Best value is the Weekly or Multi-Day pass."},
-    {n:"Contactless Payment Also Works", d:"A tap-to-pay Visa/Mastercard or phone wallet works directly on STM buses and metro turnstiles — handy as a backup to the OPUS card."}
-  ]},
-  {title:"Local Tips", color:"var(--maple-deep)", items:[
-    {n:"Language Focus", d:"Montréal is predominantly French-speaking, but English is widely understood in tourism."},
-    {n:"Currency & Cards", d:"Visa and Mastercard are accepted almost everywhere, including small cafés. Carry only a small amount of cash for exceptions."},
-    {n:"Thanksgiving Holiday (Oct 12)", d:"Banks, offices, and some shops will be closed on this Monday."},
-    {n:"Travel Insurance (Recommended)", d:"Not mandatory for a TRV, but strongly advised — Canadian medical care is expensive without it."}
-  ]}
-];
+
 
 // ---------------- RENDER: TIMELINE ----------------
 function lerpColor(a, b, t){
@@ -913,134 +835,6 @@ function renderFood(filter){
 }
 renderFood('All');
 
-// ---------------- RENDER: PACKING CHECKLIST (core, local-only) ----------------
-const CHECKLIST_KEY = 'montreal2026_checklist_v1';
-function loadChecked(){
-  try{
-    const raw = localStorage.getItem(CHECKLIST_KEY);
-    return raw ? new Set(JSON.parse(raw)) : new Set();
-  }catch(e){ return new Set(); }
-}
-function saveChecked(set){
-  try{ localStorage.setItem(CHECKLIST_KEY, JSON.stringify([...set])); }catch(e){}
-  if(typeof window.checklistBridge.onChange === 'function'){
-    try{ window.checklistBridge.onChange([...set]); }catch(e){ console.warn('Cloud sync hook failed:', e); }
-  }
-}
-let checkedItems = loadChecked();
-
-// bridge so the (optional) sync script can read/replace state without a hard dependency
-window.checklistBridge = {
-  get: () => [...checkedItems],
-  set: (idsArray) => {
-    checkedItems = new Set(idsArray);
-    try{ localStorage.setItem(CHECKLIST_KEY, JSON.stringify(idsArray)); }catch(e){}
-    renderPacking();
-  },
-  onChange: null
-};
-
-// give every packing item a stable id: "<group-slug>-<index>"
-packing.forEach(group=>{
-  const slug = group.title.toLowerCase().replace(/[^a-z0-9]+/g,'-');
-  group.items.forEach((it,i)=>{ it.id = `${slug}-${i}`; });
-});
-const totalItems = packing.reduce((sum,g)=> sum + g.items.length, 0);
-
-const packGrid = document.getElementById('pack-grid');
-const countEl = document.getElementById('checklist-count');
-const barEl = document.getElementById('checklist-bar');
-const resetBtn = document.getElementById('checklist-reset');
-
-function updateProgress(){
-  const done = [...checkedItems].filter(id => packing.some(g=>g.items.some(it=>it.id===id))).length;
-  countEl.textContent = `${done} / ${totalItems} ready`;
-  barEl.style.width = totalItems ? `${(done/totalItems)*100}%` : '0%';
-}
-
-function renderPacking(){
-  packGrid.innerHTML = '';
-  packing.forEach(group=>{
-    const card = document.createElement('div');
-    card.className = 'pack-card';
-    const itemsHtml = group.items.map(it=>{
-      const isChecked = checkedItems.has(it.id);
-      const hasSub = Array.isArray(it.sub) && it.sub.length;
-      const subDone = hasSub ? it.sub.filter((_,si)=> checkedItems.has(`${it.id}-s${si}`)).length : 0;
-      const rowHtml = `<div class="pack-row">
-          <label class="pack-check${isChecked ? ' checked':''}" data-id="${it.id}">
-            <input type="checkbox" ${isChecked ? 'checked':''} aria-label="Mark '${it.n.replace(/'/g,"&#39;")}' as ready">
-            <span>
-              <div class="pack-item">${it.n}</div>
-              <div class="pack-detail">${it.d}</div>
-            </span>
-          </label>
-          ${hasSub ? `<button class="expand-toggle" type="button" data-target="sub-${it.id}" aria-expanded="false" title="Show preparation steps">▶</button>` : ''}
-        </div>
-        ${hasSub ? `<div class="sub-wrap" id="sub-${it.id}">
-            <div class="sub-progress">${subDone} / ${it.sub.length} steps done</div>
-            ${it.sub.map((s,si)=>{
-              const sid = `${it.id}-s${si}`;
-              const sChecked = checkedItems.has(sid);
-              return `<label class="sub-item${sChecked?' checked':''}" data-subid="${sid}" data-parent="${it.id}">
-                <input type="checkbox" ${sChecked?'checked':''}><span>${s}</span>
-              </label>`;
-            }).join('')}
-          </div>` : ''}`;
-      return `<li>${rowHtml}</li>`;
-    }).join('');
-    card.innerHTML = `<h3><span class="pack-dot" style="background:${group.color}"></span>${group.title}</h3><ul>${itemsHtml}</ul>`;
-    packGrid.appendChild(card);
-  });
-
-  packGrid.querySelectorAll('.pack-check input[type="checkbox"]').forEach(cb=>{
-    cb.addEventListener('change', (e)=>{
-      const label = e.target.closest('.pack-check');
-      const id = label.dataset.id;
-      if(e.target.checked){ checkedItems.add(id); label.classList.add('checked'); }
-      else{ checkedItems.delete(id); label.classList.remove('checked'); }
-      saveChecked(checkedItems);
-      updateProgress();
-    });
-  });
-
-  packGrid.querySelectorAll('.expand-toggle').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const target = document.getElementById(btn.dataset.target);
-      const open = target.classList.toggle('open');
-      btn.classList.toggle('open', open);
-      btn.setAttribute('aria-expanded', open ? 'true':'false');
-    });
-  });
-
-  packGrid.querySelectorAll('.sub-item input[type="checkbox"]').forEach(cb=>{
-    cb.addEventListener('change', (e)=>{
-      const label = e.target.closest('.sub-item');
-      const sid = label.dataset.subid;
-      const parentId = label.dataset.parent;
-      if(e.target.checked){ checkedItems.add(sid); label.classList.add('checked'); }
-      else{ checkedItems.delete(sid); label.classList.remove('checked'); }
-      saveChecked(checkedItems);
-      const wrap = label.closest('.sub-wrap');
-      const parentItem = packing.flatMap(g=>g.items).find(it=>it.id===parentId);
-      if(parentItem){
-        const done = parentItem.sub.filter((_,si)=> checkedItems.has(`${parentId}-s${si}`)).length;
-        wrap.querySelector('.sub-progress').textContent = `${done} / ${parentItem.sub.length} steps done`;
-      }
-    });
-  });
-
-  updateProgress();
-  renderTripStatus();
-}
-renderPacking();
-resetBtn.addEventListener('click', ()=>{
-  if(!confirm('Reset the whole packing checklist? This clears every checked box.')) return;
-  checkedItems = new Set();
-  saveChecked(checkedItems);
-  renderPacking();
-});
-
 // ---------------- TRIP STATUS DASHBOARD ----------------
 function renderTripStatus(){
   const mount = document.getElementById('trip-status');
@@ -1063,19 +857,6 @@ function renderTripStatus(){
     countdownNote = 'hope it was great';
   }
 
-  // Visa status — reads real checklist state, not hardcoded
-  const visaIds = packing.find(g=>g.title==='Visa & Docs').items.map(it=>it.id);
-  const visaSubmittedId = 'visa-docs-5'; // "Complete & Submit Visa Application"
-  const anyVisaChecked = visaIds.some(id=>checkedItems.has(id));
-  const visaSubmitted = checkedItems.has(visaSubmittedId);
-  let visaValue, visaClass;
-  if(visaSubmitted){ visaValue = '✓ Submitted'; visaClass = 'ts-ok'; }
-  else if(anyVisaChecked){ visaValue = 'In progress'; visaClass = 'ts-pending'; }
-  else{ visaValue = 'Not started'; visaClass = 'ts-pending'; }
-
-  const flightsBooked = checkedItems.has('flight-prep-0');
-  const hotelBooked = checkedItems.has('flight-prep-1');
-
   mount.innerHTML = `
     <div class="ts-item">
       <div class="ts-label">🗓️ Countdown</div>
@@ -1084,18 +865,18 @@ function renderTripStatus(){
     </div>
     <div class="ts-item">
       <div class="ts-label">🛂 Visa</div>
-      <div class="ts-value ${visaClass}">${visaValue}</div>
+      <div class="ts-value ts-pending" id="ts-visa-value">Sign in to see status</div>
       <div class="ts-note">from your Packing checklist</div>
     </div>
     <div class="ts-item">
       <div class="ts-label">✈️ Flights</div>
-      <div class="ts-value ${flightsBooked ? 'ts-ok' : 'ts-pending'}">${flightsBooked ? '✓ Booked' : 'Not booked yet'}</div>
-      <div class="ts-note">from your Packing checklist</div>
+      <div class="ts-value ts-pending" id="ts-flights-value">Sign in to see status</div>
+      <div class="ts-note">from the shared checklist</div>
     </div>
     <div class="ts-item">
       <div class="ts-label">🏨 Hotel</div>
-      <div class="ts-value ${hotelBooked ? 'ts-ok' : 'ts-pending'}">${hotelBooked ? '✓ Booked' : 'Not booked yet'}</div>
-      <div class="ts-note">from your Packing checklist</div>
+      <div class="ts-value ts-pending" id="ts-hotel-value">Sign in to see status</div>
+      <div class="ts-note">from the shared checklist</div>
     </div>
     <div class="ts-item">
       <div class="ts-label">🌤️ Weather</div>
@@ -1104,6 +885,7 @@ function renderTripStatus(){
     </div>
   `;
 }
+renderTripStatus();
 
 // ---------------- TABS ----------------
 const tabBtns = document.querySelectorAll('.tab-btn');
@@ -1122,9 +904,8 @@ document.querySelectorAll('.qcard').forEach(c=> c.addEventListener('click', ()=>
 // blocked domain), everything above (itinerary, food guide, packing checklist,
 // tabs) still works fully — this script only adds cross-device sync and the
 // login-gated flight/hotel tab on top.
-let auth, firestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp, arrayUnion;
+let auth, firestore, doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp;
 let currentUser = null;
-let cloudUnsubscribe = null;
 let cloudSyncBroken = false;
 let lastSyncErrorCode = null;
 let cloudDocRef;
@@ -1140,6 +921,12 @@ function markSyncUnavailable(){
     const travelBtn = document.getElementById('travel-signin-btn');
     if(travelBtn){ travelBtn.disabled = true; travelBtn.style.opacity = '0.5'; travelBtn.style.cursor = 'not-allowed'; travelBtn.textContent = 'Unavailable'; }
   }
+  const packingLocked = document.getElementById('packing-locked');
+  if(packingLocked){
+    packingLocked.querySelector('p').textContent = '⚠️ The packing checklist needs cloud sync, which could not load right now. Try reloading the page.';
+    const packingBtn = document.getElementById('packing-signin-btn');
+    if(packingBtn){ packingBtn.disabled = true; packingBtn.style.opacity = '0.5'; packingBtn.style.cursor = 'not-allowed'; packingBtn.textContent = 'Unavailable'; }
+  }
 }
 
 (async () => {
@@ -1151,7 +938,7 @@ function markSyncUnavailable(){
     ]);
     const { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } = authMod;
     const { getFirestore } = fsMod;
-    ({ doc, getDoc, setDoc, onSnapshot, serverTimestamp, arrayUnion } = fsMod);
+    ({ doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp } = fsMod);
 
     const firebaseConfig = {
       apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
@@ -1165,83 +952,385 @@ function markSyncUnavailable(){
     auth = getAuth(fbApp);
     firestore = getFirestore(fbApp);
     cloudDocRef = (uid) => doc(firestore, 'montrealChecklist', uid);
-    const statsDocRef = doc(firestore, 'checklistStats', 'montreal2026');
-    let hasRecordedStart = false;
+    const tripTasksRef = doc(firestore, 'tripTasks', 'montreal2026');
 
-    // ---------------- CLOUD SYNC (uses window.checklistBridge, never touches checkedItems directly) ----------------
-async function pushToCloud(uid, idsArray){
-  if(cloudSyncBroken) return;
-  try{
-    await setDoc(cloudDocRef(uid), { checkedItems: idsArray, updatedAt: serverTimestamp() });
-    if(idsArray.length > 0 && !hasRecordedStart){
-      hasRecordedStart = true;
-      setDoc(statsDocRef, { starterUids: arrayUnion(uid) }, { merge: true }).catch(e=>{
-        console.warn('Starter count write failed:', e.code || e.message);
+    // ---------------- TWO-PERSON PACKING CHECKLIST ----------------
+    const ALLOWED_UIDS = ['ATNWbAURUwcuGPERNJFAvBNtRZc2', 'D17HauhxK5fSb8zkhvbzWzSIIQk2'];
+
+function visaDocsCategory(){
+  return {title:"Visa & Docs", color:"var(--moss)", items:[
+    {n:"Check Passport Validity", d:"Do this first — a short-validity passport can delay everything else.", sub:[
+      "Check passport has 6+ months validity beyond your return date",
+      "If it needs renewing, do that before starting anything else below",
+      "Make 2–3 photocopies of the passport's photo page for later steps"
+    ]},
+    {n:"Passport-Style Photos", d:"Two recent, identical photos to IRCC spec — needed for the application form.", sub:[
+      "Take 2 recent, identical photos (35×45mm, plain light background)",
+      "Confirm no glasses or headwear, unless worn for religious reasons",
+      "Write name and date of birth lightly in pencil on the back if your VAC requires it",
+      "Keep spare copies in case a form needs an extra photo"
+    ]},
+    {n:"Bank Statement (6 Months) & Bank Certificate (CAD)", d:"Proof of financial sufficiency — prepare before filling the forms.", sub:[
+      "Visit your home branch (not just any branch) with your passbook and ID",
+      "Request a 6-month statement + official bank certificate (หนังสือรับรองฐานะการเงิน) in English — a routine visa service at any teller, no special desk needed",
+      "Ask about a week ahead, since the certificate takes a few days to issue",
+      "Photocopy everything — keep one set separate from the originals"
+    ]},
+    {n:"Proof of Ties to Thailand (Return Intent)", d:"Shows the officer you plan to return home — a common reason for refusal if missing.", sub:[
+      "Get an approved leave letter or employment letter from your employer",
+      "Gather property, lease, or family documents showing ties at home",
+      "Write a short cover letter explaining the trip purpose and planned return date",
+      "Include copies of ongoing commitments in Thailand (work, study, family)"
+    ]},
+    {n:"Detailed Trip Itinerary + Hotel Booking Confirmation", d:"Prepare this to attach to the application, then keep it for border control too.", sub:[
+      "Print this itinerary page (or export it to PDF)",
+      "Print the WERFY hotel booking confirmation",
+      "Save PDF copies on your phone and in cloud storage",
+      "Pack printed copies in your carry-on, not checked luggage"
+    ]},
+    {n:"Complete & Submit Visa Application (IMM 5257 + IMM 5645)", d:"The final step — do this only once everything above is ready to attach.", sub:[
+      "Complete IMM 5257 (Application for Visitor Visa) online, one per traveller",
+      "Complete IMM 5645 (Family Information Form) and sign/date it",
+      "Double-check names, dates, and passport numbers match your passport exactly",
+      "Create an IRCC secure account, attach all documents above, and submit",
+      "Pay the visa application fee and book a biometrics appointment",
+      "Wait for processing (8–12 weeks), then download the approval letter"
+    ]}
+  ]};
+}
+function flightPrepCategory(){
+  return {title:"Flight Prep", color:"var(--slate)", items:[
+    {n:"Save Booking Confirmation", d:"Keep your Emirates PNR / e-ticket accessible offline.", sub:[
+      "Save the Emirates booking reference (PNR) and e-ticket number",
+      "Add the booking to the Emirates app for offline access",
+      "Email yourself a copy of the full itinerary as backup"
+    ]},
+    {n:"Online Check-in", d:"Emirates opens check-in 48 hours before each departure.", sub:[
+      "Check in online 48h before each flight, via app or website",
+      "Select seats for both the outbound and return legs",
+      "Download or print both boarding passes"
+    ]},
+    {n:"Airport Arrival Timing", d:"Arrive with enough buffer for an international departure.", sub:[
+      "Arrive at Suvarnabhumi (BKK) at least 3 hours before the Oct 1 flight",
+      "Arrive at Montréal-Trudeau (YUL) at least 3 hours before the Oct 15 return",
+      "Have printed and digital copies of passport, visa, and boarding pass ready"
+    ]},
+    {n:"Dubai Layover — No Transit Visa Needed", d:"Both legs connect through Terminal 3 on one Emirates booking, staying airside.", sub:[
+      "Confirm you're not leaving the airport during either layover",
+      "Head straight to the transfer/security desk after landing",
+      "Keep your connecting boarding pass ready at transfer security",
+      "Be back at the gate 30–45 min before the next departure"
+    ]}
+  ]};
+}
+function hotelPrepCategory(){
+  return {title:"Hotel Prep", color:"var(--slate)", items:[
+    {n:"Save Hotel Confirmation", d:"Keep the WERFY booking confirmation accessible offline.", sub:[
+      "Save the booking reference and confirmation email",
+      "Add the confirmation to your phone's offline storage",
+      "Email yourself a copy as backup"
+    ]},
+    {n:"Check-in / Check-out Logistics", d:"Know the property's process before arrival day.", sub:[
+      "Confirm check-in time and any early check-in options for Oct 2",
+      "Confirm check-out time and late check-out options for Oct 15",
+      "Save the property's contact number for arrival-day questions"
+    ]},
+    {n:"Room & Stay Preferences", d:"Anything you want confirmed or requested ahead of time.", sub:[
+      "Confirm room type and bed configuration",
+      "Note any special requests (non-smoking, high floor, etc.)",
+      "Re-check the cancellation policy dates before the trip"
+    ]}
+  ]};
+}
+function clothingCategory(){
+  return {title:"Clothing", color:"var(--amber)", items:[
+    {n:"Layered Apparel (The Layering Rule)", d:"Base layer (thermal), mid-layer (sweater/fleece), outer layer (wind/waterproof jacket)."},
+    {n:"Comfortable Walking Shoes / Waterproof Boots", d:"Crucial for cobblestones in Old Montréal and mountain trails."},
+    {n:"Autumn Accessories", d:"Scarves, light beanies, and gloves for breezy evenings."}
+  ]};
+}
+function transportationCategory(){
+  return {title:"Transportation", color:"var(--maple)", items:[
+    {n:"OPUS Card (Transit Pass)", d:"Purchase at metro stations. Best value is the Weekly or Multi-Day pass."},
+    {n:"Contactless Payment Also Works", d:"A tap-to-pay Visa/Mastercard or phone wallet works directly on STM buses and metro turnstiles — handy as a backup to the OPUS card."}
+  ]};
+}
+function localTipsCategory(){
+  return {title:"Local Tips", color:"var(--maple-deep)", items:[
+    {n:"Language Focus", d:"Montréal is predominantly French-speaking, but English is widely understood in tourism."},
+    {n:"Currency & Cards", d:"Visa and Mastercard are accepted almost everywhere, including small cafés. Carry only a small amount of cash for exceptions."},
+    {n:"Thanksgiving Holiday (Oct 12)", d:"Banks, offices, and some shops will be closed on this Monday."},
+    {n:"Travel Insurance (Recommended)", d:"Not mandatory for a TRV, but strongly advised — Canadian medical care is expensive without it."}
+  ]};
+}
+function assignIds(categories){
+  categories.forEach(group=>{
+    const slug = group.title.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+    group.items.forEach((it,i)=>{ it.id = `${slug}-${i}`; });
+  });
+  return categories;
+}
+function buildTemplateFor(uid, assignees){
+  const cats = [visaDocsCategory()];
+  if(assignees.flightsUid === uid) cats.push(flightPrepCategory());
+  if(assignees.hotelUid === uid) cats.push(hotelPrepCategory());
+  cats.push(clothingCategory(), transportationCategory(), localTipsCategory());
+  return assignIds(cats);
+}
+
+const packingState = {
+  assignees: { flightsUid: null, hotelUid: null },
+  tasks: {},
+  taskChecked: {},
+  people: {},
+  selectedUid: null,
+};
+let tripTasksUnsub = null;
+const personUnsubs = {};
+
+function initPackingTab(){
+  const lockedEl = document.getElementById('packing-locked');
+  const contentEl = document.getElementById('packing-content');
+  if(!currentUser){
+    if(tripTasksUnsub){ tripTasksUnsub(); tripTasksUnsub = null; }
+    Object.keys(personUnsubs).forEach(uid=>{ personUnsubs[uid](); delete personUnsubs[uid]; });
+    lockedEl.querySelector('p').textContent = '🔒 The packing checklist is only visible after signing in.';
+    lockedEl.classList.remove('status-denied');
+    lockedEl.style.display = 'flex';
+    contentEl.style.display = 'none';
+    return;
+  }
+  packingState.selectedUid = currentUser.uid;
+
+  if(tripTasksUnsub) tripTasksUnsub();
+  tripTasksUnsub = onSnapshot(tripTasksRef, (snap)=>{
+    if(snap.exists()){
+      const d = snap.data();
+      packingState.tasks = d.tasks || {};
+      packingState.taskChecked = d.checked || {};
+      packingState.assignees.flightsUid = (d.tasks && d.tasks['book-flights'] && d.tasks['book-flights'].assigneeUid) || null;
+      packingState.assignees.hotelUid = (d.tasks && d.tasks['book-hotel'] && d.tasks['book-hotel'].assigneeUid) || null;
+    }else{
+      packingState.tasks = {};
+      packingState.taskChecked = {};
+    }
+    lockedEl.style.display = 'none';
+    contentEl.style.display = 'block';
+    renderPackingUI();
+    updateTripStatusFromPacking();
+  }, (err)=>{
+    console.warn('tripTasks unavailable:', err.code || err.message);
+    const isDenied = err.code === 'permission-denied';
+    lockedEl.classList.toggle('status-denied', isDenied);
+    lockedEl.querySelector('p').innerHTML = isDenied
+      ? `🚫 Access denied — this Google account isn't on the allowed list for the packing checklist.<span class="error-code">${err.code}</span>`
+      : `⚠️ Couldn't load the packing checklist right now.<span class="error-code">${err.code || err.message}</span>`;
+    lockedEl.style.display = 'flex';
+    contentEl.style.display = 'none';
+  });
+
+  ALLOWED_UIDS.forEach(uid=>{
+    if(personUnsubs[uid]) personUnsubs[uid]();
+    personUnsubs[uid] = onSnapshot(cloudDocRef(uid), (snap)=>{
+      if(snap.exists()){
+        const d = snap.data();
+        packingState.people[uid] = { displayName: d.displayName || null, checkedItems: new Set(d.checkedItems || []) };
+      }else{
+        packingState.people[uid] = { displayName: null, checkedItems: new Set() };
+      }
+      renderPackingUI();
+      updateTripStatusFromPacking();
+    }, (err)=>{
+      console.warn(`Checklist for ${uid} unavailable:`, err.code || err.message);
+    });
+  });
+}
+
+function renderPackingUI(){
+  renderPeopleTabs();
+  renderSelectedPanel();
+}
+function renderPeopleTabs(){
+  const tabsEl = document.getElementById('ppl-tabs');
+  if(!tabsEl) return;
+  const buttons = [`<button class="ppl-tab" data-target="shared" aria-pressed="${packingState.selectedUid==='shared'}">Shared</button>`];
+  ALLOWED_UIDS.forEach(uid=>{
+    const p = packingState.people[uid];
+    const label = p && p.displayName ? p.displayName : 'Not signed in yet';
+    buttons.push(`<button class="ppl-tab" data-target="${uid}" aria-pressed="${packingState.selectedUid===uid}">${label}</button>`);
+  });
+  tabsEl.innerHTML = buttons.join('');
+  tabsEl.querySelectorAll('.ppl-tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      packingState.selectedUid = btn.dataset.target;
+      renderPackingUI();
+    });
+  });
+}
+function renderSelectedPanel(){
+  const panelEl = document.getElementById('ppl-panel');
+  if(!panelEl) return;
+  if(packingState.selectedUid === 'shared') renderSharedPanel(panelEl);
+  else renderPersonPanel(panelEl, packingState.selectedUid);
+}
+function renderSharedPanel(panelEl){
+  const taskIds = Object.keys(packingState.tasks);
+  if(taskIds.length === 0){
+    panelEl.innerHTML = `<p style="color:var(--ink-soft); font-size:0.9rem; padding:8px 4px;">Shared trip tasks haven't been set up yet.</p>`;
+    return;
+  }
+  const rows = taskIds.map(tid=>{
+    const t = packingState.tasks[tid];
+    const checked = !!packingState.taskChecked[tid];
+    const assigneePerson = packingState.people[t.assigneeUid];
+    const assigneeName = (assigneePerson && assigneePerson.displayName) || 'Unassigned';
+    const canEdit = currentUser && currentUser.uid === t.assigneeUid;
+    return `<li>
+      <label class="pack-check${checked?' checked':''}" data-taskid="${tid}" style="${canEdit?'':'cursor:default;'}">
+        <input type="checkbox" ${checked?'checked':''} ${canEdit?'':'disabled'}>
+        <span>
+          <div class="pack-item">${t.label}</div>
+          <div class="pack-detail">${t.detail || ''}</div>
+          <div class="pack-detail" style="margin-top:4px;"><em>Assigned to ${assigneeName}</em></div>
+        </span>
+      </label>
+    </li>`;
+  }).join('');
+  panelEl.innerHTML = `<div class="pack-card"><h3><span class="pack-dot" style="background:var(--maple)"></span>Shared Trip Tasks</h3><ul>${rows}</ul></div>`;
+  panelEl.querySelectorAll('.pack-check input[type="checkbox"]:not([disabled])').forEach(cb=>{
+    cb.addEventListener('change', async (e)=>{
+      const tid = e.target.closest('.pack-check').dataset.taskid;
+      const newVal = e.target.checked;
+      try{
+        await updateDoc(tripTasksRef, { [`checked.${tid}`]: newVal });
+      }catch(err){
+        console.warn('Failed to update shared task:', err.code || err.message);
+        e.target.checked = !newVal;
+      }
+    });
+  });
+}
+function renderPersonPanel(panelEl, uid){
+  const isOwnPanel = currentUser && currentUser.uid === uid;
+  const person = packingState.people[uid] || { checkedItems: new Set() };
+  const template = buildTemplateFor(uid, packingState.assignees);
+  const checkedItems = person.checkedItems;
+  const totalItems = template.reduce((sum,g)=> sum + g.items.length, 0);
+  const done = [...checkedItems].filter(id => template.some(g=>g.items.some(it=>it.id===id))).length;
+
+  const progressHtml = `<div class="checklist-progress">
+      <span class="count">${done} / ${totalItems} ready</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${totalItems ? (done/totalItems)*100 : 0}%"></div></div>
+      ${isOwnPanel ? `<button class="reset-btn danger" id="ppl-reset-btn" type="button">Reset</button>` : ''}
+    </div>
+    ${!isOwnPanel ? `<p style="font-size:0.8rem; color:var(--ink-soft); margin:6px 0 18px 4px;">Read-only — this is their checklist, not yours.</p>` : '<div style="margin-bottom:18px;"></div>'}`;
+
+  const gridHtml = template.map(group=>{
+    const itemsHtml = group.items.map(it=>{
+      const isChecked = checkedItems.has(it.id);
+      const hasSub = Array.isArray(it.sub) && it.sub.length;
+      const subDone = hasSub ? it.sub.filter((_,si)=> checkedItems.has(`${it.id}-s${si}`)).length : 0;
+      const rowHtml = `<div class="pack-row">
+          <label class="pack-check${isChecked ? ' checked':''}" data-id="${it.id}" style="${isOwnPanel?'':'cursor:default;'}">
+            <input type="checkbox" ${isChecked ? 'checked':''} ${isOwnPanel?'':'disabled'} aria-label="Mark '${it.n.replace(/'/g,"&#39;")}' as ready">
+            <span>
+              <div class="pack-item">${it.n}</div>
+              <div class="pack-detail">${it.d}</div>
+            </span>
+          </label>
+          ${hasSub ? `<button class="expand-toggle" type="button" data-target="sub-${uid}-${it.id}" aria-expanded="false" title="Show preparation steps">▶</button>` : ''}
+        </div>
+        ${hasSub ? `<div class="sub-wrap" id="sub-${uid}-${it.id}">
+            <div class="sub-progress">${subDone} / ${it.sub.length} steps done</div>
+            ${it.sub.map((s,si)=>{
+              const sid = `${it.id}-s${si}`;
+              const sChecked = checkedItems.has(sid);
+              return `<label class="sub-item${sChecked?' checked':''}" data-subid="${sid}" data-parent="${it.id}" style="${isOwnPanel?'':'cursor:default;'}">
+                <input type="checkbox" ${sChecked?'checked':''} ${isOwnPanel?'':'disabled'}><span>${s}</span>
+              </label>`;
+            }).join('')}
+          </div>` : ''}`;
+      return `<li>${rowHtml}</li>`;
+    }).join('');
+    return `<div class="pack-card"><h3><span class="pack-dot" style="background:${group.color}"></span>${group.title}</h3><ul>${itemsHtml}</ul></div>`;
+  }).join('');
+
+  panelEl.innerHTML = progressHtml + `<div class="pack-grid">${gridHtml}</div>`;
+
+  panelEl.querySelectorAll('.expand-toggle').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const target = document.getElementById(btn.dataset.target);
+      const open = target.classList.toggle('open');
+      btn.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', open ? 'true':'false');
+    });
+  });
+
+  if(isOwnPanel){
+    panelEl.querySelectorAll('.pack-check input[type="checkbox"]:not([disabled])').forEach(cb=>{
+      cb.addEventListener('change', (e)=>{
+        const id = e.target.closest('.pack-check').dataset.id;
+        if(e.target.checked) checkedItems.add(id); else checkedItems.delete(id);
+        savePersonChecklist(uid, checkedItems);
+        renderPersonPanel(panelEl, uid);
+      });
+    });
+    panelEl.querySelectorAll('.sub-item input[type="checkbox"]:not([disabled])').forEach(cb=>{
+      cb.addEventListener('change', (e)=>{
+        const label = e.target.closest('.sub-item');
+        const sid = label.dataset.subid;
+        if(e.target.checked) checkedItems.add(sid); else checkedItems.delete(sid);
+        savePersonChecklist(uid, checkedItems);
+        renderPersonPanel(panelEl, uid);
+      });
+    });
+    const resetBtn = document.getElementById('ppl-reset-btn');
+    if(resetBtn){
+      resetBtn.addEventListener('click', ()=>{
+        if(!confirm('Reset your whole packing checklist? This clears every checked box.')) return;
+        checkedItems.clear();
+        savePersonChecklist(uid, checkedItems);
+        renderPersonPanel(panelEl, uid);
       });
     }
-  }catch(e){
-    console.warn('Cloud write unavailable:', e.code || e.message);
-    markSyncBroken(e.code);
   }
 }
-function listenToStarterCount(){
-  const noteEl = document.getElementById('starters-note');
-  if(!noteEl) return;
-  noteEl.textContent = 'Loading counter…';
-  onSnapshot(statsDocRef, (snap)=>{
-    const n = snap.exists() ? (snap.data().starterUids || []).length : 0;
-    noteEl.textContent = n === 0
-      ? 'Be the first to start this checklist.'
-      : `🎒 ${n} traveler${n===1?'':'s'} ${n===1?'has':'have'} started this checklist.`;
-  }, (err)=>{
-    console.warn('Starter count unavailable:', err.code || err.message);
-    noteEl.textContent = `Counter unavailable (${err.code || err.message}) — likely the Firestore rule isn't published yet.`;
-  });
-}
-function listenToCloud(uid){
-  if(cloudUnsubscribe) cloudUnsubscribe();
-  cloudUnsubscribe = onSnapshot(cloudDocRef(uid), (snap)=>{
-    if(!snap.exists()) return;
-    const cloudIds = snap.data().checkedItems || [];
-    const localIds = window.checklistBridge.get();
-    const same = cloudIds.length === localIds.length && cloudIds.every(id => localIds.includes(id));
-    if(!same){
-      // full replace (not union) so unchecks made on another device propagate too
-      window.checklistBridge.set(cloudIds);
-    }
-  }, (err)=>{
-    console.warn('Sync listener unavailable:', err.code || err.message);
-    markSyncBroken(err.code);
-  });
-}
-const MERGE_DONE_KEY = 'montreal2026_cloud_merge_done';
-async function pullAndMergeCloud(uid){
+async function savePersonChecklist(uid, checkedItemsSet){
+  const payload = { checkedItems: [...checkedItemsSet], updatedAt: serverTimestamp() };
+  if(currentUser && currentUser.uid === uid){
+    payload.displayName = currentUser.displayName || currentUser.email;
+  }
   try{
-    const snap = await getDoc(cloudDocRef(uid));
-    const alreadyMerged = localStorage.getItem(MERGE_DONE_KEY) === uid;
-    if(!alreadyMerged){
-      // first sign-in on this device: combine local + cloud so nothing is lost
-      const merged = new Set(window.checklistBridge.get());
-      if(snap.exists()){
-        (snap.data().checkedItems || []).forEach(id => merged.add(id));
-      }
-      const mergedArr = [...merged];
-      window.checklistBridge.set(mergedArr);
-      try{ localStorage.setItem(MERGE_DONE_KEY, uid); }catch(e){}
-      await pushToCloud(uid, mergedArr);
-    }else if(snap.exists()){
-      // every later page load: cloud is the source of truth, adopt it directly
-      window.checklistBridge.set(snap.data().checkedItems || []);
-    }
-    listenToCloud(uid);
+    await setDoc(cloudDocRef(uid), payload, { merge: true });
   }catch(e){
-    console.warn('Cloud sync unavailable yet:', e.code || e.message);
+    console.warn('Failed to save checklist:', e.code || e.message);
     markSyncBroken(e.code);
   }
 }
-window.checklistBridge.onChange = (idsArray) => {
-  if(currentUser) pushToCloud(currentUser.uid, idsArray);
-};
+function updateTripStatusFromPacking(){
+  const visaEl = document.getElementById('ts-visa-value');
+  const flightsEl = document.getElementById('ts-flights-value');
+  const hotelEl = document.getElementById('ts-hotel-value');
+  if(!visaEl || !currentUser) return;
+
+  const own = packingState.people[currentUser.uid];
+  if(own){
+    const visaIds = ['visa-docs-0','visa-docs-1','visa-docs-2','visa-docs-3','visa-docs-4','visa-docs-5'];
+    const anyVisaChecked = visaIds.some(id=>own.checkedItems.has(id));
+    const visaSubmitted = own.checkedItems.has('visa-docs-5');
+    if(visaSubmitted){ visaEl.textContent = '✓ Submitted'; visaEl.className = 'ts-value ts-ok'; }
+    else if(anyVisaChecked){ visaEl.textContent = 'In progress'; visaEl.className = 'ts-value ts-pending'; }
+    else{ visaEl.textContent = 'Not started'; visaEl.className = 'ts-value ts-pending'; }
+  }
+
+  const flightsChecked = !!packingState.taskChecked['book-flights'];
+  const hotelChecked = !!packingState.taskChecked['book-hotel'];
+  flightsEl.textContent = flightsChecked ? '✓ Booked' : 'Not booked yet';
+  flightsEl.className = `ts-value ${flightsChecked ? 'ts-ok' : 'ts-pending'}`;
+  hotelEl.textContent = hotelChecked ? '✓ Booked' : 'Not booked yet';
+  hotelEl.className = `ts-value ${hotelChecked ? 'ts-ok' : 'ts-pending'}`;
+}
+
 function markSyncBroken(errCode){
   cloudSyncBroken = true;
   lastSyncErrorCode = errCode || null;
@@ -1256,7 +1345,7 @@ function updateSyncUI(){
   if(currentUser){
     btn.textContent = 'Sign out';
     if(cloudSyncBroken){
-      status.textContent = 'Checklist sync error' + (lastSyncErrorCode ? ` (${lastSyncErrorCode})` : '');
+      status.textContent = 'Sync error' + (lastSyncErrorCode ? ` (${lastSyncErrorCode})` : '');
       status.classList.add('status-warn');
       if(retryBtn) retryBtn.style.display = 'inline-block';
     }else{
@@ -1275,25 +1364,21 @@ document.getElementById('sync-retry-btn').addEventListener('click', ()=>{
   cloudSyncBroken = false;
   lastSyncErrorCode = null;
   updateSyncUI();
-  pullAndMergeCloud(currentUser.uid);
+  initPackingTab();
   loadTravelContent();
 });
 document.getElementById('sync-btn').addEventListener('click', async ()=>{
   if(currentUser){
-    if(cloudUnsubscribe){ cloudUnsubscribe(); cloudUnsubscribe = null; }
     await signOut(auth);
   }else{
     await attemptSignIn();
   }
 });
 document.getElementById('travel-signin-btn').addEventListener('click', attemptSignIn);
+document.getElementById('packing-signin-btn').addEventListener('click', attemptSignIn);
 async function attemptSignIn(){
   const status = document.getElementById('sync-status');
-  const travelLocked = document.getElementById('travel-locked');
   if(status) status.textContent = 'Signing in…';
-  if(travelLocked && travelLocked.style.display !== 'none'){
-    travelLocked.querySelector('p').textContent = 'Signing in…';
-  }
   try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
   catch(e){
     console.warn('Sign-in failed:', e.message);
@@ -1302,6 +1387,7 @@ async function attemptSignIn(){
   }
 }
 
+    // ---------------- GATED FLIGHTS & HOTEL (single JSON field) ----------------
     // ---------------- GATED FLIGHTS & HOTEL (single JSON field) ----------------
 function renderLeg(leg){
   return `<div class="leg">
@@ -1400,13 +1486,7 @@ onAuthStateChanged(auth, (user)=>{
   cloudSyncBroken = false;
   updateSyncUI();
   loadTravelContent();
-  if(user){
-    pullAndMergeCloud(user.uid);
-    listenToStarterCount();
-  }else{
-    const noteEl = document.getElementById('starters-note');
-    if(noteEl) noteEl.textContent = '';
-  }
+  initPackingTab();
 });
 
   }catch(e){
