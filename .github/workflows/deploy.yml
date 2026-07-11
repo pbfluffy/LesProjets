@@ -42,15 +42,15 @@ jobs:
           npm install
           npm run build
 
-      - name: Build proteinratio
-        working-directory: proteinratio
+      - name: Build proteinvault
+        working-directory: proteinvault
         run: |
           npm install
           npm run build
 
       - name: Assemble site
         run: |
-          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/proteinratio
+          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/proteinvault
           cp index.html _site/index.html
           cp admindepum.html _site/admindepum.html
           cp temp.html _site/temp.html
@@ -60,7 +60,7 @@ jobs:
           cp -r bill-splitter/dist/. _site/bill-splitter/
           cp -r nutritions-thailand/dist/. _site/nutritions-thailand/
           cp -r pumgoda/dist/. _site/pumgoda/
-          cp -r proteinratio/dist/. _site/proteinratio/
+          cp -r proteinvault/dist/. _site/proteinvault/
           cp pumba.png _site/pumba.png
           cp apple-touch-icon.png _site/apple-touch-icon.png
           cp icon-192.png _site/icon-192.png
