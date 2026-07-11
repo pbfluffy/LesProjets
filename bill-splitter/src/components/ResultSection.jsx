@@ -180,9 +180,12 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
           if (e && e.name === 'AbortError') return
         }
       }
-      // Fallback: open LINE share with text if image share not supported
+      // Fallback: open LINE share with text if image share not supported.
+      // Top-level navigation (not window.open '_blank') — avoids a stray
+      // "about:blank" tab on iOS Safari when the Line app hand-off doesn't
+      // complete inside a popup window.
       const text = buildSummaryText()
-      window.open(`https://line.me/R/share?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
+      window.location.href = `https://line.me/R/share?text=${encodeURIComponent(text)}`
     } catch (e) {
       showToast(t.imageFailed)
     } finally {

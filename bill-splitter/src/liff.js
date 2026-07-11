@@ -64,11 +64,12 @@ export async function shareToLine(text) {
       console.warn('[liff] shareTargetPicker failed', e)
     }
   }
-  // Fallback — opens Line share URL in new tab (works in any browser)
-  window.open(
-    `https://line.me/R/share?text=${encodeURIComponent(text)}`,
-    '_blank',
-    'noopener'
-  )
+  // Fallback — navigate to Line's share URL (works in any browser).
+  // Previously used window.open(url, '_blank'), which on iOS Safari often
+  // left a stray "about:blank" tab open when the hand-off to the Line app
+  // didn't complete inside the popup window. Top-level navigation avoids
+  // that: on mobile with Line installed this hands off to the app via
+  // universal link; the app tab stays in history (Back returns to it).
+  window.location.href = `https://line.me/R/share?text=${encodeURIComponent(text)}`
   return 'opened'
 }
