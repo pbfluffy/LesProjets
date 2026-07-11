@@ -22,11 +22,12 @@ import { useTrips } from './hooks/useTrips'
 import SharedTripView from './components/SharedTripView'
 import JoinCollabView from './components/JoinCollabView'
 import { readSharedTrip, clearSharedTripParam, readCollabTripId, clearCollabTripParam } from './shareTrip'
+import { readPlaceId, setPlaceParam, clearPlaceParam, currentShareUrl } from './sharePlace'
 import { auth, firestore, doc, setDoc, GoogleAuthProvider, signInWithPopup, signOut } from './firebase'
 
 import { fetchPlaces } from './data/fetchPlaces'
 import { computeTier, TIERS, FAVORITE_TIER } from './data/computeTier'
-import { STRINGS } from './i18n/strings'
+import { STRINGS, interp } from './i18n/strings'
 import { LS_KEYS, SUGGEST_FORM_URL } from './config'
 
 import './styles/theme.css'
@@ -134,6 +135,30 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('list')
   const [selected, setSelected] = useState(null) // a venue object
   const [savedIds, setSavedIds] = useLocalStorage(LS_KEYS.SAVED, [])
+
+  // Bug fix — Share button always linked to the generic app URL, even when a
+  // place detail was open, because nothing ever wrote the open place into the
+  // URL. Mirrors the ?trip=/?ctrip= pattern above: resolve ?place=<id> once
+  // places have loaded, then keep the URL in sync with `selected` afterward
+  // so the Share button (and the address bar) always reflect what's open.
+  const initialPlaceId = useRef(readPlaceId())
+  const deepLinkHandled = useRef(false)
+  useEffect(() => {
+    if (deepLinkHandled.current || !places.length) return
+    deepLinkHandled.current = true
+    const id = initialPlaceId.current
+    if (id) {
+      const p = places.find((x) => x.id === id)
+      if (p) setSelected(p)
+    }
+  }, [places])
+  useEffect(() => {
+    // Don't touch the URL until the initial deep link (if any) has resolved —
+    // otherwise we'd wipe ?place= before it gets a chance to open.
+    if (!deepLinkHandled.current && initialPlaceId.current) return
+    if (selected) setPlaceParam(selected.id)
+    else clearPlaceParam()
+  }, [selected])
 
   // Cloud sync for savedIds (#32 + #34). Auth state propagates from BS/Nutritions/landing
   // via shared IndexedDB on pumbafluffycorgi.com. The styled ConflictModal below
@@ -271,10 +296,15 @@ export default function App() {
   const [toast, setToast] = useState(null)
 
   const onShare = async () => {
-    const url = window.location.href.split('?')[0].split('#')[0]
+    // `selected` (if open) is already reflected in the URL as ?place=<id> by
+    // the effect above, so this naturally deep-links to the exact place.
+    const url = selected ? currentShareUrl() : window.location.href.split('?')[0].split('#')[0]
+    const placeName = selected ? (selected.name?.[lang] || selected.name?.en || selected.name?.th || selected.id) : null
+    const title = selected ? placeName : s.header.shareTitle
+    const text = selected ? interp(s.header.sharePlaceText, { name: placeName }) : s.header.shareText
     if (navigator.share) {
       try {
-        await navigator.share({ title: s.header.shareTitle, text: s.header.shareText, url })
+        await navigator.share({ title, text, url })
         return
       } catch (e) {
         if (e.name === 'AbortError') return // user dismissed share sheet

@@ -40,6 +40,7 @@ export const STRINGS = {
       linkCopied: 'คัดลอกลิงก์แล้ว',
       shareTitle: 'Pumgoda',
       shareText: 'Pumgoda — สถานที่ที่พาน้องไปได้ในประเทศไทย',
+      sharePlaceText: '🐾 {name} — เจอที่ Pumgoda',
     },
 
     tabs: {
@@ -253,6 +254,7 @@ export const STRINGS = {
       linkCopied: 'Link copied',
       shareTitle: 'Pumgoda',
       shareText: 'Pumgoda — Find pet-friendly places across Thailand',
+      sharePlaceText: '🐾 {name} — found on Pumgoda',
     },
 
     tabs: {
