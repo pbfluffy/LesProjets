@@ -262,12 +262,26 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
           className="ph-cta"
           style={{ background: '#06C755', color: '#fff', border: 'none', cursor: 'pointer', width: '100%', marginTop: 8 }}
           onClick={async () => {
+            // Bug fix: this used to hardcode the generic pumgoda/ URL, so every
+            // shared place unfurled/opened as the homepage. Build the same
+            // ?place=<id> deep link the app itself now reads on load — the
+            // pumgoda-og-meta Worker rewrites the preview card for this URL.
+            let placeUrl
+            try {
+              const u = new URL(window.location.href)
+              u.searchParams.set('place', venue.id)
+              u.hash = ''
+              placeUrl = u.toString()
+            } catch {
+              placeUrl = 'https://pumbafluffycorgi.com/pumgoda/?place=' + encodeURIComponent(venue.id)
+            }
+            const foundLine = lang === 'th' ? `พบที่ Pumgoda · ${placeUrl}` : `Found on Pumgoda · ${placeUrl}`
             const lines = [
               `🐾 ${name}`,
               address ? address : '',
               venue.googleMapsUrl ? venue.googleMapsUrl : '',
               '',
-              'พบที่ Pumgoda · pumbafluffycorgi.com/pumgoda/',
+              foundLine,
             ].filter(l => l !== undefined)
             await shareToLine(lines.join('\n'))
           }}
