@@ -1,0 +1,380 @@
+/* ============================================================================
+   proteinratio — theme tokens, following the shared LesProjets pattern
+   (structural tokens verbatim from shared/theme-tokens.css; --accent and
+   --accent-light are this app's own identity, same as pumgoda/nutritions).
+   ============================================================================ */
+
+:root {
+  --font-body: 'Noto Sans Thai', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --color-bg: #f7f6f2;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f0eeea;
+  --color-border: #e4e1db;
+  --color-border-strong: #ccc9c2;
+
+  --color-text: #1a1916;
+  --color-text-muted: #6b6862;
+  --color-text-faint: #a09d98;
+
+  --color-green: #2d6a4f;
+  --color-green-bg: #d8f3dc;
+  --color-blue: #1b4f72;
+  --color-blue-bg: #d6eaf8;
+  --color-amber: #7d5a00;
+  --color-amber-bg: #fef3cd;
+  --color-red: #922b21;
+  --color-red-bg: #fadbd8;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 0 0.5px var(--color-border);
+
+  /* app identity — chili red, distinct from pumgoda's orange and nutritions' teal */
+  --accent: #b8432f;
+  --accent-light: #fbe6e0;
+}
+
+[data-theme='dark'] {
+  --color-bg: #161614;
+  --color-surface: #1e1e1b;
+  --color-surface-alt: #272723;
+  --color-border: #2e2e2a;
+  --color-border-strong: #3e3e39;
+
+  --color-text: #f0ede8;
+  --color-text-muted: #8a8780;
+  --color-text-faint: #55534e;
+
+  --color-green: #74c69d;
+  --color-green-bg: #1a3a28;
+  --color-blue: #7bb3e0;
+  --color-blue-bg: #152535;
+  --color-amber: #e8c84a;
+  --color-amber-bg: #2a2008;
+  --color-red: #f1948a;
+  --color-red-bg: #3a1a18;
+
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 0.5px var(--color-border);
+
+  --accent: #e0876a;
+  --accent-light: #3a2018;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+
+/* Shell — same 600px column as the rest of the suite */
+.shell {
+  max-width: 600px;
+  margin: 0 auto;
+  padding-bottom: 96px;
+}
+
+/* Header */
+.header {
+  background: var(--color-surface);
+  border-bottom: 0.5px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  transition: background 0.2s, border-color 0.2s;
+}
+.header-inner {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mark {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  background: var(--accent);
+  color: #fff;
+}
+.brand h1 {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.brand .sub {
+  font-size: 10.5px;
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+  margin-top: 1px;
+}
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  border: 0.5px solid var(--color-border);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  background: var(--color-surface-alt);
+  transition: border-color 0.15s;
+}
+.icon-btn:hover {
+  border-color: var(--accent);
+}
+.cart-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Hero */
+.hero {
+  padding: 18px 16px 6px;
+}
+.hero h1 {
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin-bottom: 6px;
+}
+.hero p {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+.stat-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  overflow-x: auto;
+}
+.stat-pill {
+  flex: 0 0 auto;
+  background: var(--color-surface);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  box-shadow: var(--shadow-sm);
+}
+.stat-pill .num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--accent);
+}
+.stat-pill .lbl {
+  font-size: 9.5px;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 1px;
+}
+
+.notice {
+  margin: 14px 16px 0;
+  padding: 9px 12px;
+  background: var(--color-amber-bg);
+  color: var(--color-amber);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+}
+
+/* Filter chips */
+.filters {
+  display: flex;
+  gap: 8px;
+  padding: 16px 16px 4px;
+  overflow-x: auto;
+}
+.filter {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 7px 13px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  border: 0.5px solid var(--color-border);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.filter.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* Product list */
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 0;
+}
+.card {
+  background: var(--color-surface);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+.card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+}
+.card-main {
+  flex: 1;
+  min-width: 0;
+}
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.brand {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-faint);
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  border: 0.5px solid var(--color-border);
+  white-space: nowrap;
+}
+.pill.accent {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-color: transparent;
+}
+.pname {
+  font-size: 14.5px;
+  font-weight: 600;
+  margin-top: 3px;
+  line-height: 1.3;
+}
+.price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 6px;
+}
+.price {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+.ratio-inline {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-faint);
+}
+.ratio-inline b {
+  color: var(--accent);
+}
+.add-btn {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: 18px;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+
+.empty-state {
+  padding: 40px 16px;
+  font-family: var(--font-mono);
+  color: var(--color-text-faint);
+  text-align: center;
+  font-size: 12.5px;
+}
+
+/* Footer */
+footer {
+  margin-top: 32px;
+  padding: 20px 16px 0;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-text-faint);
+}
+
+/* Thai script doesn't benefit from letter-spacing */
+html[lang='th'] * {
+  letter-spacing: normal !important;
+}
