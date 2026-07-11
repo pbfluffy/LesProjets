@@ -53,8 +53,8 @@ jobs:
           mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/proteinratio
           cp index.html _site/index.html
           cp admindepum.html _site/admindepum.html
-          cp korea2026-d6718e8d.html _site/korea2026-d6718e8d.html
           cp temp.html _site/temp.html
+          cp montreal-autumn-2026.html _site/montreal-autumn-2026.html
           mkdir -p _site/backyard-rampage && cp -r backyard-rampage/. _site/backyard-rampage/
           cp -r studio/. _site/studio/
           cp -r bill-splitter/dist/. _site/bill-splitter/
@@ -67,6 +67,7 @@ jobs:
           cp icon-512.png _site/icon-512.png
           cp icon-512-maskable.png _site/icon-512-maskable.png
           cp manifest.json _site/manifest.json
+          cp promptpay-logo.png _site/promptpay-logo.png
 
       - uses: actions/upload-pages-artifact@v3
         with:
