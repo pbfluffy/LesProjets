@@ -1,5 +1,7 @@
 // Placeholder catalog. Replace with real distributor pricing before launch —
-// these numbers are illustrative, not sourced.
+// these numbers are illustrative, not sourced. Country/countryCode ARE
+// sourced (verified via web search) — ISO 3166-1 alpha-2 codes, used to
+// render flag emoji without any icon assets.
 //
 // ratioThbPerG is derived, not stored: priceThb / proteinG, rounded to 2dp.
 
@@ -10,6 +12,8 @@ export const products = [
     name: 'Overload Cookie Commotion',
     priceThb: 139,
     proteinG: 21,
+    country: 'United States',
+    countryCode: 'US',
     tags: ['imported'],
     inStock: true,
   },
@@ -19,6 +23,8 @@ export const products = [
     name: 'Deluxe Peanut Crunch',
     priceThb: 89,
     proteinG: 20,
+    country: 'Australia',
+    countryCode: 'AU',
     tags: ['imported'],
     inStock: true,
   },
@@ -28,6 +34,8 @@ export const products = [
     name: 'Excelent 25% Dubai Chocolate',
     priceThb: 79,
     proteinG: 20,
+    country: 'Czech Republic',
+    countryCode: 'CZ',
     tags: ['imported'],
     inStock: true,
   },
@@ -37,6 +45,8 @@ export const products = [
     name: 'Thai Cacao, No Added Sugar',
     priceThb: 99,
     proteinG: 18,
+    country: 'Thailand',
+    countryCode: 'TH',
     tags: ['thai-made'],
     inStock: true,
   },
@@ -46,6 +56,8 @@ export const products = [
     name: 'Whey Bar, Mixed Berry',
     priceThb: 69,
     proteinG: 18,
+    country: 'Thailand',
+    countryCode: 'TH',
     tags: ['thai-made'],
     inStock: true,
   },
@@ -55,6 +67,8 @@ export const products = [
     name: 'Plant Based, GMO-free',
     priceThb: 95,
     proteinG: 18,
+    country: 'South Africa',
+    countryCode: 'ZA',
     tags: ['plant-based'],
     inStock: true,
   },
@@ -62,4 +76,12 @@ export const products = [
 
 export function ratio(product) {
   return (product.priceThb / product.proteinG).toFixed(2)
+}
+
+// Converts an ISO 3166-1 alpha-2 code ('TH') to its flag emoji ('🇹🇭') via
+// regional indicator symbols — no icon assets needed.
+export function flagEmoji(countryCode) {
+  return countryCode
+    .toUpperCase()
+    .replace(/./g, (char) => String.fromCodePoint(char.charCodeAt(0) + 127397))
 }

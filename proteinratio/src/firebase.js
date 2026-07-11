@@ -15,7 +15,7 @@ export const app = initializeApp(firebaseConfig)
 export const db = getFirestore(app)
 
 // Products live in a `products` collection, one doc per SKU. Shape:
-// { brand, name, priceThb, proteinG, tags: ['thai-made','plant-based'], inStock, imageUrl }
+// { brand, name, priceThb, proteinG, country, countryCode, tags: ['thai-made','plant-based'], inStock, imageUrl }
 //
 // If you'd rather keep everything in one Realtime Database (matching your
 // pumgoda-default-rtdb setup instead of Firestore), swap getFirestore for

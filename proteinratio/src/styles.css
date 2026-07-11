@@ -378,3 +378,104 @@ footer {
 html[lang='th'] * {
   letter-spacing: normal !important;
 }
+
+/* Product table */
+.table-wrap {
+  margin: 14px 16px 0;
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+  box-shadow: var(--shadow-card);
+  background: var(--color-surface);
+}
+.ptable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.ptable thead th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-faint);
+  background: var(--color-surface-alt);
+  padding: 10px 12px;
+  border-bottom: 0.5px solid var(--color-border);
+  position: sticky;
+  top: 0;
+}
+.ptable thead th.num {
+  text-align: right;
+}
+.ptable tbody td {
+  padding: 10px 12px;
+  border-bottom: 0.5px solid var(--color-border);
+  vertical-align: middle;
+}
+.ptable tbody tr:last-child td {
+  border-bottom: none;
+}
+.ptable tbody tr:hover {
+  background: var(--color-surface-alt);
+}
+.ptable tbody tr.best {
+  background: var(--accent-light);
+}
+.ptable tbody tr.best:hover {
+  background: var(--accent-light);
+  filter: brightness(0.97);
+}
+.ptable td.num {
+  text-align: right;
+}
+.flag-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.flag {
+  font-size: 16px;
+  line-height: 1;
+}
+.country-name {
+  font-size: 10.5px;
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+}
+.brand-cell {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.ratio-cell {
+  font-weight: 700;
+  color: var(--accent);
+}
+.inline-pill {
+  margin-left: 8px;
+  font-size: 9px;
+  padding: 1px 7px;
+  vertical-align: middle;
+}
+.add-btn-sm {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+
+@media (max-width: 480px) {
+  .country-name {
+    display: none;
+  }
+}

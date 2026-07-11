@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import Header from './components/Header.jsx'
 import Hero from './components/Hero.jsx'
 import FilterBar from './components/FilterBar.jsx'
-import ProductGrid from './components/ProductGrid.jsx'
+import ProductTable from './components/ProductTable.jsx'
 import { useProducts } from './data/useProducts.js'
 import { useTheme } from './hooks.js'
 import { ratio } from './data/products.js'
@@ -40,7 +40,7 @@ export default function App() {
       )}
 
       <FilterBar active={filter} onChange={setFilter} />
-      <ProductGrid items={items} filter={filter} onAdd={handleAdd} />
+      <ProductTable items={items} filter={filter} onAdd={handleAdd} />
 
       <footer>
         <div>proteinratio — dev build</div>
