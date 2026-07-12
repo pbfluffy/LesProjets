@@ -1,5 +1,5 @@
 import { useState, Fragment } from 'react'
-import { ratio, flagUrl } from '../data/listings.js'
+import { ratio, flagUrl, brandLogoUrl } from '../data/listings.js'
 import { getShop, mapsDirectionsUrl, shopIconUrl, shopLinkUrl } from '../data/shops.js'
 
 function flavorPassesFilter(flavor, product, filter) {
@@ -221,6 +221,18 @@ export default function ListingTable({ products, filter }) {
               />
               <div className="p-card-info">
                 <div className="p-card-brand">
+                  {brandLogoUrl(product.logoDomain) && (
+                    <img
+                      className="brand-logo"
+                      src={brandLogoUrl(product.logoDomain)}
+                      alt=""
+                      width="16"
+                      height="16"
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                      }}
+                    />
+                  )}
                   {product.brand}
                   {product.tags?.includes('thai-made') && (
                     <span className="pill inline-pill">Thai made</span>
@@ -295,6 +307,18 @@ export default function ListingTable({ products, filter }) {
                       />
                       <div>
                         <div className="brand-name">
+                          {brandLogoUrl(product.logoDomain) && (
+                            <img
+                              className="brand-logo"
+                              src={brandLogoUrl(product.logoDomain)}
+                              alt=""
+                              width="16"
+                              height="16"
+                              onError={(e) => {
+                                e.target.style.display = 'none'
+                              }}
+                            />
+                          )}
                           {product.brand}
                           {product.tags?.includes('thai-made') && (
                             <span className="pill inline-pill">Thai made</span>

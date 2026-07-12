@@ -50,6 +50,13 @@ export const products = [
     id: 'fitwin',
     brand: 'FitWin',
     country: 'Thailand', // confirmed via Shopee's own "Country of Origin" field
+    // Worth noting: FitWin Thailand's own About page describes the brand as
+    // "European sports nutrition... now proudly represented in Thailand" —
+    // likely means Thailand is where this product is manufactured, not
+    // necessarily the brand's origin story. Not a contradiction, just a
+    // nuance — keeping "Thailand" since that's what the product listing
+    // itself specifies.
+    logoDomain: 'fitexpo.co.th', // FitWin Thailand's real site, confirmed via search
     countryCode: 'TH',
     tags: ['thai-made'],
     flavors: [
@@ -94,6 +101,7 @@ export const products = [
     id: 'quest-nutrition',
     brand: 'Quest Nutrition',
     country: 'United States',
+    logoDomain: 'questnutrition.com',
     countryCode: 'US',
     tags: ['imported'],
     flavors: [
@@ -107,6 +115,7 @@ export const products = [
     id: 'musashi',
     brand: 'Musashi',
     country: 'Australia',
+    logoDomain: 'musashi.com',
     countryCode: 'AU',
     tags: ['imported'],
     flavors: [
@@ -175,6 +184,7 @@ export const products = [
     id: 'go-on-protein',
     brand: 'Go On Protein',
     country: 'Poland', // corrected 2026-07-12 — confirmed via Tops' own product page (see note above)
+    logoDomain: 'sante.com.pl', // Sante — the Polish manufacturer, confirmed earlier via web search
     countryCode: 'PL',
     tags: ['imported'],
     flavors: [
@@ -193,4 +203,12 @@ export function ratio(priceThb, proteinG) {
 // flagcdn.com — flag emoji don't render as flags on Windows.
 export function flagUrl(countryCode) {
   return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`
+}
+
+// Real favicon from the brand's own official domain — same approach as
+// shopIconUrl in shops.js, for the same reason: an actual mark the brand
+// itself serves, not a fabricated logo file.
+export function brandLogoUrl(logoDomain) {
+  if (!logoDomain) return null
+  return `https://www.google.com/s2/favicons?sz=64&domain=${logoDomain}`
 }
