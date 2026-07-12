@@ -47,8 +47,20 @@ function ShopLink({ shop, href, compact = false }) {
         target="_blank"
         rel="noreferrer"
         title={shop.name}
+        aria-label={`Get directions to ${shop.name}`}
       >
-        {icon && <img className="shop-btn-icon" src={icon} alt="" width="16" height="16" />}
+        {icon && (
+          <img
+            className="shop-btn-icon"
+            src={icon}
+            alt=""
+            width="16"
+            height="16"
+            onError={(e) => {
+              e.target.style.display = 'none'
+            }}
+          />
+        )}
         {!compact && 'Directions ↗'}
       </a>
     )
@@ -63,8 +75,20 @@ function ShopLink({ shop, href, compact = false }) {
       target="_blank"
       rel="noreferrer"
       title={shop.name}
+      aria-label={isAffiliate ? `Buy on Shopee` : `Visit ${shop.name}`}
     >
-      {icon && <img className="shop-btn-icon" src={icon} alt="" width="16" height="16" />}
+      {icon && (
+        <img
+          className="shop-btn-icon"
+          src={icon}
+          alt=""
+          width="16"
+          height="16"
+          onError={(e) => {
+            e.target.style.display = 'none'
+          }}
+        />
+      )}
       {!compact && (isAffiliate ? 'Buy on Shopee ↗' : `Visit ${shop.name} ↗`)}
     </a>
   )
@@ -157,7 +181,20 @@ export default function ListingTable({ products, filter }) {
 
             return (
               <Fragment key={product.id}>
-                <tr className={`product-row ${isOpen ? 'open' : ''}`} onClick={() => toggle(product.id)}>
+                <tr
+                  className={`product-row ${isOpen ? 'open' : ''}`}
+                  onClick={() => toggle(product.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      toggle(product.id)
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isOpen}
+                  aria-label={`${product.brand}, ${matchingFlavors.length} flavor${matchingFlavors.length > 1 ? 's' : ''}, ${isOpen ? 'expanded' : 'collapsed'}`}
+                >
                   <td className="flag-cell" title={product.country}>
                     <img
                       className="flag"
@@ -166,6 +203,9 @@ export default function ListingTable({ products, filter }) {
                       width="24"
                       height="18"
                       loading="lazy"
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                      }}
                     />
                     <span className="country-name">{product.country}</span>
                   </td>

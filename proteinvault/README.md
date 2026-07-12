@@ -15,6 +15,27 @@ Noto Sans Thai + IBM Plex Mono, soft rounded surface cards, pill badges,
 
 **Not yet linked from the landing page** — standalone until you're ready.
 
+## Production-grade pass (2026-07-12)
+
+- **Error boundary** — a JS runtime error anywhere in the app now shows a
+  real "something went wrong, reload" screen instead of going blank with
+  no explanation. Doesn't fix the vite base-path class of blank-page bug
+  from earlier (that was a build config issue, not a runtime error), but
+  covers every other way this could go blank in production.
+- **Broken images handled gracefully** — flag images (flagcdn.com) and
+  shop icons (Google's favicon service) are both fetched from third-party
+  services outside our control; if either fails to load, the broken-image
+  icon is now hidden instead of showing the browser's default broken-image
+  placeholder.
+- **Keyboard accessibility** — the expandable product rows and filter
+  chips were mouse-only (`<div onClick>`), unreachable by keyboard and
+  invisible to screen readers. Filter chips are now real `<button>`s;
+  product rows have `role="button"`, `tabIndex`, `aria-expanded`, and
+  Enter/Space support; icon-only shop buttons (which had no visible text)
+  now have `aria-label`s so screen readers can announce them.
+- **Favicon + Open Graph tags** — was using the browser default icon and
+  had no link-preview metadata; both added.
+
 ## Status
 
 Real Shopee listings are now in, fetched directly from Pumba's own

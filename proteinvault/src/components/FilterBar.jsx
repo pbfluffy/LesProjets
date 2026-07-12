@@ -9,15 +9,17 @@ const FILTERS = [
 
 export default function FilterBar({ active, onChange }) {
   return (
-    <div className="filters">
+    <div className="filters" role="group" aria-label="Filter bars">
       {FILTERS.map((f) => (
-        <div
+        <button
           key={f.id}
+          type="button"
           className={`filter ${active === f.id ? 'active' : ''}`}
           onClick={() => onChange(f.id)}
+          aria-pressed={active === f.id}
         >
           {f.label}
-        </div>
+        </button>
       ))}
     </div>
   )
