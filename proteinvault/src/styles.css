@@ -501,6 +501,10 @@ html[lang='th'] * {
   border-color: transparent;
   color: #fff;
 }
+.shop-btn.affiliate .shop-btn-icon {
+  background: #fff;
+  padding: 1px;
+}
 .shop-btn.affiliate:hover {
   filter: brightness(1.08);
 }

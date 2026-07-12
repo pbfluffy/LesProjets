@@ -33,7 +33,10 @@ function resolveShops(shopEntries) {
 function ShopLink({ shop, href, compact = false }) {
   if (!shop) return null
   const icon = shopIconUrl(shop)
-  const isAffiliate = Boolean(shop.isAffiliateChannel)
+  // Accent fill only applies to the full labeled button — on a small
+  // icon-only chip it just reads as a solid color blob, especially since
+  // Shopee's own favicon is orange too and disappears against it.
+  const isAffiliate = Boolean(shop.isAffiliateChannel) && !compact
 
   // Physical-only shop, no online link at all — directions instead.
   if (!href && shop.address) {

@@ -26,8 +26,10 @@
 //     ("สินค้าใกล้หมดอายุ ลดราคาพิเศษ") — NOT a stable everyday price,
 //     don't treat it as one.
 //   - Go On flavors: Cranberry Goji & Chocolate confirmed + priced at
-//     Villa Market; Vanilla Flavour and Chocolate confirmed at Tops,
-//     price illustrative.
+//     Villa Market; Vanilla Flavour and Chocolate confirmed at Tops (price
+//     still illustrative); Peanut and Chocolate confirmed + priced at Tops
+//     (currently out of stock there). Country of origin confirmed as
+//     Poland via Tops' own product page — see resolved note below.
 //   - FitWin is a new brand, entirely from a real Shopee listing fetched
 //     2026-07-12. Country of Origin ("Thailand"), FDA registration
 //     numbers per flavor, and protein content (20g) are all taken
@@ -38,10 +40,10 @@
 // scoped shops (Shopee, Tops, Villa Market) — out until someone confirms
 // where they're actually sold.
 //
-// STANDING OPEN QUESTION, still not resolved: Go On Protein's country of
-// origin. The Thailand listings match the format of the Polish brand
-// "Sante Go On Nutrition" sold internationally — countryCode: 'TH' below
-// may be wrong. Flagged, not corrected.
+// RESOLVED 2026-07-12: Go On Protein's country of origin was flagged as
+// unconfirmed in earlier drafts (it resembled the Polish brand "Sante Go
+// On Nutrition"). Confirmed via Tops' own product page, which explicitly
+// lists "Poland" as country of origin — corrected below.
 
 export const products = [
   {
@@ -172,11 +174,12 @@ export const products = [
   {
     id: 'go-on-protein',
     brand: 'Go On Protein',
-    country: 'Thailand', // unconfirmed — see standing note above
-    countryCode: 'TH',
-    tags: ['thai-made'], // unconfirmed, same caveat
+    country: 'Poland', // corrected 2026-07-12 — confirmed via Tops' own product page (see note above)
+    countryCode: 'PL',
+    tags: ['imported'],
     flavors: [
       { id: 'vanilla-chocolate', name: 'Vanilla Flavour and Chocolate', priceThb: 69, proteinG: 18, shops: [{ shopId: 'tops' }] },
+      { id: 'peanut-chocolate', name: 'Peanut and Chocolate', priceThb: 70, proteinG: 18, shops: [{ shopId: 'tops' }] }, // confirmed price, currently out of stock
       { id: 'cranberry-goji-chocolate', name: 'Cranberry Goji & Chocolate', priceThb: 129, proteinG: 18, shops: [{ shopId: 'villa-market' }] },
     ],
   },

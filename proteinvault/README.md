@@ -42,10 +42,16 @@ Tops/Villa Market render as plain outlined buttons ("Visit [shop] ↗").
 Nutrend, FURI, and Kauai are still out — not confirmed at any of the three
 scoped shops.
 
-Two open items:
-- Most non-Shopee pricing is still illustrative (Tops product pages don't
-  show a figure; "price may vary by branch").
-- Go On Protein's origin is still flagged as unconfirmed.
+Correction made this round: **Go On Protein's country was wrong.** It was
+flagged as unconfirmed, possibly Thai; Tops' own product page explicitly
+lists "Poland" as country of origin, so it's corrected to Poland
+(`countryCode: 'PL'`) and the `thai-made` tag removed. Also added a real
+confirmed price (Peanut and Chocolate, ฿70/pc at Tops, currently out of
+stock there).
+
+One open item remains: most non-Shopee pricing is still illustrative
+(Tops product pages mostly don't show a figure; "price may vary by
+branch" — Go On's prices are the exception, both now confirmed).
 
 ## Setup
 
