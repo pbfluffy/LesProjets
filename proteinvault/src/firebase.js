@@ -1,14 +1,13 @@
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 
-// Replace with your Firebase project config (Project Settings → General → Your apps)
 const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_PROJECT.firebaseapp.com',
-  projectId: 'YOUR_PROJECT',
-  storageBucket: 'YOUR_PROJECT.appspot.com',
-  messagingSenderId: 'YOUR_SENDER_ID',
-  appId: 'YOUR_APP_ID',
+  apiKey: 'AIzaSyAsXkfkY-NW3REZ1XMt_O95WiWQDTYAHss',
+  authDomain: 'proteinvault.firebaseapp.com',
+  projectId: 'proteinvault',
+  storageBucket: 'proteinvault.firebasestorage.app',
+  messagingSenderId: '626522960503',
+  appId: '1:626522960503:web:9fecbe54f3309b13a4cc72',
 }
 
 export const app = initializeApp(firebaseConfig)
@@ -38,5 +37,5 @@ export const db = getFirestore(app)
 // If you'd rather keep everything in one Realtime Database (matching your
 // pumgoda-default-rtdb setup instead of Firestore), swap getFirestore for
 // getDatabase from 'firebase/database' and adjust the queries in
-// src/data/useProducts.js accordingly — the component layer doesn't care
+// src/data/useListings.js accordingly — the component layer doesn't care
 // which one you use.
