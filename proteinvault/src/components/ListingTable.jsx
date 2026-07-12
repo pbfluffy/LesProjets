@@ -33,12 +33,8 @@ function resolveShops(shopEntries) {
 function ShopLink({ shop, href, compact = false }) {
   if (!shop) return null
   const icon = shopIconUrl(shop)
-  // Accent fill only applies to the full labeled button — on a small
-  // icon-only chip it just reads as a solid color blob, especially since
-  // Shopee's own favicon is orange too and disappears against it.
   const isAffiliate = Boolean(shop.isAffiliateChannel) && !compact
 
-  // Physical-only shop, no online link at all — directions instead.
   if (!href && shop.address) {
     return (
       <a
@@ -94,6 +90,32 @@ function ShopLink({ shop, href, compact = false }) {
   )
 }
 
+function FlavorRows({ matchingFlavors, globalBestFlavorId }) {
+  return matchingFlavors.map((flavor) => (
+    <div className="flavor-item" key={flavor.id}>
+      <div className="flavor-item-top">
+        <span className="flavor-item-name">
+          {flavor.name}
+          {flavor.id === globalBestFlavorId && (
+            <span className="pill accent inline-pill">Best ratio</span>
+          )}
+        </span>
+        <span className="flavor-item-price mono">
+          ฿{flavor.priceThb} <span className="ratio-cell">฿{ratio(flavor.priceThb, flavor.proteinG)}/g</span>
+        </span>
+      </div>
+      <div className="shop-list">
+        {resolveShops(flavor.shops).map(({ shop, href }) => (
+          <div className="shop-cell" key={shop.id}>
+            <span className="shop-name">{shop.name}</span>
+            <ShopLink shop={shop} href={href} />
+          </div>
+        ))}
+      </div>
+    </div>
+  ))
+}
+
 export default function ListingTable({ products, filter }) {
   const [expanded, setExpanded] = useState(() => new Set())
 
@@ -142,44 +164,107 @@ export default function ListingTable({ products, filter }) {
     })
   }
 
+  // Shared per-product computed values, used by both the card and table renders.
+  const rows = visible.map(({ product, matchingFlavors }) => {
+    const isOpen = expanded.has(product.id)
+    const cheapestFlavor = [...matchingFlavors].sort((a, b) => a.priceThb - b.priceThb)[0]
+    const bestRatioForProduct = Math.min(
+      ...matchingFlavors.map((f) => Number(ratio(f.priceThb, f.proteinG))),
+    ).toFixed(2)
+
+    const seenShopIds = new Set()
+    const productShopLinks = []
+    matchingFlavors.forEach((f) => {
+      resolveShops(f.shops).forEach(({ shop, href }) => {
+        if (!seenShopIds.has(shop.id)) {
+          seenShopIds.add(shop.id)
+          productShopLinks.push({ shop, href })
+        }
+      })
+    })
+    productShopLinks.sort(
+      (a, b) => Boolean(b.shop.isAffiliateChannel) - Boolean(a.shop.isAffiliateChannel),
+    )
+
+    return { product, matchingFlavors, isOpen, cheapestFlavor, bestRatioForProduct, productShopLinks }
+  })
+
   return (
-    <div className="table-wrap">
-      <table className="ptable">
-        <thead>
-          <tr>
-            <th>Origin</th>
-            <th>Brand</th>
-            <th>Flavors</th>
-            <th className="num">From</th>
-            <th className="num">Best ฿/g</th>
-            <th>Shops</th>
-            <th aria-label="Expand" />
-          </tr>
-        </thead>
-        <tbody>
-          {visible.map(({ product, matchingFlavors }) => {
-            const isOpen = expanded.has(product.id)
-            const cheapestFlavor = [...matchingFlavors].sort((a, b) => a.priceThb - b.priceThb)[0]
-            const bestRatioForProduct = Math.min(
-              ...matchingFlavors.map((f) => Number(ratio(f.priceThb, f.proteinG))),
-            ).toFixed(2)
-
-            // Dedupe shops across all matching flavors for the collapsed-row summary.
-            const seenShopIds = new Set()
-            const productShopLinks = []
-            matchingFlavors.forEach((f) => {
-              resolveShops(f.shops).forEach(({ shop, href }) => {
-                if (!seenShopIds.has(shop.id)) {
-                  seenShopIds.add(shop.id)
-                  productShopLinks.push({ shop, href })
+    <>
+      {/* Mobile: card list. Hidden on wider screens via CSS. */}
+      <div className="card-list">
+        {rows.map(({ product, matchingFlavors, isOpen, cheapestFlavor, bestRatioForProduct, productShopLinks }) => (
+          <div className="p-card" key={product.id}>
+            <div
+              className={`p-card-head ${isOpen ? 'open' : ''}`}
+              onClick={() => toggle(product.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  toggle(product.id)
                 }
-              })
-            })
-            productShopLinks.sort(
-              (a, b) => Boolean(b.shop.isAffiliateChannel) - Boolean(a.shop.isAffiliateChannel),
-            )
+              }}
+              role="button"
+              tabIndex={0}
+              aria-expanded={isOpen}
+            >
+              <img
+                className="flag"
+                src={flagUrl(product.countryCode)}
+                alt={product.country}
+                width="22"
+                height="16"
+                loading="lazy"
+                onError={(e) => {
+                  e.target.style.display = 'none'
+                }}
+              />
+              <div className="p-card-info">
+                <div className="p-card-brand">
+                  {product.brand}
+                  {product.tags?.includes('thai-made') && (
+                    <span className="pill inline-pill">Thai made</span>
+                  )}
+                </div>
+                <div className="p-card-meta mono">
+                  {matchingFlavors.length} flavor{matchingFlavors.length > 1 ? 's' : ''} · from ฿
+                  {cheapestFlavor.priceThb} · <span className="ratio-cell">฿{bestRatioForProduct}/g</span>
+                </div>
+              </div>
+              <div className="expand-cell">{isOpen ? '−' : '+'}</div>
+            </div>
 
-            return (
+            {!isOpen && (
+              <div className="p-card-shops" onClick={(e) => e.stopPropagation()}>
+                {productShopLinks.map(({ shop, href }) => (
+                  <ShopLink key={shop.id} shop={shop} href={href} compact />
+                ))}
+              </div>
+            )}
+
+            {isOpen && (
+              <div className="p-card-flavors">
+                <FlavorRows matchingFlavors={matchingFlavors} globalBestFlavorId={globalBestFlavorId} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: table. Hidden on narrow screens via CSS. */}
+      <div className="table-wrap">
+        <table className="ptable">
+          <thead>
+            <tr>
+              <th>Brand</th>
+              <th className="num">From</th>
+              <th className="num">Best ฿/g</th>
+              <th>Shops</th>
+              <th aria-label="Expand" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ product, matchingFlavors, isOpen, cheapestFlavor, bestRatioForProduct, productShopLinks }) => (
               <Fragment key={product.id}>
                 <tr
                   className={`product-row ${isOpen ? 'open' : ''}`}
@@ -195,26 +280,29 @@ export default function ListingTable({ products, filter }) {
                   aria-expanded={isOpen}
                   aria-label={`${product.brand}, ${matchingFlavors.length} flavor${matchingFlavors.length > 1 ? 's' : ''}, ${isOpen ? 'expanded' : 'collapsed'}`}
                 >
-                  <td className="flag-cell" title={product.country}>
+                  <td className="brand-cell-main">
                     <img
                       className="flag"
                       src={flagUrl(product.countryCode)}
                       alt={product.country}
-                      width="24"
-                      height="18"
+                      width="20"
+                      height="15"
                       loading="lazy"
                       onError={(e) => {
                         e.target.style.display = 'none'
                       }}
                     />
-                    <span className="country-name">{product.country}</span>
-                  </td>
-                  <td className="brand-cell">{product.brand}</td>
-                  <td>
-                    {matchingFlavors.length} flavor{matchingFlavors.length > 1 ? 's' : ''}
-                    {product.tags?.includes('thai-made') && (
-                      <span className="pill inline-pill">Thai made</span>
-                    )}
+                    <div>
+                      <div className="brand-name">
+                        {product.brand}
+                        {product.tags?.includes('thai-made') && (
+                          <span className="pill inline-pill">Thai made</span>
+                        )}
+                      </div>
+                      <div className="brand-sub mono">
+                        {matchingFlavors.length} flavor{matchingFlavors.length > 1 ? 's' : ''} · {product.country}
+                      </div>
+                    </div>
                   </td>
                   <td className="num mono">฿{cheapestFlavor.priceThb}</td>
                   <td className="num mono ratio-cell">฿{bestRatioForProduct}</td>
@@ -225,37 +313,20 @@ export default function ListingTable({ products, filter }) {
                   </td>
                   <td className="expand-cell">{isOpen ? '−' : '+'}</td>
                 </tr>
-                {isOpen &&
-                  matchingFlavors.map((flavor) => (
-                    <tr key={flavor.id} className="flavor-row">
-                      <td />
-                      <td className="flavor-name" colSpan={2}>
-                        {flavor.name}
-                        {flavor.id === globalBestFlavorId && (
-                          <span className="pill accent inline-pill">Best ratio</span>
-                        )}
-                      </td>
-                      <td className="num mono">฿{flavor.priceThb}</td>
-                      <td className="num mono ratio-cell">
-                        ฿{ratio(flavor.priceThb, flavor.proteinG)}
-                      </td>
-                      <td colSpan={2}>
-                        <div className="shop-list">
-                          {resolveShops(flavor.shops).map(({ shop, href }) => (
-                            <div className="shop-cell" key={shop.id}>
-                              <span className="shop-name">{shop.name}</span>
-                              <ShopLink shop={shop} href={href} />
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                {isOpen && (
+                  <tr className="flavor-row">
+                    <td colSpan={5}>
+                      <div className="flavor-panel">
+                        <FlavorRows matchingFlavors={matchingFlavors} globalBestFlavorId={globalBestFlavorId} />
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </Fragment>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }

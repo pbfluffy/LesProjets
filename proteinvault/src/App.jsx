@@ -58,8 +58,7 @@ export default function App() {
       <ListingTable products={products} filter={filter} />
 
       <footer>
-        <div>ProteinVault — dev build · directory only, we don't sell anything</div>
-        <div>not linked from pumbafluffycorgi.com yet</div>
+        <div>ProteinVault — a directory, not a store. We don't sell anything.</div>
       </footer>
     </div>
   )

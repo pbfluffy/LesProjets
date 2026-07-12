@@ -15,6 +15,36 @@ Noto Sans Thai + IBM Plex Mono, soft rounded surface cards, pill badges,
 
 **Not yet linked from the landing page** — standalone until you're ready.
 
+## UI overhaul (2026-07-12)
+
+Responded to feedback that the UI felt cluttered, especially on mobile:
+
+- **Removed the dev-note footer line** ("not linked from pumbafluffycorgi.com
+  yet") — that was an internal note, not something a visitor should see.
+- **Mobile now gets a card list, not a squeezed table.** The 7-column table
+  was being forced into phone-width screens with horizontal scroll — that
+  was very likely the actual root cause of "cluttered" and "mobile view
+  specifically." Below 680px width, products render as cards (flag, brand,
+  flavor count, price summary, tap to expand); at 680px and up, the table
+  layout still applies, but decluttered from 7 columns to 5 (Origin and
+  Brand merged into one identity cell — flag + name + flavor count/country
+  as a caption underneath, instead of a separate column).
+- **Stat row is a proper grid now**, not a horizontal-scroll strip of pills
+  — 2 columns on small screens, 4 once there's room.
+- Tightened spacing/hierarchy throughout (hero, filters, cards) and removed
+  a chunk of dead CSS left over from an earlier design iteration that
+  wasn't being used anymore.
+
+Stayed within the shared LesProjets visual system throughout (warm paper,
+Noto Sans Thai + IBM Plex Mono, chili red accent) — this was a structural
+and spacing pass, not a new aesthetic direction.
+
+**Note on verification**: I checked this by cross-referencing every CSS
+class used in the component against the stylesheet (all matched), and
+confirmed the build compiles clean with correct relative asset paths. I
+could not visually preview it in an actual browser before handing it off —
+worth a careful look once deployed, and flag anything that looks off.
+
 ## Production-grade pass (2026-07-12)
 
 - **Error boundary** — a JS runtime error anywhere in the app now shows a
