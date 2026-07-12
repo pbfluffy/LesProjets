@@ -568,6 +568,11 @@ html[lang='th'] * {
 }
 .shop-btn.compact {
   padding: 5px;
+  border: none;
+  background: transparent;
+}
+.shop-btn.compact:hover {
+  background: var(--accent-light);
 }
 .shop-btns-cell {
   display: flex;
