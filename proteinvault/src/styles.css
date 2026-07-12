@@ -481,3 +481,43 @@ html[lang='th'] * {
 .shop-action:hover {
   text-decoration: underline;
 }
+
+/* Expandable product rows */
+.product-row {
+  cursor: pointer;
+}
+.product-row:hover {
+  background: var(--color-surface-alt);
+}
+.product-row.open {
+  background: var(--color-surface-alt);
+}
+.expand-cell {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--color-text-faint);
+  width: 32px;
+}
+.flavor-row {
+  background: var(--color-bg);
+}
+.flavor-row td {
+  padding: 8px 12px;
+}
+.flavor-name {
+  font-size: 12px;
+  padding-left: 24px !important;
+  position: relative;
+}
+.flavor-name::before {
+  content: '↳';
+  position: absolute;
+  left: 8px;
+  color: var(--color-text-faint);
+}
+.shop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

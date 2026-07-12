@@ -6,19 +6,32 @@ import ListingTable from './components/ListingTable.jsx'
 import { useListings } from './data/useListings.js'
 import { useTheme } from './hooks.js'
 import { ratio } from './data/listings.js'
-import { shops } from './data/shops.js'
 
 export default function App() {
-  const { items, usingFallback } = useListings()
+  const { items: products, usingFallback } = useListings()
   const [filter, setFilter] = useState('all')
   const [theme, setTheme] = useTheme()
 
-  const brandCount = useMemo(() => new Set(items.map((p) => p.brand)).size, [items])
-  const shopCount = useMemo(() => new Set(items.map((p) => p.shopId)).size, [items])
-  const bestRatio = useMemo(
-    () => (items.length ? Math.min(...items.map((p) => Number(ratio(p)))).toFixed(2) : '0.00'),
-    [items],
+  const brandCount = products.length
+  const flavorCount = useMemo(
+    () => products.reduce((sum, p) => sum + p.flavors.length, 0),
+    [products],
   )
+  const shopCount = useMemo(() => {
+    const ids = new Set()
+    products.forEach((p) => p.flavors.forEach((f) => f.shopIds.forEach((id) => ids.add(id))))
+    return ids.size
+  }, [products])
+  const bestRatio = useMemo(() => {
+    let best = Infinity
+    products.forEach((p) => {
+      p.flavors.forEach((f) => {
+        const r = Number(ratio(f.priceThb, p.proteinG))
+        if (r < best) best = r
+      })
+    })
+    return products.length ? best.toFixed(2) : '0.00'
+  }, [products])
 
   function toggleTheme() {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
@@ -30,19 +43,19 @@ export default function App() {
       <Hero
         brandCount={brandCount}
         shopCount={shopCount}
-        skuCount={items.length}
+        skuCount={flavorCount}
         bestRatio={bestRatio}
       />
 
       {usingFallback && (
         <div className="notice">
           Showing placeholder listings — connect Firestore (src/firebase.js) and seed the
-          `listings` + `shops` collections to go live.
+          `products` + `shops` collections to go live.
         </div>
       )}
 
       <FilterBar active={filter} onChange={setFilter} />
-      <ListingTable items={items} filter={filter} />
+      <ListingTable products={products} filter={filter} />
 
       <footer>
         <div>ProteinVault — dev build · directory only, we don't sell anything</div>

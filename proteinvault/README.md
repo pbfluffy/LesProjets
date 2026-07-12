@@ -17,12 +17,23 @@ Noto Sans Thai + IBM Plex Mono, soft rounded surface cards, pill badges,
 
 ## Status
 
-Concept scaffold with real, sourced shop data (Nutrition Depot, Lazada
-Thailand, Thai Sports Supplements, Kauai — all verified via web search, not
-invented) but placeholder pricing on most listings. Two listings (Quest,
-Nutrend) use real prices pulled from nutritiondepot.co.th at time of
-writing; the rest need reconfirming before launch. See the comments at the
-top of `src/data/listings.js` for exactly which is which.
+Concept scaffold with real, sourced shop data (Nutrition Depot, iHerb
+Thailand, Lazada Thailand, Thai Sports Supplements, Kauai — all verified via
+web search, not invented). Products are grouped by brand, each with an
+expandable list of flavors, and each flavor can link to more than one shop
+via `shopIds`. Quest Nutrition demonstrates this for real: Nutrition Depot
+carries its Thailand-market "Overload" flavors, iHerb Thailand carries the
+standard US line under different flavor names — both genuine Quest
+products, just not the same SKU, which is why they're separate flavor
+entries rather than one flavor with two shop links.
+
+Two open items to resolve before launch:
+- Most listings still use placeholder pricing — only the Quest and Nutrend
+  entries are pulled from real prices found via search (see comments at the
+  top of `src/data/listings.js`).
+- Go On Protein's origin is flagged as unconfirmed — its Thailand listing
+  closely resembles a Polish brand of the same name, not a Thai-made
+  product as originally assumed. Worth checking before publishing.
 
 ## Setup
 
@@ -60,7 +71,8 @@ npm run dev
 src/
   components/     UI pieces (Header, Hero, FilterBar, ListingTable)
   data/
-    listings.js    placeholder+real catalog, ratio() and flagEmoji() helpers
+    listings.js    products grouped by brand, each with a flavors[] array;
+                    each flavor has its own shopIds[] (multi-shop support)
     shops.js       verified shop directory (online/physical/both), maps-link helper
     useListings.js Firestore fetch with local fallback
   firebase.js     Firebase config — fill in before going live

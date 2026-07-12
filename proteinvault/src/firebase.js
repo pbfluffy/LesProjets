@@ -15,13 +15,15 @@ export const app = initializeApp(firebaseConfig)
 export const db = getFirestore(app)
 
 // Two collections:
-//   `listings` — one doc per bar-at-a-shop. Shape:
-//     { brand, name, priceThb, proteinG, country, countryCode, tags, shopId }
+//   `products` — one doc per brand. Shape:
+//     { brand, country, countryCode, proteinG, tags, flavors: [
+//         { id, name, priceThb, shopIds: [shopId, ...] }
+//       ] }
 //   `shops` — one doc per shop (see src/data/shops.js for the same shape
 //     used in the local fallback data: id, name, type, url, address, note)
 //
-// This is a directory, not a storefront — there's no checkout. Listings
-// link out to the shop that actually sells the bar.
+// This is a directory, not a storefront — there's no checkout. Each flavor
+// links out to every shop that carries it via shopIds.
 //
 // If you'd rather keep everything in one Realtime Database (matching your
 // pumgoda-default-rtdb setup instead of Firestore), swap getFirestore for

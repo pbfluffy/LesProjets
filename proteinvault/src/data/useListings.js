@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../firebase.js'
-import { listings as fallbackListings } from './listings.js'
+import { products as fallbackProducts } from './listings.js'
 
 // Tries Firestore first; falls back to local placeholder data if the
-// `listings` collection is empty or Firebase isn't configured yet.
+// `products` collection is empty or Firebase isn't configured yet.
 export function useListings() {
-  const [items, setItems] = useState(fallbackListings)
+  const [items, setItems] = useState(fallbackProducts)
   const [loading, setLoading] = useState(true)
   const [usingFallback, setUsingFallback] = useState(true)
 
@@ -15,14 +15,14 @@ export function useListings() {
 
     async function load() {
       try {
-        const snap = await getDocs(collection(db, 'listings'))
+        const snap = await getDocs(collection(db, 'products'))
         if (cancelled) return
         if (!snap.empty) {
           setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
           setUsingFallback(false)
         }
       } catch (err) {
-        console.warn('Falling back to local listing data:', err.message)
+        console.warn('Falling back to local product data:', err.message)
       } finally {
         if (!cancelled) setLoading(false)
       }
