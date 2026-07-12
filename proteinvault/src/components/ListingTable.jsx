@@ -17,7 +17,7 @@ function flavorPassesFilter(flavor, product, filter) {
   }
 }
 
-function ShopLink({ shop }) {
+function ShopLink({ shop, compact = false }) {
   if (!shop) return null
   const icon = shopIconUrl(shop)
   const isAffiliate = Boolean(shop.affiliateUrl)
@@ -25,9 +25,15 @@ function ShopLink({ shop }) {
   // Physical-only shop, no online link at all — directions instead.
   if (!shop.url && shop.address) {
     return (
-      <a className="shop-link" href={mapsDirectionsUrl(shop.address)} target="_blank" rel="noreferrer">
-        {icon && <img className="shop-icon" src={icon} alt="" width="16" height="16" />}
-        Directions ↗
+      <a
+        className={`shop-btn ${compact ? 'compact' : ''}`}
+        href={mapsDirectionsUrl(shop.address)}
+        target="_blank"
+        rel="noreferrer"
+        title={shop.name}
+      >
+        {icon && <img className="shop-btn-icon" src={icon} alt="" width="16" height="16" />}
+        {!compact && 'Directions ↗'}
       </a>
     )
   }
@@ -36,13 +42,14 @@ function ShopLink({ shop }) {
 
   return (
     <a
-      className={`shop-link ${isAffiliate ? 'affiliate' : ''}`}
+      className={`shop-btn ${isAffiliate ? 'affiliate' : ''} ${compact ? 'compact' : ''}`}
       href={shopLinkUrl(shop)}
       target="_blank"
       rel="noreferrer"
+      title={shop.name}
     >
-      {icon && <img className="shop-icon" src={icon} alt="" width="16" height="16" />}
-      {isAffiliate ? 'Buy on Shopee ↗' : 'Visit shop ↗'}
+      {icon && <img className="shop-btn-icon" src={icon} alt="" width="16" height="16" />}
+      {!compact && (isAffiliate ? 'Buy on Shopee ↗' : `Visit ${shop.name} ↗`)}
     </a>
   )
 }
@@ -141,25 +148,14 @@ export default function ListingTable({ products, filter }) {
                   </td>
                   <td className="num mono">฿{cheapestFlavor.priceThb}</td>
                   <td className="num mono ratio-cell">฿{bestRatioForProduct}</td>
-                  <td className="shop-icons-cell">
+                  <td className="shop-btns-cell" onClick={(e) => e.stopPropagation()}>
                     {shopIdsForProduct
                       .map((id) => getShop(id))
                       .filter(Boolean)
                       .sort((a, b) => Boolean(b.affiliateUrl) - Boolean(a.affiliateUrl))
-                      .map((shop) => {
-                        const icon = shopIconUrl(shop)
-                        return icon ? (
-                          <img
-                            key={shop.id}
-                            className={`shop-icon-stack ${shop.affiliateUrl ? 'affiliate' : ''}`}
-                            src={icon}
-                            alt={shop.name}
-                            title={shop.name}
-                            width="18"
-                            height="18"
-                          />
-                        ) : null
-                      })}
+                      .map((shop) => (
+                        <ShopLink key={shop.id} shop={shop} compact />
+                      ))}
                   </td>
                   <td className="expand-cell">{isOpen ? '−' : '+'}</td>
                 </tr>
