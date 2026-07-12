@@ -280,36 +280,40 @@ export default function ListingTable({ products, filter }) {
                   aria-expanded={isOpen}
                   aria-label={`${product.brand}, ${matchingFlavors.length} flavor${matchingFlavors.length > 1 ? 's' : ''}, ${isOpen ? 'expanded' : 'collapsed'}`}
                 >
-                  <td className="brand-cell-main">
-                    <img
-                      className="flag"
-                      src={flagUrl(product.countryCode)}
-                      alt={product.country}
-                      width="20"
-                      height="15"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.target.style.display = 'none'
-                      }}
-                    />
-                    <div>
-                      <div className="brand-name">
-                        {product.brand}
-                        {product.tags?.includes('thai-made') && (
-                          <span className="pill inline-pill">Thai made</span>
-                        )}
-                      </div>
-                      <div className="brand-sub mono">
-                        {matchingFlavors.length} flavor{matchingFlavors.length > 1 ? 's' : ''} · {product.country}
+                  <td>
+                    <div className="brand-cell-main">
+                      <img
+                        className="flag"
+                        src={flagUrl(product.countryCode)}
+                        alt={product.country}
+                        width="20"
+                        height="15"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.style.display = 'none'
+                        }}
+                      />
+                      <div>
+                        <div className="brand-name">
+                          {product.brand}
+                          {product.tags?.includes('thai-made') && (
+                            <span className="pill inline-pill">Thai made</span>
+                          )}
+                        </div>
+                        <div className="brand-sub mono">
+                          {matchingFlavors.length} flavor{matchingFlavors.length > 1 ? 's' : ''} · {product.country}
+                        </div>
                       </div>
                     </div>
                   </td>
                   <td className="num mono">฿{cheapestFlavor.priceThb}</td>
                   <td className="num mono ratio-cell">฿{bestRatioForProduct}</td>
-                  <td className="shop-btns-cell" onClick={(e) => e.stopPropagation()}>
-                    {productShopLinks.map(({ shop, href }) => (
-                      <ShopLink key={shop.id} shop={shop} href={href} compact />
-                    ))}
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <div className="shop-btns-cell">
+                      {productShopLinks.map(({ shop, href }) => (
+                        <ShopLink key={shop.id} shop={shop} href={href} compact />
+                      ))}
+                    </div>
                   </td>
                   <td className="expand-cell">{isOpen ? '−' : '+'}</td>
                 </tr>
