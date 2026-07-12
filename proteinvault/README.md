@@ -17,23 +17,31 @@ Noto Sans Thai + IBM Plex Mono, soft rounded surface cards, pill badges,
 
 ## Status
 
-Concept scaffold with real, sourced shop data (Nutrition Depot, iHerb
-Thailand, Lazada Thailand, Thai Sports Supplements, Kauai — all verified via
-web search, not invented). Products are grouped by brand, each with an
-expandable list of flavors, and each flavor can link to more than one shop
-via `shopIds`. Quest Nutrition demonstrates this for real: Nutrition Depot
-carries its Thailand-market "Overload" flavors, iHerb Thailand carries the
-standard US line under different flavor names — both genuine Quest
-products, just not the same SKU, which is why they're separate flavor
-entries rather than one flavor with two shop links.
+Shop directory scoped down to three shops for now: Villa Market, Tops, and
+Shopee Thailand (Shopee is listed but has no confirmed protein-bar listings
+yet — it's a placeholder entry, not linked to any flavor). Products are
+grouped by brand with an expandable flavor list, and each flavor carries
+its own protein content (not assumed uniform per brand anymore — Musashi's
+"High Protein" line is 45g/bar vs. their "Crisp" line at 20g/bar, confirmed
+via search, which is why this changed) and its own `shopIds`.
 
-Two open items to resolve before launch:
-- Most listings still use placeholder pricing — only the Quest and Nutrend
-  entries are pulled from real prices found via search (see comments at the
-  top of `src/data/listings.js`).
-- Go On Protein's origin is flagged as unconfirmed — its Thailand listing
-  closely resembles a Polish brand of the same name, not a Thai-made
-  product as originally assumed. Worth checking before publishing.
+Real, sourced data currently in `listings.js`:
+- **Quest Nutrition** — 4 flavors, confirmed sold at Tops
+- **Musashi** — 3 flavors + accurate per-flavor protein content, confirmed at Tops
+- **Go On Protein** — 2 flavors, one confirmed + priced at Villa Market, one confirmed at Tops (price still illustrative)
+
+Nutrend, FURI, and Kauai were dropped from this version — none turned up as
+confirmed listings at Villa Market, Tops, or Shopee, so rather than leave
+them pointing at a shop that isn't real, they're out until someone
+confirms where they're actually sold.
+
+Two open items:
+- Most pricing above is still illustrative — only the Villa Market Go On
+  price was captured exactly. Tops product pages say "price may vary by
+  branch" without showing a figure.
+- Go On Protein's origin is flagged as unconfirmed — its Thailand listings
+  resemble a Polish brand of the same name, not a Thai-made product as
+  originally assumed. Worth checking before publishing.
 
 ## Setup
 
@@ -72,7 +80,8 @@ src/
   components/     UI pieces (Header, Hero, FilterBar, ListingTable)
   data/
     listings.js    products grouped by brand, each with a flavors[] array;
-                    each flavor has its own shopIds[] (multi-shop support)
+                    each flavor carries its own priceThb, proteinG, and
+                    shopIds[] (multi-shop support)
     shops.js       verified shop directory (online/physical/both), maps-link helper
     useListings.js Firestore fetch with local fallback
   firebase.js     Firebase config — fill in before going live

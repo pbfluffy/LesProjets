@@ -1,29 +1,35 @@
-// Grouped by product (brand), each with an array of flavors, each flavor
-// with an array of shopIds — the same flavor (or the same brand under a
-// different flavor) can show up at more than one shop.
+// Grouped by product (brand), each with an array of flavors. Protein grams
+// now live on the FLAVOR, not the product — Musashi turned out to need
+// this: their "High Protein" line and "Crisp" line carry very different
+// protein content under the same brand (see note below), so a single
+// product-level number was actively wrong.
 //
-// Sourced flavors + prices, verified via web search:
-//   - Quest "Overload" flavors + Nutrition Depot pricing: nutritiondepot.co.th
-//   - Quest "Cookies & Cream" / "Lemon Cake" + iHerb Thailand pricing:
-//     th.iherb.com (per-bar price derived from multi-bar pack price ÷ bar
-//     count, since iHerb sells packs not singles)
-//   - Nutrend Excelent 25% flavors + pricing: nutritiondepot.co.th
-// Note Quest's flavor names genuinely differ between the two shops — Nutrition
-// Depot carries the Thailand-market "Overload" line, iHerb carries the
-// standard US line. Both are real Quest Nutrition products, just not the
-// exact same SKU, which is why they're modeled as separate flavors rather
-// than one flavor with two shopIds.
+// Sourced flavors, verified via web search against tops.co.th and
+// shoponline.villamarket.com:
+//   - Quest flavors (Chocolate Brownie, Double Chocolate Chunk, Lemon Cake,
+//     White Chocolate Raspberry) confirmed at Tops. Tops' own product pages
+//     say "prices may vary depending on the selected branch" and didn't
+//     show a figure, so pricing below is still illustrative.
+//   - Musashi flavors + protein content confirmed at Tops. High Protein
+//     Milk Choc Brownie Bar and Dark Chocolate Salted Caramel Bar are both
+//     90g bars from Musashi's "High Protein" line — 45g protein each,
+//     confirmed via Musashi's own product specs. Crisp Vanilla Caramel is a
+//     60g bar from their separate "Crisp" line — only 20g protein, also
+//     confirmed directly. Pricing is illustrative.
+//   - Go On "Cranberry Goji & Chocolate" + its ฿129 price are both
+//     confirmed at Villa Market (shoponline.villamarket.com search
+//     results). "Vanilla Flavour and Chocolate" is confirmed sold at Tops,
+//     but its price wasn't captured — illustrative.
 //
-// Everything else (Musashi, FURI, Go On, Kauai) still has placeholder or
-// partially-unconfirmed data — see the per-brand notes below.
+// REMOVED FOR NOW: Nutrend, FURI, and Kauai were in earlier drafts of this
+// file but aren't confirmed sold at Villa Market, Tops, or Shopee — rather
+// than leave them pointing at a shop that isn't real, they're out until
+// someone confirms where they're actually sold. Re-add when known.
 //
-// OPEN QUESTION, not yet resolved: Go On Protein's Thailand Lazada listing
-// closely matches the Polish brand "Sante Go On Nutrition" (same 50g
-// vanilla/chocolate format, sold internationally). The original
-// countryCode: 'TH' below may be wrong — it might be a Polish import
-// marketed under a Thailand-specific page, not a Thai-made product.
-// Flagged here rather than corrected outright, since neither claim is
-// confirmed — check before treating either as fact.
+// STANDING OPEN QUESTION, still not resolved: Go On Protein's country of
+// origin. The Thailand listings match the format of the Polish brand
+// "Sante Go On Nutrition" sold internationally — countryCode: 'TH' below
+// may be wrong. Flagged, not corrected, since neither claim is confirmed.
 
 export const products = [
   {
@@ -31,38 +37,35 @@ export const products = [
     brand: 'Quest Nutrition',
     country: 'United States',
     countryCode: 'US',
-    proteinG: 21,
     tags: ['imported'],
     flavors: [
       {
-        id: 'overload-cookie-commotion',
-        name: 'Overload Cookie Commotion',
+        id: 'chocolate-brownie',
+        name: 'Chocolate Brownie',
         priceThb: 139,
-        shopIds: ['nutrition-depot'],
+        proteinG: 21,
+        shopIds: ['tops'],
       },
       {
-        id: 'overload-sundae-funday',
-        name: 'Overload Sundae Funday',
+        id: 'double-chocolate-chunk',
+        name: 'Double Chocolate Chunk',
         priceThb: 139,
-        shopIds: ['nutrition-depot'],
-      },
-      {
-        id: 'overload-chocolate-explosion',
-        name: 'Overload Chocolate Explosion',
-        priceThb: 139,
-        shopIds: ['nutrition-depot'],
-      },
-      {
-        id: 'cookies-and-cream',
-        name: 'Cookies & Cream',
-        priceThb: 116,
-        shopIds: ['iherb-thailand'],
+        proteinG: 21,
+        shopIds: ['tops'],
       },
       {
         id: 'lemon-cake',
         name: 'Lemon Cake',
-        priceThb: 110,
-        shopIds: ['iherb-thailand'],
+        priceThb: 139,
+        proteinG: 21,
+        shopIds: ['tops'],
+      },
+      {
+        id: 'white-chocolate-raspberry',
+        name: 'White Chocolate Raspberry',
+        priceThb: 139,
+        proteinG: 21,
+        shopIds: ['tops'],
       },
     ],
   },
@@ -71,84 +74,51 @@ export const products = [
     brand: 'Musashi',
     country: 'Australia',
     countryCode: 'AU',
-    proteinG: 20,
     tags: ['imported'],
     flavors: [
       {
-        id: 'deluxe-peanut-crunch',
-        name: 'Deluxe Peanut Crunch',
+        id: 'high-protein-milk-choc-brownie',
+        name: 'High Protein Milk Choc Brownie Bar',
+        priceThb: 129,
+        proteinG: 45,
+        shopIds: ['tops'],
+      },
+      {
+        id: 'high-protein-dark-choc-salted-caramel',
+        name: 'Dark Chocolate Salted Caramel Bar',
+        priceThb: 129,
+        proteinG: 45,
+        shopIds: ['tops'],
+      },
+      {
+        id: 'crisp-vanilla-caramel',
+        name: 'Crisp Vanilla Caramel',
         priceThb: 89,
-        shopIds: ['nutrition-depot'], // shop assignment unconfirmed — verify before launch
-      },
-    ],
-  },
-  {
-    id: 'nutrend',
-    brand: 'Nutrend',
-    country: 'Czech Republic',
-    countryCode: 'CZ',
-    proteinG: 20,
-    tags: ['imported'],
-    flavors: [
-      {
-        id: 'excelent-dubai-chocolate',
-        name: 'Excelent 25% Dubai Chocolate',
-        priceThb: 79,
-        shopIds: ['nutrition-depot'],
-      },
-      {
-        id: 'excelent-almond-pistachio',
-        name: 'Excelent 25% Almonds & Pistachios',
-        priceThb: 79,
-        shopIds: ['nutrition-depot'],
-      },
-    ],
-  },
-  {
-    id: 'furi',
-    brand: 'FURI',
-    country: 'Thailand',
-    countryCode: 'TH',
-    proteinG: 18,
-    tags: ['thai-made'],
-    flavors: [
-      {
-        id: 'thai-cacao',
-        name: 'Thai Cacao, No Added Sugar',
-        priceThb: 99,
-        shopIds: ['lazada-thailand'],
+        proteinG: 20,
+        shopIds: ['tops'],
       },
     ],
   },
   {
     id: 'go-on-protein',
     brand: 'Go On Protein',
-    country: 'Thailand', // unconfirmed — see note at top of file
+    country: 'Thailand', // unconfirmed — see standing note above
     countryCode: 'TH',
-    proteinG: 18,
     tags: ['thai-made'], // unconfirmed, same caveat
     flavors: [
       {
         id: 'vanilla-chocolate',
-        name: 'Vanilla & Chocolate',
-        priceThb: 69, // illustrative — Lazada listing found, exact price not captured
-        shopIds: ['lazada-thailand'],
+        name: 'Vanilla Flavour and Chocolate',
+        priceThb: 69, // illustrative — confirmed sold at Tops, price not captured
+        proteinG: 18,
+        shopIds: ['tops'],
       },
-    ],
-  },
-  {
-    id: 'kauai',
-    brand: 'Kauai',
-    country: 'South Africa',
-    countryCode: 'ZA',
-    proteinG: 18,
-    tags: ['plant-based'],
-    flavors: [
       {
-        id: 'plant-based-gmo-free',
-        name: 'Plant Based, GMO-free',
-        priceThb: 95,
-        shopIds: ['kauai-thailand'],
+        id: 'cranberry-goji-chocolate',
+        name: 'Cranberry Goji & Chocolate',
+        priceThb: 129, // confirmed — Villa Market listing
+        proteinG: 18,
+        shopIds: ['villa-market'],
       },
     ],
   },

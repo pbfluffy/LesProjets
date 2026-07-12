@@ -16,9 +16,12 @@ export const db = getFirestore(app)
 
 // Two collections:
 //   `products` — one doc per brand. Shape:
-//     { brand, country, countryCode, proteinG, tags, flavors: [
-//         { id, name, priceThb, shopIds: [shopId, ...] }
+//     { brand, country, countryCode, tags, flavors: [
+//         { id, name, priceThb, proteinG, shopIds: [shopId, ...] }
 //       ] }
+//     Note proteinG lives on each flavor, not the product — different
+//     flavors of the same brand can have genuinely different protein
+//     content (see Musashi in src/data/listings.js for a real example).
 //   `shops` — one doc per shop (see src/data/shops.js for the same shape
 //     used in the local fallback data: id, name, type, url, address, note)
 //

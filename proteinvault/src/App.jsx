@@ -26,7 +26,7 @@ export default function App() {
     let best = Infinity
     products.forEach((p) => {
       p.flavors.forEach((f) => {
-        const r = Number(ratio(f.priceThb, p.proteinG))
+        const r = Number(ratio(f.priceThb, f.proteinG))
         if (r < best) best = r
       })
     })

@@ -1,45 +1,35 @@
-// Shop directory — real, verified shops where possible (via web search),
-// not invented. Where a specific detail couldn't be confirmed, it's noted
-// in listings.js rather than asserted here as fact.
+// Shop directory — scoped down to three shops per Pumba's request. Real,
+// verified shops (via web search), not invented.
 //
 // type: 'online' | 'physical' | 'both'
 // url:     for online — the storefront to visit
-// address: for physical — used to build a Google Maps directions link
-//          (no lat/lng stored; we don't have confirmed precise coordinates,
-//          and a maps search-by-address link doesn't need them)
+// address: for physical — used to build a Google Maps directions link.
+//          Only set when there's a single relevant branch; chains with many
+//          branches (Tops) use `note` instead and rely on their own site's
+//          branch locator.
 
 export const shops = [
   {
-    id: 'nutrition-depot',
-    name: 'Nutrition Depot',
+    id: 'villa-market',
+    name: 'Villa Market',
     type: 'both',
-    url: 'https://nutritiondepot.co.th',
-    address: 'Sukhumvit Rd (near BTS Asoke), Khlong Toei Nuea, Watthana, Bangkok 10110',
+    url: 'https://shoponline.villamarket.com',
+    address: '591/1, 4-7 Sukhumvit Rd (Sukhumvit 33 branch), Khlong Toei Nuea, Watthana, Bangkok 10110',
+    note: 'Multiple 24-hour branches across Bangkok',
   },
   {
-    id: 'iherb-thailand',
-    name: 'iHerb Thailand',
-    type: 'online',
-    url: 'https://th.iherb.com',
-  },
-  {
-    id: 'lazada-thailand',
-    name: 'Lazada Thailand',
-    type: 'online',
-    url: 'https://www.lazada.co.th',
-  },
-  {
-    id: 'thai-sports-supplements',
-    name: 'Thai Sports Supplements',
-    type: 'physical',
-    address: '235, 16 Soi Sawatdi, Khlong Toei Nuea, Watthana, Bangkok 10110',
-  },
-  {
-    id: 'kauai-thailand',
-    name: 'Kauai',
+    id: 'tops',
+    name: 'Tops',
     type: 'both',
-    url: 'https://www.kauaithailand.com',
-    note: 'Plus retail locations across Bangkok malls',
+    url: 'https://www.tops.co.th',
+    note: 'Multiple branches nationwide — use the branch locator on their site',
+  },
+  {
+    id: 'shopee-thailand',
+    name: 'Shopee Thailand',
+    type: 'online',
+    url: 'https://shopee.co.th',
+    note: 'In the directory but no confirmed protein-bar listings yet — not linked to any flavor below',
   },
 ]
 

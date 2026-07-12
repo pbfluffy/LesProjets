@@ -7,7 +7,7 @@ function flavorPassesFilter(flavor, product, filter) {
     case 'under-100':
       return flavor.priceThb < 100
     case 'high-protein':
-      return product.proteinG >= 20
+      return flavor.proteinG >= 20
     case 'thai-made':
       return product.tags?.includes('thai-made')
     case 'plant-based':
@@ -49,7 +49,7 @@ export default function ListingTable({ products, filter }) {
   let globalBestRatio = Infinity
   products.forEach((product) => {
     product.flavors.forEach((flavor) => {
-      const r = Number(ratio(flavor.priceThb, product.proteinG))
+      const r = Number(ratio(flavor.priceThb, flavor.proteinG))
       if (r < globalBestRatio) {
         globalBestRatio = r
         globalBestFlavorId = flavor.id
@@ -67,10 +67,10 @@ export default function ListingTable({ products, filter }) {
   if (filter === 'best-ratio') {
     visible.sort((a, b) => {
       const bestA = Math.min(
-        ...a.matchingFlavors.map((f) => Number(ratio(f.priceThb, a.product.proteinG))),
+        ...a.matchingFlavors.map((f) => Number(ratio(f.priceThb, f.proteinG))),
       )
       const bestB = Math.min(
-        ...b.matchingFlavors.map((f) => Number(ratio(f.priceThb, b.product.proteinG))),
+        ...b.matchingFlavors.map((f) => Number(ratio(f.priceThb, f.proteinG))),
       )
       return bestA - bestB
     })
@@ -108,7 +108,7 @@ export default function ListingTable({ products, filter }) {
             const isOpen = expanded.has(product.id)
             const cheapestFlavor = [...matchingFlavors].sort((a, b) => a.priceThb - b.priceThb)[0]
             const bestRatioForProduct = Math.min(
-              ...matchingFlavors.map((f) => Number(ratio(f.priceThb, product.proteinG))),
+              ...matchingFlavors.map((f) => Number(ratio(f.priceThb, f.proteinG))),
             ).toFixed(2)
             const shopIdsForProduct = [...new Set(matchingFlavors.flatMap((f) => f.shopIds))]
 
@@ -152,7 +152,7 @@ export default function ListingTable({ products, filter }) {
                       </td>
                       <td className="num mono">฿{flavor.priceThb}</td>
                       <td className="num mono ratio-cell">
-                        ฿{ratio(flavor.priceThb, product.proteinG)}
+                        ฿{ratio(flavor.priceThb, flavor.proteinG)}
                       </td>
                       <td colSpan={2}>
                         <div className="shop-list">
