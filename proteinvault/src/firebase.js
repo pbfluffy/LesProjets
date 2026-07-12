@@ -17,16 +17,23 @@ export const db = getFirestore(app)
 // Two collections:
 //   `products` — one doc per brand. Shape:
 //     { brand, country, countryCode, tags, flavors: [
-//         { id, name, priceThb, proteinG, shopIds: [shopId, ...] }
+//         { id, name, priceThb, proteinG, shops: [
+//             { shopId, url? }   // url is optional — a specific listing
+//                                // link (e.g. a real Shopee affiliate
+//                                // product link); falls back to the
+//                                // shop's own url/affiliateUrl when absent
+//           ] }
 //       ] }
 //     Note proteinG lives on each flavor, not the product — different
-//     flavors of the same brand can have genuinely different protein
+//     flavors/lines of the same brand can have genuinely different protein
 //     content (see Musashi in src/data/listings.js for a real example).
 //   `shops` — one doc per shop (see src/data/shops.js for the same shape
-//     used in the local fallback data: id, name, type, url, address, note)
+//     used in the local fallback data: id, name, type, url, affiliateUrl,
+//     isAffiliateChannel, address, note)
 //
 // This is a directory, not a storefront — there's no checkout. Each flavor
-// links out to every shop that carries it via shopIds.
+// links out to every shop that carries it, using the most specific URL
+// available (see shopLinkUrl in shops.js for the priority order).
 //
 // If you'd rather keep everything in one Realtime Database (matching your
 // pumgoda-default-rtdb setup instead of Firestore), swap getFirestore for

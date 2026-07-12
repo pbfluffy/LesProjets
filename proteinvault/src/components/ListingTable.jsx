@@ -17,13 +17,26 @@ function flavorPassesFilter(flavor, product, filter) {
   }
 }
 
-function ShopLink({ shop, compact = false }) {
+// Resolves each flavor.shops[] entry ({shopId, url?}) to its full shop
+// object plus the actual link to use, and drops any shopId that doesn't
+// resolve.
+function resolveShops(shopEntries) {
+  return shopEntries
+    .map(({ shopId, url }) => {
+      const shop = getShop(shopId)
+      return shop ? { shop, href: shopLinkUrl(shop, url) } : null
+    })
+    .filter(Boolean)
+    .sort((a, b) => Boolean(b.shop.isAffiliateChannel) - Boolean(a.shop.isAffiliateChannel))
+}
+
+function ShopLink({ shop, href, compact = false }) {
   if (!shop) return null
   const icon = shopIconUrl(shop)
-  const isAffiliate = Boolean(shop.affiliateUrl)
+  const isAffiliate = Boolean(shop.isAffiliateChannel)
 
   // Physical-only shop, no online link at all — directions instead.
-  if (!shop.url && shop.address) {
+  if (!href && shop.address) {
     return (
       <a
         className={`shop-btn ${compact ? 'compact' : ''}`}
@@ -38,12 +51,12 @@ function ShopLink({ shop, compact = false }) {
     )
   }
 
-  if (!shop.url) return null
+  if (!href) return null
 
   return (
     <a
       className={`shop-btn ${isAffiliate ? 'affiliate' : ''} ${compact ? 'compact' : ''}`}
-      href={shopLinkUrl(shop)}
+      href={href}
       target="_blank"
       rel="noreferrer"
       title={shop.name}
@@ -123,7 +136,21 @@ export default function ListingTable({ products, filter }) {
             const bestRatioForProduct = Math.min(
               ...matchingFlavors.map((f) => Number(ratio(f.priceThb, f.proteinG))),
             ).toFixed(2)
-            const shopIdsForProduct = [...new Set(matchingFlavors.flatMap((f) => f.shopIds))]
+
+            // Dedupe shops across all matching flavors for the collapsed-row summary.
+            const seenShopIds = new Set()
+            const productShopLinks = []
+            matchingFlavors.forEach((f) => {
+              resolveShops(f.shops).forEach(({ shop, href }) => {
+                if (!seenShopIds.has(shop.id)) {
+                  seenShopIds.add(shop.id)
+                  productShopLinks.push({ shop, href })
+                }
+              })
+            })
+            productShopLinks.sort(
+              (a, b) => Boolean(b.shop.isAffiliateChannel) - Boolean(a.shop.isAffiliateChannel),
+            )
 
             return (
               <Fragment key={product.id}>
@@ -149,13 +176,9 @@ export default function ListingTable({ products, filter }) {
                   <td className="num mono">฿{cheapestFlavor.priceThb}</td>
                   <td className="num mono ratio-cell">฿{bestRatioForProduct}</td>
                   <td className="shop-btns-cell" onClick={(e) => e.stopPropagation()}>
-                    {shopIdsForProduct
-                      .map((id) => getShop(id))
-                      .filter(Boolean)
-                      .sort((a, b) => Boolean(b.affiliateUrl) - Boolean(a.affiliateUrl))
-                      .map((shop) => (
-                        <ShopLink key={shop.id} shop={shop} compact />
-                      ))}
+                    {productShopLinks.map(({ shop, href }) => (
+                      <ShopLink key={shop.id} shop={shop} href={href} compact />
+                    ))}
                   </td>
                   <td className="expand-cell">{isOpen ? '−' : '+'}</td>
                 </tr>
@@ -175,16 +198,12 @@ export default function ListingTable({ products, filter }) {
                       </td>
                       <td colSpan={2}>
                         <div className="shop-list">
-                          {[...flavor.shopIds]
-                            .map((shopId) => getShop(shopId))
-                            .filter(Boolean)
-                            .sort((a, b) => Boolean(b.affiliateUrl) - Boolean(a.affiliateUrl))
-                            .map((shop) => (
-                              <div className="shop-cell" key={shop.id}>
-                                <span className="shop-name">{shop.name}</span>
-                                <ShopLink shop={shop} />
-                              </div>
-                            ))}
+                          {resolveShops(flavor.shops).map(({ shop, href }) => (
+                            <div className="shop-cell" key={shop.id}>
+                              <span className="shop-name">{shop.name}</span>
+                              <ShopLink shop={shop} href={href} />
+                            </div>
+                          ))}
                         </div>
                       </td>
                     </tr>

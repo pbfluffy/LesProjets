@@ -17,31 +17,35 @@ Noto Sans Thai + IBM Plex Mono, soft rounded surface cards, pill badges,
 
 ## Status
 
-Shop directory scoped down to three shops for now: Villa Market, Tops, and
-Shopee Thailand (Shopee is listed but has no confirmed protein-bar listings
-yet — it's a placeholder entry, not linked to any flavor). Products are
-grouped by brand with an expandable flavor list, and each flavor carries
-its own protein content (not assumed uniform per brand anymore — Musashi's
-"High Protein" line is 45g/bar vs. their "Crisp" line at 20g/bar, confirmed
-via search, which is why this changed) and its own `shopIds`.
+Real Shopee listings are now in, fetched directly from Pumba's own
+affiliate links (2026-07-12) — these already carry real affiliate tracking
+params (`utm_medium=affiliates`, `mmp_pid=an_15377540429`), so they're
+usable as-is, not placeholders:
 
-Real, sourced data currently in `listings.js`:
-- **Quest Nutrition** — 4 flavors, confirmed sold at Tops
-- **Musashi** — 3 flavors + accurate per-flavor protein content, confirmed at Tops
-- **Go On Protein** — 2 flavors, one confirmed + priced at Villa Market, one confirmed at Tops (price still illustrative)
+- **FitWin** — new brand, 5 flavors, one Shopee listing. Country of
+  origin, FDA registration numbers, and protein content all pulled
+  directly from Shopee's own product-spec fields.
+- **Musashi** — 8 new Shopee-sourced flavors added alongside the 3
+  Tops-sourced ones already there. The "High Protein" line (45g protein)
+  cross-confirms what Tops showed independently — good sign the data's
+  solid. The "Deluxe" line's ฿890 price is an explicit near-expiry
+  clearance price on Shopee, not a stable everyday price — don't treat it
+  as one when this goes live.
 
-Nutrend, FURI, and Kauai were dropped from this version — none turned up as
-confirmed listings at Villa Market, Tops, or Shopee, so rather than leave
-them pointing at a shop that isn't real, they're out until someone
-confirms where they're actually sold.
+Shop link resolution changed: each flavor's `shops` array can carry a
+`url` per shop (a specific Shopee product page), which takes priority over
+that shop's general `affiliateUrl`/`url`. Shopee's affiliate program is
+per-product, not one link for the whole storefront, so this matches
+reality. Shopee's button renders filled/accent ("Buy on Shopee ↗");
+Tops/Villa Market render as plain outlined buttons ("Visit [shop] ↗").
+
+Nutrend, FURI, and Kauai are still out — not confirmed at any of the three
+scoped shops.
 
 Two open items:
-- Most pricing above is still illustrative — only the Villa Market Go On
-  price was captured exactly. Tops product pages say "price may vary by
-  branch" without showing a figure.
-- Go On Protein's origin is flagged as unconfirmed — its Thailand listings
-  resemble a Polish brand of the same name, not a Thai-made product as
-  originally assumed. Worth checking before publishing.
+- Most non-Shopee pricing is still illustrative (Tops product pages don't
+  show a figure; "price may vary by branch").
+- Go On Protein's origin is still flagged as unconfirmed.
 
 ## Setup
 
@@ -81,7 +85,8 @@ src/
   data/
     listings.js    products grouped by brand, each with a flavors[] array;
                     each flavor carries its own priceThb, proteinG, and
-                    shopIds[] (multi-shop support)
+                    shops[] ({shopId, url?} — url is a specific listing
+                    link, e.g. a real Shopee affiliate product page)
     shops.js       verified shop directory (online/physical/both), maps-link helper
     useListings.js Firestore fetch with local fallback
   firebase.js     Firebase config — fill in before going live

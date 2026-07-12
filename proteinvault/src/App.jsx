@@ -19,7 +19,7 @@ export default function App() {
   )
   const shopCount = useMemo(() => {
     const ids = new Set()
-    products.forEach((p) => p.flavors.forEach((f) => f.shopIds.forEach((id) => ids.add(id))))
+    products.forEach((p) => p.flavors.forEach((f) => f.shops.forEach((s) => ids.add(s.shopId))))
     return ids.size
   }, [products])
   const bestRatio = useMemo(() => {

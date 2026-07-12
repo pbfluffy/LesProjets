@@ -1,37 +1,93 @@
-// Grouped by product (brand), each with an array of flavors. Protein grams
-// now live on the FLAVOR, not the product — Musashi turned out to need
-// this: their "High Protein" line and "Crisp" line carry very different
-// protein content under the same brand (see note below), so a single
-// product-level number was actively wrong.
+// Grouped by product (brand), each with an array of flavors. Each flavor
+// has its own `shops` array: [{ shopId, url? }]. `url` is optional — when
+// present it's a specific listing URL (used for real Shopee affiliate
+// links, which are per-product, not one link per shop); when absent, the
+// shop's generic `url` from shops.js is used instead.
 //
-// Sourced flavors, verified via web search against tops.co.th and
-// shoponline.villamarket.com:
-//   - Quest flavors (Chocolate Brownie, Double Chocolate Chunk, Lemon Cake,
-//     White Chocolate Raspberry) confirmed at Tops. Tops' own product pages
-//     say "prices may vary depending on the selected branch" and didn't
-//     show a figure, so pricing below is still illustrative.
-//   - Musashi flavors + protein content confirmed at Tops. High Protein
-//     Milk Choc Brownie Bar and Dark Chocolate Salted Caramel Bar are both
-//     90g bars from Musashi's "High Protein" line — 45g protein each,
-//     confirmed via Musashi's own product specs. Crisp Vanilla Caramel is a
-//     60g bar from their separate "Crisp" line — only 20g protein, also
-//     confirmed directly. Pricing is illustrative.
-//   - Go On "Cranberry Goji & Chocolate" + its ฿129 price are both
-//     confirmed at Villa Market (shoponline.villamarket.com search
-//     results). "Vanilla Flavour and Chocolate" is confirmed sold at Tops,
-//     but its price wasn't captured — illustrative.
+// Protein grams live on the FLAVOR, not the product — confirmed necessary
+// again in this update: Musashi's "High Protein" line is 45g/bar, their
+// "Deluxe" line is 21g/bar, and their "Crisp" line is 20g/bar, all under
+// one brand.
 //
-// REMOVED FOR NOW: Nutrend, FURI, and Kauai were in earlier drafts of this
-// file but aren't confirmed sold at Villa Market, Tops, or Shopee — rather
-// than leave them pointing at a shop that isn't real, they're out until
-// someone confirms where they're actually sold. Re-add when known.
+// SOURCES:
+//   - Quest flavors confirmed at Tops (tops.co.th). Tops shows "price may
+//     vary by branch" without a figure — pricing illustrative.
+//   - Musashi Tops-sourced flavors (High Protein Milk Choc Brownie, Dark
+//     Choc Salted Caramel, Crisp Vanilla Caramel) confirmed at Tops,
+//     pricing illustrative.
+//   - Musashi Shopee-sourced flavors: fetched directly from Pumba's own
+//     Shopee affiliate links (2026-07-12). "High Protein" box flavors
+//     (Caramel, Cookies & Cream, White Choc Caramel, Peanut Butter) —
+//     45g protein confirmed on-page, box of 12 priced ฿890–1,290
+//     depending on pack size; ฿890/12 used as the per-bar estimate.
+//     "Deluxe" flavors (Peanut Crunch, Jam Donut, Rocky Road, Choc
+//     Caramel) — 21g protein confirmed on-page, box of 12 for ฿890, but
+//     that listing is explicitly a near-expiry clearance price
+//     ("สินค้าใกล้หมดอายุ ลดราคาพิเศษ") — NOT a stable everyday price,
+//     don't treat it as one.
+//   - Go On flavors: Cranberry Goji & Chocolate confirmed + priced at
+//     Villa Market; Vanilla Flavour and Chocolate confirmed at Tops,
+//     price illustrative.
+//   - FitWin is a new brand, entirely from a real Shopee listing fetched
+//     2026-07-12. Country of Origin ("Thailand"), FDA registration
+//     numbers per flavor, and protein content (20g) are all taken
+//     directly from Shopee's own product-spec fields, not inferred.
+//     Box of 12x60g bars, ฿700/box → ฿58.33/bar.
+//
+// REMOVED: Nutrend, FURI, and Kauai aren't confirmed at any of the three
+// scoped shops (Shopee, Tops, Villa Market) — out until someone confirms
+// where they're actually sold.
 //
 // STANDING OPEN QUESTION, still not resolved: Go On Protein's country of
 // origin. The Thailand listings match the format of the Polish brand
 // "Sante Go On Nutrition" sold internationally — countryCode: 'TH' below
-// may be wrong. Flagged, not corrected, since neither claim is confirmed.
+// may be wrong. Flagged, not corrected.
 
 export const products = [
+  {
+    id: 'fitwin',
+    brand: 'FitWin',
+    country: 'Thailand', // confirmed via Shopee's own "Country of Origin" field
+    countryCode: 'TH',
+    tags: ['thai-made'],
+    flavors: [
+      {
+        id: 'forma-chocolate',
+        name: 'Forma Chocolate',
+        priceThb: 58,
+        proteinG: 20,
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/60PwjBKiC6?share_channel_code=6' }],
+      },
+      {
+        id: 'forma-raspberry-cheesecake',
+        name: 'Forma Raspberry Cheesecake',
+        priceThb: 58,
+        proteinG: 20,
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/60PwjBKiC6?share_channel_code=6' }],
+      },
+      {
+        id: 'forma-strawberry-yoghurt',
+        name: 'Forma Strawberry Yoghurt',
+        priceThb: 58,
+        proteinG: 20,
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/60PwjBKiC6?share_channel_code=6' }],
+      },
+      {
+        id: 'forma-cookies-cream',
+        name: 'Forma Cookies & Cream',
+        priceThb: 58,
+        proteinG: 20,
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/60PwjBKiC6?share_channel_code=6' }],
+      },
+      {
+        id: 'forma-coconut',
+        name: 'Forma Coconut',
+        priceThb: 58,
+        proteinG: 20,
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/60PwjBKiC6?share_channel_code=6' }],
+      },
+    ],
+  },
   {
     id: 'quest-nutrition',
     brand: 'Quest Nutrition',
@@ -39,34 +95,10 @@ export const products = [
     countryCode: 'US',
     tags: ['imported'],
     flavors: [
-      {
-        id: 'chocolate-brownie',
-        name: 'Chocolate Brownie',
-        priceThb: 139,
-        proteinG: 21,
-        shopIds: ['tops'],
-      },
-      {
-        id: 'double-chocolate-chunk',
-        name: 'Double Chocolate Chunk',
-        priceThb: 139,
-        proteinG: 21,
-        shopIds: ['tops'],
-      },
-      {
-        id: 'lemon-cake',
-        name: 'Lemon Cake',
-        priceThb: 139,
-        proteinG: 21,
-        shopIds: ['tops'],
-      },
-      {
-        id: 'white-chocolate-raspberry',
-        name: 'White Chocolate Raspberry',
-        priceThb: 139,
-        proteinG: 21,
-        shopIds: ['tops'],
-      },
+      { id: 'chocolate-brownie', name: 'Chocolate Brownie', priceThb: 139, proteinG: 21, shops: [{ shopId: 'tops' }] },
+      { id: 'double-chocolate-chunk', name: 'Double Chocolate Chunk', priceThb: 139, proteinG: 21, shops: [{ shopId: 'tops' }] },
+      { id: 'lemon-cake', name: 'Lemon Cake', priceThb: 139, proteinG: 21, shops: [{ shopId: 'tops' }] },
+      { id: 'white-chocolate-raspberry', name: 'White Chocolate Raspberry', priceThb: 139, proteinG: 21, shops: [{ shopId: 'tops' }] },
     ],
   },
   {
@@ -76,26 +108,64 @@ export const products = [
     countryCode: 'AU',
     tags: ['imported'],
     flavors: [
+      { id: 'high-protein-milk-choc-brownie', name: 'High Protein Milk Choc Brownie Bar', priceThb: 129, proteinG: 45, shops: [{ shopId: 'tops' }] },
+      { id: 'high-protein-dark-choc-salted-caramel', name: 'Dark Chocolate Salted Caramel Bar', priceThb: 129, proteinG: 45, shops: [{ shopId: 'tops' }] },
+      { id: 'crisp-vanilla-caramel', name: 'Crisp Vanilla Caramel', priceThb: 89, proteinG: 20, shops: [{ shopId: 'tops' }] },
       {
-        id: 'high-protein-milk-choc-brownie',
-        name: 'High Protein Milk Choc Brownie Bar',
-        priceThb: 129,
+        id: 'high-protein-caramel-shopee',
+        name: 'High Protein Caramel',
+        priceThb: 74,
         proteinG: 45,
-        shopIds: ['tops'],
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6pz3ifq1YS?share_channel_code=6' }],
       },
       {
-        id: 'high-protein-dark-choc-salted-caramel',
-        name: 'Dark Chocolate Salted Caramel Bar',
-        priceThb: 129,
+        id: 'high-protein-cookies-cream-shopee',
+        name: 'High Protein Cookies & Cream',
+        priceThb: 74,
         proteinG: 45,
-        shopIds: ['tops'],
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6pz3ifq1YS?share_channel_code=6' }],
       },
       {
-        id: 'crisp-vanilla-caramel',
-        name: 'Crisp Vanilla Caramel',
-        priceThb: 89,
-        proteinG: 20,
-        shopIds: ['tops'],
+        id: 'high-protein-white-choc-caramel',
+        name: 'High Protein White Choc Caramel',
+        priceThb: 74,
+        proteinG: 45,
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6pz3ifq1YS?share_channel_code=6' }],
+      },
+      {
+        id: 'high-protein-peanut-butter',
+        name: 'High Protein Peanut Butter',
+        priceThb: 74,
+        proteinG: 45,
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6pz3ifq1YS?share_channel_code=6' }],
+      },
+      {
+        id: 'deluxe-peanut-crunch',
+        name: 'Deluxe Peanut Crunch', // clearance pricing — see note at top of file
+        priceThb: 74,
+        proteinG: 21,
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6ffdWMqetR?share_channel_code=6' }],
+      },
+      {
+        id: 'deluxe-jam-donut',
+        name: 'Deluxe Jam Donut',
+        priceThb: 74,
+        proteinG: 21,
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6ffdWMqetR?share_channel_code=6' }],
+      },
+      {
+        id: 'deluxe-rocky-road',
+        name: 'Deluxe Rocky Road',
+        priceThb: 74,
+        proteinG: 21,
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6ffdWMqetR?share_channel_code=6' }],
+      },
+      {
+        id: 'deluxe-choc-caramel',
+        name: 'Deluxe Choc Caramel',
+        priceThb: 74,
+        proteinG: 21,
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6ffdWMqetR?share_channel_code=6' }],
       },
     ],
   },
@@ -106,20 +176,8 @@ export const products = [
     countryCode: 'TH',
     tags: ['thai-made'], // unconfirmed, same caveat
     flavors: [
-      {
-        id: 'vanilla-chocolate',
-        name: 'Vanilla Flavour and Chocolate',
-        priceThb: 69, // illustrative — confirmed sold at Tops, price not captured
-        proteinG: 18,
-        shopIds: ['tops'],
-      },
-      {
-        id: 'cranberry-goji-chocolate',
-        name: 'Cranberry Goji & Chocolate',
-        priceThb: 129, // confirmed — Villa Market listing
-        proteinG: 18,
-        shopIds: ['villa-market'],
-      },
+      { id: 'vanilla-chocolate', name: 'Vanilla Flavour and Chocolate', priceThb: 69, proteinG: 18, shops: [{ shopId: 'tops' }] },
+      { id: 'cranberry-goji-chocolate', name: 'Cranberry Goji & Chocolate', priceThb: 129, proteinG: 18, shops: [{ shopId: 'villa-market' }] },
     ],
   },
 ]

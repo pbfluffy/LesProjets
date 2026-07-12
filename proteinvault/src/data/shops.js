@@ -1,15 +1,22 @@
 // Shop directory — scoped to three shops. Real, verified shops (via web
-// search), not invented.
+// search / direct browsing), not invented.
 //
 // type: 'online' | 'physical' | 'both'
-// url:          for online — the storefront to visit
-// address:      for physical — used to build a Google Maps directions link
-// affiliateUrl: optional. When set, this is used instead of `url` for the
-//               shop's action link/button, and that button gets visually
-//               emphasized (filled accent style) instead of a plain text
-//               link — Shopee is the priority channel for monetization, so
-//               it's set up for that treatment now even though nothing
-//               points to it yet.
+// url:               generic storefront URL — fallback when nothing more
+//                     specific is set
+// affiliateUrl:       general-purpose affiliate link for this shop (e.g. a
+//                     storefront-level link). Used when a flavor doesn't
+//                     specify its own listing URL.
+// isAffiliateChannel: shops with this set render their action button in
+//                     the emphasized "Buy" style instead of a plain
+//                     "Visit" link.
+// address:            for physical — used to build a Google Maps directions
+//                     link when there's a single relevant branch
+//
+// Link priority per flavor, highest first: the flavor's own shops[].url
+// (a specific product deep-link — real Shopee affiliate links are
+// per-product, not one link for the whole storefront) → this shop's
+// affiliateUrl → this shop's plain url.
 
 export const shops = [
   {
@@ -17,8 +24,8 @@ export const shops = [
     name: 'Shopee Thailand',
     type: 'online',
     url: 'https://shopee.co.th',
-    affiliateUrl: null, // TODO: paste your Shopee affiliate link here — falls back to `url` until set
-    note: 'In the directory but no confirmed protein-bar listings yet — not linked to any flavor',
+    affiliateUrl: 'https://collshp.com/nitiektawatkul352?view=storefront',
+    isAffiliateChannel: true,
   },
   {
     id: 'tops',
@@ -57,8 +64,9 @@ export function shopIconUrl(shop) {
   }
 }
 
-// The link a shop's action button should actually use: affiliate link if
-// set, otherwise the plain storefront URL.
-export function shopLinkUrl(shop) {
-  return shop.affiliateUrl || shop.url
+// Resolves the actual URL a shop button should use: a flavor-specific
+// listing URL (passed in as `flavorUrl`) beats the shop's own
+// affiliateUrl, which beats its plain url.
+export function shopLinkUrl(shop, flavorUrl) {
+  return flavorUrl || shop.affiliateUrl || shop.url
 }
