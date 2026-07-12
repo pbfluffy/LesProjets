@@ -168,15 +168,6 @@ button {
 .icon-btn:hover {
   border-color: var(--accent);
 }
-.cart-badge {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  padding: 6px 10px;
-  border-radius: var(--radius-pill);
-  background: var(--accent-light);
-  color: var(--accent);
-  font-weight: 700;
-}
 
 /* Hero */
 .hero {
@@ -342,18 +333,6 @@ button {
 .ratio-inline b {
   color: var(--accent);
 }
-.add-btn {
-  flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: #fff;
-  font-size: 18px;
-  display: grid;
-  place-items: center;
-  line-height: 1;
-}
 
 .empty-state {
   padding: 40px 16px;
@@ -462,20 +441,29 @@ html[lang='th'] * {
   padding: 1px 7px;
   vertical-align: middle;
 }
-.add-btn-sm {
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: #fff;
-  font-size: 15px;
-  display: grid;
-  place-items: center;
-  line-height: 1;
-}
 
 @media (max-width: 480px) {
   .country-name {
     display: none;
   }
+}
+
+/* Shop cell — directory action instead of add-to-cart */
+.shop-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.shop-name {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.shop-action {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  text-decoration: none;
+}
+.shop-action:hover {
+  text-decoration: underline;
 }
