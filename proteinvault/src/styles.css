@@ -102,11 +102,23 @@ button {
   letter-spacing: 0.03em;
 }
 
-/* Shell — same 600px column as the rest of the suite */
+/* Shell — 600px on mobile (matches the rest of the suite), but this app is
+   table-heavy, so on wider screens we give it more room rather than forcing
+   a horizontal scroll when there's clearly space available. */
 .shell {
   max-width: 600px;
   margin: 0 auto;
   padding-bottom: 96px;
+}
+@media (min-width: 760px) {
+  .shell {
+    max-width: 880px;
+  }
+}
+@media (min-width: 1100px) {
+  .shell {
+    max-width: 1040px;
+  }
 }
 
 /* Header */
@@ -416,8 +428,10 @@ html[lang='th'] * {
   gap: 6px;
 }
 .flag {
-  font-size: 16px;
-  line-height: 1;
+  display: block;
+  border-radius: 2px;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+  flex: 0 0 auto;
 }
 .country-name {
   font-size: 10.5px;

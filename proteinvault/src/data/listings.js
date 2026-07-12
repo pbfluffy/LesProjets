@@ -84,10 +84,10 @@ export function ratio(listing) {
   return (listing.priceThb / listing.proteinG).toFixed(2)
 }
 
-// Converts an ISO 3166-1 alpha-2 code ('TH') to its flag emoji ('🇹🇭') via
-// regional indicator symbols — no icon assets needed.
-export function flagEmoji(countryCode) {
-  return countryCode
-    .toUpperCase()
-    .replace(/./g, (char) => String.fromCodePoint(char.charCodeAt(0) + 127397))
+// Converts an ISO 3166-1 alpha-2 code ('TH') to a flag image URL via
+// flagcdn.com. We use images rather than emoji because flag emoji don't
+// render as actual flags on Windows — Windows fonts fall back to showing
+// the raw two-letter code instead, which is what was happening.
+export function flagUrl(countryCode) {
+  return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`
 }

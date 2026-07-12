@@ -1,4 +1,4 @@
-import { ratio, flagEmoji } from '../data/listings.js'
+import { ratio, flagUrl } from '../data/listings.js'
 import { getShop, mapsDirectionsUrl } from '../data/shops.js'
 
 function applyFilter(items, filter) {
@@ -72,7 +72,14 @@ export default function ListingTable({ items, filter }) {
             return (
               <tr key={p.id} className={p.id === bestId ? 'best' : ''}>
                 <td className="flag-cell" title={p.country}>
-                  <span className="flag">{flagEmoji(p.countryCode)}</span>
+                  <img
+                    className="flag"
+                    src={flagUrl(p.countryCode)}
+                    alt={p.country}
+                    width="24"
+                    height="18"
+                    loading="lazy"
+                  />
                   <span className="country-name">{p.country}</span>
                 </td>
                 <td className="brand-cell">{p.brand}</td>
