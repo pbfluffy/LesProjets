@@ -56,10 +56,6 @@ export default function App() {
 
       <FilterBar active={filter} onChange={setFilter} />
       <ListingTable products={products} filter={filter} />
-
-      <footer>
-        <div>ProteinVault — a directory, not a store. We don't sell anything.</div>
-      </footer>
     </div>
   )
 }

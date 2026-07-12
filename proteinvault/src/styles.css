@@ -113,7 +113,7 @@ html[lang='th'] * {
 .shell {
   max-width: 600px;
   margin: 0 auto;
-  padding-bottom: 96px;
+  padding-bottom: 48px;
 }
 @media (min-width: 760px) {
   .shell {
@@ -319,17 +319,6 @@ html[lang='th'] * {
   color: var(--color-text-faint);
   text-align: center;
   font-size: 12.5px;
-}
-
-/* Footer */
-footer {
-  margin-top: 32px;
-  padding: 24px 16px 0;
-  text-align: center;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--color-text-faint);
-  border-top: 0.5px solid var(--color-border);
 }
 
 /* ============================================================================
@@ -578,7 +567,7 @@ footer {
   display: flex;
   gap: 6px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 /* Keyboard focus states */
