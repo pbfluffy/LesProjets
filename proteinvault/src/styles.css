@@ -466,20 +466,51 @@ html[lang='th'] * {
 .shop-cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 .shop-name {
   font-size: 11.5px;
   font-weight: 600;
 }
-.shop-action {
+.shop-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--accent);
   text-decoration: none;
+  width: fit-content;
 }
-.shop-action:hover {
+.shop-link:hover {
   text-decoration: underline;
+}
+.shop-icon {
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+.shop-link.affiliate {
+  text-decoration: none;
+  background: var(--accent);
+  color: #fff;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+}
+.shop-link.affiliate:hover {
+  filter: brightness(1.08);
+}
+.shop-icons-cell {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.shop-icon-stack {
+  border-radius: 4px;
+  box-shadow: 0 0 0 0.5px var(--color-border);
+}
+.shop-icon-stack.affiliate {
+  box-shadow: 0 0 0 1.5px var(--accent);
 }
 
 /* Expandable product rows */

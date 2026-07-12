@@ -1,6 +1,6 @@
 import { useState, Fragment } from 'react'
 import { ratio, flagUrl } from '../data/listings.js'
-import { getShop, mapsDirectionsUrl } from '../data/shops.js'
+import { getShop, mapsDirectionsUrl, shopIconUrl, shopLinkUrl } from '../data/shops.js'
 
 function flavorPassesFilter(flavor, product, filter) {
   switch (filter) {
@@ -17,28 +17,34 @@ function flavorPassesFilter(flavor, product, filter) {
   }
 }
 
-function ShopAction({ shop }) {
+function ShopLink({ shop }) {
   if (!shop) return null
-  if (shop.url) {
+  const icon = shopIconUrl(shop)
+  const isAffiliate = Boolean(shop.affiliateUrl)
+
+  // Physical-only shop, no online link at all — directions instead.
+  if (!shop.url && shop.address) {
     return (
-      <a className="shop-action" href={shop.url} target="_blank" rel="noreferrer">
-        Visit shop ↗
-      </a>
-    )
-  }
-  if (shop.address) {
-    return (
-      <a
-        className="shop-action"
-        href={mapsDirectionsUrl(shop.address)}
-        target="_blank"
-        rel="noreferrer"
-      >
+      <a className="shop-link" href={mapsDirectionsUrl(shop.address)} target="_blank" rel="noreferrer">
+        {icon && <img className="shop-icon" src={icon} alt="" width="16" height="16" />}
         Directions ↗
       </a>
     )
   }
-  return null
+
+  if (!shop.url) return null
+
+  return (
+    <a
+      className={`shop-link ${isAffiliate ? 'affiliate' : ''}`}
+      href={shopLinkUrl(shop)}
+      target="_blank"
+      rel="noreferrer"
+    >
+      {icon && <img className="shop-icon" src={icon} alt="" width="16" height="16" />}
+      {isAffiliate ? 'Buy on Shopee ↗' : 'Visit shop ↗'}
+    </a>
+  )
 }
 
 export default function ListingTable({ products, filter }) {
@@ -135,8 +141,25 @@ export default function ListingTable({ products, filter }) {
                   </td>
                   <td className="num mono">฿{cheapestFlavor.priceThb}</td>
                   <td className="num mono ratio-cell">฿{bestRatioForProduct}</td>
-                  <td className="mono">
-                    {shopIdsForProduct.length} shop{shopIdsForProduct.length > 1 ? 's' : ''}
+                  <td className="shop-icons-cell">
+                    {shopIdsForProduct
+                      .map((id) => getShop(id))
+                      .filter(Boolean)
+                      .sort((a, b) => Boolean(b.affiliateUrl) - Boolean(a.affiliateUrl))
+                      .map((shop) => {
+                        const icon = shopIconUrl(shop)
+                        return icon ? (
+                          <img
+                            key={shop.id}
+                            className={`shop-icon-stack ${shop.affiliateUrl ? 'affiliate' : ''}`}
+                            src={icon}
+                            alt={shop.name}
+                            title={shop.name}
+                            width="18"
+                            height="18"
+                          />
+                        ) : null
+                      })}
                   </td>
                   <td className="expand-cell">{isOpen ? '−' : '+'}</td>
                 </tr>
@@ -156,15 +179,16 @@ export default function ListingTable({ products, filter }) {
                       </td>
                       <td colSpan={2}>
                         <div className="shop-list">
-                          {flavor.shopIds.map((shopId) => {
-                            const shop = getShop(shopId)
-                            return (
-                              <div className="shop-cell" key={shopId}>
-                                <span className="shop-name">{shop?.name ?? 'Unknown shop'}</span>
-                                <ShopAction shop={shop} />
+                          {[...flavor.shopIds]
+                            .map((shopId) => getShop(shopId))
+                            .filter(Boolean)
+                            .sort((a, b) => Boolean(b.affiliateUrl) - Boolean(a.affiliateUrl))
+                            .map((shop) => (
+                              <div className="shop-cell" key={shop.id}>
+                                <span className="shop-name">{shop.name}</span>
+                                <ShopLink shop={shop} />
                               </div>
-                            )
-                          })}
+                            ))}
                         </div>
                       </td>
                     </tr>
