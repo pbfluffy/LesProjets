@@ -6,7 +6,7 @@
 //
 // Each flavor can also carry: calories, carbsG, fatG, sugarG — all
 // optional, all in grams except calories (kcal). Added 2026-07-12.
-// 8 of 23 flavors now have real confirmed data (FitWin's 5 flavors,
+// 10 of 24 flavors now have real confirmed data (FitWin's 5 flavors,
 // Quest's Chocolate Brownie + White Chocolate Raspberry, 3 Musashi
 // flavors), sourced via FatSecret/CarbManager/Amazon/manufacturer product
 // pages — see per-flavor comments. The rest are still unfilled, backfilled
@@ -14,6 +14,14 @@
 // carbs across brands — flagged per-flavor where it matters (Quest
 // specifically markets net carbs; other sources here gave total carbs).
 // formatMacros() only shows whatever fields actually exist for a flavor.
+//
+// GUYVY (added 2026-07-12): real Thai brand, confirmed via a Shopee link
+// + independently (GMP-certified, sold at Tops/Gourmet Market, sponsors
+// the Thailand Bodybuilding & Fitness Association). The listing itself
+// had no pack-size selector, and ฿1,126 for a single 50g bar would've been
+// ~10x what comparable Guyvy products sell for elsewhere — confirmed
+// directly that it's a 10-bar set before recording a per-bar price, rather
+// than publishing a ratio that would've been badly wrong.
 //
 // Protein grams live on the FLAVOR, not the product — confirmed necessary
 // again in this update: Musashi's "High Protein" line is 45g/bar, their
@@ -57,6 +65,25 @@
 // lists "Poland" as country of origin — corrected below.
 
 export const products = [
+  {
+    id: 'guyvy',
+    brand: 'Guyvy',
+    country: 'Thailand', // confirmed via Shopee's own field + independently (GMP-certified Thai brand, sold at Tops/Gourmet Market)
+    countryCode: 'TH',
+    // No confirmed standalone official website — Guyvy sells via LINE, Facebook,
+    // and retailers (Tops, Gourmet Market, Lazada, Shopee), not their own site.
+    // logoDomain intentionally omitted rather than guessed.
+    tags: ['thai-made'],
+    flavors: [
+      {
+        id: 'hydrolysate-peanut-dark-chocolate',
+        name: 'Hydrolysate Peanut Dark Chocolate',
+        priceThb: 112.6, // ฿1,126 for a confirmed 10-bar set, per-bar = 1126/10
+        proteinG: 35,
+        shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/8Knt7njKyi' }],
+      },
+    ],
+  },
   {
     id: 'fitwin',
     brand: 'FitWin',
