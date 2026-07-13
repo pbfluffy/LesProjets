@@ -5,10 +5,15 @@
 // shop's generic `url` from shops.js is used instead.
 //
 // Each flavor can also carry: calories, carbsG, fatG, sugarG — all
-// optional, all in grams except calories (kcal). Added 2026-07-12; most
-// existing flavors don't have these yet, backfilled gradually as real
-// product links come in rather than all at once. formatMacros() below
-// only shows whatever fields actually exist for a given flavor.
+// optional, all in grams except calories (kcal). Added 2026-07-12.
+// 8 of 23 flavors now have real confirmed data (FitWin's 5 flavors,
+// Quest's Chocolate Brownie + White Chocolate Raspberry, 3 Musashi
+// flavors), sourced via FatSecret/CarbManager/Amazon/manufacturer product
+// pages — see per-flavor comments. The rest are still unfilled, backfilled
+// gradually as confirmed. Note: carbsG isn't consistently NET vs TOTAL
+// carbs across brands — flagged per-flavor where it matters (Quest
+// specifically markets net carbs; other sources here gave total carbs).
+// formatMacros() only shows whatever fields actually exist for a flavor.
 //
 // Protein grams live on the FLAVOR, not the product — confirmed necessary
 // again in this update: Musashi's "High Protein" line is 45g/bar, their
@@ -71,6 +76,9 @@ export const products = [
         name: 'Forma Chocolate',
         priceThb: 58,
         proteinG: 20,
+        calories: 178,
+        carbsG: 3.5,
+        fatG: 4.9,
         shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/60PwjBKiC6?share_channel_code=6' }],
       },
       {
@@ -78,6 +86,9 @@ export const products = [
         name: 'Forma Raspberry Cheesecake',
         priceThb: 58,
         proteinG: 20,
+        calories: 178,
+        carbsG: 3.5,
+        fatG: 4.9,
         shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/60PwjBKiC6?share_channel_code=6' }],
       },
       {
@@ -85,6 +96,9 @@ export const products = [
         name: 'Forma Strawberry Yoghurt',
         priceThb: 58,
         proteinG: 20,
+        calories: 178,
+        carbsG: 3.5,
+        fatG: 4.9,
         shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/60PwjBKiC6?share_channel_code=6' }],
       },
       {
@@ -92,6 +106,9 @@ export const products = [
         name: 'Forma Cookies & Cream',
         priceThb: 58,
         proteinG: 20,
+        calories: 178,
+        carbsG: 3.5,
+        fatG: 4.9,
         shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/60PwjBKiC6?share_channel_code=6' }],
       },
       {
@@ -99,6 +116,9 @@ export const products = [
         name: 'Forma Coconut',
         priceThb: 58,
         proteinG: 20,
+        calories: 178,
+        carbsG: 3.5,
+        fatG: 4.9,
         shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/60PwjBKiC6?share_channel_code=6' }],
       },
     ],
@@ -111,10 +131,10 @@ export const products = [
     countryCode: 'US',
     tags: ['imported'],
     flavors: [
-      { id: 'chocolate-brownie', name: 'Chocolate Brownie', priceThb: 139, proteinG: 21, shops: [{ shopId: 'tops' }] },
+      { id: 'chocolate-brownie', name: 'Chocolate Brownie', priceThb: 139, proteinG: 21, calories: 170, carbsG: 4, sugarG: 1, shops: [{ shopId: 'tops' }] }, // carbsG is NET carbs (Quest's own labeling), not total — differs from other brands below, which use total carbs
       { id: 'double-chocolate-chunk', name: 'Double Chocolate Chunk', priceThb: 139, proteinG: 21, shops: [{ shopId: 'tops' }] },
       { id: 'lemon-cake', name: 'Lemon Cake', priceThb: 139, proteinG: 21, shops: [{ shopId: 'tops' }] },
-      { id: 'white-chocolate-raspberry', name: 'White Chocolate Raspberry', priceThb: 139, proteinG: 21, shops: [{ shopId: 'tops' }] },
+      { id: 'white-chocolate-raspberry', name: 'White Chocolate Raspberry', priceThb: 139, proteinG: 21, carbsG: 21, sugarG: 2, shops: [{ shopId: 'tops' }] }, // total carbs this time, not net
     ],
   },
   {
@@ -125,9 +145,9 @@ export const products = [
     countryCode: 'AU',
     tags: ['imported'],
     flavors: [
-      { id: 'high-protein-milk-choc-brownie', name: 'High Protein Milk Choc Brownie Bar', priceThb: 129, proteinG: 45, shops: [{ shopId: 'tops' }] },
+      { id: 'high-protein-milk-choc-brownie', name: 'High Protein Milk Choc Brownie Bar', priceThb: 129, proteinG: 45, calories: 337, carbsG: 3.1, fatG: 6.9, sugarG: 2, shops: [{ shopId: 'tops' }] },
       { id: 'high-protein-dark-choc-salted-caramel', name: 'Dark Chocolate Salted Caramel Bar', priceThb: 129, proteinG: 45, shops: [{ shopId: 'tops' }] },
-      { id: 'crisp-vanilla-caramel', name: 'Crisp Vanilla Caramel', priceThb: 89, proteinG: 20, shops: [{ shopId: 'tops' }] },
+      { id: 'crisp-vanilla-caramel', name: 'Crisp Vanilla Caramel', priceThb: 89, proteinG: 20, sugarG: 4, shops: [{ shopId: 'tops' }] }, // only sugar confirmed for this flavor — calories/carb/fat not found
       {
         id: 'high-protein-caramel-shopee',
         name: 'High Protein Caramel',
@@ -154,6 +174,9 @@ export const products = [
         name: 'High Protein Peanut Butter',
         priceThb: 74,
         proteinG: 45,
+        calories: 347,
+        carbsG: 24,
+        fatG: 8.1,
         shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6pz3ifq1YS?share_channel_code=6' }],
       },
       {
