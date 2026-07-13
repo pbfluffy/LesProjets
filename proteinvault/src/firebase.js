@@ -18,6 +18,9 @@ export const db = getFirestore(app)
 //     { brand, country, countryCode, tags, flavors: [
 //         { id, name, priceThb, proteinG,
 //           calories?, carbsG?, fatG?, sugarG?,  // all optional, gradual backfill
+//           imageUrl?,  // optional — real packaging photo, self-hosted
+//                       // under public/products/, gradual backfill same
+//                       // as the macro fields. Never a stock/generic image.
 //           shops: [
 //             { shopId, url? }   // url is optional — a specific listing
 //                                // link (e.g. a real Shopee affiliate

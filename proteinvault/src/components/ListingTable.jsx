@@ -105,28 +105,43 @@ function FlavorRows({ matchingFlavors, globalBestFlavorId }) {
     const macros = formatMacros(flavor)
     return (
       <div className="flavor-item" key={flavor.id}>
-        <div className="flavor-item-top">
-          <span className="flavor-item-name">
-            {flavor.name}
-            {flavor.id === globalBestFlavorId && (
-              <span className="pill accent inline-pill">Best ratio</span>
-            )}
-          </span>
-          <span className="flavor-item-price mono">
-            ฿{flavor.priceThb}{' '}
-            <span className={`ratio-cell tier-${valueTier(Number(ratio(flavor.priceThb, flavor.proteinG)))}`}>
-              ฿{ratio(flavor.priceThb, flavor.proteinG)}/g
+        {flavor.imageUrl && (
+          <img
+            className="flavor-thumb"
+            src={flavor.imageUrl}
+            alt={flavor.name}
+            width="48"
+            height="48"
+            loading="lazy"
+            onError={(e) => {
+              e.target.style.display = 'none'
+            }}
+          />
+        )}
+        <div className="flavor-item-body">
+          <div className="flavor-item-top">
+            <span className="flavor-item-name">
+              {flavor.name}
+              {flavor.id === globalBestFlavorId && (
+                <span className="pill accent inline-pill">Best ratio</span>
+              )}
             </span>
-          </span>
-        </div>
-        {macros && <div className="flavor-macros mono">{macros}</div>}
-        <div className="shop-list">
-          {resolveShops(flavor.shops).map(({ shop, href }) => (
-            <div className="shop-cell" key={shop.id}>
-              <span className="shop-name">{shop.name}</span>
-              <ShopLink shop={shop} href={href} />
-            </div>
-          ))}
+            <span className="flavor-item-price mono">
+              ฿{flavor.priceThb}{' '}
+              <span className={`ratio-cell tier-${valueTier(Number(ratio(flavor.priceThb, flavor.proteinG)))}`}>
+                ฿{ratio(flavor.priceThb, flavor.proteinG)}/g
+              </span>
+            </span>
+          </div>
+          {macros && <div className="flavor-macros mono">{macros}</div>}
+          <div className="shop-list">
+            {resolveShops(flavor.shops).map(({ shop, href }) => (
+              <div className="shop-cell" key={shop.id}>
+                <span className="shop-name">{shop.name}</span>
+                <ShopLink shop={shop} href={href} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     )
