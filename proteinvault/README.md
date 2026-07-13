@@ -15,6 +15,16 @@ Noto Sans Thai + IBM Plex Mono, soft rounded surface cards, pill badges,
 
 **Not yet linked from the landing page** — standalone until you're ready.
 
+## Full nutrition fields (2026-07-12)
+
+Added `calories`, `carbsG`, `fatG`, `sugarG` as optional per-flavor fields —
+price-per-protein is a real differentiator, but people eating protein bars
+check the rest of the label too. None of the existing 23 flavors have this
+data yet; it backfills gradually as real product links come in, same as
+everything else in this catalog. `formatMacros()` only shows whatever
+fields actually exist for a given flavor — no blanks, no zeros for data we
+don't have.
+
 ## UI overhaul (2026-07-12)
 
 Responded to feedback that the UI felt cluttered, especially on mobile:
