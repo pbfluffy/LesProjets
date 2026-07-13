@@ -4,6 +4,12 @@
 // links, which are per-product, not one link per shop); when absent, the
 // shop's generic `url` from shops.js is used instead.
 //
+// Each flavor can also carry: calories, carbsG, fatG, sugarG — all
+// optional, all in grams except calories (kcal). Added 2026-07-12; most
+// existing flavors don't have these yet, backfilled gradually as real
+// product links come in rather than all at once. formatMacros() below
+// only shows whatever fields actually exist for a given flavor.
+//
 // Protein grams live on the FLAVOR, not the product — confirmed necessary
 // again in this update: Musashi's "High Protein" line is 45g/bar, their
 // "Deluxe" line is 21g/bar, and their "Crisp" line is 20g/bar, all under
@@ -197,6 +203,20 @@ export const products = [
 
 export function ratio(priceThb, proteinG) {
   return (priceThb / proteinG).toFixed(2)
+}
+
+// Full nutrition fields (calories, carbsG, fatG, sugarG) are optional on
+// each flavor — most of the current catalog doesn't have them yet,
+// backfilled gradually as real links come in. This returns only the
+// fields actually present, formatted, or null if none are set at all —
+// never shows a blank/zero for data we don't actually have.
+export function formatMacros(flavor) {
+  const parts = []
+  if (flavor.calories != null) parts.push(`${flavor.calories} kcal`)
+  if (flavor.carbsG != null) parts.push(`${flavor.carbsG}g carb`)
+  if (flavor.fatG != null) parts.push(`${flavor.fatG}g fat`)
+  if (flavor.sugarG != null) parts.push(`${flavor.sugarG}g sugar`)
+  return parts.length ? parts.join(' · ') : null
 }
 
 // Converts an ISO 3166-1 alpha-2 code ('TH') to a flag image URL via
