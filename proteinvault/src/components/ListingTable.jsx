@@ -110,9 +110,8 @@ function FlavorRows({ matchingFlavors, globalBestFlavorId }) {
             className="flavor-thumb"
             src={flavor.imageUrl}
             alt={flavor.name}
-            width="48"
-            height="48"
-            loading="lazy"
+            width="72"
+            height="36"
             onError={(e) => {
               e.target.style.display = 'none'
             }}

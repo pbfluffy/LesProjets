@@ -545,12 +545,16 @@ html[lang='th'] * {
 }
 .flavor-thumb {
   flex: 0 0 auto;
-  width: 48px;
-  height: 48px;
+  width: 72px;
+  height: 36px;
   border-radius: var(--radius-sm);
-  object-fit: cover;
+  object-fit: contain; /* was 'cover' on a 48x48 square — cropped ~59% off wide
+    packaging photos, cutting off brand name and flavor label at the edges.
+    'contain' + a box shaped closer to real packaging aspect ratios shows
+    the whole photo instead. */
   border: 0.5px solid var(--color-border);
   background: var(--color-surface-alt);
+  padding: 2px;
 }
 .flavor-item-body {
   flex: 1;
