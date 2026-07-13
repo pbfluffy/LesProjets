@@ -5,15 +5,22 @@
 // shop's generic `url` from shops.js is used instead.
 //
 // Each flavor can also carry: calories, carbsG, fatG, sugarG — all
-// optional, all in grams except calories (kcal). Added 2026-07-12.
-// 10 of 24 flavors now have real confirmed data (FitWin's 5 flavors,
-// Quest's Chocolate Brownie + White Chocolate Raspberry, 3 Musashi
-// flavors), sourced via FatSecret/CarbManager/Amazon/manufacturer product
-// pages — see per-flavor comments. The rest are still unfilled, backfilled
-// gradually as confirmed. Note: carbsG isn't consistently NET vs TOTAL
-// carbs across brands — flagged per-flavor where it matters (Quest
-// specifically markets net carbs; other sources here gave total carbs).
-// formatMacros() only shows whatever fields actually exist for a flavor.
+// optional, all in grams except calories (kcal). Added 2026-07-12,
+// expanded 2026-07-13. 18 of 24 flavors now have real confirmed data,
+// sourced via FatSecret/CarbManager/MyNetDiary/Amazon/manufacturer product
+// pages — see per-flavor comments. Remaining gaps: Musashi's plain
+// "Caramel" and "Deluxe Choc Caramel" (no clean source match found), all 3
+// Go On flavors (Sante makes several Go On sub-lines at different protein
+// %, couldn't confirm which matches our exact flavor names — declined to
+// guess), and Guyvy (found data for a different 80g Guyvy product line,
+// not this specific 50g hydrolysate bar — not applied here). Note:
+// carbsG isn't consistently NET vs TOTAL carbs across brands — flagged
+// per-flavor where it matters (Quest specifically markets net carbs;
+// other sources here gave total carbs). Where sources conflicted
+// significantly (e.g. Musashi Peanut Crunch's carb figure ranged 7-24g
+// across sources), the conflicting field was left out rather than guessed
+// — see inline comments. formatMacros() only shows whatever fields
+// actually exist for a flavor.
 //
 // GUYVY (added 2026-07-12): real Thai brand, confirmed via a Shopee link
 // + independently (GMP-certified, sold at Tops/Gourmet Market, sponsors
@@ -161,8 +168,8 @@ export const products = [
     tags: ['imported'],
     flavors: [
       { id: 'chocolate-brownie', name: 'Chocolate Brownie', priceThb: 139, proteinG: 21, calories: 170, carbsG: 4, sugarG: 1, shops: [{ shopId: 'tops' }] }, // carbsG is NET carbs (Quest's own labeling), not total — differs from other brands below, which use total carbs
-      { id: 'double-chocolate-chunk', name: 'Double Chocolate Chunk', priceThb: 139, proteinG: 21, shops: [{ shopId: 'tops' }] },
-      { id: 'lemon-cake', name: 'Lemon Cake', priceThb: 139, proteinG: 21, shops: [{ shopId: 'tops' }] },
+      { id: 'double-chocolate-chunk', name: 'Double Chocolate Chunk', priceThb: 139, proteinG: 21, calories: 170, carbsG: 24, fatG: 7, shops: [{ shopId: 'tops' }] },
+      { id: 'lemon-cake', name: 'Lemon Cake', priceThb: 139, proteinG: 21, calories: 170, carbsG: 23, fatG: 7, sugarG: 1, shops: [{ shopId: 'tops' }] },
       { id: 'white-chocolate-raspberry', name: 'White Chocolate Raspberry', priceThb: 139, proteinG: 21, carbsG: 21, sugarG: 2, shops: [{ shopId: 'tops' }] }, // total carbs this time, not net
     ],
   },
@@ -175,7 +182,7 @@ export const products = [
     tags: ['imported'],
     flavors: [
       { id: 'high-protein-milk-choc-brownie', name: 'High Protein Milk Choc Brownie Bar', priceThb: 129, proteinG: 45, calories: 337, carbsG: 3.1, fatG: 6.9, sugarG: 2, shops: [{ shopId: 'tops' }] },
-      { id: 'high-protein-dark-choc-salted-caramel', name: 'Dark Chocolate Salted Caramel Bar', priceThb: 129, proteinG: 45, shops: [{ shopId: 'tops' }] },
+      { id: 'high-protein-dark-choc-salted-caramel', name: 'Dark Chocolate Salted Caramel Bar', priceThb: 129, proteinG: 45, calories: 337, carbsG: 2, fatG: 7.2, shops: [{ shopId: 'tops' }] },
       { id: 'crisp-vanilla-caramel', name: 'Crisp Vanilla Caramel', priceThb: 89, proteinG: 20, sugarG: 4, shops: [{ shopId: 'tops' }] }, // only sugar confirmed for this flavor — calories/carb/fat not found
       {
         id: 'high-protein-caramel-shopee',
@@ -189,6 +196,9 @@ export const products = [
         name: 'High Protein Cookies & Cream',
         priceThb: 74,
         proteinG: 45,
+        calories: 337,
+        carbsG: 3,
+        fatG: 6.8,
         shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6pz3ifq1YS?share_channel_code=6' }],
       },
       {
@@ -196,6 +206,9 @@ export const products = [
         name: 'High Protein White Choc Caramel',
         priceThb: 74,
         proteinG: 45,
+        calories: 354,
+        carbsG: 3.5, // retailer-listed figure; a nutrition-tracker site gave 25g for this flavor, discarded as an outlier — see file-level Musashi note
+        fatG: 8.2,
         shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6pz3ifq1YS?share_channel_code=6' }],
       },
       {
@@ -213,6 +226,8 @@ export const products = [
         name: 'Deluxe Peanut Crunch', // clearance pricing — see note at top of file
         priceThb: 74,
         proteinG: 21,
+        calories: 257,
+        fatG: 11, // carb figures conflicted badly across sources (7g vs 22-24g) — left out rather than guess
         shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6ffdWMqetR?share_channel_code=6' }],
       },
       {
@@ -220,6 +235,9 @@ export const products = [
         name: 'Deluxe Jam Donut',
         priceThb: 74,
         proteinG: 21,
+        calories: 236,
+        carbsG: 23,
+        fatG: 9.3,
         shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6ffdWMqetR?share_channel_code=6' }],
       },
       {
@@ -227,6 +245,9 @@ export const products = [
         name: 'Deluxe Rocky Road',
         priceThb: 74,
         proteinG: 21,
+        calories: 244,
+        carbsG: 9.4,
+        fatG: 8.4,
         shops: [{ shopId: 'shopee-thailand', url: 'https://s.shopee.co.th/6ffdWMqetR?share_channel_code=6' }],
       },
       {
