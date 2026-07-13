@@ -1,5 +1,5 @@
 import { useState, Fragment } from 'react'
-import { ratio, flagUrl, brandLogoUrl } from '../data/listings.js'
+import { ratio, flagUrl, brandLogoUrl, formatMacros } from '../data/listings.js'
 import { getShop, mapsDirectionsUrl, shopIconUrl, shopLinkUrl } from '../data/shops.js'
 
 function flavorPassesFilter(flavor, product, filter) {
@@ -91,29 +91,33 @@ function ShopLink({ shop, href, compact = false }) {
 }
 
 function FlavorRows({ matchingFlavors, globalBestFlavorId }) {
-  return matchingFlavors.map((flavor) => (
-    <div className="flavor-item" key={flavor.id}>
-      <div className="flavor-item-top">
-        <span className="flavor-item-name">
-          {flavor.name}
-          {flavor.id === globalBestFlavorId && (
-            <span className="pill accent inline-pill">Best ratio</span>
-          )}
-        </span>
-        <span className="flavor-item-price mono">
-          ฿{flavor.priceThb} <span className="ratio-cell">฿{ratio(flavor.priceThb, flavor.proteinG)}/g</span>
-        </span>
+  return matchingFlavors.map((flavor) => {
+    const macros = formatMacros(flavor)
+    return (
+      <div className="flavor-item" key={flavor.id}>
+        <div className="flavor-item-top">
+          <span className="flavor-item-name">
+            {flavor.name}
+            {flavor.id === globalBestFlavorId && (
+              <span className="pill accent inline-pill">Best ratio</span>
+            )}
+          </span>
+          <span className="flavor-item-price mono">
+            ฿{flavor.priceThb} <span className="ratio-cell">฿{ratio(flavor.priceThb, flavor.proteinG)}/g</span>
+          </span>
+        </div>
+        {macros && <div className="flavor-macros mono">{macros}</div>}
+        <div className="shop-list">
+          {resolveShops(flavor.shops).map(({ shop, href }) => (
+            <div className="shop-cell" key={shop.id}>
+              <span className="shop-name">{shop.name}</span>
+              <ShopLink shop={shop} href={href} />
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="shop-list">
-        {resolveShops(flavor.shops).map(({ shop, href }) => (
-          <div className="shop-cell" key={shop.id}>
-            <span className="shop-name">{shop.name}</span>
-            <ShopLink shop={shop} href={href} />
-          </div>
-        ))}
-      </div>
-    </div>
-  ))
+    )
+  })
 }
 
 export default function ListingTable({ products, filter }) {
