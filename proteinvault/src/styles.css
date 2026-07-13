@@ -249,6 +249,32 @@ html[lang='th'] * {
   border-radius: var(--radius-sm);
 }
 
+/* Search */
+.search-row {
+  padding: 20px 16px 0;
+}
+.search-input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.search-input::placeholder {
+  color: var(--color-text-faint);
+}
+.search-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+/* Safari/iOS adds a default search-cancel button styling that clashes; keep it simple */
+.search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
 /* Filter chips */
 .filters {
   display: flex;
@@ -304,6 +330,22 @@ html[lang='th'] * {
 .ratio-cell {
   font-weight: 700;
   color: var(--accent);
+}
+.ratio-cell.tier-good {
+  color: var(--color-green);
+}
+.ratio-cell.tier-ok {
+  color: var(--color-amber);
+}
+.ratio-cell.tier-high {
+  color: var(--color-red);
+}
+
+.price-sub {
+  font-size: 9.5px;
+  color: var(--color-text-faint);
+  font-weight: 400;
+  margin-top: 1px;
 }
 
 .flag {

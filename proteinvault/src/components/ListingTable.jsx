@@ -2,6 +2,16 @@ import { useState, Fragment } from 'react'
 import { ratio, flagUrl, resolveLogoUrl, formatMacros } from '../data/listings.js'
 import { getShop, mapsDirectionsUrl, shopIconUrl, shopLinkUrl } from '../data/shops.js'
 
+// Color-codes the ฿/g figure so value is scannable at a glance, not just
+// readable. Thresholds picked against the current catalog's actual spread
+// (~1.64 to ~7.17 ฿/g) — revisit if the range shifts a lot as more
+// products get added.
+function valueTier(ratioNum) {
+  if (ratioNum <= 3) return 'good'
+  if (ratioNum <= 5) return 'ok'
+  return 'high'
+}
+
 function flavorPassesFilter(flavor, product, filter) {
   switch (filter) {
     case 'under-100':
@@ -103,7 +113,10 @@ function FlavorRows({ matchingFlavors, globalBestFlavorId }) {
             )}
           </span>
           <span className="flavor-item-price mono">
-            ฿{flavor.priceThb} <span className="ratio-cell">฿{ratio(flavor.priceThb, flavor.proteinG)}/g</span>
+            ฿{flavor.priceThb}{' '}
+            <span className={`ratio-cell tier-${valueTier(Number(ratio(flavor.priceThb, flavor.proteinG)))}`}>
+              ฿{ratio(flavor.priceThb, flavor.proteinG)}/g
+            </span>
           </span>
         </div>
         {macros && <div className="flavor-macros mono">{macros}</div>}
@@ -120,7 +133,13 @@ function FlavorRows({ matchingFlavors, globalBestFlavorId }) {
   })
 }
 
-export default function ListingTable({ products, filter }) {
+function flavorMatchesSearch(flavor, product, search) {
+  if (!search.trim()) return true
+  const needle = search.trim().toLowerCase()
+  return product.brand.toLowerCase().includes(needle) || flavor.name.toLowerCase().includes(needle)
+}
+
+export default function ListingTable({ products, filter, search = '' }) {
   const [expanded, setExpanded] = useState(() => new Set())
 
   // Best ratio across every flavor of every product, for the "Best ratio" badge.
@@ -139,7 +158,9 @@ export default function ListingTable({ products, filter }) {
   const visible = products
     .map((product) => ({
       product,
-      matchingFlavors: product.flavors.filter((f) => flavorPassesFilter(f, product, filter)),
+      matchingFlavors: product.flavors.filter(
+        (f) => flavorPassesFilter(f, product, filter) && flavorMatchesSearch(f, product, search),
+      ),
     }))
     .filter(({ matchingFlavors }) => matchingFlavors.length > 0)
 
@@ -156,7 +177,11 @@ export default function ListingTable({ products, filter }) {
   }
 
   if (visible.length === 0) {
-    return <div className="empty-state">No bars match that filter yet.</div>
+    return (
+      <div className="empty-state">
+        {search.trim() ? `No bars match "${search.trim()}".` : 'No bars match that filter yet.'}
+      </div>
+    )
   }
 
   function toggle(id) {
@@ -243,8 +268,11 @@ export default function ListingTable({ products, filter }) {
                   )}
                 </div>
                 <div className="p-card-meta mono">
-                  {matchingFlavors.length} flavor{matchingFlavors.length > 1 ? 's' : ''} · from ฿
-                  {cheapestFlavor.priceThb} · <span className="ratio-cell">฿{bestRatioForProduct}/g</span>
+                  {matchingFlavors.length} flavor{matchingFlavors.length > 1 ? 's' : ''} · {cheapestFlavor.proteinG}g
+                  protein · from ฿{cheapestFlavor.priceThb} ·{' '}
+                  <span className={`ratio-cell tier-${valueTier(Number(bestRatioForProduct))}`}>
+                    ฿{bestRatioForProduct}/g
+                  </span>
                 </div>
               </div>
               <div className="expand-cell">{isOpen ? '−' : '+'}</div>
@@ -334,8 +362,13 @@ export default function ListingTable({ products, filter }) {
                       </div>
                     </div>
                   </td>
-                  <td className="num mono">฿{cheapestFlavor.priceThb}</td>
-                  <td className="num mono ratio-cell">฿{bestRatioForProduct}</td>
+                  <td className="num mono">
+                    ฿{cheapestFlavor.priceThb}
+                    <div className="price-sub mono">{cheapestFlavor.proteinG}g protein</div>
+                  </td>
+                  <td className={`num mono ratio-cell tier-${valueTier(Number(bestRatioForProduct))}`}>
+                    ฿{bestRatioForProduct}
+                  </td>
                   <td onClick={(e) => e.stopPropagation()}>
                     <div className="shop-btns-cell">
                       {productShopLinks.map(({ shop, href }) => (

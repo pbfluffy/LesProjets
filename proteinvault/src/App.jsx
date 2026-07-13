@@ -10,6 +10,7 @@ import { ratio } from './data/listings.js'
 export default function App() {
   const { items: products, usingFallback } = useListings()
   const [filter, setFilter] = useState('all')
+  const [search, setSearch] = useState('')
   const [theme, setTheme] = useTheme()
 
   const brandCount = products.length
@@ -54,8 +55,18 @@ export default function App() {
         </div>
       )}
 
+      <div className="search-row">
+        <input
+          type="search"
+          className="search-input"
+          placeholder="Search brand or flavor…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          aria-label="Search brand or flavor"
+        />
+      </div>
       <FilterBar active={filter} onChange={setFilter} />
-      <ListingTable products={products} filter={filter} />
+      <ListingTable products={products} filter={filter} search={search} />
     </div>
   )
 }
