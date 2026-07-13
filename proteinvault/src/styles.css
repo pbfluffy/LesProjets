@@ -520,6 +520,11 @@ html[lang='th'] * {
   font-size: 12.5px;
   white-space: nowrap;
 }
+.flavor-macros {
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  margin-top: -2px;
+}
 
 /* Shop links */
 .shop-list {

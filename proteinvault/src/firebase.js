@@ -16,7 +16,9 @@ export const db = getFirestore(app)
 // Two collections:
 //   `products` — one doc per brand. Shape:
 //     { brand, country, countryCode, tags, flavors: [
-//         { id, name, priceThb, proteinG, shops: [
+//         { id, name, priceThb, proteinG,
+//           calories?, carbsG?, fatG?, sugarG?,  // all optional, gradual backfill
+//           shops: [
 //             { shopId, url? }   // url is optional — a specific listing
 //                                // link (e.g. a real Shopee affiliate
 //                                // product link); falls back to the
