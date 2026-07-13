@@ -1,5 +1,5 @@
 import { useState, Fragment } from 'react'
-import { ratio, flagUrl, brandLogoUrl, formatMacros } from '../data/listings.js'
+import { ratio, flagUrl, resolveLogoUrl, formatMacros } from '../data/listings.js'
 import { getShop, mapsDirectionsUrl, shopIconUrl, shopLinkUrl } from '../data/shops.js'
 
 function flavorPassesFilter(flavor, product, filter) {
@@ -225,10 +225,10 @@ export default function ListingTable({ products, filter }) {
               />
               <div className="p-card-info">
                 <div className="p-card-brand">
-                  {brandLogoUrl(product.logoDomain) && (
+                  {resolveLogoUrl(product) && (
                     <img
                       className="brand-logo"
-                      src={brandLogoUrl(product.logoDomain)}
+                      src={resolveLogoUrl(product)}
                       alt=""
                       width="16"
                       height="16"
@@ -311,10 +311,10 @@ export default function ListingTable({ products, filter }) {
                       />
                       <div>
                         <div className="brand-name">
-                          {brandLogoUrl(product.logoDomain) && (
+                          {resolveLogoUrl(product) && (
                             <img
                               className="brand-logo"
-                              src={brandLogoUrl(product.logoDomain)}
+                              src={resolveLogoUrl(product)}
                               alt=""
                               width="16"
                               height="16"

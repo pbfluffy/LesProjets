@@ -72,7 +72,9 @@ export const products = [
     countryCode: 'TH',
     // No confirmed standalone official website — Guyvy sells via LINE, Facebook,
     // and retailers (Tops, Gourmet Market, Lazada, Shopee), not their own site.
-    // logoDomain intentionally omitted rather than guessed.
+    // Real logo provided directly by Pumba, self-hosted at public/logos/guyvy.png
+    // rather than fetched from a domain that doesn't exist.
+    logoUrl: './logos/guyvy.png',
     tags: ['thai-made'],
     flavors: [
       {
@@ -281,4 +283,14 @@ export function flagUrl(countryCode) {
 export function brandLogoUrl(logoDomain) {
   if (!logoDomain) return null
   return `https://www.google.com/s2/favicons?sz=64&domain=${logoDomain}`
+}
+
+// Not every brand has a fetchable domain (Guyvy is real, GMP-certified,
+// sells through LINE/Facebook/marketplaces, but has no standalone
+// website). For those, `logoUrl` on the product points at a self-hosted
+// image in public/logos/ instead — real, sourced from Pumba directly, not
+// fabricated. This resolver prefers a self-hosted logoUrl when present,
+// falls back to the domain-favicon approach otherwise.
+export function resolveLogoUrl(product) {
+  return product.logoUrl || brandLogoUrl(product.logoDomain)
 }
