@@ -150,12 +150,18 @@ npm run dev
 tool that replaces hand-editing `listings.js` + running `seed.js` + poking
 around the raw Firestore Console. It writes straight to Firestore.
 
-- **Auth**: Firebase Auth email/password, single admin account. One-time
-  setup you do yourself in the Firebase Console (no service-account key is
-  used anywhere in this project, so nothing here can do this for you):
-  1. Authentication → Sign-in method → enable Email/Password.
-  2. Authentication → Users → Add user → your admin email + a password.
-  3. Firestore → Rules → publish the rules block below → Publish.
+- **Auth**: Firebase Auth with Google as the sign-in provider — no password
+  to create or manage, since you're signing in with an existing Google
+  account. One-time setup you do yourself in the Firebase Console (no
+  service-account key is used anywhere in this project, so nothing here can
+  do this for you):
+  1. Authentication → Sign-in method → enable **Google** (Firebase
+     auto-fills the OAuth config; no separate Google Cloud Console step
+     needed for this).
+  2. Firestore → Rules → publish the rules block below → Publish.
+  3. Sign in at `#/admin` with the Google account whose email matches
+     `YOUR_ADMIN_EMAIL` below — there's no separate "add user" step, the
+     Firestore rule is what actually grants access.
   ```
   rules_version = '2';
   service cloud.firestore {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth'
 import { auth } from '../firebase.js'
 
 // Mirrors the Firebase Auth session into React state. `user` is null until
@@ -19,8 +19,10 @@ export function useAuth() {
   return { user, loading }
 }
 
-export async function signIn(email, password) {
-  await signInWithEmailAndPassword(auth, email, password)
+const googleProvider = new GoogleAuthProvider()
+
+export async function signInWithGoogle() {
+  await signInWithPopup(auth, googleProvider)
 }
 
 export async function signOutAdmin() {
