@@ -4,11 +4,14 @@ import styles from './CustomTab.module.css';
 
 const EMPTY_FORM = { name: '', kcal: '', protein: '', fat: '', carbs: '', note: '', image: null };
 
-// Compress an image File to a square thumbnail (max 200px) as a base64 data URL.
+// Compress an image File to a square thumbnail (max 600px) as a base64 data URL.
+// Displayed small (40-64px) but stored larger so it still holds up if the
+// user views/enlarges it outside the app (no in-app lightbox yet) — 200px
+// was too aggressive and looked blurry/pixelated when stretched.
 // Returns a Promise<string|null>. Never throws — returns null on any error.
 function compressToThumbnail(file) {
   return new Promise((resolve) => {
-    const MAX = 200;
+    const MAX = 600;
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
@@ -20,7 +23,7 @@ function compressToThumbnail(file) {
         canvas.height = Math.round(img.height * scale);
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
       };
       img.onerror = () => resolve(null);
       img.src = String(e.target.result);
