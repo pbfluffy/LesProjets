@@ -5,7 +5,7 @@ import styles from './PhotoTab.module.css';
 const WORKER_URL = 'https://nutritions-photo.pbfluffygaming.workers.dev/';
 const MAX_DIM = 1568;
 const JPEG_QUALITY = 0.85;
-const THUMB_MAX = 200; // max px for custom-food thumbnail stored in localStorage
+const THUMB_MAX = 600; // max px for custom-food thumbnail stored in localStorage
 
 const PROMPT = `You are a food identifier for a nutrition tracker used in Thailand. Identify the dish in the photo, estimate portion size, and estimate macros.
 
@@ -97,7 +97,7 @@ async function compressToThumbnail(file) {
     canvas.width = w;
     canvas.height = h;
     canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-    return canvas.toDataURL('image/jpeg', 0.7);
+    return canvas.toDataURL('image/jpeg', 0.82);
   } catch {
     return null;
   } finally {
