@@ -162,7 +162,7 @@ around the raw Firestore Console. It writes straight to Firestore.
     match /databases/{database}/documents {
       function isAdmin() {
         return request.auth != null
-          && request.auth.token.email == 'pbfluffygaming@gmail.com';
+          && request.auth.token.email == 'YOUR_ADMIN_EMAIL';
       }
       match /products/{productId} {
         allow read: if true;
@@ -179,10 +179,11 @@ around the raw Firestore Console. It writes straight to Firestore.
     }
   }
   ```
-  The admin email is set in `src/admin/config.js` — update it there if it's
-  not `pbfluffygaming@gmail.com`, and keep the Firestore rule in sync
-  (client-side email checks are convenience UI only; the rule above is the
-  real gate).
+  Set your real admin email in `src/admin/config.js` (replace
+  `YOUR_ADMIN_EMAIL`) and keep the Firestore rule above in sync with it —
+  client-side email checks are convenience UI only; the rule is the real
+  gate. Both are placeholders in this repo on purpose, not filled in with a
+  real address, since this repo is public.
 - **Brand/flavor CRUD**: list brands, add a brand, add/edit/remove a flavor
   (price, protein, optional macros, shops). Flavors are an array embedded
   on each brand's Firestore doc, so saving a brand writes the whole doc.

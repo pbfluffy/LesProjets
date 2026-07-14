@@ -3,4 +3,4 @@
 // constant only drives the client-side UI (which screen to show after
 // login). Anyone could edit this in a forked bundle; that changes nothing
 // about what Firestore actually accepts.
-export const ADMIN_EMAIL = 'pbfluffygaming@gmail.com'
+export const ADMIN_EMAIL = 'YOUR_ADMIN_EMAIL'

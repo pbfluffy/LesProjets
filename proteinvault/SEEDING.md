@@ -54,7 +54,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function isAdmin() {
       return request.auth != null
-        && request.auth.token.email == 'pbfluffygaming@gmail.com';
+        && request.auth.token.email == 'YOUR_ADMIN_EMAIL';
     }
     match /products/{productId} {
       allow read: if true;
