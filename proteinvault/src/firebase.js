@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
+import { getAuth } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAsXkfkY-NW3REZ1XMt_O95WiWQDTYAHss',
@@ -12,6 +13,9 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig)
 export const db = getFirestore(app)
+// Used by the admin panel (src/admin/) for email/password login — see
+// src/admin/useAuth.js. The public site never touches this.
+export const auth = getAuth(app)
 
 // Two collections:
 //   `products` — one doc per brand. Shape:
