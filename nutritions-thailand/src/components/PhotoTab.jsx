@@ -336,7 +336,11 @@ export default function PhotoTab({ store }) {
                 onClick={onIdentify}
                 disabled={loading}
               >
-                {loading ? t('photo.identifying') : t('photo.identify')}
+                {loading
+                  ? t('photo.identifying')
+                  : error
+                  ? t('photo.retry')
+                  : t('photo.identify')}
               </button>
               <button
                 className={styles.btn}
