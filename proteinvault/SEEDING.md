@@ -5,9 +5,9 @@ This loads what's currently in `src/data/listings.js` and `src/data/shops.js`
 database, so the app starts reading from Firestore instead of the
 hardcoded fallback file.
 
-You only need to do this once. After this, new products get added directly
-in the Firebase Console (or by me, once we build that flow) — no code
-changes, no redeploy.
+You only need to do this once. After this, new products get added through
+the admin panel at `#/admin` (see the README's "Admin panel" section) — no
+code changes, no redeploy, no more hand-editing Firestore in the Console.
 
 ## Steps
 
@@ -43,7 +43,36 @@ You should see it print each product and shop as it's written, ending with
 "Done."
 
 ### 3. Lock the rules back down
-Firestore → **Rules** tab → replace with:
+
+If you've set up the admin panel (`#/admin` — see the README's "Admin
+panel" section), publish its rules instead of fully closing writes, so the
+admin tool keeps working:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'YOUR_ADMIN_EMAIL';
+    }
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /shops/{shopId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /{document=**} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}
+```
+
+Otherwise (no admin panel yet), fully close writes:
 
 ```
 rules_version = '2';
@@ -57,7 +86,7 @@ service cloud.firestore {
 }
 ```
 
-Click **Publish**. Back to public-read-only, same as before.
+Click **Publish** either way.
 
 ### 4. Verify
 Firestore → **Data** tab — you should see a `products` collection with 4

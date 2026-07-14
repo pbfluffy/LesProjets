@@ -144,6 +144,70 @@ npm run dev
    index when it's ready to be public; deploy the same way as the other
    Vite apps via `deploy.yml`.
 
+## Admin panel
+
+`#/admin` (hash-only, not linked from public nav) is a small in-app admin
+tool that replaces hand-editing `listings.js` + running `seed.js` + poking
+around the raw Firestore Console. It writes straight to Firestore.
+
+- **Auth**: Firebase Auth email/password, single admin account. One-time
+  setup you do yourself in the Firebase Console (no service-account key is
+  used anywhere in this project, so nothing here can do this for you):
+  1. Authentication → Sign-in method → enable Email/Password.
+  2. Authentication → Users → Add user → your admin email + a password.
+  3. Firestore → Rules → publish the rules block below → Publish.
+  ```
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      function isAdmin() {
+        return request.auth != null
+          && request.auth.token.email == 'YOUR_ADMIN_EMAIL';
+      }
+      match /products/{productId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+      match /shops/{shopId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+      match /{document=**} {
+        allow read: if false;
+        allow write: if false;
+      }
+    }
+  }
+  ```
+  Set your real admin email in `src/admin/config.js` (replace
+  `YOUR_ADMIN_EMAIL`) and keep the Firestore rule above in sync with it —
+  client-side email checks are convenience UI only; the rule is the real
+  gate. Both are placeholders in this repo on purpose, not filled in with a
+  real address, since this repo is public.
+- **Brand/flavor CRUD**: list brands, add a brand, add/edit/remove a flavor
+  (price, protein, optional macros, shops). Flavors are an array embedded
+  on each brand's Firestore doc, so saving a brand writes the whole doc.
+- **Shopee import** (optional, inside the flavor form): paste a Shopee
+  product or `s.shopee.co.th` link, hit Fetch. Pre-fills name/price/image —
+  the fields Shopee's own page exposes as structured data. It does **not**
+  auto-fill protein/macros/country; those live in inconsistent freeform
+  seller text, and this project's own sourcing notes (see `listings.js`)
+  are proof that guessing at them is worse than typing them in. The
+  listing's raw attribute text is shown next to those fields instead, for
+  glance-and-type. Backed by `functions/api/fetch-shopee.js`, a Cloudflare
+  Pages Function that talks to an **unofficial, undocumented** Shopee
+  endpoint — it can break without notice; the form degrades to fully
+  manual entry on any fetch failure.
+- **Re-verification staleness**: every flavor save stamps a timestamp; the
+  dashboard surfaces flavors untouched for 90+ days at the top, so
+  re-checking prices happens as part of normal admin visits. No scheduled
+  job — that'd need a separate Worker + cron trigger, deliberately out of
+  scope for now.
+- To test the Shopee-import Function locally (it's a Cloudflare Pages
+  Function, not part of the Vite dev server): `npx wrangler pages dev` per
+  Cloudflare's docs for pairing Pages Functions with an external dev
+  server. Not required just to work on the rest of the admin UI.
+
 ## Structure
 
 ```
@@ -156,8 +220,11 @@ src/
                     link, e.g. a real Shopee affiliate product page)
     shops.js       verified shop directory (online/physical/both), maps-link helper
     useListings.js Firestore fetch with local fallback
+  admin/          admin panel (#/admin) — see "Admin panel" above
   firebase.js     Firebase config — fill in before going live
   hooks.js        useTheme() — same localStorage["theme"] pattern as the rest of the suite
   App.jsx         wiring: filter state, theme toggle, derived stats
   styles.css      theme tokens + components, matching shared/theme-tokens.css
+functions/
+  api/fetch-shopee.js   Cloudflare Pages Function backing the admin's Shopee import
 ```
