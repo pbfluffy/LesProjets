@@ -1,23 +1,23 @@
 import { useState } from 'react'
-import { signIn } from './useAuth.js'
+import { signInWithGoogle } from './useAuth.js'
 
-// Deliberately generic on every failure — doesn't say whether the email or
-// password was wrong, doesn't surface Firebase's raw error code. There's
-// exactly one admin account; a specific error just helps an attacker guess.
+// Only the account whose email matches ADMIN_EMAIL actually gets in — see
+// AdminApp.jsx's "not authorized" screen and the Firestore rules (the real
+// gate). Popup-closed/cancelled isn't a real error, so it's swallowed
+// rather than shown as a scary message.
 export default function LoginForm() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  async function handleSubmit(e) {
-    e.preventDefault()
+  async function handleClick() {
     setError('')
     setSubmitting(true)
     try {
-      await signIn(email, password)
-    } catch {
-      setError('Invalid email or password.')
+      await signInWithGoogle()
+    } catch (err) {
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        setError('Could not sign in with Google.')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -25,35 +25,13 @@ export default function LoginForm() {
 
   return (
     <div className="admin-auth-screen">
-      <form className="admin-card admin-login-card" onSubmit={handleSubmit}>
+      <div className="admin-card admin-login-card">
         <h1 className="admin-login-title">ProteinVault admin</h1>
-        <label className="field">
-          <span className="label">Email</span>
-          <input
-            className="input"
-            type="email"
-            autoComplete="username"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label className="field">
-          <span className="label">Password</span>
-          <input
-            className="input"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
         {error && <div className="admin-error">{error}</div>}
-        <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting ? 'Signing in…' : 'Sign in'}
+        <button type="button" className="btn btn-primary" onClick={handleClick} disabled={submitting}>
+          {submitting ? 'Signing in…' : 'Sign in with Google'}
         </button>
-      </form>
+      </div>
     </div>
   )
 }

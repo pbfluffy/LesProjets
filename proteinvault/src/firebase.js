@@ -13,7 +13,7 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig)
 export const db = getFirestore(app)
-// Used by the admin panel (src/admin/) for email/password login — see
+// Used by the admin panel (src/admin/) for Google sign-in — see
 // src/admin/useAuth.js. The public site never touches this.
 export const auth = getAuth(app)
 
