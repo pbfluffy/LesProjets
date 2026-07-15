@@ -252,8 +252,12 @@ html[lang='th'] * {
 /* Search */
 .search-row {
   padding: 20px 16px 0;
+  display: flex;
+  gap: 8px;
 }
 .search-input {
+  flex: 1;
+  min-width: 0;
   width: 100%;
   font-family: var(--font-body);
   font-size: 13.5px;
@@ -273,6 +277,20 @@ html[lang='th'] * {
 /* Safari/iOS adds a default search-cancel button styling that clashes; keep it simple */
 .search-input::-webkit-search-cancel-button {
   -webkit-appearance: none;
+}
+.view-select {
+  flex: 0 0 auto;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  padding: 11px 10px;
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.view-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
 }
 
 /* Filter chips */
@@ -589,6 +607,10 @@ html[lang='th'] * {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+}
+.flavor-item-brand-tag {
+  font-weight: 500;
+  color: var(--color-text-faint);
 }
 .flavor-item-price {
   font-size: 12.5px;
