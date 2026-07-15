@@ -296,9 +296,11 @@ export function formatMacros(flavor) {
 // window — no lower bound means it's already started, no upper bound means
 // it doesn't expire. Label alone (no dates) means an indefinite promo.
 // Returns null if there's no promo or it isn't active right now, so
-// callers can just check truthiness.
-export function activePromo(flavor) {
-  const promo = flavor.promo
+// callers can just check truthiness. Promos live on a flavor's individual
+// shop entries (shops[].promo), not the flavor itself — a deal at Tops
+// doesn't mean the same deal exists at Villa Market or Shopee, so this
+// takes the promo object directly rather than a whole flavor/shop entity.
+export function activePromo(promo) {
   if (!promo || !promo.label) return null
   const now = Date.now()
   if (promo.startsAt && now < promo.startsAt) return null

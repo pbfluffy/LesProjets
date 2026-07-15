@@ -45,12 +45,15 @@ export function assertValidProduct(product) {
     if (!Array.isArray(f.shops) || f.shops.length === 0) {
       throw new Error(`Flavor "${f.name}" needs at least one shop`)
     }
-    if (f.promo) {
-      if (!f.promo.label) throw new Error(`Flavor "${f.name}" has a promo with no label`)
-      if (f.promo.startsAt && f.promo.endsAt && f.promo.endsAt < f.promo.startsAt) {
-        throw new Error(`Flavor "${f.name}"'s promo ends before it starts`)
+    // Promos are per-shop (a deal at Tops isn't necessarily also at Villa
+    // Market or Shopee), not per-flavor — see activePromo() in listings.js.
+    f.shops.forEach((s) => {
+      if (!s.promo) return
+      if (!s.promo.label) throw new Error(`Flavor "${f.name}" has a shop promo with no label`)
+      if (s.promo.startsAt && s.promo.endsAt && s.promo.endsAt < s.promo.startsAt) {
+        throw new Error(`Flavor "${f.name}"'s promo at ${s.shopId} ends before it starts`)
       }
-    }
+    })
   })
 }
 

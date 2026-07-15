@@ -27,14 +27,15 @@ function flavorPassesFilter(flavor, product, filter) {
   }
 }
 
-// Resolves each flavor.shops[] entry ({shopId, url?}) to its full shop
-// object plus the actual link to use, and drops any shopId that doesn't
-// resolve.
+// Resolves each flavor.shops[] entry ({shopId, url?, promo?}) to its full
+// shop object plus the actual link to use, and drops any shopId that
+// doesn't resolve. promo passes through as-is — it's specific to that
+// shop entry (a Tops deal isn't necessarily also live at Villa or Shopee).
 function resolveShops(shopEntries) {
   return shopEntries
-    .map(({ shopId, url }) => {
+    .map(({ shopId, url, promo }) => {
       const shop = getShop(shopId)
-      return shop ? { shop, href: shopLinkUrl(shop, url) } : null
+      return shop ? { shop, href: shopLinkUrl(shop, url), promo } : null
     })
     .filter(Boolean)
     .sort((a, b) => Boolean(b.shop.isAffiliateChannel) - Boolean(a.shop.isAffiliateChannel))
@@ -103,7 +104,10 @@ function ShopLink({ shop, href, compact = false }) {
 function FlavorRows({ matchingFlavors, globalBestFlavorId }) {
   return matchingFlavors.map((flavor) => {
     const macros = formatMacros(flavor)
-    const promo = activePromo(flavor)
+    // Any shop's promo currently active, just to flag the flavor name so a
+    // deal isn't missed — the actual label/shop it applies to is shown
+    // down in the per-shop list below, not conflated with this flag.
+    const hasAnyActivePromo = flavor.shops.some((s) => activePromo(s.promo))
     return (
       <div className="flavor-item" key={flavor.id}>
         {flavor.imageUrl && (
@@ -125,12 +129,9 @@ function FlavorRows({ matchingFlavors, globalBestFlavorId }) {
               {flavor.id === globalBestFlavorId && (
                 <span className="pill accent inline-pill">Best ratio</span>
               )}
-              {promo && <span className="pill promo inline-pill">{promo.label}</span>}
+              {hasAnyActivePromo && <span className="pill promo inline-pill">Promo</span>}
             </span>
             <span className="flavor-item-price mono">
-              {promo?.originalPriceThb != null && (
-                <span className="promo-original-price">฿{promo.originalPriceThb}</span>
-              )}
               ฿{flavor.priceThb}{' '}
               <span className={`ratio-cell tier-${valueTier(Number(ratio(flavor.priceThb, flavor.proteinG)))}`}>
                 ฿{ratio(flavor.priceThb, flavor.proteinG)}/g
@@ -139,12 +140,21 @@ function FlavorRows({ matchingFlavors, globalBestFlavorId }) {
           </div>
           {macros && <div className="flavor-macros mono">{macros}</div>}
           <div className="shop-list">
-            {resolveShops(flavor.shops).map(({ shop, href }) => (
-              <div className="shop-cell" key={shop.id}>
-                <span className="shop-name">{shop.name}</span>
-                <ShopLink shop={shop} href={href} />
-              </div>
-            ))}
+            {resolveShops(flavor.shops).map(({ shop, href, promo: rawPromo }) => {
+              const promo = activePromo(rawPromo)
+              return (
+                <div className="shop-cell" key={shop.id}>
+                  <span className="shop-name">
+                    {shop.name}
+                    {promo && <span className="pill promo inline-pill">{promo.label}</span>}
+                  </span>
+                  {promo?.originalPriceThb != null && (
+                    <span className="promo-original-price mono">was ฿{promo.originalPriceThb}</span>
+                  )}
+                  <ShopLink shop={shop} href={href} />
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>

@@ -17,11 +17,11 @@ function emptyFlavor() {
     sugarG: '',
     imageUrl: '',
     shops: [],
-    promoLabel: '',
-    promoStartDate: '',
-    promoEndDate: '',
-    promoOriginalPriceThb: '',
   }
+}
+
+function emptyShopPromoDraft() {
+  return { label: '', startDate: '', endDate: '', originalPriceThb: '' }
 }
 
 // HTML date inputs work in local-midnight YYYY-MM-DD strings; promo.startsAt
@@ -45,17 +45,7 @@ function toDateInputValue(epochMs) {
 // it reflects when the flavor was actually looked at and confirmed.
 export default function FlavorForm({ flavor, existingFlavors, onSave, onClose }) {
   const isNew = !flavor
-  const [draft, setDraft] = useState(() =>
-    flavor
-      ? {
-          ...flavor,
-          promoLabel: flavor.promo?.label || '',
-          promoStartDate: toDateInputValue(flavor.promo?.startsAt),
-          promoEndDate: toDateInputValue(flavor.promo?.endsAt),
-          promoOriginalPriceThb: flavor.promo?.originalPriceThb ?? '',
-        }
-      : emptyFlavor(),
-  )
+  const [draft, setDraft] = useState(() => (flavor ? { ...flavor } : emptyFlavor()))
   const [selectedShops, setSelectedShops] = useState(
     () => new Set((flavor?.shops || []).map((s) => s.shopId)),
   )
@@ -63,6 +53,23 @@ export default function FlavorForm({ flavor, existingFlavors, onSave, onClose })
     const map = {}
     ;(flavor?.shops || []).forEach((s) => {
       if (s.url) map[s.shopId] = s.url
+    })
+    return map
+  })
+  // Promos are per-shop, not per-flavor — a deal at Tops doesn't imply the
+  // same deal at Villa Market or Shopee, so each shop entry carries its own
+  // optional promo.
+  const [shopPromos, setShopPromos] = useState(() => {
+    const map = {}
+    ;(flavor?.shops || []).forEach((s) => {
+      if (s.promo) {
+        map[s.shopId] = {
+          label: s.promo.label || '',
+          startDate: toDateInputValue(s.promo.startsAt),
+          endDate: toDateInputValue(s.promo.endsAt),
+          originalPriceThb: s.promo.originalPriceThb ?? '',
+        }
+      }
     })
     return map
   })
@@ -80,6 +87,13 @@ export default function FlavorForm({ flavor, existingFlavors, onSave, onClose })
       else next.add(shopId)
       return next
     })
+  }
+
+  function updateShopPromo(shopId, key, value) {
+    setShopPromos((m) => ({
+      ...m,
+      [shopId]: { ...(m[shopId] || emptyShopPromoDraft()), [key]: value },
+    }))
   }
 
   function handleImport(result) {
@@ -103,20 +117,31 @@ export default function FlavorForm({ flavor, existingFlavors, onSave, onClose })
     if (!proteinG || proteinG <= 0) return setError('Protein grams must be greater than 0.')
     if (selectedShops.size === 0) return setError('Pick at least one shop.')
 
-    const promoLabel = draft.promoLabel.trim()
-    let promo = null
-    if (promoLabel) {
-      const startsAt = toEpoch(draft.promoStartDate)
-      const endsAt = toEpoch(draft.promoEndDate, true)
-      if (startsAt && endsAt && endsAt < startsAt) {
-        return setError('Promotion end date must be on or after the start date.')
+    const shopsOut = []
+    for (const shopId of selectedShops) {
+      const entry = { shopId }
+      const url = shopUrls[shopId]?.trim()
+      if (url) entry.url = url
+
+      const promoDraft = shopPromos[shopId]
+      const label = promoDraft?.label?.trim()
+      if (label) {
+        const startsAt = toEpoch(promoDraft.startDate)
+        const endsAt = toEpoch(promoDraft.endDate, true)
+        if (startsAt && endsAt && endsAt < startsAt) {
+          const shopName = shops.find((s) => s.id === shopId)?.name || shopId
+          setError(`${shopName}'s promotion end date must be on or after the start date.`)
+          return
+        }
+        const promo = { label }
+        if (startsAt) promo.startsAt = startsAt
+        if (endsAt) promo.endsAt = endsAt
+        if (promoDraft.originalPriceThb !== '' && promoDraft.originalPriceThb != null) {
+          promo.originalPriceThb = Number(promoDraft.originalPriceThb)
+        }
+        entry.promo = promo
       }
-      promo = { label: promoLabel }
-      if (startsAt) promo.startsAt = startsAt
-      if (endsAt) promo.endsAt = endsAt
-      if (draft.promoOriginalPriceThb !== '' && draft.promoOriginalPriceThb != null) {
-        promo.originalPriceThb = Number(draft.promoOriginalPriceThb)
-      }
+      shopsOut.push(entry)
     }
 
     const id = isNew ? makeFlavorId(name, existingFlavors) : draft.id
@@ -125,10 +150,7 @@ export default function FlavorForm({ flavor, existingFlavors, onSave, onClose })
       name,
       priceThb,
       proteinG,
-      shops: [...selectedShops].map((shopId) => {
-        const url = shopUrls[shopId]?.trim()
-        return url ? { shopId, url } : { shopId }
-      }),
+      shops: shopsOut,
       lastVerifiedAt: Date.now(),
     }
     NUMERIC_OPTIONAL.forEach((key) => {
@@ -136,7 +158,6 @@ export default function FlavorForm({ flavor, existingFlavors, onSave, onClose })
       if (raw !== '' && raw != null) flavorOut[key] = Number(raw)
     })
     if (draft.imageUrl?.trim()) flavorOut.imageUrl = draft.imageUrl.trim()
-    if (promo) flavorOut.promo = promo
 
     onSave(flavorOut)
   }
@@ -252,75 +273,77 @@ export default function FlavorForm({ flavor, existingFlavors, onSave, onClose })
           />
         </label>
 
-        <div className="admin-flavor-section">
-          <div className="admin-card-header">
-            <h3>Promotion (optional)</h3>
-          </div>
-          <label className="field">
-            <span className="label">Label</span>
-            <input
-              className="input"
-              value={draft.promoLabel}
-              onChange={(e) => updateField('promoLabel', e.target.value)}
-              placeholder="e.g. Buy 1 Get 1, 20% off"
-            />
-          </label>
-          <div className="admin-field-row">
-            <label className="field">
-              <span className="label">Starts</span>
-              <input
-                className="input"
-                type="date"
-                value={draft.promoStartDate}
-                onChange={(e) => updateField('promoStartDate', e.target.value)}
-              />
-            </label>
-            <label className="field">
-              <span className="label">Ends</span>
-              <input
-                className="input"
-                type="date"
-                value={draft.promoEndDate}
-                onChange={(e) => updateField('promoEndDate', e.target.value)}
-              />
-            </label>
-          </div>
-          <label className="field">
-            <span className="label">Original price (฿, for strikethrough)</span>
-            <input
-              className="input"
-              type="number"
-              step="0.01"
-              value={draft.promoOriginalPriceThb}
-              onChange={(e) => updateField('promoOriginalPriceThb', e.target.value)}
-              placeholder="optional"
-            />
-          </label>
-        </div>
-
         <div className="field">
           <span className="label">Shops</span>
           <div className="admin-shop-picker">
-            {shops.map((shop) => (
-              <div key={shop.id} className="admin-shop-picker-row">
-                <label className="admin-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={selectedShops.has(shop.id)}
-                    onChange={() => toggleShop(shop.id)}
-                  />
-                  {shop.name}
-                </label>
-                {selectedShops.has(shop.id) && (
-                  <input
-                    className="input"
-                    placeholder="specific listing URL (optional)"
-                    value={shopUrls[shop.id] || ''}
-                    onChange={(e) => setShopUrls((m) => ({ ...m, [shop.id]: e.target.value }))}
-                  />
-                )}
-              </div>
-            ))}
+            {shops.map((shop) => {
+              const promoDraft = shopPromos[shop.id]
+              return (
+                <div key={shop.id} className="admin-shop-picker-row">
+                  <label className="admin-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={selectedShops.has(shop.id)}
+                      onChange={() => toggleShop(shop.id)}
+                    />
+                    {shop.name}
+                  </label>
+                  {selectedShops.has(shop.id) && (
+                    <>
+                      <input
+                        className="input"
+                        placeholder="specific listing URL (optional)"
+                        value={shopUrls[shop.id] || ''}
+                        onChange={(e) => setShopUrls((m) => ({ ...m, [shop.id]: e.target.value }))}
+                      />
+                      <input
+                        className="input"
+                        placeholder={`promo at ${shop.name} (optional), e.g. Buy 1 Get 1`}
+                        value={promoDraft?.label || ''}
+                        onChange={(e) => updateShopPromo(shop.id, 'label', e.target.value)}
+                      />
+                      {promoDraft?.label?.trim() && (
+                        <div className="admin-shop-promo-fields">
+                          <div className="admin-field-row">
+                            <label className="field">
+                              <span className="label">Starts</span>
+                              <input
+                                className="input"
+                                type="date"
+                                value={promoDraft.startDate}
+                                onChange={(e) => updateShopPromo(shop.id, 'startDate', e.target.value)}
+                              />
+                            </label>
+                            <label className="field">
+                              <span className="label">Ends</span>
+                              <input
+                                className="input"
+                                type="date"
+                                value={promoDraft.endDate}
+                                onChange={(e) => updateShopPromo(shop.id, 'endDate', e.target.value)}
+                              />
+                            </label>
+                          </div>
+                          <label className="field">
+                            <span className="label">Original price (฿, for strikethrough)</span>
+                            <input
+                              className="input"
+                              type="number"
+                              step="0.01"
+                              value={promoDraft.originalPriceThb}
+                              onChange={(e) =>
+                                updateShopPromo(shop.id, 'originalPriceThb', e.target.value)
+                              }
+                              placeholder="optional"
+                            />
+                          </label>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
 
