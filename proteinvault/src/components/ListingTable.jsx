@@ -1,5 +1,5 @@
 import { useState, Fragment } from 'react'
-import { ratio, flagUrl, resolveLogoUrl, formatMacros } from '../data/listings.js'
+import { ratio, flagUrl, resolveLogoUrl, formatMacros, activePromo } from '../data/listings.js'
 import { getShop, mapsDirectionsUrl, shopIconUrl, shopLinkUrl } from '../data/shops.js'
 
 // Color-codes the ฿/g figure so value is scannable at a glance, not just
@@ -103,6 +103,7 @@ function ShopLink({ shop, href, compact = false }) {
 function FlavorRows({ matchingFlavors, globalBestFlavorId }) {
   return matchingFlavors.map((flavor) => {
     const macros = formatMacros(flavor)
+    const promo = activePromo(flavor)
     return (
       <div className="flavor-item" key={flavor.id}>
         {flavor.imageUrl && (
@@ -124,8 +125,12 @@ function FlavorRows({ matchingFlavors, globalBestFlavorId }) {
               {flavor.id === globalBestFlavorId && (
                 <span className="pill accent inline-pill">Best ratio</span>
               )}
+              {promo && <span className="pill promo inline-pill">{promo.label}</span>}
             </span>
             <span className="flavor-item-price mono">
+              {promo?.originalPriceThb != null && (
+                <span className="promo-original-price">฿{promo.originalPriceThb}</span>
+              )}
               ฿{flavor.priceThb}{' '}
               <span className={`ratio-cell tier-${valueTier(Number(ratio(flavor.priceThb, flavor.proteinG)))}`}>
                 ฿{ratio(flavor.priceThb, flavor.proteinG)}/g

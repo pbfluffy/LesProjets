@@ -25,6 +25,12 @@ export const auth = getAuth(app)
 //           imageUrl?,  // optional — real packaging photo, self-hosted
 //                       // under public/products/, gradual backfill same
 //                       // as the macro fields. Never a stock/generic image.
+//           promo?: { label, startsAt?, endsAt?, originalPriceThb? },
+//                       // optional. label is required if promo exists;
+//                       // startsAt/endsAt are epoch-ms, no bound on either
+//                       // side means unbounded in that direction. See
+//                       // activePromo() in src/data/listings.js for how
+//                       // "currently active" is computed from these.
 //           shops: [
 //             { shopId, url? }   // url is optional — a specific listing
 //                                // link (e.g. a real Shopee affiliate

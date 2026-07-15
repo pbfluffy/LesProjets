@@ -322,9 +322,20 @@ html[lang='th'] * {
   color: var(--accent);
   border-color: transparent;
 }
+.pill.promo {
+  background: var(--color-green-bg);
+  color: var(--color-green);
+  border-color: transparent;
+}
 .inline-pill {
   font-size: 9px;
   padding: 1px 7px;
+}
+.promo-original-price {
+  text-decoration: line-through;
+  color: var(--color-text-faint);
+  font-weight: 400;
+  margin-right: 4px;
 }
 
 .ratio-cell {

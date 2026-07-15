@@ -45,6 +45,12 @@ export function assertValidProduct(product) {
     if (!Array.isArray(f.shops) || f.shops.length === 0) {
       throw new Error(`Flavor "${f.name}" needs at least one shop`)
     }
+    if (f.promo) {
+      if (!f.promo.label) throw new Error(`Flavor "${f.name}" has a promo with no label`)
+      if (f.promo.startsAt && f.promo.endsAt && f.promo.endsAt < f.promo.startsAt) {
+        throw new Error(`Flavor "${f.name}"'s promo ends before it starts`)
+      }
+    }
   })
 }
 
