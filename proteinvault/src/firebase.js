@@ -26,10 +26,16 @@ export const auth = getAuth(app)
 //                       // under public/products/, gradual backfill same
 //                       // as the macro fields. Never a stock/generic image.
 //           shops: [
-//             { shopId, url?, promo? }
+//             { shopId, url?, priceThb?, promo? }
 //               // url is optional — a specific listing link (e.g. a real
 //               // Shopee affiliate product link); falls back to the shop's
 //               // own url/affiliateUrl when absent.
+//               // priceThb is optional — a per-shop override of the
+//               // flavor's base priceThb above, for when a shop genuinely
+//               // sells it at a different price (e.g. a box-of-12 unit
+//               // price on Shopee vs a single-bar price at Tops). Absent
+//               // means use the flavor's base price. See shopPriceThb()/
+//               // cheapestShopPrice() in src/data/listings.js.
 //               // promo is optional: { label, startsAt?, endsAt?,
 //               // originalPriceThb? } — lives on the SHOP entry, not the
 //               // flavor, since a deal at Tops doesn't imply the same deal

@@ -637,6 +637,13 @@ html[lang='th'] * {
   font-size: 11.5px;
   font-weight: 600;
 }
+.shop-price {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
 .shop-btn {
   display: inline-flex;
   align-items: center;
