@@ -1,5 +1,6 @@
 const FILTERS = [
   { id: 'all', label: 'All' },
+  { id: 'promo', label: 'On promo' },
   { id: 'best-ratio', label: 'Best ratio' },
   { id: 'under-100', label: 'Under ฿100' },
   { id: 'high-protein', label: '20g+ protein' },

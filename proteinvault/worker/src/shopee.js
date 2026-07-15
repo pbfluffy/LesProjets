@@ -1,10 +1,9 @@
-// Shared helpers for functions/api/fetch-shopee.js. Everything here talks
-// to an unofficial, undocumented Shopee endpoint — field names and the
+// Shared helper for the /api/fetch-shopee route. Everything here talks to
+// an unofficial, undocumented Shopee endpoint — field names and the
 // price-scaling factor were inferred by comparing known listing prices
 // against the raw API response, not from any published Shopee docs. This
-// can break if Shopee changes their page/API shape; the caller (the Pages
-// Function) is expected to catch and surface failures rather than assume
-// this always works.
+// can break if Shopee changes their page/API shape; the caller is expected
+// to catch and surface failures rather than assume this always works.
 
 const ALLOWED_HOSTS = new Set(['shopee.co.th', 'www.shopee.co.th', 's.shopee.co.th'])
 

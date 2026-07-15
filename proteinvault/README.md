@@ -200,26 +200,54 @@ around the raw Firestore Console. It writes straight to Firestore.
 - **Brand/flavor CRUD**: list brands, add a brand, add/edit/remove a flavor
   (price, protein, optional macros, shops). Flavors are an array embedded
   on each brand's Firestore doc, so saving a brand writes the whole doc.
-- **Shopee import** (optional, inside the flavor form): paste a Shopee
-  product or `s.shopee.co.th` link, hit Fetch. Pre-fills name/price/image —
-  the fields Shopee's own page exposes as structured data. It does **not**
-  auto-fill protein/macros/country; those live in inconsistent freeform
-  seller text, and this project's own sourcing notes (see `listings.js`)
-  are proof that guessing at them is worse than typing them in. The
-  listing's raw attribute text is shown next to those fields instead, for
-  glance-and-type. Backed by `functions/api/fetch-shopee.js`, a Cloudflare
-  Pages Function that talks to an **unofficial, undocumented** Shopee
-  endpoint — it can break without notice; the form degrades to fully
-  manual entry on any fetch failure.
+- **Shopee/Villa Market import** (optional, inside the flavor form): paste
+  a product link from either shop, hit Fetch. Pre-fills name/price/image —
+  the fields each shop's own page exposes as structured data. It does
+  **not** auto-fill protein/macros/country; those live in inconsistent
+  freeform seller text, and this project's own sourcing notes (see
+  `listings.js`) are proof that guessing at them is worse than typing them
+  in. The listing's raw attribute text is shown next to those fields
+  instead, for glance-and-type. Neither shop has an official public API —
+  both integrations talk to **unofficial, undocumented** endpoints found
+  by inspecting real product pages, and can break without notice; the
+  form degrades to fully manual entry on any fetch failure.
+  **Reliability differs a lot between the two, tested against real
+  listings**: Villa Market's endpoint worked cleanly end-to-end. Shopee's
+  actually hit their anti-bot CAPTCHA wall during testing
+  (`scene=crawler_item` in the response) — expect it to fail often,
+  especially since Cloudflare Workers' IPs are commonly flagged by
+  bot-detection systems; it's wired up because it works *sometimes* and
+  degrades safely when it doesn't, not because it's dependable. Villa
+  Market's endpoint doesn't expose promo/discount info at all (would need
+  scraping the rendered page or a ~34MB full-catalog dump) — promos stay
+  manual entry regardless of shop, see the "Promotions" note below.
+- **Import backend**: a standalone Cloudflare Worker in `worker/` — kept
+  separate from the site itself because this site deploys to **GitHub
+  Pages**, which can't run serverless functions at all (an earlier
+  Cloudflare Pages Functions attempt silently never worked in production
+  for exactly that reason). One-time setup:
+  1. `cd worker && npx wrangler login` (first time only), then
+     `npx wrangler deploy`.
+  2. Wrangler prints a `*.workers.dev` URL — set that as `VITE_ADMIN_EMAIL`'s
+     neighbor env var, `VITE_IMPORT_WORKER_URL`, in `.env.local` (local
+     dev) and your deploy platform's env settings (production), then
+     redeploy the site. See `.env.example`.
+  3. The Worker only proxies public Shopee/Villa Market data and never
+     touches Firestore, so it's left unauthenticated — verifying a
+     Firebase ID token there would need a service-account key, which this
+     project avoids everywhere else on purpose (see `seed.js`).
+- **Promotions**: a flavor's `shops[]` entry can carry an optional promo
+  (label, start/end date, original price for a strikethrough) — scoped to
+  that specific shop, since a deal at Tops doesn't imply the same deal at
+  Villa Market or Shopee. Shown as a pill next to that shop's link on the
+  public site, plus a lightweight flag on the flavor name so an active
+  promo is visible before expanding. Always manual entry — see the import
+  note above for why. The public filter bar has an "On promo" filter.
 - **Re-verification staleness**: every flavor save stamps a timestamp; the
   dashboard surfaces flavors untouched for 90+ days at the top, so
   re-checking prices happens as part of normal admin visits. No scheduled
-  job — that'd need a separate Worker + cron trigger, deliberately out of
-  scope for now.
-- To test the Shopee-import Function locally (it's a Cloudflare Pages
-  Function, not part of the Vite dev server): `npx wrangler pages dev` per
-  Cloudflare's docs for pairing Pages Functions with an external dev
-  server. Not required just to work on the rest of the admin UI.
+  job — that'd need a Cron Trigger on the Worker above, deliberately out
+  of scope for now.
 
 ## Structure
 
@@ -229,8 +257,10 @@ src/
   data/
     listings.js    products grouped by brand, each with a flavors[] array;
                     each flavor carries its own priceThb, proteinG, and
-                    shops[] ({shopId, url?} — url is a specific listing
-                    link, e.g. a real Shopee affiliate product page)
+                    shops[] ({shopId, url?, promo?} — url is a specific
+                    listing link, e.g. a real Shopee affiliate product
+                    page; promo is a shop-specific deal, see "Promotions"
+                    above)
     shops.js       verified shop directory (online/physical/both), maps-link helper
     useListings.js Firestore fetch with local fallback
   admin/          admin panel (#/admin) — see "Admin panel" above
@@ -238,6 +268,9 @@ src/
   hooks.js        useTheme() — same localStorage["theme"] pattern as the rest of the suite
   App.jsx         wiring: filter state, theme toggle, derived stats
   styles.css      theme tokens + components, matching shared/theme-tokens.css
-functions/
-  api/fetch-shopee.js   Cloudflare Pages Function backing the admin's Shopee import
+worker/
+  wrangler.toml   standalone Cloudflare Worker config — see "Import backend" above
+  src/index.js    routes /api/fetch-shopee and /api/fetch-villa, CORS-gated
+  src/shopee.js   Shopee product-detail fetch + normalize
+  src/villa.js    Villa Market product-detail fetch + normalize
 ```

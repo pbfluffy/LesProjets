@@ -11,3 +11,16 @@
 // production — see .env.example. An unset/empty value means no account
 // can ever pass the client-side check, which fails closed.
 export const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || ''
+
+// Base URL of the standalone Cloudflare Worker (see worker/) that backs
+// the Shopee/Villa Market import buttons in FlavorForm — deployed
+// separately from this site, since GitHub Pages can't run serverless
+// functions at all. Not a secret (it only proxies public product data,
+// same as the Firebase config above), but the actual URL is tied to your
+// Cloudflare account's workers.dev subdomain, so — same reasoning as
+// VITE_ADMIN_EMAIL — it's a build-time env var rather than hardcoded here.
+// Set VITE_IMPORT_WORKER_URL in .env.local for local dev and in your
+// deploy platform's env settings for production, to whatever URL
+// `wrangler deploy` prints after deploying worker/ (see README). Empty
+// means the import buttons just always fail closed to manual entry.
+export const IMPORT_WORKER_URL = import.meta.env.VITE_IMPORT_WORKER_URL || ''
