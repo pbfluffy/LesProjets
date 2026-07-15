@@ -56,6 +56,17 @@ export default function FlavorForm({ flavor, existingFlavors, onSave, onClose })
     })
     return map
   })
+  // Prices are per-shop too, same reasoning as promos — a box-of-12 unit
+  // price on Shopee doesn't have to match a single-bar price at Tops for
+  // what's otherwise the same flavor. Blank means "use the base price
+  // above"; only fill this in when a shop genuinely differs.
+  const [shopPrices, setShopPrices] = useState(() => {
+    const map = {}
+    ;(flavor?.shops || []).forEach((s) => {
+      if (s.priceThb != null) map[s.shopId] = String(s.priceThb)
+    })
+    return map
+  })
   // Promos are per-shop, not per-flavor — a deal at Tops doesn't imply the
   // same deal at Villa Market or Shopee, so each shop entry carries its own
   // optional promo.
@@ -112,6 +123,13 @@ export default function FlavorForm({ flavor, existingFlavors, onSave, onClose })
       if (result.sourceUrl) {
         setShopUrls((m) => ({ ...m, [result.shopId]: result.sourceUrl }))
       }
+      // If the base price above is already filled in (e.g. adding a second
+      // shop to an existing flavor) and this shop's fetched price differs,
+      // record it as that shop's own override instead of silently
+      // discarding it.
+      if (draft.priceThb && result.priceThb != null && Number(draft.priceThb) !== result.priceThb) {
+        setShopPrices((m) => ({ ...m, [result.shopId]: String(result.priceThb) }))
+      }
       // Only Nutrition Depot's importer sends a promo — its discount data
       // is structured, not freeform text, so it's safe to auto-fill (see
       // worker/src/nutritiondepot.js). No start/end date since the source
@@ -146,6 +164,17 @@ export default function FlavorForm({ flavor, existingFlavors, onSave, onClose })
       const entry = { shopId }
       const url = shopUrls[shopId]?.trim()
       if (url) entry.url = url
+
+      const priceOverride = shopPrices[shopId]?.trim()
+      if (priceOverride) {
+        const priceNum = Number(priceOverride)
+        if (!priceNum || priceNum <= 0) {
+          const shopName = shops.find((s) => s.id === shopId)?.name || shopId
+          setError(`${shopName}'s price override must be greater than 0.`)
+          return
+        }
+        entry.priceThb = priceNum
+      }
 
       const promoDraft = shopPromos[shopId]
       const label = promoDraft?.label?.trim()
@@ -319,6 +348,14 @@ export default function FlavorForm({ flavor, existingFlavors, onSave, onClose })
                         placeholder="specific listing URL (optional)"
                         value={shopUrls[shop.id] || ''}
                         onChange={(e) => setShopUrls((m) => ({ ...m, [shop.id]: e.target.value }))}
+                      />
+                      <input
+                        className="input"
+                        type="number"
+                        step="0.01"
+                        placeholder={`price at ${shop.name} (฿, optional — leave blank to use ฿${draft.priceThb || '…'} above)`}
+                        value={shopPrices[shop.id] || ''}
+                        onChange={(e) => setShopPrices((m) => ({ ...m, [shop.id]: e.target.value }))}
                       />
                       <input
                         className="input"

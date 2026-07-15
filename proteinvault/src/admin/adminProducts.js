@@ -2,7 +2,7 @@
 // src/firebase.js — a product doc is { id, brand, country, countryCode,
 // tags, flavors: [{ id, name, priceThb, proteinG, calories?, carbsG?,
 // fatG?, sugarG?, imageUrl?, lastVerifiedAt?, shops: [{shopId, url?,
-// promo?}] }] }.
+// priceThb?, promo?}] }] }.
 
 export function slugify(text) {
   return text
@@ -46,10 +46,13 @@ export function assertValidProduct(product) {
     if (!Array.isArray(f.shops) || f.shops.length === 0) {
       throw new Error(`Flavor "${f.name}" needs at least one shop`)
     }
-    // Promos are per-shop (a deal at Tops isn't necessarily the same at
-    // Villa Market or Shopee), not per-flavor — see activePromo() in
-    // listings.js.
+    // Promos and prices are per-shop (a deal — or a price — at Tops isn't
+    // necessarily the same at Villa Market or Shopee), not per-flavor —
+    // see activePromo()/shopPriceThb() in listings.js.
     f.shops.forEach((s) => {
+      if (s.priceThb != null && (typeof s.priceThb !== 'number' || s.priceThb <= 0)) {
+        throw new Error(`Flavor "${f.name}"'s price override at ${s.shopId} must be greater than 0`)
+      }
       if (!s.promo) return
       if (!s.promo.label) throw new Error(`Flavor "${f.name}" has a shop promo with no label`)
       if (s.promo.startsAt && s.promo.endsAt && s.promo.endsAt < s.promo.startsAt) {
