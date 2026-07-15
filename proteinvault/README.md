@@ -200,8 +200,9 @@ around the raw Firestore Console. It writes straight to Firestore.
 - **Brand/flavor CRUD**: list brands, add a brand, add/edit/remove a flavor
   (price, protein, optional macros, shops). Flavors are an array embedded
   on each brand's Firestore doc, so saving a brand writes the whole doc.
-- **Shopee/Villa Market import** (optional, inside the flavor form): paste
-  a product link from either shop, hit Fetch. Pre-fills name/price/image —
+- **Shopee/Villa Market import** (optional, inside the flavor form) — **not
+  Tops**, see below — paste a product link from either shop, hit Fetch.
+  Pre-fills name/price/image —
   the fields each shop's own page exposes as structured data. It does
   **not** auto-fill protein/macros/country; those live in inconsistent
   freeform seller text, and this project's own sourcing notes (see
@@ -221,6 +222,18 @@ around the raw Firestore Console. It writes straight to Firestore.
   Market's endpoint doesn't expose promo/discount info at all (would need
   scraping the rendered page or a ~34MB full-catalog dump) — promos stay
   manual entry regardless of shop, see the "Promotions" note below.
+- **Tops was tried and confirmed not to work.** Tops actually has the
+  easiest data to parse of the three (full product JSON embedded right in
+  the server-rendered page, no separate API needed) — but the deployed
+  Worker gets a flat, consistent 403 from Tops on every request, even
+  though the exact same code works from a local `wrangler dev` and from
+  plain `curl`. Best guess: Tops is also behind Cloudflare, and their WAF
+  blocks traffic from Cloudflare's own datacenter/Workers IP ranges — a
+  same-infra collision, not a fixable bug. The code lives in
+  `worker/src/tops.js` and the Worker still serves `/api/fetch-tops`, but
+  it's deliberately **not** wired into `ImportPanel.jsx`'s auto-detect,
+  since a button that reliably fails isn't better than no button. Worth
+  retrying later in case Cloudflare's routing or Tops' WAF rules change.
 - **Import backend**: a standalone Cloudflare Worker in `worker/` — kept
   separate from the site itself because this site deploys to **GitHub
   Pages**, which can't run serverless functions at all (an earlier
