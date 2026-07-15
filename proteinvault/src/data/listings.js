@@ -278,24 +278,6 @@ export function ratio(priceThb, proteinG) {
   return (priceThb / proteinG).toFixed(2)
 }
 
-// The price for a specific shop entry — that shop's own override if set,
-// otherwise the flavor's base price. Same shape as promo: most flavors
-// sell for the same price everywhere, so this only needs filling in when
-// a shop genuinely differs (e.g. a Shopee box-of-12 unit price vs a Tops
-// single-bar price for what's otherwise the same flavor).
-export function shopPriceThb(flavor, shopEntry) {
-  return shopEntry?.priceThb ?? flavor.priceThb
-}
-
-// Cheapest price across every shop a flavor is sold at, including any
-// per-shop overrides — used for "from ฿X" headers, the under-100 filter,
-// and best-ratio ranking, so those reflect where you can actually get the
-// best deal rather than just the flavor's base price.
-export function cheapestShopPrice(flavor) {
-  if (!flavor.shops?.length) return flavor.priceThb
-  return Math.min(...flavor.shops.map((s) => shopPriceThb(flavor, s)))
-}
-
 // Full nutrition fields (calories, carbsG, fatG, sugarG) are optional on
 // each flavor — most of the current catalog doesn't have them yet,
 // backfilled gradually as real links come in. This returns only the
