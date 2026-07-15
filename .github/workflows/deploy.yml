@@ -44,6 +44,8 @@ jobs:
 
       - name: Build proteinvault
         working-directory: proteinvault
+        env:
+          VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
         run: |
           npm install
           npm run build
@@ -68,10 +70,6 @@ jobs:
           cp icon-512-maskable.png _site/icon-512-maskable.png
           cp manifest.json _site/manifest.json
           cp promptpay-logo.png _site/promptpay-logo.png
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
 
   deploy:
     needs: build
