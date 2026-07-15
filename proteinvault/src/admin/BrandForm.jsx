@@ -141,27 +141,31 @@ export default function BrandForm({ product, existingIds, onSave, onClose }) {
             <ul className="admin-flavor-list">
               {draft.flavors.map((f) => (
                 <li key={f.id} className="admin-flavor-row">
-                  <div>
-                    <div className="admin-flavor-row-name">
-                      <span className="admin-flavor-bullet">•</span>
-                      {f.name}
+                  <button
+                    type="button"
+                    className="admin-flavor-row-main"
+                    onClick={() => setEditingFlavorId(f.id)}
+                  >
+                    <div>
+                      <div className="admin-flavor-row-name">
+                        <span className="admin-flavor-bullet">•</span>
+                        {f.name}
+                      </div>
+                      <div className="admin-flavor-row-meta mono">
+                        ฿{f.priceThb} · {f.proteinG}g protein
+                      </div>
                     </div>
-                    <div className="admin-flavor-row-meta mono">
-                      ฿{f.priceThb} · {f.proteinG}g protein
-                    </div>
-                  </div>
-                  <div className="admin-flavor-row-actions">
-                    <button type="button" className="btn" onClick={() => setEditingFlavorId(f.id)}>
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      onClick={() => handleRemoveFlavor(f.id)}
-                    >
-                      Remove
-                    </button>
-                  </div>
+                    <span className="admin-flavor-row-chevron" aria-hidden="true">
+                      ›
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => handleRemoveFlavor(f.id)}
+                  >
+                    Remove
+                  </button>
                 </li>
               ))}
             </ul>
