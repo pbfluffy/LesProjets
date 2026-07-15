@@ -25,17 +25,19 @@ export const auth = getAuth(app)
 //           imageUrl?,  // optional — real packaging photo, self-hosted
 //                       // under public/products/, gradual backfill same
 //                       // as the macro fields. Never a stock/generic image.
-//           promo?: { label, startsAt?, endsAt?, originalPriceThb? },
-//                       // optional. label is required if promo exists;
-//                       // startsAt/endsAt are epoch-ms, no bound on either
-//                       // side means unbounded in that direction. See
-//                       // activePromo() in src/data/listings.js for how
-//                       // "currently active" is computed from these.
 //           shops: [
-//             { shopId, url? }   // url is optional — a specific listing
-//                                // link (e.g. a real Shopee affiliate
-//                                // product link); falls back to the
-//                                // shop's own url/affiliateUrl when absent
+//             { shopId, url?, promo? }
+//               // url is optional — a specific listing link (e.g. a real
+//               // Shopee affiliate product link); falls back to the shop's
+//               // own url/affiliateUrl when absent.
+//               // promo is optional: { label, startsAt?, endsAt?,
+//               // originalPriceThb? } — lives on the SHOP entry, not the
+//               // flavor, since a deal at Tops doesn't imply the same deal
+//               // at Villa Market or Shopee. label is required if promo
+//               // exists; startsAt/endsAt are epoch-ms, no bound on either
+//               // side means unbounded in that direction. See
+//               // activePromo() in src/data/listings.js for how
+//               // "currently active" is computed from these.
 //           ] }
 //       ] }
 //     Note proteinG lives on each flavor, not the product — different
