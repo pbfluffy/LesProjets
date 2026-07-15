@@ -160,8 +160,12 @@ around the raw Firestore Console. It writes straight to Firestore.
      needed for this).
   2. Firestore → Rules → publish the rules block below → Publish.
   3. Sign in at `#/admin` with the Google account whose email matches
-     `YOUR_ADMIN_EMAIL` below — there's no separate "add user" step, the
-     Firestore rule is what actually grants access.
+     `VITE_ADMIN_EMAIL` (see below) — there's no separate "add user" step,
+     the Firestore rule is what actually grants access.
+  4. **If your site is on a custom domain** (not `*.firebaseapp.com`/
+     `*.web.app`), also add it under Authentication → Settings →
+     **Authorized domains**, or the sign-in popup opens and immediately
+     closes itself with an error.
   ```
   rules_version = '2';
   service cloud.firestore {
@@ -185,11 +189,14 @@ around the raw Firestore Console. It writes straight to Firestore.
     }
   }
   ```
-  Set your real admin email in `src/admin/config.js` (replace
-  `YOUR_ADMIN_EMAIL`) and keep the Firestore rule above in sync with it —
+  Set your real admin email as a build-time env var, `VITE_ADMIN_EMAIL` —
+  copy `.env.example` to `.env.local` (gitignored) for local dev, and set
+  it in your deploy platform's environment variable settings (e.g.
+  Cloudflare Pages → Settings → Environment variables) for production, then
+  redeploy. Keep the Firestore rule above in sync with the same address —
   client-side email checks are convenience UI only; the rule is the real
-  gate. Both are placeholders in this repo on purpose, not filled in with a
-  real address, since this repo is public.
+  gate. Deliberately never hardcoded in `src/admin/config.js` or committed
+  anywhere in this repo, since it's public.
 - **Brand/flavor CRUD**: list brands, add a brand, add/edit/remove a flavor
   (price, protein, optional macros, shops). Flavors are an array embedded
   on each brand's Firestore doc, so saving a brand writes the whole doc.
