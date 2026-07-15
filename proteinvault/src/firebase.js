@@ -19,7 +19,14 @@ export const auth = getAuth(app)
 
 // Two collections:
 //   `products` — one doc per brand. Shape:
-//     { brand, country, countryCode, tags, flavors: [
+//     { brand, country, countryCode, tags,
+//       logoUrl?,  // optional — self-hosted brand mark under public/logos/,
+//                  // e.g. './logos/mars.jpg'. Set via the admin panel's
+//                  // "Logo URL" field (src/admin/BrandForm.jsx). Falls back
+//                  // to a domain favicon (logoDomain, not yet exposed in
+//                  // the admin UI) when absent — see resolveLogoUrl() in
+//                  // src/data/listings.js.
+//       flavors: [
 //         { id, name, priceThb, proteinG,
 //           calories?, carbsG?, fatG?, sugarG?,  // all optional, gradual backfill
 //           imageUrl?,  // optional — real packaging photo, self-hosted
