@@ -975,9 +975,18 @@ html[lang='th'] * {
   color: var(--color-text-faint);
   margin-top: 2px;
 }
-.admin-flavor-row-actions {
+.admin-flavor-row-main {
+  flex: 1;
   display: flex;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  min-width: 0;
+}
+.admin-flavor-row-chevron {
+  color: var(--color-text-faint);
+  font-size: 16px;
   flex: 0 0 auto;
 }
 
