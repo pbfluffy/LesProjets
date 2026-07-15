@@ -803,7 +803,8 @@ html[lang='th'] * {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   padding-bottom: 16px;
 }
 .admin-topbar-title {
@@ -845,7 +846,8 @@ html[lang='th'] * {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   margin-bottom: 14px;
 }
 .admin-card-header h2 {
@@ -869,6 +871,11 @@ html[lang='th'] * {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+@media (max-width: 380px) {
+  .admin-field-row {
+    grid-template-columns: 1fr;
+  }
 }
 .admin-hint {
   font-size: 10.5px;
@@ -923,7 +930,8 @@ html[lang='th'] * {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 4px 12px;
   padding: 12px 14px;
   border-radius: var(--radius-md);
   border: 0.5px solid var(--color-border);

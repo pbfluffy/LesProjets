@@ -9,6 +9,14 @@ const FILTERS = [
 ]
 
 export default function FilterBar({ active, onChange }) {
+  // Tapping the already-active filter again clears it back to "All" —
+  // otherwise there was no way to turn a filter off on mobile without
+  // scrolling to find and tap "All" specifically.
+  function handleClick(id) {
+    if (id === 'all') return onChange('all')
+    onChange(active === id ? 'all' : id)
+  }
+
   return (
     <div className="filters" role="group" aria-label="Filter bars">
       {FILTERS.map((f) => (
@@ -16,7 +24,7 @@ export default function FilterBar({ active, onChange }) {
           key={f.id}
           type="button"
           className={`filter ${active === f.id ? 'active' : ''}`}
-          onClick={() => onChange(f.id)}
+          onClick={() => handleClick(f.id)}
           aria-pressed={active === f.id}
         >
           {f.label}
