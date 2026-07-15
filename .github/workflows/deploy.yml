@@ -46,6 +46,7 @@ jobs:
         working-directory: proteinvault
         env:
           VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
+          VITE_IMPORT_WORKER_URL: ${{ secrets.VITE_IMPORT_WORKER_URL }}
         run: |
           npm install
           npm run build
