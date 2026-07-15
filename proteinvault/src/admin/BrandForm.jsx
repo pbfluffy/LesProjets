@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { slugify } from './adminProducts.js'
 import FlavorForm from './FlavorForm.jsx'
 
-const EMPTY_PRODUCT = { id: '', brand: '', country: '', countryCode: '', tags: [], flavors: [] }
+const EMPTY_PRODUCT = { id: '', brand: '', country: '', countryCode: '', logoUrl: '', tags: [], flavors: [] }
 
 // Product-level fields plus the flavor list for this brand. Flavor
 // add/edit/remove only mutates local `draft` state (see FlavorForm.jsx) —
@@ -11,7 +11,9 @@ const EMPTY_PRODUCT = { id: '', brand: '', country: '', countryCode: '', tags: [
 export default function BrandForm({ product, existingIds, onSave, onClose }) {
   const isNew = !product
   const [draft, setDraft] = useState(() =>
-    product ? { ...product, flavors: [...product.flavors] } : { ...EMPTY_PRODUCT },
+    product
+      ? { ...EMPTY_PRODUCT, ...product, flavors: [...product.flavors] }
+      : { ...EMPTY_PRODUCT },
   )
   const [editingFlavorId, setEditingFlavorId] = useState(null) // null | 'new' | flavor id
   const [saving, setSaving] = useState(false)
@@ -38,7 +40,13 @@ export default function BrandForm({ product, existingIds, onSave, onClose }) {
     }
     setSaving(true)
     try {
-      await onSave(draft)
+      const toSave = { ...draft }
+      if (draft.logoUrl?.trim()) {
+        toSave.logoUrl = draft.logoUrl.trim()
+      } else {
+        delete toSave.logoUrl
+      }
+      await onSave(toSave)
       onClose()
     } catch (err) {
       setError(err.message)
@@ -112,6 +120,15 @@ export default function BrandForm({ product, existingIds, onSave, onClose }) {
             onChange={(e) => updateField('countryCode', e.target.value.toUpperCase())}
             maxLength={2}
             required
+          />
+        </label>
+        <label className="field">
+          <span className="label">Logo URL</span>
+          <input
+            className="input"
+            value={draft.logoUrl}
+            onChange={(e) => updateField('logoUrl', e.target.value)}
+            placeholder="optional — self-hosted under public/logos/, e.g. ./logos/brand.png"
           />
         </label>
         <label className="field">
