@@ -142,7 +142,10 @@ export default function BrandForm({ product, existingIds, onSave, onClose }) {
               {draft.flavors.map((f) => (
                 <li key={f.id} className="admin-flavor-row">
                   <div>
-                    <div className="admin-flavor-row-name">{f.name}</div>
+                    <div className="admin-flavor-row-name">
+                      <span className="admin-flavor-bullet">•</span>
+                      {f.name}
+                    </div>
                     <div className="admin-flavor-row-meta mono">
                       ฿{f.priceThb} · {f.proteinG}g protein
                     </div>
