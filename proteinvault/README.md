@@ -200,27 +200,48 @@ around the raw Firestore Console. It writes straight to Firestore.
 - **Brand/flavor CRUD**: list brands, add a brand, add/edit/remove a flavor
   (price, protein, optional macros, shops). Flavors are an array embedded
   on each brand's Firestore doc, so saving a brand writes the whole doc.
-- **Shopee/Villa Market import** (optional, inside the flavor form): paste
-  a product link from either shop, hit Fetch. Pre-fills name/price/image —
-  the fields each shop's own page exposes as structured data. It does
-  **not** auto-fill protein/macros/country; those live in inconsistent
-  freeform seller text, and this project's own sourcing notes (see
-  `listings.js`) are proof that guessing at them is worse than typing them
-  in. The listing's raw attribute text is shown next to those fields
-  instead, for glance-and-type. Neither shop has an official public API —
-  both integrations talk to **unofficial, undocumented** endpoints found
-  by inspecting real product pages, and can break without notice; the
-  form degrades to fully manual entry on any fetch failure.
-  **Reliability differs a lot between the two, tested against real
-  listings**: Villa Market's endpoint worked cleanly end-to-end. Shopee's
-  actually hit their anti-bot CAPTCHA wall during testing
-  (`scene=crawler_item` in the response) — expect it to fail often,
-  especially since Cloudflare Workers' IPs are commonly flagged by
-  bot-detection systems; it's wired up because it works *sometimes* and
-  degrades safely when it doesn't, not because it's dependable. Villa
-  Market's endpoint doesn't expose promo/discount info at all (would need
-  scraping the rendered page or a ~34MB full-catalog dump) — promos stay
-  manual entry regardless of shop, see the "Promotions" note below.
+- **Product import** (optional, inside the flavor form): paste a product
+  link from Shopee, Villa Market, or Nutrition Depot, hit Fetch. Pre-fills
+  name/price/image — the fields each shop's own page exposes as
+  structured data. It does **not** auto-fill protein/macros/country;
+  those live in inconsistent freeform seller text, and this project's own
+  sourcing notes (see `listings.js`) are proof that guessing at them is
+  worse than typing them in. The listing's raw attribute text is shown
+  next to those fields instead, for glance-and-type. The form degrades to
+  fully manual entry on any fetch failure.
+  **Reliability varies a lot by shop, tested against real listings, not
+  assumed:**
+  - **Nutrition Depot** — runs on Shopify, which ships a real, official,
+    publicly documented JSON API on every storefront (`{product-url}.json`).
+    Not reverse-engineered like the others; the most reliable of the four
+    by a wide margin. Also the only one that exposes promo/discount info
+    (`compare_at_price` vs `price`), shown as reference text — still not
+    auto-applied to the promo fields, same reasoning as protein/macros.
+  - **Villa Market** — unofficial endpoint, found by inspecting network
+    requests on a live product page, but worked cleanly end-to-end in
+    testing.
+  - **Shopee** — unofficial endpoint; hit their anti-bot CAPTCHA wall
+    during testing (`scene=crawler_item` in the response). Expect it to
+    fail often, especially since Cloudflare Workers' IPs are commonly
+    flagged by bot-detection systems; wired up because it works
+    *sometimes*, not because it's dependable.
+  - **Tops — tried and confirmed not to work, not offered in the UI.**
+    Tops actually has the easiest data to parse of the four (full product
+    JSON embedded right in the server-rendered page) — but the deployed
+    Worker gets a flat, consistent 403 from Tops on every request, even
+    though the exact same code works from a local `wrangler dev` and from
+    plain `curl`. Best guess: Tops is also behind Cloudflare, and their
+    WAF blocks traffic from Cloudflare's own datacenter/Workers IP
+    ranges — a same-infra collision, not a fixable bug. The code lives in
+    `worker/src/tops.js` and the Worker still serves `/api/fetch-tops`,
+    but `ImportPanel.jsx`'s auto-detect deliberately excludes it — a
+    button that reliably fails isn't better than no button. Worth
+    retrying later in case Cloudflare's routing or Tops' WAF rules
+    change.
+  - None of Villa Market/Shopee/Tops expose promo/discount info the way
+    Nutrition Depot does (would need scraping the rendered page or, for
+    Villa Market, a ~34MB full-catalog dump) — promos stay manual entry
+    for those three regardless, see the "Promotions" note below.
 - **Import backend**: a standalone Cloudflare Worker in `worker/` — kept
   separate from the site itself because this site deploys to **GitHub
   Pages**, which can't run serverless functions at all (an earlier
@@ -269,8 +290,12 @@ src/
   App.jsx         wiring: filter state, theme toggle, derived stats
   styles.css      theme tokens + components, matching shared/theme-tokens.css
 worker/
-  wrangler.toml   standalone Cloudflare Worker config — see "Import backend" above
-  src/index.js    routes /api/fetch-shopee and /api/fetch-villa, CORS-gated
-  src/shopee.js   Shopee product-detail fetch + normalize
-  src/villa.js    Villa Market product-detail fetch + normalize
+  wrangler.toml        standalone Cloudflare Worker config — see "Import backend" above
+  src/index.js         routes /api/fetch-{shopee,villa,tops,nutritiondepot}, CORS-gated
+  src/shopee.js        Shopee product-detail fetch + normalize
+  src/villa.js         Villa Market product-detail fetch + normalize
+  src/tops.js          Tops product-detail fetch + normalize — confirmed blocked in
+                        production, not wired into the UI, see "Product import" above
+  src/nutritiondepot.js  Nutrition Depot (Shopify) product-detail fetch + normalize —
+                        the reliable one, official Shopify JSON API
 ```

@@ -1,5 +1,5 @@
-// Shop directory — scoped to three shops. Real, verified shops (via web
-// search / direct browsing), not invented.
+// Shop directory — real, verified shops (via web search / direct
+// browsing), not invented.
 //
 // type: 'online' | 'physical' | 'both'
 // url:               generic storefront URL — fallback when nothing more
@@ -41,6 +41,12 @@ export const shops = [
     url: 'https://shoponline.villamarket.com',
     address: '591/1, 4-7 Sukhumvit Rd (Sukhumvit 33 branch), Khlong Toei Nuea, Watthana, Bangkok 10110',
     note: 'Multiple 24-hour branches across Bangkok',
+  },
+  {
+    id: 'nutrition-depot',
+    name: 'Nutrition Depot',
+    type: 'online',
+    url: 'https://nutritiondepot.co.th',
   },
 ]
 

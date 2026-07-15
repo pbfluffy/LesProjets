@@ -6,14 +6,22 @@ import {
   normalizeShopeeItem,
 } from './shopee.js'
 import { isAllowedVillaUrl, extractProductId, fetchVillaItem, normalizeVillaItem } from './villa.js'
+import { isAllowedTopsUrl, fetchTopsPage, normalizeTopsItem } from './tops.js'
+import {
+  isAllowedNutritionDepotUrl,
+  toProductJsonUrl,
+  fetchNutritionDepotItem,
+  normalizeNutritionDepotItem,
+} from './nutritiondepot.js'
 
 // Standalone Cloudflare Worker, deployed separately from the static site
 // (which is on GitHub Pages and can't run serverless functions at all —
 // this replaces the earlier attempt at Cloudflare Pages Functions, which
 // silently never worked in production for that exact reason). Only
-// proxies PUBLIC product data from Shopee/Villa Market and never touches
-// Firestore — writes still happen client-side from the admin panel,
-// gated by Firestore security rules. See proteinvault/README.md.
+// proxies PUBLIC product data from Shopee/Villa Market/Tops/Nutrition
+// Depot and never touches Firestore — writes still happen client-side
+// from the admin panel, gated by Firestore security rules. See
+// proteinvault/README.md.
 
 function isAllowedOrigin(origin) {
   return origin === 'https://pumbafluffycorgi.com' || origin.startsWith('http://localhost:')
@@ -78,6 +86,38 @@ async function handleVilla(targetUrl, origin) {
   }
 }
 
+async function handleTops(targetUrl, origin) {
+  if (!isAllowedTopsUrl(targetUrl)) {
+    return jsonResponse({ error: 'url must be a tops.co.th link' }, 400, origin)
+  }
+  try {
+    const productData = await fetchTopsPage(targetUrl)
+    return jsonResponse(normalizeTopsItem(productData, targetUrl), 200, origin)
+  } catch (err) {
+    return jsonResponse({ error: err.message || 'Could not fetch that Tops listing.' }, 502, origin)
+  }
+}
+
+async function handleNutritionDepot(targetUrl, origin) {
+  if (!isAllowedNutritionDepotUrl(targetUrl)) {
+    return jsonResponse({ error: 'url must be a nutritiondepot.co.th link' }, 400, origin)
+  }
+  const jsonUrl = toProductJsonUrl(targetUrl)
+  if (!jsonUrl) {
+    return jsonResponse(
+      { error: "Couldn't find a product path in that URL — paste the full product page link." },
+      422,
+      origin,
+    )
+  }
+  try {
+    const product = await fetchNutritionDepotItem(jsonUrl)
+    return jsonResponse(normalizeNutritionDepotItem(product, targetUrl), 200, origin)
+  } catch (err) {
+    return jsonResponse({ error: err.message || 'Could not fetch that Nutrition Depot listing.' }, 502, origin)
+  }
+}
+
 export default {
   async fetch(request) {
     const origin = request.headers.get('Origin') || ''
@@ -103,6 +143,8 @@ export default {
 
     if (url.pathname === '/api/fetch-shopee') return handleShopee(targetUrl, origin)
     if (url.pathname === '/api/fetch-villa') return handleVilla(targetUrl, origin)
+    if (url.pathname === '/api/fetch-tops') return handleTops(targetUrl, origin)
+    if (url.pathname === '/api/fetch-nutritiondepot') return handleNutritionDepot(targetUrl, origin)
     return jsonResponse({ error: 'Not found' }, 404, origin)
   },
 }
