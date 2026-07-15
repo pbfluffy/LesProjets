@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { makeFlavorId } from './adminProducts.js'
 import { shops } from '../data/shops.js'
-import ShopeeImportPanel from './ShopeeImportPanel.jsx'
+import ImportPanel from './ImportPanel.jsx'
 
 const NUMERIC_OPTIONAL = ['calories', 'carbsG', 'fatG', 'sugarG']
 
@@ -171,11 +171,11 @@ export default function FlavorForm({ flavor, existingFlavors, onSave, onClose })
         </button>
       </div>
 
-      <ShopeeImportPanel onImport={handleImport} />
+      <ImportPanel onImport={handleImport} />
       {importNote && (
         <div className="admin-import-note mono">
           <div className="admin-import-note-title">
-            Shopee listing details (reference only — fill in the fields below):
+            Listing details (reference only — fill in the fields below):
           </div>
           <pre className="admin-import-note-body">{importNote}</pre>
         </div>

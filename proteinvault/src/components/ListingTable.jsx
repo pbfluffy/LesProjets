@@ -14,6 +14,8 @@ function valueTier(ratioNum) {
 
 function flavorPassesFilter(flavor, product, filter) {
   switch (filter) {
+    case 'promo':
+      return flavor.shops.some((s) => activePromo(s.promo))
     case 'under-100':
       return flavor.priceThb < 100
     case 'high-protein':
