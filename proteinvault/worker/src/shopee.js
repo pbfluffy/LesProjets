@@ -30,13 +30,29 @@ export async function resolveCanonicalUrl(rawUrl) {
   return res.url || rawUrl
 }
 
-// Real Shopee product URLs end in "...-i.{shopid}.{itemid}" (optionally
-// followed by a query string) — inferred from the URL shape of actual
-// product pages, not documented anywhere official.
+// Shopee product URLs show up in three shapes we've actually seen, tried
+// in order:
+//   1. Classic canonical: /product-slug-i.{shopid}.{itemid}
+//   2. Modern canonical:  /product/{shopid}/{itemid}
+//   3. Affiliate short links now redirect through an "opaanlp" (open-app
+//      landing page) intermediary — a further JS-driven redirect gets
+//      you to shape 2, but the two numbers already in the opaanlp path
+//      ARE the shopid/itemid pair, confirmed by comparing against a real
+//      browser's fully-resolved URL for the same link. No need to wait
+//      for that second redirect.
+// None of this is documented anywhere official — inferred from the URL
+// shapes of real product pages and redirects.
 export function extractShopAndItemId(canonicalUrl) {
-  const match = canonicalUrl.match(/-i\.(\d+)\.(\d+)/)
-  if (!match) return null
-  return { shopId: match[1], itemId: match[2] }
+  const classic = canonicalUrl.match(/-i\.(\d+)\.(\d+)/)
+  if (classic) return { shopId: classic[1], itemId: classic[2] }
+
+  const modern = canonicalUrl.match(/\/product\/(\d+)\/(\d+)/)
+  if (modern) return { shopId: modern[1], itemId: modern[2] }
+
+  const opaanlp = canonicalUrl.match(/\/opaanlp\/(\d+)\/(\d+)/)
+  if (opaanlp) return { shopId: opaanlp[1], itemId: opaanlp[2] }
+
+  return null
 }
 
 export async function fetchShopeeItem(shopId, itemId) {
