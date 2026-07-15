@@ -57,9 +57,19 @@ export function normalizeNutritionDepotItem(product, sourceUrl) {
   if (product.vendor) attributes.push({ name: 'Brand', value: product.vendor })
   if (product.product_type) attributes.push({ name: 'Type', value: product.product_type })
   if (variant?.sku) attributes.push({ name: 'SKU', value: variant.sku })
-  if (compareAt && compareAt > priceThb) {
+
+  // Unlike protein/macros, this isn't freeform text to guess at — it's the
+  // same structured, exact numeric field the price itself comes from, so
+  // it's safe to auto-fill as a promo (see ImportPanel.jsx's handleImport).
+  // No start/end date, since the source doesn't say how long it's on —
+  // an indefinite promo (label only) until the admin edits it.
+  let promo = null
+  if (compareAt && priceThb && compareAt > priceThb) {
+    const pct = Math.round((1 - priceThb / compareAt) * 100)
+    promo = { label: `${pct}% off`, originalPriceThb: compareAt }
     attributes.push({ name: 'Regular price (on page)', value: `฿${compareAt}` })
   }
+
   return {
     name: product.title || null,
     priceThb,
@@ -67,5 +77,6 @@ export function normalizeNutritionDepotItem(product, sourceUrl) {
     attributes,
     rawDescription: product.body_html ? product.body_html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : null,
     sourceUrl,
+    promo,
   }
 }

@@ -17,6 +17,21 @@ function detectEndpoint(url) {
   return null
 }
 
+// Matches the same hostname to a shop id from src/data/shops.js, so
+// FlavorForm can auto-select that shop and fill in its URL field — no
+// reason to make the admin paste the same link twice.
+function detectShopId(url) {
+  try {
+    const { hostname } = new URL(url)
+    if (hostname.endsWith('shopee.co.th')) return 'shopee-thailand'
+    if (hostname === 'shop.villamarket.com') return 'villa-market'
+    if (hostname.endsWith('nutritiondepot.co.th')) return 'nutrition-depot'
+  } catch {
+    // not a valid URL at all — falls through to null below
+  }
+  return null
+}
+
 // Calls the standalone Cloudflare Worker (see worker/) backing product
 // imports. Best-effort only: pre-fills name/price/image, the structured
 // fields each shop's own page exposes. Protein, macros, and country are
@@ -63,7 +78,7 @@ export default function ImportPanel({ onImport }) {
       }
       const data = await res.json()
       const attributesText = (data.attributes || []).map((a) => `${a.name}: ${a.value}`).join('\n')
-      onImport({ ...data, attributesText })
+      onImport({ ...data, attributesText, shopId: detectShopId(trimmed) })
       setStatus('idle')
     } catch (err) {
       setStatus('error')

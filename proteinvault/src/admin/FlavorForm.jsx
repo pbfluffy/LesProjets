@@ -104,6 +104,30 @@ export default function FlavorForm({ flavor, existingFlavors, onSave, onClose })
       imageUrl: d.imageUrl || result.images?.[0] || d.imageUrl,
     }))
     setImportNote(result.attributesText || '')
+
+    // The pasted URL already told us which shop this is — no reason to
+    // make the admin paste it again into that shop's URL field.
+    if (result.shopId) {
+      setSelectedShops((s) => new Set(s).add(result.shopId))
+      if (result.sourceUrl) {
+        setShopUrls((m) => ({ ...m, [result.shopId]: result.sourceUrl }))
+      }
+      // Only Nutrition Depot's importer sends a promo — its discount data
+      // is structured, not freeform text, so it's safe to auto-fill (see
+      // worker/src/nutritiondepot.js). No start/end date since the source
+      // doesn't say how long it runs; indefinite until edited.
+      if (result.promo) {
+        setShopPromos((m) => ({
+          ...m,
+          [result.shopId]: {
+            label: result.promo.label || '',
+            startDate: '',
+            endDate: '',
+            originalPriceThb: result.promo.originalPriceThb ?? '',
+          },
+        }))
+      }
+    }
   }
 
   function handleSubmit(e) {
