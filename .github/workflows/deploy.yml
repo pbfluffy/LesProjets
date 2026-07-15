@@ -71,6 +71,10 @@ jobs:
           cp manifest.json _site/manifest.json
           cp promptpay-logo.png _site/promptpay-logo.png
 
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
