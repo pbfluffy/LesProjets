@@ -12,13 +12,22 @@ export default function BrandList({ products, onSelect, onAddBrand }) {
       ) : (
         <ul className="admin-brand-list">
           {products.map((p) => (
-            <li key={p.id}>
+            <li key={p.id} className="admin-brand-block">
               <button type="button" className="admin-brand-row" onClick={() => onSelect(p.id)}>
                 <span className="admin-brand-row-name">{p.brand}</span>
                 <span className="admin-brand-row-meta mono">
                   {p.country} · {p.flavors.length} flavor{p.flavors.length === 1 ? '' : 's'}
                 </span>
               </button>
+              {p.flavors.length > 0 && (
+                <ul className="admin-brand-flavor-list">
+                  {p.flavors.map((f) => (
+                    <li key={f.id} className="admin-brand-flavor-item">
+                      {f.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </ul>

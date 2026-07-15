@@ -292,6 +292,20 @@ export function formatMacros(flavor) {
   return parts.length ? parts.join(' · ') : null
 }
 
+// A promo is only "active" if today falls within its optional start/end
+// window — no lower bound means it's already started, no upper bound means
+// it doesn't expire. Label alone (no dates) means an indefinite promo.
+// Returns null if there's no promo or it isn't active right now, so
+// callers can just check truthiness.
+export function activePromo(flavor) {
+  const promo = flavor.promo
+  if (!promo || !promo.label) return null
+  const now = Date.now()
+  if (promo.startsAt && now < promo.startsAt) return null
+  if (promo.endsAt && now > promo.endsAt) return null
+  return promo
+}
+
 // Converts an ISO 3166-1 alpha-2 code ('TH') to a flag image URL via
 // flagcdn.com — flag emoji don't render as flags on Windows.
 export function flagUrl(countryCode) {

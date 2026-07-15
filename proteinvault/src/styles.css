@@ -322,9 +322,20 @@ html[lang='th'] * {
   color: var(--accent);
   border-color: transparent;
 }
+.pill.promo {
+  background: var(--color-green-bg);
+  color: var(--color-green);
+  border-color: transparent;
+}
 .inline-pill {
   font-size: 9px;
   padding: 1px 7px;
+}
+.promo-original-price {
+  text-decoration: line-through;
+  color: var(--color-text-faint);
+  font-weight: 400;
+  margin-right: 4px;
 }
 
 .ratio-cell {
@@ -816,6 +827,7 @@ html[lang='th'] * {
 }
 .admin-card-header h2 {
   font-size: 15px;
+  font-weight: 700;
 }
 .admin-card-header h3 {
   font-size: 12.5px;
@@ -907,6 +919,29 @@ html[lang='th'] * {
   font-size: 10.5px;
   color: var(--color-text-faint);
 }
+.admin-brand-block {
+  display: flex;
+  flex-direction: column;
+}
+.admin-brand-flavor-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 0 2px 18px;
+}
+.admin-brand-flavor-item {
+  position: relative;
+  padding-left: 12px;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+.admin-brand-flavor-item::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--color-text-faint);
+}
 
 .admin-flavor-section {
   border-top: 0.5px solid var(--color-border);
@@ -930,6 +965,10 @@ html[lang='th'] * {
 .admin-flavor-row-name {
   font-size: 13px;
   font-weight: 600;
+}
+.admin-flavor-bullet {
+  color: var(--color-text-faint);
+  margin-right: 6px;
 }
 .admin-flavor-row-meta {
   font-size: 10.5px;
