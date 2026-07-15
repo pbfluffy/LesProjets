@@ -11,6 +11,7 @@ export default function App() {
   const { items: products, usingFallback } = useListings()
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
+  const [viewMode, setViewMode] = useState('brand') // 'brand' | 'shop'
   const [theme, setTheme] = useTheme()
 
   const brandCount = products.length
@@ -64,9 +65,18 @@ export default function App() {
           onChange={(e) => setSearch(e.target.value)}
           aria-label="Search brand or flavor"
         />
+        <select
+          className="view-select"
+          value={viewMode}
+          onChange={(e) => setViewMode(e.target.value)}
+          aria-label="Group listings by"
+        >
+          <option value="brand">By brand</option>
+          <option value="shop">By shop</option>
+        </select>
       </div>
       <FilterBar active={filter} onChange={setFilter} />
-      <ListingTable products={products} filter={filter} search={search} />
+      <ListingTable products={products} filter={filter} search={search} viewMode={viewMode} />
     </div>
   )
 }

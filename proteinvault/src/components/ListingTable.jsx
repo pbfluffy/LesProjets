@@ -29,6 +29,12 @@ function flavorPassesFilter(flavor, product, filter) {
   }
 }
 
+function flavorMatchesSearch(flavor, product, search) {
+  if (!search.trim()) return true
+  const needle = search.trim().toLowerCase()
+  return product.brand.toLowerCase().includes(needle) || flavor.name.toLowerCase().includes(needle)
+}
+
 // Resolves each flavor.shops[] entry ({shopId, url?, promo?}) to its full
 // shop object plus the actual link to use, and drops any shopId that
 // doesn't resolve. promo passes through as-is — it's specific to that
@@ -103,6 +109,8 @@ function ShopLink({ shop, href, compact = false }) {
   )
 }
 
+// Brand view: every shop a flavor is sold at, listed together under that
+// flavor's name.
 function FlavorRows({ matchingFlavors, globalBestFlavorId }) {
   return matchingFlavors.map((flavor) => {
     const macros = formatMacros(flavor)
@@ -164,13 +172,61 @@ function FlavorRows({ matchingFlavors, globalBestFlavorId }) {
   })
 }
 
-function flavorMatchesSearch(flavor, product, search) {
-  if (!search.trim()) return true
-  const needle = search.trim().toLowerCase()
-  return product.brand.toLowerCase().includes(needle) || flavor.name.toLowerCase().includes(needle)
+// Shop view: every flavor a shop carries, listed together under that
+// shop's name — same visual language as FlavorRows, but one shop link
+// each (the specific one for this shop) instead of a full shop list, and
+// the brand name shown alongside the flavor name since multiple brands
+// now sit side by side.
+function ShopFlavorEntries({ entries, globalBestFlavorId }) {
+  return entries.map(({ product, flavor, shop, href, promo }) => {
+    const macros = formatMacros(flavor)
+    return (
+      <div className="flavor-item" key={`${shop.id}-${flavor.id}`}>
+        {flavor.imageUrl && (
+          <img
+            className="flavor-thumb"
+            src={flavor.imageUrl}
+            alt={flavor.name}
+            width="72"
+            height="36"
+            onError={(e) => {
+              e.target.style.display = 'none'
+            }}
+          />
+        )}
+        <div className="flavor-item-body">
+          <div className="flavor-item-top">
+            <span className="flavor-item-name">
+              <span className="flavor-item-brand-tag">{product.brand}</span>
+              {flavor.name}
+              {flavor.id === globalBestFlavorId && (
+                <span className="pill accent inline-pill">Best ratio</span>
+              )}
+              {promo && <span className="pill promo inline-pill">{promo.label}</span>}
+            </span>
+            <span className="flavor-item-price mono">
+              ฿{flavor.priceThb}{' '}
+              <span className={`ratio-cell tier-${valueTier(Number(ratio(flavor.priceThb, flavor.proteinG)))}`}>
+                ฿{ratio(flavor.priceThb, flavor.proteinG)}/g
+              </span>
+            </span>
+          </div>
+          {macros && <div className="flavor-macros mono">{macros}</div>}
+          {promo?.originalPriceThb != null && (
+            <div className="promo-original-price mono">was ฿{promo.originalPriceThb}</div>
+          )}
+          <div className="shop-list">
+            <div className="shop-cell">
+              <ShopLink shop={shop} href={href} />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  })
 }
 
-export default function ListingTable({ products, filter, search = '' }) {
+export default function ListingTable({ products, filter, search = '', viewMode = 'brand' }) {
   const [expanded, setExpanded] = useState(() => new Set())
 
   // Best ratio across every flavor of every product, for the "Best ratio" badge.
@@ -185,6 +241,183 @@ export default function ListingTable({ products, filter, search = '' }) {
       }
     })
   })
+
+  function toggle(id) {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  if (viewMode === 'shop') {
+    // Flatten to one entry per (flavor, shop it's sold at), keeping only
+    // flavors that pass the current filter/search, then group by shop.
+    const shopGroups = new Map()
+    products.forEach((product) => {
+      product.flavors.forEach((flavor) => {
+        if (!flavorPassesFilter(flavor, product, filter)) return
+        if (!flavorMatchesSearch(flavor, product, search)) return
+        resolveShops(flavor.shops).forEach(({ shop, href, promo: rawPromo }) => {
+          const promo = activePromo(rawPromo)
+          if (!shopGroups.has(shop.id)) shopGroups.set(shop.id, { shop, entries: [] })
+          shopGroups.get(shop.id).entries.push({ product, flavor, shop, href, promo })
+        })
+      })
+    })
+
+    let shopRows = [...shopGroups.values()].map(({ shop, entries }) => {
+      const isOpen = expanded.has(`s:${shop.id}`)
+      const cheapest = [...entries].sort((a, b) => a.flavor.priceThb - b.flavor.priceThb)[0]
+      const bestRatioForShop = Math.min(
+        ...entries.map((e) => Number(ratio(e.flavor.priceThb, e.flavor.proteinG))),
+      ).toFixed(2)
+      return { shop, entries, isOpen, cheapest, bestRatioForShop }
+    })
+
+    if (filter === 'best-ratio') {
+      shopRows.sort((a, b) => Number(a.bestRatioForShop) - Number(b.bestRatioForShop))
+    } else {
+      shopRows.sort((a, b) => a.shop.name.localeCompare(b.shop.name))
+    }
+
+    if (shopRows.length === 0) {
+      return (
+        <div className="empty-state">
+          {search.trim() ? `No bars match "${search.trim()}".` : 'No bars match that filter yet.'}
+        </div>
+      )
+    }
+
+    return (
+      <>
+        {/* Mobile: card list. */}
+        <div className="card-list">
+          {shopRows.map(({ shop, entries, isOpen, cheapest, bestRatioForShop }) => {
+            const icon = shopIconUrl(shop)
+            return (
+              <div className="p-card" key={shop.id}>
+                <div
+                  className={`p-card-head ${isOpen ? 'open' : ''}`}
+                  onClick={() => toggle(`s:${shop.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      toggle(`s:${shop.id}`)
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isOpen}
+                >
+                  {icon && (
+                    <img
+                      className="brand-logo"
+                      src={icon}
+                      alt=""
+                      width="22"
+                      height="22"
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                      }}
+                    />
+                  )}
+                  <div className="p-card-info">
+                    <div className="p-card-brand">{shop.name}</div>
+                    <div className="p-card-meta mono">
+                      {entries.length} bar{entries.length > 1 ? 's' : ''} · from ฿{cheapest.flavor.priceThb} ·{' '}
+                      <span className={`ratio-cell tier-${valueTier(Number(bestRatioForShop))}`}>
+                        ฿{bestRatioForShop}/g
+                      </span>
+                    </div>
+                  </div>
+                  <div className="expand-cell">{isOpen ? '−' : '+'}</div>
+                </div>
+
+                {isOpen && (
+                  <div className="p-card-flavors">
+                    <ShopFlavorEntries entries={entries} globalBestFlavorId={globalBestFlavorId} />
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Desktop: table. */}
+        <div className="table-wrap">
+          <table className="ptable">
+            <thead>
+              <tr>
+                <th>Shop</th>
+                <th className="num">From</th>
+                <th className="num">Best ฿/g</th>
+                <th className="num">Bars</th>
+                <th aria-label="Expand" />
+              </tr>
+            </thead>
+            <tbody>
+              {shopRows.map(({ shop, entries, isOpen, cheapest, bestRatioForShop }) => {
+                const icon = shopIconUrl(shop)
+                return (
+                  <Fragment key={shop.id}>
+                    <tr
+                      className={`product-row ${isOpen ? 'open' : ''}`}
+                      onClick={() => toggle(`s:${shop.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          toggle(`s:${shop.id}`)
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={isOpen}
+                      aria-label={`${shop.name}, ${entries.length} bar${entries.length > 1 ? 's' : ''}, ${isOpen ? 'expanded' : 'collapsed'}`}
+                    >
+                      <td>
+                        <div className="brand-cell-main">
+                          {icon && (
+                            <img
+                              className="brand-logo"
+                              src={icon}
+                              alt=""
+                              width="20"
+                              height="20"
+                              onError={(e) => {
+                                e.target.style.display = 'none'
+                              }}
+                            />
+                          )}
+                          <div className="brand-name">{shop.name}</div>
+                        </div>
+                      </td>
+                      <td className="num mono">฿{cheapest.flavor.priceThb}</td>
+                      <td className={`num mono ratio-cell tier-${valueTier(Number(bestRatioForShop))}`}>
+                        ฿{bestRatioForShop}
+                      </td>
+                      <td className="num mono">{entries.length}</td>
+                      <td className="expand-cell">{isOpen ? '−' : '+'}</td>
+                    </tr>
+                    {isOpen && (
+                      <tr className="flavor-row">
+                        <td colSpan={5}>
+                          <div className="flavor-panel">
+                            <ShopFlavorEntries entries={entries} globalBestFlavorId={globalBestFlavorId} />
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </>
+    )
+  }
 
   const visible = products
     .map((product) => ({
@@ -215,18 +448,9 @@ export default function ListingTable({ products, filter, search = '' }) {
     )
   }
 
-  function toggle(id) {
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
   // Shared per-product computed values, used by both the card and table renders.
   const rows = visible.map(({ product, matchingFlavors }) => {
-    const isOpen = expanded.has(product.id)
+    const isOpen = expanded.has(`p:${product.id}`)
     const cheapestFlavor = [...matchingFlavors].sort((a, b) => a.priceThb - b.priceThb)[0]
     const bestRatioForProduct = Math.min(
       ...matchingFlavors.map((f) => Number(ratio(f.priceThb, f.proteinG))),
@@ -257,11 +481,11 @@ export default function ListingTable({ products, filter, search = '' }) {
           <div className="p-card" key={product.id}>
             <div
               className={`p-card-head ${isOpen ? 'open' : ''}`}
-              onClick={() => toggle(product.id)}
+              onClick={() => toggle(`p:${product.id}`)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
-                  toggle(product.id)
+                  toggle(`p:${product.id}`)
                 }
               }}
               role="button"
@@ -343,11 +567,11 @@ export default function ListingTable({ products, filter, search = '' }) {
               <Fragment key={product.id}>
                 <tr
                   className={`product-row ${isOpen ? 'open' : ''}`}
-                  onClick={() => toggle(product.id)}
+                  onClick={() => toggle(`p:${product.id}`)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
-                      toggle(product.id)
+                      toggle(`p:${product.id}`)
                     }
                   }}
                   role="button"
