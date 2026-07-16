@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import ShareTrip from './ShareTrip.jsx'
 
 function lerp(a, b, t) {
   const ah = a.match(/\w\w/g).map((x) => parseInt(x, 16))
@@ -35,9 +36,12 @@ export default function TripView({ trip, onReset }) {
 
   return (
     <div className="trip-view">
-      <button type="button" className="btn-ghost back-btn" onClick={onReset}>
-        ← Start a new trip
-      </button>
+      <div className="trip-view-toolbar">
+        <button type="button" className="btn-ghost back-btn" onClick={onReset}>
+          ← Start a new trip
+        </button>
+        <ShareTrip trip={trip} />
+      </div>
 
       <div className="hero">
         <div className="leaf-field" aria-hidden="true">

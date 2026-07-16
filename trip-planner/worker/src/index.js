@@ -1,11 +1,16 @@
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 }
 
 const MAX_FILES = 6
 const MAX_FILE_BYTES = 15 * 1024 * 1024
+const MAX_SHARED_TRIP_BYTES = 200 * 1024
+
+const ALLOWED_EXPIRY_DAYS = [15, 30, 60, 90]
+const SHORT_ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
+const SHORT_ID_LENGTH = 8
 
 const SYSTEM_PROMPT = `You turn messy, real trip-planning material — pasted notes, flight
 confirmations, screenshots, PDFs — into a structured itinerary using the
@@ -183,6 +188,87 @@ async function callAnthropic(env, contentBlocks) {
   return toolUse.input
 }
 
+function makeShortId() {
+  const bytes = new Uint8Array(SHORT_ID_LENGTH)
+  crypto.getRandomValues(bytes)
+  let id = ''
+  for (let i = 0; i < SHORT_ID_LENGTH; i++) {
+    id += SHORT_ID_ALPHABET[bytes[i] % SHORT_ID_ALPHABET.length]
+  }
+  return id
+}
+
+async function handleGenerate(request, env) {
+  if (!env.ANTHROPIC_API_KEY) {
+    return jsonResponse({ error: 'Server is missing an API key — set ANTHROPIC_API_KEY.' }, 500)
+  }
+  try {
+    const form = await request.formData()
+    const contentBlocks = await buildContentBlocks(form)
+    const itinerary = await callAnthropic(env, contentBlocks)
+    return jsonResponse(itinerary)
+  } catch (err) {
+    return jsonResponse({ error: err.message || 'Something went wrong.' }, 400)
+  }
+}
+
+async function handleCreateShare(request, env) {
+  if (!env.TRIPS_KV) {
+    return jsonResponse({ error: 'Sharing is not configured on this server.' }, 500)
+  }
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return jsonResponse({ error: 'Invalid request body.' }, 400)
+  }
+
+  const days = Number(body?.days)
+  if (!ALLOWED_EXPIRY_DAYS.includes(days)) {
+    return jsonResponse({ error: `Expiration must be one of: ${ALLOWED_EXPIRY_DAYS.join(', ')} days.` }, 400)
+  }
+  if (!body?.trip || typeof body.trip !== 'object' || !body.trip.title) {
+    return jsonResponse({ error: 'Missing trip data.' }, 400)
+  }
+
+  const payload = JSON.stringify(body.trip)
+  if (payload.length > MAX_SHARED_TRIP_BYTES) {
+    return jsonResponse({ error: 'This itinerary is too large to share.' }, 400)
+  }
+
+  let id
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = makeShortId()
+    const existing = await env.TRIPS_KV.get(candidate)
+    if (!existing) {
+      id = candidate
+      break
+    }
+  }
+  if (!id) {
+    return jsonResponse({ error: 'Could not generate a unique link — try again.' }, 500)
+  }
+
+  const expirationTtl = days * 24 * 60 * 60
+  await env.TRIPS_KV.put(id, payload, { expirationTtl })
+
+  return jsonResponse({ id, expiresAt: Date.now() + expirationTtl * 1000 })
+}
+
+async function handleGetShare(id, env) {
+  if (!env.TRIPS_KV) {
+    return jsonResponse({ error: 'Sharing is not configured on this server.' }, 500)
+  }
+  const stored = await env.TRIPS_KV.get(id)
+  if (!stored) {
+    return jsonResponse({ error: 'This link has expired or does not exist.' }, 404)
+  }
+  return new Response(stored, {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+  })
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') {
@@ -190,21 +276,17 @@ export default {
     }
 
     const url = new URL(request.url)
-    if (url.pathname !== '/generate' || request.method !== 'POST') {
-      return jsonResponse({ error: 'Not found' }, 404)
-    }
+    const shareMatch = url.pathname.match(/^\/share\/([A-Za-z0-9]+)$/)
 
-    if (!env.ANTHROPIC_API_KEY) {
-      return jsonResponse({ error: 'Server is missing an API key — set ANTHROPIC_API_KEY.' }, 500)
+    if (url.pathname === '/generate' && request.method === 'POST') {
+      return handleGenerate(request, env)
     }
-
-    try {
-      const form = await request.formData()
-      const contentBlocks = await buildContentBlocks(form)
-      const itinerary = await callAnthropic(env, contentBlocks)
-      return jsonResponse(itinerary)
-    } catch (err) {
-      return jsonResponse({ error: err.message || 'Something went wrong.' }, 400)
+    if (url.pathname === '/share' && request.method === 'POST') {
+      return handleCreateShare(request, env)
     }
+    if (shareMatch && request.method === 'GET') {
+      return handleGetShare(shareMatch[1], env)
+    }
+    return jsonResponse({ error: 'Not found' }, 404)
   },
 }
