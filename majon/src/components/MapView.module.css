@@ -69,8 +69,9 @@
 }
 
 .markerIcon {
-  font-size: 18px;
-  line-height: 1;
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-muted);
 }
 
 /* ---------- Locate-me button ---------- */
