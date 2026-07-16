@@ -1,0 +1,33 @@
+{
+  "name": "MaJon — community stray-dog ID map",
+  "short_name": "MaJon",
+  "description": "Report a stray dog you spotted, see if the community already named it.",
+  "id": "/majon/",
+  "start_url": "/majon/",
+  "scope": "/majon/",
+  "lang": "en",
+  "dir": "ltr",
+  "display": "standalone",
+  "background_color": "#f7f6f2",
+  "theme_color": "#f7f6f2",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
