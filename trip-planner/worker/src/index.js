@@ -36,7 +36,14 @@ generate_itinerary tool. Follow these rules strictly:
 7. If the source is too thin to produce a real itinerary (e.g. no dates,
    no destination, no activities at all), still call the tool: put what you
    do know in title/stats, leave days empty, and use openQuestions to say
-   what's missing.`
+   what's missing.
+8. Set "location" on a day or food entry only when it names one specific,
+   mappable place — a named temple, restaurant, landmark, market, station,
+   or address. Write it the way you'd type it into a map search, including
+   the city (e.g. "Wat Phra That Doi Suthep, Chiang Mai"). Leave it out
+   entirely for vague activities ("free time", "explore the neighborhood"),
+   multi-stop days, or anything not clearly named in the source — do not
+   guess a specific venue that wasn't actually named.`
 
 const ITINERARY_SCHEMA = {
   type: 'object',
@@ -63,6 +70,7 @@ const ITINERARY_SCHEMA = {
           title: { type: 'string' },
           description: { type: 'string' },
           flag: { type: 'string', description: "optional short tag like 'Must-see' or 'To confirm' — omit if nothing stands out" },
+          location: { type: 'string', description: 'A specific, mappable place for this day — see rule 8. Omit if none.' },
         },
         required: ['date', 'time', 'title', 'description'],
       },
@@ -72,7 +80,12 @@ const ITINERARY_SCHEMA = {
       description: 'Restaurants, cafes, markets, shops mentioned or clearly implied by the source',
       items: {
         type: 'object',
-        properties: { category: { type: 'string' }, name: { type: 'string' }, note: { type: 'string' } },
+        properties: {
+          category: { type: 'string' },
+          name: { type: 'string' },
+          note: { type: 'string' },
+          location: { type: 'string', description: 'A specific, mappable place for this entry — see rule 8. Omit if none.' },
+        },
         required: ['category', 'name'],
       },
     },
