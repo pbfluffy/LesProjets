@@ -32,6 +32,19 @@ npx wrangler secret put ANTHROPIC_API_KEY   # paste your key when prompted
 npm run deploy
 ```
 
+`/generate` calls the Anthropic API, so it's rate-limited per IP (5/day) to
+cap what a random visitor could spend on your budget — the limit is stored in
+the `TRIPS_KV` namespace, keyed by `CF-Connecting-IP` (set by Cloudflare
+itself at the edge, so it can't be spoofed by a request header). To exempt
+your own IP while testing:
+
+```
+npx wrangler secret put ALLOWLIST_IP   # paste your current public IP
+```
+
+Your IP can change (new network, VPN, mobile data) — re-run this if the
+limit starts applying to you unexpectedly.
+
 Then set `VITE_TRIP_WORKER_URL` (as a GitHub Actions secret, same pattern as
 ProteinVault's `VITE_IMPORT_WORKER_URL` used) to the deployed Worker's URL.
 

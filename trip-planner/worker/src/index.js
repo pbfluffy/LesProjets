@@ -12,6 +12,8 @@ const ALLOWED_EXPIRY_DAYS = [15, 30, 60, 90]
 const SHORT_ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
 const SHORT_ID_LENGTH = 8
 
+const GENERATIONS_PER_DAY = 5
+
 const SYSTEM_PROMPT = `You turn messy, real trip-planning material — pasted notes, flight
 confirmations, screenshots, PDFs — into a structured itinerary using the
 generate_itinerary tool. Follow these rules strictly:
@@ -211,10 +213,38 @@ function makeShortId() {
   return id
 }
 
+// Cloudflare sets this header itself at the edge from the real TCP connection —
+// unlike X-Forwarded-For, a caller can't spoof it.
+function getClientIp(request) {
+  return request.headers.get('CF-Connecting-IP') || 'unknown'
+}
+
+// Costs real Anthropic API spend per call, so unauthenticated callers get a
+// modest daily cap. env.ALLOWLIST_IP (set via `wrangler secret put`) bypasses
+// it entirely — for whoever's actually testing this, not the public.
+async function checkRateLimit(env, ip) {
+  if (env.ALLOWLIST_IP && ip === env.ALLOWLIST_IP) return { allowed: true }
+  if (!env.TRIPS_KV) return { allowed: true }
+
+  const day = new Date().toISOString().slice(0, 10)
+  const key = `rl:${day}:${ip}`
+  const count = Number((await env.TRIPS_KV.get(key)) || 0)
+  if (count >= GENERATIONS_PER_DAY) return { allowed: false }
+
+  await env.TRIPS_KV.put(key, String(count + 1), { expirationTtl: 24 * 60 * 60 })
+  return { allowed: true }
+}
+
 async function handleGenerate(request, env) {
   if (!env.ANTHROPIC_API_KEY) {
     return jsonResponse({ error: 'Server is missing an API key — set ANTHROPIC_API_KEY.' }, 500)
   }
+
+  const { allowed } = await checkRateLimit(env, getClientIp(request))
+  if (!allowed) {
+    return jsonResponse({ error: `Daily limit reached (${GENERATIONS_PER_DAY} per day) — try again tomorrow.` }, 429)
+  }
+
   try {
     const form = await request.formData()
     const contentBlocks = await buildContentBlocks(form)
