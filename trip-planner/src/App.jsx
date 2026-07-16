@@ -1,12 +1,27 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import InputPanel from './components/InputPanel.jsx'
 import TripView from './components/TripView.jsx'
-import { generateItinerary } from './api.js'
+import { generateItinerary, getSharedTrip } from './api.js'
+
+function sharedIdFromHash() {
+  const match = window.location.hash.match(/^#\/t\/([A-Za-z0-9]+)$/)
+  return match ? match[1] : null
+}
 
 export default function App() {
   const [trip, setTrip] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [loadingShared, setLoadingShared] = useState(Boolean(sharedIdFromHash()))
+
+  useEffect(() => {
+    const id = sharedIdFromHash()
+    if (!id) return
+    getSharedTrip(id)
+      .then(setTrip)
+      .catch((err) => setError(err.message || 'This link has expired or does not exist.'))
+      .finally(() => setLoadingShared(false))
+  }, [])
 
   async function handleGenerate({ text, files }) {
     setBusy(true)
@@ -19,6 +34,12 @@ export default function App() {
     } finally {
       setBusy(false)
     }
+  }
+
+  function handleReset() {
+    window.location.hash = ''
+    setTrip(null)
+    setError('')
   }
 
   return (
@@ -34,7 +55,14 @@ export default function App() {
       </header>
 
       <main>
-        {!trip ? (
+        {loadingShared ? (
+          <div className="intro">
+            <p className="eyebrow">Loading</p>
+            <h1>Opening this trip…</h1>
+          </div>
+        ) : trip ? (
+          <TripView trip={trip} onReset={handleReset} />
+        ) : (
           <>
             <div className="intro">
               <p className="eyebrow">Paste anything</p>
@@ -46,8 +74,6 @@ export default function App() {
             </div>
             <InputPanel onGenerate={handleGenerate} busy={busy} error={error} />
           </>
-        ) : (
-          <TripView trip={trip} onReset={() => setTrip(null)} />
         )}
       </main>
     </div>

@@ -1,23 +1,12 @@
 const WORKER_URL = import.meta.env.VITE_TRIP_WORKER_URL
 
-// Sends the raw pasted text plus any attached files (PDFs, screenshots) to
-// the Worker as multipart form data — avoids base64-encoding large files on
-// the main thread just to stuff them into a JSON body. The Worker itself
-// base64-encodes each file when building the Anthropic request, since that
-// API requires base64 either way.
-export async function generateItinerary({ text, files }) {
+function requireWorkerUrl() {
   if (!WORKER_URL) {
     throw new Error('VITE_TRIP_WORKER_URL is not set — see .env.example.')
   }
-  const form = new FormData()
-  form.set('text', text || '')
-  files.forEach((file) => form.append('files', file, file.name))
+}
 
-  const res = await fetch(`${WORKER_URL}/generate`, {
-    method: 'POST',
-    body: form,
-  })
-
+async function parseJsonOrThrow(res) {
   if (!res.ok) {
     let message = `Request failed (${res.status})`
     try {
@@ -28,6 +17,39 @@ export async function generateItinerary({ text, files }) {
     }
     throw new Error(message)
   }
-
   return res.json()
+}
+
+// Sends the raw pasted text plus any attached files (PDFs, screenshots) to
+// the Worker as multipart form data — avoids base64-encoding large files on
+// the main thread just to stuff them into a JSON body. The Worker itself
+// base64-encodes each file when building the Anthropic request, since that
+// API requires base64 either way.
+export async function generateItinerary({ text, files }) {
+  requireWorkerUrl()
+  const form = new FormData()
+  form.set('text', text || '')
+  files.forEach((file) => form.append('files', file, file.name))
+
+  const res = await fetch(`${WORKER_URL}/generate`, {
+    method: 'POST',
+    body: form,
+  })
+  return parseJsonOrThrow(res)
+}
+
+export async function shareTrip({ trip, days }) {
+  requireWorkerUrl()
+  const res = await fetch(`${WORKER_URL}/share`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ trip, days }),
+  })
+  return parseJsonOrThrow(res)
+}
+
+export async function getSharedTrip(id) {
+  requireWorkerUrl()
+  const res = await fetch(`${WORKER_URL}/share/${encodeURIComponent(id)}`)
+  return parseJsonOrThrow(res)
 }
