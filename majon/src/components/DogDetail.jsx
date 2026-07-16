@@ -49,7 +49,7 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
             </div>
           ) : (
             <div className={styles.titleRow}>
-              <h2 className={styles.title}>🐾 {dog.name || t.dogUnnamed}</h2>
+              <h2 className={styles.title}>{dog.name || t.dogUnnamed}</h2>
               {user && (
                 <button type="button" className={styles.editBtn} onClick={() => setEditing(true)} aria-label={t.dogRename} title={t.dogRename}>✎</button>
               )}

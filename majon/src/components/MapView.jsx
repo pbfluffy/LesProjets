@@ -44,6 +44,18 @@ function timeAgo(ms, lang) {
   return lang === 'th' ? `${days} วันที่แล้ว` : `${days}d ago`
 }
 
+// Simple geometric paw mark for dogs with no photo yet — a drawn icon reads
+// less like a stock emoji dropped into the UI.
+const PAW_SVG = `
+  <svg class="${styles.markerIcon}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <ellipse cx="12" cy="16" rx="5.5" ry="4.5" />
+    <ellipse cx="5.2" cy="8.5" rx="2.1" ry="2.6" transform="rotate(-18 5.2 8.5)" />
+    <ellipse cx="10.2" cy="5.3" rx="2.1" ry="2.7" transform="rotate(-6 10.2 5.3)" />
+    <ellipse cx="15.6" cy="5.4" rx="2.1" ry="2.7" transform="rotate(8 15.6 5.4)" />
+    <ellipse cx="19.6" cy="8.8" rx="2.1" ry="2.6" transform="rotate(20 19.6 8.8)" />
+  </svg>
+`
+
 function buildMarkerHtml(dog) {
   const photo = dog.latestPhotoUrl
   return `
@@ -51,7 +63,7 @@ function buildMarkerHtml(dog) {
       <div class="${styles.markerBadge}">
         ${photo
           ? `<img class="${styles.markerImg}" src="${escapeHtml(photo)}" alt="" />`
-          : `<span class="${styles.markerIcon}">🐕</span>`}
+          : PAW_SVG}
       </div>
     </div>
   `
@@ -72,7 +84,7 @@ function buildPopupHtml(dog, lang, t) {
   return `
     <div class="${styles.popupCard}">
       ${dog.latestPhotoUrl ? `<img class="${styles.popupPhoto}" src="${escapeHtml(dog.latestPhotoUrl)}" alt="" />` : ''}
-      <div class="${styles.popupTitle}">🐾 ${escapeHtml(name)}</div>
+      <div class="${styles.popupTitle}">${escapeHtml(name)}</div>
       ${lastSeenMs ? `<div class="${styles.popupMeta}">${escapeHtml(t.dogLastSeen)}: ${escapeHtml(timeAgo(lastSeenMs, lang))}</div>` : ''}
       <button class="${styles.popupBtn}" data-action="details" type="button">${escapeHtml(t.dogClose === 'Close' ? 'See details' : 'ดูรายละเอียด')}</button>
     </div>

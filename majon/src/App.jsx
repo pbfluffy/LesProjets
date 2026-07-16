@@ -48,7 +48,7 @@ export default function App() {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <span className={styles.logo}>🐕 {t.appName}</span>
+        <span className={styles.logo}>{t.appName}</span>
         <div className={styles.headerControls}>
           <button className={styles.ctrlBtn} onClick={() => setLang(lang === 'th' ? 'en' : 'th')}>
             {lang === 'th' ? 'EN' : 'TH'}
@@ -74,14 +74,14 @@ export default function App() {
           className={`${styles.tabBtn} ${tab === 'map' ? styles.tabBtnActive : ''}`}
           onClick={() => setTab('map')}
         >
-          🗺️ {t.navMap}
+          {t.navMap}
         </button>
         <button
           type="button"
           className={`${styles.tabBtn} ${tab === 'report' ? styles.tabBtnActive : ''}`}
           onClick={() => { setPresetDog(null); setTab('report') }}
         >
-          📷 {t.navReport}
+          {t.navReport}
         </button>
       </nav>
 
