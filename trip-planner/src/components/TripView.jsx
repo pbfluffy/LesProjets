@@ -18,6 +18,28 @@ function categoryColor(category, categories) {
   return CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
 }
 
+function mapsUrl(place) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`
+}
+
+function MapLink({ location }) {
+  if (!location) return null
+  return (
+    <a className="map-link" href={mapsUrl(location)} target="_blank" rel="noreferrer">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <circle cx="12" cy="9" r="2.5" stroke="currentColor" strokeWidth="2" />
+      </svg>
+      {location}
+    </a>
+  )
+}
+
 export default function TripView({ trip, onReset }) {
   const days = trip.days || []
   const food = trip.food || []
@@ -84,6 +106,7 @@ export default function TripView({ trip, onReset }) {
                   </div>
                   <h3>{d.title}</h3>
                   {d.description && <p>{d.description}</p>}
+                  <MapLink location={d.location} />
                 </div>
               )
             })}
@@ -125,6 +148,7 @@ export default function TripView({ trip, onReset }) {
                 </span>
                 <div className="name">{f.name}</div>
                 {f.note && <div className="note">{f.note}</div>}
+                <MapLink location={f.location} />
               </div>
             ))}
           </div>
