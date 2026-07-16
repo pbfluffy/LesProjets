@@ -15,12 +15,18 @@ export default function App() {
   const [loadingShared, setLoadingShared] = useState(Boolean(sharedIdFromHash()))
 
   useEffect(() => {
-    const id = sharedIdFromHash()
-    if (!id) return
-    getSharedTrip(id)
-      .then(setTrip)
-      .catch((err) => setError(err.message || 'This link has expired or does not exist.'))
-      .finally(() => setLoadingShared(false))
+    function loadFromHash() {
+      const id = sharedIdFromHash()
+      if (!id) return
+      setLoadingShared(true)
+      getSharedTrip(id)
+        .then(setTrip)
+        .catch((err) => setError(err.message || 'This link has expired or does not exist.'))
+        .finally(() => setLoadingShared(false))
+    }
+    loadFromHash()
+    window.addEventListener('hashchange', loadFromHash)
+    return () => window.removeEventListener('hashchange', loadFromHash)
   }, [])
 
   async function handleGenerate({ text, files }) {
