@@ -16,6 +16,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  getDocs,
   query,
   orderBy,
   serverTimestamp,
@@ -37,6 +38,6 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export {
   onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut,
-  doc, collection, addDoc, updateDoc, deleteDoc, query, orderBy,
+  doc, collection, addDoc, updateDoc, deleteDoc, getDocs, query, orderBy,
   serverTimestamp, onSnapshot,
 };
