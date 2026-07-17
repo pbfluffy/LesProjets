@@ -33,6 +33,7 @@ Respond ONLY with valid JSON, no markdown fences, no preamble:
   "earType": "<erect|floppy|unknown>",
   "tailType": "<curled|straight|bobbed|unknown>",
   "sexGuess": "<male|female|unknown>",
+  "hasCollar": <true if the dog is clearly wearing a collar or harness, false otherwise>,
   "distinguishingMarks": ["<short phrase, e.g. 'white chest patch', 'notched left ear'>"]
 }
 

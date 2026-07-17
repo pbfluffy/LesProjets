@@ -7,6 +7,7 @@ import { interp } from '../LangContext'
 import styles from './ReportFlow.module.css'
 
 const LOCATE_TIMEOUT_MS = 10000
+const FRIENDLINESS_OPTIONS = ['friendly', 'neutral', 'cautious']
 
 // Wraps navigator.geolocation.getCurrentPosition in a Promise with its OWN
 // timeout guard — some browsers/embedded webviews never invoke either
@@ -40,16 +41,20 @@ function getCurrentPositionSafe(timeoutMs) {
   })
 }
 
-// step: 'pick' | 'locating' | 'uploading' | 'candidates' | 'newDog' | 'submitting' | 'success'
+// step: 'pick' | 'locating' | 'uploading' | 'candidates' | 'confirm' | 'submitting' | 'success'
 export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, presetDog }) {
-  const [step, setStep] = useState(presetDog ? 'pick' : 'pick')
+  const [step, setStep] = useState('pick')
   const [error, setError] = useState(null)
   const [coords, setCoords] = useState(null)
   const [photoUrl, setPhotoUrl] = useState(null)
   const [tags, setTags] = useState(null)
   const [candidates, setCandidates] = useState([])
+  // The dog this sighting is confirmed to be — from a candidate pick or a
+  // preset "report another sighting" shortcut. Null means "brand new dog".
+  const [targetDog, setTargetDog] = useState(null)
   const [name, setName] = useState('')
   const [note, setNote] = useState('')
+  const [friendliness, setFriendliness] = useState(null)
   const [successInfo, setSuccessInfo] = useState(null)
   const fileRef = useRef(null)
 
@@ -60,8 +65,10 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
     setPhotoUrl(null)
     setTags(null)
     setCandidates([])
+    setTargetDog(null)
     setName('')
     setNote('')
+    setFriendliness(null)
     setSuccessInfo(null)
     if (fileRef.current) fileRef.current.value = ''
   }
@@ -109,7 +116,8 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
       setTags(result.tags || null)
 
       if (presetDog) {
-        setStep('newDog') // reuse the note-entry screen, submit will target presetDog
+        setTargetDog(presetDog)
+        setStep('confirm')
         return
       }
 
@@ -122,38 +130,34 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
     }
   }
 
-  async function confirmMatch(dogId, dogName) {
-    setStep('submitting')
-    try {
-      await addSightingToDog({
-        dogId, user, photoUrl, tags, lat: coords.lat, lng: coords.lng, note,
-      })
-      setSuccessInfo({ matched: true, name: dogName })
-      setStep('success')
-    } catch (err) {
-      setError(err.message || 'Something went wrong saving that.')
-      setStep('candidates')
-    }
+  function pickCandidate(dog) {
+    setTargetDog(dog)
+    setStep('confirm')
   }
 
-  async function submitNewOrPreset() {
+  function pickNewDog() {
+    setTargetDog(null)
+    setStep('confirm')
+  }
+
+  async function submitReport() {
     setStep('submitting')
     try {
-      if (presetDog) {
+      if (targetDog) {
         await addSightingToDog({
-          dogId: presetDog.id, user, photoUrl, tags, lat: coords.lat, lng: coords.lng, note,
+          dogId: targetDog.id, user, photoUrl, tags, lat: coords.lat, lng: coords.lng, note, friendliness,
         })
-        setSuccessInfo({ matched: true, name: presetDog.name || t.dogUnnamed })
+        setSuccessInfo({ matched: true, name: targetDog.name || t.dogUnnamed })
       } else {
         await createDogWithSighting({
-          user, photoUrl, tags, lat: coords.lat, lng: coords.lng, name, note,
+          user, photoUrl, tags, lat: coords.lat, lng: coords.lng, name, note, friendliness,
         })
         setSuccessInfo({ matched: false })
       }
       setStep('success')
     } catch (err) {
       setError(err.message || 'Something went wrong saving that.')
-      setStep('newDog')
+      setStep('confirm')
     }
   }
 
@@ -168,11 +172,14 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
     )
   }
 
+  const showCollarWarning = tags?.hasCollar && (step === 'candidates' || step === 'confirm')
+
   return (
     <div className={styles.wrap}>
       <h2 className={styles.title}>{t.reportTitle}</h2>
 
       {error && <p className={styles.error}>{error}</p>}
+      {showCollarWarning && <p className={styles.collarWarning}>{t.reportPossibleOwnerWarning}</p>}
 
       {step === 'pick' && (
         <>
@@ -210,26 +217,24 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
                   <div className={styles.candidateName}>{dog.name || t.dogUnnamed}</div>
                   <div className={styles.candidateDistance}>{interp(t.distanceAway, { d: Math.round(distance) })}</div>
                 </div>
-                <button
-                  type="button"
-                  className={styles.matchBtn}
-                  onClick={() => confirmMatch(dog.id, dog.name || t.dogUnnamed)}
-                >
+                <button type="button" className={styles.matchBtn} onClick={() => pickCandidate(dog)}>
                   {t.reportSameDog}
                 </button>
               </li>
             ))}
           </ul>
-          <button type="button" className={styles.secondaryBtn} onClick={() => setStep('newDog')}>
+          <button type="button" className={styles.secondaryBtn} onClick={pickNewDog}>
             {t.reportNotListed}
           </button>
         </div>
       )}
 
-      {step === 'newDog' && (
+      {step === 'confirm' && (
         <div className={styles.newDogBlock}>
           {photoUrl && <img src={photoUrl} alt="" className={styles.previewPhoto} />}
-          {!presetDog && (
+          {targetDog ? (
+            <p className={styles.hint}>{interp(t.reportConfirmReportingOf, { name: targetDog.name || t.dogUnnamed })}</p>
+          ) : (
             <label className={styles.field}>
               <span className={styles.fieldLabel}>{t.reportNameLabel}</span>
               <input
@@ -241,6 +246,21 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
               />
             </label>
           )}
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>{t.friendlinessLabel}</span>
+            <div className={styles.friendlinessRow}>
+              {FRIENDLINESS_OPTIONS.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  className={`${styles.friendlinessBtn} ${friendliness === opt ? styles.friendlinessBtnActive : ''}`}
+                  onClick={() => setFriendliness(friendliness === opt ? null : opt)}
+                >
+                  {t[`friendliness${opt.charAt(0).toUpperCase()}${opt.slice(1)}`]}
+                </button>
+              ))}
+            </div>
+          </div>
           <label className={styles.field}>
             <span className={styles.fieldLabel}>{t.reportNoteLabel}</span>
             <textarea
@@ -251,7 +271,7 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
               rows={3}
             />
           </label>
-          <button type="button" className={styles.primaryBtn} onClick={submitNewOrPreset}>
+          <button type="button" className={styles.primaryBtn} onClick={submitReport}>
             {t.reportSubmit}
           </button>
         </div>
