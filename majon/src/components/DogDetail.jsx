@@ -1,7 +1,14 @@
 import { useState } from 'react'
-import { useSightings, renameDog } from '../hooks/useDogs'
+import { useSightings, renameDog, summarizeFriendliness } from '../hooks/useDogs'
 import { interp } from '../LangContext'
 import styles from './DogDetail.module.css'
+
+function friendlinessLabel(level, t) {
+  if (level === 'friendly') return t.friendlinessFriendly
+  if (level === 'neutral') return t.friendlinessNeutral
+  if (level === 'cautious') return t.friendlinessCautious
+  return null
+}
 
 function fmtDate(ts, lang) {
   const ms = ts?.toMillis ? ts.toMillis() : null
@@ -13,6 +20,7 @@ function fmtDate(ts, lang) {
 
 export default function DogDetail({ dog, user, t, lang, onClose, onReportSighting }) {
   const { sightings, loading } = useSightings(dog?.id)
+  const temperament = summarizeFriendliness(sightings)
   const [editing, setEditing] = useState(false)
   const [nameDraft, setNameDraft] = useState(dog?.name || '')
   const [saving, setSaving] = useState(false)
@@ -60,9 +68,19 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
 
         {dog.latestPhotoUrl && <img src={dog.latestPhotoUrl} alt="" className={styles.heroPhoto} />}
 
+        {dog.latestTags?.hasCollar && (
+          <p className={styles.collarWarning}>{t.dogPossibleOwner}</p>
+        )}
+
         {dog.lastSeenAt && (
           <p className={styles.meta}>{t.dogLastSeen}: {fmtDate(dog.lastSeenAt, lang)}</p>
         )}
+
+        <p className={styles.meta}>
+          {t.dogTemperament}: {temperament.label
+            ? interp(t.dogTemperamentSummary, { label: friendlinessLabel(temperament.label, t), count: temperament.counts[temperament.label], total: temperament.total })
+            : t.dogTemperamentNone}
+        </p>
 
         <button type="button" className={styles.reportBtn} onClick={() => onReportSighting(dog)}>
           {t.dogReportSighting}
@@ -76,7 +94,10 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
               {s.photoUrl && <img src={s.photoUrl} alt="" className={styles.timelineThumb} />}
               <div className={styles.timelineInfo}>
                 <div className={styles.timelineDate}>{fmtDate(s.reportedAt, lang)}</div>
-                <div className={styles.timelineReporter}>{interp(t.dogReportedBy, { name: s.reportedByName || '?' })}</div>
+                <div className={styles.timelineReporter}>
+                  {interp(t.dogReportedBy, { name: s.reportedByName || '?' })}
+                  {s.friendliness && ` · ${friendlinessLabel(s.friendliness, t)}`}
+                </div>
                 {s.note && <div className={styles.timelineNote}>{s.note}</div>}
               </div>
             </li>

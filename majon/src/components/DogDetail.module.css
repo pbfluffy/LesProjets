@@ -113,6 +113,14 @@
   font-family: var(--font-mono);
 }
 
+.collarWarning {
+  font-size: 13px;
+  color: var(--color-amber);
+  background: var(--color-amber-bg);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
 .reportBtn {
   padding: 12px 16px;
   border-radius: var(--radius-md);

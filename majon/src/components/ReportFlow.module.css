@@ -39,6 +39,37 @@
   padding: 8px 12px;
 }
 
+.collarWarning {
+  font-size: 13px;
+  color: var(--color-amber);
+  background: var(--color-amber-bg);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
+.friendlinessRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.friendlinessBtn {
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 0.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.friendlinessBtn:hover { background: var(--color-surface-alt); }
+
+.friendlinessBtnActive {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  border-color: var(--color-accent);
+}
+
 .signInMsg {
   font-size: 14px;
   color: var(--color-text-muted);

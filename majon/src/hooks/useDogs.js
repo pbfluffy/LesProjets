@@ -60,7 +60,7 @@ export function useSightings(dogId) {
   return { sightings, loading }
 }
 
-export async function createDogWithSighting({ user, photoUrl, tags, lat, lng, name, note }) {
+export async function createDogWithSighting({ user, photoUrl, tags, lat, lng, name, note, friendliness }) {
   const dogRef = await addDoc(collection(db, COLLECTION), {
     name: name?.trim() || null,
     createdBy: user.uid,
@@ -81,11 +81,12 @@ export async function createDogWithSighting({ user, photoUrl, tags, lat, lng, na
     reportedByName: user.displayName || null,
     reportedAt: serverTimestamp(),
     note: note?.trim() || null,
+    friendliness: friendliness || null,
   })
   return dogRef.id
 }
 
-export async function addSightingToDog({ dogId, user, photoUrl, tags, lat, lng, note }) {
+export async function addSightingToDog({ dogId, user, photoUrl, tags, lat, lng, note, friendliness }) {
   await addDoc(collection(db, COLLECTION, dogId, 'sightings'), {
     photoUrl,
     tags: tags || null,
@@ -95,6 +96,7 @@ export async function addSightingToDog({ dogId, user, photoUrl, tags, lat, lng, 
     reportedByName: user.displayName || null,
     reportedAt: serverTimestamp(),
     note: note?.trim() || null,
+    friendliness: friendliness || null,
   })
   await updateDoc(doc(db, COLLECTION, dogId), {
     lastSeenAt: serverTimestamp(),
@@ -103,6 +105,24 @@ export async function addSightingToDog({ dogId, user, photoUrl, tags, lat, lng, 
     latestPhotoUrl: photoUrl,
     latestTags: tags || null,
   })
+}
+
+const FRIENDLINESS_LEVELS = ['friendly', 'neutral', 'cautious']
+
+// Majority vote across a dog's sightings — crowd-sourced temperament, not a
+// single reporter's opinion. Returns null label when no one has rated it yet.
+export function summarizeFriendliness(sightings) {
+  const counts = { friendly: 0, neutral: 0, cautious: 0 }
+  let total = 0
+  for (const s of sightings) {
+    if (FRIENDLINESS_LEVELS.includes(s.friendliness)) {
+      counts[s.friendliness] += 1
+      total += 1
+    }
+  }
+  if (total === 0) return { label: null, counts, total }
+  const label = FRIENDLINESS_LEVELS.reduce((a, b) => (counts[b] > counts[a] ? b : a))
+  return { label, counts, total }
 }
 
 export async function renameDog(dogId, name) {
