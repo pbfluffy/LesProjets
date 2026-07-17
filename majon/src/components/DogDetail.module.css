@@ -149,11 +149,17 @@
 
 .timelineItem {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   padding: 8px;
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-md);
+}
+
+.timelineRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .deleteBtn {
@@ -168,6 +174,54 @@
 }
 .deleteBtn:hover { background: var(--color-red-bg); }
 .deleteBtn:disabled { opacity: 0.6; cursor: progress; }
+
+.confirmRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  background: var(--color-red-bg);
+  border-radius: var(--radius-sm);
+}
+
+.confirmText {
+  font-size: 12px;
+  color: var(--color-text);
+  flex: 1;
+  min-width: 120px;
+}
+
+.confirmYesBtn {
+  border: none;
+  background: var(--color-red);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.confirmYesBtn:hover { opacity: 0.85; }
+
+.confirmCancelBtn {
+  border: 0.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.confirmCancelBtn:hover { background: var(--color-surface-alt); }
+
+.deleteError {
+  font-size: 12px;
+  color: var(--color-red);
+  background: var(--color-red-bg);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+}
 
 .timelineThumb {
   width: 48px;

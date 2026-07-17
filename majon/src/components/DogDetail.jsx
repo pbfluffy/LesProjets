@@ -25,6 +25,12 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
   const [nameDraft, setNameDraft] = useState(dog?.name || '')
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  // Sighting currently showing its "delete this? yes/cancel" inline prompt —
+  // a native window.confirm() triggers Chrome's own "suppress dialogs"
+  // checkbox after repeated use, which can silently disable all future
+  // confirm/alert calls on the page if a tester checks it without noticing.
+  const [confirmingId, setConfirmingId] = useState(null)
+  const [errorId, setErrorId] = useState(null)
 
   if (!dog) return null
 
@@ -40,8 +46,9 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
     }
   }
 
-  async function handleDelete(sighting) {
-    if (!window.confirm(t.dogDeleteConfirm)) return
+  async function confirmDelete(sighting) {
+    setConfirmingId(null)
+    setErrorId(null)
     setDeletingId(sighting.id)
     try {
       const remaining = sightings.filter((s) => s.id !== sighting.id)
@@ -49,10 +56,15 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
       if (result.dogDeleted) onClose()
     } catch (err) {
       console.error('[majon] delete sighting failed:', err)
-      window.alert(t.dogDeleteFailed)
+      setErrorId(sighting.id)
     } finally {
       setDeletingId(null)
     }
+  }
+
+  function armDelete(sightingId) {
+    setConfirmingId(sightingId)
+    setErrorId(null)
   }
 
   return (
@@ -107,27 +119,41 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
         <ul className={styles.timeline}>
           {sightings.map((s) => (
             <li key={s.id} className={styles.timelineItem}>
-              {s.photoUrl && <img src={s.photoUrl} alt="" className={styles.timelineThumb} />}
-              <div className={styles.timelineInfo}>
-                <div className={styles.timelineDate}>{fmtDate(s.reportedAt, lang)}</div>
-                <div className={styles.timelineReporter}>
-                  {interp(t.dogReportedBy, { name: s.reportedByName || t.dogAnonymousReporter })}
-                  {s.friendliness && ` · ${friendlinessLabel(s.friendliness, t)}`}
+              <div className={styles.timelineRow}>
+                {s.photoUrl && <img src={s.photoUrl} alt="" className={styles.timelineThumb} />}
+                <div className={styles.timelineInfo}>
+                  <div className={styles.timelineDate}>{fmtDate(s.reportedAt, lang)}</div>
+                  <div className={styles.timelineReporter}>
+                    {interp(t.dogReportedBy, { name: s.reportedByName || t.dogAnonymousReporter })}
+                    {s.friendliness && ` · ${friendlinessLabel(s.friendliness, t)}`}
+                  </div>
+                  {s.note && <div className={styles.timelineNote}>{s.note}</div>}
                 </div>
-                {s.note && <div className={styles.timelineNote}>{s.note}</div>}
+                {user?.uid === s.reportedBy && confirmingId !== s.id && (
+                  <button
+                    type="button"
+                    className={styles.deleteBtn}
+                    onClick={() => armDelete(s.id)}
+                    disabled={deletingId === s.id}
+                    aria-label={t.dogDeleteSighting}
+                    title={t.dogDeleteSighting}
+                  >
+                    {deletingId === s.id ? '…' : '🗑'}
+                  </button>
+                )}
               </div>
-              {user?.uid === s.reportedBy && (
-                <button
-                  type="button"
-                  className={styles.deleteBtn}
-                  onClick={() => handleDelete(s)}
-                  disabled={deletingId === s.id}
-                  aria-label={t.dogDeleteSighting}
-                  title={t.dogDeleteSighting}
-                >
-                  {deletingId === s.id ? '…' : '🗑'}
-                </button>
+              {confirmingId === s.id && (
+                <div className={styles.confirmRow}>
+                  <span className={styles.confirmText}>{t.dogDeleteConfirm}</span>
+                  <button type="button" className={styles.confirmYesBtn} onClick={() => confirmDelete(s)}>
+                    {t.dogDeleteSighting}
+                  </button>
+                  <button type="button" className={styles.confirmCancelBtn} onClick={() => setConfirmingId(null)}>
+                    {t.dogCancel}
+                  </button>
+                </div>
               )}
+              {errorId === s.id && <div className={styles.deleteError}>{t.dogDeleteFailed}</div>}
             </li>
           ))}
         </ul>
