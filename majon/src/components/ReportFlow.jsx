@@ -137,7 +137,6 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
             ref={fileRef}
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={onFile}
             className={styles.hiddenFile}
             id="majon-file-input"
