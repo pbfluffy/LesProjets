@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSightings, renameDog, summarizeFriendliness, deleteSighting } from '../hooks/useDogs'
+import { useSightings, renameDog, summarizeFriendliness, deleteSighting, friendlinessColor } from '../hooks/useDogs'
 import { interp } from '../LangContext'
 import styles from './DogDetail.module.css'
 
@@ -8,6 +8,14 @@ function friendlinessLabel(level, t) {
   if (level === 'neutral') return t.friendlinessNeutral
   if (level === 'cautious') return t.friendlinessCautious
   return null
+}
+
+const TAG_CLASS = { green: 'tagGreen', amber: 'tagAmber', red: 'tagRed' }
+
+function FriendlinessTag({ level, t }) {
+  const label = friendlinessLabel(level, t)
+  if (!label) return null
+  return <span className={styles[TAG_CLASS[friendlinessColor(level)]]}>{label}</span>
 }
 
 function fmtDate(ts, lang) {
@@ -111,9 +119,13 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
         )}
 
         <p className={styles.meta}>
-          {t.dogTemperament}: {temperament.label
-            ? interp(t.dogTemperamentSummary, { label: friendlinessLabel(temperament.label, t), count: temperament.counts[temperament.label], total: temperament.total })
-            : t.dogTemperamentNone}
+          {t.dogTemperament}:{' '}
+          {temperament.label ? (
+            <>
+              <FriendlinessTag level={temperament.label} t={t} />{' '}
+              {interp(t.dogTemperamentCount, { count: temperament.counts[temperament.label], total: temperament.total })}
+            </>
+          ) : t.dogTemperamentNone}
         </p>
 
         <button type="button" className={styles.reportBtn} onClick={() => onReportSighting(dog)}>
@@ -131,7 +143,7 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
                   <div className={styles.timelineDate}>{fmtDate(s.reportedAt, lang)}</div>
                   <div className={styles.timelineReporter}>
                     {interp(t.dogReportedBy, { name: s.reportedByName || t.dogAnonymousReporter })}
-                    {s.friendliness && ` · ${friendlinessLabel(s.friendliness, t)}`}
+                    {s.friendliness && <> · <FriendlinessTag level={s.friendliness} t={t} /></>}
                   </div>
                   {s.note && <div className={styles.timelineNote}>{s.note}</div>}
                 </div>

@@ -145,6 +145,14 @@ export async function deleteSighting(dogId, sightingId) {
 
 const FRIENDLINESS_LEVELS = ['friendly', 'neutral', 'cautious']
 
+// Shared color mapping so the report-flow selector and the dog detail page
+// use the same friendly=green / neutral=amber / cautious=red convention as
+// the rest of the app's tinted-text-on-tinted-background badges.
+const FRIENDLINESS_COLORS = { friendly: 'green', neutral: 'amber', cautious: 'red' }
+export function friendlinessColor(level) {
+  return FRIENDLINESS_COLORS[level] || null
+}
+
 // Majority vote across a dog's sightings — crowd-sourced temperament, not a
 // single reporter's opinion. Returns null label when no one has rated it yet.
 export function summarizeFriendliness(sightings) {
