@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  db, doc, collection, addDoc, updateDoc, query, orderBy, serverTimestamp, onSnapshot,
+  db, doc, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, onSnapshot,
 } from '../firebase'
 import { haversineMeters } from '../haversine'
 
@@ -60,11 +60,12 @@ export function useSightings(dogId) {
   return { sightings, loading }
 }
 
-export async function createDogWithSighting({ user, photoUrl, tags, lat, lng, name, note, friendliness }) {
+export async function createDogWithSighting({ user, photoUrl, tags, lat, lng, name, note, friendliness, anonymous }) {
+  const displayName = anonymous ? null : (user.displayName || null)
   const dogRef = await addDoc(collection(db, COLLECTION), {
     name: name?.trim() || null,
     createdBy: user.uid,
-    createdByName: user.displayName || null,
+    createdByName: displayName,
     createdAt: serverTimestamp(),
     lastSeenAt: serverTimestamp(),
     lastLat: lat,
@@ -78,7 +79,7 @@ export async function createDogWithSighting({ user, photoUrl, tags, lat, lng, na
     lat,
     lng,
     reportedBy: user.uid,
-    reportedByName: user.displayName || null,
+    reportedByName: displayName,
     reportedAt: serverTimestamp(),
     note: note?.trim() || null,
     friendliness: friendliness || null,
@@ -86,14 +87,15 @@ export async function createDogWithSighting({ user, photoUrl, tags, lat, lng, na
   return dogRef.id
 }
 
-export async function addSightingToDog({ dogId, user, photoUrl, tags, lat, lng, note, friendliness }) {
+export async function addSightingToDog({ dogId, user, photoUrl, tags, lat, lng, note, friendliness, anonymous }) {
+  const displayName = anonymous ? null : (user.displayName || null)
   await addDoc(collection(db, COLLECTION, dogId, 'sightings'), {
     photoUrl,
     tags: tags || null,
     lat,
     lng,
     reportedBy: user.uid,
-    reportedByName: user.displayName || null,
+    reportedByName: displayName,
     reportedAt: serverTimestamp(),
     note: note?.trim() || null,
     friendliness: friendliness || null,
@@ -105,6 +107,30 @@ export async function addSightingToDog({ dogId, user, photoUrl, tags, lat, lng, 
     latestPhotoUrl: photoUrl,
     latestTags: tags || null,
   })
+}
+
+// Deletes a sighting the caller reported. If it was the dog's only sighting,
+// the dog itself is removed too (a dog with zero sightings has nothing to
+// show on the map); otherwise the dog's denormalized "latest" fields are
+// recomputed from whichever remaining sighting is now most recent.
+export async function deleteSighting(dogId, sightingId, remainingSightings) {
+  await deleteDoc(doc(db, COLLECTION, dogId, 'sightings', sightingId))
+
+  if (remainingSightings.length === 0) {
+    await deleteDoc(doc(db, COLLECTION, dogId))
+    return { dogDeleted: true }
+  }
+
+  const toMs = (s) => (s.reportedAt?.toMillis ? s.reportedAt.toMillis() : 0)
+  const latest = remainingSightings.reduce((a, b) => (toMs(b) > toMs(a) ? b : a))
+  await updateDoc(doc(db, COLLECTION, dogId), {
+    lastSeenAt: latest.reportedAt,
+    lastLat: latest.lat,
+    lastLng: latest.lng,
+    latestPhotoUrl: latest.photoUrl,
+    latestTags: latest.tags || null,
+  })
+  return { dogDeleted: false }
 }
 
 const FRIENDLINESS_LEVELS = ['friendly', 'neutral', 'cautious']

@@ -59,12 +59,15 @@ npm run dev
      allow read: if true;
      allow create: if request.auth != null;
      allow update: if request.auth != null;
+     allow delete: if request.auth != null;
      match /sightings/{sightingId} {
        allow read: if true;
        allow create: if request.auth != null;
+       allow delete: if request.auth != null && request.auth.uid == resource.data.reportedBy;
      }
    }
    ```
+   (Updated to add `delete` rules — re-paste this into the Firebase console if you set the rules up before the delete-your-own-report feature shipped.)
 6. **Deploy the worker**: `cd majon/worker && npm run deploy`, then set
    `VITE_MAJON_WORKER_URL` (as a GitHub Actions secret, for the deploy
    workflow) to the deployed Worker URL.

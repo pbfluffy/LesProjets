@@ -55,6 +55,7 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
   const [name, setName] = useState('')
   const [note, setNote] = useState('')
   const [friendliness, setFriendliness] = useState(null)
+  const [anonymous, setAnonymous] = useState(false)
   const [successInfo, setSuccessInfo] = useState(null)
   const fileRef = useRef(null)
 
@@ -69,6 +70,7 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
     setName('')
     setNote('')
     setFriendliness(null)
+    setAnonymous(false)
     setSuccessInfo(null)
     if (fileRef.current) fileRef.current.value = ''
   }
@@ -145,12 +147,12 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
     try {
       if (targetDog) {
         await addSightingToDog({
-          dogId: targetDog.id, user, photoUrl, tags, lat: coords.lat, lng: coords.lng, note, friendliness,
+          dogId: targetDog.id, user, photoUrl, tags, lat: coords.lat, lng: coords.lng, note, friendliness, anonymous,
         })
         setSuccessInfo({ matched: true, name: targetDog.name || t.dogUnnamed })
       } else {
         await createDogWithSighting({
-          user, photoUrl, tags, lat: coords.lat, lng: coords.lng, name, note, friendliness,
+          user, photoUrl, tags, lat: coords.lat, lng: coords.lng, name, note, friendliness, anonymous,
         })
         setSuccessInfo({ matched: false })
       }
@@ -270,6 +272,10 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
               maxLength={280}
               rows={3}
             />
+          </label>
+          <label className={styles.checkboxRow}>
+            <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
+            <span>{t.reportAnonymousLabel}</span>
           </label>
           <button type="button" className={styles.primaryBtn} onClick={submitReport}>
             {t.reportSubmit}
