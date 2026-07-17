@@ -2,8 +2,43 @@ import { useRef, useState } from 'react'
 import { auth } from '../firebase'
 import { uploadDogPhoto } from '../photoUpload'
 import { findCandidates, createDogWithSighting, addSightingToDog } from '../hooks/useDogs'
+import { readExifGps } from '../exifGps'
 import { interp } from '../LangContext'
 import styles from './ReportFlow.module.css'
+
+const LOCATE_TIMEOUT_MS = 10000
+
+// Wraps navigator.geolocation.getCurrentPosition in a Promise with its OWN
+// timeout guard — some browsers/embedded webviews never invoke either
+// callback when location services are off at the OS level, ignoring the
+// `timeout` option entirely, which otherwise leaves the UI stuck forever on
+// "Getting your location…".
+function getCurrentPositionSafe(timeoutMs) {
+  return new Promise((resolve, reject) => {
+    let settled = false
+    const timer = setTimeout(() => {
+      if (settled) return
+      settled = true
+      reject({ code: 3 }) // matches GeolocationPositionError.TIMEOUT
+    }, timeoutMs + 2000)
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        resolve(pos)
+      },
+      (err) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        reject(err)
+      },
+      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 0 }
+    )
+  })
+}
 
 // step: 'pick' | 'locating' | 'uploading' | 'candidates' | 'newDog' | 'submitting' | 'success'
 export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, presetDog }) {
@@ -36,25 +71,33 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
     if (!file) return
     setError(null)
 
+    // Try the photo's own EXIF GPS first — more accurate when there's a gap
+    // between taking the photo and reporting it, and skips the location
+    // prompt entirely when it's present. Falls back to device geolocation
+    // when absent (most photos shared via messaging apps have it stripped).
+    const exifCoords = await readExifGps(file)
+    if (exifCoords) {
+      setCoords(exifCoords)
+      await doUpload(file, exifCoords.lat, exifCoords.lng)
+      return
+    }
+
     if (!('geolocation' in navigator)) {
       setError(t.mapLocateUnsupported)
       return
     }
 
     setStep('locating')
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude
-        const lng = pos.coords.longitude
-        setCoords({ lat, lng })
-        await doUpload(file, lat, lng)
-      },
-      (err) => {
-        setError(err.code === 1 ? t.reportLocationDenied : t.reportLocationError)
-        setStep('pick')
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    )
+    try {
+      const pos = await getCurrentPositionSafe(LOCATE_TIMEOUT_MS)
+      const lat = pos.coords.latitude
+      const lng = pos.coords.longitude
+      setCoords({ lat, lng })
+      await doUpload(file, lat, lng)
+    } catch (err) {
+      setError(err.code === 1 ? t.reportLocationDenied : t.reportLocationError)
+      setStep('pick')
+    }
   }
 
   async function doUpload(file, lat, lng) {
