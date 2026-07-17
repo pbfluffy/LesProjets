@@ -15,7 +15,7 @@ const MAX_BYTES = 8 * 1024 * 1024 // 8 MB per image
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
 
-const GEMINI_MODEL = 'gemini-2.5-flash'
+const GEMINI_MODEL = 'gemini-3.1-flash-lite'
 const RETRY_STATUSES = new Set([500, 502, 503, 504])
 const MAX_ATTEMPTS = 3
 const BASE_DELAY_MS = 1000
