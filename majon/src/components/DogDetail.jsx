@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSightings, renameDog, summarizeFriendliness } from '../hooks/useDogs'
+import { useSightings, renameDog, summarizeFriendliness, deleteSighting } from '../hooks/useDogs'
 import { interp } from '../LangContext'
 import styles from './DogDetail.module.css'
 
@@ -24,6 +24,7 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
   const [editing, setEditing] = useState(false)
   const [nameDraft, setNameDraft] = useState(dog?.name || '')
   const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
 
   if (!dog) return null
 
@@ -36,6 +37,21 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
       console.error('[majon] rename failed:', err)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleDelete(sighting) {
+    if (!window.confirm(t.dogDeleteConfirm)) return
+    setDeletingId(sighting.id)
+    try {
+      const remaining = sightings.filter((s) => s.id !== sighting.id)
+      const result = await deleteSighting(dog.id, sighting.id, remaining)
+      if (result.dogDeleted) onClose()
+    } catch (err) {
+      console.error('[majon] delete sighting failed:', err)
+      window.alert(t.dogDeleteFailed)
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -95,11 +111,23 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
               <div className={styles.timelineInfo}>
                 <div className={styles.timelineDate}>{fmtDate(s.reportedAt, lang)}</div>
                 <div className={styles.timelineReporter}>
-                  {interp(t.dogReportedBy, { name: s.reportedByName || '?' })}
+                  {interp(t.dogReportedBy, { name: s.reportedByName || t.dogAnonymousReporter })}
                   {s.friendliness && ` · ${friendlinessLabel(s.friendliness, t)}`}
                 </div>
                 {s.note && <div className={styles.timelineNote}>{s.note}</div>}
               </div>
+              {user?.uid === s.reportedBy && (
+                <button
+                  type="button"
+                  className={styles.deleteBtn}
+                  onClick={() => handleDelete(s)}
+                  disabled={deletingId === s.id}
+                  aria-label={t.dogDeleteSighting}
+                  title={t.dogDeleteSighting}
+                >
+                  {deletingId === s.id ? '…' : '🗑'}
+                </button>
+              )}
             </li>
           ))}
         </ul>

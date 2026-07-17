@@ -188,6 +188,18 @@
   gap: 4px;
 }
 
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.checkboxRow input {
+  width: auto;
+}
+
 .fieldLabel {
   font-size: 12px;
   font-weight: 600;
