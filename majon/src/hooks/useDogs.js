@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  db, doc, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, onSnapshot,
+  db, doc, collection, addDoc, updateDoc, deleteDoc, getDocs, query, orderBy, serverTimestamp, onSnapshot,
 } from '../firebase'
 import { haversineMeters } from '../haversine'
 
@@ -113,16 +113,26 @@ export async function addSightingToDog({ dogId, user, photoUrl, tags, lat, lng, 
 // the dog itself is removed too (a dog with zero sightings has nothing to
 // show on the map); otherwise the dog's denormalized "latest" fields are
 // recomputed from whichever remaining sighting is now most recent.
-export async function deleteSighting(dogId, sightingId, remainingSightings) {
+//
+// Re-fetches the sightings subcollection fresh from the server after
+// deleting, rather than trusting a caller-supplied "remaining" list — the
+// caller's list comes from a live onSnapshot listener that can still be a
+// step behind (e.g. deleting a second report before the first deletion's
+// snapshot update has arrived), which would recompute "latest" from a
+// sighting that was itself already deleted, or skip cleaning up the dog
+// doc when it should have been removed.
+export async function deleteSighting(dogId, sightingId) {
   await deleteDoc(doc(db, COLLECTION, dogId, 'sightings', sightingId))
 
-  if (remainingSightings.length === 0) {
+  const snap = await getDocs(collection(db, COLLECTION, dogId, 'sightings'))
+  if (snap.empty) {
     await deleteDoc(doc(db, COLLECTION, dogId))
     return { dogDeleted: true }
   }
 
+  const remaining = snap.docs.map((d) => d.data())
   const toMs = (s) => (s.reportedAt?.toMillis ? s.reportedAt.toMillis() : 0)
-  const latest = remainingSightings.reduce((a, b) => (toMs(b) > toMs(a) ? b : a))
+  const latest = remaining.reduce((a, b) => (toMs(b) > toMs(a) ? b : a))
   await updateDoc(doc(db, COLLECTION, dogId), {
     lastSeenAt: latest.reportedAt,
     lastLat: latest.lat,

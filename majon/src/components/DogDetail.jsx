@@ -24,7 +24,10 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
   const [editing, setEditing] = useState(false)
   const [nameDraft, setNameDraft] = useState(dog?.name || '')
   const [saving, setSaving] = useState(false)
-  const [deletingId, setDeletingId] = useState(null)
+  // Set, not a single id — deleting two sightings back-to-back (before the
+  // first call's `finally` clears state) must not let the second clobber
+  // the first's in-flight loading indicator.
+  const [deletingIds, setDeletingIds] = useState(() => new Set())
   // Sighting currently showing its "delete this? yes/cancel" inline prompt —
   // a native window.confirm() triggers Chrome's own "suppress dialogs"
   // checkbox after repeated use, which can silently disable all future
@@ -49,16 +52,19 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
   async function confirmDelete(sighting) {
     setConfirmingId(null)
     setErrorId(null)
-    setDeletingId(sighting.id)
+    setDeletingIds((prev) => new Set(prev).add(sighting.id))
     try {
-      const remaining = sightings.filter((s) => s.id !== sighting.id)
-      const result = await deleteSighting(dog.id, sighting.id, remaining)
+      const result = await deleteSighting(dog.id, sighting.id)
       if (result.dogDeleted) onClose()
     } catch (err) {
       console.error('[majon] delete sighting failed:', err)
       setErrorId(sighting.id)
     } finally {
-      setDeletingId(null)
+      setDeletingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(sighting.id)
+        return next
+      })
     }
   }
 
@@ -134,11 +140,11 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
                     type="button"
                     className={styles.deleteBtn}
                     onClick={() => armDelete(s.id)}
-                    disabled={deletingId === s.id}
+                    disabled={deletingIds.has(s.id)}
                     aria-label={t.dogDeleteSighting}
                     title={t.dogDeleteSighting}
                   >
-                    {deletingId === s.id ? '…' : '🗑'}
+                    {deletingIds.has(s.id) ? '…' : '🗑'}
                   </button>
                 )}
               </div>
