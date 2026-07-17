@@ -64,10 +64,20 @@
 }
 .friendlinessBtn:hover { background: var(--color-surface-alt); }
 
-.friendlinessBtnActive {
-  background: var(--color-accent);
-  color: var(--color-accent-text);
-  border-color: var(--color-accent);
+.friendlinessBtnGreen {
+  background: var(--color-green-bg);
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+.friendlinessBtnAmber {
+  background: var(--color-amber-bg);
+  color: var(--color-amber);
+  border-color: var(--color-amber);
+}
+.friendlinessBtnRed {
+  background: var(--color-red-bg);
+  color: var(--color-red);
+  border-color: var(--color-red);
 }
 
 .signInMsg {

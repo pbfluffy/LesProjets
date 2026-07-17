@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react'
 import { auth } from '../firebase'
 import { uploadDogPhoto } from '../photoUpload'
-import { findCandidates, createDogWithSighting, addSightingToDog } from '../hooks/useDogs'
+import { findCandidates, createDogWithSighting, addSightingToDog, friendlinessColor } from '../hooks/useDogs'
 import { readExifGps } from '../exifGps'
 import { interp } from '../LangContext'
 import styles from './ReportFlow.module.css'
 
 const LOCATE_TIMEOUT_MS = 10000
 const FRIENDLINESS_OPTIONS = ['friendly', 'neutral', 'cautious']
+const FRIENDLINESS_BTN_CLASS = { green: 'friendlinessBtnGreen', amber: 'friendlinessBtnAmber', red: 'friendlinessBtnRed' }
 
 // Wraps navigator.geolocation.getCurrentPosition in a Promise with its OWN
 // timeout guard — some browsers/embedded webviews never invoke either
@@ -255,7 +256,7 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
                 <button
                   key={opt}
                   type="button"
-                  className={`${styles.friendlinessBtn} ${friendliness === opt ? styles.friendlinessBtnActive : ''}`}
+                  className={`${styles.friendlinessBtn} ${friendliness === opt ? styles[FRIENDLINESS_BTN_CLASS[friendlinessColor(opt)]] : ''}`}
                   onClick={() => setFriendliness(friendliness === opt ? null : opt)}
                 >
                   {t[`friendliness${opt.charAt(0).toUpperCase()}${opt.slice(1)}`]}
