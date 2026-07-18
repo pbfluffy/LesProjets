@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSightings, renameDog, summarizeFriendliness, deleteSighting, friendlinessColor } from '../hooks/useDogs'
-import { shareCardUrl } from '../shareDog'
+import { currentShareUrl } from '../shareDog'
 import { interp } from '../LangContext'
 import styles from './DogDetail.module.css'
 
@@ -48,9 +48,10 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
   if (!dog) return null
 
   async function handleShare() {
-    // Points at the worker's /card route (real photo + location in the link
-    // preview), which itself redirects into the app — see shareDog.js.
-    const url = shareCardUrl(dog.id)
+    // The real app URL — App.jsx already mirrors the open dog into
+    // ?dog=<id>, and the worker rewrites this exact URL's og:* tags in
+    // place for crawlers (see shareDog.js).
+    const url = currentShareUrl()
     const name = dog.name || t.dogUnnamed
     const text = interp(t.dogShareText, { name })
     if (navigator.share) {
