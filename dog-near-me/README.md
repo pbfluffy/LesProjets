@@ -3,16 +3,17 @@
 Community stray-dog ID map for Thailand. Spot a soi dog, snap a photo — Dog
 near me checks nearby previously-reported dogs (by location + AI-described
 features) so you can confirm "yes, that's [name]" or add a new dog to the
-map. Still lives at the `/majon/` URL path and `majon-photo` worker/bucket
-names internally — only the display name changed, not the underlying
-infra, to avoid breaking already-installed PWA shortcuts and the deployed
-worker URL. Part of
+map. The app was originally called MaJon — the URL path, folder name, and
+PWA install identity moved to `/dog-near-me/` along with the rename, but
+the underlying Cloudflare Worker (`majon-photo`) and R2 bucket
+(`majon-photos`) kept their original names internally, since renaming
+those requires provisioning new infra rather than a simple rename. Part of
 [pbfluffy/LesProjets](https://github.com/pbfluffy/LesProjets), live at
-[pumbafluffycorgi.com/majon/](https://pumbafluffycorgi.com/majon/).
+[pumbafluffycorgi.com/dog-near-me/](https://pumbafluffycorgi.com/dog-near-me/).
 
 ## How it works
 
-1. **Report** — take/choose a photo of a dog. MaJon gets your GPS location,
+1. **Report** — take/choose a photo of a dog. Dog near me gets your GPS location,
    uploads the photo to the `majon-photo` Worker, which stores it in R2 and
    asks Gemini to describe the dog (color, size, ear/tail type, marks).
 2. **Match** — dogs previously reported within ~500m are shown as candidates,
@@ -35,14 +36,14 @@ plan file for the reasoning behind that scope.
 ## Local development
 
 ```bash
-cd majon
+cd dog-near-me
 npm install
 cp .env.example .env.local   # set VITE_MAJON_WORKER_URL to your local worker
 npm run dev
 ```
 
 ```bash
-cd majon/worker
+cd dog-near-me/worker
 npm install
 cp .dev.vars.example .dev.vars   # set your own GOOGLE_API_KEY
 npm run dev
@@ -50,7 +51,7 @@ npm run dev
 
 ## One-time setup (do these before the report flow will work)
 
-1. **Create the R2 bucket**: `cd majon/worker && npx wrangler r2 bucket create majon-photos`.
+1. **Create the R2 bucket**: `cd dog-near-me/worker && npx wrangler r2 bucket create majon-photos`.
    Enable public access on it (dashboard → bucket → Settings → Public access),
    then copy the `pub-....r2.dev` URL into `PUBLIC_BASE` in `worker/src/index.js`.
 2. **Create the KV namespace**: `npx wrangler kv namespace create MAJON_RATE_LIMITER`,
@@ -72,7 +73,7 @@ npm run dev
    }
    ```
    (Updated to add `delete` rules — re-paste this into the Firebase console if you set the rules up before the delete-your-own-report feature shipped.)
-6. **Deploy the worker**: `cd majon/worker && npm run deploy`, then set
+6. **Deploy the worker**: `cd dog-near-me/worker && npm run deploy`, then set
    `VITE_MAJON_WORKER_URL` (as a GitHub Actions secret, for the deploy
    workflow) to the deployed Worker URL.
 

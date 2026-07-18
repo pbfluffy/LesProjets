@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "majon",
+      "name": "dog-near-me",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "cwd": "majon",
+      "cwd": "dog-near-me",
       "port": 5173
     }
   ]
