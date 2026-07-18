@@ -5,7 +5,7 @@
 // REQUIRED SECRET:
 //   GOOGLE_API_KEY  (wrangler secret put GOOGLE_API_KEY)
 //
-// Two routes:
+// Three routes:
 //   POST /          verify Firebase ID token -> per-uid rate limit -> upload
 //                    photo to R2 -> ask Gemini for structured descriptive
 //                    tags -> return { photoUrl, tags }.
@@ -17,9 +17,19 @@
 //                    This is real visual comparison, not text-tag matching —
 //                    the client still does the location-radius filtering to
 //                    keep the candidate list small before this runs.
+//   GET  /card       UNAUTHENTICATED. dog-near-me is a client-rendered SPA
+//                    on static hosting, so link-preview crawlers (LINE,
+//                    Facebook, ...) never run its JS and only ever see the
+//                    same static og:* tags for every URL. This route reads
+//                    the dog straight from Firestore (public read) and
+//                    returns a tiny HTML page with THAT dog's real photo +
+//                    a reverse-geocoded area name in its og:* tags, then
+//                    redirects the visitor into the real app. The Share
+//                    button links here instead of straight to the app.
 
 const PROJECT_ID = 'pumgoda'
 const PUBLIC_BASE = 'https://pub-8d7c1c4e4cec4c81bbe97a7c299022ac.r2.dev' // replace after creating the bucket (see README)
+const APP_URL = 'https://pumbafluffycorgi.com/dog-near-me/'
 const ALLOWED_ORIGINS = ['https://pumbafluffycorgi.com', 'https://pbfluffy.github.io']
 const MAX_BYTES = 8 * 1024 * 1024 // 8 MB per image
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'
@@ -252,6 +262,128 @@ function isOwnPhotoUrl(url) {
   return typeof url === 'string' && url.startsWith(PUBLIC_BASE + '/')
 }
 
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+}
+
+// Reads a stray dog straight out of Firestore via its public REST API — the
+// same collection the client reads with `allow read: if true`, just fetched
+// without the Firebase SDK since this runs with no user session at all.
+async function fetchDogDoc(dogId) {
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/strayDogs/${encodeURIComponent(dogId)}`
+  const res = await fetch(url)
+  if (!res.ok) return null
+  const doc = await res.json()
+  const f = doc.fields || {}
+  const num = (v) => {
+    const n = Number(v?.doubleValue ?? v?.integerValue)
+    return Number.isFinite(n) ? n : null
+  }
+  return {
+    name: f.name?.stringValue || null,
+    photoUrl: f.latestPhotoUrl?.stringValue || null,
+    lat: num(f.lastLat),
+    lng: num(f.lastLng),
+    lastSeenAt: f.lastSeenAt?.timestampValue || null,
+    hasCollar: f.latestTags?.mapValue?.fields?.hasCollar?.booleanValue === true,
+  }
+}
+
+// Free, no-key reverse geocoding (OpenStreetMap Nominatim) — same
+// no-paid-API-key ethos as the CARTO map tiles the app already uses.
+// Best-effort: any failure just means the card skips the area name.
+async function reverseGeocode(lat, lng) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=14&accept-language=en`
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'DogNearMe/1.0 (https://pumbafluffycorgi.com/dog-near-me/; pbfluffygaming@gmail.com)' },
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    const a = data.address || {}
+    return a.suburb || a.neighbourhood || a.city_district || a.town || a.city || a.county || null
+  } catch {
+    return null
+  }
+}
+
+function timeAgoLabel(isoString) {
+  if (!isoString) return null
+  const mins = Math.floor((Date.now() - new Date(isoString).getTime()) / 60000)
+  if (mins < 1) return null
+  if (mins < 60) return `seen ${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `seen ${hours}h ago`
+  return `seen ${Math.floor(hours / 24)}d ago`
+}
+
+function cardHtml({ title, description, image, url }) {
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(title)}</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:image" content="${escapeHtml(image)}">
+<meta property="og:url" content="${escapeHtml(url)}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:description" content="${escapeHtml(description)}">
+<meta name="twitter:image" content="${escapeHtml(image)}">
+<meta http-equiv="refresh" content="0; url=${escapeHtml(url)}">
+</head>
+<body>
+<p>Redirecting to <a href="${escapeHtml(url)}">Dog near me</a>…</p>
+<script>location.replace(${JSON.stringify(url)})</script>
+</body>
+</html>`
+  return new Response(html, {
+    status: 200,
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=600' },
+  })
+}
+
+async function handleCard(request, ctx) {
+  const dogId = new URL(request.url).searchParams.get('dog')
+  const appUrl = dogId ? `${APP_URL}?dog=${encodeURIComponent(dogId)}` : APP_URL
+
+  const fallback = () => cardHtml({
+    title: 'Dog near me · หมาใกล้ฉัน',
+    description: 'Report a stray dog you spotted, see if the community already named it.',
+    image: 'https://pumbafluffycorgi.com/pumba.png',
+    url: appUrl,
+  })
+
+  if (!dogId) return fallback()
+
+  // Cache the built card per dog for a while — a shared link can get fetched
+  // repeatedly by chat-app crawlers, and this avoids re-hitting Firestore +
+  // Nominatim (whose usage policy expects light, well-behaved traffic) on
+  // every single one of those fetches.
+  const cache = caches.default
+  const cacheKey = new Request(`https://card-cache.internal/${dogId}`)
+  const cached = await cache.match(cacheKey)
+  if (cached) return cached
+
+  const dog = await fetchDogDoc(dogId).catch(() => null)
+  if (!dog || !dog.photoUrl) return fallback()
+
+  const place = dog.lat != null && dog.lng != null ? await reverseGeocode(dog.lat, dog.lng) : null
+  const bits = [place, timeAgoLabel(dog.lastSeenAt), dog.hasCollar ? 'wearing a collar — may have an owner' : null].filter(Boolean)
+
+  const response = cardHtml({
+    title: dog.name || 'Unnamed dog · Dog near me',
+    description: bits.length ? bits.join(' · ') : 'Help identify this dog on Dog near me',
+    image: dog.photoUrl,
+    url: appUrl,
+  })
+  ctx.waitUntil(cache.put(cacheKey, response.clone()))
+  return response
+}
+
 async function handleUpload(request, env, origin, uid) {
   const allowed = await checkRateLimit(env, uid, 'rl', UPLOADS_PER_DAY)
   if (!allowed) return json({ error: 'rate limited: daily upload cap reached' }, 429, origin)
@@ -320,9 +452,11 @@ async function handleCompare(request, env, origin, uid) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = request.headers.get('Origin') || ''
     const path = new URL(request.url).pathname
+
+    if (request.method === 'GET' && path === '/card') return handleCard(request, ctx)
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) })
     if (request.method === 'GET') return new Response('majon-photo OK', { headers: cors(origin) })
