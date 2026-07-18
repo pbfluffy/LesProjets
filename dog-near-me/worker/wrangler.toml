@@ -2,6 +2,13 @@ name = "majon-photo"
 main = "src/index.js"
 compatibility_date = "2026-07-15"
 
+# Adding [[routes]] makes wrangler disable the workers.dev subdomain by
+# default unless told otherwise — but the app's own JS calls this worker
+# directly via majon-photo.pbfluffygaming.workers.dev for uploads/compare,
+# so both must stay on. (Learned this the hard way: a deploy without this
+# line took the live report flow down.)
+workers_dev = true
+
 # Mirrors the existing pumgoda-og-meta route (pumbafluffycorgi.com/pumgoda/*)
 # — lets this worker rewrite og:* tags in place on the real app URL for
 # link-preview crawlers, instead of sharing a workers.dev subdomain link.
