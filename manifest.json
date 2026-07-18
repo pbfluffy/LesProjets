@@ -42,8 +42,8 @@
       "icons": [{"src": "./icon-192.png", "sizes": "192x192"}]
     },
     {
-      "name": "MaJon",
-      "short_name": "MaJon",
+      "name": "Dog near me",
+      "short_name": "Dog near me",
       "url": "/majon/",
       "icons": [{"src": "./icon-192.png", "sizes": "192x192"}]
     }

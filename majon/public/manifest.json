@@ -1,6 +1,6 @@
 {
-  "name": "MaJon — community stray-dog ID map",
-  "short_name": "MaJon",
+  "name": "Dog near me — community stray-dog ID map",
+  "short_name": "Dog near me",
   "description": "Report a stray dog you spotted, see if the community already named it.",
   "id": "/majon/",
   "start_url": "/majon/",

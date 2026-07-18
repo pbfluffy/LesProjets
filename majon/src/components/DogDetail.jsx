@@ -114,6 +114,10 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
           <p className={styles.collarWarning}>{t.dogPossibleOwner}</p>
         )}
 
+        {dog.latestTags?.breedGuess && (
+          <p className={styles.meta}>{t.dogBreed}: {dog.latestTags.breedGuess}</p>
+        )}
+
         {dog.lastSeenAt && (
           <p className={styles.meta}>{t.dogLastSeen}: {fmtDate(dog.lastSeenAt, lang)}</p>
         )}

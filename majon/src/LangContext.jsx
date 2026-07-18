@@ -4,7 +4,7 @@ export const LangContext = createContext(null)
 
 export const STRINGS = {
   en: {
-    appName: 'MaJon',
+    appName: 'Dog near me',
     tagline: "Report a stray dog you spotted — see if someone's already named it",
     navMap: 'Map',
     navReport: 'Report a dog',
@@ -67,6 +67,7 @@ export const STRINGS = {
     dogReportedBy: 'Reported by {name}',
     dogAnonymousReporter: 'Anonymous',
     dogPossibleOwner: 'May have an owner — wearing a collar',
+    dogBreed: 'Breed (AI guess)',
     dogTemperament: 'Temperament',
     dogTemperamentNone: 'No temperament reports yet',
     dogTemperamentCount: '({count} of {total} reports)',
@@ -75,7 +76,7 @@ export const STRINGS = {
     dogDeleteFailed: "Couldn't delete that — try again.",
   },
   th: {
-    appName: 'MaJon',
+    appName: 'หมาใกล้ฉัน',
     tagline: 'รายงานหมาจรที่เจอ — ดูว่ามีใครตั้งชื่อไว้แล้วหรือยัง',
     navMap: 'แผนที่',
     navReport: 'รายงานหมา',
@@ -138,6 +139,7 @@ export const STRINGS = {
     dogReportedBy: 'รายงานโดย {name}',
     dogAnonymousReporter: 'ไม่ระบุชื่อ',
     dogPossibleOwner: 'อาจมีเจ้าของ — ใส่ปลอกคออยู่',
+    dogBreed: 'สายพันธุ์ (AI เดา)',
     dogTemperament: 'นิสัย',
     dogTemperamentNone: 'ยังไม่มีรายงานเรื่องนิสัย',
     dogTemperamentCount: '({count} จาก {total} รายงาน)',
