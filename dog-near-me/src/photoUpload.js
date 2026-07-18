@@ -58,3 +58,19 @@ export async function uploadDogPhoto({ file, lat, lng, idToken }) {
 
   return res.json() // { photoUrl, tags }
 }
+
+// Asks the worker to directly compare the new photo against up to 5 nearby
+// candidate dogs' photos via Gemini vision, rather than string-matching
+// independently-generated tags. Best-effort by design — the worker itself
+// returns { results: [] } (200, not an error) on any AI-side failure so a
+// network hiccup here should never block the report flow, just fall back
+// to the caller's own distance/tag ranking.
+export async function compareDogPhotos({ newPhotoUrl, candidates, idToken }) {
+  const res = await fetch(new URL('compare', WORKER_URL), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+    body: JSON.stringify({ newPhotoUrl, candidates }),
+  })
+  if (!res.ok) throw new Error(`Compare failed (${res.status})`)
+  return res.json() // { results: [{ id, sameDog, confidence }] }
+}

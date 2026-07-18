@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { auth } from '../firebase'
-import { uploadDogPhoto } from '../photoUpload'
-import { findCandidates, createDogWithSighting, addSightingToDog, friendlinessColor } from '../hooks/useDogs'
+import { uploadDogPhoto, compareDogPhotos } from '../photoUpload'
+import { findNearbyDogs, findCandidates, createDogWithSighting, addSightingToDog, friendlinessColor } from '../hooks/useDogs'
 import { readExifGps } from '../exifGps'
 import { interp } from '../LangContext'
 import styles from './ReportFlow.module.css'
@@ -9,6 +9,18 @@ import styles from './ReportFlow.module.css'
 const LOCATE_TIMEOUT_MS = 10000
 const FRIENDLINESS_OPTIONS = ['friendly', 'neutral', 'cautious']
 const FRIENDLINESS_BTN_CLASS = { green: 'friendlinessBtnGreen', amber: 'friendlinessBtnAmber', red: 'friendlinessBtnRed' }
+// sameDog:true ranks above any non-match regardless of confidence (+10),
+// then by confidence, then closest distance wins ties.
+const CONFIDENCE_RANK = { high: 3, medium: 2, low: 1 }
+
+function rankByAiVerdict(nearby, resultsById) {
+  return nearby
+    .map((c) => ({ ...c, aiVerdict: resultsById.get(c.dog.id) || null }))
+    .sort((a, b) => {
+      const scoreOf = (c) => (c.aiVerdict?.sameDog ? 10 + (CONFIDENCE_RANK[c.aiVerdict.confidence] || 0) : 0)
+      return (scoreOf(b) - scoreOf(a)) || (a.distance - b.distance)
+    })
+}
 
 // Wraps navigator.geolocation.getCurrentPosition in a Promise with its OWN
 // timeout guard — some browsers/embedded webviews never invoke either
@@ -42,7 +54,7 @@ function getCurrentPositionSafe(timeoutMs) {
   })
 }
 
-// step: 'pick' | 'locating' | 'uploading' | 'candidates' | 'confirm' | 'submitting' | 'success'
+// step: 'pick' | 'locating' | 'uploading' | 'comparing' | 'candidates' | 'confirm' | 'submitting' | 'success'
 export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, presetDog }) {
   const [step, setStep] = useState('pick')
   const [error, setError] = useState(null)
@@ -124,8 +136,29 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
         return
       }
 
-      const found = findCandidates(dogs, { lat, lng, tags: result.tags }, 500, 5)
-      setCandidates(found)
+      const nearby = findNearbyDogs(dogs, { lat, lng }, 500, 5)
+      if (nearby.length === 0) {
+        setCandidates([])
+        setStep('candidates')
+        return
+      }
+
+      setStep('comparing')
+      const withPhoto = nearby.filter(({ dog }) => dog.latestPhotoUrl)
+      try {
+        const { results } = await compareDogPhotos({
+          newPhotoUrl: result.photoUrl,
+          candidates: withPhoto.map(({ dog }) => ({ id: dog.id, photoUrl: dog.latestPhotoUrl })),
+          idToken,
+        })
+        const byId = new Map((results || []).map((r) => [r.id, r]))
+        setCandidates(rankByAiVerdict(nearby, byId))
+      } catch {
+        // AI compare failed entirely (network/server error) — fall back to
+        // the old distance + text-tag-overlap ranking rather than blocking
+        // the report.
+        setCandidates(findCandidates(dogs, { lat, lng, tags: result.tags }, 500, 5))
+      }
       setStep('candidates')
     } catch (err) {
       setError(err.message || t.reportUploadError)
@@ -202,6 +235,7 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
 
       {step === 'locating' && <p className={styles.status}>{t.reportGettingLocation}</p>}
       {step === 'uploading' && <p className={styles.status}>{t.reportUploading}</p>}
+      {step === 'comparing' && <p className={styles.status}>{t.reportComparing}</p>}
       {step === 'submitting' && <p className={styles.status}>{t.reportSubmitting}</p>}
 
       {step === 'candidates' && (
@@ -213,12 +247,17 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
             <p className={styles.hint}>{interp(t.reportCandidatesHint, { n: candidates.length })}</p>
           )}
           <ul className={styles.candidateList}>
-            {candidates.map(({ dog, distance }) => (
+            {candidates.map(({ dog, distance, aiVerdict }) => (
               <li key={dog.id} className={styles.candidateCard}>
                 {dog.latestPhotoUrl && <img src={dog.latestPhotoUrl} alt="" className={styles.candidateThumb} />}
                 <div className={styles.candidateInfo}>
                   <div className={styles.candidateName}>{dog.name || t.dogUnnamed}</div>
                   <div className={styles.candidateDistance}>{interp(t.distanceAway, { d: Math.round(distance) })}</div>
+                  {aiVerdict?.sameDog && (
+                    <span className={aiVerdict.confidence === 'high' ? styles.tagGreen : styles.tagAmber}>
+                      {aiVerdict.confidence === 'high' ? t.reportLikelyMatch : t.reportPossibleMatch}
+                    </span>
+                  )}
                 </div>
                 <button type="button" className={styles.matchBtn} onClick={() => pickCandidate(dog)}>
                   {t.reportSameDog}
