@@ -2,6 +2,13 @@ name = "majon-photo"
 main = "src/index.js"
 compatibility_date = "2026-07-15"
 
+# Mirrors the existing pumgoda-og-meta route (pumbafluffycorgi.com/pumgoda/*)
+# — lets this worker rewrite og:* tags in place on the real app URL for
+# link-preview crawlers, instead of sharing a workers.dev subdomain link.
+[[routes]]
+pattern = "pumbafluffycorgi.com/dog-near-me/*"
+zone_name = "pumbafluffycorgi.com"
+
 # Create with: npx wrangler r2 bucket create majon-photos
 [[r2_buckets]]
 binding = "BUCKET"

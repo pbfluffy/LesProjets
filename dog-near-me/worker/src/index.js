@@ -5,7 +5,20 @@
 // REQUIRED SECRET:
 //   GOOGLE_API_KEY  (wrangler secret put GOOGLE_API_KEY)
 //
-// Three routes:
+// Two entry points, distinguished by hostname:
+//
+// pumbafluffycorgi.com/dog-near-me/* (via the zone route below, mirroring
+// the existing pumgoda-og-meta route on /pumgoda/*) — dog-near-me is a
+// client-rendered SPA on static hosting, so link-preview crawlers (LINE,
+// Facebook, ...) never run its JS and would otherwise always see the same
+// static og:* tags for every dog. For the app-shell HTML request only
+// (not JS/CSS/manifest assets), this worker fetches the real origin
+// response and uses HTMLRewriter to swap in that dog's real photo + a
+// reverse-geocoded area name — in place, on the real app URL, no redirect
+// page and no workers.dev link shown to anyone.
+//
+// majon-photo.pbfluffygaming.workers.dev (called directly by the app's own
+// JS, never shown to a user) — the API surface:
 //   POST /          verify Firebase ID token -> per-uid rate limit -> upload
 //                    photo to R2 -> ask Gemini for structured descriptive
 //                    tags -> return { photoUrl, tags }.
@@ -17,19 +30,9 @@
 //                    This is real visual comparison, not text-tag matching —
 //                    the client still does the location-radius filtering to
 //                    keep the candidate list small before this runs.
-//   GET  /card       UNAUTHENTICATED. dog-near-me is a client-rendered SPA
-//                    on static hosting, so link-preview crawlers (LINE,
-//                    Facebook, ...) never run its JS and only ever see the
-//                    same static og:* tags for every URL. This route reads
-//                    the dog straight from Firestore (public read) and
-//                    returns a tiny HTML page with THAT dog's real photo +
-//                    a reverse-geocoded area name in its og:* tags, then
-//                    redirects the visitor into the real app. The Share
-//                    button links here instead of straight to the app.
 
 const PROJECT_ID = 'pumgoda'
 const PUBLIC_BASE = 'https://pub-8d7c1c4e4cec4c81bbe97a7c299022ac.r2.dev' // replace after creating the bucket (see README)
-const APP_URL = 'https://pumbafluffycorgi.com/dog-near-me/'
 const ALLOWED_ORIGINS = ['https://pumbafluffycorgi.com', 'https://pbfluffy.github.io']
 const MAX_BYTES = 8 * 1024 * 1024 // 8 MB per image
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'
@@ -262,10 +265,6 @@ function isOwnPhotoUrl(url) {
   return typeof url === 'string' && url.startsWith(PUBLIC_BASE + '/')
 }
 
-function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
-}
-
 // Reads a stray dog straight out of Firestore via its public REST API — the
 // same collection the client reads with `allow read: if true`, just fetched
 // without the Firebase SDK since this runs with no user session at all.
@@ -317,71 +316,71 @@ function timeAgoLabel(isoString) {
   return `seen ${Math.floor(hours / 24)}d ago`
 }
 
-function cardHtml({ title, description, image, url }) {
-  const html = `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${escapeHtml(title)}</title>
-<meta property="og:type" content="website">
-<meta property="og:title" content="${escapeHtml(title)}">
-<meta property="og:description" content="${escapeHtml(description)}">
-<meta property="og:image" content="${escapeHtml(image)}">
-<meta property="og:url" content="${escapeHtml(url)}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${escapeHtml(title)}">
-<meta name="twitter:description" content="${escapeHtml(description)}">
-<meta name="twitter:image" content="${escapeHtml(image)}">
-<meta http-equiv="refresh" content="0; url=${escapeHtml(url)}">
-</head>
-<body>
-<p>Redirecting to <a href="${escapeHtml(url)}">Dog near me</a>…</p>
-<script>location.replace(${JSON.stringify(url)})</script>
-</body>
-</html>`
-  return new Response(html, {
-    status: 200,
-    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=600' },
-  })
+// HTMLRewriter element handlers — setAttribute/setInnerContent both escape
+// their input automatically, so no manual HTML-escaping needed here.
+class MetaContentRewriter {
+  constructor(content) { this.content = content }
+  element(el) { el.setAttribute('content', this.content) }
+}
+class TitleTextRewriter {
+  // NOT named `text` — HTMLRewriter's ElementContentHandlers reserves that
+  // property name for its own text-chunk callback and throws if it finds a
+  // non-function value there (caught by testing against the real runtime).
+  constructor(newText) { this.newText = newText }
+  element(el) { el.setInnerContent(this.newText) }
 }
 
-async function handleCard(request, ctx) {
-  const dogId = new URL(request.url).searchParams.get('dog')
-  const appUrl = dogId ? `${APP_URL}?dog=${encodeURIComponent(dogId)}` : APP_URL
+function rewriteMetaTags(response, { title, description, image, url }) {
+  return new HTMLRewriter()
+    .on('title', new TitleTextRewriter(title))
+    .on('meta[property="og:title"]', new MetaContentRewriter(title))
+    .on('meta[name="twitter:title"]', new MetaContentRewriter(title))
+    .on('meta[property="og:description"]', new MetaContentRewriter(description))
+    .on('meta[name="twitter:description"]', new MetaContentRewriter(description))
+    .on('meta[property="og:image"]', new MetaContentRewriter(image))
+    .on('meta[name="twitter:image"]', new MetaContentRewriter(image))
+    .on('meta[property="og:url"]', new MetaContentRewriter(url))
+    .transform(response)
+}
 
-  const fallback = () => cardHtml({
-    title: 'Dog near me · หมาใกล้ฉัน',
-    description: 'Report a stray dog you spotted, see if the community already named it.',
-    image: 'https://pumbafluffycorgi.com/pumba.png',
-    url: appUrl,
-  })
+// Requests arriving via the pumbafluffycorgi.com/dog-near-me/* zone route.
+// Only the app-shell HTML itself gets rewritten — every other path under
+// this prefix (JS/CSS bundles, manifest.json, sw.js, ...) passes straight
+// through untouched and without the Firestore/Nominatim lookup below.
+async function handleAppShell(request, url, ctx) {
+  const originResponse = await fetch(request) // bypasses the Workers route layer, hits the real GitHub Pages origin
+  const dogId = url.searchParams.get('dog')
+  if (!dogId) return originResponse
 
-  if (!dogId) return fallback()
-
-  // Cache the built card per dog for a while — a shared link can get fetched
-  // repeatedly by chat-app crawlers, and this avoids re-hitting Firestore +
-  // Nominatim (whose usage policy expects light, well-behaved traffic) on
-  // every single one of those fetches.
+  // Cache the looked-up dog metadata for a while — a shared link can get
+  // fetched repeatedly by chat-app crawlers, and this avoids re-hitting
+  // Firestore + Nominatim (whose usage policy expects light, well-behaved
+  // traffic) on every single one of those fetches.
   const cache = caches.default
-  const cacheKey = new Request(`https://card-cache.internal/${dogId}`)
+  const cacheKey = new Request(`https://og-cache.internal/dog-near-me/${dogId}`)
+  let dog
   const cached = await cache.match(cacheKey)
-  if (cached) return cached
-
-  const dog = await fetchDogDoc(dogId).catch(() => null)
-  if (!dog || !dog.photoUrl) return fallback()
+  if (cached) {
+    dog = await cached.json()
+  } else {
+    dog = await fetchDogDoc(dogId).catch(() => null)
+    if (dog) {
+      ctx.waitUntil(cache.put(cacheKey, new Response(JSON.stringify(dog), {
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600' },
+      })))
+    }
+  }
+  if (!dog || !dog.photoUrl) return originResponse // no dog / no photo — leave the generic tags as-is
 
   const place = dog.lat != null && dog.lng != null ? await reverseGeocode(dog.lat, dog.lng) : null
   const bits = [place, timeAgoLabel(dog.lastSeenAt), dog.hasCollar ? 'wearing a collar — may have an owner' : null].filter(Boolean)
 
-  const response = cardHtml({
+  return rewriteMetaTags(originResponse, {
     title: dog.name || 'Unnamed dog · Dog near me',
     description: bits.length ? bits.join(' · ') : 'Help identify this dog on Dog near me',
     image: dog.photoUrl,
-    url: appUrl,
+    url: request.url,
   })
-  ctx.waitUntil(cache.put(cacheKey, response.clone()))
-  return response
 }
 
 async function handleUpload(request, env, origin, uid) {
@@ -453,10 +452,17 @@ async function handleCompare(request, env, origin, uid) {
 
 export default {
   async fetch(request, env, ctx) {
-    const origin = request.headers.get('Origin') || ''
-    const path = new URL(request.url).pathname
+    const url = new URL(request.url)
 
-    if (request.method === 'GET' && path === '/card') return handleCard(request, ctx)
+    // Traffic via the pumbafluffycorgi.com/dog-near-me/* zone route is real
+    // app page loads (or a crawler fetching one) — not the API surface below.
+    if (url.hostname === 'pumbafluffycorgi.com') {
+      const isAppShell = request.method === 'GET' && (url.pathname === '/dog-near-me/' || url.pathname === '/dog-near-me/index.html')
+      return isAppShell ? handleAppShell(request, url, ctx) : fetch(request)
+    }
+
+    const origin = request.headers.get('Origin') || ''
+    const path = url.pathname
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) })
     if (request.method === 'GET') return new Response('majon-photo OK', { headers: cors(origin) })
