@@ -1,8 +1,12 @@
-# MaJon (มาจร)
+# Dog near me (หมาใกล้ฉัน)
 
-Community stray-dog ID map for Thailand. Spot a soi dog, snap a photo — MaJon
-checks nearby previously-reported dogs (by location + AI-described features)
-so you can confirm "yes, that's [name]" or add a new dog to the map. Part of
+Community stray-dog ID map for Thailand. Spot a soi dog, snap a photo — Dog
+near me checks nearby previously-reported dogs (by location + AI-described
+features) so you can confirm "yes, that's [name]" or add a new dog to the
+map. Still lives at the `/majon/` URL path and `majon-photo` worker/bucket
+names internally — only the display name changed, not the underlying
+infra, to avoid breaking already-installed PWA shortcuts and the deployed
+worker URL. Part of
 [pbfluffy/LesProjets](https://github.com/pbfluffy/LesProjets), live at
 [pumbafluffycorgi.com/majon/](https://pumbafluffycorgi.com/majon/).
 

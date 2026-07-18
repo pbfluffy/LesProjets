@@ -173,7 +173,7 @@ export async function renameDog(dogId, name) {
   await updateDoc(doc(db, COLLECTION, dogId), { name: name?.trim() || null })
 }
 
-const TAG_FIELDS = ['colorPrimary', 'pattern', 'size', 'earType', 'tailType', 'sexGuess']
+const TAG_FIELDS = ['colorPrimary', 'pattern', 'size', 'earType', 'tailType', 'sexGuess', 'breedGuess']
 
 // Simple weighted tag-overlap score — not ML, just a count of matching
 // descriptive fields (case-insensitive), used to rank nearby candidates.
