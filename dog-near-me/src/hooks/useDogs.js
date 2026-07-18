@@ -188,8 +188,28 @@ function tagOverlapScore(a, b) {
   return score
 }
 
-// Candidates = dogs with a last-known position within radiusMeters, ranked by
-// distance first (closest = most likely) then by tag-overlap score.
+// Location-only shortlist — the input to the AI visual-compare step
+// (compareDogPhotos), which does real photo-to-photo comparison instead of
+// the text-tag matching below. Kept as its own function (rather than just
+// calling findCandidates with no tags) so the two matching strategies stay
+// clearly distinct in the code, not coupled by an implicit "null tags skips
+// scoring" side effect.
+export function findNearbyDogs(dogs, { lat, lng }, radiusMeters = 500, max = 5) {
+  return dogs
+    .map((dog) => {
+      if (typeof dog.lastLat !== 'number' || typeof dog.lastLng !== 'number') return null
+      const distance = haversineMeters({ lat, lng }, { lat: dog.lastLat, lng: dog.lastLng })
+      if (distance > radiusMeters) return null
+      return { dog, distance }
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, max)
+}
+
+// Fallback candidates when the AI compare call fails — dogs with a
+// last-known position within radiusMeters, ranked by distance first
+// (closest = most likely) then by text-tag overlap score.
 export function findCandidates(dogs, { lat, lng, tags }, radiusMeters = 500, max = 5) {
   return dogs
     .map((dog) => {

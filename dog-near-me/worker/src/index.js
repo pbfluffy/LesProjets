@@ -5,8 +5,18 @@
 // REQUIRED SECRET:
 //   GOOGLE_API_KEY  (wrangler secret put GOOGLE_API_KEY)
 //
-// Flow: verify Firebase ID token -> per-uid rate limit -> upload photo to R2
-// -> ask Gemini for structured descriptive tags -> return { photoUrl, tags }.
+// Two routes:
+//   POST /          verify Firebase ID token -> per-uid rate limit -> upload
+//                    photo to R2 -> ask Gemini for structured descriptive
+//                    tags -> return { photoUrl, tags }.
+//   POST /compare    verify token -> per-uid rate limit (separate pool) ->
+//                    fetch the new photo + up to 5 nearby candidate photos
+//                    (must be our own R2 URLs) -> ask Gemini to directly
+//                    compare the new photo against each candidate in one
+//                    request -> return { results: [{id, sameDog, confidence}] }.
+//                    This is real visual comparison, not text-tag matching —
+//                    the client still does the location-radius filtering to
+//                    keep the candidate list small before this runs.
 
 const PROJECT_ID = 'pumgoda'
 const PUBLIC_BASE = 'https://pub-8d7c1c4e4cec4c81bbe97a7c299022ac.r2.dev' // replace after creating the bucket (see README)
@@ -21,6 +31,8 @@ const MAX_ATTEMPTS = 3
 const BASE_DELAY_MS = 1000
 
 const UPLOADS_PER_DAY = 20
+const COMPARES_PER_DAY = 20
+const MAX_COMPARE_CANDIDATES = 5
 
 const TAG_PROMPT = `You are describing a dog in a photo for a community stray-dog identification app.
 
@@ -39,6 +51,26 @@ Respond ONLY with valid JSON, no markdown fences, no preamble:
 }
 
 If the image does not clearly show a dog, respond with {"error": "no dog detected"} instead.`
+
+const COMPARE_PROMPT = `You are comparing a newly reported stray dog photo against photos of
+dogs previously reported nearby, to help a human decide whether any of them
+are the same individual dog.
+
+The first photo (labeled NEW REPORT) is the new sighting. Each following
+photo is a CANDIDATE, labeled with its index (0, 1, 2, ...) right before it.
+
+For each candidate, judge whether it is very likely the SAME INDIVIDUAL dog
+as the new report — based on coat pattern, markings, coloring, body shape,
+and other identifying features. Do NOT match on breed or general size
+alone — two different dogs of the same breed/size are NOT a match.
+
+Respond ONLY with valid JSON, no markdown fences, no preamble:
+{
+  "results": [
+    {"index": 0, "sameDog": true|false, "confidence": "high"|"medium"|"low"}
+  ]
+}
+Include exactly one entry per candidate, in the same order they were shown.`
 
 function cors(origin) {
   const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
@@ -108,12 +140,12 @@ async function requireUser(request) {
   return verifyIdToken(m[1])
 }
 
-async function checkRateLimit(env, uid) {
+async function checkRateLimit(env, uid, pool, cap) {
   if (!env.RATE_LIMITER) return true
   const day = new Date().toISOString().slice(0, 10)
-  const key = `rl:${day}:${uid}`
+  const key = `${pool}:${day}:${uid}`
   const count = Number((await env.RATE_LIMITER.get(key)) || 0)
-  if (count >= UPLOADS_PER_DAY) return false
+  if (count >= cap) return false
   await env.RATE_LIMITER.put(key, String(count + 1), { expirationTtl: 24 * 60 * 60 })
   return true
 }
@@ -130,39 +162,167 @@ async function fetchWithRetry(url, init) {
   return lastResponse
 }
 
-async function describeDog(env, base64Image, mimeType) {
+// Extracts a JSON object from a Gemini generateContent response body, or
+// null on any failure (missing text, malformed JSON) — shared by describeDog
+// and compareDogs, both of which treat their AI call as best-effort.
+function parseGeminiJson(data) {
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!text) return null
+  const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+  try {
+    return JSON.parse(cleaned)
+  } catch {
+    return null
+  }
+}
+
+async function callGemini(env, parts) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${env.GOOGLE_API_KEY}`
   const res = await fetchWithRetry(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ parts: [
-        { inline_data: { mime_type: mimeType, data: base64Image } },
-        { text: TAG_PROMPT },
-      ] }],
+      contents: [{ parts }],
       generationConfig: { responseMimeType: 'application/json' },
     }),
   })
   if (!res.ok) {
     console.error('Gemini API error', res.status, await res.text())
-    return null // tag extraction is best-effort — a photo/location report still succeeds without it
-  }
-  const data = await res.json()
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!text) return null
-  const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
-  try {
-    const parsed = JSON.parse(cleaned)
-    if (parsed?.error) return null
-    return parsed
-  } catch {
     return null
+  }
+  return parseGeminiJson(await res.json())
+}
+
+async function describeDog(env, base64Image, mimeType) {
+  const parsed = await callGemini(env, [
+    { inline_data: { mime_type: mimeType, data: base64Image } },
+    { text: TAG_PROMPT },
+  ])
+  if (parsed?.error) return null // tag extraction is best-effort — a photo/location report still succeeds without it
+  return parsed
+}
+
+async function fetchImageAsBase64(url) {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`failed to fetch ${url}: ${res.status}`)
+  const bytes = new Uint8Array(await res.arrayBuffer())
+  return { base64: bytesToBase64(bytes), mimeType: res.headers.get('content-type') || 'image/jpeg' }
+}
+
+// Sends the new photo + every candidate photo to Gemini in ONE request and
+// asks it to directly compare them, rather than string-matching independent
+// per-photo descriptions (the old approach — see git history). Returns one
+// result per candidate, id-keyed and defensively defaulted, so a malformed
+// or partial Gemini response can never desync from the candidate list; a
+// total failure (network/parse) returns null so the caller can fall back.
+async function compareDogs(env, newPhotoUrl, candidates) {
+  const [newImg, ...candidateImgs] = await Promise.all(
+    [newPhotoUrl, ...candidates.map((c) => c.photoUrl)].map(fetchImageAsBase64)
+  )
+
+  const parts = [
+    { text: COMPARE_PROMPT },
+    { text: 'NEW REPORT:' },
+    { inline_data: { mime_type: newImg.mimeType, data: newImg.base64 } },
+  ]
+  candidateImgs.forEach((img, i) => {
+    parts.push({ text: `CANDIDATE ${i}:` })
+    parts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } })
+  })
+
+  const parsed = await callGemini(env, parts)
+  if (!parsed) return null
+
+  const byIndex = new Map((Array.isArray(parsed.results) ? parsed.results : []).map((r) => [r.index, r]))
+  return candidates.map((c, i) => {
+    const r = byIndex.get(i)
+    return {
+      id: c.id,
+      sameDog: r?.sameDog === true,
+      confidence: ['high', 'medium', 'low'].includes(r?.confidence) ? r.confidence : null,
+    }
+  })
+}
+
+// Only our own R2 photos may be fetched by the worker — /compare takes
+// client-supplied URLs to fetch server-side, so without this an attacker
+// could point it at arbitrary internal/external URLs (SSRF) or burn Gemini
+// calls on arbitrary images.
+function isOwnPhotoUrl(url) {
+  return typeof url === 'string' && url.startsWith(PUBLIC_BASE + '/')
+}
+
+async function handleUpload(request, env, origin, uid) {
+  const allowed = await checkRateLimit(env, uid, 'rl', UPLOADS_PER_DAY)
+  if (!allowed) return json({ error: 'rate limited: daily upload cap reached' }, 429, origin)
+  if (!env.GOOGLE_API_KEY) return json({ error: 'server misconfigured: no GOOGLE_API_KEY' }, 500, origin)
+
+  let form
+  try {
+    form = await request.formData()
+  } catch {
+    return json({ error: 'expected multipart form-data' }, 400, origin)
+  }
+
+  const file = form.get('file')
+  if (!file || typeof file === 'string') return json({ error: 'no file field' }, 400, origin)
+  const type = file.type || ''
+  if (!EXT[type]) return json({ error: 'unsupported type: ' + type }, 415, origin)
+  if (file.size > MAX_BYTES) return json({ error: 'too large (max 8MB)' }, 413, origin)
+
+  const lat = Number(form.get('lat'))
+  const lng = Number(form.get('lng'))
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return json({ error: 'missing/invalid lat,lng' }, 400, origin)
+
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  const key = `${crypto.randomUUID()}.${EXT[type]}`
+
+  await env.BUCKET.put(key, bytes, { httpMetadata: { contentType: type } })
+  const photoUrl = `${PUBLIC_BASE}/${key}`
+
+  const tags = await describeDog(env, bytesToBase64(bytes), type)
+
+  return json({ photoUrl, tags }, 200, origin)
+}
+
+async function handleCompare(request, env, origin, uid) {
+  const allowed = await checkRateLimit(env, uid, 'cmp', COMPARES_PER_DAY)
+  if (!allowed) return json({ error: 'rate limited: daily compare cap reached' }, 429, origin)
+  if (!env.GOOGLE_API_KEY) return json({ error: 'server misconfigured: no GOOGLE_API_KEY' }, 500, origin)
+
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return json({ error: 'expected JSON body' }, 400, origin)
+  }
+
+  const { newPhotoUrl, candidates } = body || {}
+  if (!isOwnPhotoUrl(newPhotoUrl)) return json({ error: 'invalid newPhotoUrl' }, 400, origin)
+  if (!Array.isArray(candidates)) return json({ error: 'candidates must be an array' }, 400, origin)
+
+  const capped = candidates.slice(0, MAX_COMPARE_CANDIDATES)
+  if (capped.some((c) => !c || typeof c.id !== 'string' || !isOwnPhotoUrl(c.photoUrl))) {
+    return json({ error: 'invalid candidate entry' }, 400, origin)
+  }
+  if (capped.length === 0) return json({ results: [] }, 200, origin)
+
+  try {
+    const results = await compareDogs(env, newPhotoUrl, capped)
+    // null = the whole Gemini call failed (network/parse) — still 200 with
+    // an empty array so the client falls back to its own ranking rather
+    // than treating this as a hard error.
+    return json({ results: results || [] }, 200, origin)
+  } catch (e) {
+    console.error('compare failed:', e)
+    return json({ results: [] }, 200, origin)
   }
 }
 
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || ''
+    const path = new URL(request.url).pathname
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) })
     if (request.method === 'GET') return new Response('majon-photo OK', { headers: cors(origin) })
@@ -175,36 +335,7 @@ export default {
       return json({ error: 'unauthorized: ' + e.message }, 401, origin)
     }
 
-    const allowed = await checkRateLimit(env, payload.sub)
-    if (!allowed) return json({ error: 'rate limited: daily upload cap reached' }, 429, origin)
-
-    if (!env.GOOGLE_API_KEY) return json({ error: 'server misconfigured: no GOOGLE_API_KEY' }, 500, origin)
-
-    let form
-    try {
-      form = await request.formData()
-    } catch {
-      return json({ error: 'expected multipart form-data' }, 400, origin)
-    }
-
-    const file = form.get('file')
-    if (!file || typeof file === 'string') return json({ error: 'no file field' }, 400, origin)
-    const type = file.type || ''
-    if (!EXT[type]) return json({ error: 'unsupported type: ' + type }, 415, origin)
-    if (file.size > MAX_BYTES) return json({ error: 'too large (max 8MB)' }, 413, origin)
-
-    const lat = Number(form.get('lat'))
-    const lng = Number(form.get('lng'))
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return json({ error: 'missing/invalid lat,lng' }, 400, origin)
-
-    const bytes = new Uint8Array(await file.arrayBuffer())
-    const key = `${crypto.randomUUID()}.${EXT[type]}`
-
-    await env.BUCKET.put(key, bytes, { httpMetadata: { contentType: type } })
-    const photoUrl = `${PUBLIC_BASE}/${key}`
-
-    const tags = await describeDog(env, bytesToBase64(bytes), type)
-
-    return json({ photoUrl, tags }, 200, origin)
+    if (path === '/compare') return handleCompare(request, env, origin, payload.sub)
+    return handleUpload(request, env, origin, payload.sub)
   },
 }
