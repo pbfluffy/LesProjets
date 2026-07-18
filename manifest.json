@@ -44,7 +44,7 @@
     {
       "name": "Dog near me",
       "short_name": "Dog near me",
-      "url": "/majon/",
+      "url": "/dog-near-me/",
       "icons": [{"src": "./icon-192.png", "sizes": "192x192"}]
     }
   ]

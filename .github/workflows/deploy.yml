@@ -50,8 +50,8 @@ jobs:
           npm install
           npm run build
 
-      - name: Build majon
-        working-directory: majon
+      - name: Build dog-near-me
+        working-directory: dog-near-me
         env:
           VITE_MAJON_WORKER_URL: ${{ secrets.VITE_MAJON_WORKER_URL }}
         run: |
@@ -60,7 +60,7 @@ jobs:
 
       - name: Assemble site
         run: |
-          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/trip-planner _site/majon
+          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/trip-planner _site/dog-near-me
           cp index.html _site/index.html
           cp admindepum.html _site/admindepum.html
           cp temp.html _site/temp.html
@@ -71,7 +71,7 @@ jobs:
           cp -r nutritions-thailand/dist/. _site/nutritions-thailand/
           cp -r pumgoda/dist/. _site/pumgoda/
           cp -r trip-planner/dist/. _site/trip-planner/
-          cp -r majon/dist/. _site/majon/
+          cp -r dog-near-me/dist/. _site/dog-near-me/
           cp pumba.png _site/pumba.png
           cp apple-touch-icon.png _site/apple-touch-icon.png
           cp icon-192.png _site/icon-192.png
