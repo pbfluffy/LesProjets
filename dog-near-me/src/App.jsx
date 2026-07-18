@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   auth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut,
 } from './firebase'
 import { useTheme, useLang } from './hooks/useThemeLang'
 import { useDogs } from './hooks/useDogs'
+import { readDogId, setDogParam, clearDogParam } from './shareDog'
 import { STRINGS } from './LangContext'
 import MapView from './components/MapView'
 import ReportFlow from './components/ReportFlow'
@@ -24,6 +25,29 @@ export default function App() {
   const t = STRINGS[lang] || STRINGS.en
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
+
+  // Deep-linking: ?dog=<id> reopens that exact dog once the dogs list has
+  // loaded, and the address bar stays in sync afterward so the Share button
+  // (and a plain copy-paste of the URL) always points at what's open.
+  // Mirrors pumgoda's ?place=<id> pattern.
+  const initialDogId = useRef(readDogId())
+  const deepLinkHandled = useRef(false)
+  useEffect(() => {
+    if (deepLinkHandled.current || !dogs.length) return
+    if (initialDogId.current) {
+      const match = dogs.find((d) => d.id === initialDogId.current)
+      if (match) setSelectedDog(match)
+    }
+    deepLinkHandled.current = true
+  }, [dogs])
+
+  useEffect(() => {
+    // Don't touch the URL until the initial deep link (if any) has resolved
+    // — otherwise this would wipe ?dog= before it gets a chance to open.
+    if (!deepLinkHandled.current && initialDogId.current) return
+    if (selectedDog) setDogParam(selectedDog.id)
+    else clearDogParam()
+  }, [selectedDog])
 
   async function handleSignIn() {
     try {

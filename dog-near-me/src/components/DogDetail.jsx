@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSightings, renameDog, summarizeFriendliness, deleteSighting, friendlinessColor } from '../hooks/useDogs'
+import { currentShareUrl } from '../shareDog'
 import { interp } from '../LangContext'
 import styles from './DogDetail.module.css'
 
@@ -42,8 +43,32 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
   // confirm/alert calls on the page if a tester checks it without noticing.
   const [confirmingId, setConfirmingId] = useState(null)
   const [errorId, setErrorId] = useState(null)
+  const [shareMsg, setShareMsg] = useState(null)
 
   if (!dog) return null
+
+  async function handleShare() {
+    // App.jsx already mirrors the open dog into ?dog=<id>, so the current
+    // URL deep-links straight back to this dog.
+    const url = currentShareUrl()
+    const name = dog.name || t.dogUnnamed
+    const text = interp(t.dogShareText, { name })
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: name, text, url })
+        return
+      } catch (e) {
+        if (e.name === 'AbortError') return // user dismissed the share sheet
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      setShareMsg(t.dogLinkCopied)
+    } catch {
+      setShareMsg(url) // clipboard also failed — show it so they can copy manually
+    }
+    setTimeout(() => setShareMsg(null), 2500)
+  }
 
   async function saveName() {
     setSaving(true)
@@ -105,8 +130,13 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
               )}
             </div>
           )}
+          {!editing && (
+            <button type="button" className={styles.editBtn} onClick={handleShare} aria-label={t.dogShare} title={t.dogShare}>↗</button>
+          )}
           <button type="button" className={styles.closeBtn} onClick={onClose} aria-label={t.dogClose}>×</button>
         </div>
+
+        {shareMsg && <p className={styles.meta}>{shareMsg}</p>}
 
         {dog.latestPhotoUrl && <img src={dog.latestPhotoUrl} alt="" className={styles.heroPhoto} />}
 

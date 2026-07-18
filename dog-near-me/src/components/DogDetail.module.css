@@ -102,8 +102,9 @@
 
 .heroPhoto {
   width: 100%;
-  max-height: 220px;
-  object-fit: cover;
+  max-height: 320px;
+  object-fit: contain;
+  background: var(--color-surface-alt);
   border-radius: var(--radius-md);
 }
 
