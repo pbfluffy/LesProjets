@@ -122,6 +122,38 @@
   padding: 8px 12px;
 }
 
+.infoGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.infoGroupLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.lineShareBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: #06C755;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lineShareBtn:hover { opacity: 0.9; }
+
 .tagGreen, .tagAmber, .tagRed {
   display: inline-block;
   padding: 1px 8px;

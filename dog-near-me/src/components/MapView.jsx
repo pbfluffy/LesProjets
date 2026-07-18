@@ -112,7 +112,7 @@ function buildClusterIcon(cluster) {
   })
 }
 
-export default function MapView({ dogs = [], onDogClick, theme = 'light', lang = 'en', t }) {
+export default function MapView({ dogs = [], loading = false, onDogClick, theme = 'light', lang = 'en', t }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const tileLayerRef = useRef(null)
@@ -121,12 +121,17 @@ export default function MapView({ dogs = [], onDogClick, theme = 'light', lang =
   const onDogClickRef = useRef(onDogClick)
   const watchIdRef = useRef(null)
   const hasFirstFixRef = useRef(false)
+  const dogsRef = useRef(dogs)
   const [locateState, setLocateState] = useState('idle') // idle | locating | tracking
   const [locateError, setLocateError] = useState(null)
 
   useEffect(() => {
     onDogClickRef.current = onDogClick
   }, [onDogClick])
+
+  useEffect(() => {
+    dogsRef.current = dogs
+  }, [dogs])
 
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return
@@ -150,8 +155,8 @@ export default function MapView({ dogs = [], onDogClick, theme = 'light', lang =
     markersLayerRef.current = L.markerClusterGroup({
       iconCreateFunction: buildClusterIcon,
       showCoverageOnHover: false,
-      maxClusterRadius: 60,
-      disableClusteringAtZoom: 16,
+      maxClusterRadius: 40,
+      disableClusteringAtZoom: 15,
       chunkedLoading: true,
       spiderfyDistanceMultiplier: 1.2,
     }).addTo(map)
@@ -181,6 +186,28 @@ export default function MapView({ dogs = [], onDogClick, theme = 'light', lang =
       userMarkerRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // One-shot silent auto-locate on first load, so the map opens centered on
+  // the user instead of always defaulting to Bangkok. Only recenters if no
+  // dogs are loaded yet to fit bounds to — once real dog markers exist, the
+  // dogs-fit-bounds effect below is a better default view and shouldn't be
+  // fought with a recenter.
+  useEffect(() => {
+    if (!('geolocation' in navigator)) return
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const map = mapRef.current
+        if (!map) return
+        const hasDogs = dogsRef.current.some(
+          (d) => typeof d.lastLat === 'number' && typeof d.lastLng === 'number'
+        )
+        if (hasDogs) return
+        map.setView([pos.coords.latitude, pos.coords.longitude], DEFAULT_ZOOM, { animate: false })
+      },
+      () => {}, // silent — this is a nicety, not a required permission
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+    )
   }, [])
 
   useEffect(() => {
@@ -227,11 +254,18 @@ export default function MapView({ dogs = [], onDogClick, theme = 'light', lang =
       return marker
     })
 
+    // The map's container is sized by flexbox/dvh CSS that can still be
+    // settling on first paint, so Leaflet's cached internal size can be
+    // stale the first time this runs — fitBounds/setView silently compute
+    // against that stale size and never actually move the view. Forcing a
+    // resize check first keeps that cache honest.
+    map.invalidateSize()
+
     if (valid.length === 1) {
-      map.setView([valid[0].lastLat, valid[0].lastLng], SINGLE_DOG_ZOOM)
+      map.setView([valid[0].lastLat, valid[0].lastLng], SINGLE_DOG_ZOOM, { animate: false })
     } else {
       const group = L.featureGroup(markers)
-      map.fitBounds(group.getBounds(), { padding: [40, 40], maxZoom: 14 })
+      map.fitBounds(group.getBounds(), { padding: [40, 40], maxZoom: 14, animate: false })
     }
   }, [dogs, lang, t])
 
@@ -327,7 +361,9 @@ export default function MapView({ dogs = [], onDogClick, theme = 'light', lang =
         {locating ? '⏳' : '📍'}
       </button>
       {locateError && <div className={styles.errorNote}>{locateLabelFor(locateError)}</div>}
-      {dogs.length === 0 && <div className={styles.emptyNote}>{t.mapEmptyHint}</div>}
+      {dogs.length === 0 && (
+        <div className={styles.emptyNote}>{loading ? t.mapLoadingHint : t.mapEmptyHint}</div>
+      )}
     </div>
   )
 }
