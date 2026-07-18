@@ -13,6 +13,8 @@ import styles from './App.module.css'
 
 const provider = new GoogleAuthProvider()
 
+const ONBOARDING_KEY = 'majon_onboarding_dismissed'
+
 export default function App() {
   const [theme, setTheme] = useTheme()
   const [lang, setLang] = useLang()
@@ -20,11 +22,27 @@ export default function App() {
   const [tab, setTab] = useState('map') // 'map' | 'report'
   const [selectedDog, setSelectedDog] = useState(null)
   const [presetDog, setPresetDog] = useState(null)
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try {
+      return !localStorage.getItem(ONBOARDING_KEY)
+    } catch {
+      return false
+    }
+  })
 
-  const { dogs } = useDogs()
+  const { dogs, loading } = useDogs()
   const t = STRINGS[lang] || STRINGS.en
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
+
+  function dismissOnboarding() {
+    setShowOnboarding(false)
+    try {
+      localStorage.setItem(ONBOARDING_KEY, '1')
+    } catch {
+      // ignore (private browsing etc.)
+    }
+  }
 
   // Deep-linking: ?dog=<id> reopens that exact dog once the dogs list has
   // loaded, and the address bar stays in sync afterward so the Share button
@@ -110,9 +128,19 @@ export default function App() {
       </nav>
 
       <main className={styles.main}>
+        {tab === 'map' && showOnboarding && (
+          <div className={styles.onboarding}>
+            <div className={styles.onboardingTitle}>{t.onboardingTitle}</div>
+            <div className={styles.onboardingBody}>{t.onboardingBody}</div>
+            <button type="button" className={styles.onboardingDismiss} onClick={dismissOnboarding}>
+              {t.onboardingDismiss}
+            </button>
+          </div>
+        )}
         {tab === 'map' && (
           <MapView
             dogs={dogs}
+            loading={loading}
             onDogClick={setSelectedDog}
             theme={theme}
             lang={lang}
