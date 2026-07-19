@@ -341,11 +341,17 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
         {user && (
           <div className={styles.mergeSection}>
             {!reporting ? (
-              <button type="button" className={styles.mergeToggleBtn} onClick={() => { setReporting(true); setReportMsg(null) }}>
-                {t.dogReport}
+              <button
+                type="button"
+                className={styles.mergeToggleBtn}
+                onClick={() => { setReporting(true); setReportMsg(null) }}
+                title={t.dogReportHint}
+              >
+                🚩 {t.dogReport}
               </button>
             ) : (
               <div className={styles.mergeBox}>
+                <p className={styles.mergeHint}>{t.dogReportHint}</p>
                 <p className={styles.mergeHint}>{t.dogReportReasonLabel}</p>
                 <div className={styles.reportReasonRow}>
                   {REPORT_REASONS.map((reason) => (
@@ -389,8 +395,13 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
         {user && (
           <div className={styles.mergeSection}>
             {!merging ? (
-              <button type="button" className={styles.mergeToggleBtn} onClick={() => setMerging(true)}>
-                {t.dogMergeTitle}
+              <button
+                type="button"
+                className={styles.mergeToggleBtn}
+                onClick={() => setMerging(true)}
+                title={t.dogMergeHint}
+              >
+                🔀 {t.dogMergeTitle}
               </button>
             ) : (
               <div className={styles.mergeBox}>
