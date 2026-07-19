@@ -11,6 +11,15 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  min-height: 100dvh;
+  transition: background 0.2s, color 0.2s;
+}
+
 /* ─── Base elements ───────────────────────── */
 input, textarea, select {
   font-family: var(--font-body);
