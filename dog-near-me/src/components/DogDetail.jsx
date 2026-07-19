@@ -6,6 +6,7 @@ import {
 import { currentShareUrl } from '../shareDog'
 import { shareToLine } from '../shareLine'
 import { searchDogs } from '../searchDogs'
+import { localizedBreed } from '../breedLabel'
 import { isAdmin } from '../admin'
 import { interp } from '../LangContext'
 import styles from './DogDetail.module.css'
@@ -33,18 +34,6 @@ function fmtDate(ts, lang) {
   return new Date(ms).toLocaleString(lang === 'th' ? 'th-TH' : 'en-GB', {
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   })
-}
-
-// The AI's breed guess is stored as raw English text (Gemini's output), not
-// a translation key — so it shows untranslated even in the Thai UI. "mixed
-// breed" is the overwhelming common case for street dogs, so that one value
-// is worth localizing; specific breed guesses (e.g. "Thai Bangkaew mix")
-// stay in English since we have no translation for arbitrary AI output.
-function localizedBreed(breedGuess, lang) {
-  if (lang === 'th' && breedGuess?.trim().toLowerCase() === 'mixed breed') {
-    return 'พันทาง'
-  }
-  return breedGuess
 }
 
 export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onReportSighting }) {
@@ -201,7 +190,7 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
     }
   }
 
-  const mergeCandidates = searchDogs(dogs, mergeQuery, { excludeId: dog.id })
+  const mergeCandidates = searchDogs(dogs, mergeQuery, { excludeId: dog.id, lang })
 
   async function submitReport() {
     setReportBusy(true)

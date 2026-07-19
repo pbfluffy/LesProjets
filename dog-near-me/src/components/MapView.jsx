@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster'
 import { searchDogs } from '../searchDogs'
+import { localizedBreed } from '../breedLabel'
 import styles from './MapView.module.css'
 
 // Tile providers (CARTO — free for non-commercial, no API key). Same tiles
@@ -345,7 +346,7 @@ export default function MapView({ dogs = [], loading = false, onDogClick, theme 
     )
   }, [locateState, stopTracking])
 
-  const searchResults = searchDogs(dogs, searchQuery)
+  const searchResults = searchDogs(dogs, searchQuery, { lang })
 
   function selectSearchResult(dog) {
     setSearchQuery('')
@@ -392,7 +393,7 @@ export default function MapView({ dogs = [], loading = false, onDogClick, theme 
                   )}
                   <span className={styles.searchResultName}>{dog.name || t.dogUnnamed}</span>
                   {dog.latestTags?.breedGuess && (
-                    <span className={styles.searchResultBreed}>{dog.latestTags.breedGuess}</span>
+                    <span className={styles.searchResultBreed}>{localizedBreed(dog.latestTags.breedGuess, lang)}</span>
                   )}
                 </button>
               </li>
