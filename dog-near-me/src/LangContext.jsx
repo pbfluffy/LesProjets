@@ -27,6 +27,10 @@ export const STRINGS = {
     onboardingBody: "Spot a stray dog? Snap a photo and report it — we'll check if the community already knows this dog by comparing photos and location, before you add a new one.",
     onboardingDismiss: 'Got it',
 
+    installTitle: 'Install Dog near me for quick access',
+    installButton: 'Install',
+    installIosHint: 'Tap Share, then "Add to Home Screen"',
+
     reportTitle: 'Report a dog',
     reportTakePhoto: 'Take or choose a photo',
     reportRetake: 'Choose a different photo',
@@ -80,6 +84,7 @@ export const STRINGS = {
     dogLinkCopied: 'Link copied',
     dogReportedBy: 'Reported by {name}',
     dogAnonymousReporter: 'Anonymous',
+    dogMultipleReporters: 'Reported by {count} different people',
     dogPossibleOwner: 'May have an owner — wearing a collar',
     dogBreed: 'Likely breed',
     dogTemperament: 'Temperament',
@@ -112,6 +117,10 @@ export const STRINGS = {
     onboardingTitle: 'ยินดีต้อนรับสู่หมาใกล้ฉัน',
     onboardingBody: 'เจอหมาจรใช่ไหม? ถ่ายรูปแล้วรายงานเลย — เราจะเช็กก่อนว่าชุมชนเคยรู้จักหมาตัวนี้แล้วหรือยัง โดยเทียบรูปและตำแหน่ง ก่อนเพิ่มเป็นหมาตัวใหม่',
     onboardingDismiss: 'เข้าใจแล้ว',
+
+    installTitle: 'ติดตั้งแอปหมาใกล้ฉันเพื่อเข้าใช้งานเร็วขึ้น',
+    installButton: 'ติดตั้ง',
+    installIosHint: 'แตะปุ่มแชร์ แล้วเลือก "เพิ่มไปยังหน้าจอโฮม"',
 
     reportTitle: 'รายงานหมา',
     reportTakePhoto: 'ถ่ายหรือเลือกรูปภาพ',
@@ -166,6 +175,7 @@ export const STRINGS = {
     dogLinkCopied: 'คัดลอกลิงก์แล้ว',
     dogReportedBy: 'รายงานโดย {name}',
     dogAnonymousReporter: 'ไม่ระบุชื่อ',
+    dogMultipleReporters: 'มีผู้รายงานแล้ว {count} คน',
     dogPossibleOwner: 'อาจมีเจ้าของ — ใส่ปลอกคออยู่',
     dogBreed: 'สายพันธุ์โดยประมาณ',
     dogTemperament: 'นิสัย',

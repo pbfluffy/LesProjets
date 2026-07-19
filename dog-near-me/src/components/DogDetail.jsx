@@ -43,6 +43,10 @@ function localizedBreed(breedGuess, lang) {
 export default function DogDetail({ dog, user, t, lang, onClose, onReportSighting }) {
   const { sightings, loading } = useSightings(dog?.id)
   const temperament = summarizeFriendliness(sightings)
+  // A count of unique reporters, not just the latest one, is a stronger
+  // trust signal for a community-sourced ID — one anonymous sighting is
+  // easy to dismiss, several independent people agreeing is not.
+  const uniqueReporters = new Set(sightings.map((s) => s.reportedBy)).size
   const [editing, setEditing] = useState(false)
   const [nameDraft, setNameDraft] = useState(dog?.name || '')
   const [saving, setSaving] = useState(false)
@@ -175,6 +179,9 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
 
         <div className={styles.infoGroup}>
           <div className={styles.infoGroupLabel}>{t.dogInfoCommunity}</div>
+          {uniqueReporters > 1 && (
+            <p className={styles.meta}>{interp(t.dogMultipleReporters, { count: uniqueReporters })}</p>
+          )}
           {dog.lastSeenAt && (
             <p className={styles.meta}>{t.dogLastSeen}: {fmtDate(dog.lastSeenAt, lang)}</p>
           )}

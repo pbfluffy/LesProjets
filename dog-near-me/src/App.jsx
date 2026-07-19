@@ -4,6 +4,7 @@ import {
 } from './firebase'
 import { useTheme, useLang } from './hooks/useThemeLang'
 import { useDogs } from './hooks/useDogs'
+import { useInstallPrompt } from './hooks/useInstallPrompt'
 import { readDogId, setDogParam, clearDogParam } from './shareDog'
 import { STRINGS } from './LangContext'
 import MapView from './components/MapView'
@@ -31,6 +32,7 @@ export default function App() {
   })
 
   const { dogs, loading } = useDogs()
+  const { showAndroidPrompt, showIosHint, promptInstall, dismiss: dismissInstall } = useInstallPrompt()
   const t = STRINGS[lang] || STRINGS.en
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
@@ -135,6 +137,19 @@ export default function App() {
             <button type="button" className={styles.onboardingDismiss} onClick={dismissOnboarding}>
               {t.onboardingDismiss}
             </button>
+          </div>
+        )}
+        {!showOnboarding && (showAndroidPrompt || showIosHint) && (
+          <div className={styles.installBar}>
+            <span className={styles.installText}>
+              {showAndroidPrompt ? t.installTitle : t.installIosHint}
+            </span>
+            {showAndroidPrompt && (
+              <button type="button" className={styles.installBtn} onClick={promptInstall}>
+                {t.installButton}
+              </button>
+            )}
+            <button type="button" className={styles.installDismiss} onClick={dismissInstall} aria-label={t.dogClose}>×</button>
           </div>
         )}
         {tab === 'map' && (
