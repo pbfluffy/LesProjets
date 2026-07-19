@@ -1,0 +1,16 @@
+name = "bill-splitter-og-meta"
+main = "src/index.js"
+compatibility_date = "2026-07-19"
+
+# Pure zone-route HTML rewriter — nothing in bill-splitter's own client JS
+# calls this worker directly, so the workers.dev subdomain isn't required
+# for the app to function. Left on anyway for `wrangler dev` convenience,
+# same as the other workers in this repo.
+workers_dev = true
+
+# Mirrors pumgoda-og-meta and dog-near-me's worker route — lets this worker
+# rewrite og:*/twitter:* tags in place on the real app URL for link-preview
+# crawlers, instead of a workers.dev link or a static generic preview.
+[[routes]]
+pattern = "pumbafluffycorgi.com/bill-splitter/*"
+zone_name = "pumbafluffycorgi.com"

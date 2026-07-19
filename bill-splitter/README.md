@@ -71,6 +71,38 @@ which builds all three Vite apps and publishes them to GitHub Pages.
 GitHub Pages serializes deploys — when committing several related files,
 space commits ~60s apart so each build finishes before the next starts.
 
+## Dynamic link previews (`worker/`)
+
+Shared bill links (`?d=<payload>` or `?s=<shortId>`) get a dynamic
+`og:title`/`og:description` reflecting the actual bill — e.g.
+"หารบิล ฿850 ระหว่าง 3 คน" instead of the generic tagline — via a
+Cloudflare Worker on the `pumbafluffycorgi.com/bill-splitter/*` zone route
+(same pattern as pumgoda-og-meta and dog-near-me's worker). It intercepts
+only the app-shell HTML request, decodes the bill payload straight out of
+the URL (or a Firestore read for short links), and rewrites the tags in
+place with `HTMLRewriter` — no redirect, no workers.dev link shown to
+anyone. It's a pure zone-route rewriter with no client-facing API, so
+nothing in the app itself needs to call it or know it exists.
+
+```bash
+cd bill-splitter/worker
+npm install
+npm run deploy   # this is a manual step — not part of the GitHub Actions build
+```
+
+Short links (`?s=<id>`) need the `shareLinks` collection to be readable
+without auth for this to work — paste into the Firebase console → Firestore
+→ Rules if not already present:
+```
+match /shareLinks/{shortId} {
+  allow read: if true;
+}
+```
+Best-effort either way: if that rule isn't set, or the payload doesn't
+decode, the worker just falls back to the static tags already in
+`index.html` — nothing breaks, direct `?d=` links are unaffected regardless
+since they carry the payload in the URL itself.
+
 ## PWA
 
 Installs as a standalone app on iOS / Android via the manifest + apple-touch-icon meta tags in `index.html`.
