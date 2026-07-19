@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  db, doc, collection, addDoc, updateDoc, deleteDoc, getDocs, query, orderBy, serverTimestamp, onSnapshot,
+  db, doc, collection, addDoc, updateDoc, deleteDoc, getDocs, query, orderBy, serverTimestamp, onSnapshot, writeBatch,
 } from '../firebase'
 import { haversineMeters } from '../haversine'
 
@@ -141,6 +141,41 @@ export async function deleteSighting(dogId, sightingId) {
     latestTags: latest.tags || null,
   })
   return { dogDeleted: false }
+}
+
+// Merges sourceId into targetId: moves every sighting across (as new docs —
+// original sighting IDs aren't referenced anywhere else, so there's no need
+// to preserve them) and deletes the source dog entirely. This is how
+// duplicate entries for the same dog (created when the AI/location match
+// missed, or someone picked "it's a new dog" by mistake) get fixed after
+// the fact — the community has no other way to correct that once it happens.
+//
+// Uses a single atomic batch for the move+delete, then recomputes the
+// target's denormalized "latest" fields the same way deleteSighting does,
+// from a fresh read of its now-combined sightings.
+export async function mergeDogs(sourceId, targetId) {
+  if (sourceId === targetId) return
+
+  const sourceSnap = await getDocs(collection(db, COLLECTION, sourceId, 'sightings'))
+  const batch = writeBatch(db)
+  sourceSnap.docs.forEach((d) => {
+    batch.set(doc(collection(db, COLLECTION, targetId, 'sightings')), d.data())
+    batch.delete(d.ref)
+  })
+  batch.delete(doc(db, COLLECTION, sourceId))
+  await batch.commit()
+
+  const targetSnap = await getDocs(collection(db, COLLECTION, targetId, 'sightings'))
+  const all = targetSnap.docs.map((d) => d.data())
+  const toMs = (s) => (s.reportedAt?.toMillis ? s.reportedAt.toMillis() : 0)
+  const latest = all.reduce((a, b) => (toMs(b) > toMs(a) ? b : a))
+  await updateDoc(doc(db, COLLECTION, targetId), {
+    lastSeenAt: latest.reportedAt,
+    lastLat: latest.lat,
+    lastLng: latest.lng,
+    latestPhotoUrl: latest.photoUrl,
+    latestTags: latest.tags || null,
+  })
 }
 
 const FRIENDLINESS_LEVELS = ['friendly', 'neutral', 'cautious']

@@ -21,6 +21,7 @@ import {
   orderBy,
   serverTimestamp,
   onSnapshot,
+  writeBatch,
 } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -39,5 +40,5 @@ export const db = getFirestore(app);
 export {
   onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut,
   doc, collection, addDoc, updateDoc, deleteDoc, getDocs, query, orderBy,
-  serverTimestamp, onSnapshot,
+  serverTimestamp, onSnapshot, writeBatch,
 };

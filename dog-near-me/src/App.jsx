@@ -178,6 +178,7 @@ export default function App() {
       {selectedDog && (
         <DogDetail
           dog={selectedDog}
+          dogs={dogs}
           user={user}
           t={t}
           lang={lang}
