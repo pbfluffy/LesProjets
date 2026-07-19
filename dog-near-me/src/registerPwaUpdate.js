@@ -68,6 +68,13 @@ function showReloadToast(onReload) {
     btn.disabled = true
     btn.textContent = '…'
     onReload()
+    // vite-plugin-pwa reloads automatically once the new service worker
+    // reports "controlling" — but that handoff is known to be unreliable in
+    // iOS Safari's standalone-PWA mode. Without a fallback, a failed handoff
+    // leaves the old version active forever, and this same still-pending
+    // update just gets re-announced every time the app is reopened. Any
+    // reload triggered by the normal path beats this to it harmlessly.
+    setTimeout(() => window.location.reload(), 3000)
   })
 
   bar.appendChild(msg)
