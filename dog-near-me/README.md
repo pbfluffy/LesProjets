@@ -68,11 +68,16 @@ npm run dev
      match /sightings/{sightingId} {
        allow read: if true;
        allow create: if request.auth != null;
-       allow delete: if request.auth != null && request.auth.uid == resource.data.reportedBy;
+       allow delete: if request.auth != null;
+     }
+     match /flags/{flagId} {
+       allow read: if request.auth != null && request.auth.uid == 'HfksT06CgFUkZ9s4vrzEGs85O562';
+       allow create: if request.auth != null;
+       allow delete: if request.auth != null && request.auth.uid == 'HfksT06CgFUkZ9s4vrzEGs85O562';
      }
    }
    ```
-   (Updated to add `delete` rules — re-paste this into the Firebase console if you set the rules up before the delete-your-own-report feature shipped.)
+   (Updated for the moderation/flagging feature — re-paste this into the Firebase console if you set the rules up before it shipped. Two changes from the previous version: sightings `delete` is no longer restricted to the original reporter — it was scoped that way for the "delete your own report" feature, but that same restriction silently broke merging duplicate dogs whenever the dog being merged away had sightings from someone else, since a Firestore batch write fails whole if any single operation in it violates a rule; and a new `flags` subcollection is added, readable/dismissible only by the hardcoded admin UID above — that UID is the same owner account used by pumgoda's admin panel.)
 6. **Deploy the worker**: `cd dog-near-me/worker && npm run deploy`, then set
    `VITE_MAJON_WORKER_URL` (as a GitHub Actions secret, for the deploy
    workflow) to the deployed Worker URL.
