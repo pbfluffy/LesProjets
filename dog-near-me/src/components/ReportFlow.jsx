@@ -70,6 +70,11 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
   const [friendliness, setFriendliness] = useState(null)
   const [anonymous, setAnonymous] = useState(false)
   const [successInfo, setSuccessInfo] = useState(null)
+  // The file + coords behind the most recent upload attempt — kept around
+  // (not just passed as local args) so a transient network failure mid-
+  // upload can offer a one-tap retry instead of making the reporter re-pick
+  // the photo and re-grant location all over again.
+  const [pendingUpload, setPendingUpload] = useState(null)
   const fileRef = useRef(null)
 
   function reset() {
@@ -85,6 +90,7 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
     setFriendliness(null)
     setAnonymous(false)
     setSuccessInfo(null)
+    setPendingUpload(null)
     if (fileRef.current) fileRef.current.value = ''
   }
 
@@ -122,11 +128,19 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
     }
   }
 
+  function retryUpload() {
+    if (!pendingUpload) return
+    setError(null)
+    doUpload(pendingUpload.file, pendingUpload.lat, pendingUpload.lng)
+  }
+
   async function doUpload(file, lat, lng) {
     setStep('uploading')
+    setPendingUpload({ file, lat, lng })
     try {
       const idToken = await auth.currentUser.getIdToken()
       const result = await uploadDogPhoto({ file, lat, lng, idToken })
+      setPendingUpload(null)
       setPhotoUrl(result.photoUrl)
       setTags(result.tags || null)
 
@@ -230,6 +244,11 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
           <label htmlFor="majon-file-input" className={styles.primaryBtn}>
             {t.reportTakePhoto}
           </label>
+          {error && pendingUpload && (
+            <button type="button" className={styles.secondaryBtn} onClick={retryUpload}>
+              {t.reportRetryUpload}
+            </button>
+          )}
         </>
       )}
 

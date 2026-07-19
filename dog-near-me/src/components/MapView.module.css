@@ -74,6 +74,92 @@
   color: var(--color-text-muted);
 }
 
+/* ---------- Search box ---------- */
+
+.searchBox {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 60px;
+  z-index: 500;
+  max-width: 280px;
+}
+
+.searchInput {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  border: 0.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  box-shadow: var(--shadow-card);
+}
+.searchInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.searchResults {
+  list-style: none;
+  margin-top: 6px;
+  background: var(--color-surface);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.searchResultBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: none;
+  border-bottom: 0.5px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+}
+.searchResultBtn:last-child { border-bottom: none; }
+.searchResultBtn:hover { background: var(--color-surface-alt); }
+
+.searchResultThumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.searchResultName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.searchResultBreed {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.searchEmpty {
+  padding: 10px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
 /* ---------- Locate-me button ---------- */
 
 .locateBtn {

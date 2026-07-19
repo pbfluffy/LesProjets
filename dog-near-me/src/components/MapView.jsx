@@ -3,6 +3,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster'
+import { searchDogs } from '../searchDogs'
 import styles from './MapView.module.css'
 
 // Tile providers (CARTO — free for non-commercial, no API key). Same tiles
@@ -124,6 +125,7 @@ export default function MapView({ dogs = [], loading = false, onDogClick, theme 
   const dogsRef = useRef(dogs)
   const [locateState, setLocateState] = useState('idle') // idle | locating | tracking
   const [locateError, setLocateError] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     onDogClickRef.current = onDogClick
@@ -338,6 +340,16 @@ export default function MapView({ dogs = [], loading = false, onDogClick, theme 
     )
   }, [locateState, stopTracking])
 
+  const searchResults = searchDogs(dogs, searchQuery)
+
+  function selectSearchResult(dog) {
+    setSearchQuery('')
+    if (typeof dog.lastLat === 'number' && typeof dog.lastLng === 'number' && mapRef.current) {
+      mapRef.current.setView([dog.lastLat, dog.lastLng], SINGLE_DOG_ZOOM, { animate: false })
+    }
+    onDogClick?.(dog)
+  }
+
   const locateLabelFor = (key) => {
     if (key === 'denied') return t.mapLocateDenied
     if (key === 'unsupported') return t.mapLocateUnsupported
@@ -350,6 +362,39 @@ export default function MapView({ dogs = [], loading = false, onDogClick, theme 
   return (
     <div className={styles.mapWrap}>
       <div ref={containerRef} className={styles.mapContainer} aria-label="Map of reported stray dogs" />
+      <div className={styles.searchBox}>
+        <input
+          type="search"
+          className={styles.searchInput}
+          placeholder={t.mapSearchPlaceholder}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {searchQuery.trim() && (
+          <ul className={styles.searchResults}>
+            {searchResults.length === 0 && (
+              <li className={styles.searchEmpty}>{t.mapSearchNoResults}</li>
+            )}
+            {searchResults.map((dog) => (
+              <li key={dog.id}>
+                <button
+                  type="button"
+                  className={styles.searchResultBtn}
+                  onClick={() => selectSearchResult(dog)}
+                >
+                  {dog.latestPhotoUrl && (
+                    <img src={dog.latestPhotoUrl} alt="" className={styles.searchResultThumb} />
+                  )}
+                  <span className={styles.searchResultName}>{dog.name || t.dogUnnamed}</span>
+                  {dog.latestTags?.breedGuess && (
+                    <span className={styles.searchResultBreed}>{dog.latestTags.breedGuess}</span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <button
         type="button"
         className={`${styles.locateBtn} ${locating ? styles.locateBtnLoading : ''} ${tracking ? styles.locateBtnActive : ''}`}

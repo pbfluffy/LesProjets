@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useSightings, renameDog, summarizeFriendliness, deleteSighting, friendlinessColor } from '../hooks/useDogs'
+import { useSightings, renameDog, summarizeFriendliness, deleteSighting, mergeDogs, friendlinessColor } from '../hooks/useDogs'
 import { currentShareUrl } from '../shareDog'
 import { shareToLine } from '../shareLine'
+import { searchDogs } from '../searchDogs'
 import { interp } from '../LangContext'
 import styles from './DogDetail.module.css'
 
@@ -40,7 +41,7 @@ function localizedBreed(breedGuess, lang) {
   return breedGuess
 }
 
-export default function DogDetail({ dog, user, t, lang, onClose, onReportSighting }) {
+export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onReportSighting }) {
   const { sightings, loading } = useSightings(dog?.id)
   const temperament = summarizeFriendliness(sightings)
   // A count of unique reporters, not just the latest one, is a stronger
@@ -61,6 +62,11 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
   const [confirmingId, setConfirmingId] = useState(null)
   const [errorId, setErrorId] = useState(null)
   const [shareMsg, setShareMsg] = useState(null)
+  const [merging, setMerging] = useState(false)
+  const [mergeQuery, setMergeQuery] = useState('')
+  const [mergeTarget, setMergeTarget] = useState(null)
+  const [mergeBusy, setMergeBusy] = useState(false)
+  const [mergeError, setMergeError] = useState(null)
 
   if (!dog) return null
 
@@ -130,6 +136,28 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
     setConfirmingId(sightingId)
     setErrorId(null)
   }
+
+  function cancelMerge() {
+    setMerging(false)
+    setMergeQuery('')
+    setMergeTarget(null)
+    setMergeError(null)
+  }
+
+  async function confirmMerge() {
+    setMergeBusy(true)
+    setMergeError(null)
+    try {
+      await mergeDogs(dog.id, mergeTarget.id)
+      onClose()
+    } catch (err) {
+      console.error('[majon] merge failed:', err)
+      setMergeError(t.dogMergeFailed)
+      setMergeBusy(false)
+    }
+  }
+
+  const mergeCandidates = searchDogs(dogs, mergeQuery, { excludeId: dog.id })
 
   return (
     <div className={styles.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose() }} role="dialog" aria-modal="true">
@@ -210,6 +238,69 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
         <button type="button" className={styles.reportBtn} onClick={() => onReportSighting(dog)}>
           {t.dogReportSighting}
         </button>
+
+        {user && (
+          <div className={styles.mergeSection}>
+            {!merging ? (
+              <button type="button" className={styles.mergeToggleBtn} onClick={() => setMerging(true)}>
+                {t.dogMergeTitle}
+              </button>
+            ) : (
+              <div className={styles.mergeBox}>
+                <p className={styles.mergeHint}>{t.dogMergeHint}</p>
+                {!mergeTarget ? (
+                  <>
+                    <input
+                      type="text"
+                      className={styles.mergeSearchInput}
+                      placeholder={t.dogMergeSearchPlaceholder}
+                      value={mergeQuery}
+                      onChange={(e) => setMergeQuery(e.target.value)}
+                      autoFocus
+                    />
+                    {mergeQuery.trim() && (
+                      <ul className={styles.mergeResults}>
+                        {mergeCandidates.length === 0 && (
+                          <li className={styles.mergeEmpty}>{t.dogMergeNoResults}</li>
+                        )}
+                        {mergeCandidates.map((candidate) => (
+                          <li key={candidate.id}>
+                            <button
+                              type="button"
+                              className={styles.mergeResultBtn}
+                              onClick={() => setMergeTarget(candidate)}
+                            >
+                              {candidate.latestPhotoUrl && (
+                                <img src={candidate.latestPhotoUrl} alt="" className={styles.mergeResultThumb} />
+                              )}
+                              <span>{candidate.name || t.dogUnnamed}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <button type="button" className={styles.smallBtnGhost} onClick={cancelMerge}>
+                      {t.dogCancel}
+                    </button>
+                  </>
+                ) : (
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmText}>
+                      {interp(t.dogMergeConfirmQuestion, { name: mergeTarget.name || t.dogUnnamed })}
+                    </span>
+                    <button type="button" className={styles.confirmYesBtn} onClick={confirmMerge} disabled={mergeBusy}>
+                      {mergeBusy ? '…' : t.dogMergeConfirmButton}
+                    </button>
+                    <button type="button" className={styles.confirmCancelBtn} onClick={() => setMergeTarget(null)}>
+                      {t.dogCancel}
+                    </button>
+                  </div>
+                )}
+                {mergeError && <div className={styles.deleteError}>{mergeError}</div>}
+              </div>
+            )}
+          </div>
+        )}
 
         <h3 className={styles.sectionTitle}>{t.dogSightings} ({sightings.length})</h3>
         {loading && <p className={styles.meta}>…</p>}
