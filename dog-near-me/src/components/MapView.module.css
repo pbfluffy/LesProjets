@@ -29,6 +29,15 @@
   color: var(--color-accent);
 }
 
+/* CARTO's dark_all basemap is deliberately very low-contrast/subtle by
+   design (meant as a quiet background for data overlays, not for reading
+   street names) — boosting it here rather than switching tile providers,
+   since the free no-API-key CARTO tiles don't offer a higher-contrast dark
+   alternative. */
+:global([data-theme='dark']) .mapContainer :global(.leaflet-tile) {
+  filter: brightness(1.35) contrast(1.2);
+}
+
 /* ---------- Marker ---------- */
 
 .markerLeaflet {
