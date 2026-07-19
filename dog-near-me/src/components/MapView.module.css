@@ -29,13 +29,16 @@
   color: var(--color-accent);
 }
 
-/* CARTO's dark_all basemap is deliberately very low-contrast/subtle by
-   design (meant as a quiet background for data overlays, not for reading
-   street names) — boosting it here rather than switching tile providers,
-   since the free no-API-key CARTO tiles don't offer a higher-contrast dark
-   alternative. */
+/* Dark mode reuses the light Voyager tiles (see MapView.jsx) and inverts
+   them here — a standard trick for getting a legible dark map out of a
+   light basemap's high-contrast labels, since CARTO's own dark_all tiles
+   read too faint to fix with a simple brightness/contrast boost. hue-rotate
+   corrects the color-wheel flip invert() causes (inverted blue water would
+   otherwise render orange, inverted green parks magenta, etc). Scoped to
+   .leaflet-tile only — markers, popups, and our own UI live in separate
+   panes and are untouched. */
 :global([data-theme='dark']) .mapContainer :global(.leaflet-tile) {
-  filter: brightness(1.35) contrast(1.2);
+  filter: invert(1) hue-rotate(180deg);
 }
 
 /* ---------- Marker ---------- */

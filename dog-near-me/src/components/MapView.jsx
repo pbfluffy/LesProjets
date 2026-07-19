@@ -9,14 +9,23 @@ import styles from './MapView.module.css'
 
 // Tile providers (CARTO — free for non-commercial, no API key). Same tiles
 // as pumgoda's MapView.
+//
+// Dark mode reuses the light Voyager tiles rather than CARTO's dark_all —
+// dark_all's labels are deliberately very low-contrast/subtle by design (a
+// quiet background for data overlays, not for reading street names), and no
+// amount of CSS brightness/contrast boosting on it read clearly. Voyager's
+// labels are dark-on-light with strong native contrast, so inverting it
+// (see the .leaflet-tile filter in MapView.module.css) keeps that same
+// contrast ratio while flipping the polarity to a dark background.
+const VOYAGER_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
 const TILES = {
   light: {
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    url: VOYAGER_URL,
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   },
   dark: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    url: VOYAGER_URL,
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   },
