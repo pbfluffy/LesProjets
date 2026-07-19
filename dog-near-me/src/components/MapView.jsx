@@ -146,6 +146,11 @@ export default function MapView({ dogs = [], loading = false, onDogClick, theme 
       scrollWheelZoom: true,
     })
     mapRef.current = map
+    // Leaflet's default zoom control sits top-left, the same corner as the
+    // search box below — and its z-index wins, so it was rendering on top
+    // and clipping the search input's left edge. Bottom-right stacks
+    // cleanly above the existing attribution control instead.
+    map.zoomControl.setPosition('bottomright')
 
     const cfg = TILES[theme] || TILES.light
     tileLayerRef.current = L.tileLayer(cfg.url, {
