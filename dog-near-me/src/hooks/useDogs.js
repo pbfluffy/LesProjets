@@ -143,6 +143,59 @@ export async function deleteSighting(dogId, sightingId) {
   return { dogDeleted: false }
 }
 
+// Splits one sighting out of dogId into a brand-new dog — the fix for a
+// sighting that got attached to the wrong dog, whether through a bad AI/
+// candidate match during the normal report flow or "report another
+// sighting" on the wrong entry. Symmetric to mergeDogs, but for a single
+// sighting instead of a whole dog, and creating rather than removing.
+//
+// Single sightings read (not a separate getDoc) doubles as both the target
+// sighting's data AND the "what's left" set for recomputing dogId's latest
+// fields, avoiding a second round trip and the same read-then-stale-write
+// race deleteSighting's comment describes.
+export async function detachSighting(dogId, sightingId) {
+  const snap = await getDocs(collection(db, COLLECTION, dogId, 'sightings'))
+  const target = snap.docs.find((d) => d.id === sightingId)
+  if (!target) return { dogDeleted: false }
+  const data = target.data()
+  const remaining = snap.docs.filter((d) => d.id !== sightingId)
+
+  const batch = writeBatch(db)
+  const newDogRef = doc(collection(db, COLLECTION))
+  batch.set(newDogRef, {
+    name: null,
+    createdBy: data.reportedBy,
+    createdByName: data.reportedByName || null,
+    createdAt: serverTimestamp(),
+    lastSeenAt: data.reportedAt,
+    lastLat: data.lat,
+    lastLng: data.lng,
+    latestPhotoUrl: data.photoUrl,
+    latestTags: data.tags || null,
+  })
+  batch.set(doc(collection(db, COLLECTION, newDogRef.id, 'sightings')), data)
+  batch.delete(target.ref)
+
+  let dogDeleted = false
+  if (remaining.length === 0) {
+    dogDeleted = true
+    batch.delete(doc(db, COLLECTION, dogId))
+  } else {
+    const toMs = (s) => (s.reportedAt?.toMillis ? s.reportedAt.toMillis() : 0)
+    const latest = remaining.map((d) => d.data()).reduce((a, b) => (toMs(b) > toMs(a) ? b : a))
+    batch.update(doc(db, COLLECTION, dogId), {
+      lastSeenAt: latest.reportedAt,
+      lastLat: latest.lat,
+      lastLng: latest.lng,
+      latestPhotoUrl: latest.photoUrl,
+      latestTags: latest.tags || null,
+    })
+  }
+
+  await batch.commit()
+  return { dogDeleted, newDogId: newDogRef.id }
+}
+
 // Merges sourceId into targetId: moves every sighting across (as new docs —
 // original sighting IDs aren't referenced anywhere else, so there's no need
 // to preserve them) and deletes the source dog entirely. This is how

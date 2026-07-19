@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  useSightings, renameDog, summarizeFriendliness, deleteSighting, mergeDogs,
+  useSightings, renameDog, summarizeFriendliness, deleteSighting, detachSighting, mergeDogs,
   useFlags, flagDog, dismissFlag, deleteDogEntirely, friendlinessColor,
 } from '../hooks/useDogs'
 import { currentShareUrl } from '../shareDog'
@@ -67,6 +67,12 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
   // confirm/alert calls on the page if a tester checks it without noticing.
   const [confirmingId, setConfirmingId] = useState(null)
   const [errorId, setErrorId] = useState(null)
+  // Same shape as the delete-sighting state above, kept separate so the two
+  // confirm flows on the same sighting never fight over one "which id is
+  // this?" variable.
+  const [detachingId, setDetachingId] = useState(null)
+  const [detachBusyId, setDetachBusyId] = useState(null)
+  const [detachErrorId, setDetachErrorId] = useState(null)
   const [shareMsg, setShareMsg] = useState(null)
   const [merging, setMerging] = useState(false)
   const [mergeQuery, setMergeQuery] = useState('')
@@ -153,6 +159,26 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
   function armDelete(sightingId) {
     setConfirmingId(sightingId)
     setErrorId(null)
+  }
+
+  function armDetach(sightingId) {
+    setDetachingId(sightingId)
+    setDetachErrorId(null)
+  }
+
+  async function confirmDetach(sighting) {
+    setDetachingId(null)
+    setDetachErrorId(null)
+    setDetachBusyId(sighting.id)
+    try {
+      const result = await detachSighting(dog.id, sighting.id)
+      if (result.dogDeleted) onClose()
+    } catch (err) {
+      console.error('[majon] detach sighting failed:', err)
+      setDetachErrorId(sighting.id)
+    } finally {
+      setDetachBusyId(null)
+    }
   }
 
   function cancelMerge() {
@@ -475,17 +501,33 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
                   </div>
                   {s.note && <div className={styles.timelineNote}>{s.note}</div>}
                 </div>
-                {user?.uid === s.reportedBy && confirmingId !== s.id && (
-                  <button
-                    type="button"
-                    className={styles.deleteBtn}
-                    onClick={() => armDelete(s.id)}
-                    disabled={deletingIds.has(s.id)}
-                    aria-label={t.dogDeleteSighting}
-                    title={t.dogDeleteSighting}
-                  >
-                    {deletingIds.has(s.id) ? '…' : '🗑'}
-                  </button>
+                {(confirmingId === s.id || detachingId === s.id) ? null : (
+                  <div className={styles.timelineActions}>
+                    {(user?.uid === s.reportedBy || admin) && (
+                      <button
+                        type="button"
+                        className={styles.deleteBtn}
+                        onClick={() => armDetach(s.id)}
+                        disabled={detachBusyId === s.id}
+                        aria-label={t.dogDetachSighting}
+                        title={t.dogDetachHint}
+                      >
+                        {detachBusyId === s.id ? '…' : '✂️'}
+                      </button>
+                    )}
+                    {user?.uid === s.reportedBy && (
+                      <button
+                        type="button"
+                        className={styles.deleteBtn}
+                        onClick={() => armDelete(s.id)}
+                        disabled={deletingIds.has(s.id)}
+                        aria-label={t.dogDeleteSighting}
+                        title={t.dogDeleteSighting}
+                      >
+                        {deletingIds.has(s.id) ? '…' : '🗑'}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
               {confirmingId === s.id && (
@@ -500,6 +542,18 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
                 </div>
               )}
               {errorId === s.id && <div className={styles.deleteError}>{t.dogDeleteFailed}</div>}
+              {detachingId === s.id && (
+                <div className={styles.confirmRow}>
+                  <span className={styles.confirmText}>{t.dogDetachConfirm}</span>
+                  <button type="button" className={styles.confirmYesBtn} onClick={() => confirmDetach(s)}>
+                    {t.dogDetachSighting}
+                  </button>
+                  <button type="button" className={styles.confirmCancelBtn} onClick={() => setDetachingId(null)}>
+                    {t.dogCancel}
+                  </button>
+                </div>
+              )}
+              {detachErrorId === s.id && <div className={styles.deleteError}>{t.dogDetachFailed}</div>}
             </li>
           ))}
         </ul>
