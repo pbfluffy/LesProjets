@@ -1,10 +1,16 @@
 import { useState } from 'react'
-import { useSightings, renameDog, summarizeFriendliness, deleteSighting, mergeDogs, friendlinessColor } from '../hooks/useDogs'
+import {
+  useSightings, renameDog, summarizeFriendliness, deleteSighting, mergeDogs,
+  useFlags, flagDog, dismissFlag, deleteDogEntirely, friendlinessColor,
+} from '../hooks/useDogs'
 import { currentShareUrl } from '../shareDog'
 import { shareToLine } from '../shareLine'
 import { searchDogs } from '../searchDogs'
+import { isAdmin } from '../admin'
 import { interp } from '../LangContext'
 import styles from './DogDetail.module.css'
+
+const REPORT_REASONS = ['photo', 'wrongInfo', 'duplicate', 'other']
 
 function friendlinessLabel(level, t) {
   if (level === 'friendly') return t.friendlinessFriendly
@@ -67,6 +73,18 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
   const [mergeTarget, setMergeTarget] = useState(null)
   const [mergeBusy, setMergeBusy] = useState(false)
   const [mergeError, setMergeError] = useState(null)
+  const [reporting, setReporting] = useState(false)
+  const [reportReason, setReportReason] = useState(null)
+  const [reportNote, setReportNote] = useState('')
+  const [reportBusy, setReportBusy] = useState(false)
+  const [reportMsg, setReportMsg] = useState(null)
+  const [dismissingFlagId, setDismissingFlagId] = useState(null)
+  const [deletingDog, setDeletingDog] = useState(false)
+  const [deleteDogBusy, setDeleteDogBusy] = useState(false)
+  const [deleteDogError, setDeleteDogError] = useState(null)
+
+  const admin = isAdmin(user)
+  const { flags } = useFlags(dog?.id, admin)
 
   if (!dog) return null
 
@@ -159,6 +177,46 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
 
   const mergeCandidates = searchDogs(dogs, mergeQuery, { excludeId: dog.id })
 
+  async function submitReport() {
+    setReportBusy(true)
+    try {
+      await flagDog(dog.id, { user, reason: reportReason, note: reportNote })
+      setReportMsg(t.dogReportSuccess)
+      setReporting(false)
+      setReportReason(null)
+      setReportNote('')
+    } catch (err) {
+      console.error('[majon] flag dog failed:', err)
+      setReportMsg(t.dogReportFailed)
+    } finally {
+      setReportBusy(false)
+    }
+  }
+
+  async function handleDismissFlag(flagId) {
+    setDismissingFlagId(flagId)
+    try {
+      await dismissFlag(dog.id, flagId)
+    } catch (err) {
+      console.error('[majon] dismiss flag failed:', err)
+    } finally {
+      setDismissingFlagId(null)
+    }
+  }
+
+  async function handleDeleteDog() {
+    setDeleteDogBusy(true)
+    setDeleteDogError(null)
+    try {
+      await deleteDogEntirely(dog.id)
+      onClose()
+    } catch (err) {
+      console.error('[majon] delete dog failed:', err)
+      setDeleteDogError(t.dogFlagDeleteFailed)
+      setDeleteDogBusy(false)
+    }
+  }
+
   return (
     <div className={styles.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose() }} role="dialog" aria-modal="true">
       <div className={styles.sheet}>
@@ -190,6 +248,47 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
         </div>
 
         {shareMsg && <p className={styles.meta}>{shareMsg}</p>}
+
+        {admin && flags.length > 0 && (
+          <div className={styles.flagsPanel}>
+            <div className={styles.flagsPanelTitle}>{interp(t.dogFlagsTitle, { count: flags.length })}</div>
+            <ul className={styles.flagsList}>
+              {flags.map((f) => (
+                <li key={f.id} className={styles.flagItem}>
+                  <div className={styles.flagReason}>{t[`dogReportReason${f.reason.charAt(0).toUpperCase()}${f.reason.slice(1)}`] || f.reason}</div>
+                  <div className={styles.flagMeta}>
+                    {interp(t.dogReportedBy, { name: f.reportedByName || t.dogAnonymousReporter })} · {fmtDate(f.reportedAt, lang)}
+                  </div>
+                  {f.note && <div className={styles.flagNote}>{f.note}</div>}
+                  <button
+                    type="button"
+                    className={styles.smallBtnGhost}
+                    onClick={() => handleDismissFlag(f.id)}
+                    disabled={dismissingFlagId === f.id}
+                  >
+                    {dismissingFlagId === f.id ? '…' : t.dogFlagDismiss}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {!deletingDog ? (
+              <button type="button" className={styles.confirmYesBtn} onClick={() => setDeletingDog(true)}>
+                {t.dogFlagDeleteDog}
+              </button>
+            ) : (
+              <div className={styles.confirmRow}>
+                <span className={styles.confirmText}>{t.dogFlagDeleteConfirm}</span>
+                <button type="button" className={styles.confirmYesBtn} onClick={handleDeleteDog} disabled={deleteDogBusy}>
+                  {deleteDogBusy ? '…' : t.dogFlagDeleteDog}
+                </button>
+                <button type="button" className={styles.confirmCancelBtn} onClick={() => setDeletingDog(false)}>
+                  {t.dogCancel}
+                </button>
+              </div>
+            )}
+            {deleteDogError && <div className={styles.deleteError}>{deleteDogError}</div>}
+          </div>
+        )}
 
         {dog.latestPhotoUrl && <img src={dog.latestPhotoUrl} alt="" className={styles.heroPhoto} />}
 
@@ -238,6 +337,54 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
         <button type="button" className={styles.reportBtn} onClick={() => onReportSighting(dog)}>
           {t.dogReportSighting}
         </button>
+
+        {user && (
+          <div className={styles.mergeSection}>
+            {!reporting ? (
+              <button type="button" className={styles.mergeToggleBtn} onClick={() => { setReporting(true); setReportMsg(null) }}>
+                {t.dogReport}
+              </button>
+            ) : (
+              <div className={styles.mergeBox}>
+                <p className={styles.mergeHint}>{t.dogReportReasonLabel}</p>
+                <div className={styles.reportReasonRow}>
+                  {REPORT_REASONS.map((reason) => (
+                    <button
+                      key={reason}
+                      type="button"
+                      className={`${styles.reportReasonBtn} ${reportReason === reason ? styles.reportReasonBtnActive : ''}`}
+                      onClick={() => setReportReason(reason)}
+                    >
+                      {t[`dogReportReason${reason.charAt(0).toUpperCase()}${reason.slice(1)}`]}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  className={styles.mergeSearchInput}
+                  value={reportNote}
+                  onChange={(e) => setReportNote(e.target.value)}
+                  placeholder={t.dogReportNotePlaceholder}
+                  maxLength={280}
+                  rows={2}
+                />
+                <div className={styles.confirmRow}>
+                  <button
+                    type="button"
+                    className={styles.confirmYesBtn}
+                    onClick={submitReport}
+                    disabled={!reportReason || reportBusy}
+                  >
+                    {reportBusy ? '…' : t.dogReportSubmit}
+                  </button>
+                  <button type="button" className={styles.confirmCancelBtn} onClick={() => { setReporting(false); setReportReason(null); setReportNote('') }}>
+                    {t.dogCancel}
+                  </button>
+                </div>
+              </div>
+            )}
+            {reportMsg && <p className={styles.meta}>{reportMsg}</p>}
+          </div>
+        )}
 
         {user && (
           <div className={styles.mergeSection}>

@@ -178,6 +178,67 @@ export async function mergeDogs(sourceId, targetId) {
   })
 }
 
+// Flags live under strayDogs/{dogId}/flags — read is admin-only per the
+// Firestore rules (see README's "One-time setup"), so this hook only
+// subscribes when `enabled` (the caller checks isAdmin first); otherwise
+// it would just get a permission-denied error for every other visitor.
+export function useFlags(dogId, enabled) {
+  const [flags, setFlags] = useState([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!dogId || !enabled) {
+      setFlags([])
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    const unsub = onSnapshot(
+      collection(db, COLLECTION, dogId, 'flags'),
+      (snap) => {
+        setFlags(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+        setLoading(false)
+      },
+      (err) => {
+        console.error('[majon] useFlags snapshot error:', err)
+        setLoading(false)
+      },
+    )
+    return unsub
+  }, [dogId, enabled])
+
+  return { flags, loading }
+}
+
+export async function flagDog(dogId, { user, reason, note }) {
+  await addDoc(collection(db, COLLECTION, dogId, 'flags'), {
+    reason,
+    note: note?.trim() || null,
+    reportedBy: user.uid,
+    reportedByName: user.displayName || null,
+    reportedAt: serverTimestamp(),
+  })
+}
+
+export async function dismissFlag(dogId, flagId) {
+  await deleteDoc(doc(db, COLLECTION, dogId, 'flags', flagId))
+}
+
+// Admin moderation action: removes a dog entirely (every sighting, every
+// flag, and the dog doc itself) — distinct from deleteSighting, which only
+// lets a reporter remove their own single report.
+export async function deleteDogEntirely(dogId) {
+  const [sightingsSnap, flagsSnap] = await Promise.all([
+    getDocs(collection(db, COLLECTION, dogId, 'sightings')),
+    getDocs(collection(db, COLLECTION, dogId, 'flags')),
+  ])
+  const batch = writeBatch(db)
+  sightingsSnap.docs.forEach((d) => batch.delete(d.ref))
+  flagsSnap.docs.forEach((d) => batch.delete(d.ref))
+  batch.delete(doc(db, COLLECTION, dogId))
+  await batch.commit()
+}
+
 const FRIENDLINESS_LEVELS = ['friendly', 'neutral', 'cautious']
 
 // Shared color mapping so the report-flow selector and the dog detail page

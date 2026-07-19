@@ -223,6 +223,77 @@
   background: var(--color-surface);
 }
 
+.reportReasonRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reportReasonBtn {
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 0.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.reportReasonBtnActive {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  border-color: var(--color-accent);
+}
+
+.flagsPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-red);
+  border-radius: var(--radius-md);
+  background: var(--color-red-bg);
+}
+
+.flagsPanelTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-red);
+}
+
+.flagsList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.flagItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+
+.flagReason {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.flagMeta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.flagNote {
+  font-size: 12px;
+  color: var(--color-text);
+  margin-top: 2px;
+}
+
 .lineShareBtn {
   display: flex;
   align-items: center;
