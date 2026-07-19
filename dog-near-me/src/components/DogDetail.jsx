@@ -28,6 +28,18 @@ function fmtDate(ts, lang) {
   })
 }
 
+// The AI's breed guess is stored as raw English text (Gemini's output), not
+// a translation key — so it shows untranslated even in the Thai UI. "mixed
+// breed" is the overwhelming common case for street dogs, so that one value
+// is worth localizing; specific breed guesses (e.g. "Thai Bangkaew mix")
+// stay in English since we have no translation for arbitrary AI output.
+function localizedBreed(breedGuess, lang) {
+  if (lang === 'th' && breedGuess?.trim().toLowerCase() === 'mixed breed') {
+    return 'พันทาง'
+  }
+  return breedGuess
+}
+
 export default function DogDetail({ dog, user, t, lang, onClose, onReportSighting }) {
   const { sightings, loading } = useSightings(dog?.id)
   const temperament = summarizeFriendliness(sightings)
@@ -156,7 +168,7 @@ export default function DogDetail({ dog, user, t, lang, onClose, onReportSightin
               <p className={styles.collarWarning}>{t.dogPossibleOwner}</p>
             )}
             {dog.latestTags?.breedGuess && (
-              <p className={styles.meta}>{t.dogBreed}: {dog.latestTags.breedGuess}</p>
+              <p className={styles.meta}>{t.dogBreed}: {localizedBreed(dog.latestTags.breedGuess, lang)}</p>
             )}
           </div>
         )}
