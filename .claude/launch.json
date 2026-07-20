@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "dev"],
       "cwd": "dog-near-me",
       "port": 5173
+    },
+    {
+      "name": "bill-splitter",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "bill-splitter",
+      "port": 5174
     }
   ]
 }
