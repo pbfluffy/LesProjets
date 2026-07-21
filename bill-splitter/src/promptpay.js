@@ -42,36 +42,18 @@ export function isValidPromptPayId(raw) {
   return formatPromptPayId(raw) !== null
 }
 
-// EMVCo's "Additional Data Field Template" (tag 62) is where a short
-// reference/bill-number can ride along in the QR itself — but whether a
-// bank app actually *shows* it to the scanner is entirely up to that app;
-// this isn't a guaranteed "note" feature the way it would be in a native
-// payment API. Thai-script support in this field is inconsistent across
-// banks' scanners (unlike the app's own UI, which is UTF-8 throughout), so
-// this only encodes the reference when it's plain ASCII — a Thai bill name
-// silently gets no reference field rather than risking a QR that some
-// banking apps mis-parse or reject outright.
-const MAX_REFERENCE_LEN = 25
-function sanitizeReference(text) {
-  if (!text) return null
-  const ascii = text.replace(/[^\x20-\x7E]/g, '').trim()
-  return ascii ? ascii.slice(0, MAX_REFERENCE_LEN) : null
-}
-
 /**
  * Build a PromptPay QR payload string.
  * @param {string} rawId - mobile/NID/eWallet (digits, dashes, spaces all OK)
  * @param {number} [amount] - optional THB amount; omit/0 for "any amount" QR
- * @param {string} [reference] - optional short label (e.g. bill name); ASCII only, see above
  * @returns {string|null} payload string, or null if id invalid
  */
-export function buildPromptPayPayload(rawId, amount, reference) {
+export function buildPromptPayPayload(rawId, amount) {
   const fmt = formatPromptPayId(rawId)
   if (!fmt) return null
 
   const hasAmount = typeof amount === 'number' && isFinite(amount) && amount > 0
   const merchant = tlv('00', 'A000000677010111') + tlv(fmt.subTag, fmt.value)
-  const ref = sanitizeReference(reference)
 
   let payload = ''
   payload += tlv('00', '01')                       // Payload Format Indicator
@@ -80,7 +62,6 @@ export function buildPromptPayPayload(rawId, amount, reference) {
   payload += tlv('53', '764')                      // Currency = THB
   if (hasAmount) payload += tlv('54', amount.toFixed(2))
   payload += tlv('58', 'TH')                       // Country
-  if (ref) payload += tlv('62', tlv('01', ref))    // Additional Data → Bill Number
   payload += '6304'                                // CRC tag + length (value computed next)
   payload += crc16(payload)
   return payload
