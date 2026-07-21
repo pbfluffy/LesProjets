@@ -191,7 +191,7 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
                 if (!s.amount || s.amount < 1) return null
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: 8, paddingTop: 8, borderTop: '0.5px solid var(--color-border)' }}>
-                    <PromptPayQR promptPay={promptPayId} amount={Math.round(s.amount)} size={100} name={s.to} />
+                    <PromptPayQR promptPay={promptPayId} amount={Math.round(s.amount)} size={100} name={s.to} reference={trip.name} />
                   </div>
                 )
               })()}

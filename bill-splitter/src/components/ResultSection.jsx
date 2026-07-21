@@ -398,7 +398,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
                     </div>
                   )}
                   {showQR && ppValid && qrAmount > 0 && !isOwner && (
-                    <PromptPayQR promptPay={promptPay} amount={qrAmount} name={m} />
+                    <PromptPayQR promptPay={promptPay} amount={qrAmount} name={m} reference={billName} />
                   )}
                 </div>
               )

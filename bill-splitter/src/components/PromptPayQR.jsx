@@ -11,9 +11,10 @@ import styles from './PromptPayQR.module.css'
  * @param {number} amount     - the amount in THB (0/undefined → static QR)
  * @param {number} [size]     - QR pixel size; default 132
  * @param {string} [name]     - person's name, used for the saved filename
+ * @param {string} [reference] - optional short label (e.g. bill name); see promptpay.js re. ASCII-only
  */
-export default function PromptPayQR({ promptPay, amount, size = 132, name }) {
-  const payload = buildPromptPayPayload(promptPay, amount)
+export default function PromptPayQR({ promptPay, amount, size = 132, name, reference }) {
+  const payload = buildPromptPayPayload(promptPay, amount, reference)
   const boxRef = useRef(null)
   const [saving, setSaving] = useState(false)
   if (!payload) return null
