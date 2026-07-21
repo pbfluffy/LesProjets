@@ -7,14 +7,20 @@ import styles from './PromptPayQR.module.css'
  * Renders a PromptPay QR for a single person.
  * Returns null if the PromptPay id is invalid (or empty).
  *
+ * The optional reference (e.g. bill name) is NOT encoded into the QR itself —
+ * whether a banking app's scan UI shows an embedded reference field is
+ * entirely up to that app (confirmed unreliable: K PLUS doesn't show it), so
+ * instead it's rendered as visible text, both on-screen and baked into the
+ * saved/shared QR image, which works regardless of the scanning app.
+ *
  * @param {string} promptPay  - the PromptPay number
  * @param {number} amount     - the amount in THB (0/undefined → static QR)
  * @param {number} [size]     - QR pixel size; default 132
  * @param {string} [name]     - person's name, used for the saved filename
- * @param {string} [reference] - optional short label (e.g. bill name); see promptpay.js re. ASCII-only
+ * @param {string} [reference] - optional short label (e.g. bill name), shown as a caption
  */
 export default function PromptPayQR({ promptPay, amount, size = 132, name, reference }) {
-  const payload = buildPromptPayPayload(promptPay, amount, reference)
+  const payload = buildPromptPayPayload(promptPay, amount)
   const boxRef = useRef(null)
   const [saving, setSaving] = useState(false)
   if (!payload) return null
@@ -33,13 +39,28 @@ export default function PromptPayQR({ promptPay, amount, size = 132, name, refer
         img.src = `data:image/svg+xml;base64,${svg64}`
       })
       const scale = 3
+      const qrPx = size * scale
+      const captionPx = reference ? 40 * scale : 0
       const canvas = document.createElement('canvas')
-      canvas.width = size * scale
-      canvas.height = size * scale
+      canvas.width = qrPx
+      canvas.height = qrPx + captionPx
       const ctx = canvas.getContext('2d')
       ctx.fillStyle = '#ffffff'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      ctx.drawImage(img, 0, 0, qrPx, qrPx)
+      if (reference) {
+        ctx.fillStyle = '#000000'
+        ctx.font = `${13 * scale}px sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        const maxWidth = qrPx - 16 * scale
+        let text = reference
+        while (text.length > 1 && ctx.measureText(text).width > maxWidth) {
+          text = text.slice(0, -1)
+        }
+        if (text !== reference) text = text.slice(0, -1) + '…'
+        ctx.fillText(text, qrPx / 2, qrPx + captionPx / 2)
+      }
       const blob = await new Promise(res => canvas.toBlob(res, 'image/png'))
       if (!blob) return
       const safeName = (name || 'promptpay').replace(/[^\w\u0E00-\u0E7F-]+/g, '_')
@@ -81,6 +102,7 @@ export default function PromptPayQR({ promptPay, amount, size = 132, name, refer
           level="M"
         />
       </div>
+      {reference && <div className={styles.reference}>{reference}</div>}
       <button
         type="button"
         onClick={handleSave}
