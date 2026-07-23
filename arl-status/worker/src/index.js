@@ -153,8 +153,27 @@ async function computeStatus(env) {
     .sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0))
     .map((item) => ({ ...item, eventType: matchEventType(item.title) }))
 
-  const status = classify(items)
   const previousStatus = env.ARL_STATUS_KV ? await env.ARL_STATUS_KV.get('laststatus') : null
+
+  // Both feeds came back with zero items — a Bangkok transit line doesn't
+  // genuinely go quiet in the news, so this means a feed/parsing problem,
+  // not a real all-clear. Report 'unknown' instead of letting classify()
+  // default to 'normal', which would look identical to a confirmed-fine
+  // status. Deliberately don't overwrite `laststatus` here, so once the
+  // feed recovers, statusChanged compares against the last REAL status
+  // rather than this gap (avoids a spurious "back to normal" alert).
+  if (items.length === 0) {
+    return {
+      status: 'unknown',
+      previousStatus,
+      statusChanged: previousStatus !== null && previousStatus !== 'unknown',
+      headlines: [],
+      checkedAt: new Date().toISOString(),
+      error: 'both feeds returned zero items',
+    }
+  }
+
+  const status = classify(items)
   const statusChanged = previousStatus !== null && previousStatus !== status
 
   if (env.ARL_STATUS_KV) {
