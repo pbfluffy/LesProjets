@@ -46,6 +46,12 @@
       "short_name": "Dog near me",
       "url": "/dog-near-me/",
       "icons": [{"src": "./icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "ARL Status",
+      "short_name": "ARL Status",
+      "url": "/arl-status/",
+      "icons": [{"src": "./icon-192.png", "sizes": "192x192"}]
     }
   ]
 }

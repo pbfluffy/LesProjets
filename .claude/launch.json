@@ -14,6 +14,13 @@
       "runtimeArgs": ["run", "dev"],
       "cwd": "bill-splitter",
       "port": 5174
+    },
+    {
+      "name": "arl-status",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "arl-status",
+      "port": 5175
     }
   ]
 }
