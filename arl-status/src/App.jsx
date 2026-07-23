@@ -13,8 +13,9 @@ const STRINGS = {
     checking: 'Checking…',
     checkNow: 'Check now',
     lastChecked: 'Last checked',
-    headlinesTitle: 'Recent coverage',
+    headlinesTitle: 'Status timeline',
     noHeadlines: 'No recent Airport Rail Link news found.',
+    eventLabel: { disruption: 'Disruption', resume: 'Resolved' },
     officialSources: 'Official sources',
     facebook: 'Facebook page',
     callCentre: 'Call centre',
@@ -33,8 +34,9 @@ const STRINGS = {
     checking: 'กำลังตรวจสอบ…',
     checkNow: 'ตรวจสอบตอนนี้',
     lastChecked: 'ตรวจสอบล่าสุด',
-    headlinesTitle: 'ข่าวล่าสุด',
+    headlinesTitle: 'ไทม์ไลน์สถานะ',
     noHeadlines: 'ไม่พบข่าวเกี่ยวกับแอร์พอร์ต เรล ลิงก์ ในช่วงนี้',
+    eventLabel: { disruption: 'ขัดข้อง', resume: 'แก้ไขแล้ว' },
     officialSources: 'แหล่งข้อมูลทางการ',
     facebook: 'เพจ Facebook',
     callCentre: 'ศูนย์บริการโทรศัพท์',
@@ -124,9 +126,13 @@ export default function App() {
         <section className={styles.headlines}>
           <h2 className={styles.sectionTitle}>{t.headlinesTitle}</h2>
           {data?.headlines?.length ? (
-            <ul className={styles.headlineList}>
+            <ul className={styles.timeline}>
               {data.headlines.map((h) => (
-                <li key={h.link} className={styles.headlineItem}>
+                <li key={h.link} className={`${styles.timelineItem} ${styles[h.eventType] || ''}`}>
+                  <span className={styles.timelineDot} />
+                  {t.eventLabel[h.eventType] && (
+                    <span className={styles.timelineTag}>{t.eventLabel[h.eventType]}</span>
+                  )}
                   <a href={h.link} target="_blank" rel="noopener noreferrer" className={styles.headlineLink}>
                     {h.title}
                   </a>

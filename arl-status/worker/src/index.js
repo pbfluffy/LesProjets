@@ -21,8 +21,12 @@
 //                  a status *change* for the scheduled alert).
 //
 // GET /  ->  { status: 'normal'|'disrupted'|'unknown', previousStatus,
-//              statusChanged, headlines: [{title, link, source, pubDate}],
+//              statusChanged,
+//              headlines: [{title, link, source, pubDate, eventType}],
 //              checkedAt, error? }
+// eventType per headline is 'disruption' | 'resume' | 'neutral' — the same
+// keyword match used to derive the overall status, exposed per-item so the
+// frontend can render a timeline instead of a flat list.
 
 const FEEDS = [
   'https://www.bing.com/news/search?q=%22Airport+Rail+Link%22+Bangkok&format=RSS',
@@ -119,18 +123,24 @@ async function fetchFeed(url) {
   }
 }
 
+// 'resume' takes priority over 'disruption' when a title matches both word
+// lists (rare, but a "resumes after disruption" headline should read as the
+// resolution event, not a new incident).
+function matchEventType(title) {
+  const t = title.toLowerCase()
+  if (RESUME_WORDS.some((w) => t.includes(w.toLowerCase()))) return 'resume'
+  if (DISRUPTION_WORDS.some((w) => t.includes(w.toLowerCase()))) return 'disruption'
+  return 'neutral'
+}
+
+// items must already be sorted newest-first — the first non-neutral item
+// within the recency window decides the current overall status.
 function classify(items) {
   const now = Date.now()
-  const recent = items
-    .filter((i) => i.pubDate && now - new Date(i.pubDate).getTime() <= RECENT_WINDOW_MS)
-    .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
-
-  for (const item of recent) {
-    const t = item.title.toLowerCase()
-    if (RESUME_WORDS.some((w) => t.includes(w.toLowerCase()))) return 'normal'
-    if (DISRUPTION_WORDS.some((w) => t.includes(w.toLowerCase()))) return 'disrupted'
-  }
-  return 'normal' // no recent disruption/resume signal found — see UI copy: "no recent disruption reports", not "confirmed normal"
+  const recent = items.filter((i) => i.pubDate && now - new Date(i.pubDate).getTime() <= RECENT_WINDOW_MS)
+  const signal = recent.find((i) => i.eventType !== 'neutral')
+  if (!signal) return 'normal' // no recent disruption/resume signal found — see UI copy: "no recent disruption reports", not "confirmed normal"
+  return signal.eventType === 'resume' ? 'normal' : 'disrupted'
 }
 
 async function computeStatus(env) {
@@ -139,7 +149,9 @@ async function computeStatus(env) {
   for (const item of results.flat()) {
     if (!byLink.has(item.link)) byLink.set(item.link, item)
   }
-  const items = [...byLink.values()].sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0))
+  const items = [...byLink.values()]
+    .sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0))
+    .map((item) => ({ ...item, eventType: matchEventType(item.title) }))
 
   const status = classify(items)
   const previousStatus = env.ARL_STATUS_KV ? await env.ARL_STATUS_KV.get('laststatus') : null
