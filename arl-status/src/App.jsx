@@ -15,7 +15,7 @@ const STRINGS = {
     lastChecked: 'Last checked',
     headlinesTitle: 'Status timeline',
     noHeadlines: 'No recent Airport Rail Link news found.',
-    eventLabel: { disruption: 'Disruption', resume: 'Resolved' },
+    eventLabel: { disruption: 'Disruption', resume: 'Resolved', neutral: 'Mention' },
     officialSources: 'Official sources',
     facebook: 'Facebook page',
     callCentre: 'Call centre',
@@ -36,7 +36,7 @@ const STRINGS = {
     lastChecked: 'ตรวจสอบล่าสุด',
     headlinesTitle: 'ไทม์ไลน์สถานะ',
     noHeadlines: 'ไม่พบข่าวเกี่ยวกับแอร์พอร์ต เรล ลิงก์ ในช่วงนี้',
-    eventLabel: { disruption: 'ขัดข้อง', resume: 'แก้ไขแล้ว' },
+    eventLabel: { disruption: 'ขัดข้อง', resume: 'แก้ไขแล้ว', neutral: 'กล่าวถึง' },
     officialSources: 'แหล่งข้อมูลทางการ',
     facebook: 'เพจ Facebook',
     callCentre: 'ศูนย์บริการโทรศัพท์',
@@ -57,6 +57,19 @@ function timeAgo(iso) {
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `${hours}h ago`
   return `${Math.floor(hours / 24)}d ago`
+}
+
+// Date *and* time-of-day, not just the day — the relative "1d ago" alone
+// doesn't say whether something happened at 2am or 10pm, which matters for
+// a service-status timeline.
+function formatDateTime(iso, lang) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleString(lang === 'th' ? 'th-TH' : 'en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
 }
 
 export default function App() {
@@ -113,7 +126,11 @@ export default function App() {
         </div>
 
         <div className={styles.metaRow}>
-          <span>{data?.checkedAt ? `${t.lastChecked}: ${timeAgo(data.checkedAt)}` : ''}</span>
+          <span>
+            {data?.checkedAt
+              ? `${t.lastChecked}: ${formatDateTime(data.checkedAt, lang)} (${timeAgo(data.checkedAt)})`
+              : ''}
+          </span>
           <button className={styles.refreshBtn} onClick={check} disabled={loading}>
             {loading ? '…' : t.checkNow}
           </button>
@@ -137,7 +154,7 @@ export default function App() {
                     {h.title}
                   </a>
                   <div className={styles.headlineMeta}>
-                    {h.source} · {timeAgo(h.pubDate)}
+                    {h.source} · {formatDateTime(h.pubDate, lang)} · {timeAgo(h.pubDate)}
                   </div>
                 </li>
               ))}
