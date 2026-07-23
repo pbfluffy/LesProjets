@@ -1,27 +1,32 @@
 // arl-status-check — Cloudflare Worker
 //
 // There is no official real-time API for Bangkok's Airport Rail Link (ARL).
-// This worker approximates current service status by scanning Google News
-// RSS (which aggregates Bangkok Post / Nation Thailand / Thaiger / etc. —
-// one no-auth, no-scraping-ToS-risk feed) for recent ARL coverage, and
-// classifying the most recent in-window article with a keyword heuristic.
-// This is a best-effort estimate, not a confirmed status — it will miss
-// minor delays that never make the news, and is only as fast as news
-// coverage of a real incident.
+// This worker approximates current service status by scanning Bing News RSS
+// (which aggregates Bangkok Post / The Star / Thaiger / etc. — one no-auth
+// feed) for recent ARL coverage, and classifying the most recent in-window
+// article with a keyword heuristic. This is a best-effort estimate, not a
+// confirmed status — it will miss minor delays that never make the news,
+// and is only as fast as news coverage of a real incident.
+//
+// NOTE: Google News RSS was tried first, but Google returns a 503
+// "unusual traffic" block page to Cloudflare Workers' shared egress IPs
+// (confirmed via `wrangler tail` — it works fine from a residential IP in
+// local `wrangler dev`, but fails once deployed). Bing News RSS does not
+// block Workers' IPs, so it's used instead.
 //
 // REQUIRED BINDING:
 //   ARL_STATUS_KV  KV namespace — caches the classified result (5 min TTL,
-//                  to avoid hammering Google News on every page load/check)
-//                  and persists the last-known status indefinitely (to
-//                  detect a status *change* for the scheduled alert).
+//                  to avoid hammering Bing on every page load/check) and
+//                  persists the last-known status indefinitely (to detect
+//                  a status *change* for the scheduled alert).
 //
 // GET /  ->  { status: 'normal'|'disrupted'|'unknown', previousStatus,
 //              statusChanged, headlines: [{title, link, source, pubDate}],
 //              checkedAt, error? }
 
 const FEEDS = [
-  'https://news.google.com/rss/search?q=%22Airport+Rail+Link%22+Bangkok&hl=en-TH&gl=TH&ceid=TH:en',
-  'https://news.google.com/rss/search?q=%E0%B9%81%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%9E%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%95%E0%B9%80%E0%B8%A3%E0%B8%A5%E0%B8%A5%E0%B8%B4%E0%B8%87%E0%B8%81%E0%B9%8C&hl=th&gl=TH&ceid=TH:th',
+  'https://www.bing.com/news/search?q=%22Airport+Rail+Link%22+Bangkok&format=RSS',
+  'https://www.bing.com/news/search?q=%E0%B9%81%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%9E%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%95%E0%B9%80%E0%B8%A3%E0%B8%A5%E0%B8%A5%E0%B8%B4%E0%B8%87%E0%B8%81%E0%B9%8C&format=RSS',
 ]
 
 const RECENT_WINDOW_MS = 36 * 60 * 60 * 1000 // only articles from the last 36h drive the current status
@@ -62,8 +67,20 @@ function decodeEntities(s) {
     .replace(/^<!\[CDATA\[/, '').replace(/\]\]>$/, '')
 }
 
+// Bing wraps the real article URL behind a apiclick.aspx redirect with the
+// actual destination in its `url` query param — unwrap it so the UI links
+// straight to the source article instead of a Bing tracking redirect.
+function unwrapBingLink(link) {
+  try {
+    const real = new URL(link).searchParams.get('url')
+    return real || link
+  } catch {
+    return link
+  }
+}
+
 // Minimal regex-based RSS parser — Workers has no DOMParser, and a full XML
-// lib is overkill for Google News' consistently-shaped <item> blocks.
+// lib is overkill for Bing News' consistently-shaped <item> blocks.
 function parseRssItems(xml) {
   const items = []
   const itemRe = /<item>([\s\S]*?)<\/item>/g
@@ -73,11 +90,11 @@ function parseRssItems(xml) {
     const title = block.match(/<title>([\s\S]*?)<\/title>/)?.[1]
     const link = block.match(/<link>([\s\S]*?)<\/link>/)?.[1]
     const pubDate = block.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]
-    const source = block.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1]
+    const source = block.match(/<(?:\w+:)?[Ss]ource[^>]*>([\s\S]*?)<\/(?:\w+:)?[Ss]ource>/)?.[1]
     if (!title || !link) continue
     items.push({
       title: decodeEntities(title.trim()),
-      link: decodeEntities(link.trim()),
+      link: unwrapBingLink(decodeEntities(link.trim())),
       pubDate: pubDate ? new Date(pubDate.trim()).toISOString() : null,
       source: source ? decodeEntities(source.trim()) : null,
     })
@@ -88,8 +105,14 @@ function parseRssItems(xml) {
 async function fetchFeed(url) {
   try {
     const res = await fetch(url, { headers: { 'User-Agent': 'ARLStatus/1.0 (https://pumbafluffycorgi.com/arl-status/)' } })
-    if (!res.ok) return []
-    return parseRssItems(await res.text())
+    if (!res.ok) {
+      console.error('feed fetch non-OK:', url, res.status, (await res.text()).slice(0, 300))
+      return []
+    }
+    const text = await res.text()
+    const items = parseRssItems(text)
+    if (items.length === 0) console.error('feed parsed 0 items, body head:', url, text.slice(0, 300))
+    return items
   } catch (e) {
     console.error('feed fetch failed:', url, e)
     return []
