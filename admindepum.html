@@ -1012,20 +1012,6 @@ async function renderAdminsPanel(){
   }
   html += '</div>';
 
-  const cand = DATA.filter(d => d.uid!==ADMIN_UID && !adminUids.has(d.uid) && (d.name||d.email));
-  html += seclblA('Add admin') + '<div style="'+monoA+';white-space:normal;margin-bottom:10px">Signed-in users you can promote — pick from the roster.</div>';
-  if(cand.length===0){ html += '<div style="'+monoA+';white-space:normal">No one to add — users appear here after they sign in on the landing page.</div>'; }
-  else {
-    html += '<div style="display:flex;flex-direction:column;gap:8px">';
-    cand.sort((a,b)=>((a.name||a.email||'')+'').localeCompare((b.name||b.email||'')+''));
-    for(const c of cand){ const nm=c.name||c.email||c.uid;
-      html += ROWA + userAvatarHtml(Object.assign({},c))
-        + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600">'+escAdm(c.name||'(no name)')+'</div>'
-        + '<div style="'+monoA+'">'+escAdm((c.email||'')+' · '+c.uid)+'</div></div>'
-        + '<button class="btn small admin-add" data-uid="'+escAdm(c.uid)+'" data-name="'+escAdm(c.name||'')+'" data-email="'+escAdm(c.email||'')+'" style="background:var(--accent);color:#1a1408;border-color:var(--accent)">Make admin</button></div>'; }
-    html += '</div>';
-  }
-
   html += '<div style="border-top:1px solid var(--line-soft);margin:22px 0 18px"></div>';
   html += seclblA('Current Pumgoda admins') + '<div style="'+monoA+';white-space:normal;margin-bottom:10px">Restricted role — sees only the Pumgoda tab, can add/edit/delete places and photos.</div>';
   html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px">';
@@ -1036,21 +1022,27 @@ async function renderAdminsPanel(){
       html += ROWA + userAvatarHtml(Object.assign({},i,{uid:a.uid,photoURL:i.photoURL||a.photoURL}))
         + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">'+escAdm(nm)+'</div>'
         + '<div style="'+monoA+'">'+escAdm(em ? em+' · '+a.uid : a.uid)+'</div></div>'
-        + '<button class="btn small pgadmin-remove" data-uid="'+escAdm(a.uid)+'" data-name="'+escAdm(nm)+'" style="color:var(--red);border-color:#5a2c22;background:transparent">Remove</button></div>'; }
+        + '<div style="display:flex;gap:6px;flex:0 0 auto">'
+        + '<button class="btn small admin-add" data-uid="'+escAdm(a.uid)+'" data-name="'+escAdm(nm)+'" data-email="'+escAdm(em)+'" title="Grant full admin access too">Promote to admin</button>'
+        + '<button class="btn small pgadmin-remove" data-uid="'+escAdm(a.uid)+'" data-name="'+escAdm(nm)+'" style="color:var(--red);border-color:#5a2c22;background:transparent">Remove</button>'
+        + '</div></div>'; }
   }
   html += '</div>';
 
-  const pgCand = DATA.filter(d => d.uid!==ADMIN_UID && !adminUids.has(d.uid) && !pgAdminUids.has(d.uid) && (d.name||d.email));
-  html += seclblA('Add Pumgoda admin') + '<div style="'+monoA+';white-space:normal;margin-bottom:10px">Signed-in users you can grant Pumgoda-only access — pick from the roster.</div>';
-  if(pgCand.length===0){ html += '<div style="'+monoA+';white-space:normal">No one to add — users appear here after they sign in on the landing page.</div>'; }
+  const cand = DATA.filter(d => d.uid!==ADMIN_UID && !adminUids.has(d.uid) && !pgAdminUids.has(d.uid) && (d.name||d.email));
+  html += seclblA('Add admin') + '<div style="'+monoA+';white-space:normal;margin-bottom:10px">Signed-in users you can promote — pick from the roster. Each person is listed once here; they move to a "Current" list above once granted a role.</div>';
+  if(cand.length===0){ html += '<div style="'+monoA+';white-space:normal">No one to add — users appear here after they sign in on the landing page.</div>'; }
   else {
     html += '<div style="display:flex;flex-direction:column;gap:8px">';
-    pgCand.sort((a,b)=>((a.name||a.email||'')+'').localeCompare((b.name||b.email||'')+''));
-    for(const c of pgCand){
+    cand.sort((a,b)=>((a.name||a.email||'')+'').localeCompare((b.name||b.email||'')+''));
+    for(const c of cand){
       html += ROWA + userAvatarHtml(Object.assign({},c))
         + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600">'+escAdm(c.name||'(no name)')+'</div>'
         + '<div style="'+monoA+'">'+escAdm((c.email||'')+' · '+c.uid)+'</div></div>'
-        + '<button class="btn small pgadmin-add" data-uid="'+escAdm(c.uid)+'" data-name="'+escAdm(c.name||'')+'" data-email="'+escAdm(c.email||'')+'" style="background:var(--accent);color:#1a1408;border-color:var(--accent)">Make Pumgoda admin</button></div>'; }
+        + '<div style="display:flex;gap:6px;flex:0 0 auto">'
+        + '<button class="btn small admin-add" data-uid="'+escAdm(c.uid)+'" data-name="'+escAdm(c.name||'')+'" data-email="'+escAdm(c.email||'')+'" style="background:var(--accent);color:#1a1408;border-color:var(--accent)">Make admin</button>'
+        + '<button class="btn small pgadmin-add" data-uid="'+escAdm(c.uid)+'" data-name="'+escAdm(c.name||'')+'" data-email="'+escAdm(c.email||'')+'">Make Pumgoda admin</button>'
+        + '</div></div>'; }
     html += '</div>';
   }
   body.innerHTML = html;
