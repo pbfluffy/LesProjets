@@ -1,0 +1,297 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function isOwner() {
+      return request.auth != null && request.auth.uid == 'HfksT06CgFUkZ9s4vrzEGs85O562';
+    }
+    function isAdmin() {
+      return isOwner() || exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function isPumgodaAdmin() {
+      return isOwner() || exists(/databases/$(database)/documents/pumgodaAdmins/$(request.auth.uid));
+    }
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isUser(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── Pumgoda — admin registry ────────────────────────────────────────────
+    match /admins/{uid} {
+      allow get:    if isUser(uid);
+      allow list:   if isOwner();
+      allow write:  if isOwner();
+    }
+
+    // ── Pumgoda — Pumgoda-only admin registry (catalog access, no other tabs) ─
+    match /pumgodaAdmins/{uid} {
+      allow get:    if isUser(uid);
+      allow list:   if isOwner();
+      allow write:  if isOwner();
+    }
+
+    // ── Pumgoda — user profiles (landing page onAuthStateChanged) ───────────
+    match /userProfiles/{uid} {
+      allow read:  if isAdmin();
+      allow write: if isUser(uid)
+                   && request.resource.data.name   is string
+                   && request.resource.data.name.size()  <= 200
+                   && request.resource.data.email  is string
+                   && request.resource.data.email.size() <= 320
+                   && !request.resource.data.name.matches('.*[<>].*')
+                   && !request.resource.data.email.matches('.*[<>].*');
+    }
+
+    // ── Pumgoda — user backups ──────────────────────────────────────────────
+    match /userBackups/{uid}/snapshots/{snapId} {
+      allow read, write: if isUser(uid);
+    }
+
+    // ── Pumgoda — places (Firestore catalog) ────────────────────────────────
+    match /places/{placeId} {
+      allow read:   if true;
+      allow write:  if isAdmin() || isPumgodaAdmin();
+    }
+
+    // ── Pumgoda — place votes ───────────────────────────────────────────────
+    match /placeVotes/{voteId} {
+      allow read:   if signedIn();
+      allow create: if signedIn()
+                    && request.resource.data.uid    == request.auth.uid
+                    && request.resource.data.vote   in ['up','down']
+                    && request.resource.data.placeId is string;
+      allow update: if isUser(resource.data.uid)
+                    && request.resource.data.uid    == resource.data.uid
+                    && request.resource.data.placeId == resource.data.placeId
+                    && request.resource.data.vote   in ['up','down'];
+      allow delete: if isUser(resource.data.uid);
+    }
+
+    // ── Pumgoda — shared trips ──────────────────────────────────────────────
+    match /sharedTrips/{tripId} {
+      allow get:    if signedIn();
+      allow list:   if false;
+      allow create: if signedIn()
+                    && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if signedIn() && (
+        (
+          request.auth.uid in resource.data.members
+          && request.resource.data.ownerUid  == resource.data.ownerUid
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.members   == resource.data.members
+        )
+        ||
+        (
+          !(request.auth.uid in resource.data.members)
+          && request.auth.uid in request.resource.data.members
+          && request.resource.data.members.size() == resource.data.members.size() + 1
+          && request.resource.data.ownerUid  == resource.data.ownerUid
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.name      == resource.data.name
+          && request.resource.data.placeIds  == resource.data.placeIds
+        )
+      );
+      allow delete: if isUser(resource.data.ownerUid);
+    }
+
+    // ── Pumgoda — user saved places ─────────────────────────────────────────
+    match /userPlaces/{uid} {
+      allow read:  if isUser(uid) || isAdmin();
+      allow write: if isUser(uid)
+                   && request.resource.data.savedIds is list
+                   && request.resource.data.savedIds.size() < 10000
+                   && (!('lastModified' in request.resource.data)
+                       || request.resource.data.lastModified is timestamp
+                       || request.resource.data.lastModified is number);
+    }
+
+    // ── Pumgoda — user trips ────────────────────────────────────────────────
+    match /userTrips/{uid} {
+      allow read, write: if isUser(uid);
+    }
+
+    // ── Bill Splitter — user bills ──────────────────────────────────────────
+    match /userBills/{uid} {
+      allow read:  if isUser(uid) || isAdmin();
+      allow write: if isUser(uid)
+                   && (!('history' in request.resource.data)
+                       || (request.resource.data.history is list
+                           && request.resource.data.history.size() <= 20))
+                   && (!('lastModified' in request.resource.data)
+                       || request.resource.data.lastModified is timestamp
+                       || request.resource.data.lastModified is number)
+                   && (!('trips' in request.resource.data)
+                       || request.resource.data.trips is list)
+                   && (!('tripsLastEdit' in request.resource.data)
+                       || request.resource.data.tripsLastEdit is number);
+    }
+    match /userBills/{uid}/trips/{tripId} {
+      allow read:  if isUser(uid) || isAdmin();
+      allow write: if isUser(uid);
+    }
+
+    // ── Bill Splitter — share links ─────────────────────────────────────────
+    match /shareLinks/{shortId} {
+      allow read:   if true;
+      allow create: if true
+                && request.resource.data.payload    is string
+                && request.resource.data.payload.size() <= 100000
+                && (request.resource.data.createdAt is timestamp || request.resource.data.createdAt is number)
+                && (request.resource.data.expiresAt is timestamp || request.resource.data.expiresAt is number)
+                && (!('createdBy' in request.resource.data)
+                    || request.resource.data.createdBy is string
+                    || request.resource.data.createdBy == null);
+      allow delete: if isAdmin();
+      allow update: if false;
+    }
+
+    // ── Bill Splitter — saved payees ─────────────────────────────────────────
+    match /userPayees/{uid} {
+      allow read:  if isUser(uid);
+      allow write: if isUser(uid)
+                   && request.resource.data.payees is list
+                   && request.resource.data.payees.size() <= 20;
+    }
+
+    // ── Nutritions — user data ───────────────────────────────────────────────
+    match /users/{uid} {
+      allow read:  if isUser(uid) || isAdmin();
+      allow write: if isUser(uid)
+                   && request.resource.data.size() < 200
+                   && (!('stats'       in request.resource.data) || request.resource.data.stats       is map)
+                   && (!('days'        in request.resource.data) || request.resource.data.days        is map)
+                   && (!('weights'     in request.resource.data) || request.resource.data.weights     is map)
+                   && (!('customFoods' in request.resource.data) || request.resource.data.customFoods is list);
+    }
+
+    // ── Backyard Rampage — cross-device save sync ───────────────────────────
+    match /userGame/{uid} {
+      allow read:  if isUser(uid);
+      allow write: if isUser(uid)
+                   && request.resource.data.seq          is number
+                   && request.resource.data.lastModified is timestamp
+                   && (!('reset' in request.resource.data)
+                       || request.resource.data.reset is bool)
+                   && (!('bank'          in request.resource.data) || request.resource.data.bank          is number)
+                   && (!('bestWave'      in request.resource.data) || request.resource.data.bestWave      is number)
+                   && (!('bestScore'     in request.resource.data) || request.resource.data.bestScore     is number)
+                   && (!('rebirths'      in request.resource.data) || request.resource.data.rebirths      is number)
+                   && (!('rebirthBonus'  in request.resource.data) || request.resource.data.rebirthBonus  is number)
+                   && (!('playerName'    in request.resource.data) || (
+                         request.resource.data.playerName is string
+                         && request.resource.data.playerName.size() <= 16))
+                   && (!('playerId'      in request.resource.data) || (
+                         request.resource.data.playerId is string
+                         && request.resource.data.playerId.size() <= 16))
+                   && (!('gameSave'      in request.resource.data) || (
+                         request.resource.data.gameSave is string
+                         && request.resource.data.gameSave.size() <= 65536));
+      allow update: if isUser(uid)
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['gameSave', 'lastModified'])
+                    && request.resource.data.gameSave is string
+                    && request.resource.data.gameSave.size() <= 65536;
+    }
+
+    // ── Backyard Rampage — all-time leaderboard ──────────────────────────────
+    match /leaderboard/{uid} {
+      allow read:  if signedIn();
+      allow write: if isUser(uid)
+                   && request.resource.data.keys().hasOnly(['name','pid','score','wave','rebirths','t'])
+                   && request.resource.data.name     is string
+                   && request.resource.data.name.size() <= 16
+                   && request.resource.data.pid      is string
+                   && request.resource.data.pid.size() <= 16
+                   && request.resource.data.score    is number
+                   && request.resource.data.score    >= 0
+                   && request.resource.data.score    <= 100000000
+                   && request.resource.data.wave     is number
+                   && request.resource.data.wave     >= 0
+                   && request.resource.data.wave     <= 10000
+                   && request.resource.data.rebirths is number
+                   && request.resource.data.rebirths >= 0
+                   && request.resource.data.rebirths <= 1000
+                   && request.resource.data.t        is timestamp;
+    }
+
+    // ── Backyard Rampage — challenge leaderboard ─────────────────────────────
+    match /challengeBoard/{uid} {
+      allow read:  if signedIn();
+      allow write: if isUser(uid)
+                   && request.resource.data.keys().hasOnly(['name','pid','score','wave','rebirths','t'])
+                   && request.resource.data.name     is string
+                   && request.resource.data.name.size() <= 16
+                   && request.resource.data.pid      is string
+                   && request.resource.data.pid.size() <= 16
+                   && request.resource.data.score    is number
+                   && request.resource.data.score    >= 0
+                   && request.resource.data.score    <= 100000000
+                   && request.resource.data.wave     is number
+                   && request.resource.data.wave     >= 0
+                   && request.resource.data.wave     <= 10000
+                   && request.resource.data.rebirths is number
+                   && request.resource.data.rebirths >= 0
+                   && request.resource.data.rebirths <= 1000
+                   && request.resource.data.t        is timestamp;
+    }
+
+    // ── Montreal 2026 — checklist sync ───────────────────────────────────────
+    match /montrealChecklist/{uid} {
+      allow read:  if request.auth != null
+                   && request.auth.uid in ['ATNWbAURUwcuGPERNJFAvBNtRZc2', 'D17HauhxK5fSb8zkhvbzWzSIIQk2'];
+      allow write: if isUser(uid)
+                   && request.resource.data.checkedItems is list
+                   && request.resource.data.checkedItems.size() <= 200
+                   && (!('updatedAt' in request.resource.data)
+                       || request.resource.data.updatedAt is timestamp
+                       || request.resource.data.updatedAt is number)
+                   && (!('displayName' in request.resource.data)
+                       || (request.resource.data.displayName is string && request.resource.data.displayName.size() <= 200));
+    }
+
+    match /tripTasks/{tripId} {
+      allow read:  if request.auth != null
+                   && request.auth.uid in ['ATNWbAURUwcuGPERNJFAvBNtRZc2', 'D17HauhxK5fSb8zkhvbzWzSIIQk2'];
+      allow write: if request.auth != null
+                   && request.auth.uid in ['ATNWbAURUwcuGPERNJFAvBNtRZc2', 'D17HauhxK5fSb8zkhvbzWzSIIQk2']
+                   && request.resource.data.tasksJson is string
+                   && request.resource.data.tasksJson.size() <= 10000;
+    }
+
+    // ── Montreal 2026 — checklist starter count (shared) ──────────────────────
+    match /checklistStats/{tripId} {
+      allow read:  if signedIn();
+      allow write: if signedIn()
+                   && request.resource.data.starterUids is list
+                   && request.resource.data.starterUids.size() <= 500;
+    }
+
+    // ── Montreal 2026 — private booking details ────────────────────────────
+    match /tripSecrets/{tripId} {
+      allow read:  if request.auth != null
+                   && request.auth.uid in ['ATNWbAURUwcuGPERNJFAvBNtRZc2', 'D17HauhxK5fSb8zkhvbzWzSIIQk2'];
+      allow write: if false;
+    }
+
+match /strayDogs/{dogId} {
+  allow read: if true;
+  allow create: if request.auth != null;
+  allow update: if request.auth != null;
+  allow delete: if request.auth != null;
+  match /sightings/{sightingId} {
+    allow read: if true;
+    allow create: if request.auth != null;
+    allow delete: if request.auth != null;
+  }
+  match /flags/{flagId} {
+    allow read: if request.auth != null && request.auth.uid == 'HfksT06CgFUkZ9s4vrzEGs85O562';
+    allow create: if request.auth != null;
+    allow delete: if request.auth != null && request.auth.uid == 'HfksT06CgFUkZ9s4vrzEGs85O562';
+  }
+}
+
+  }
+}

@@ -6,8 +6,8 @@
 //
 // Key lives only in the GOOGLE_MAPS_KEY secret — never shipped to the browser.
 // Auth + CORS pattern mirrors pumgoda-photo: verify a Firebase ID token, owner OR
-// anyone in the Firestore /admins collection. SSRF guard: only Google Maps hosts
-// are ever fetched (both the pasted link and its redirect target).
+// anyone in the Firestore /admins or /pumgodaAdmins collection. SSRF guard: only
+// Google Maps hosts are ever fetched (both the pasted link and its redirect target).
 
 const ALLOW = ['https://pbfluffy.github.io', 'https://pumbafluffycorgi.com'];
 const PROJECT_ID = 'pumgoda';
@@ -73,10 +73,14 @@ async function verifyIdToken(token) {
 
 async function isAdmin(uid, idToken) {
   if (uid === OWNER_UID) return true;
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}`
-            + `/databases/(default)/documents/admins/${encodeURIComponent(uid)}`;
-  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + idToken } });
-  return res.status === 200;
+  const docUrl = (col) => `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}`
+                         + `/databases/(default)/documents/${col}/${encodeURIComponent(uid)}`;
+  const auth = { headers: { Authorization: 'Bearer ' + idToken } };
+  const full = await fetch(docUrl('admins'), auth);
+  if (full.status === 200) return true;
+  // Pumgoda-only admins may also use the Maps-link autofill lookup.
+  const pg = await fetch(docUrl('pumgodaAdmins'), auth);
+  return pg.status === 200;
 }
 
 async function requireAdmin(request) {

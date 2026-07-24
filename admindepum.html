@@ -828,14 +828,19 @@ $('signoutBtn').addEventListener('click', () => signOut(auth));
 $('denied-signout').addEventListener('click', () => signOut(auth));
 
 let IS_OWNER = false, ME = null;
+let ROLE = 'admin'; // 'owner' | 'admin' (full) | 'pumgoda' (Pumgoda-catalog only)
 let _authReady = false;
 onAuthStateChanged(auth, async (user) => {
   if(!_authReady){ _authReady = true; const l = document.getElementById('loading'); if(l) l.classList.add('hidden'); }
   if(!user){ gateStatus(''); show('gate'); return; }
   ME = user;
   IS_OWNER = (user.uid === ADMIN_UID);
-  let allowed = IS_OWNER;
-  if(!allowed){ try{ allowed = (await getDoc(doc(db,'admins',user.uid))).exists(); }catch(e){ console.warn('Admin check failed:', e); allowed = false; } }
+  let isFullAdmin = IS_OWNER;
+  if(!isFullAdmin){ try{ isFullAdmin = (await getDoc(doc(db,'admins',user.uid))).exists(); }catch(e){ console.warn('Admin check failed:', e); isFullAdmin = false; } }
+  let isPumgodaAdmin = false;
+  if(!isFullAdmin){ try{ isPumgodaAdmin = (await getDoc(doc(db,'pumgodaAdmins',user.uid))).exists(); }catch(e){ console.warn('Pumgoda-admin check failed:', e); isPumgodaAdmin = false; } }
+  const allowed = isFullAdmin || isPumgodaAdmin;
+  ROLE = IS_OWNER ? 'owner' : (isFullAdmin ? 'admin' : 'pumgoda');
   if(!allowed){
     $('denied-uid').textContent = 'uid: ' + user.uid;
     show('denied'); return;
@@ -876,14 +881,27 @@ onAuthStateChanged(auth, async (user) => {
     },{merge:true}).catch(()=>{});
   }
   show('app');
-  loadData();
+  applyRoleRestrictions();
   loadPlaces();
-  switchTab(initialTab());
+  if(ROLE === 'pumgoda'){
+    switchTab('pumgoda');
+  } else {
+    loadData();
+    switchTab(initialTab());
+  }
 });
 function initialTab(){
+  if(ROLE === 'pumgoda') return 'pumgoda';
   const h = location.hash.slice(1);
   if(TABS.includes(h)) return h;
   return localStorage.getItem('admin_tab') || 'overall';
+}
+function applyRoleRestrictions(){
+  if(ROLE !== 'pumgoda') return;
+  ['overall','bills','nutrition','backyard'].forEach(t => {
+    const btn = document.getElementById('tab-btn-'+t);
+    if(btn) btn.classList.add('hidden');
+  });
 }
 
 
@@ -968,10 +986,13 @@ async function renderAdminsPanel(){
   if(!IS_OWNER) return;
   const body = $('admin-body');
   body.innerHTML = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--faint);padding:8px 2px">Loading…</div>';
-  let admins = [];
+  let admins = [], pgAdmins = [];
   try{ const snap = await getDocs(collection(db,'admins')); snap.forEach(s => admins.push(Object.assign({uid:s.id}, s.data()||{}))); }
   catch(e){ body.innerHTML = '<div class="errbox">Could not read admins — publish the admin rules, then Refresh.<br><code>'+escAdm(e.code||e.message)+'</code></div>'; return; }
+  try{ const snap = await getDocs(collection(db,'pumgodaAdmins')); snap.forEach(s => pgAdmins.push(Object.assign({uid:s.id}, s.data()||{}))); }
+  catch(e){ console.warn('pumgodaAdmins read failed:', e.code||e.message); }
   const adminUids = new Set(admins.map(a=>a.uid));
+  const pgAdminUids = new Set(pgAdmins.map(a=>a.uid));
   const info = (uid) => DATA.find(d=>d.uid===uid) || {};
 
   let html = seclblA('Current admins') + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px">';
@@ -1004,13 +1025,44 @@ async function renderAdminsPanel(){
         + '<button class="btn small admin-add" data-uid="'+escAdm(c.uid)+'" data-name="'+escAdm(c.name||'')+'" data-email="'+escAdm(c.email||'')+'" style="background:var(--accent);color:#1a1408;border-color:var(--accent)">Make admin</button></div>'; }
     html += '</div>';
   }
+
+  html += '<div style="border-top:1px solid var(--line-soft);margin:22px 0 18px"></div>';
+  html += seclblA('Current Pumgoda admins') + '<div style="'+monoA+';white-space:normal;margin-bottom:10px">Restricted role — sees only the Pumgoda tab, can add/edit/delete places and photos.</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px">';
+  if(pgAdmins.length===0){ html += '<div style="'+monoA+';white-space:normal">No Pumgoda admins yet.</div>'; }
+  else {
+    pgAdmins.sort((a,b)=>((info(a.uid).name||a.name||a.uid)+'').localeCompare((info(b.uid).name||b.name||b.uid)+''));
+    for(const a of pgAdmins){ const i=info(a.uid); const nm=i.name||a.name||'(unknown)'; const em=i.email||a.email||'';
+      html += ROWA + userAvatarHtml(Object.assign({},i,{uid:a.uid,photoURL:i.photoURL||a.photoURL}))
+        + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">'+escAdm(nm)+'</div>'
+        + '<div style="'+monoA+'">'+escAdm(em ? em+' · '+a.uid : a.uid)+'</div></div>'
+        + '<button class="btn small pgadmin-remove" data-uid="'+escAdm(a.uid)+'" data-name="'+escAdm(nm)+'" style="color:var(--red);border-color:#5a2c22;background:transparent">Remove</button></div>'; }
+  }
+  html += '</div>';
+
+  const pgCand = DATA.filter(d => d.uid!==ADMIN_UID && !adminUids.has(d.uid) && !pgAdminUids.has(d.uid) && (d.name||d.email));
+  html += seclblA('Add Pumgoda admin') + '<div style="'+monoA+';white-space:normal;margin-bottom:10px">Signed-in users you can grant Pumgoda-only access — pick from the roster.</div>';
+  if(pgCand.length===0){ html += '<div style="'+monoA+';white-space:normal">No one to add — users appear here after they sign in on the landing page.</div>'; }
+  else {
+    html += '<div style="display:flex;flex-direction:column;gap:8px">';
+    pgCand.sort((a,b)=>((a.name||a.email||'')+'').localeCompare((b.name||b.email||'')+''));
+    for(const c of pgCand){
+      html += ROWA + userAvatarHtml(Object.assign({},c))
+        + '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600">'+escAdm(c.name||'(no name)')+'</div>'
+        + '<div style="'+monoA+'">'+escAdm((c.email||'')+' · '+c.uid)+'</div></div>'
+        + '<button class="btn small pgadmin-add" data-uid="'+escAdm(c.uid)+'" data-name="'+escAdm(c.name||'')+'" data-email="'+escAdm(c.email||'')+'" style="background:var(--accent);color:#1a1408;border-color:var(--accent)">Make Pumgoda admin</button></div>'; }
+    html += '</div>';
+  }
   body.innerHTML = html;
-  const n = admins.length+1; $('admin-sub').textContent = 'owner only · ' + n + (n===1?' admin':' admins');
+  const n = admins.length+1; const pn = pgAdmins.length;
+  $('admin-sub').textContent = 'owner only · ' + n + (n===1?' admin':' admins') + ' · ' + pn + ' Pumgoda-only';
 }
 
 $('admin-body').addEventListener('click', async (e) => {
   const addBtn = e.target.closest('.admin-add');
   const remBtn = e.target.closest('.admin-remove');
+  const pgAddBtn = e.target.closest('.pgadmin-add');
+  const pgRemBtn = e.target.closest('.pgadmin-remove');
   if(addBtn){ const uid = addBtn.dataset.uid; addBtn.disabled = true; addBtn.textContent = 'Adding…';
     try{ await setDoc(doc(db,'admins',uid), { addedBy: ADMIN_UID, addedAt: serverTimestamp(), name: addBtn.dataset.name||null, email: addBtn.dataset.email||null }); await renderAdminsPanel(); }
     catch(err){ addBtn.disabled=false; addBtn.textContent='Make admin'; showToast('Could not add admin: '+(err.code||err.message), 'error'); } return; }
@@ -1018,7 +1070,15 @@ $('admin-body').addEventListener('click', async (e) => {
     if(!(await confirmDialog('Remove ' + nm + ' as admin?', {okLabel:'Remove'}))) return;
     remBtn.disabled = true; remBtn.textContent = 'Removing…';
     try{ await deleteDoc(doc(db,'admins',uid)); await renderAdminsPanel(); }
-    catch(err){ remBtn.disabled=false; remBtn.textContent='Remove'; showToast('Could not remove admin: '+(err.code||err.message), 'error'); } }
+    catch(err){ remBtn.disabled=false; remBtn.textContent='Remove'; showToast('Could not remove admin: '+(err.code||err.message), 'error'); } return; }
+  if(pgAddBtn){ const uid = pgAddBtn.dataset.uid; pgAddBtn.disabled = true; pgAddBtn.textContent = 'Adding…';
+    try{ await setDoc(doc(db,'pumgodaAdmins',uid), { addedBy: ADMIN_UID, addedAt: serverTimestamp(), name: pgAddBtn.dataset.name||null, email: pgAddBtn.dataset.email||null }); await renderAdminsPanel(); }
+    catch(err){ pgAddBtn.disabled=false; pgAddBtn.textContent='Make Pumgoda admin'; showToast('Could not add Pumgoda admin: '+(err.code||err.message), 'error'); } return; }
+  if(pgRemBtn){ const uid = pgRemBtn.dataset.uid, nm = pgRemBtn.dataset.name || uid;
+    if(!(await confirmDialog('Remove ' + nm + ' as a Pumgoda admin?', {okLabel:'Remove'}))) return;
+    pgRemBtn.disabled = true; pgRemBtn.textContent = 'Removing…';
+    try{ await deleteDoc(doc(db,'pumgodaAdmins',uid)); await renderAdminsPanel(); }
+    catch(err){ pgRemBtn.disabled=false; pgRemBtn.textContent='Remove'; showToast('Could not remove Pumgoda admin: '+(err.code||err.message), 'error'); } }
 });
 
 
@@ -1437,6 +1497,7 @@ function showToast(message, type){
 const TABS = ['overall','bills','nutrition','pumgoda','backyard'];
 function switchTab(name){
   if(!TABS.includes(name)) name = 'overall';
+  if(ROLE === 'pumgoda') name = 'pumgoda'; // restricted role: no other tab is ever reachable
   Object.keys(DRAWER_CACHE).forEach(k => delete DRAWER_CACHE[k]);
   Object.keys(DRAWER_CACHE).forEach(k => delete DRAWER_CACHE[k]);
   TABS.forEach(t => {

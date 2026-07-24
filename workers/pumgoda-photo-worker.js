@@ -1,7 +1,7 @@
 // pumgoda-photo — admin photo upload/delete Worker for Pumgoda (Feature #100, Phase 3)
 // REQUIRED BINDING: R2 bucket "pumgoda-photos" bound as env.BUCKET
 //   (Worker → Settings → Bindings → Add → R2 bucket → variable name: BUCKET)
-// Auth: verifies a Firebase ID token; only the admin UID may upload or delete.
+// Auth: verifies a Firebase ID token; owner, /admins, or /pumgodaAdmins may upload or delete.
 // Serving: handled directly by the public r2.dev URL (this Worker never serves images).
 
 const PROJECT_ID   = 'pumgoda';
@@ -69,10 +69,14 @@ const OWNER_UID = ADMIN_UID; // bootstrap owner — network-free fast path
 
 async function isAdmin(uid, idToken) {
   if (uid === OWNER_UID) return true;
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}`
-            + `/databases/(default)/documents/admins/${encodeURIComponent(uid)}`;
-  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + idToken } });
-  return res.status === 200; // self-read allowed & doc exists -> admin; 404/403 -> not
+  const docUrl = (col) => `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}`
+                         + `/databases/(default)/documents/${col}/${encodeURIComponent(uid)}`;
+  const auth = { headers: { Authorization: 'Bearer ' + idToken } };
+  const full = await fetch(docUrl('admins'), auth);
+  if (full.status === 200) return true; // self-read allowed & doc exists -> full admin
+  // Pumgoda-only admins may also upload/delete catalog photos.
+  const pg = await fetch(docUrl('pumgodaAdmins'), auth);
+  return pg.status === 200;
 }
 
 async function requireAdmin(request) {
