@@ -712,11 +712,14 @@ html.light body{
     </div>
   </div>
 
-  <!-- CONFIRM MODAL -->
+  <!-- CONFIRM / PROMPT MODAL -->
   <div id="confirm-ov" class="pedit-ov hidden">
     <div class="pedit-box" style="max-width:400px">
-      <div class="pedit-hd"><div><b>Please confirm</b></div></div>
-      <div style="padding:16px 18px;font-size:14px;line-height:1.5" id="confirm-msg"></div>
+      <div class="pedit-hd"><div><b id="confirm-title">Please confirm</b></div></div>
+      <div style="padding:16px 18px;font-size:14px;line-height:1.5">
+        <div id="confirm-msg"></div>
+        <input type="text" id="confirm-input" class="hidden" style="margin-top:10px;background:var(--bg-2);border:1px solid var(--line-soft);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 10px;outline:none;width:100%" />
+      </div>
       <div class="pedit-ft"><button class="btn ghost" id="confirm-cancel">Cancel</button><button class="btn" id="confirm-ok">Confirm</button></div>
     </div>
   </div>
@@ -847,9 +850,9 @@ onAuthStateChanged(auth, async (user) => {
   else { av.textContent = (user.displayName||'A')[0].toUpperCase(); }
   // Click avatar to set custom photo URL
   av.style.cursor='pointer'; av.title='Click to set profile photo';
-  av.onclick = () => {
+  av.onclick = async () => {
     const cur = localStorage.getItem('admin_photo_'+user.uid) || '';
-    const url = prompt('Paste your Google photo URL (from myaccount.google.com → Personal info → Photo → right-click → Copy image address):', cur);
+    const url = await promptDialog('Paste your Google photo URL (from myaccount.google.com → Personal info → Photo → right-click → Copy image address):', cur, {title:'Set profile photo', okLabel:'Save'});
     if(url === null) return;
     if(url.trim()){
       localStorage.setItem('admin_photo_'+user.uid, url.trim());
@@ -1381,6 +1384,41 @@ function confirmDialog(message, opts){
     ok.addEventListener('click', onOk);
     $('confirm-cancel').addEventListener('click', onCancel);
     ov.addEventListener('click', onBg);
+  });
+}
+function promptDialog(message, defaultValue, opts){
+  opts = opts || {};
+  return new Promise((resolve) => {
+    const ov = $('confirm-ov');
+    $('confirm-title').textContent = opts.title || 'Please confirm';
+    $('confirm-msg').textContent = message;
+    const ok = $('confirm-ok');
+    ok.textContent = opts.okLabel || 'Save';
+    ok.style.borderColor = 'var(--accent)';
+    ok.style.color = 'var(--accent)';
+    const input = $('confirm-input');
+    input.classList.remove('hidden');
+    input.value = defaultValue || '';
+    ov.classList.remove('hidden');
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+    function cleanup(v){
+      ov.classList.add('hidden');
+      input.classList.add('hidden');
+      $('confirm-title').textContent = 'Please confirm';
+      ok.removeEventListener('click', onOk);
+      $('confirm-cancel').removeEventListener('click', onCancel);
+      ov.removeEventListener('click', onBg);
+      input.removeEventListener('keydown', onKey);
+      resolve(v);
+    }
+    function onOk(){ cleanup(input.value); }
+    function onCancel(){ cleanup(null); }
+    function onBg(e){ if(e.target === ov) cleanup(null); }
+    function onKey(e){ if(e.key==='Enter'){ e.preventDefault(); cleanup(input.value); } else if(e.key==='Escape'){ cleanup(null); } }
+    ok.addEventListener('click', onOk);
+    $('confirm-cancel').addEventListener('click', onCancel);
+    ov.addEventListener('click', onBg);
+    input.addEventListener('keydown', onKey);
   });
 }
 function showToast(message, type){
