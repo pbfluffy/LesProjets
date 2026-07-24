@@ -176,6 +176,19 @@ function parseMapsUrl(u) {
   // fallback: map center  @lat,lng
   if (!c) c = u.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (c) coords = [parseFloat(c[1]), parseFloat(c[2])];
+
+  // App share links (Maps mobile "Share" button) resolve to .../maps?q=<name>&ftid=...
+  // instead of the /place/...@lat,lng shape above — fall back to the q= param.
+  if (!name || !coords) {
+    try {
+      const q = new URL(u).searchParams.get('q');
+      if (q) {
+        const qc = q.match(/^(-?\d+\.\d+),(-?\d+\.\d+)$/);
+        if (qc && !coords) coords = [parseFloat(qc[1]), parseFloat(qc[2])];
+        else if (!qc && !name) name = q;
+      }
+    } catch {}
+  }
   return { name, coords };
 }
 

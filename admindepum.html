@@ -90,6 +90,8 @@ body{
 .row.head{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);background:var(--bg-2);padding:11px 16px}
 .row.body:hover{background:var(--panel-2)}
 .empty{padding:34px 16px;text-align:center;color:var(--faint);font-family:'JetBrains Mono',monospace;font-size:13px}
+.skeleton-row{height:52px;border-radius:10px;margin:8px 12px;background:linear-gradient(90deg,var(--bg-2) 25%,var(--panel-2) 37%,var(--bg-2) 63%);background-size:400% 100%;animation:skshimmer 1.4s ease infinite}
+@keyframes skshimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
 .user{display:flex;align-items:center;gap:11px;min-width:0}
 .ua{width:36px;height:36px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-weight:800;font-size:14px;color:#1a1408;overflow:hidden;background-size:cover;background-position:center}
 .ua img,.uprof-avatar img{width:100%;height:100%;object-fit:cover;display:block}
@@ -160,6 +162,22 @@ body{
 .pol input{width:16px;height:16px;accent-color:var(--accent)}
 .fld-sec{grid-column:1 / -1;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);margin-top:4px;border-top:1px solid var(--line-soft);padding-top:12px}
 @media(max-width:560px){.pedit-bd{grid-template-columns:1fr}}
+
+.toast-stack{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:80;pointer-events:none;width:100%;max-width:420px;padding:0 16px}
+.toast{pointer-events:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 14px;font-size:13px;line-height:1.4;box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.toast-err{border-color:#6e352a;background:#3a1d16;color:#f0c9bd}
+.toast.toast-ok{border-color:#3d5a30;background:#1c2a16;color:#d9ecc9}
+
+.global-search-wrap{position:relative;margin-bottom:16px}
+.gsr{position:absolute;top:calc(100% + 4px);left:0;right:0;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.35);z-index:55;overflow:auto;max-height:320px}
+.gsr-item{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;font-size:13px}
+.gsr-item:hover{background:var(--panel-2)}
+.gsr-ico{flex:0 0 auto;font-size:14px}
+.gsr-main{min-width:0;flex:1}
+.gsr-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.gsr-sub{font-size:11px;color:var(--faint);font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gsr-empty{padding:12px;font-size:12px;color:var(--faint);font-family:'JetBrains Mono',monospace}
 
 html.light{
   --bg:#f7f3ea; --bg-2:#efe9dc; --panel:#fffdf8; --panel-2:#f3ede1;
@@ -523,6 +541,15 @@ html.light body{
 
   <div id="errbox" class="errbox hidden"></div>
 
+  <!-- Global search -->
+  <div class="global-search-wrap">
+    <label class="search" style="max-width:420px">
+      <span style="color:var(--faint)">⌕</span>
+      <input id="global-search" type="text" placeholder="Search everything — users, places…" autocomplete="off" />
+    </label>
+    <div id="global-search-results" class="gsr hidden"></div>
+  </div>
+
   <!-- Tab bar -->
   <nav class="tab-bar">
     <button type="button" id="tab-btn-overall" aria-pressed="false">📊 Overall</button>
@@ -559,7 +586,7 @@ html.light body{
       <div class="row head">
         <div>User</div><div>Nutr · days</div><div>Bills</div><div>Places</div><div>Last sync</div>
       </div>
-      <div id="tab-overall-rows"></div>
+      <div id="tab-overall-rows"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
     </div>
     <!-- User management -->
     <div id="adminPanel" class="hidden" style="margin-top:28px">
@@ -587,7 +614,7 @@ html.light body{
       <div class="row head">
         <div>User</div><div>Trips</div><div>Bills</div><div>Share links</div><div>Last sync</div>
       </div>
-      <div id="tab-bills-rows"></div>
+      <div id="tab-bills-rows"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
     </div>
 
     <!-- Share Links Manager -->
@@ -616,7 +643,7 @@ html.light body{
       <div class="row head">
         <div>User</div><div>Days logged</div><div>Last logged</div><div>Last sync</div>
       </div>
-      <div id="tab-nutr-rows"></div>
+      <div id="tab-nutr-rows"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
     </div>
   </div>
 
@@ -638,7 +665,7 @@ html.light body{
       <div class="row head prow">
         <div>Place</div><div>Type</div><div>Region</div><div>Paws</div><div>Pumba</div>
       </div>
-      <div id="pumgoda-rows"></div>
+      <div id="pumgoda-rows"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
     </div>
   </div>
 
@@ -653,7 +680,7 @@ html.light body{
           <div class="row head backyard-row">
             <div>Rank</div><div>Player</div><div>In-game name</div><div>Score</div><div>Wave</div><div>Rebirths</div><div>Updated</div>
           </div>
-          <div id="backyard-leaderboard-rows"></div>
+          <div id="backyard-leaderboard-rows"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
         </div>
       </div>
 
@@ -684,6 +711,18 @@ html.light body{
       <div class="pedit-ft"><button class="btn ghost" id="pedit-cancel">Cancel</button><button class="btn" id="pedit-save" style="border-color:var(--accent);color:var(--accent)">Save to Firestore</button></div>
     </div>
   </div>
+
+  <!-- CONFIRM MODAL -->
+  <div id="confirm-ov" class="pedit-ov hidden">
+    <div class="pedit-box" style="max-width:400px">
+      <div class="pedit-hd"><div><b>Please confirm</b></div></div>
+      <div style="padding:16px 18px;font-size:14px;line-height:1.5" id="confirm-msg"></div>
+      <div class="pedit-ft"><button class="btn ghost" id="confirm-cancel">Cancel</button><button class="btn" id="confirm-ok">Confirm</button></div>
+    </div>
+  </div>
+
+  <!-- TOASTS -->
+  <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
 
 
 </main>
@@ -836,8 +875,13 @@ onAuthStateChanged(auth, async (user) => {
   show('app');
   loadData();
   loadPlaces();
-  switchTab('overall');
+  switchTab(initialTab());
 });
+function initialTab(){
+  const h = location.hash.slice(1);
+  if(TABS.includes(h)) return h;
+  return localStorage.getItem('admin_tab') || 'overall';
+}
 
 
 // ---- data ----
@@ -966,12 +1010,12 @@ $('admin-body').addEventListener('click', async (e) => {
   const remBtn = e.target.closest('.admin-remove');
   if(addBtn){ const uid = addBtn.dataset.uid; addBtn.disabled = true; addBtn.textContent = 'Adding…';
     try{ await setDoc(doc(db,'admins',uid), { addedBy: ADMIN_UID, addedAt: serverTimestamp(), name: addBtn.dataset.name||null, email: addBtn.dataset.email||null }); await renderAdminsPanel(); }
-    catch(err){ addBtn.disabled=false; addBtn.textContent='Make admin'; alert('Could not add admin: '+(err.code||err.message)); } return; }
+    catch(err){ addBtn.disabled=false; addBtn.textContent='Make admin'; showToast('Could not add admin: '+(err.code||err.message), 'error'); } return; }
   if(remBtn){ const uid = remBtn.dataset.uid, nm = remBtn.dataset.name || uid;
-    if(!confirm('Remove ' + nm + ' as admin?')) return;
+    if(!(await confirmDialog('Remove ' + nm + ' as admin?', {okLabel:'Remove'}))) return;
     remBtn.disabled = true; remBtn.textContent = 'Removing…';
     try{ await deleteDoc(doc(db,'admins',uid)); await renderAdminsPanel(); }
-    catch(err){ remBtn.disabled=false; remBtn.textContent='Remove'; alert('Could not remove admin: '+(err.code||err.message)); } }
+    catch(err){ remBtn.disabled=false; remBtn.textContent='Remove'; showToast('Could not remove admin: '+(err.code||err.message), 'error'); } }
 });
 
 
@@ -1313,6 +1357,44 @@ $('uprof-close').addEventListener('click', closeUserProfile);
 $('uprof').addEventListener('click', e => { if(e.target.id === 'uprof') closeUserProfile(); });
 
 
+// ---- confirm modal / toast (replaces native confirm()/alert()) ----
+function confirmDialog(message, opts){
+  opts = opts || {};
+  return new Promise((resolve) => {
+    const ov = $('confirm-ov');
+    $('confirm-msg').textContent = message;
+    const ok = $('confirm-ok');
+    ok.textContent = opts.okLabel || 'Confirm';
+    ok.style.borderColor = opts.danger===false ? '' : 'var(--red)';
+    ok.style.color = opts.danger===false ? '' : 'var(--red)';
+    ov.classList.remove('hidden');
+    function cleanup(v){
+      ov.classList.add('hidden');
+      ok.removeEventListener('click', onOk);
+      $('confirm-cancel').removeEventListener('click', onCancel);
+      ov.removeEventListener('click', onBg);
+      resolve(v);
+    }
+    function onOk(){ cleanup(true); }
+    function onCancel(){ cleanup(false); }
+    function onBg(e){ if(e.target === ov) cleanup(false); }
+    ok.addEventListener('click', onOk);
+    $('confirm-cancel').addEventListener('click', onCancel);
+    ov.addEventListener('click', onBg);
+  });
+}
+function showToast(message, type){
+  const stack = $('toast-stack');
+  if(!stack) return;
+  const el = document.createElement('div');
+  el.className = 'toast' + (type==='error' ? ' toast-err' : type==='success' ? ' toast-ok' : '');
+  el.textContent = message;
+  stack.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 250); }, 4200);
+}
+
+
 // ---- tabs ----
 const TABS = ['overall','bills','nutrition','pumgoda','backyard'];
 function switchTab(name){
@@ -1327,6 +1409,7 @@ function switchTab(name){
     if(pane) pane.classList.toggle('hidden', !on);
   });
   localStorage.setItem('admin_tab', name);
+  if(location.hash.slice(1) !== name) history.replaceState(null, '', '#'+name);
   if(name === 'bills'){ renderBillsTab(); loadShareLinks(); }
   if(name === 'nutrition') renderNutrTab();
   if(name === 'pumgoda') renderPlaces();
@@ -1643,25 +1726,27 @@ function renderShareLinks(){
 }
 
 window.deleteLink = async function(id){
-  if(!confirm('Delete share link ' + id + '?')) return;
+  if(!(await confirmDialog('Delete share link ' + id + '?', {okLabel:'Delete'}))) return;
   try {
     await deleteDoc(doc(db,'shareLinks',id));
     SHARE_LINKS = SHARE_LINKS.filter(l => l.id !== id);
     renderShareLinks();
     renderBillsTab();
-  } catch(e) { alert('Delete failed: ' + (e.code||e.message)); }
+    showToast('Share link deleted.', 'success');
+  } catch(e) { showToast('Delete failed: ' + (e.code||e.message), 'error'); }
 };
 
 window.deleteExpiredLinks = async function(){
   const expired = SHARE_LINKS.filter(l=>l.expired);
   if(!expired.length) return;
-  if(!confirm('Delete ' + expired.length + ' expired share links?')) return;
+  if(!(await confirmDialog('Delete ' + expired.length + ' expired share links?', {okLabel:'Delete'}))) return;
   try {
     await Promise.all(expired.map(l => deleteDoc(doc(db,'shareLinks',l.id))));
     SHARE_LINKS = SHARE_LINKS.filter(l=>!l.expired);
     renderShareLinks();
     renderBillsTab();
-  } catch(e) { alert('Delete failed: ' + (e.code||e.message)); }
+    showToast('Expired links deleted.', 'success');
+  } catch(e) { showToast('Delete failed: ' + (e.code||e.message), 'error'); }
 };
 
 async function loadBackyardData(){
@@ -1774,6 +1859,10 @@ function renderNutrTab(){
   const btn = document.getElementById("tab-btn-"+t);
   if(btn) btn.addEventListener("click", ()=> switchTab(t));
 });
+window.addEventListener('hashchange', () => {
+  const h = location.hash.slice(1);
+  if(TABS.includes(h)) switchTab(h);
+});
 $("themeBtn") && $('themeBtn').addEventListener('click', () => {
   const isLight = document.documentElement.classList.toggle('light');
   localStorage.setItem('admin_theme', isLight ? 'light' : 'dark');
@@ -1845,6 +1934,7 @@ const AUTOFILL_BLOCK =
     '<label style="font-weight:600">Auto-fill from Google Maps link</label>' +
     '<div style="display:flex;gap:8px;margin-top:2px">' +
       '<input type="text" id="f_autofill_url" placeholder="paste a Google Maps link" style="flex:1" />' +
+      '<button type="button" class="btn ghost small" id="btn_open_autofill_url" title="Open link in a new tab" style="white-space:nowrap">↗</button>' +
       '<button type="button" class="btn" id="btn_autofill" style="white-space:nowrap">Auto-fill</button>' +
     '</div>' +
     '<div id="autofill_msg" class="photomsg"></div>' +
@@ -1983,7 +2073,7 @@ async function saveEditor(){
 }
 async function deletePlace(){
   if(!CUR || CREATING) return;
-  if(!window.confirm('Delete place '+CUR+'? This cannot be undone.')) return;
+  if(!(await confirmDialog('Delete place '+CUR+'? This cannot be undone.', {okLabel:'Delete'}))) return;
   const err = document.getElementById('pedit-err');
   delBtn.disabled=true; delBtn.textContent='Deleting\u2026';
   try{
@@ -2067,7 +2157,7 @@ async function uploadPhotos(fileList){
 }
 async function removePhoto(url){
   if(!CUR || CREATING || !url) return;
-  if(!window.confirm('Remove this photo?')) return;
+  if(!(await confirmDialog('Remove this photo?', {okLabel:'Remove'}))) return;
   let token; try{ token = await auth.currentUser.getIdToken(); }catch(e){ setPhotoMsg('Auth error.', true); return; }
   try{ await fetch(PHOTO_WORKER + '?key=' + encodeURIComponent(url), { method:'DELETE', headers:{ Authorization:'Bearer '+token } }); }catch(e){}
   const next = placePhotos().filter(u=>u!==url);
@@ -2080,6 +2170,11 @@ async function removePhoto(url){
 }
 document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='f_photofile') uploadPhotos(e.target.files); });
 document.addEventListener('click', (e)=>{ if(e.target && e.target.id==='btn_autofill') runAutofill(); });
+document.addEventListener('click', (e)=>{
+  if(!e.target || e.target.id!=='btn_open_autofill_url') return;
+  const url = vget('f_autofill_url');
+  if(url) window.open(url, '_blank', 'noopener,noreferrer');
+});
 
 function setAutofillMsg(m, isErr){ const el=document.getElementById('autofill_msg'); if(el){ el.textContent=m||''; el.style.color = isErr ? 'var(--red)' : 'var(--faint)'; } }
 const AUTOFILL_HI = 'var(--accent-soft)';
@@ -2139,6 +2234,63 @@ async function runAutofill(){
 }
 document.addEventListener('click', (e)=>{ const x = e.target.closest && e.target.closest('[data-rmphoto]'); if(x) removePhoto(x.getAttribute('data-rmphoto')); });
 
+
+// ---- global search (users + places, jumps to the right tab) ----
+function gsMatches(q){
+  q = q.toLowerCase().trim();
+  if(!q) return [];
+  const users = DATA.filter(u => (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || u.uid.toLowerCase().includes(q))
+    .slice(0,6)
+    .map(u => ({ kind:'user', uid:u.uid, label:u.name||u.email||(u.uid.slice(0,12)+'…'), sub:u.email||u.uid }));
+  const places = PLACES.filter(p => {
+    const en=(p.name&&p.name.en)||'', th=(p.name&&p.name.th)||'';
+    return en.toLowerCase().includes(q) || th.includes(q) || (p.type||'').toLowerCase().includes(q) || (p.region||'').toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
+  }).slice(0,6).map(p => ({ kind:'place', id:p.id, label:(p.name&&p.name.en)||p.id, sub:(p.type||'—')+' · '+p.id }));
+  return [...users, ...places];
+}
+function renderGlobalSearch(){
+  const input = $('global-search');
+  const box = $('global-search-results');
+  const q = input.value;
+  if(!q.trim()){ box.classList.add('hidden'); box.innerHTML=''; box._matches=[]; return; }
+  const matches = gsMatches(q);
+  box.innerHTML = matches.length ? matches.map((m,i) =>
+    `<div class="gsr-item" data-i="${i}"><span class="gsr-ico">${m.kind==='user'?'👤':'📍'}</span><div class="gsr-main"><div class="gsr-name">${escAdm(m.label)}</div><div class="gsr-sub">${escAdm(m.sub)}</div></div></div>`
+  ).join('') : '<div class="gsr-empty">No matches.</div>';
+  box._matches = matches;
+  box.classList.remove('hidden');
+}
+if($('global-search')){
+  $('global-search').addEventListener('input', renderGlobalSearch);
+  $('global-search').addEventListener('focus', renderGlobalSearch);
+  $('global-search').addEventListener('keydown', (e) => {
+    if(e.key==='Escape'){ $('global-search-results').classList.add('hidden'); $('global-search').blur(); }
+  });
+}
+document.addEventListener('click', (e) => {
+  const box = $('global-search-results');
+  if(!box || box.classList.contains('hidden')) return;
+  if(e.target.closest('#global-search-results') || e.target.id==='global-search') return;
+  box.classList.add('hidden');
+});
+if($('global-search-results')){
+  $('global-search-results').addEventListener('click', (e) => {
+    const item = e.target.closest('.gsr-item');
+    if(!item) return;
+    const box = $('global-search-results');
+    const m = (box._matches||[])[Number(item.dataset.i)];
+    if(!m) return;
+    $('global-search').value = '';
+    box.classList.add('hidden'); box.innerHTML=''; box._matches=[];
+    if(m.kind==='user'){
+      switchTab('overall');
+      setTimeout(()=> toggleDrawer(m.uid), 80);
+    } else {
+      switchTab('pumgoda');
+      setTimeout(()=> openEditor(m.id), 80);
+    }
+  });
+}
 
 </script>
 </body>
