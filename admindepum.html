@@ -1987,13 +1987,13 @@ function buildForm(p, creating){
     field('Fee (baht)','f_fee_baht',(pol.fee_baht!=null?pol.fee_baht:''),'number') +
     `<div class="fld"><label>Price tier</label><select id="f_price">${['','$','$$','$$$'].map(v=>`<option value="${v}"${v===(p.priceTier||'')?' selected':''}>${v||'\u2014'}</option>`).join('')}</select></div>` +
     `<div class="fld-sec">Pumba</div><div class="pol">` + chk('Pumba verified','f_pumba_verified',!!(p.pumba&&p.pumba.verified)) + chk('Favorite','f_pumba_favorite',!!(p.pumba&&p.pumba.favorite)) + `</div>` +
-    field('Visit date','f_pumba_visit_date',(p.pumba&&p.pumba.visitDate)||'') +
+    field('Visit date','f_pumba_visit_date',(p.pumba&&p.pumba.visitDate)||'','date') +
     field('Pumba photo URL','f_pumba_photo_url',(p.pumba&&p.pumba.photoUrl)||'') +
     `<div class="fld-sec">Meta</div>` +
     area('Notes (EN)','f_notes_en',(p.notes&&p.notes.en)||'') +
     area('Notes (TH)','f_notes_th',(p.notes&&p.notes.th)||'') +
     field('Tags (; separated)','f_tags',(p.tags||[]).join('; ')) +
-    field('Last verified','f_last_verified',p.lastVerified||'') +
+    field('Last verified','f_last_verified',p.lastVerified||'','date') +
     (creating ? '' : '<div class="fld-sec">Photos</div><div class="fld full"><div id="f_photos" class="photogrid"></div><label class="uploadbtn"><input type="file" id="f_photofile" accept="image/*" hidden multiple /><span>+ Upload photo</span></label><div id="f_photomsg" class="photomsg"></div></div>');
   if(!creating) renderThumbs();
 }
