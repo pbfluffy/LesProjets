@@ -195,6 +195,24 @@ export const STRINGS = {
       continueWithGoogle: 'เข้าสู่ระบบด้วย Google',
     },
 
+    suggestForm: {
+      title: 'แนะนำสถานที่',
+      subtitle: 'ส่งสถานที่ที่คุณอยากแนะนำ ทีมงานจะตรวจสอบก่อนเพิ่มเข้ารายการ',
+      nameLabel: 'ชื่อสถานที่',
+      namePlaceholder: 'เช่น คาเฟ่ริมน้ำ',
+      mapsLinkLabel: 'ลิงก์ Google Maps (ถ้ามี)',
+      mapsLinkPlaceholder: 'วางลิงก์ที่นี่',
+      mapsLinkHelp: 'ใส่ลิงก์ Google Maps ช่วยให้เราเพิ่มข้อมูลได้เร็วขึ้น',
+      noteLabel: 'บอกเราเพิ่มเติม (ถ้ามี)',
+      notePlaceholder: 'เช่น มีที่นั่งกลางแจ้ง พนักงานเป็นมิตรกับน้องหมา',
+      submit: 'ส่งคำแนะนำ',
+      submitting: 'กำลังส่ง…',
+      success: 'ขอบคุณ! เราจะตรวจสอบและเพิ่มเข้ารายการเร็วๆ นี้',
+      signInPrompt: 'เข้าสู่ระบบเพื่อแนะนำสถานที่',
+      errorGeneric: 'ส่งไม่สำเร็จ — ลองอีกครั้ง',
+      close: 'ปิด',
+    },
+
     sharedTrip: {
       title: 'ทริปที่แชร์มา',
       subtitle: 'มีคนแชร์แผนทริปนี้ให้คุณ',
@@ -407,6 +425,24 @@ export const STRINGS = {
       signOut: 'Sign out',
       signingIn: 'Signing in…',
       continueWithGoogle: 'Continue with Google',
+    },
+
+    suggestForm: {
+      title: 'Suggest a place',
+      subtitle: "Send us a place you'd like to see added — we'll review it before it goes live.",
+      nameLabel: 'Place name',
+      namePlaceholder: 'e.g. Riverside Cafe',
+      mapsLinkLabel: 'Google Maps link (optional)',
+      mapsLinkPlaceholder: 'Paste a link here',
+      mapsLinkHelp: 'A Google Maps link helps us add it faster.',
+      noteLabel: 'Anything else? (optional)',
+      notePlaceholder: 'e.g. outdoor seating, staff were great with dogs',
+      submit: 'Send suggestion',
+      submitting: 'Sending…',
+      success: "Thanks! We'll review it and add it soon.",
+      signInPrompt: 'Sign in to suggest a place',
+      errorGeneric: 'Could not send — try again.',
+      close: 'Close',
     },
 
     sharedTrip: {

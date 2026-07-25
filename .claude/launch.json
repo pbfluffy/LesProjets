@@ -21,6 +21,13 @@
       "runtimeArgs": ["run", "dev"],
       "cwd": "arl-status",
       "port": 5175
+    },
+    {
+      "name": "pumgoda",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5176"],
+      "cwd": "pumgoda",
+      "port": 5176
     }
   ]
 }

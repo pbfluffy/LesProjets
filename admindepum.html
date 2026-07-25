@@ -60,6 +60,14 @@ body{
 .charts{display:grid;gap:12px;margin-bottom:18px;grid-template-columns:repeat(auto-fit,minmax(265px,1fr))}
 .chart{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--line-soft);border-radius:var(--radius);padding:16px 18px}
 .chart h3{margin:0 0 16px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-family:'JetBrains Mono',monospace;font-weight:700}
+.sugg-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid var(--line-soft)}
+.sugg-row:first-of-type{border-top:none}
+.sugg-main{min-width:0;flex:1}
+.sugg-name{font-size:14px;font-weight:700}
+.sugg-meta{font-size:11.5px;color:var(--faint);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.sugg-haslink{color:var(--green)}
+.sugg-note{font-size:12.5px;color:var(--muted);margin-top:6px;white-space:pre-wrap;word-break:break-word}
+.sugg-actions{display:flex;gap:6px;flex:0 0 auto}
 .donut-wrap{display:flex;align-items:center;gap:18px}
 .donut{flex:0 0 auto}
 .legend{display:flex;flex-direction:column;gap:8px;font-size:12px;flex:1;min-width:0}
@@ -651,6 +659,7 @@ html.light body{
   <div id="tab-pane-pumgoda" class="tab-pane hidden">
     <div class="tab-summary" id="pumgoda-stats"></div>
     <p class="app-note">Click any place row to edit catalog details, policies, verification, notes, and photos.</p>
+    <div id="pumgoda-suggestions" class="hidden"></div>
     <div class="toolbar" style="margin-bottom:20px">
       <div class="brand" style="flex:0 0 auto">
         <h1 style="font-size:15px;font-weight:800;margin:0">Pumgoda catalog</h1>
@@ -1503,7 +1512,7 @@ function switchTab(name){
   if(location.hash.slice(1) !== name) history.replaceState(null, '', '#'+name);
   if(name === 'bills'){ renderBillsTab(); loadShareLinks(); }
   if(name === 'nutrition') renderNutrTab();
-  if(name === 'pumgoda') renderPlaces();
+  if(name === 'pumgoda'){ renderPlaces(); loadSuggestions(); }
   if(name === 'backyard') renderBackyardTab();
 }
 
@@ -1982,6 +1991,41 @@ async function loadPlaces(){
   }catch(e){ PLACES = []; console.warn('places load failed', e.code||e.message); }
   renderPlaces();
 }
+
+// ---- place suggestions (in-app "Suggest a place" review queue) ----
+let SUGGESTIONS = [];
+async function loadSuggestions(){
+  try{
+    const snap = await getDocs(collection(db, 'placeSuggestions'));
+    SUGGESTIONS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    SUGGESTIONS.sort((a,b) => ts(b.submittedAt) - ts(a.submittedAt));
+  }catch(e){ SUGGESTIONS = []; console.warn('placeSuggestions load failed', e.code||e.message); }
+  renderSuggestions();
+}
+function renderSuggestions(){
+  const wrap = $('pumgoda-suggestions'); if(!wrap) return;
+  if(SUGGESTIONS.length===0){ wrap.classList.add('hidden'); wrap.innerHTML=''; return; }
+  wrap.classList.remove('hidden');
+  const rows = SUGGESTIONS.map(s => {
+    const who = (s.submittedBy && (s.submittedBy.name || s.submittedBy.email)) || 'unknown';
+    const submittedRel = rel(ts(s.submittedAt))[0];
+    return `<div class="sugg-row" data-sid="${escAdm(s.id)}">
+      <div class="sugg-main">
+        <div class="sugg-name">${escAdm(s.name||'(no name)')}</div>
+        <div class="sugg-meta">${escAdm(who)} · ${submittedRel}${s.googleMapsUrl?' · <span class="sugg-haslink">has map link</span>':''}</div>
+        ${s.note ? `<div class="sugg-note">${escAdm(s.note)}</div>` : ''}
+      </div>
+      <div class="sugg-actions">
+        <button class="btn small sugg-review" data-sid="${escAdm(s.id)}" style="border-color:var(--accent);color:var(--accent)">Review</button>
+        <button class="btn small sugg-reject" data-sid="${escAdm(s.id)}" style="color:var(--red);border-color:#5a2c22;background:transparent">Reject</button>
+      </div>
+    </div>`;
+  }).join('');
+  wrap.innerHTML = `<div class="chart" style="margin-bottom:20px">
+    <h3>Suggested places · ${SUGGESTIONS.length} pending</h3>
+    ${rows}
+  </div>`;
+}
 function pawTier(p){
   if(p.stroller_required) return 1;
   if(!p.indoor_allowed) return 2;
@@ -2018,6 +2062,7 @@ $('pumgoda-search').addEventListener('input', renderPlaces);
 // ---- Pumgoda catalog editor (Feature #100, Phase 2.2 + 2.3 create/delete) ----
 let CUR = null;
 let CREATING = false;
+let PENDING_SUGGESTION_ID = null;
 const TYPE_BASE = ['Cafe','Restaurant','Hotel','Pet Hotel','Park','Mall','Beach','Vet','Pet shop','Grooming','Clinic'];
 const LOOKUP_WORKER = 'https://pumgoda-places-lookup.pbfluffygaming.workers.dev';
 const AUTOFILL_BLOCK =
@@ -2090,7 +2135,7 @@ function buildForm(p, creating){
 }
 function openEditor(id){
   const p = PLACES.find(x=>x.id===id); if(!p) return;
-  CUR = id; CREATING = false;
+  CUR = id; CREATING = false; PENDING_SUGGESTION_ID = null;
   document.querySelector('.pedit-hd b').textContent = 'Edit place';
   document.getElementById('pedit-id').textContent = id;
   if(delBtn) delBtn.style.display = '';
@@ -2100,7 +2145,7 @@ function openEditor(id){
 }
 function openCreate(){
   switchTab('pumgoda');
-  CUR = null; CREATING = true;
+  CUR = null; CREATING = true; PENDING_SUGGESTION_ID = null;
   document.querySelector('.pedit-hd b').textContent = 'Add place';
   document.getElementById('pedit-id').textContent = 'new';
   if(delBtn) delBtn.style.display = 'none';
@@ -2108,7 +2153,37 @@ function openCreate(){
   buildForm(blankPlace(), true);
   document.getElementById('pedit').classList.remove('hidden');
 }
-function closeEditor(){ document.getElementById('pedit').classList.add('hidden'); CUR = null; CREATING = false; }
+function openCreateFromSuggestion(id){
+  const s = SUGGESTIONS.find(x=>x.id===id); if(!s) return;
+  switchTab('pumgoda');
+  CUR = null; CREATING = true; PENDING_SUGGESTION_ID = id;
+  document.querySelector('.pedit-hd b').textContent = 'Add place (from suggestion)';
+  document.getElementById('pedit-id').textContent = 'new';
+  if(delBtn) delBtn.style.display = 'none';
+  document.getElementById('pedit-err').classList.add('hidden');
+  const prefilled = { ...blankPlace(), name:{en:s.name||'',th:''}, googleMapsUrl:s.googleMapsUrl||'', notes:{en:s.note||'',th:''} };
+  buildForm(prefilled, true);
+  const urlInput = document.getElementById('f_autofill_url');
+  if(urlInput) urlInput.value = s.googleMapsUrl || '';
+  document.getElementById('pedit').classList.remove('hidden');
+}
+window.openCreateFromSuggestion = openCreateFromSuggestion;
+async function rejectSuggestion(id){
+  const s = SUGGESTIONS.find(x=>x.id===id); if(!s) return;
+  if(!(await confirmDialog('Reject suggestion "'+(s.name||'')+'"? This cannot be undone.', {okLabel:'Reject'}))) return;
+  try{
+    await deleteDoc(doc(db,'placeSuggestions',id));
+    await loadSuggestions();
+    showToast('Suggestion rejected.');
+  }catch(e){ showToast('Reject failed: '+(e.code||e.message), 'error'); }
+}
+document.addEventListener('click', (e) => {
+  const reviewBtn = e.target.closest('.sugg-review');
+  const rejectBtn = e.target.closest('.sugg-reject');
+  if(reviewBtn) openCreateFromSuggestion(reviewBtn.dataset.sid);
+  if(rejectBtn) rejectSuggestion(rejectBtn.dataset.sid);
+});
+function closeEditor(){ document.getElementById('pedit').classList.add('hidden'); CUR = null; CREATING = false; PENDING_SUGGESTION_ID = null; }
 window.openCreate = openCreate;
 window.openEditor = openEditor;
 function numOrNull(id){ const v=vget(id); if(v==='') return null; const n=parseFloat(v); return isNaN(n)?null:n; }
@@ -2155,10 +2230,16 @@ async function saveEditor(){
   if(lat!=='' && (isNaN(parseFloat(lat))||isNaN(parseFloat(lng)))) return fail('Coordinates must be valid numbers.');
   const body = buildBody();
   const btn = document.getElementById('pedit-save'); btn.disabled=true; btn.textContent='Saving\u2026';
+  const approvedSuggestionId = PENDING_SUGGESTION_ID;
   try{
     await setDoc(doc(db,'places',targetId), body);
+    if(approvedSuggestionId){
+      try{ await deleteDoc(doc(db,'placeSuggestions',approvedSuggestionId)); }
+      catch(e){ console.warn('suggestion cleanup failed', e.code||e.message); }
+    }
     closeEditor();
     await loadPlaces();
+    if(approvedSuggestionId) await loadSuggestions();
   }catch(e){ fail('Save failed: '+(e.code||e.message)); }
   finally{ btn.disabled=false; btn.textContent='Save to Firestore'; }
 }

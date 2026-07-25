@@ -12,7 +12,7 @@ export default function Header({
   isRefreshing,
   shareLabel,
   refreshLabel,
-  suggestUrl,
+  onSuggestClick,
   suggestLabel,
   // #34 — optional account button + popover. When `accountLabels` is undefined
   // the account UI is not rendered at all, preserving prior behavior.
@@ -62,11 +62,15 @@ export default function Header({
           >
             ⟳
           </button>
-          {suggestUrl && (
-            <a className="ph-ctrl ph-ctrl-icon" href={suggestUrl} target="_blank" rel="noopener noreferrer" aria-label={suggestLabel || 'Suggest a place'} title={suggestLabel || 'Suggest a place'}>
-              ＋
-            </a>
-          )}
+          <button
+            type="button"
+            className="ph-ctrl ph-ctrl-icon"
+            onClick={onSuggestClick}
+            aria-label={suggestLabel || 'Suggest a place'}
+            title={suggestLabel || 'Suggest a place'}
+          >
+            ＋
+          </button>
           <button
             className="ph-ctrl ph-ctrl-icon"
             onClick={onShare}

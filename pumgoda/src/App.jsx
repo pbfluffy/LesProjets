@@ -21,6 +21,7 @@ import { useTripsCloudSync } from './hooks/useTripsCloudSync'
 import { useTrips } from './hooks/useTrips'
 import SharedTripView from './components/SharedTripView'
 import JoinCollabView from './components/JoinCollabView'
+import SuggestPlaceSheet from './components/SuggestPlaceSheet'
 import { readSharedTrip, clearSharedTripParam, readCollabTripId, clearCollabTripParam } from './shareTrip'
 import { readPlaceId, setPlaceParam, clearPlaceParam, currentShareUrl } from './sharePlace'
 import { auth, firestore, doc, setDoc, GoogleAuthProvider, signInWithPopup, signOut } from './firebase'
@@ -28,7 +29,7 @@ import { auth, firestore, doc, setDoc, GoogleAuthProvider, signInWithPopup, sign
 import { fetchPlaces } from './data/fetchPlaces'
 import { computeTier, TIERS, FAVORITE_TIER } from './data/computeTier'
 import { STRINGS, interp } from './i18n/strings'
-import { LS_KEYS, SUGGEST_FORM_URL } from './config'
+import { LS_KEYS } from './config'
 
 import './styles/theme.css'
 
@@ -275,6 +276,7 @@ export default function App() {
   const [userCoords, setUserCoords] = useState(null)
   const [filtersCollapsed, setFiltersCollapsed] = useLocalStorage('pumgoda_filters_collapsed_v1', false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [showSuggestSheet, setShowSuggestSheet] = useState(false)
   const activeFilterCount = (filters.region !== 'all' ? 1 : 0) + filters.types.length + filters.policies.length + (filters.minPaws ? 1 : 0) + (filters.query && filters.query.trim() ? 1 : 0) + (filters.openNow ? 1 : 0)
   const [locationError, setLocationError] = useState(null)
 
@@ -413,7 +415,7 @@ export default function App() {
         isRefreshing={isRefreshing}
         shareLabel={s.header.share}
         refreshLabel={s.header.refresh}
-        suggestUrl={SUGGEST_FORM_URL}
+        onSuggestClick={() => setShowSuggestSheet(true)}
         suggestLabel={s.header.suggest}
         user={user}
         syncStatus={mergeSync(syncStatus, tripsSyncStatus)}
@@ -715,6 +717,16 @@ export default function App() {
         lang={lang}
         onJoined={handleJoinedCollab}
         onClose={handleDismissCollab}
+      />
+    )}
+
+    {showSuggestSheet && (
+      <SuggestPlaceSheet
+        lang={lang}
+        user={user}
+        onSignIn={handleSignIn}
+        signingIn={signingIn}
+        onClose={() => setShowSuggestSheet(false)}
       />
     )}
 
