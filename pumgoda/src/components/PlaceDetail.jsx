@@ -315,10 +315,14 @@ function PhotoStrip({ photos = [], label = 'Photos', verifiedUrl = null }) {
     <div className="ph-strip-wrap">
       <div className="ph-strip">
         {list.map((u, i) => (
-          <button type="button" key={u} className="ph-strip-item" onClick={() => setOpen(i)}>
-            <img src={u} alt={`${label} ${i + 1}`} loading="lazy" onError={() => markBroken(u)} />
-            {u === verifiedUrl && <span className="ph-strip-verified" title="Pumba's verified visit">🐾</span>}
-          </button>
+          <StripThumb
+            key={u}
+            src={u}
+            alt={`${label} ${i + 1}`}
+            verified={u === verifiedUrl}
+            onOpen={() => setOpen(i)}
+            onBroken={() => markBroken(u)}
+          />
         ))}
       </div>
       {open >= 0 && (
@@ -341,5 +345,28 @@ function PhotoStrip({ photos = [], label = 'Photos', verifiedUrl = null }) {
         </div>
       )}
     </div>
+  )
+}
+
+// A plain onError only catches a clean HTTP error; a URL that isn't actually
+// an image (e.g. a social-media post link pasted into the photos field by
+// mistake) can just hang forever instead, so a timeout backstops it and
+// reports itself broken to the parent either way.
+function StripThumb({ src, alt, verified, onOpen, onBroken }) {
+  const [status, setStatus] = useState('loading')
+  useEffect(() => {
+    setStatus('loading')
+    const t = setTimeout(() => setStatus((s) => (s === 'loaded' ? s : 'failed')), 6000)
+    return () => clearTimeout(t)
+  }, [src])
+  useEffect(() => {
+    if (status === 'failed') onBroken()
+  }, [status, onBroken])
+  if (status === 'failed') return null
+  return (
+    <button type="button" className="ph-strip-item" onClick={onOpen}>
+      <img src={src} alt={alt} loading="lazy" onLoad={() => setStatus('loaded')} onError={() => setStatus('failed')} />
+      {verified && <span className="ph-strip-verified" title="Pumba's verified visit">🐾</span>}
+    </button>
   )
 }

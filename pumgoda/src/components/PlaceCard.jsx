@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import PawTierBadge from './PawTierBadge'
 import PumbaBadge from './PumbaBadge'
 import PolicyChips from './PolicyChips'
@@ -28,8 +28,18 @@ export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = nul
   const name = venue.name?.[lang] || venue.name?.en || venue.name?.th || venue.id
   const typeLabel = s.types[venue.type?.toLowerCase().replace(/[\s-]+/g, '_')] || venue.type
   const thumb = (Array.isArray(venue.photos) ? venue.photos.find(Boolean) : null) || venue.pumba?.photoUrl || null
-  const [imgFailed, setImgFailed] = useState(false)
-  const showImg = Boolean(thumb) && !imgFailed
+  // 'loading' | 'loaded' | 'failed' — a plain onError only catches a clean
+  // HTTP error; a URL that isn't actually an image (e.g. a social-media post
+  // link someone pasted by mistake) can just hang forever instead, so a
+  // timeout backstops it and falls back to the placeholder either way.
+  const [status, setStatus] = useState('loading')
+  useEffect(() => {
+    setStatus('loading')
+    if (!thumb) return
+    const t = setTimeout(() => setStatus((s) => (s === 'loaded' ? s : 'failed')), 6000)
+    return () => clearTimeout(t)
+  }, [thumb])
+  const showImg = Boolean(thumb) && status !== 'failed'
   const distanceLabel = formatDistance(distanceKm, lang)
   const open = isOpenNow(venue)
 
@@ -42,7 +52,13 @@ export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = nul
       {open === true && <span className="ph-open-badge ph-open-badge-corner">{s.hours.openNow}</span>}
       <div className="ph-card-thumb">
         {showImg ? (
-          <img src={thumb} alt="" loading="lazy" onError={() => setImgFailed(true)} />
+          <img
+            src={thumb}
+            alt=""
+            loading="lazy"
+            onLoad={() => setStatus('loaded')}
+            onError={() => setStatus('failed')}
+          />
         ) : (
           <div className="ph-card-thumb-empty" aria-hidden="true">🐾</div>
         )}
