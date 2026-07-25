@@ -72,6 +72,43 @@ export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = nul
       aria-label={name}
     >
       {open === true && <span className="ph-open-badge ph-open-badge-corner">{s.hours.openNow}</span>}
+
+      <div className="ph-card-body">
+        <div className="ph-card-head">
+          <div className="ph-card-name">{name}</div>
+          <div className="ph-card-meta mono">
+            {typeLabel}
+            {venue.neighborhood ? ` · ${venue.neighborhood}` : ''}
+            {venue.priceTier ? ` · ${venue.priceTier}` : ''}
+            {distanceLabel ? ` · 📍 ${distanceLabel}` : ''}
+          </div>
+        </div>
+
+        <div className="ph-card-badges">
+          <PawTierBadge venue={venue} lang={lang} />
+          <PumbaBadge venue={venue} lang={lang} />
+        </div>
+
+        <PolicyChips venue={venue} lang={lang} max={4} />
+
+        {(() => {
+          const counts = tallies[venue.id]
+          if (!counts) return null
+          const total = (counts.up || 0) + (counts.paw || 0) + (counts.warn || 0)
+          if (total === 0) return null
+          return (
+            <div className="ph-card-votes mono" aria-label="community votes">
+              {VOTE_SIGNALS.map((sig) => (
+                <span key={sig.key} className="ph-card-vote">
+                  <span aria-hidden="true">{sig.emoji}</span>
+                  <span className="ph-card-vote-count">{counts[sig.key] || 0}</span>
+                </span>
+              ))}
+            </div>
+          )
+        })()}
+      </div>
+
       {showImg && (
         <div className="ph-card-thumb">
           <img
@@ -83,40 +120,6 @@ export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = nul
           />
         </div>
       )}
-
-      <div className="ph-card-head">
-        <div className="ph-card-name">{name}</div>
-        <div className="ph-card-meta mono">
-          {typeLabel}
-          {venue.neighborhood ? ` · ${venue.neighborhood}` : ''}
-          {venue.priceTier ? ` · ${venue.priceTier}` : ''}
-          {distanceLabel ? ` · 📍 ${distanceLabel}` : ''}
-        </div>
-      </div>
-
-      <div className="ph-card-badges">
-        <PawTierBadge venue={venue} lang={lang} />
-        <PumbaBadge venue={venue} lang={lang} />
-      </div>
-
-      <PolicyChips venue={venue} lang={lang} max={4} />
-
-      {(() => {
-        const counts = tallies[venue.id]
-        if (!counts) return null
-        const total = (counts.up || 0) + (counts.paw || 0) + (counts.warn || 0)
-        if (total === 0) return null
-        return (
-          <div className="ph-card-votes mono" aria-label="community votes">
-            {VOTE_SIGNALS.map((sig) => (
-              <span key={sig.key} className="ph-card-vote">
-                <span aria-hidden="true">{sig.emoji}</span>
-                <span className="ph-card-vote-count">{counts[sig.key] || 0}</span>
-              </span>
-            ))}
-          </div>
-        )
-      })()}
     </button>
   )
 }
