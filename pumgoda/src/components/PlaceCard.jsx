@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import PawTierBadge from './PawTierBadge'
 import PumbaBadge from './PumbaBadge'
 import PolicyChips from './PolicyChips'
@@ -28,30 +28,52 @@ export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = nul
   const name = venue.name?.[lang] || venue.name?.en || venue.name?.th || venue.id
   const typeLabel = s.types[venue.type?.toLowerCase().replace(/[\s-]+/g, '_')] || venue.type
   const thumb = (Array.isArray(venue.photos) ? venue.photos.find(Boolean) : null) || venue.pumba?.photoUrl || null
+
+  // The failure timeout below must only start counting once the browser has
+  // actually begun trying to load the (lazy) image — a card further down the
+  // list is legitimately deferred until it nears the viewport, and starting
+  // the clock at mount would wrongly discard a perfectly good, just-not-yet-
+  // scrolled-to photo before loading ever got a chance to begin.
+  const cardRef = useRef(null)
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    if (inView) return
+    const el = cardRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') { setInView(true); return }
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setInView(true) },
+      { rootMargin: '300px' }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [inView])
+
   // 'loading' | 'loaded' | 'failed' — a plain onError only catches a clean
   // HTTP error; a URL that isn't actually an image (e.g. a social-media post
   // link someone pasted by mistake) can just hang forever instead, so a
-  // timeout backstops it and falls back to the placeholder either way.
+  // timeout backstops it. Either way, a failed/absent photo just omits the
+  // thumbnail block entirely rather than showing a placeholder box.
   const [status, setStatus] = useState('loading')
   useEffect(() => {
     setStatus('loading')
-    if (!thumb) return
+    if (!thumb || !inView) return
     const t = setTimeout(() => setStatus((s) => (s === 'loaded' ? s : 'failed')), 6000)
     return () => clearTimeout(t)
-  }, [thumb])
-  const showImg = Boolean(thumb) && status !== 'failed'
+  }, [thumb, inView])
+  const showImg = Boolean(thumb) && inView && status !== 'failed'
   const distanceLabel = formatDistance(distanceKm, lang)
   const open = isOpenNow(venue)
 
   return (
     <button
+      ref={cardRef}
       className="ph-card surface surface-hover"
       onClick={() => onOpen?.(venue)}
       aria-label={name}
     >
       {open === true && <span className="ph-open-badge ph-open-badge-corner">{s.hours.openNow}</span>}
-      <div className="ph-card-thumb">
-        {showImg ? (
+      {showImg && (
+        <div className="ph-card-thumb">
           <img
             src={thumb}
             alt=""
@@ -59,10 +81,8 @@ export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = nul
             onLoad={() => setStatus('loaded')}
             onError={() => setStatus('failed')}
           />
-        ) : (
-          <div className="ph-card-thumb-empty" aria-hidden="true">🐾</div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="ph-card-head">
         <div className="ph-card-name">{name}</div>

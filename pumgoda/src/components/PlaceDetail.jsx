@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import PawTierBadge from './PawTierBadge'
 import PumbaBadge from './PumbaBadge'
 import { STRINGS, interp } from '../i18n/strings'
@@ -353,18 +353,37 @@ function PhotoStrip({ photos = [], label = 'Photos', verifiedUrl = null }) {
 // mistake) can just hang forever instead, so a timeout backstops it and
 // reports itself broken to the parent either way.
 function StripThumb({ src, alt, verified, onOpen, onBroken }) {
+  // Same reasoning as PlaceCard: the strip scrolls horizontally, so items
+  // further along are legitimately deferred by loading="lazy" — the failure
+  // timer must only start once this thumbnail is actually near view, not at
+  // mount, or it would discard a fine photo before it ever got a chance to load.
+  const itemRef = useRef(null)
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    if (inView) return
+    const el = itemRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') { setInView(true); return }
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setInView(true) },
+      { rootMargin: '300px' }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [inView])
+
   const [status, setStatus] = useState('loading')
   useEffect(() => {
     setStatus('loading')
+    if (!inView) return
     const t = setTimeout(() => setStatus((s) => (s === 'loaded' ? s : 'failed')), 6000)
     return () => clearTimeout(t)
-  }, [src])
+  }, [src, inView])
   useEffect(() => {
     if (status === 'failed') onBroken()
   }, [status, onBroken])
   if (status === 'failed') return null
   return (
-    <button type="button" className="ph-strip-item" onClick={onOpen}>
+    <button type="button" className="ph-strip-item" ref={itemRef} onClick={onOpen}>
       <img src={src} alt={alt} loading="lazy" onLoad={() => setStatus('loaded')} onError={() => setStatus('failed')} />
       {verified && <span className="ph-strip-verified" title="Pumba's verified visit">🐾</span>}
     </button>

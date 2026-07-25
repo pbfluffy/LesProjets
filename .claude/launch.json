@@ -28,6 +28,13 @@
       "runtimeArgs": ["run", "dev", "--", "--port", "5176"],
       "cwd": "pumgoda",
       "port": 5176
+    },
+    {
+      "name": "pumgoda-prod-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "preview", "--port", "5177"],
+      "cwd": "pumgoda",
+      "port": 5177
     }
   ]
 }
