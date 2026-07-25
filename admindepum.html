@@ -2352,17 +2352,28 @@ document.addEventListener('click', (e)=>{
 
 function setAutofillMsg(m, isErr){ const el=document.getElementById('autofill_msg'); if(el){ el.textContent=m||''; el.style.color = isErr ? 'var(--red)' : 'var(--faint)'; } }
 const AUTOFILL_HI = 'var(--accent-soft)';
+// A field counts as "safe to overwrite" if it's empty OR its current value came
+// from a previous Auto-fill click (still carrying the highlight) rather than
+// something the admin actually typed — otherwise a bad first fetch would stay
+// stuck forever since re-clicking Auto-fill could never refresh it.
+const isAutofillOwned = (el) => el.style.background === AUTOFILL_HI;
 function setIfEmpty(id, val){
   const el=document.getElementById(id); if(!el || val==null || val==='') return;
-  if(el.value && el.value.trim()) return;           // never clobber typed text
+  if(el.value && el.value.trim() && !isAutofillOwned(el)) return; // never clobber typed text
   el.value = val; el.style.background = AUTOFILL_HI;
 }
 function selectIfEmpty(id, val){
   const el=document.getElementById(id); if(!el || val==null || val==='') return;
-  if(!CREATING && el.value && el.value.trim()) return; // on edit, keep existing choice
+  if(!CREATING && el.value && el.value.trim() && !isAutofillOwned(el)) return; // on edit, keep existing choice
   if(![...el.options].some(o=>o.value===val)){ const o=document.createElement('option'); o.value=val; o.textContent=val; el.appendChild(o); }
   el.value = val; el.style.background = AUTOFILL_HI;
 }
+document.getElementById('pedit-bd').addEventListener('input', (e) => {
+  if(e.target && isAutofillOwned(e.target)) e.target.style.background = ''; // now hand-edited, protect it
+});
+document.getElementById('pedit-bd').addEventListener('change', (e) => {
+  if(e.target && e.target.tagName === 'SELECT' && isAutofillOwned(e.target)) e.target.style.background = '';
+});
 function applyAutofill(p){
   if(!p) return;
   setIfEmpty('f_name_en', p.name && p.name.en);
