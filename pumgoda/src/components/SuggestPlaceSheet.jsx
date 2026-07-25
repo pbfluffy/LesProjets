@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { firestore, doc, collection, setDoc, serverTimestamp } from '../firebase'
-import { STRINGS } from '../i18n/strings'
+import { STRINGS, interp } from '../i18n/strings'
+import { PHOTO_WORKER_URL } from '../config'
 
 // Same policy keys/shape as admindepum.html's place editor (blankPlace().policy),
 // so a reviewed suggestion can prefill those checkboxes directly.
@@ -10,6 +11,28 @@ const POLICY_KEYS = [
   'stroller_required', 'staff_welcoming',
 ]
 
+// Loose normalize for the "already listed?" nudge — not meant to be exact,
+// just enough to catch someone re-submitting a place that's already in the
+// catalog under a near-identical name.
+const normalizeName = (str) =>
+  (str || '').toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim()
+
+function findPossibleDuplicate(name, places) {
+  const query = normalizeName(name)
+  if (!query || query.length < 3 || !Array.isArray(places)) return null
+  for (const p of places) {
+    const en = normalizeName(p.name?.en)
+    const th = normalizeName(p.name?.th)
+    for (const candidate of [en, th]) {
+      if (!candidate) continue
+      if (candidate === query || candidate.includes(query) || query.includes(candidate)) {
+        return p.name?.en || p.name?.th || p.id
+      }
+    }
+  }
+  return null
+}
+
 // In-app replacement for the old external Google Form link. Writes a
 // lightweight pending suggestion to placeSuggestions/<autoId> — admins (or
 // Pumgoda-only admins) review it in admindepum.html and either turn it into
@@ -18,7 +41,7 @@ const POLICY_KEYS = [
 // (signed in or not) may create one, only admin/pumgodaAdmin may read or
 // delete. If the caller happens to be signed in, submittedBy is attributed
 // to their account; otherwise it's just whatever name they optionally type.
-export default function SuggestPlaceSheet({ lang = 'en', user, onClose }) {
+export default function SuggestPlaceSheet({ lang = 'en', user, places = [], onSignIn, signingIn, onClose }) {
   const s = STRINGS[lang] || STRINGS.en
   const t = s.suggestForm
   const [name, setName] = useState('')
@@ -29,10 +52,37 @@ export default function SuggestPlaceSheet({ lang = 'en', user, onClose }) {
   const [sizeLimitKg, setSizeLimitKg] = useState('')
   const [feeBaht, setFeeBaht] = useState('')
   const [priceTier, setPriceTier] = useState('')
+  const [photoUrl, setPhotoUrl] = useState(null)
+  const [photoStatus, setPhotoStatus] = useState('idle') // idle | uploading | done | error
   const [status, setStatus] = useState('idle') // idle | submitting | success | error
 
   const canSubmit = name.trim().length > 0 && status !== 'submitting'
   const togglePolicy = (key) => setPolicy((p) => ({ ...p, [key]: !p[key] }))
+  const duplicateMatch = useMemo(() => findPossibleDuplicate(name, places), [name, places])
+
+  const handlePhotoSelect = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !user) return
+    setPhotoStatus('uploading')
+    try {
+      const token = await user.getIdToken()
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch(`${PHOTO_WORKER_URL}/suggest`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      })
+      if (!res.ok) throw new Error('upload failed: ' + res.status)
+      const data = await res.json()
+      setPhotoUrl(data.url)
+      setPhotoStatus('done')
+    } catch (err) {
+      console.warn('[pumgoda] suggestion photo upload failed:', err)
+      setPhotoStatus('error')
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -55,6 +105,7 @@ export default function SuggestPlaceSheet({ lang = 'en', user, onClose }) {
         note: note.trim() || null,
         policy: policyOut,
         priceTier: priceTier || null,
+        ...(photoUrl ? { photos: [photoUrl] } : {}),
         submittedBy,
         submittedAt: serverTimestamp(),
       })
@@ -128,6 +179,11 @@ export default function SuggestPlaceSheet({ lang = 'en', user, onClose }) {
                 required
               />
             </label>
+            {duplicateMatch && (
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--accent)' }} role="status">
+                {interp(t.duplicateWarning, { name: duplicateMatch })}
+              </p>
+            )}
             <label style={labelStyle}>
               {t.mapsLinkLabel}
               <input
@@ -151,6 +207,47 @@ export default function SuggestPlaceSheet({ lang = 'en', user, onClose }) {
                 style={{ ...fieldStyle, resize: 'vertical' }}
               />
             </label>
+
+            <label style={labelStyle}>{t.photoLabel}</label>
+            {user ? (
+              <div style={{ marginTop: 6 }}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoSelect}
+                  disabled={photoStatus === 'uploading'}
+                  style={{ fontSize: 13 }}
+                />
+                {photoStatus === 'uploading' && (
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--muted)' }}>{t.photoUploading}</p>
+                )}
+                {photoStatus === 'done' && photoUrl && (
+                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <img src={photoUrl} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
+                    <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>{t.photoUploaded}</p>
+                  </div>
+                )}
+                {photoStatus === 'error' && (
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--accent)' }}>{t.photoUploadError}</p>
+                )}
+              </div>
+            ) : (
+              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>{t.photoSignInHint}</p>
+                <button
+                  type="button"
+                  onClick={onSignIn}
+                  disabled={signingIn}
+                  style={{
+                    padding: '6px 12px', border: '0.5px solid var(--border)', borderRadius: 8,
+                    background: 'transparent', color: 'inherit', fontSize: 12, cursor: 'pointer', font: 'inherit',
+                  }}
+                >
+                  {s.account.continueWithGoogle}
+                </button>
+              </div>
+            )}
+
             {!user && (
               <label style={labelStyle}>
                 {t.yourNameLabel}

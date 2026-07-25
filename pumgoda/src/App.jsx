@@ -724,6 +724,9 @@ export default function App() {
       <SuggestPlaceSheet
         lang={lang}
         user={user}
+        places={places}
+        onSignIn={handleSignIn}
+        signingIn={signingIn}
         onClose={() => setShowSuggestSheet(false)}
       />
     )}

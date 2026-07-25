@@ -2011,10 +2011,12 @@ function renderSuggestions(){
     const submittedRel = rel(ts(s.submittedAt))[0];
     const hasPolicy = s.policy && (Object.values(s.policy).some(v => v === true) || s.policy.size_limit_kg!=null || s.policy.fee_baht!=null);
     const hasExtra = hasPolicy || s.priceTier;
+    const photo = Array.isArray(s.photos) && s.photos[0];
     return `<div class="sugg-row" data-sid="${escAdm(s.id)}">
+      ${photo ? `<img src="${photo}" alt="" loading="lazy" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex:0 0 auto" />` : ''}
       <div class="sugg-main">
         <div class="sugg-name">${escAdm(s.name||'(no name)')}</div>
-        <div class="sugg-meta">${escAdm(who)} · ${submittedRel}${s.googleMapsUrl?' · <span class="sugg-haslink">has map link</span>':''}${hasExtra?' · <span class="sugg-haslink">has extra details</span>':''}</div>
+        <div class="sugg-meta">${escAdm(who)} · ${submittedRel}${s.googleMapsUrl?' · <span class="sugg-haslink">has map link</span>':''}${hasExtra?' · <span class="sugg-haslink">has extra details</span>':''}${photo?' · <span class="sugg-haslink">has photo</span>':''}</div>
         ${s.note ? `<div class="sugg-note">${escAdm(s.note)}</div>` : ''}
       </div>
       <div class="sugg-actions">
@@ -2065,6 +2067,7 @@ $('pumgoda-search').addEventListener('input', renderPlaces);
 let CUR = null;
 let CREATING = false;
 let PENDING_SUGGESTION_ID = null;
+let PENDING_SUGGESTION_PHOTOS = [];
 const TYPE_BASE = ['Cafe','Restaurant','Hotel','Pet Hotel','Park','Mall','Beach','Vet','Pet shop','Grooming','Clinic'];
 const LOOKUP_WORKER = 'https://pumgoda-places-lookup.pbfluffygaming.workers.dev';
 const AUTOFILL_BLOCK =
@@ -2132,12 +2135,16 @@ function buildForm(p, creating){
     area('Notes (TH)','f_notes_th',(p.notes&&p.notes.th)||'') +
     field('Tags (; separated)','f_tags',(p.tags||[]).join('; ')) +
     field('Last verified','f_last_verified',p.lastVerified||'','date') +
-    (creating ? '' : '<div class="fld-sec">Photos</div><div class="fld full"><div id="f_photos" class="photogrid"></div><label class="uploadbtn"><input type="file" id="f_photofile" accept="image/*" hidden multiple /><span>+ Upload photo</span></label><div id="f_photomsg" class="photomsg"></div></div>');
+    (creating
+      ? (PENDING_SUGGESTION_PHOTOS.length
+          ? `<div class="fld-sec">Suggested photo</div><div class="fld full"><div class="photogrid">${PENDING_SUGGESTION_PHOTOS.map(u=>`<div class="thumb"><img src="${u}" alt="" loading="lazy" /></div>`).join('')}</div><div class="photomsg">Will be added to this place on save.</div></div>`
+          : '')
+      : '<div class="fld-sec">Photos</div><div class="fld full"><div id="f_photos" class="photogrid"></div><label class="uploadbtn"><input type="file" id="f_photofile" accept="image/*" hidden multiple /><span>+ Upload photo</span></label><div id="f_photomsg" class="photomsg"></div></div>');
   if(!creating) renderThumbs();
 }
 function openEditor(id){
   const p = PLACES.find(x=>x.id===id); if(!p) return;
-  CUR = id; CREATING = false; PENDING_SUGGESTION_ID = null;
+  CUR = id; CREATING = false; PENDING_SUGGESTION_ID = null; PENDING_SUGGESTION_PHOTOS = [];
   document.querySelector('.pedit-hd b').textContent = 'Edit place';
   document.getElementById('pedit-id').textContent = id;
   if(delBtn) delBtn.style.display = '';
@@ -2147,7 +2154,7 @@ function openEditor(id){
 }
 function openCreate(){
   switchTab('pumgoda');
-  CUR = null; CREATING = true; PENDING_SUGGESTION_ID = null;
+  CUR = null; CREATING = true; PENDING_SUGGESTION_ID = null; PENDING_SUGGESTION_PHOTOS = [];
   document.querySelector('.pedit-hd b').textContent = 'Add place';
   document.getElementById('pedit-id').textContent = 'new';
   if(delBtn) delBtn.style.display = 'none';
@@ -2159,6 +2166,7 @@ function openCreateFromSuggestion(id){
   const s = SUGGESTIONS.find(x=>x.id===id); if(!s) return;
   switchTab('pumgoda');
   CUR = null; CREATING = true; PENDING_SUGGESTION_ID = id;
+  PENDING_SUGGESTION_PHOTOS = Array.isArray(s.photos) ? s.photos : [];
   document.querySelector('.pedit-hd b').textContent = 'Add place (from suggestion)';
   document.getElementById('pedit-id').textContent = 'new';
   if(delBtn) delBtn.style.display = 'none';
@@ -2174,6 +2182,15 @@ async function rejectSuggestion(id){
   const s = SUGGESTIONS.find(x=>x.id===id); if(!s) return;
   if(!(await confirmDialog('Reject suggestion "'+(s.name||'')+'"? This cannot be undone.', {okLabel:'Reject'}))) return;
   try{
+    const photos = Array.isArray(s.photos) ? s.photos : [];
+    if(photos.length){
+      try{
+        const token = await auth.currentUser.getIdToken();
+        await Promise.all(photos.map(url =>
+          fetch(PHOTO_WORKER + '?key=' + encodeURIComponent(url), { method:'DELETE', headers:{ Authorization:'Bearer '+token } }).catch(()=>{})
+        ));
+      }catch(e){ console.warn('suggestion photo cleanup failed', e.code||e.message); }
+    }
     await deleteDoc(doc(db,'placeSuggestions',id));
     await loadSuggestions();
     showToast('Suggestion rejected.');
@@ -2185,7 +2202,7 @@ document.addEventListener('click', (e) => {
   if(reviewBtn) openCreateFromSuggestion(reviewBtn.dataset.sid);
   if(rejectBtn) rejectSuggestion(rejectBtn.dataset.sid);
 });
-function closeEditor(){ document.getElementById('pedit').classList.add('hidden'); CUR = null; CREATING = false; PENDING_SUGGESTION_ID = null; }
+function closeEditor(){ document.getElementById('pedit').classList.add('hidden'); CUR = null; CREATING = false; PENDING_SUGGESTION_ID = null; PENDING_SUGGESTION_PHOTOS = []; }
 window.openCreate = openCreate;
 window.openEditor = openEditor;
 function numOrNull(id){ const v=vget(id); if(v==='') return null; const n=parseFloat(v); return isNaN(n)?null:n; }
@@ -2208,7 +2225,7 @@ function buildBody(){
     notes:{ en:vget('f_notes_en'), th:vget('f_notes_th') },
     tags: vget('f_tags').split(';').map(t=>t.trim()).filter(Boolean),
     lastVerified: vget('f_last_verified')||null,
-    photos: Array.isArray(orig.photos) ? orig.photos : [],
+    photos: Array.isArray(orig.photos) ? orig.photos : (CREATING ? PENDING_SUGGESTION_PHOTOS : []),
   };
   delete body.id;
   body.lastModified = serverTimestamp();

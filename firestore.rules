@@ -96,7 +96,9 @@ service cloud.firestore {
                     && (!('policy' in request.resource.data) || request.resource.data.policy is map)
                     && (!('priceTier' in request.resource.data)
                         || request.resource.data.priceTier == null
-                        || request.resource.data.priceTier in ['', '$', '$$', '$$$']);
+                        || request.resource.data.priceTier in ['', '$', '$$', '$$$'])
+                    && (!('photos' in request.resource.data)
+                        || (request.resource.data.photos is list && request.resource.data.photos.size() <= 5));
       allow read, delete: if isAdmin() || isPumgodaAdmin();
       allow update: if false;
     }

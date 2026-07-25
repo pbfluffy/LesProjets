@@ -1,7 +1,11 @@
 // pumgoda-photo — admin photo upload/delete Worker for Pumgoda (Feature #100, Phase 3)
 // REQUIRED BINDING: R2 bucket "pumgoda-photos" bound as env.BUCKET
 //   (Worker → Settings → Bindings → Add → R2 bucket → variable name: BUCKET)
-// Auth: verifies a Firebase ID token; owner, /admins, or /pumgodaAdmins may upload or delete.
+// Auth: verifies a Firebase ID token; owner, /admins, or /pumgodaAdmins may upload or delete
+// at POST/DELETE "/". POST "/suggest" is a separate, narrower route: any *signed-in* Firebase
+// user (not necessarily admin) may upload a single photo to go with a place suggestion — same
+// validation, stored under suggestions/ instead of a place id, no delete counterpart here (the
+// admin console deletes rejected-suggestion photos via the existing admin-gated DELETE "/").
 // Serving: handled directly by the public r2.dev URL (this Worker never serves images).
 
 const PROJECT_ID   = 'pumgoda';
@@ -88,12 +92,40 @@ async function requireAdmin(request) {
   return payload;
 }
 
+// For POST /suggest — any validly signed-in Firebase user, no admin membership required.
+async function requireSignedIn(request) {
+  const m = (request.headers.get('Authorization') || '').match(/^Bearer\s+(.+)$/i);
+  if (!m) throw new Error('missing token');
+  return verifyIdToken(m[1]);
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || '';
+    const pathname = new URL(request.url).pathname;
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
     if (request.method === 'GET')     return new Response('pumgoda-photo OK', { headers: cors(origin) });
+
+    if (request.method === 'POST' && pathname === '/suggest') {
+      try { await requireSignedIn(request); }
+      catch (e) { return json({ error: 'unauthorized: ' + e.message }, 401, origin); }
+
+      let form;
+      try { form = await request.formData(); }
+      catch { return json({ error: 'expected multipart form-data' }, 400, origin); }
+
+      const file = form.get('file');
+      if (!file || typeof file === 'string') return json({ error: 'no file field' }, 400, origin);
+      const type = file.type || '';
+      if (!EXT[type]) return json({ error: 'unsupported type: ' + type }, 415, origin);
+      if (file.size > MAX_BYTES) return json({ error: 'too large (max 8MB)' }, 413, origin);
+
+      const key = `suggestions/${crypto.randomUUID()}.${EXT[type]}`;
+      const bytes = await file.arrayBuffer();
+      await env.BUCKET.put(key, bytes, { httpMetadata: { contentType: type } });
+      return json({ url: `${PUBLIC_BASE}/${key}`, key }, 200, origin);
+    }
 
     if (request.method === 'POST') {
       try { await requireAdmin(request); }
