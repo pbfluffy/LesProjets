@@ -6,17 +6,20 @@ import { STRINGS } from '../i18n/strings'
 // lightweight pending suggestion to placeSuggestions/<autoId> — admins (or
 // Pumgoda-only admins) review it in admindepum.html and either turn it into
 // a real places/ doc (which deletes the suggestion) or reject it (deletes
-// the suggestion directly). See firestore.rules for the write gate: any
-// signed-in user may create, only admin/pumgodaAdmin may read or delete.
-export default function SuggestPlaceSheet({ lang = 'en', user, onSignIn, signingIn, onClose }) {
+// the suggestion directly). See firestore.rules for the write gate: anyone
+// (signed in or not) may create one, only admin/pumgodaAdmin may read or
+// delete. If the caller happens to be signed in, submittedBy is attributed
+// to their account; otherwise it's just whatever name they optionally type.
+export default function SuggestPlaceSheet({ lang = 'en', user, onClose }) {
   const s = STRINGS[lang] || STRINGS.en
   const t = s.suggestForm
   const [name, setName] = useState('')
   const [mapsUrl, setMapsUrl] = useState('')
   const [note, setNote] = useState('')
+  const [yourName, setYourName] = useState('')
   const [status, setStatus] = useState('idle') // idle | submitting | success | error
 
-  const canSubmit = Boolean(user) && name.trim().length > 0 && status !== 'submitting'
+  const canSubmit = name.trim().length > 0 && status !== 'submitting'
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -24,11 +27,14 @@ export default function SuggestPlaceSheet({ lang = 'en', user, onSignIn, signing
     setStatus('submitting')
     try {
       const ref = doc(collection(firestore, 'placeSuggestions'))
+      const submittedBy = user
+        ? { uid: user.uid, name: user.displayName || null, email: user.email || null }
+        : { uid: null, name: yourName.trim() || null, email: null }
       await setDoc(ref, {
         name: name.trim(),
         googleMapsUrl: mapsUrl.trim() || null,
         note: note.trim() || null,
-        submittedBy: { uid: user.uid, name: user.displayName || null, email: user.email || null },
+        submittedBy,
         submittedAt: serverTimestamp(),
       })
       setStatus('success')
@@ -71,23 +77,7 @@ export default function SuggestPlaceSheet({ lang = 'en', user, onSignIn, signing
         </div>
         <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--muted)' }}>{t.subtitle}</p>
 
-        {!user ? (
-          <div style={{ textAlign: 'center', padding: '20px 0 4px' }}>
-            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>{t.signInPrompt}</p>
-            <button
-              type="button"
-              onClick={onSignIn}
-              disabled={signingIn}
-              style={{
-                padding: '10px 18px', border: 'none', borderRadius: 10,
-                background: 'var(--accent)', color: '#fff', fontSize: 14,
-                fontWeight: 600, cursor: signingIn ? 'default' : 'pointer', font: 'inherit',
-              }}
-            >
-              {signingIn ? s.account.signingIn : s.account.continueWithGoogle}
-            </button>
-          </div>
-        ) : status === 'success' ? (
+        {status === 'success' ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{t.success}</p>
             <button
@@ -139,6 +129,19 @@ export default function SuggestPlaceSheet({ lang = 'en', user, onSignIn, signing
                 style={{ ...fieldStyle, resize: 'vertical' }}
               />
             </label>
+            {!user && (
+              <label style={labelStyle}>
+                {t.yourNameLabel}
+                <input
+                  type="text"
+                  value={yourName}
+                  onChange={(e) => setYourName(e.target.value)}
+                  placeholder={t.yourNamePlaceholder}
+                  maxLength={200}
+                  style={fieldStyle}
+                />
+              </label>
+            )}
 
             {status === 'error' && (
               <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--accent)' }} role="status">

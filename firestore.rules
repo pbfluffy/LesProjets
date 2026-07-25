@@ -73,11 +73,11 @@ service cloud.firestore {
     // ── Pumgoda — place suggestions (in-app "Suggest a place" queue) ────────
     // A doc's existence IS the pending state — approving converts it into a
     // places/ doc and deletes it; rejecting just deletes it. Only admin or
-    // Pumgoda-only admin may read the queue or delete entries.
+    // Pumgoda-only admin may read the queue or delete entries. Anyone may
+    // create one, signed in or not (same openness as shareLinks below) —
+    // submittedBy is whatever the client sends, unverified when anonymous.
     match /placeSuggestions/{suggestionId} {
-      allow create: if signedIn()
-                    && request.resource.data.submittedBy.uid == request.auth.uid
-                    && request.resource.data.name is string
+      allow create: if request.resource.data.name is string
                     && request.resource.data.name.size() > 0
                     && request.resource.data.name.size() <= 200
                     && (!('googleMapsUrl' in request.resource.data)
@@ -85,7 +85,14 @@ service cloud.firestore {
                         || (request.resource.data.googleMapsUrl is string && request.resource.data.googleMapsUrl.size() <= 500))
                     && (!('note' in request.resource.data)
                         || request.resource.data.note == null
-                        || (request.resource.data.note is string && request.resource.data.note.size() <= 2000));
+                        || (request.resource.data.note is string && request.resource.data.note.size() <= 2000))
+                    && request.resource.data.submittedBy is map
+                    && (!('uid' in request.resource.data.submittedBy)
+                        || request.resource.data.submittedBy.uid == null
+                        || request.resource.data.submittedBy.uid is string)
+                    && (!('name' in request.resource.data.submittedBy)
+                        || request.resource.data.submittedBy.name == null
+                        || (request.resource.data.submittedBy.name is string && request.resource.data.submittedBy.name.size() <= 200));
       allow read, delete: if isAdmin() || isPumgodaAdmin();
       allow update: if false;
     }
