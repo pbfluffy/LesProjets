@@ -72,7 +72,11 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
           </div>
         </div>
 
-        <PhotoStrip photos={venue.photos} label={name} />
+        <PhotoStrip
+          photos={[venue.pumba?.photoUrl, ...(Array.isArray(venue.photos) ? venue.photos : [])]}
+          verifiedUrl={venue.pumba?.photoUrl || null}
+          label={name}
+        />
 
         {/* Add this place to a trip */}
         <div className="ph-pd-trip">
@@ -133,19 +137,11 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
           )}
         </div>
 
-        {/* Verification — last-verified date for any place, plus Pumba photo when verified */}
+        {/* Verification — last-verified date; Pumba's own photo (if any) is merged into the strip above */}
         {(venue.pumba?.verified || venue.lastVerified) && (
           <section className="ph-section">
             <h3 className="ph-section-title">{s.detail.sections.verification}</h3>
             <div className="ph-verify-row">
-              {venue.pumba.photoUrl && (
-                <img
-                  className="ph-pumba-photo"
-                  src={venue.pumba.photoUrl}
-                  alt="Pumba at venue"
-                  loading="eager"
-                />
-              )}
               {venue.lastVerified && (
                 <p className="ph-verify-date mono">
                   {interp(s.card.lastVerified, { date: venue.lastVerified })}
@@ -294,11 +290,15 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
   )
 }
 
-function PhotoStrip({ photos = [], label = 'Photos' }) {
-  const list = Array.isArray(photos) ? photos.filter(Boolean) : []
+function PhotoStrip({ photos = [], label = 'Photos', verifiedUrl = null }) {
+  const all = Array.isArray(photos) ? [...new Set(photos.filter(Boolean))] : []
   const [open, setOpen] = useState(-1)
+  const [broken, setBroken] = useState(() => new Set())
+  const list = all.filter((u) => !broken.has(u))
+  const markBroken = (u) => setBroken((b) => (b.has(u) ? b : new Set(b).add(u)))
   useEffect(() => {
     if (open < 0) return
+    if (open >= list.length) { setOpen(list.length ? list.length - 1 : -1); return }
     const onKey = (e) => {
       if (e.key === 'Escape') { e.stopImmediatePropagation(); setOpen(-1) }
       else if (e.key === 'ArrowLeft') setOpen((i) => (i - 1 + list.length) % list.length)
@@ -315,8 +315,9 @@ function PhotoStrip({ photos = [], label = 'Photos' }) {
     <div className="ph-strip-wrap">
       <div className="ph-strip">
         {list.map((u, i) => (
-          <button type="button" key={i} className="ph-strip-item" onClick={() => setOpen(i)}>
-            <img src={u} alt={`${label} ${i + 1}`} loading="eager" />
+          <button type="button" key={u} className="ph-strip-item" onClick={() => setOpen(i)}>
+            <img src={u} alt={`${label} ${i + 1}`} loading="lazy" onError={() => markBroken(u)} />
+            {u === verifiedUrl && <span className="ph-strip-verified" title="Pumba's verified visit">🐾</span>}
           </button>
         ))}
       </div>
@@ -326,7 +327,13 @@ function PhotoStrip({ photos = [], label = 'Photos' }) {
           {list.length > 1 && (
             <button className="ph-lb-nav ph-lb-prev" onClick={prev} aria-label="Previous">‹</button>
           )}
-          <img className="ph-lb-img" src={list[open]} alt={`${label} ${open + 1}`} onClick={(e) => e.stopPropagation()} />
+          <img
+            className="ph-lb-img"
+            src={list[open]}
+            alt={`${label} ${open + 1}`}
+            onClick={(e) => e.stopPropagation()}
+            onError={() => markBroken(list[open])}
+          />
           {list.length > 1 && (
             <button className="ph-lb-nav ph-lb-next" onClick={next} aria-label="Next">›</button>
           )}

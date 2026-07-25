@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import PawTierBadge from './PawTierBadge'
 import PumbaBadge from './PumbaBadge'
 import PolicyChips from './PolicyChips'
@@ -26,7 +27,9 @@ export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = nul
   const { tallies } = useVotesCtx()
   const name = venue.name?.[lang] || venue.name?.en || venue.name?.th || venue.id
   const typeLabel = s.types[venue.type?.toLowerCase().replace(/[\s-]+/g, '_')] || venue.type
-  const thumb = Array.isArray(venue.photos) ? venue.photos.find(Boolean) : null
+  const thumb = (Array.isArray(venue.photos) ? venue.photos.find(Boolean) : null) || venue.pumba?.photoUrl || null
+  const [imgFailed, setImgFailed] = useState(false)
+  const showImg = Boolean(thumb) && !imgFailed
   const distanceLabel = formatDistance(distanceKm, lang)
   const open = isOpenNow(venue)
 
@@ -37,11 +40,13 @@ export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = nul
       aria-label={name}
     >
       {open === true && <span className="ph-open-badge ph-open-badge-corner">{s.hours.openNow}</span>}
-      {thumb && (
-        <div className="ph-card-thumb">
-          <img src={thumb} alt="" loading="eager" />
-        </div>
-      )}
+      <div className="ph-card-thumb">
+        {showImg ? (
+          <img src={thumb} alt="" loading="lazy" onError={() => setImgFailed(true)} />
+        ) : (
+          <div className="ph-card-thumb-empty" aria-hidden="true">🐾</div>
+        )}
+      </div>
 
       <div className="ph-card-head">
         <div className="ph-card-name">{name}</div>
