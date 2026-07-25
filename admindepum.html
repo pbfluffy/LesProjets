@@ -563,7 +563,7 @@ html.light body{
     <button type="button" id="tab-btn-overall" aria-pressed="false">📊 Overall</button>
     <button type="button" id="tab-btn-bills" aria-pressed="false">🧾 Bill Splitter</button>
     <button type="button" id="tab-btn-nutrition" aria-pressed="false">🥗 Nutrition</button>
-    <button type="button" id="tab-btn-pumgoda" aria-pressed="false">📍 Pumgoda</button>
+    <button type="button" id="tab-btn-pumgoda" aria-pressed="false">📍 Pumgoda<span class="tb-badge hidden" id="tab-badge-pumgoda"></span></button>
     <button type="button" id="tab-btn-backyard" aria-pressed="false">🎮 Backyard</button>
   </nav>
 
@@ -892,6 +892,7 @@ onAuthStateChanged(auth, async (user) => {
   show('app');
   applyRoleRestrictions();
   loadPlaces();
+  loadSuggestions();
   if(ROLE === 'pumgoda'){
     switchTab('pumgoda');
   } else {
@@ -1492,6 +1493,43 @@ function showToast(message, type){
   requestAnimationFrame(() => el.classList.add('show'));
   setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 250); }, 4200);
 }
+// Optimistic-undo toast: caller has already applied the change to local UI state
+// and re-rendered. `onCommit` runs after `duration` unless Undo is clicked, in
+// which case `opts.onUndo` runs instead and `onCommit` never fires.
+function showUndoToast(message, onCommit, opts){
+  opts = opts || {};
+  const stack = $('toast-stack');
+  if(!stack){ onCommit(); return; }
+  const el = document.createElement('div');
+  el.className = 'toast toast-undo';
+  el.style.display = 'flex';
+  el.style.alignItems = 'center';
+  el.style.justifyContent = 'space-between';
+  el.style.gap = '12px';
+  const span = document.createElement('span');
+  span.textContent = message;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = 'Undo';
+  btn.style.cssText = 'flex:0 0 auto;border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:7px;padding:4px 10px;font:inherit;font-weight:700;font-size:12px;cursor:pointer';
+  el.appendChild(span);
+  el.appendChild(btn);
+  stack.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  let settled = false;
+  const dismiss = () => { el.classList.remove('show'); setTimeout(() => el.remove(), 250); };
+  const timer = setTimeout(() => {
+    if(settled) return; settled = true;
+    dismiss();
+    onCommit();
+  }, opts.duration || 5000);
+  btn.addEventListener('click', () => {
+    if(settled) return; settled = true;
+    clearTimeout(timer);
+    dismiss();
+    if(opts.onUndo) opts.onUndo();
+  });
+}
 
 
 // ---- tabs ----
@@ -2002,10 +2040,20 @@ async function loadSuggestions(){
   }catch(e){ SUGGESTIONS = []; console.warn('placeSuggestions load failed', e.code||e.message); }
   renderSuggestions();
 }
+const SELECTED_SUGGESTIONS = new Set();
+function updateSuggestionBadge(){
+  const el = document.getElementById('tab-badge-pumgoda'); if(!el) return;
+  el.textContent = SUGGESTIONS.length ? String(SUGGESTIONS.length) : '';
+  el.classList.toggle('hidden', SUGGESTIONS.length === 0);
+}
 function renderSuggestions(){
   const wrap = $('pumgoda-suggestions'); if(!wrap) return;
-  if(SUGGESTIONS.length===0){ wrap.classList.add('hidden'); wrap.innerHTML=''; return; }
+  updateSuggestionBadge();
+  if(SUGGESTIONS.length===0){ wrap.classList.add('hidden'); wrap.innerHTML=''; SELECTED_SUGGESTIONS.clear(); return; }
   wrap.classList.remove('hidden');
+  const visibleIds = new Set(SUGGESTIONS.map(s=>s.id));
+  [...SELECTED_SUGGESTIONS].forEach(id => { if(!visibleIds.has(id)) SELECTED_SUGGESTIONS.delete(id); });
+  const allSelected = SUGGESTIONS.every(s => SELECTED_SUGGESTIONS.has(s.id));
   const rows = SUGGESTIONS.map(s => {
     const who = (s.submittedBy && (s.submittedBy.name || s.submittedBy.email)) || 'unknown';
     const submittedRel = rel(ts(s.submittedAt))[0];
@@ -2013,6 +2061,7 @@ function renderSuggestions(){
     const hasExtra = hasPolicy || s.priceTier;
     const photo = Array.isArray(s.photos) && s.photos[0];
     return `<div class="sugg-row" data-sid="${escAdm(s.id)}">
+      <input type="checkbox" class="sugg-check" data-sid="${escAdm(s.id)}" ${SELECTED_SUGGESTIONS.has(s.id)?'checked':''} style="margin-top:5px;flex:0 0 auto" />
       ${photo ? `<img src="${photo}" alt="" loading="lazy" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex:0 0 auto" />` : ''}
       <div class="sugg-main">
         <div class="sugg-name">${escAdm(s.name||'(no name)')}</div>
@@ -2026,10 +2075,34 @@ function renderSuggestions(){
     </div>`;
   }).join('');
   wrap.innerHTML = `<div class="chart" style="margin-bottom:20px">
-    <h3>Suggested places · ${SUGGESTIONS.length} pending</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px">
+      <h3 style="margin:0">Suggested places · ${SUGGESTIONS.length} pending</h3>
+      <div style="display:flex;align-items:center;gap:10px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer">
+          <input type="checkbox" id="sugg-select-all" ${allSelected?'checked':''} /> Select all
+        </label>
+        <button type="button" class="btn small" id="sugg-bulk-reject" style="color:var(--red);border-color:#5a2c22;background:transparent" ${SELECTED_SUGGESTIONS.size?'':'disabled'}>Reject selected (${SELECTED_SUGGESTIONS.size})</button>
+      </div>
+    </div>
     ${rows}
   </div>`;
 }
+$('pumgoda-suggestions')?.addEventListener('change', (e) => {
+  const cb = e.target.closest('.sugg-check');
+  if(cb){
+    if(cb.checked) SELECTED_SUGGESTIONS.add(cb.dataset.sid); else SELECTED_SUGGESTIONS.delete(cb.dataset.sid);
+    renderSuggestions();
+    return;
+  }
+  if(e.target.closest('#sugg-select-all')){
+    if(e.target.checked) SUGGESTIONS.forEach(s => SELECTED_SUGGESTIONS.add(s.id));
+    else SELECTED_SUGGESTIONS.clear();
+    renderSuggestions();
+  }
+});
+$('pumgoda-suggestions')?.addEventListener('click', (e) => {
+  if(e.target.closest('#sugg-bulk-reject')) rejectSelectedSuggestions();
+});
 function pawTier(p){
   if(p.stroller_required) return 1;
   if(!p.indoor_allowed) return 2;
@@ -2050,13 +2123,13 @@ function renderPlaces(){
   $('pumgoda-rows').innerHTML = rows.map(p => {
     const paws = '🐾'.repeat(pawTier(p));
     const reg = (p.region||'').replace(/_/g,' ');
-    const ver = (p.pumba&&p.pumba.verified) ? '✓' : '—';
+    const verified = !!(p.pumba&&p.pumba.verified);
     return `<div class="row body prow" data-pid="${escAdm(p.id)}" style="cursor:pointer" title="Edit">
       <div class="pname"><b>${escAdm(en(p)||p.id)}</b><span class="pth">${escAdm(th(p)||'')}</span><span class="pid">${escAdm(p.id)}</span></div>
       <div class="ptype">${escAdm(p.type||'—')}</div>
       <div class="preg">${escAdm(reg||'—')}</div>
       <div class="ppaw">${paws}</div>
-      <div class="pverif">${ver}</div>
+      <button type="button" class="pverif pverif-toggle" data-pid="${escAdm(p.id)}" title="${verified?'Pumba verified — click to unverify':'Not verified — click to mark Pumba verified'}" style="border:none;background:none;padding:0;font:inherit;cursor:pointer">${verified?'✓':'—'}</button>
     </div>`;
   }).join('');
 }
@@ -2178,23 +2251,38 @@ function openCreateFromSuggestion(id){
   document.getElementById('pedit').classList.remove('hidden');
 }
 window.openCreateFromSuggestion = openCreateFromSuggestion;
-async function rejectSuggestion(id){
-  const s = SUGGESTIONS.find(x=>x.id===id); if(!s) return;
-  if(!(await confirmDialog('Reject suggestion "'+(s.name||'')+'"? This cannot be undone.', {okLabel:'Reject'}))) return;
-  try{
-    const photos = Array.isArray(s.photos) ? s.photos : [];
-    if(photos.length){
+function rejectSuggestion(id){ rejectSuggestionsBulk([id]); }
+function rejectSelectedSuggestions(){ rejectSuggestionsBulk([...SELECTED_SUGGESTIONS]); }
+function rejectSuggestionsBulk(ids){
+  const items = ids.map(id => SUGGESTIONS.find(x=>x.id===id)).filter(Boolean);
+  if(!items.length) return;
+  const idSet = new Set(items.map(s=>s.id));
+  SUGGESTIONS = SUGGESTIONS.filter(x => !idSet.has(x.id));
+  idSet.forEach(id => SELECTED_SUGGESTIONS.delete(id));
+  renderSuggestions();
+  const label = items.length===1 ? 'Rejected "'+(items[0].name||'')+'".' : 'Rejected '+items.length+' suggestions.';
+  showUndoToast(label, async () => {
+    for(const s of items){
       try{
-        const token = await auth.currentUser.getIdToken();
-        await Promise.all(photos.map(url =>
-          fetch(PHOTO_WORKER + '?key=' + encodeURIComponent(url), { method:'DELETE', headers:{ Authorization:'Bearer '+token } }).catch(()=>{})
-        ));
-      }catch(e){ console.warn('suggestion photo cleanup failed', e.code||e.message); }
+        const photos = Array.isArray(s.photos) ? s.photos : [];
+        if(photos.length){
+          try{
+            const token = await auth.currentUser.getIdToken();
+            await Promise.all(photos.map(url =>
+              fetch(PHOTO_WORKER + '?key=' + encodeURIComponent(url), { method:'DELETE', headers:{ Authorization:'Bearer '+token } }).catch(()=>{})
+            ));
+          }catch(e){ console.warn('suggestion photo cleanup failed', e.code||e.message); }
+        }
+        await deleteDoc(doc(db,'placeSuggestions',s.id));
+      }catch(e){ console.warn('reject commit failed for', s.id, e.code||e.message); }
     }
-    await deleteDoc(doc(db,'placeSuggestions',id));
-    await loadSuggestions();
-    showToast('Suggestion rejected.');
-  }catch(e){ showToast('Reject failed: '+(e.code||e.message), 'error'); }
+  }, {
+    onUndo: () => {
+      SUGGESTIONS = SUGGESTIONS.concat(items);
+      SUGGESTIONS.sort((a,b) => ts(b.submittedAt) - ts(a.submittedAt));
+      renderSuggestions();
+    }
+  });
 }
 document.addEventListener('click', (e) => {
   const reviewBtn = e.target.closest('.sugg-review');
@@ -2262,17 +2350,24 @@ async function saveEditor(){
   }catch(e){ fail('Save failed: '+(e.code||e.message)); }
   finally{ btn.disabled=false; btn.textContent='Save to Firestore'; }
 }
-async function deletePlace(){
+function deletePlace(){
   if(!CUR || CREATING) return;
-  if(!(await confirmDialog('Delete place '+CUR+'? This cannot be undone.', {okLabel:'Delete'}))) return;
-  const err = document.getElementById('pedit-err');
-  delBtn.disabled=true; delBtn.textContent='Deleting\u2026';
-  try{
-    await deleteDoc(doc(db,'places',CUR));
-    closeEditor();
-    await loadPlaces();
-  }catch(e){ err.textContent='Delete failed: '+(e.code||e.message); err.classList.remove('hidden'); }
-  finally{ delBtn.disabled=false; delBtn.textContent='Delete'; }
+  const id = CUR;
+  const idx = PLACES.findIndex(x=>x.id===id); if(idx<0) return;
+  const removed = PLACES[idx];
+  const label = (removed.name && removed.name.en) || (removed.name && removed.name.th) || removed.id;
+  PLACES.splice(idx,1);
+  closeEditor();
+  renderPlaces();
+  showUndoToast('Deleted "'+label+'".', async () => {
+    try{ await deleteDoc(doc(db,'places',id)); }
+    catch(e){ showToast('Delete failed: '+(e.code||e.message), 'error'); await loadPlaces(); }
+  }, {
+    onUndo: () => {
+      PLACES.splice(idx,0,removed);
+      renderPlaces();
+    }
+  });
 }
 const addBtn = document.createElement('button');
 addBtn.className = 'btn small'; addBtn.id = 'padd'; addBtn.textContent = '+ Add place';
@@ -2286,7 +2381,24 @@ delBtn.style.borderColor = 'var(--red)'; delBtn.style.color = 'var(--red)'; delB
 delBtn.addEventListener('click', deletePlace);
 const ftEl = document.querySelector('.pedit-ft');
 if(ftEl) ftEl.insertBefore(delBtn, ftEl.firstChild);
-document.getElementById('pumgoda-rows').addEventListener('click', (e)=>{ const row=e.target.closest('.row.body.prow'); if(row && row.dataset.pid) openEditor(row.dataset.pid); });
+async function togglePumbaVerified(pid){
+  const p = PLACES.find(x=>x.id===pid); if(!p) return;
+  const prev = !!(p.pumba && p.pumba.verified);
+  p.pumba = { ...(p.pumba||{}), verified: !prev };
+  renderPlaces();
+  try{
+    await updateDoc(doc(db,'places',pid), { 'pumba.verified': !prev, lastModified: serverTimestamp() });
+  }catch(e){
+    p.pumba = { ...(p.pumba||{}), verified: prev };
+    renderPlaces();
+    showToast('Update failed: '+(e.code||e.message), 'error');
+  }
+}
+document.getElementById('pumgoda-rows').addEventListener('click', (e)=>{
+  const toggle = e.target.closest('.pverif-toggle');
+  if(toggle){ e.stopPropagation(); togglePumbaVerified(toggle.dataset.pid); return; }
+  const row=e.target.closest('.row.body.prow'); if(row && row.dataset.pid) openEditor(row.dataset.pid);
+});
 document.getElementById('pumgoda-rows').addEventListener('keydown', (e)=>{ if(e.key!=='Enter' && e.key!==' ') return; const row=e.target.closest('.row.body.prow'); if(row && row.dataset.pid){ e.preventDefault(); openEditor(row.dataset.pid); } });
 document.getElementById('pedit-x').addEventListener('click', closeEditor);
 document.getElementById('pedit-cancel').addEventListener('click', closeEditor);
