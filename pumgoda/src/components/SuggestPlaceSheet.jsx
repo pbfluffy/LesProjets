@@ -2,6 +2,14 @@ import { useState } from 'react'
 import { firestore, doc, collection, setDoc, serverTimestamp } from '../firebase'
 import { STRINGS } from '../i18n/strings'
 
+// Same policy keys/shape as admindepum.html's place editor (blankPlace().policy),
+// so a reviewed suggestion can prefill those checkboxes directly.
+const POLICY_KEYS = [
+  'indoor_allowed', 'no_size_limit', 'water_bowl', 'no_fee', 'pet_menu',
+  'off_leash_zone', 'pet_bed_toys', 'pet_pool_play_grooming', 'overnight',
+  'stroller_required', 'staff_welcoming',
+]
+
 // In-app replacement for the old external Google Form link. Writes a
 // lightweight pending suggestion to placeSuggestions/<autoId> — admins (or
 // Pumgoda-only admins) review it in admindepum.html and either turn it into
@@ -17,9 +25,14 @@ export default function SuggestPlaceSheet({ lang = 'en', user, onClose }) {
   const [mapsUrl, setMapsUrl] = useState('')
   const [note, setNote] = useState('')
   const [yourName, setYourName] = useState('')
+  const [policy, setPolicy] = useState({})
+  const [sizeLimitKg, setSizeLimitKg] = useState('')
+  const [feeBaht, setFeeBaht] = useState('')
+  const [priceTier, setPriceTier] = useState('')
   const [status, setStatus] = useState('idle') // idle | submitting | success | error
 
   const canSubmit = name.trim().length > 0 && status !== 'submitting'
+  const togglePolicy = (key) => setPolicy((p) => ({ ...p, [key]: !p[key] }))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -30,10 +43,18 @@ export default function SuggestPlaceSheet({ lang = 'en', user, onClose }) {
       const submittedBy = user
         ? { uid: user.uid, name: user.displayName || null, email: user.email || null }
         : { uid: null, name: yourName.trim() || null, email: null }
+      const policyOut = {}
+      for (const key of POLICY_KEYS) policyOut[key] = Boolean(policy[key])
+      const sizeLimitNum = sizeLimitKg.trim() === '' ? null : Number(sizeLimitKg)
+      if (sizeLimitNum != null && !Number.isNaN(sizeLimitNum)) policyOut.size_limit_kg = sizeLimitNum
+      const feeNum = feeBaht.trim() === '' ? null : Number(feeBaht)
+      if (feeNum != null && !Number.isNaN(feeNum)) policyOut.fee_baht = feeNum
       await setDoc(ref, {
         name: name.trim(),
         googleMapsUrl: mapsUrl.trim() || null,
         note: note.trim() || null,
+        policy: policyOut,
+        priceTier: priceTier || null,
         submittedBy,
         submittedAt: serverTimestamp(),
       })
@@ -60,6 +81,7 @@ export default function SuggestPlaceSheet({ lang = 'en', user, onClose }) {
     boxSizing: 'border-box',
   }
   const labelStyle = { display: 'block', fontSize: 13, fontWeight: 600, marginTop: 14 }
+  const checkboxRowStyle = { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: '6px 0' }
 
   return (
     <div style={overlayStyle} onClick={onClose}>
@@ -142,6 +164,49 @@ export default function SuggestPlaceSheet({ lang = 'en', user, onClose }) {
                 />
               </label>
             )}
+
+            <details style={{ marginTop: 16 }}>
+              <summary style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{t.moreDetailsToggle}</summary>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px', marginTop: 8 }}>
+                {POLICY_KEYS.map((key) => (
+                  <label key={key} style={checkboxRowStyle}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(policy[key])}
+                      onChange={() => togglePolicy(key)}
+                    />
+                    {s.policy[key] || key}
+                  </label>
+                ))}
+              </div>
+              <label style={labelStyle}>
+                {t.sizeLimitLabel}
+                <input
+                  type="number"
+                  value={sizeLimitKg}
+                  onChange={(e) => setSizeLimitKg(e.target.value)}
+                  style={fieldStyle}
+                />
+              </label>
+              <label style={labelStyle}>
+                {t.feeLabel}
+                <input
+                  type="number"
+                  value={feeBaht}
+                  onChange={(e) => setFeeBaht(e.target.value)}
+                  style={fieldStyle}
+                />
+              </label>
+              <label style={labelStyle}>
+                {t.priceTierLabel}
+                <select value={priceTier} onChange={(e) => setPriceTier(e.target.value)} style={fieldStyle}>
+                  <option value="">—</option>
+                  <option value="$">$</option>
+                  <option value="$$">$$</option>
+                  <option value="$$$">$$$</option>
+                </select>
+              </label>
+            </details>
 
             {status === 'error' && (
               <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--accent)' }} role="status">

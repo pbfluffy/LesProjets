@@ -92,7 +92,11 @@ service cloud.firestore {
                         || request.resource.data.submittedBy.uid is string)
                     && (!('name' in request.resource.data.submittedBy)
                         || request.resource.data.submittedBy.name == null
-                        || (request.resource.data.submittedBy.name is string && request.resource.data.submittedBy.name.size() <= 200));
+                        || (request.resource.data.submittedBy.name is string && request.resource.data.submittedBy.name.size() <= 200))
+                    && (!('policy' in request.resource.data) || request.resource.data.policy is map)
+                    && (!('priceTier' in request.resource.data)
+                        || request.resource.data.priceTier == null
+                        || request.resource.data.priceTier in ['', '$', '$$', '$$$']);
       allow read, delete: if isAdmin() || isPumgodaAdmin();
       allow update: if false;
     }

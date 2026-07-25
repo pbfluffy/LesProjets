@@ -2009,10 +2009,12 @@ function renderSuggestions(){
   const rows = SUGGESTIONS.map(s => {
     const who = (s.submittedBy && (s.submittedBy.name || s.submittedBy.email)) || 'unknown';
     const submittedRel = rel(ts(s.submittedAt))[0];
+    const hasPolicy = s.policy && (Object.values(s.policy).some(v => v === true) || s.policy.size_limit_kg!=null || s.policy.fee_baht!=null);
+    const hasExtra = hasPolicy || s.priceTier;
     return `<div class="sugg-row" data-sid="${escAdm(s.id)}">
       <div class="sugg-main">
         <div class="sugg-name">${escAdm(s.name||'(no name)')}</div>
-        <div class="sugg-meta">${escAdm(who)} · ${submittedRel}${s.googleMapsUrl?' · <span class="sugg-haslink">has map link</span>':''}</div>
+        <div class="sugg-meta">${escAdm(who)} · ${submittedRel}${s.googleMapsUrl?' · <span class="sugg-haslink">has map link</span>':''}${hasExtra?' · <span class="sugg-haslink">has extra details</span>':''}</div>
         ${s.note ? `<div class="sugg-note">${escAdm(s.note)}</div>` : ''}
       </div>
       <div class="sugg-actions">
@@ -2161,7 +2163,7 @@ function openCreateFromSuggestion(id){
   document.getElementById('pedit-id').textContent = 'new';
   if(delBtn) delBtn.style.display = 'none';
   document.getElementById('pedit-err').classList.add('hidden');
-  const prefilled = { ...blankPlace(), name:{en:s.name||'',th:''}, googleMapsUrl:s.googleMapsUrl||'', notes:{en:s.note||'',th:''} };
+  const prefilled = { ...blankPlace(), name:{en:s.name||'',th:''}, googleMapsUrl:s.googleMapsUrl||'', notes:{en:s.note||'',th:''}, policy:{...(s.policy||{})}, priceTier:s.priceTier||null };
   buildForm(prefilled, true);
   const urlInput = document.getElementById('f_autofill_url');
   if(urlInput) urlInput.value = s.googleMapsUrl || '';
