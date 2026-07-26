@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { auth } from '../firebase'
 import { uploadDogPhoto, compareDogPhotos } from '../photoUpload'
-import { findNearbyDogs, findCandidates, createDogWithSighting, addSightingToDog, friendlinessColor } from '../hooks/useDogs'
+import { findNearbyDogs, findCandidates, createDogWithSighting, addSightingToDog, friendlinessColor, cosineSimilarity } from '../hooks/useDogs'
 import { readExifGps } from '../exifGps'
 import { interp } from '../LangContext'
 import styles from './ReportFlow.module.css'
@@ -61,6 +61,7 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
   const [coords, setCoords] = useState(null)
   const [photoUrl, setPhotoUrl] = useState(null)
   const [tags, setTags] = useState(null)
+  const [embedding, setEmbedding] = useState(null)
   const [candidates, setCandidates] = useState([])
   // The dog this sighting is confirmed to be — from a candidate pick or a
   // preset "report another sighting" shortcut. Null means "brand new dog".
@@ -83,6 +84,7 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
     setCoords(null)
     setPhotoUrl(null)
     setTags(null)
+    setEmbedding(null)
     setCandidates([])
     setTargetDog(null)
     setName('')
@@ -143,6 +145,7 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
       setPendingUpload(null)
       setPhotoUrl(result.photoUrl)
       setTags(result.tags || null)
+      setEmbedding(result.embedding || null)
 
       if (presetDog) {
         setTargetDog(presetDog)
@@ -150,7 +153,13 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
         return
       }
 
-      const nearby = findNearbyDogs(dogs, { lat, lng }, 500, 5)
+      // similarity is a display-only supplementary signal (see cosineSimilarity's
+      // doc comment) — attached here so it survives into both the AI-verdict
+      // path (rankByAiVerdict spreads ...c) and the tag-overlap fallback below.
+      const nearby = findNearbyDogs(dogs, { lat, lng }, 500, 5).map((c) => ({
+        ...c,
+        similarity: cosineSimilarity(result.embedding, c.dog.latestEmbedding),
+      }))
       if (nearby.length === 0) {
         setCandidates([])
         setStep('candidates')
@@ -171,7 +180,7 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
         // AI compare failed entirely (network/server error) — fall back to
         // the old distance + text-tag-overlap ranking rather than blocking
         // the report.
-        setCandidates(findCandidates(dogs, { lat, lng, tags: result.tags }, 500, 5))
+        setCandidates(findCandidates(dogs, { lat, lng, tags: result.tags, embedding: result.embedding }, 500, 5))
       }
       setStep('candidates')
     } catch (err) {
@@ -195,12 +204,12 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
     try {
       if (targetDog) {
         await addSightingToDog({
-          dogId: targetDog.id, user, photoUrl, tags, lat: coords.lat, lng: coords.lng, note, friendliness, anonymous,
+          dogId: targetDog.id, user, photoUrl, tags, embedding, lat: coords.lat, lng: coords.lng, note, friendliness, anonymous,
         })
         setSuccessInfo({ matched: true, name: targetDog.name || t.dogUnnamed })
       } else {
         await createDogWithSighting({
-          user, photoUrl, tags, lat: coords.lat, lng: coords.lng, name, note, friendliness, anonymous,
+          user, photoUrl, tags, embedding, lat: coords.lat, lng: coords.lng, name, note, friendliness, anonymous,
         })
         setSuccessInfo({ matched: false })
       }
@@ -266,12 +275,17 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
             <p className={styles.hint}>{interp(t.reportCandidatesHint, { n: candidates.length })}</p>
           )}
           <ul className={styles.candidateList}>
-            {candidates.map(({ dog, distance, aiVerdict }) => (
+            {candidates.map(({ dog, distance, aiVerdict, similarity }) => (
               <li key={dog.id} className={styles.candidateCard}>
                 {dog.latestPhotoUrl && <img src={dog.latestPhotoUrl} alt="" className={styles.candidateThumb} />}
                 <div className={styles.candidateInfo}>
                   <div className={styles.candidateName}>{dog.name || t.dogUnnamed}</div>
                   <div className={styles.candidateDistance}>{interp(t.distanceAway, { d: Math.round(distance) })}</div>
+                  {similarity != null && (
+                    <div className={styles.candidateDistance}>
+                      {interp(t.reportPhotoSimilarity, { pct: Math.round(similarity * 100) })}
+                    </div>
+                  )}
                   {aiVerdict?.sameDog && (
                     <span className={aiVerdict.confidence === 'high' ? styles.tagGreen : styles.tagAmber}>
                       {aiVerdict.confidence === 'high' ? t.reportLikelyMatch : t.reportPossibleMatch}

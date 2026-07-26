@@ -60,7 +60,7 @@ export function useSightings(dogId) {
   return { sightings, loading }
 }
 
-export async function createDogWithSighting({ user, photoUrl, tags, lat, lng, name, note, friendliness, anonymous }) {
+export async function createDogWithSighting({ user, photoUrl, tags, embedding, lat, lng, name, note, friendliness, anonymous }) {
   const displayName = anonymous ? null : (user.displayName || null)
   const dogRef = await addDoc(collection(db, COLLECTION), {
     name: name?.trim() || null,
@@ -72,10 +72,12 @@ export async function createDogWithSighting({ user, photoUrl, tags, lat, lng, na
     lastLng: lng,
     latestPhotoUrl: photoUrl,
     latestTags: tags || null,
+    latestEmbedding: embedding || null,
   })
   await addDoc(collection(db, COLLECTION, dogRef.id, 'sightings'), {
     photoUrl,
     tags: tags || null,
+    embedding: embedding || null,
     lat,
     lng,
     reportedBy: user.uid,
@@ -87,11 +89,12 @@ export async function createDogWithSighting({ user, photoUrl, tags, lat, lng, na
   return dogRef.id
 }
 
-export async function addSightingToDog({ dogId, user, photoUrl, tags, lat, lng, note, friendliness, anonymous }) {
+export async function addSightingToDog({ dogId, user, photoUrl, tags, embedding, lat, lng, note, friendliness, anonymous }) {
   const displayName = anonymous ? null : (user.displayName || null)
   await addDoc(collection(db, COLLECTION, dogId, 'sightings'), {
     photoUrl,
     tags: tags || null,
+    embedding: embedding || null,
     lat,
     lng,
     reportedBy: user.uid,
@@ -106,6 +109,7 @@ export async function addSightingToDog({ dogId, user, photoUrl, tags, lat, lng, 
     lastLng: lng,
     latestPhotoUrl: photoUrl,
     latestTags: tags || null,
+    latestEmbedding: embedding || null,
   })
 }
 
@@ -139,6 +143,7 @@ export async function deleteSighting(dogId, sightingId) {
     lastLng: latest.lng,
     latestPhotoUrl: latest.photoUrl,
     latestTags: latest.tags || null,
+    latestEmbedding: latest.embedding || null,
   })
   return { dogDeleted: false }
 }
@@ -172,6 +177,7 @@ export async function detachSighting(dogId, sightingId) {
     lastLng: data.lng,
     latestPhotoUrl: data.photoUrl,
     latestTags: data.tags || null,
+    latestEmbedding: data.embedding || null,
   })
   batch.set(doc(collection(db, COLLECTION, newDogRef.id, 'sightings')), data)
   batch.delete(target.ref)
@@ -189,6 +195,7 @@ export async function detachSighting(dogId, sightingId) {
       lastLng: latest.lng,
       latestPhotoUrl: latest.photoUrl,
       latestTags: latest.tags || null,
+      latestEmbedding: latest.embedding || null,
     })
   }
 
@@ -228,6 +235,7 @@ export async function mergeDogs(sourceId, targetId) {
     lastLng: latest.lng,
     latestPhotoUrl: latest.photoUrl,
     latestTags: latest.tags || null,
+    latestEmbedding: latest.embedding || null,
   })
 }
 
@@ -337,6 +345,24 @@ function tagOverlapScore(a, b) {
   return score
 }
 
+// Cosine similarity between two Bedrock Titan embedding vectors, 0-1 (higher
+// = more visually similar). Display-only supplementary signal shown next to
+// a candidate — not used for ranking, since the AI-verdict/tag-overlap
+// scores above already drive that. Returns null (not 0) when either side is
+// missing, so the UI can distinguish "no data" from "confirmed dissimilar" —
+// dogs reported before this field existed won't have an embedding yet.
+export function cosineSimilarity(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length === 0 || a.length !== b.length) return null
+  let dot = 0, normA = 0, normB = 0
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i]
+    normA += a[i] * a[i]
+    normB += b[i] * b[i]
+  }
+  if (normA === 0 || normB === 0) return null
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB))
+}
+
 // Location-only shortlist — the input to the AI visual-compare step
 // (compareDogPhotos), which does real photo-to-photo comparison instead of
 // the text-tag matching below. Kept as its own function (rather than just
@@ -358,14 +384,21 @@ export function findNearbyDogs(dogs, { lat, lng }, radiusMeters = 500, max = 5) 
 
 // Fallback candidates when the AI compare call fails — dogs with a
 // last-known position within radiusMeters, ranked by distance first
-// (closest = most likely) then by text-tag overlap score.
-export function findCandidates(dogs, { lat, lng, tags }, radiusMeters = 500, max = 5) {
+// (closest = most likely) then by text-tag overlap score. `embedding` is
+// optional (the new report's Bedrock vector, if the call succeeded) and
+// only adds a display-only `similarity` field — it does not affect ranking.
+export function findCandidates(dogs, { lat, lng, tags, embedding }, radiusMeters = 500, max = 5) {
   return dogs
     .map((dog) => {
       if (typeof dog.lastLat !== 'number' || typeof dog.lastLng !== 'number') return null
       const distance = haversineMeters({ lat, lng }, { lat: dog.lastLat, lng: dog.lastLng })
       if (distance > radiusMeters) return null
-      return { dog, distance, tagScore: tagOverlapScore(tags, dog.latestTags) }
+      return {
+        dog,
+        distance,
+        tagScore: tagOverlapScore(tags, dog.latestTags),
+        similarity: cosineSimilarity(embedding, dog.latestEmbedding),
+      }
     })
     .filter(Boolean)
     .sort((a, b) => (b.tagScore - a.tagScore) || (a.distance - b.distance))

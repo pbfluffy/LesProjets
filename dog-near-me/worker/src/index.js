@@ -2,8 +2,13 @@
 // REQUIRED BINDINGS:
 //   BUCKET       R2 bucket "majon-photos" (Worker → Settings → Bindings → R2)
 //   RATE_LIMITER KV namespace for per-user daily upload caps
-// REQUIRED SECRET:
-//   GOOGLE_API_KEY  (wrangler secret put GOOGLE_API_KEY)
+// REQUIRED SECRETS:
+//   GOOGLE_API_KEY      (wrangler secret put GOOGLE_API_KEY)
+//   AWS_BEDROCK_API_KEY (wrangler secret put AWS_BEDROCK_API_KEY) — a
+//     dedicated long-term Bedrock API key, scoped via Advanced Permissions
+//     to bedrock:InvokeModel on amazon.titan-embed-image-v1 only. Optional:
+//     if unset, getEmbedding() no-ops and reports still succeed, just
+//     without a similarity score.
 //
 // Two entry points, distinguished by hostname:
 //
@@ -21,7 +26,8 @@
 // JS, never shown to a user) — the API surface:
 //   POST /          verify Firebase ID token -> per-uid rate limit -> upload
 //                    photo to R2 -> ask Gemini for structured descriptive
-//                    tags -> return { photoUrl, tags }.
+//                    tags AND ask Bedrock for a Titan embedding vector (in
+//                    parallel) -> return { photoUrl, tags, embedding }.
 //   POST /compare    verify token -> per-uid rate limit (separate pool) ->
 //                    fetch the new photo + up to 5 nearby candidate photos
 //                    (must be our own R2 URLs) -> ask Gemini to directly
@@ -42,6 +48,9 @@ const GEMINI_MODEL = 'gemini-3.1-flash-lite'
 const RETRY_STATUSES = new Set([500, 502, 503, 504])
 const MAX_ATTEMPTS = 3
 const BASE_DELAY_MS = 1000
+
+const BEDROCK_REGION = 'ap-southeast-2'
+const BEDROCK_MODEL_ID = 'amazon.titan-embed-image-v1'
 
 const UPLOADS_PER_DAY = 20
 const COMPARES_PER_DAY = 20
@@ -213,6 +222,43 @@ async function describeDog(env, base64Image, mimeType) {
   ])
   if (parsed?.error) return null // tag extraction is best-effort — a photo/location report still succeeds without it
   return parsed
+}
+
+// Best-effort like describeDog above — a Bedrock outage/misconfiguration
+// (e.g. AWS_BEDROCK_API_KEY not set) must never block a report, so any
+// failure just means this candidate/dog has no similarity score to show.
+async function getEmbedding(env, base64Image) {
+  if (!env.AWS_BEDROCK_API_KEY) {
+    console.warn('Bedrock embedding skipped: AWS_BEDROCK_API_KEY not set')
+    return null
+  }
+  try {
+    const res = await fetch(
+      `https://bedrock-runtime.${BEDROCK_REGION}.amazonaws.com/model/${BEDROCK_MODEL_ID}/invoke`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${env.AWS_BEDROCK_API_KEY}`,
+        },
+        body: JSON.stringify({ inputImage: base64Image }),
+      }
+    )
+    if (!res.ok) {
+      console.error('Bedrock embedding error', res.status, await res.text())
+      return null
+    }
+    const data = await res.json()
+    if (!Array.isArray(data.embedding)) {
+      console.error('Bedrock embedding error: no embedding array in response', JSON.stringify(data))
+      return null
+    }
+    console.log('Bedrock embedding ok, dims=' + data.embedding.length)
+    return data.embedding
+  } catch (e) {
+    console.error('Bedrock embedding failed:', e)
+    return null
+  }
 }
 
 async function fetchImageAsBase64(url) {
@@ -411,9 +457,13 @@ async function handleUpload(request, env, origin, uid) {
   await env.BUCKET.put(key, bytes, { httpMetadata: { contentType: type } })
   const photoUrl = `${PUBLIC_BASE}/${key}`
 
-  const tags = await describeDog(env, bytesToBase64(bytes), type)
+  const base64Image = bytesToBase64(bytes)
+  const [tags, embedding] = await Promise.all([
+    describeDog(env, base64Image, type),
+    getEmbedding(env, base64Image),
+  ])
 
-  return json({ photoUrl, tags }, 200, origin)
+  return json({ photoUrl, tags, embedding }, 200, origin)
 }
 
 async function handleCompare(request, env, origin, uid) {
