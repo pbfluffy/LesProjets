@@ -281,15 +281,17 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
                 <div className={styles.candidateInfo}>
                   <div className={styles.candidateName}>{dog.name || t.dogUnnamed}</div>
                   <div className={styles.candidateDistance}>{interp(t.distanceAway, { d: Math.round(distance) })}</div>
-                  {similarity != null && (
-                    <div className={styles.candidateDistance}>
-                      {interp(t.reportPhotoSimilarity, { pct: Math.round(similarity * 100) })}
-                    </div>
-                  )}
-                  {aiVerdict?.sameDog && (
+                  {aiVerdict?.sameDog ? (
                     <span className={aiVerdict.confidence === 'high' ? styles.tagGreen : styles.tagAmber}>
                       {aiVerdict.confidence === 'high' ? t.reportLikelyMatch : t.reportPossibleMatch}
+                      {similarity != null && ` · ${Math.round(similarity * 100)}%`}
                     </span>
+                  ) : (
+                    similarity != null && (
+                      <div className={styles.candidateDistance}>
+                        {interp(t.reportPhotoSimilarity, { pct: Math.round(similarity * 100) })}
+                      </div>
+                    )
                   )}
                 </div>
                 <button type="button" className={styles.matchBtn} onClick={() => pickCandidate(dog)}>
