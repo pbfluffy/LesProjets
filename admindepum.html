@@ -2370,7 +2370,7 @@ async function saveEditor(){
   if((lat==='')!==(lng==='')) return fail('Latitude and longitude must both be set, or both empty.');
   if(lat!=='' && (isNaN(parseFloat(lat))||isNaN(parseFloat(lng)))) return fail('Coordinates must be valid numbers.');
   const dupMatch = findPossibleDuplicate(vget('f_name_en'), PLACES, CUR) || findPossibleDuplicate(vget('f_name_th'), PLACES, CUR);
-  if(dupMatch && !confirm('A similar place "'+dupMatch+'" already exists in the catalog. Save anyway?')) return;
+  if(dupMatch && !(await confirmDialog('A similar place "'+dupMatch+'" already exists in the catalog. Save anyway?', {okLabel:'Save anyway'}))) return;
   const body = buildBody();
   const btn = document.getElementById('pedit-save'); btn.disabled=true; btn.textContent='Saving\u2026';
   const approvedSuggestionId = PENDING_SUGGESTION_ID;
