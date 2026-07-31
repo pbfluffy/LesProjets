@@ -8,7 +8,7 @@ const STRINGS = {
     title: 'Protein Bar Deals',
     subtitle: 'South Korea convenience stores · CU, GS25, 7-Eleven, emart24',
     placeholderNotice:
-      'Researched July 31, 2026 — real products/prices, sourced per entry (see the link on each card). "Confirmed" entries come from a store\'s own event page with explicit dates; others are real products whose promo I could not confirm as currently live — worth a look in store.',
+      'Researched July 31, 2026 — real products/prices, sourced per entry (see the link on each card). "Confirmed" entries were checked directly against the store\'s own site (dated where the store publishes one); others are real products I could only find on a third-party tracker — worth a look in store.',
     searchPlaceholder: 'Search brand or product…',
     all: 'All',
     sortLabel: 'Sort',
@@ -31,7 +31,7 @@ const STRINGS = {
     title: '단백질 바 할인 정보',
     subtitle: '한국 편의점 · CU, GS25, 7-Eleven, emart24',
     placeholderNotice:
-      '2026년 7월 31일 조사 — 실제 상품/가격이며 카드마다 출처 링크가 있습니다. "확인됨"은 매장 공식 이벤트 페이지에서 명시된 날짜로 가져온 항목이고, 나머지는 실제 상품이지만 이번 달에 진행 중인지 확인하지 못한 항목입니다 — 매장에서 직접 확인해보세요.',
+      '2026년 7월 31일 조사 — 실제 상품/가격이며 카드마다 출처 링크가 있습니다. "확인됨"은 매장 자체 사이트에서 직접 확인한 항목이고(날짜를 공개하는 매장은 날짜도 표시), 나머지는 실제 상품이지만 제3자 트래커에서만 확인된 항목입니다 — 매장에서 직접 확인해보세요.',
     searchPlaceholder: '브랜드 또는 상품명 검색…',
     all: '전체',
     sortLabel: '정렬',
