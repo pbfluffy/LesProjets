@@ -1,7 +1,7 @@
 {
   "name": "Protein Bar Deals — Korea convenience store promo tracker",
   "short_name": "KR Protein Deals",
-  "description": "Placeholder tracker for protein bar promotions at South Korean convenience stores.",
+  "description": "Tracker for protein bar promotions at South Korean convenience stores.",
   "id": "/kr-protein-bars/",
   "start_url": "/kr-protein-bars/",
   "scope": "/kr-protein-bars/",

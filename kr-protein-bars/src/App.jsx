@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
 import { useTheme, useLang } from './hooks/useThemeLang'
-import { promos, STORES, STORE_NOTES } from './data/promos.js'
+import { promos, STORES } from './data/promos.js'
 import styles from './App.module.css'
 
 const STRINGS = {
   en: {
     title: 'Protein Bar Deals',
-    subtitle: 'South Korea convenience stores · CU, GS25, 7-Eleven, emart24, ministop',
+    subtitle: 'South Korea convenience stores · CU, GS25, 7-Eleven, emart24',
     placeholderNotice:
       'Researched July 31, 2026 — real products/prices, sourced per entry (see the link on each card). "Confirmed" entries come from a store\'s own event page with explicit dates; others are real products whose promo I could not confirm as currently live — worth a look in store.',
     searchPlaceholder: 'Search brand or product…',
@@ -29,7 +29,7 @@ const STRINGS = {
   },
   ko: {
     title: '단백질 바 할인 정보',
-    subtitle: '한국 편의점 · CU, GS25, 7-Eleven, emart24, ministop',
+    subtitle: '한국 편의점 · CU, GS25, 7-Eleven, emart24',
     placeholderNotice:
       '2026년 7월 31일 조사 — 실제 상품/가격이며 카드마다 출처 링크가 있습니다. "확인됨"은 매장 공식 이벤트 페이지에서 명시된 날짜로 가져온 항목이고, 나머지는 실제 상품이지만 이번 달에 진행 중인지 확인하지 못한 항목입니다 — 매장에서 직접 확인해보세요.',
     searchPlaceholder: '브랜드 또는 상품명 검색…',
@@ -166,18 +166,7 @@ export default function App() {
         />
 
         {rows.length === 0 ? (
-          store !== 'all' && !search && STORE_NOTES[store] ? (
-            <div className={styles.storeNote}>
-              <p>{STORE_NOTES[store].text}</p>
-              {STORE_NOTES[store].sourceUrl && (
-                <a href={STORE_NOTES[store].sourceUrl} target="_blank" rel="noopener noreferrer">
-                  {t.source} ↗
-                </a>
-              )}
-            </div>
-          ) : (
-            <p className={styles.muted}>{t.noResults}</p>
-          )
+          <p className={styles.muted}>{t.noResults}</p>
         ) : (
           <ul className={styles.cardList}>
             {rows.map((p) => {

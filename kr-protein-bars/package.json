@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Placeholder tracker for protein bar promotions at South Korean convenience stores (CU, GS25, 7-Eleven, emart24, ministop).",
+  "description": "Tracker for protein bar promotions at South Korean convenience stores (CU, GS25, 7-Eleven, emart24).",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -1,6 +1,6 @@
 # Protein Bar Deals · Korea Convenience Stores
 
-Tracker for protein bar promotions at South Korean convenience stores (CU, GS25, 7-Eleven, emart24, ministop). Not linked from the main landing page — reachable directly at its own URL.
+Tracker for protein bar promotions at South Korean convenience stores (CU, GS25, 7-Eleven, emart24). Not linked from the main landing page — reachable directly at its own URL.
 
 Live: https://pumbafluffycorgi.com/kr-protein-bars/
 
@@ -11,7 +11,7 @@ Data in `src/data/promos.js` is real (researched July 31, 2026), not placeholder
 - `confirmed: true` — pulled straight from a store's own official event page with explicit promo dates.
 - `confirmed: false` — a real product with a real historical price/promo from a third-party price-tracking site, but not confirmed as *currently* running. The app labels these "Not confirmed active this month" and links to the source.
 
-No ministop entry yet — nothing turned up in that research pass. `proteinG` is `null` on a couple of entries where only calorie data was findable, not an exact protein-gram figure; the app handles that gracefully (skips it from the value-sort ranking rather than guessing).
+ministop was dropped from the store list — not enough real presence/coverage to be worth tracking here, based on both research and in-store experience. `proteinG` is `null` on a couple of entries where only calorie data was findable, not an exact protein-gram figure; the app handles that gracefully (skips it from the value-sort ranking rather than guessing).
 
 Re-research and refresh this file periodically — promos rotate monthly and the `confirmed: true` entries especially will go stale.
 
