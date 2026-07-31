@@ -8,7 +8,7 @@ const STRINGS = {
     title: 'Protein Bar Deals',
     subtitle: 'South Korea convenience stores · CU, GS25, 7-Eleven, emart24, ministop',
     placeholderNotice:
-      'All entries below are sample placeholder data — edit src/data/promos.js with real promos you find in-store.',
+      'Researched July 31, 2026 — real products/prices, sourced per entry (see the link on each card). "Confirmed" entries come from a store\'s own event page with explicit dates; others are real products whose promo I could not confirm as currently live — worth a look in store.',
     searchPlaceholder: 'Search brand or product…',
     all: 'All',
     sortLabel: 'Sort',
@@ -17,18 +17,21 @@ const STRINGS = {
     noResults: 'No promos match that search.',
     promoLabel: { '1+1': '1+1', '2+1': '2+1', percent: (n) => `${n}% off`, none: 'No promo' },
     protein: 'protein',
+    proteinUnknown: 'protein content not confirmed',
     perBar: 'per bar',
     effectivePrice: 'Effective price',
     perGram: '₩/g protein',
     endsIn: (d) => (d === 0 ? 'Ends today' : d === 1 ? 'Ends tomorrow' : `Ends in ${d}d`),
     ended: 'Promo ended',
     noEndDate: 'Ongoing',
+    unconfirmed: 'Not confirmed active this month — check in store',
+    source: 'Source',
   },
   ko: {
     title: '단백질 바 할인 정보',
     subtitle: '한국 편의점 · CU, GS25, 7-Eleven, emart24, ministop',
     placeholderNotice:
-      '아래 항목은 모두 예시 데이터입니다 — src/data/promos.js 파일을 실제로 발견한 할인 정보로 바꿔주세요.',
+      '2026년 7월 31일 조사 — 실제 상품/가격이며 카드마다 출처 링크가 있습니다. "확인됨"은 매장 공식 이벤트 페이지에서 명시된 날짜로 가져온 항목이고, 나머지는 실제 상품이지만 이번 달에 진행 중인지 확인하지 못한 항목입니다 — 매장에서 직접 확인해보세요.',
     searchPlaceholder: '브랜드 또는 상품명 검색…',
     all: '전체',
     sortLabel: '정렬',
@@ -37,12 +40,15 @@ const STRINGS = {
     noResults: '검색 결과가 없습니다.',
     promoLabel: { '1+1': '1+1', '2+1': '2+1', percent: (n) => `${n}% 할인`, none: '할인 없음' },
     protein: '단백질',
+    proteinUnknown: '단백질 함량 미확인',
     perBar: '1개 기준',
     effectivePrice: '실질 가격',
     perGram: '₩/단백질 g',
     endsIn: (d) => (d === 0 ? '오늘 마감' : d === 1 ? '내일 마감' : `${d}일 남음`),
     ended: '할인 종료',
     noEndDate: '상시 판매',
+    unconfirmed: '이번 달 진행 여부 미확인 — 매장에서 확인 필요',
+    source: '출처',
   },
 }
 
@@ -63,6 +69,14 @@ function formatKrw(n) {
   return `₩${Math.round(n).toLocaleString('en-US')}`
 }
 
+// Sort tier: confirmed-and-active first, then not-confirmed-live, then
+// confirmed-but-ended last — regardless of which sort mode is picked, so a
+// stale/unconfirmed entry never outranks something we know is live.
+function tierOf(p) {
+  if (!p.confirmed) return 1
+  return p.daysLeft != null && p.daysLeft < 0 ? 2 : 0
+}
+
 export default function App() {
   const [theme, setTheme] = useTheme()
   const [lang, setLang] = useLang()
@@ -79,16 +93,20 @@ export default function App() {
       .map((p) => ({
         ...p,
         effectivePrice: effectiveUnitPriceKrw(p),
-        pricePerGram: effectiveUnitPriceKrw(p) / p.proteinG,
+        pricePerGram: p.proteinG ? effectiveUnitPriceKrw(p) / p.proteinG : null,
         daysLeft: daysLeft(p.endDate),
       }))
 
     list = [...list].sort((a, b) => {
-      const aEnded = a.daysLeft != null && a.daysLeft < 0
-      const bEnded = b.daysLeft != null && b.daysLeft < 0
-      if (aEnded !== bEnded) return aEnded ? 1 : -1
-      if (sort === 'value') return a.pricePerGram - b.pricePerGram
-      if (a.daysLeft == null) return 1
+      const at = tierOf(a)
+      const bt = tierOf(b)
+      if (at !== bt) return at - bt
+      if (sort === 'value') {
+        if (a.pricePerGram == null) return b.pricePerGram == null ? 0 : 1
+        if (b.pricePerGram == null) return -1
+        return a.pricePerGram - b.pricePerGram
+      }
+      if (a.daysLeft == null) return b.daysLeft == null ? 0 : 1
       if (b.daysLeft == null) return -1
       return a.daysLeft - b.daysLeft
     })
@@ -152,27 +170,41 @@ export default function App() {
         ) : (
           <ul className={styles.cardList}>
             {rows.map((p) => {
-              const ended = p.daysLeft != null && p.daysLeft < 0
+              const ended = p.confirmed && p.daysLeft != null && p.daysLeft < 0
               const promoText =
                 p.promo === 'percent' ? t.promoLabel.percent(p.percentOff) : t.promoLabel[p.promo] || p.promo
               return (
-                <li key={p.id} className={`${styles.card} ${ended ? styles.cardEnded : ''}`}>
+                <li key={p.id} className={`${styles.card} ${ended ? styles.cardEnded : ''} ${!p.confirmed ? styles.cardUnconfirmed : ''}`}>
                   <div className={styles.cardTop}>
                     <span className={styles.storeTag}>{p.store}</span>
                     <span className={`${styles.promoTag} ${p.promo === 'none' ? styles.promoNone : ''}`}>{promoText}</span>
                   </div>
                   <div className={styles.cardName}>{p.brand} — {p.name}</div>
                   <div className={styles.cardMeta}>
-                    {p.proteinG}g {t.protein} · {formatKrw(p.priceKrw)} {t.perBar}
+                    {p.proteinG != null ? `${p.proteinG}g ${t.protein} · ` : ''}
+                    {formatKrw(p.priceKrw)} {t.perBar}
                   </div>
                   <div className={styles.priceRow}>
                     <span>{t.effectivePrice}: <b>{formatKrw(p.effectivePrice)}</b></span>
-                    <span className={styles.faint}>{p.pricePerGram.toFixed(0)} {t.perGram}</span>
+                    <span className={styles.faint}>
+                      {p.pricePerGram != null ? `${p.pricePerGram.toFixed(0)} ${t.perGram}` : t.proteinUnknown}
+                    </span>
                   </div>
                   <div className={styles.endRow}>
-                    {ended ? t.ended : p.daysLeft == null ? t.noEndDate : t.endsIn(p.daysLeft)}
+                    {!p.confirmed
+                      ? t.unconfirmed
+                      : ended
+                        ? t.ended
+                        : p.daysLeft == null
+                          ? t.noEndDate
+                          : t.endsIn(p.daysLeft)}
                   </div>
                   {p.notes && <div className={styles.notes}>{p.notes}</div>}
+                  {p.sourceUrl && (
+                    <a className={styles.sourceLink} href={p.sourceUrl} target="_blank" rel="noopener noreferrer">
+                      {t.source} ↗
+                    </a>
+                  )}
                 </li>
               )
             })}
