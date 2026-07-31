@@ -1,0 +1,14 @@
+@import '../../shared/theme-tokens.css';
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  transition: background 0.2s, color 0.2s;
+}
+#root { min-height: 100dvh; }
+button { font-family: inherit; }
+a { color: inherit; }

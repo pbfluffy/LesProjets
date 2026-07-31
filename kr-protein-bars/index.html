@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function () {
+        var saved = localStorage.getItem("theme");
+        var dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Protein Bar Deals · Korea Convenience Stores</title>
+    <meta name="description" content="Placeholder tracker for protein bar promotions at South Korean convenience stores (CU, GS25, 7-Eleven, emart24, ministop)." />
+    <meta name="theme-color" content="#f7f6f2" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/kr-protein-bars/manifest.json" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Protein Bar Deals · Korea" />
+    <meta property="og:title" content="Protein Bar Deals · Korea Convenience Stores" />
+    <meta property="og:description" content="Placeholder tracker for protein bar promotions at South Korean convenience stores." />
+    <meta property="og:url" content="https://pumbafluffycorgi.com/kr-protein-bars/" />
+    <meta property="og:image" content="https://pumbafluffycorgi.com/pumba.png" />
+    <meta property="og:image:alt" content="Pumba the corgi" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

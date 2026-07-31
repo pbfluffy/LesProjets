@@ -66,9 +66,15 @@ jobs:
           npm install
           npm run build
 
+      - name: Build kr-protein-bars
+        working-directory: kr-protein-bars
+        run: |
+          npm install
+          npm run build
+
       - name: Assemble site
         run: |
-          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/trip-planner _site/dog-near-me _site/arl-status
+          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/trip-planner _site/dog-near-me _site/arl-status _site/kr-protein-bars
           cp index.html _site/index.html
           cp admindepum.html _site/admindepum.html
           cp temp.html _site/temp.html
@@ -81,6 +87,7 @@ jobs:
           cp -r trip-planner/dist/. _site/trip-planner/
           cp -r dog-near-me/dist/. _site/dog-near-me/
           cp -r arl-status/dist/. _site/arl-status/
+          cp -r kr-protein-bars/dist/. _site/kr-protein-bars/
           cp pumba.png _site/pumba.png
           cp apple-touch-icon.png _site/apple-touch-icon.png
           cp icon-192.png _site/icon-192.png
