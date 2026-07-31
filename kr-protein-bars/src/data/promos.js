@@ -29,6 +29,21 @@ export const STORES = ['CU', 'GS25', '7-Eleven', 'emart24']
 
 export const promos = [
   {
+    id: 'cu-orion-doctoryou-regular',
+    store: 'CU',
+    brand: '오리온 (Orion)',
+    name: '닥터유 단백질바',
+    proteinG: 12,
+    priceKrw: 1600,
+    promo: 'none',
+    percentOff: null,
+    confirmed: true,
+    startDate: null,
+    endDate: null,
+    sourceUrl: 'https://cu.bgfretail.com/product/search.do?searchKeyword=%EB%8B%A5%ED%84%B0%EC%9C%A0',
+    notes: 'Regular-price reference, not a promo — CU\'s catalog search only turns up this standard Dr.You bar (~12g protein), no active 1+1/2+1. The 24g-protein "Dr.You PRO" bar specifically was searched for directly (CU, GS25, emart24 catalogs, plus the 7-Eleven tracker) and doesn\'t appear to be carried at any of the four stores at all — it looks like an online-retail-only SKU (Coupang/SSG/Kurly/Dr.You\'s own mall).',
+  },
+  {
     id: 'cu-dongsuh-post',
     store: 'CU',
     brand: '동서 (Dongsuh)',
