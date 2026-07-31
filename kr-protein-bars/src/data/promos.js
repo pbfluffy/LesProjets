@@ -141,3 +141,14 @@ export const promos = [
   // fabricating a placeholder for it. Add one here once you spot something
   // in store.
 ]
+
+// Per-store research notes, shown when that store's filter has zero results.
+// Not a product — just an honest "here's what I checked" instead of a bare
+// "no matches" message.
+export const STORE_NOTES = {
+  ministop: {
+    text:
+      'No protein bar promo found for ministop (checked July 31, 2026). The price-tracker site used for the other stores\' unconfirmed entries shows zero promo products of any kind for ministop this month — plausibly related to Ministop Korea\'s shrinking store count (many locations have converted to emart24 in recent years). Check in store and add an entry here if you spot something.',
+    sourceUrl: 'https://pyony.com/brands/ministop/',
+  },
+}

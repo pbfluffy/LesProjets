@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTheme, useLang } from './hooks/useThemeLang'
-import { promos, STORES } from './data/promos.js'
+import { promos, STORES, STORE_NOTES } from './data/promos.js'
 import styles from './App.module.css'
 
 const STRINGS = {
@@ -166,7 +166,18 @@ export default function App() {
         />
 
         {rows.length === 0 ? (
-          <p className={styles.muted}>{t.noResults}</p>
+          store !== 'all' && !search && STORE_NOTES[store] ? (
+            <div className={styles.storeNote}>
+              <p>{STORE_NOTES[store].text}</p>
+              {STORE_NOTES[store].sourceUrl && (
+                <a href={STORE_NOTES[store].sourceUrl} target="_blank" rel="noopener noreferrer">
+                  {t.source} ↗
+                </a>
+              )}
+            </div>
+          ) : (
+            <p className={styles.muted}>{t.noResults}</p>
+          )
         ) : (
           <ul className={styles.cardList}>
             {rows.map((p) => {
