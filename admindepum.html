@@ -2162,6 +2162,36 @@ const optList = (list, cur) => [...new Set([...list, cur].filter(v=>v!==undefine
 const field = (label,id,val,type) => `<div class="fld"><label>${label}</label><input type="${type||'text'}" id="${id}" value="${esc(val)}" /></div>`;
 const area = (label,id,val) => `<div class="fld full"><label>${label}</label><textarea id="${id}">${escA(val)}</textarea></div>`;
 const chk = (label,id,on) => `<label><input type="checkbox" id="${id}"${on?' checked':''} /> ${label}</label>`;
+// Same loose-match logic as pumgoda's SuggestPlaceSheet.jsx findPossibleDuplicate —
+// catches an admin re-creating a place that's already in the catalog under a
+// near-identical name (the "+ Add place" flow has no other duplicate guard,
+// only a Place ID uniqueness check).
+const normalizeName = (str) =>
+  (str || '').toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+function findPossibleDuplicate(name, places, excludeId){
+  const query = normalizeName(name);
+  if(!query || query.length < 3 || !Array.isArray(places)) return null;
+  for(const p of places){
+    if(excludeId && p.id === excludeId) continue;
+    const en = normalizeName(p.name && p.name.en);
+    const th = normalizeName(p.name && p.name.th);
+    for(const candidate of [en, th]){
+      if(!candidate) continue;
+      if(candidate === query || candidate.includes(query) || query.includes(candidate)) return (p.name && (p.name.en || p.name.th)) || p.id;
+    }
+  }
+  return null;
+}
+function updateDupWarning(){
+  const warn = document.getElementById('pedit-dupwarn'); if(!warn) return;
+  const match = findPossibleDuplicate(vget('f_name_en'), PLACES, CUR) || findPossibleDuplicate(vget('f_name_th'), PLACES, CUR);
+  if(match){
+    warn.querySelector('p').textContent = 'Possible duplicate: "'+match+'" is already in the catalog.';
+    warn.classList.remove('hidden');
+  }else{
+    warn.classList.add('hidden');
+  }
+}
 function blankPlace(){ return { name:{en:'',th:''}, type:'', region:'bangkok_metro', province:'', neighborhood:'', coords:null, address:{en:'',th:''}, googleMapsUrl:'', phone:'', website:'', instagram:'', hours:'', policy:{}, pumba:{}, priceTier:null, notes:{en:'',th:''}, tags:[], lastVerified:null, photos:[] }; }
 function buildForm(p, creating){
   const pol = p.policy || {};
@@ -2170,6 +2200,7 @@ function buildForm(p, creating){
   document.getElementById('pedit-bd').innerHTML = idField + AUTOFILL_BLOCK +
     field('Name (EN)','f_name_en',(p.name&&p.name.en)||'') +
     field('Name (TH)','f_name_th',(p.name&&p.name.th)||'') +
+    `<div id="pedit-dupwarn" class="fld full hidden"><p style="margin:0;font-size:12px;color:var(--accent)" role="status"></p></div>` +
     `<div class="fld"><label>Type</label><select id="f_type">${optList(TYPE_BASE, p.type||'')}</select></div>` +
     `<div class="fld"><label>Region</label><select id="f_region">${optList(REGION_BASE, p.region||'')}</select></div>` +
     field('Province','f_province',p.province||'') +
@@ -2214,6 +2245,9 @@ function buildForm(p, creating){
           : '')
       : '<div class="fld-sec">Photos</div><div class="fld full"><div id="f_photos" class="photogrid"></div><label class="uploadbtn"><input type="file" id="f_photofile" accept="image/*" hidden multiple /><span>+ Upload photo</span></label><div id="f_photomsg" class="photomsg"></div></div>');
   if(!creating) renderThumbs();
+  document.getElementById('f_name_en').addEventListener('input', updateDupWarning);
+  document.getElementById('f_name_th').addEventListener('input', updateDupWarning);
+  updateDupWarning();
 }
 function openEditor(id){
   const p = PLACES.find(x=>x.id===id); if(!p) return;
