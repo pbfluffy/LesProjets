@@ -248,3 +248,21 @@ export const promos = [
   // add real entries back once 7-Eleven's own site is reachable, or once you
   // spot something in store yourself.
 ]
+
+// Not a convenience-store promo — kept separate from `promos` (not part of
+// STORES/filtering) so it never gets confused for an in-store deal. Dr.You
+// PRO (24g protein, 70g bar) was searched for directly on CU, GS25, and
+// emart24's own catalogs multiple times (Jul 31 and Aug 1, 2026) — zero
+// results every time. It only turns up through online retail. priceKrw here
+// is a real per-bar price computed from an actual 8-pack listing (₩13,700
+// for 8 = ₩1,712.5/bar), not a made-up number.
+export const onlineReference = {
+  id: 'online-doctoryou-pro',
+  brand: '오리온 (Orion)',
+  name: '닥터유 PRO 단백질바 70g',
+  proteinG: 24,
+  priceKrw: 1712.5,
+  imageUrl: 'https://img.danuri.io/catalog-image/065/607/017/abbc82b4038d42f780fe7f866c1079f6.jpg',
+  sourceUrl: 'https://prod.danawa.com/info/?pcode=17607065',
+  notes: 'Not carried at CU, GS25, or emart24 — searched each store\'s own catalog search directly, zero results every time. Online-retail only (Coupang/SSG/Kurly/Dr.You\'s own mall); price is a per-bar figure computed from a real 8-pack listing on Danawa (₩13,700 / 8), not a single-unit convenience-store price.',
+}

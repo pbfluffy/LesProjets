@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTheme, useLang } from './hooks/useThemeLang'
-import { promos, STORES } from './data/promos.js'
+import { promos, STORES, onlineReference } from './data/promos.js'
 import styles from './App.module.css'
 
 const STRINGS = {
@@ -27,6 +27,9 @@ const STRINGS = {
     noEndDate: 'Ongoing',
     unconfirmed: 'Not confirmed active this month — check in store',
     source: 'Source',
+    onlineTitle: 'Not sold in these stores',
+    onlineBody: 'Frequently asked about, so here it is for reference — but it doesn\'t show up in CU, GS25, or emart24\'s own catalogs at all. Online retail only.',
+    onlineTag: 'Online only',
   },
   ko: {
     title: '단백질 바 할인 정보',
@@ -51,6 +54,9 @@ const STRINGS = {
     noEndDate: '상시 판매',
     unconfirmed: '이번 달 진행 여부 미확인 — 매장에서 확인 필요',
     source: '출처',
+    onlineTitle: '이 매장들에서는 판매하지 않음',
+    onlineBody: '자주 문의가 있어 참고용으로 올려둡니다 — 하지만 CU, GS25, emart24 자체 카탈로그 어디에도 없습니다. 온라인 구매만 가능합니다.',
+    onlineTag: '온라인 전용',
   },
 }
 
@@ -233,6 +239,40 @@ export default function App() {
               )
             })}
           </ul>
+        )}
+
+        {store === 'all' && (
+          <div className={styles.onlineSection}>
+            <h2 className={styles.sectionTitle}>{t.onlineTitle}</h2>
+            <div className={`${styles.card} ${styles.cardOnline}`}>
+              <div className={styles.cardTopRow}>
+                {onlineReference.imageUrl && (
+                  <img
+                    className={styles.thumb}
+                    src={onlineReference.imageUrl}
+                    alt={`${onlineReference.brand} ${onlineReference.name}`}
+                    loading="lazy"
+                    onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  />
+                )}
+                <div className={styles.cardBody}>
+                  <div className={styles.cardTop}>
+                    <span className={`${styles.promoTag} ${styles.promoNone}`}>{t.onlineTag}</span>
+                  </div>
+                  <div className={styles.cardName}>{onlineReference.brand} — {onlineReference.name}</div>
+                  <div className={styles.cardMeta}>
+                    {onlineReference.proteinG}g {t.protein} · {formatKrw(onlineReference.priceKrw)} ({formatThb(onlineReference.priceKrw)}) {t.perBar}
+                  </div>
+                </div>
+              </div>
+              <div className={styles.notes}>{t.onlineBody} {onlineReference.notes}</div>
+              {onlineReference.sourceUrl && (
+                <a className={styles.sourceLink} href={onlineReference.sourceUrl} target="_blank" rel="noopener noreferrer">
+                  {t.source} ↗
+                </a>
+              )}
+            </div>
+          </div>
         )}
       </main>
     </div>
