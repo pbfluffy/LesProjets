@@ -150,6 +150,24 @@
 .cardUnconfirmed { border-left: 3px solid var(--color-amber); }
 .cardUnconfirmed .endRow { color: var(--color-amber); }
 
+.cardTopRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.thumb {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: var(--color-surface-alt);
+}
+.cardBody {
+  flex: 1;
+  min-width: 0;
+}
+
 .cardTop {
   display: flex;
   align-items: center;

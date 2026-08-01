@@ -186,29 +186,42 @@ export default function App() {
                 p.promo === 'percent' ? t.promoLabel.percent(p.percentOff) : t.promoLabel[p.promo] || p.promo
               return (
                 <li key={p.id} className={`${styles.card} ${ended ? styles.cardEnded : ''} ${!p.confirmed ? styles.cardUnconfirmed : ''}`}>
-                  <div className={styles.cardTop}>
-                    <span className={styles.storeTag}>{p.store}</span>
-                    <span className={`${styles.promoTag} ${p.promo === 'none' ? styles.promoNone : ''}`}>{promoText}</span>
-                  </div>
-                  <div className={styles.cardName}>{p.brand} — {p.name}</div>
-                  <div className={styles.cardMeta}>
-                    {p.proteinG != null ? `${p.proteinG}g ${t.protein} · ` : ''}
-                    {formatKrw(p.priceKrw)} ({formatThb(p.priceKrw)}) {t.perBar}
-                  </div>
-                  <div className={styles.priceRow}>
-                    <span>{t.effectivePrice}: <b>{formatKrw(p.effectivePrice)}</b> <span className={styles.faint}>({formatThb(p.effectivePrice)})</span></span>
-                    <span className={styles.faint}>
-                      {p.pricePerGram != null ? `${p.pricePerGram.toFixed(0)} ${t.perGram}` : t.proteinUnknown}
-                    </span>
-                  </div>
-                  <div className={styles.endRow}>
-                    {!p.confirmed
-                      ? t.unconfirmed
-                      : ended
-                        ? t.ended
-                        : p.daysLeft == null
-                          ? t.noEndDate
-                          : t.endsIn(p.daysLeft)}
+                  <div className={styles.cardTopRow}>
+                    {p.imageUrl && (
+                      <img
+                        className={styles.thumb}
+                        src={p.imageUrl}
+                        alt={`${p.brand} ${p.name}`}
+                        loading="lazy"
+                        onError={(e) => { e.currentTarget.style.display = 'none' }}
+                      />
+                    )}
+                    <div className={styles.cardBody}>
+                      <div className={styles.cardTop}>
+                        <span className={styles.storeTag}>{p.store}</span>
+                        <span className={`${styles.promoTag} ${p.promo === 'none' ? styles.promoNone : ''}`}>{promoText}</span>
+                      </div>
+                      <div className={styles.cardName}>{p.brand} — {p.name}</div>
+                      <div className={styles.cardMeta}>
+                        {p.proteinG != null ? `${p.proteinG}g ${t.protein} · ` : ''}
+                        {formatKrw(p.priceKrw)} ({formatThb(p.priceKrw)}) {t.perBar}
+                      </div>
+                      <div className={styles.priceRow}>
+                        <span>{t.effectivePrice}: <b>{formatKrw(p.effectivePrice)}</b> <span className={styles.faint}>({formatThb(p.effectivePrice)})</span></span>
+                        <span className={styles.faint}>
+                          {p.pricePerGram != null ? `${p.pricePerGram.toFixed(0)} ${t.perGram}` : t.proteinUnknown}
+                        </span>
+                      </div>
+                      <div className={styles.endRow}>
+                        {!p.confirmed
+                          ? t.unconfirmed
+                          : ended
+                            ? t.ended
+                            : p.daysLeft == null
+                              ? t.noEndDate
+                              : t.endsIn(p.daysLeft)}
+                      </div>
+                    </div>
                   </div>
                   {p.notes && <div className={styles.notes}>{p.notes}</div>}
                   {p.sourceUrl && (

@@ -23,6 +23,11 @@
 // protein-gram figure — better to omit than guess. daysLeft/value sorting
 // treats null protein as unrankable (sorts last within its tier).
 //
+// imageUrl points at each store's own product-image CDN (extracted from the
+// same page each entry was verified against) — not self-hosted. If a URL
+// ever breaks, the card just hides the image (onError) rather than showing
+// a broken-image icon.
+//
 // promo: '1+1' | '2+1' | 'percent' | 'none'
 export const STORES = ['CU', 'GS25', '7-Eleven', 'emart24']
 
@@ -32,6 +37,7 @@ export const promos = [
     store: 'CU',
     brand: '오리온 (Orion)',
     name: '닥터유 단백질바',
+    imageUrl: 'https://tqklhszfkvzk6518638.edge.naverncp.com/product/8801117478100.jpg',
     proteinG: 12,
     priceKrw: 1600,
     promo: 'none',
@@ -47,6 +53,7 @@ export const promos = [
     store: 'CU',
     brand: '동서 (Dongsuh)',
     name: '포스트 프로틴바 50g',
+    imageUrl: 'https://tqklhszfkvzk6518638.edge.naverncp.com/product/8801037094701.png',
     proteinG: 14,
     priceKrw: 2100,
     promo: '2+1',
@@ -62,6 +69,7 @@ export const promos = [
     store: 'emart24',
     brand: '동서 (Dongsuh)',
     name: '포스트 프로틴바 50g',
+    imageUrl: 'https://msave.emart24.co.kr/cmsbo/upload/nHq/plu_image/500x500/8801037094701.JPG',
     proteinG: 14,
     priceKrw: 2100,
     promo: '2+1',
@@ -77,6 +85,7 @@ export const promos = [
     store: 'GS25',
     brand: '동서 (Dongsuh)',
     name: '포스트 프로틴바 50g',
+    imageUrl: 'https://image.woodongs.com/imgsvr/item/GD_8801037094701_002.jpg',
     proteinG: 14,
     priceKrw: 2100,
     promo: '2+1',
@@ -92,6 +101,7 @@ export const promos = [
     store: 'emart24',
     brand: '동원 (Dongwon)',
     name: '어단백프로틴바 두부 70g',
+    imageUrl: 'https://msave.emart24.co.kr/cmsbo/upload/nHq/plu_image/500x500/8801047521006.JPG',
     proteinG: null,
     priceKrw: 3500,
     promo: '1+1',
@@ -107,6 +117,7 @@ export const promos = [
     store: 'emart24',
     brand: '동원 (Dongwon)',
     name: '어단백프로틴바 닭가슴살 70g',
+    imageUrl: 'https://msave.emart24.co.kr/cmsbo/upload/nHq/plu_image/500x500/8801047521013.JPG',
     proteinG: null,
     priceKrw: 3500,
     promo: '1+1',
@@ -122,6 +133,7 @@ export const promos = [
     store: 'GS25',
     brand: '동원 (Dongwon)',
     name: '어단백프로틴바 두부 70g',
+    imageUrl: 'https://image.woodongs.com/imgsvr/item/GD_8801047521006_001.jpg',
     proteinG: null,
     priceKrw: 3500,
     promo: '1+1',
@@ -137,6 +149,7 @@ export const promos = [
     store: 'GS25',
     brand: '동원 (Dongwon)',
     name: '어단백프로틴바 닭가슴살 70g',
+    imageUrl: 'https://image.woodongs.com/imgsvr/item/GD_8801047521013_001.jpg',
     proteinG: null,
     priceKrw: 3500,
     promo: '1+1',
@@ -152,6 +165,7 @@ export const promos = [
     store: 'GS25',
     brand: '한국마즈 (Mars)',
     name: '비카인드 다크초콜릿 아몬드 단백질바',
+    imageUrl: 'https://image.woodongs.com/imgsvr/item/GD_8804973309267_002.jpg',
     proteinG: 9,
     priceKrw: 2500,
     promo: '2+1',
@@ -167,6 +181,7 @@ export const promos = [
     store: 'GS25',
     brand: '프로티원 (Proteine1)',
     name: '단백질바 피넛버터',
+    imageUrl: 'https://image.woodongs.com/imgsvr/item/GD_8809606560312_001.jpg',
     proteinG: null,
     priceKrw: 3900,
     promo: '2+1',
@@ -182,6 +197,7 @@ export const promos = [
     store: 'GS25',
     brand: '효성 (Hyosung)',
     name: '프로틴 두부어육바 80g',
+    imageUrl: 'https://image.woodongs.com/imgsvr/item/GD_8809331461007_001.jpg',
     proteinG: null,
     priceKrw: 3700,
     promo: '1+1',
@@ -197,6 +213,7 @@ export const promos = [
     store: 'GS25',
     brand: '밀스 · 인테이크 (Meals · Intake)',
     name: '프로틴바 딥초코',
+    imageUrl: 'https://image.woodongs.com/imgsvr/item/GD_8809403539306_001.jpg',
     proteinG: 15,
     priceKrw: 2500,
     promo: '2+1',
@@ -212,6 +229,7 @@ export const promos = [
     store: 'GS25',
     brand: '밀스 · 인테이크 (Meals · Intake)',
     name: '프로틴바 바닐라카라멜',
+    imageUrl: 'https://image.woodongs.com/imgsvr/item/GD_8809403539313_001.jpg',
     proteinG: 15,
     priceKrw: 2500,
     promo: '2+1',
