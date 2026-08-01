@@ -9,6 +9,7 @@ const STRINGS = {
     subtitle: 'South Korea convenience stores · CU, GS25, 7-Eleven, emart24',
     placeholderNotice:
       'Researched July 31, 2026 — real products/prices, checked directly against each store\'s own site (dated where the store publishes one), sourced per entry (see the link on each card). Anything only findable on a third-party tracker was left out rather than kept unverified — that\'s why 7-Eleven has no entries right now.',
+    thbNote: 'THB prices in parentheses are a reference conversion at the Aug 1, 2026 mid-market rate (1 KRW ≈ ฿0.0232), not a live rate.',
     searchPlaceholder: 'Search brand or product…',
     all: 'All',
     sortLabel: 'Sort',
@@ -32,6 +33,7 @@ const STRINGS = {
     subtitle: '한국 편의점 · CU, GS25, 7-Eleven, emart24',
     placeholderNotice:
       '2026년 7월 31일 조사 — 실제 상품/가격이며, 각 매장 자체 사이트에서 직접 확인했습니다(날짜를 공개하는 매장은 날짜도 표시). 카드마다 출처 링크가 있습니다. 제3자 트래커에서만 확인된 항목은 검증되지 않은 채로 남겨두는 대신 제외했습니다 — 그래서 세븐일레븐은 현재 등록된 항목이 없습니다.',
+    thbNote: '괄호 안 THB 가격은 2026년 8월 1일 중간시장환율(1 KRW ≈ ฿0.0232) 기준 참고용 환산이며, 실시간 환율이 아닙니다.',
     searchPlaceholder: '브랜드 또는 상품명 검색…',
     all: '전체',
     sortLabel: '정렬',
@@ -67,6 +69,14 @@ function daysLeft(endDate) {
 
 function formatKrw(n) {
   return `₩${Math.round(n).toLocaleString('en-US')}`
+}
+
+// Mid-market rate as of Aug 1, 2026 (xe.com) — a reference conversion, not a
+// real-time feed, so it drifts over time. Update the constant if it's been a
+// while since this was last checked.
+const KRW_TO_THB_RATE = 0.02316
+function formatThb(krwAmount) {
+  return `฿${(krwAmount * KRW_TO_THB_RATE).toFixed(1)}`
 }
 
 // Sort tier: confirmed-and-active first, then not-confirmed-live, then
@@ -132,6 +142,7 @@ export default function App() {
 
       <main className={styles.main}>
         <p className={styles.disclaimer}>{t.placeholderNotice}</p>
+        <p className={styles.thbNote}>{t.thbNote}</p>
 
         <div className={styles.filterRow}>
           <div className={styles.chips}>
@@ -182,10 +193,10 @@ export default function App() {
                   <div className={styles.cardName}>{p.brand} — {p.name}</div>
                   <div className={styles.cardMeta}>
                     {p.proteinG != null ? `${p.proteinG}g ${t.protein} · ` : ''}
-                    {formatKrw(p.priceKrw)} {t.perBar}
+                    {formatKrw(p.priceKrw)} ({formatThb(p.priceKrw)}) {t.perBar}
                   </div>
                   <div className={styles.priceRow}>
-                    <span>{t.effectivePrice}: <b>{formatKrw(p.effectivePrice)}</b></span>
+                    <span>{t.effectivePrice}: <b>{formatKrw(p.effectivePrice)}</b> <span className={styles.faint}>({formatThb(p.effectivePrice)})</span></span>
                     <span className={styles.faint}>
                       {p.pricePerGram != null ? `${p.pricePerGram.toFixed(0)} ${t.perGram}` : t.proteinUnknown}
                     </span>
