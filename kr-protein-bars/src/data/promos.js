@@ -1,24 +1,23 @@
 // Researched July 31, 2026. Real products/prices, sourced as noted per entry —
-// NOT fabricated. Two different confidence levels, shown via `confirmed`:
+// NOT fabricated. Every entry below is `confirmed: true` — checked directly
+// against the store's own live event page/search (CU, GS25: no explicit end
+// date is shown on their sites, so endDate is null and the app shows
+// "Ongoing" — it means "live as of this check," not "guaranteed to run all
+// month." emart24 does publish explicit MM.DD-MM.DD windows, used as
+// startDate/endDate). The `confirmed` field is kept in the schema (rather
+// than dropped) because it'll matter again the moment a future entry can
+// only be sourced from a third-party tracker instead of the store itself.
 //
-//   confirmed: true   — checked directly against the store's own live event
-//                       page/search (CU, GS25: no explicit end date is shown
-//                       on their sites, so endDate is null and the app shows
-//                       "Ongoing" — it means "live as of this check," not
-//                       "guaranteed to run all month." emart24 does publish
-//                       explicit MM.DD-MM.DD windows, used as startDate/endDate.
-//   confirmed: false  — a real product/price from a third-party tracker site
-//                       that I could not cross-verify against the store's own
-//                       site (7-Eleven's own site blocks automated access
-//                       entirely — browser nav denied, direct fetch refused).
-//
-// CU and GS25's own official listings were searched exhaustively on
-// 2026-07-31 (CU: all ~720 items across its 1+1 and 2+1 tabs; GS25: its own
-// keyword search for both "단백질" and "프로틴", all result pages). Anything
-// previously listed here that did NOT turn up in that direct check (Orion
-// 단백질바프로 at CU; Lotte 이지프로틴 and 초단백질바 at GS25; Goraesa
-// lobster bar at 7-Eleven, absent from the tracker's current Aug listing
-// too) was dropped rather than kept as a vague "not confirmed" guess.
+// Anything that could only be found on a third-party tracker, not the
+// store's own site, has been deliberately left OUT rather than kept as an
+// unverified guess. That's why 7-Eleven currently has zero entries — its own
+// site blocks automated access entirely (browser nav denied, direct fetch
+// refused, tried the main domain, mobile subdomain, a direct subpage, and a
+// Wayback Machine route) — and why the Orion bar (CU) and two Lotte bars
+// (GS25) that used to be listed here are gone: a direct, exhaustive check of
+// each store's own live listing (CU: all ~720 items across its 1+1/2+1 tabs;
+// GS25: its own keyword search for "단백질" and "프로틴", every result page)
+// found no trace of them.
 //
 // proteinG is null where I found the product's calories but not an exact
 // protein-gram figure — better to omit than guess. daysLeft/value sorting
@@ -223,34 +222,11 @@ export const promos = [
     sourceUrl: 'http://gs25.gsretail.com/gscvs/ko/products/event-goods',
     notes: 'Found live via GS25\'s own "프로틴" product search (checked Jul 31, 2026) — same line as the deep-chocolate flavor above.',
   },
-  {
-    id: 'seven-cj-balancemeal-matchocho',
-    store: '7-Eleven',
-    brand: 'CJ (제일제당)',
-    name: '밸런스밀 프로틴바 말차초코 38g',
-    proteinG: 12,
-    priceKrw: 2900,
-    promo: '1+1',
-    percentOff: null,
-    confirmed: false,
-    startDate: null,
-    endDate: null,
-    sourceUrl: 'https://pyony.com/brands/seven/',
-    notes: '7-eleven.co.kr blocks automated access entirely (browser nav denied, direct fetch connection refused), so this couldn\'t be checked against 7-Eleven\'s own site. Found on the third-party tracker\'s live August 2026 listing, dated 08.01.',
-  },
-  {
-    id: 'seven-cj-balancemeal-peanutbutter',
-    store: '7-Eleven',
-    brand: 'CJ (제일제당)',
-    name: '밸런스밀 프로틴바 피넛버터 34g',
-    proteinG: null,
-    priceKrw: 2900,
-    promo: '1+1',
-    percentOff: null,
-    confirmed: false,
-    startDate: null,
-    endDate: null,
-    sourceUrl: 'https://pyony.com/brands/seven/',
-    notes: '7-eleven.co.kr blocks automated access entirely, so this couldn\'t be checked against 7-Eleven\'s own site. Found on the third-party tracker\'s live August 2026 listing, dated 08.01 — same line as the matcha-choco flavor above (smaller size, protein content not confirmed for this specific SKU).',
-  },
+  // 7-Eleven currently has no entries here. 7-eleven.co.kr blocks automated
+  // access entirely (browser nav denied, direct fetch connection refused —
+  // tried the main domain, mobile subdomain, a direct subpage, and a Wayback
+  // Machine snapshot route). The two third-party-tracker-only bars that used
+  // to be listed here were dropped rather than kept as unverified guesses —
+  // add real entries back once 7-Eleven's own site is reachable, or once you
+  // spot something in store yourself.
 ]

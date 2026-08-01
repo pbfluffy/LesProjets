@@ -8,7 +8,7 @@ const STRINGS = {
     title: 'Protein Bar Deals',
     subtitle: 'South Korea convenience stores · CU, GS25, 7-Eleven, emart24',
     placeholderNotice:
-      'Researched July 31, 2026 — real products/prices, sourced per entry (see the link on each card). "Confirmed" entries were checked directly against the store\'s own site (dated where the store publishes one); others are real products I could only find on a third-party tracker — worth a look in store.',
+      'Researched July 31, 2026 — real products/prices, checked directly against each store\'s own site (dated where the store publishes one), sourced per entry (see the link on each card). Anything only findable on a third-party tracker was left out rather than kept unverified — that\'s why 7-Eleven has no entries right now.',
     searchPlaceholder: 'Search brand or product…',
     all: 'All',
     sortLabel: 'Sort',
@@ -31,7 +31,7 @@ const STRINGS = {
     title: '단백질 바 할인 정보',
     subtitle: '한국 편의점 · CU, GS25, 7-Eleven, emart24',
     placeholderNotice:
-      '2026년 7월 31일 조사 — 실제 상품/가격이며 카드마다 출처 링크가 있습니다. "확인됨"은 매장 자체 사이트에서 직접 확인한 항목이고(날짜를 공개하는 매장은 날짜도 표시), 나머지는 실제 상품이지만 제3자 트래커에서만 확인된 항목입니다 — 매장에서 직접 확인해보세요.',
+      '2026년 7월 31일 조사 — 실제 상품/가격이며, 각 매장 자체 사이트에서 직접 확인했습니다(날짜를 공개하는 매장은 날짜도 표시). 카드마다 출처 링크가 있습니다. 제3자 트래커에서만 확인된 항목은 검증되지 않은 채로 남겨두는 대신 제외했습니다 — 그래서 세븐일레븐은 현재 등록된 항목이 없습니다.',
     searchPlaceholder: '브랜드 또는 상품명 검색…',
     all: '전체',
     sortLabel: '정렬',
