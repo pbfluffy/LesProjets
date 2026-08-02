@@ -74,6 +74,7 @@ export const STRINGS = {
 
     dogUnnamed: 'Unnamed dog',
     dogLastSeen: 'Last seen',
+    dogLocation: 'Location',
     dogSightings: 'Sightings',
     dogReportSighting: 'Report another sighting of this dog',
     dogRename: 'Edit name',
@@ -197,6 +198,7 @@ export const STRINGS = {
 
     dogUnnamed: 'หมาไม่มีชื่อ',
     dogLastSeen: 'พบล่าสุด',
+    dogLocation: 'ตำแหน่ง',
     dogSightings: 'ครั้งที่พบเห็น',
     dogReportSighting: 'รายงานการพบเห็นหมาตัวนี้อีกครั้ง',
     dogRename: 'แก้ไขชื่อ',

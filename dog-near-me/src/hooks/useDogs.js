@@ -60,7 +60,7 @@ export function useSightings(dogId) {
   return { sightings, loading }
 }
 
-export async function createDogWithSighting({ user, photoUrl, tags, embedding, lat, lng, name, note, friendliness, anonymous }) {
+export async function createDogWithSighting({ user, photoUrl, tags, embedding, lat, lng, locationName, name, note, friendliness, anonymous }) {
   const displayName = anonymous ? null : (user.displayName || null)
   const dogRef = await addDoc(collection(db, COLLECTION), {
     name: name?.trim() || null,
@@ -70,6 +70,7 @@ export async function createDogWithSighting({ user, photoUrl, tags, embedding, l
     lastSeenAt: serverTimestamp(),
     lastLat: lat,
     lastLng: lng,
+    lastLocationName: locationName || null,
     latestPhotoUrl: photoUrl,
     latestTags: tags || null,
     latestEmbedding: embedding || null,
@@ -80,6 +81,7 @@ export async function createDogWithSighting({ user, photoUrl, tags, embedding, l
     embedding: embedding || null,
     lat,
     lng,
+    locationName: locationName || null,
     reportedBy: user.uid,
     reportedByName: displayName,
     reportedAt: serverTimestamp(),
@@ -89,7 +91,7 @@ export async function createDogWithSighting({ user, photoUrl, tags, embedding, l
   return dogRef.id
 }
 
-export async function addSightingToDog({ dogId, user, photoUrl, tags, embedding, lat, lng, note, friendliness, anonymous }) {
+export async function addSightingToDog({ dogId, user, photoUrl, tags, embedding, lat, lng, locationName, note, friendliness, anonymous }) {
   const displayName = anonymous ? null : (user.displayName || null)
   await addDoc(collection(db, COLLECTION, dogId, 'sightings'), {
     photoUrl,
@@ -97,6 +99,7 @@ export async function addSightingToDog({ dogId, user, photoUrl, tags, embedding,
     embedding: embedding || null,
     lat,
     lng,
+    locationName: locationName || null,
     reportedBy: user.uid,
     reportedByName: displayName,
     reportedAt: serverTimestamp(),
@@ -107,6 +110,7 @@ export async function addSightingToDog({ dogId, user, photoUrl, tags, embedding,
     lastSeenAt: serverTimestamp(),
     lastLat: lat,
     lastLng: lng,
+    lastLocationName: locationName || null,
     latestPhotoUrl: photoUrl,
     latestTags: tags || null,
     latestEmbedding: embedding || null,
@@ -141,6 +145,7 @@ export async function deleteSighting(dogId, sightingId) {
     lastSeenAt: latest.reportedAt,
     lastLat: latest.lat,
     lastLng: latest.lng,
+    lastLocationName: latest.locationName || null,
     latestPhotoUrl: latest.photoUrl,
     latestTags: latest.tags || null,
     latestEmbedding: latest.embedding || null,
@@ -175,6 +180,7 @@ export async function detachSighting(dogId, sightingId) {
     lastSeenAt: data.reportedAt,
     lastLat: data.lat,
     lastLng: data.lng,
+    lastLocationName: data.locationName || null,
     latestPhotoUrl: data.photoUrl,
     latestTags: data.tags || null,
     latestEmbedding: data.embedding || null,
@@ -193,6 +199,7 @@ export async function detachSighting(dogId, sightingId) {
       lastSeenAt: latest.reportedAt,
       lastLat: latest.lat,
       lastLng: latest.lng,
+      lastLocationName: latest.locationName || null,
       latestPhotoUrl: latest.photoUrl,
       latestTags: latest.tags || null,
       latestEmbedding: latest.embedding || null,
@@ -233,6 +240,7 @@ export async function mergeDogs(sourceId, targetId) {
     lastSeenAt: latest.reportedAt,
     lastLat: latest.lat,
     lastLng: latest.lng,
+    lastLocationName: latest.locationName || null,
     latestPhotoUrl: latest.photoUrl,
     latestTags: latest.tags || null,
     latestEmbedding: latest.embedding || null,

@@ -327,6 +327,15 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
           {dog.lastSeenAt && (
             <p className={styles.meta}>{t.dogLastSeen}: {fmtDate(dog.lastSeenAt, lang)}</p>
           )}
+          {dog.lastLocationName && (
+            <p className={styles.locationRow}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.locationPin}>
+                <path d="M12 21s7-7.5 7-12a7 7 0 10-14 0c0 4.5 7 12 7 12z" />
+                <circle cx="12" cy="9" r="2.3" />
+              </svg>
+              {t.dogLocation}: {dog.lastLocationName}
+            </p>
+          )}
           <p className={styles.meta}>
             {t.dogTemperament}:{' '}
             {temperament.label ? (

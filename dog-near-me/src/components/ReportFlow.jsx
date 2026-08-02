@@ -3,6 +3,7 @@ import { auth } from '../firebase'
 import { uploadDogPhoto, compareDogPhotos } from '../photoUpload'
 import { findNearbyDogs, findCandidates, createDogWithSighting, addSightingToDog, friendlinessColor, cosineSimilarity } from '../hooks/useDogs'
 import { readExifGps } from '../exifGps'
+import { reverseGeocode } from '../reverseGeocode'
 import { interp } from '../LangContext'
 import styles from './ReportFlow.module.css'
 
@@ -202,14 +203,18 @@ export default function ReportFlow({ user, dogs, t, lang, onSignIn, onDone, pres
   async function submitReport() {
     setStep('submitting')
     try {
+      // Best-effort, non-blocking: reverseGeocode never throws (see its own
+      // doc comment) — a failed/slow lookup just means locationName is null
+      // and the report still saves normally.
+      const locationName = await reverseGeocode(coords.lat, coords.lng, lang)
       if (targetDog) {
         await addSightingToDog({
-          dogId: targetDog.id, user, photoUrl, tags, embedding, lat: coords.lat, lng: coords.lng, note, friendliness, anonymous,
+          dogId: targetDog.id, user, photoUrl, tags, embedding, lat: coords.lat, lng: coords.lng, locationName, note, friendliness, anonymous,
         })
         setSuccessInfo({ matched: true, name: targetDog.name || t.dogUnnamed })
       } else {
         await createDogWithSighting({
-          user, photoUrl, tags, embedding, lat: coords.lat, lng: coords.lng, name, note, friendliness, anonymous,
+          user, photoUrl, tags, embedding, lat: coords.lat, lng: coords.lng, locationName, name, note, friendliness, anonymous,
         })
         setSuccessInfo({ matched: false })
       }

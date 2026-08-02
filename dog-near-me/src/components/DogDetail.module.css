@@ -114,6 +114,20 @@
   font-family: var(--font-mono);
 }
 
+.locationRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.locationPin {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
 .collarWarning {
   font-size: 13px;
   color: var(--color-amber);
