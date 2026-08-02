@@ -149,17 +149,6 @@
 .cardEnded { opacity: 0.55; }
 .cardUnconfirmed { border-left: 3px solid var(--color-amber); }
 .cardUnconfirmed .endRow { color: var(--color-amber); }
-.cardOnline { border: 1px dashed var(--color-border-strong); box-shadow: none; }
-
-.onlineSection { margin-top: 28px; }
-.sectionTitle {
-  font-size: 12px;
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-faint);
-  margin: 0 0 10px;
-}
 
 .cardTopRow {
   display: flex;

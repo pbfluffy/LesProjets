@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTheme, useLang } from './hooks/useThemeLang'
-import { promos, STORES, onlineReference } from './data/promos.js'
+import { promos, STORES } from './data/promos.js'
 import styles from './App.module.css'
 
 const STRINGS = {
@@ -8,7 +8,7 @@ const STRINGS = {
     title: 'Protein Bar Deals',
     subtitle: 'South Korea convenience stores · CU, GS25, 7-Eleven, emart24',
     placeholderNotice:
-      'Researched July 31, 2026 — real products/prices, checked directly against each store\'s own site (dated where the store publishes one), sourced per entry (see the link on each card). Anything only findable on a third-party tracker was left out rather than kept unverified — that\'s why 7-Eleven has no entries right now.',
+      'Researched July 31 – Aug 1, 2026 — real products/prices, sourced per entry (see the link on each card). Most entries were checked directly against the store\'s own site (dated where the store publishes one); a few are sourced from a direct in-store sighting instead and labeled "Not confirmed active this month" since I couldn\'t re-verify the current status against an official source.',
     thbNote: 'THB prices in parentheses are a reference conversion at the Aug 1, 2026 mid-market rate (1 KRW ≈ ฿0.0232), not a live rate.',
     searchPlaceholder: 'Search brand or product…',
     all: 'All',
@@ -27,15 +27,13 @@ const STRINGS = {
     noEndDate: 'Ongoing',
     unconfirmed: 'Not confirmed active this month — check in store',
     source: 'Source',
-    onlineTitle: 'Not sold in these stores',
-    onlineBody: 'Frequently asked about, so here it is for reference — but it doesn\'t show up in CU, GS25, or emart24\'s own catalogs at all. Online retail only.',
-    onlineTag: 'Online only',
+    priceUnknown: 'price not confirmed',
   },
   ko: {
     title: '단백질 바 할인 정보',
     subtitle: '한국 편의점 · CU, GS25, 7-Eleven, emart24',
     placeholderNotice:
-      '2026년 7월 31일 조사 — 실제 상품/가격이며, 각 매장 자체 사이트에서 직접 확인했습니다(날짜를 공개하는 매장은 날짜도 표시). 카드마다 출처 링크가 있습니다. 제3자 트래커에서만 확인된 항목은 검증되지 않은 채로 남겨두는 대신 제외했습니다 — 그래서 세븐일레븐은 현재 등록된 항목이 없습니다.',
+      '2026년 7월 31일~8월 1일 조사 — 실제 상품/가격이며 카드마다 출처 링크가 있습니다. 대부분은 매장 자체 사이트에서 직접 확인했고(날짜를 공개하는 매장은 날짜도 표시), 일부는 매장 방문 시 직접 목격한 정보로 대체했습니다 — 공식 출처로 현재 진행 여부를 재확인할 수 없어 "이번 달 진행 여부 미확인"으로 표시됩니다.',
     thbNote: '괄호 안 THB 가격은 2026년 8월 1일 중간시장환율(1 KRW ≈ ฿0.0232) 기준 참고용 환산이며, 실시간 환율이 아닙니다.',
     searchPlaceholder: '브랜드 또는 상품명 검색…',
     all: '전체',
@@ -54,13 +52,12 @@ const STRINGS = {
     noEndDate: '상시 판매',
     unconfirmed: '이번 달 진행 여부 미확인 — 매장에서 확인 필요',
     source: '출처',
-    onlineTitle: '이 매장들에서는 판매하지 않음',
-    onlineBody: '자주 문의가 있어 참고용으로 올려둡니다 — 하지만 CU, GS25, emart24 자체 카탈로그 어디에도 없습니다. 온라인 구매만 가능합니다.',
-    onlineTag: '온라인 전용',
+    priceUnknown: '가격 미확인',
   },
 }
 
 function effectiveUnitPriceKrw(p) {
+  if (p.priceKrw == null) return null
   if (p.promo === '1+1') return p.priceKrw / 2
   if (p.promo === '2+1') return (p.priceKrw * 2) / 3
   if (p.promo === 'percent' && p.percentOff) return p.priceKrw * (1 - p.percentOff / 100)
@@ -106,12 +103,15 @@ export default function App() {
     let list = promos
       .filter((p) => store === 'all' || p.store === store)
       .filter((p) => !q || p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q))
-      .map((p) => ({
-        ...p,
-        effectivePrice: effectiveUnitPriceKrw(p),
-        pricePerGram: p.proteinG ? effectiveUnitPriceKrw(p) / p.proteinG : null,
-        daysLeft: daysLeft(p.endDate),
-      }))
+      .map((p) => {
+        const effectivePrice = effectiveUnitPriceKrw(p)
+        return {
+          ...p,
+          effectivePrice,
+          pricePerGram: p.proteinG && effectivePrice != null ? effectivePrice / p.proteinG : null,
+          daysLeft: daysLeft(p.endDate),
+        }
+      })
 
     list = [...list].sort((a, b) => {
       const at = tierOf(a)
@@ -209,14 +209,21 @@ export default function App() {
                       </div>
                       <div className={styles.cardName}>{p.brand} — {p.name}</div>
                       <div className={styles.cardMeta}>
-                        {p.proteinG != null ? `${p.proteinG}g ${t.protein} · ` : ''}
-                        {formatKrw(p.priceKrw)} ({formatThb(p.priceKrw)}) {t.perBar}
+                        {p.proteinG != null ? `${p.proteinG}g ${t.protein}` : ''}
+                        {p.proteinG != null && p.priceKrw != null ? ' · ' : ''}
+                        {p.priceKrw != null ? `${formatKrw(p.priceKrw)} (${formatThb(p.priceKrw)}) ${t.perBar}` : ''}
                       </div>
                       <div className={styles.priceRow}>
-                        <span>{t.effectivePrice}: <b>{formatKrw(p.effectivePrice)}</b> <span className={styles.faint}>({formatThb(p.effectivePrice)})</span></span>
-                        <span className={styles.faint}>
-                          {p.pricePerGram != null ? `${p.pricePerGram.toFixed(0)} ${t.perGram}` : t.proteinUnknown}
-                        </span>
+                        {p.priceKrw != null ? (
+                          <>
+                            <span>{t.effectivePrice}: <b>{formatKrw(p.effectivePrice)}</b> <span className={styles.faint}>({formatThb(p.effectivePrice)})</span></span>
+                            <span className={styles.faint}>
+                              {p.pricePerGram != null ? `${p.pricePerGram.toFixed(0)} ${t.perGram}` : t.proteinUnknown}
+                            </span>
+                          </>
+                        ) : (
+                          <span className={styles.faint}>{t.priceUnknown}</span>
+                        )}
                       </div>
                       <div className={styles.endRow}>
                         {!p.confirmed
@@ -239,40 +246,6 @@ export default function App() {
               )
             })}
           </ul>
-        )}
-
-        {store === 'all' && (
-          <div className={styles.onlineSection}>
-            <h2 className={styles.sectionTitle}>{t.onlineTitle}</h2>
-            <div className={`${styles.card} ${styles.cardOnline}`}>
-              <div className={styles.cardTopRow}>
-                {onlineReference.imageUrl && (
-                  <img
-                    className={styles.thumb}
-                    src={onlineReference.imageUrl}
-                    alt={`${onlineReference.brand} ${onlineReference.name}`}
-                    loading="lazy"
-                    onError={(e) => { e.currentTarget.style.display = 'none' }}
-                  />
-                )}
-                <div className={styles.cardBody}>
-                  <div className={styles.cardTop}>
-                    <span className={`${styles.promoTag} ${styles.promoNone}`}>{t.onlineTag}</span>
-                  </div>
-                  <div className={styles.cardName}>{onlineReference.brand} — {onlineReference.name}</div>
-                  <div className={styles.cardMeta}>
-                    {onlineReference.proteinG}g {t.protein} · {formatKrw(onlineReference.priceKrw)} ({formatThb(onlineReference.priceKrw)}) {t.perBar}
-                  </div>
-                </div>
-              </div>
-              <div className={styles.notes}>{t.onlineBody} {onlineReference.notes}</div>
-              {onlineReference.sourceUrl && (
-                <a className={styles.sourceLink} href={onlineReference.sourceUrl} target="_blank" rel="noopener noreferrer">
-                  {t.source} ↗
-                </a>
-              )}
-            </div>
-          </div>
         )}
       </main>
     </div>

@@ -1,27 +1,40 @@
-// Researched July 31, 2026. Real products/prices, sourced as noted per entry —
-// NOT fabricated. Every entry below is `confirmed: true` — checked directly
-// against the store's own live event page/search (CU, GS25: no explicit end
-// date is shown on their sites, so endDate is null and the app shows
-// "Ongoing" — it means "live as of this check," not "guaranteed to run all
-// month." emart24 does publish explicit MM.DD-MM.DD windows, used as
-// startDate/endDate). The `confirmed` field is kept in the schema (rather
-// than dropped) because it'll matter again the moment a future entry can
-// only be sourced from a third-party tracker instead of the store itself.
+// Researched July 31 – Aug 1, 2026. Real products/prices, sourced as noted
+// per entry — NOT fabricated. Two confidence levels, via `confirmed`:
 //
-// Anything that could only be found on a third-party tracker, not the
-// store's own site, has been deliberately left OUT rather than kept as an
-// unverified guess. That's why 7-Eleven currently has zero entries — its own
-// site blocks automated access entirely (browser nav denied, direct fetch
-// refused, tried the main domain, mobile subdomain, a direct subpage, and a
-// Wayback Machine route) — and why the Orion bar (CU) and two Lotte bars
-// (GS25) that used to be listed here are gone: a direct, exhaustive check of
-// each store's own live listing (CU: all ~720 items across its 1+1/2+1 tabs;
-// GS25: its own keyword search for "단백질" and "프로틴", every result page)
-// found no trace of them.
+//   confirmed: true   — checked directly against the store's own live event
+//                       page/search (CU, GS25: no explicit end date is shown
+//                       on their sites, so endDate is null and the app shows
+//                       "Ongoing" — it means "live as of this check," not
+//                       "guaranteed to run all month." emart24 does publish
+//                       explicit MM.DD-MM.DD windows, used as startDate/endDate).
+//   confirmed: false  — a real, real-world-sourced entry (third-party
+//                       tracker, or a direct in-store sighting) that
+//                       couldn't be re-verified against an official source
+//                       as *currently* active. Shown as "Not confirmed
+//                       active this month."
 //
-// proteinG is null where I found the product's calories but not an exact
-// protein-gram figure — better to omit than guess. daysLeft/value sorting
-// treats null protein as unrankable (sorts last within its tier).
+// 7-Eleven's own site blocks automated access entirely (browser nav denied,
+// direct fetch refused — main domain, mobile subdomain, a direct subpage,
+// and a Wayback Machine route all tried), so nothing there can reach
+// confirmed: true from this environment.
+//
+// Anything found ONLY on a third-party tracker with no other corroboration
+// has been left out rather than kept as a guess — that's why the Orion bar
+// (CU) and two Lotte bars (GS25) that used to be listed here are gone: a
+// direct, exhaustive check of each store's own live listing (CU: all ~720
+// items across its 1+1/2+1 tabs; GS25: its own keyword search for "단백질"
+// and "프로틴", every result page) found no trace of them. The Dr.You PRO
+// 24g-protein bar below is the exception: it also didn't turn up in either
+// site search, but a direct first-hand sighting in stores (CU, GS25,
+// 7-Eleven, July 2026) is stronger evidence than an incomplete web catalog,
+// so it's listed as confirmed: false (not verified as *currently* active)
+// rather than left out.
+//
+// proteinG and priceKrw are null wherever the real figure wasn't available
+// (calories-only nutrition data, or no one recalling an exact shelf price)
+// — better to omit than guess. daysLeft/value sorting treats null protein
+// as unrankable (sorts last within its tier); null priceKrw skips the
+// price/effective-price display entirely rather than showing ₩NaN.
 //
 // imageUrl points at each store's own product-image CDN (extracted from the
 // same page each entry was verified against) — not self-hosted. If a URL
@@ -46,7 +59,7 @@ export const promos = [
     startDate: null,
     endDate: null,
     sourceUrl: 'https://cu.bgfretail.com/product/search.do?searchKeyword=%EB%8B%A5%ED%84%B0%EC%9C%A0',
-    notes: 'Regular-price reference, not a promo — CU\'s catalog search only turns up this standard Dr.You bar (~12g protein), no active 1+1/2+1. The 24g-protein "Dr.You PRO" bar specifically was searched for directly (CU, GS25, emart24 catalogs, plus the 7-Eleven tracker) and doesn\'t appear to be carried at any of the four stores at all — it looks like an online-retail-only SKU (Coupang/SSG/Kurly/Dr.You\'s own mall).',
+    notes: 'Regular-price reference, not a promo — CU\'s catalog search only turns up this standard Dr.You bar (~12g protein), no active 1+1/2+1. Not to be confused with the 24g-protein "Dr.You PRO" bar (separate entry below) — that one doesn\'t show up in any store\'s own catalog search either, but was confirmed in stock via a direct in-store sighting.',
   },
   {
     id: 'cu-dongsuh-post',
@@ -240,29 +253,63 @@ export const promos = [
     sourceUrl: 'http://gs25.gsretail.com/gscvs/ko/products/event-goods',
     notes: 'Found live via GS25\'s own "프로틴" product search (checked Jul 31, 2026) — same line as the deep-chocolate flavor above.',
   },
-  // 7-Eleven currently has no entries here. 7-eleven.co.kr blocks automated
-  // access entirely (browser nav denied, direct fetch connection refused —
-  // tried the main domain, mobile subdomain, a direct subpage, and a Wayback
-  // Machine snapshot route). The two third-party-tracker-only bars that used
-  // to be listed here were dropped rather than kept as unverified guesses —
-  // add real entries back once 7-Eleven's own site is reachable, or once you
-  // spot something in store yourself.
+  // Dr.You PRO 단백질바 크런치 70g (24g protein) — CU/GS25/emart24's own
+  // catalog searches all returned zero results for this (checked repeatedly,
+  // Jul 31 and Aug 1, 2026), so it was initially treated as online-retail-
+  // only. Corrected after direct, first-hand report: seen in stock, on a
+  // 1+1 promo, at CU, GS25, AND 7-Eleven in Korea in July 2026 — a physical
+  // sighting is better evidence than an incomplete website catalog search.
+  // priceKrw is null (not guessed) since no one recalled the exact shelf
+  // price; confirmed: false because the *current* status couldn't be
+  // re-verified against any official source — same honest treatment as any
+  // other unconfirmed-this-month entry, just sourced differently (a
+  // real-world sighting instead of a third-party tracker).
+  {
+    id: 'cu-orion-doctoryou-pro-24g',
+    store: 'CU',
+    brand: '오리온 (Orion)',
+    name: '닥터유 PRO 단백질바 크런치 70g',
+    imageUrl: 'https://img.danuri.io/catalog-image/065/607/017/abbc82b4038d42f780fe7f866c1079f6.jpg',
+    proteinG: 24,
+    priceKrw: null,
+    promo: '1+1',
+    percentOff: null,
+    confirmed: false,
+    startDate: null,
+    endDate: null,
+    sourceUrl: 'https://prod.danawa.com/info/?pcode=17607065',
+    notes: 'Seen in stock at CU on a 1+1 promo in July 2026 (direct report) — CU\'s own catalog search doesn\'t list it, and exact shelf price wasn\'t recalled, so price is left unconfirmed rather than guessed. Source link is an online price-comparison listing for reference only, not this store\'s price.',
+  },
+  {
+    id: 'gs25-orion-doctoryou-pro-24g',
+    store: 'GS25',
+    brand: '오리온 (Orion)',
+    name: '닥터유 PRO 단백질바 크런치 70g',
+    imageUrl: 'https://img.danuri.io/catalog-image/065/607/017/abbc82b4038d42f780fe7f866c1079f6.jpg',
+    proteinG: 24,
+    priceKrw: null,
+    promo: '1+1',
+    percentOff: null,
+    confirmed: false,
+    startDate: null,
+    endDate: null,
+    sourceUrl: 'https://prod.danawa.com/info/?pcode=17607065',
+    notes: 'Seen in stock at GS25 on a 1+1 promo in July 2026 (direct report) — GS25\'s own catalog search doesn\'t list it, and exact shelf price wasn\'t recalled, so price is left unconfirmed rather than guessed. Source link is an online price-comparison listing for reference only, not this store\'s price.',
+  },
+  {
+    id: 'seven-orion-doctoryou-pro-24g',
+    store: '7-Eleven',
+    brand: '오리온 (Orion)',
+    name: '닥터유 PRO 단백질바 크런치 70g',
+    imageUrl: 'https://img.danuri.io/catalog-image/065/607/017/abbc82b4038d42f780fe7f866c1079f6.jpg',
+    proteinG: 24,
+    priceKrw: null,
+    promo: '1+1',
+    percentOff: null,
+    confirmed: false,
+    startDate: null,
+    endDate: null,
+    sourceUrl: 'https://prod.danawa.com/info/?pcode=17607065',
+    notes: 'Seen in stock at 7-Eleven on a 1+1 promo in July 2026 (direct report). 7-Eleven\'s own site blocks automated access entirely so it couldn\'t be cross-checked there either way; exact shelf price wasn\'t recalled, so price is left unconfirmed rather than guessed. Source link is an online price-comparison listing for reference only, not this store\'s price.',
+  },
 ]
-
-// Not a convenience-store promo — kept separate from `promos` (not part of
-// STORES/filtering) so it never gets confused for an in-store deal. Dr.You
-// PRO (24g protein, 70g bar) was searched for directly on CU, GS25, and
-// emart24's own catalogs multiple times (Jul 31 and Aug 1, 2026) — zero
-// results every time. It only turns up through online retail. priceKrw here
-// is a real per-bar price computed from an actual 8-pack listing (₩13,700
-// for 8 = ₩1,712.5/bar), not a made-up number.
-export const onlineReference = {
-  id: 'online-doctoryou-pro',
-  brand: '오리온 (Orion)',
-  name: '닥터유 PRO 단백질바 70g',
-  proteinG: 24,
-  priceKrw: 1712.5,
-  imageUrl: 'https://img.danuri.io/catalog-image/065/607/017/abbc82b4038d42f780fe7f866c1079f6.jpg',
-  sourceUrl: 'https://prod.danawa.com/info/?pcode=17607065',
-  notes: 'Not carried at CU, GS25, or emart24 — searched each store\'s own catalog search directly, zero results every time. Online-retail only (Coupang/SSG/Kurly/Dr.You\'s own mall); price is a per-bar figure computed from a real 8-pack listing on Danawa (₩13,700 / 8), not a single-unit convenience-store price.',
-}
