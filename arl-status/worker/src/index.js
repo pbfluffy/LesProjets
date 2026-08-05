@@ -33,7 +33,17 @@ const FEEDS = [
   'https://www.bing.com/news/search?q=%E0%B9%81%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%9E%E0%B8%AD%E0%B8%A3%E0%B9%8C%E0%B8%95%E0%B9%80%E0%B8%A3%E0%B8%A5%E0%B8%A5%E0%B8%B4%E0%B8%87%E0%B8%81%E0%B9%8C&format=RSS',
 ]
 
-const RECENT_WINDOW_MS = 36 * 60 * 60 * 1000 // only articles from the last 36h drive the current status
+// How long an unresolved disruption report stays trusted before the
+// classifier gives up and says "unknown" instead of quietly reverting to
+// "normal". This used to be 36h, which was wrong: a real incident (e.g. a
+// derailment causing reduced 30-min intervals) gets one wave of breaking-
+// news coverage and then goes quiet as it stops being "news" — even while
+// the reduced service is still ongoing days later, because no one writes a
+// follow-up article just to say "still running slow." Silence is NOT the
+// same signal as an explicit resume/normal-service article, so it must not
+// be treated as one. 14 days is long enough to cover that gap without
+// letting a truly stale, forgotten report claim "disrupted" forever.
+const DISRUPTION_STALE_MS = 14 * 24 * 60 * 60 * 1000
 const CACHE_TTL_SECONDS = 5 * 60
 const MAX_HEADLINES = 12
 
@@ -133,14 +143,19 @@ function matchEventType(title) {
   return 'neutral'
 }
 
-// items must already be sorted newest-first — the first non-neutral item
-// within the recency window decides the current overall status.
+// items must already be sorted newest-first — whichever non-neutral item is
+// most recent (any age) decides the current status. No recency window on
+// the 'resume' side: an explicit "back to normal" article stays trusted
+// indefinitely, since ARL not making news is itself the expected, unremarkable
+// state for a working transit line. An unresolved 'disruption' report is
+// different — it's only trusted for DISRUPTION_STALE_MS before the
+// classifier admits it doesn't actually know the current state anymore.
 function classify(items) {
-  const now = Date.now()
-  const recent = items.filter((i) => i.pubDate && now - new Date(i.pubDate).getTime() <= RECENT_WINDOW_MS)
-  const signal = recent.find((i) => i.eventType !== 'neutral')
-  if (!signal) return 'normal' // no recent disruption/resume signal found — see UI copy: "no recent disruption reports", not "confirmed normal"
-  return signal.eventType === 'resume' ? 'normal' : 'disrupted'
+  const signal = items.find((i) => i.eventType !== 'neutral' && i.pubDate)
+  if (!signal) return 'normal' // no disruption/resume signal found at all — see UI copy: "no recent disruption reports", not "confirmed normal"
+  if (signal.eventType === 'resume') return 'normal'
+  const ageMs = Date.now() - new Date(signal.pubDate).getTime()
+  return ageMs <= DISRUPTION_STALE_MS ? 'disrupted' : 'unknown'
 }
 
 async function computeStatus(env) {
