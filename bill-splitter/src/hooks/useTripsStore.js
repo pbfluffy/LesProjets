@@ -356,7 +356,13 @@ export function useTripsStore() {
     const hasPayers = trip.billIds.some(billId => !!(trip.paidBy || {})[billId])
     let settlements = []
 
-    if (hasPayers) {
+    // owed/paid above are raw sums across whatever currencies each bill was
+    // actually in — meaningful for a single-currency trip, meaningless for a
+    // mixed one (adding THB to JPY is not a number anyone can use). Callers
+    // that have fetched conversion rates recompute settlements themselves
+    // from converted amounts (see TripsTab's convSettlements); this raw
+    // version is only ever correct to hand out when mixedCurrencies is false.
+    if (hasPayers && !mixedCurrencies) {
       // Use per-member owed if available.
       // Fall back to even split if member names don't match bill members (e.g. Google display name vs bill name).
       const membersWithOwed = trip.members.filter(m => owed[m] > 0.5)

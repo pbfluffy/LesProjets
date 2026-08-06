@@ -18,6 +18,7 @@ import { buildShareUrl, createShortLink, shareLink } from '../share'
 import { normaliseCurrency } from '../currencies'
 import { shareToLine, isInLine } from '../liff.js'
 import PromptPayQR from './PromptPayQR'
+import { getThbRates } from '../fx.js'
 
 function fmtDate(ts) {
   if (!ts) return ''
@@ -97,6 +98,12 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
     return result
   })()
   const _converted = (rates && !isTHB) || (rate && !isTHB)
+  // summary.settlements is already [] for a mixed-currency trip (see
+  // tripSummary in useTripsStore.js — it never sums raw cross-currency
+  // numbers). unresolvedMixed distinguishes THAT "can't tell yet, no rates
+  // loaded" empty state from a genuine "0 transfers, already settled" one,
+  // which must not render as either an empty list or a false "All settled."
+  const unresolvedMixed = summary.mixedCurrencies && !_converted
   const displaySettlements = _converted ? convSettlements : summary.settlements
   const displayCurrency = _converted ? 'THB' : summary.currency
   const currencyFlag = CURRENCY_FLAGS[summary.currency] ?? ''
@@ -128,11 +135,16 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
       </div>
 
       {/* For mixed-currency trips without rates: raw summary.owed is meaningless (adds different currencies).
-           Show a prompt to load rates instead of wrong numbers. */}
+           Rates auto-load on open (see the effect above), so !rates here means either
+           that brief loading window, a failed fetch, or the user tapped back to
+           "original" — the wording below has to hold for all three, not assert a
+           failure that may not have happened. */}
       {summary.mixedCurrencies && !rates
         ? (
             <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8 }}>
-              💱 {t.tripConvertHint ?? 'Tap "Convert to ฿" to see per-person amounts'}
+              {rateLoading
+                ? `💱 ${t.tripConvertLoading ?? 'Loading exchange rates…'}`
+                : `💱 ${t.tripConvertHint ?? 'Showing original currencies — tap "Convert to ฿" for totals'}`}
             </div>
           )
         : hasOwedData
@@ -164,7 +176,7 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
         </span>
       </div>
 
-      {summary.hasPayers && displaySettlements.length > 0 && (
+      {summary.hasPayers && !unresolvedMixed && displaySettlements.length > 0 && (
         <>
           <div className={styles.summaryTitle} style={{ marginTop: 14 }}>{t.tripSummaryTransfers ?? '💸 Who pays whom'}</div>
           {displaySettlements.map((s, i) => (
@@ -200,7 +212,7 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
         </>
       )}
 
-      {summary.hasPayers && displaySettlements.length === 0 && (
+      {summary.hasPayers && !unresolvedMixed && displaySettlements.length === 0 && (
         <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10, textAlign: 'center' }}>
           {t.tripSummaryAllSettled ?? '✅ All settled'}
         </div>
@@ -372,32 +384,25 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
   const [showPPSettings, setShowPPSettings] = useState(false)
   const [toast, setToast] = useState(null)
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500) }
-  const handleConvertToggle = async () => {
-    if (rates) { setRates(null); return }
-    if (isTHB) return
+  const fetchRates = async () => {
     setRateLoading(true)
     try {
-      // Collect all unique non-THB currencies across trip bills
-      const billCurrencies = new Set()
-      tripBills.forEach(entry => {
-        if (entry._missing) return
-        const _pre = entry._sharedBill
-        const { currency: bCurr } = _pre ?? calcBillResult(entry)
-        if (bCurr && bCurr !== 'THB') billCurrencies.add(bCurr)
-      })
-      if (billCurrencies.size === 0) return
-      // Fetch from dominant currency (open.er-api returns all rates in one call)
-      const res = await fetch(`https://open.er-api.com/v6/latest/THB`)
-      const d = await res.json()
-      if (!d?.rates) return
-      // open.er-api /latest/THB gives rates[X] = how many X per 1 THB
-      // We want: 1 X = ? THB → 1 / rates[X]
-      const map = {}
-      billCurrencies.forEach(c => {
-        if (d.rates[c]) map[c] = Math.round((1 / d.rates[c]) * 10000) / 10000
-      })
-      if (Object.keys(map).length > 0) setRates(map)
-    } catch {} finally { setRateLoading(false) }
+      const map = await getThbRates()
+      if (map) setRates(map)
+    } finally { setRateLoading(false) }
+  }
+  // Auto-load conversion rates as soon as a trip has any non-THB amount to
+  // show, rather than making the user find and tap "Convert to ฿" first —
+  // a mixed-currency trip's total is otherwise just a blank "—" until they
+  // do. getThbRates() is cheap after the first call (cached per calendar
+  // day), so this doesn't mean a network round-trip on every trip open.
+  useEffect(() => {
+    if (!isTHB && !rates && !rateLoading) fetchRates()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip.id, isTHB])
+  const handleConvertToggle = () => {
+    if (rates) { setRates(null); return } // "show original" — re-tapping re-fetches (instant if same-day cached)
+    if (!isTHB) fetchRates()
   }
   const conv = (n) => rate !== null ? n * rate : n
   const dispCurrency = rate !== null ? 'THB' : detailCurrency
