@@ -1,9 +1,0 @@
-name = "arl-status-check"
-main = "src/index.js"
-compatibility_date = "2026-07-19"
-
-# Create with: wrangler kv namespace create ARL_STATUS_KV
-# then paste the returned id below (see ../README.md "One-time setup").
-[[kv_namespaces]]
-binding = "ARL_STATUS_KV"
-id = "b7b7280678cc43089ec282084de466ed"
