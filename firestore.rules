@@ -57,16 +57,29 @@ service cloud.firestore {
     }
 
     // ── Pumgoda — place votes ───────────────────────────────────────────────
+    // vote values are 'up'|'paw'|'warn' (VoteButtons.jsx's three signals) —
+    // this previously said ['up','down'], a stale rule that was silently
+    // rejecting every 'paw' and 'warn' vote write (client did an optimistic
+    // UI update, then rolled it back on the permission-denied response).
+    // note is an optional short free-text tip attached to the voter's own
+    // vote (e.g. "pet fee now applies weekends"), settable on create or via
+    // a later update — same size cap enforced both times.
     match /placeVotes/{voteId} {
       allow read:   if signedIn();
       allow create: if signedIn()
                     && request.resource.data.uid    == request.auth.uid
-                    && request.resource.data.vote   in ['up','down']
-                    && request.resource.data.placeId is string;
+                    && request.resource.data.vote   in ['up','paw','warn']
+                    && request.resource.data.placeId is string
+                    && (!('note' in request.resource.data)
+                        || request.resource.data.note == null
+                        || (request.resource.data.note is string && request.resource.data.note.size() <= 140));
       allow update: if isUser(resource.data.uid)
                     && request.resource.data.uid    == resource.data.uid
                     && request.resource.data.placeId == resource.data.placeId
-                    && request.resource.data.vote   in ['up','down'];
+                    && request.resource.data.vote   in ['up','paw','warn']
+                    && (!('note' in request.resource.data)
+                        || request.resource.data.note == null
+                        || (request.resource.data.note is string && request.resource.data.note.size() <= 140));
       allow delete: if isUser(resource.data.uid);
     }
 
@@ -76,6 +89,9 @@ service cloud.firestore {
     // Pumgoda-only admin may read the queue or delete entries. Anyone may
     // create one, signed in or not (same openness as shareLinks below) —
     // submittedBy is whatever the client sends, unverified when anonymous.
+    // targetPlaceId (optional) marks this as an edit-suggestion for an
+    // existing place rather than a new-place suggestion; admin console
+    // resolves it against places/{targetPlaceId} instead of creating new.
     match /placeSuggestions/{suggestionId} {
       allow create: if request.resource.data.name is string
                     && request.resource.data.name.size() > 0
@@ -98,7 +114,9 @@ service cloud.firestore {
                         || request.resource.data.priceTier == null
                         || request.resource.data.priceTier in ['', '$', '$$', '$$$'])
                     && (!('photos' in request.resource.data)
-                        || (request.resource.data.photos is list && request.resource.data.photos.size() <= 5));
+                        || (request.resource.data.photos is list && request.resource.data.photos.size() <= 5))
+                    && (!('targetPlaceId' in request.resource.data)
+                        || (request.resource.data.targetPlaceId is string && request.resource.data.targetPlaceId.size() <= 200));
       allow read, delete: if isAdmin() || isPumgodaAdmin();
       allow update: if false;
     }

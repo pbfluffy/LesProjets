@@ -170,6 +170,25 @@
   text-decoration: underline;
 }
 
+.ph-suggest-edit-btn {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 16px;
+  background: transparent;
+  border: 0.5px solid var(--border);
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 13px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font: inherit;
+}
+.ph-suggest-edit-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
 .ph-cta {
   display: flex;
   align-items: center;

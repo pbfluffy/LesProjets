@@ -277,6 +277,7 @@ export default function App() {
   const [filtersCollapsed, setFiltersCollapsed] = useLocalStorage('pumgoda_filters_collapsed_v1', false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [showSuggestSheet, setShowSuggestSheet] = useState(false)
+  const [editSuggestTarget, setEditSuggestTarget] = useState(null) // venue object, or null — "suggest an edit" from PlaceDetail reuses SuggestPlaceSheet in edit mode
   const activeFilterCount = (filters.region !== 'all' ? 1 : 0) + filters.types.length + filters.policies.length + (filters.minPaws ? 1 : 0) + (filters.query && filters.query.trim() ? 1 : 0) + (filters.openNow ? 1 : 0)
   const [locationError, setLocationError] = useState(null)
 
@@ -578,6 +579,7 @@ export default function App() {
           onClose={() => setSelected(null)}
           onToggleSave={toggleSave}
           isSaved={savedIds.includes(selected.id)}
+          onSuggestEdit={() => setEditSuggestTarget(selected)}
         />
       )}
 
@@ -720,14 +722,15 @@ export default function App() {
       />
     )}
 
-    {showSuggestSheet && (
+    {(showSuggestSheet || editSuggestTarget) && (
       <SuggestPlaceSheet
         lang={lang}
         user={user}
         places={places}
+        editTarget={editSuggestTarget}
         onSignIn={handleSignIn}
         signingIn={signingIn}
-        onClose={() => setShowSuggestSheet(false)}
+        onClose={() => { setShowSuggestSheet(false); setEditSuggestTarget(null) }}
       />
     )}
 

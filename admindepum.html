@@ -2060,16 +2060,19 @@ function renderSuggestions(){
     const hasPolicy = s.policy && (Object.values(s.policy).some(v => v === true) || s.policy.size_limit_kg!=null || s.policy.fee_baht!=null);
     const hasExtra = hasPolicy || s.priceTier;
     const photo = Array.isArray(s.photos) && s.photos[0];
+    const isEdit = !!s.targetPlaceId;
+    const targetPlace = isEdit ? PLACES.find(x=>x.id===s.targetPlaceId) : null;
+    const targetLabel = isEdit ? ((targetPlace && targetPlace.name && (targetPlace.name.en || targetPlace.name.th)) || s.targetPlaceId) : '';
     return `<div class="sugg-row" data-sid="${escAdm(s.id)}">
       <input type="checkbox" class="sugg-check" data-sid="${escAdm(s.id)}" ${SELECTED_SUGGESTIONS.has(s.id)?'checked':''} style="margin-top:5px;flex:0 0 auto" />
       ${photo ? `<img src="${photo}" alt="" loading="lazy" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex:0 0 auto" />` : ''}
       <div class="sugg-main">
-        <div class="sugg-name">${escAdm(s.name||'(no name)')}</div>
-        <div class="sugg-meta">${escAdm(who)} · ${submittedRel}${s.googleMapsUrl?' · <span class="sugg-haslink">has map link</span>':''}${hasExtra?' · <span class="sugg-haslink">has extra details</span>':''}${photo?' · <span class="sugg-haslink">has photo</span>':''}</div>
+        <div class="sugg-name">${isEdit ? '<span class="sugg-haslink" style="color:var(--accent)">EDIT</span> ' : ''}${escAdm(s.name||'(no name)')}</div>
+        <div class="sugg-meta">${escAdm(who)} · ${submittedRel}${isEdit ? ' · for <b>'+escAdm(targetLabel)+'</b>' + (targetPlace ? '' : ' <span style="color:var(--red)">(place not found)</span>') : ''}${s.googleMapsUrl?' · <span class="sugg-haslink">has map link</span>':''}${hasExtra?' · <span class="sugg-haslink">has extra details</span>':''}${photo?' · <span class="sugg-haslink">has photo</span>':''}</div>
         ${s.note ? `<div class="sugg-note">${escAdm(s.note)}</div>` : ''}
       </div>
       <div class="sugg-actions">
-        <button class="btn small sugg-review" data-sid="${escAdm(s.id)}" style="border-color:var(--accent);color:var(--accent)">Review</button>
+        <button class="btn small sugg-review" data-sid="${escAdm(s.id)}" style="border-color:var(--accent);color:var(--accent)" ${isEdit && !targetPlace ? 'disabled' : ''}>Review</button>
         <button class="btn small sugg-reject" data-sid="${escAdm(s.id)}" style="color:var(--red);border-color:#5a2c22;background:transparent">Reject</button>
       </div>
     </div>`;
@@ -2243,7 +2246,10 @@ function buildForm(p, creating){
       ? (PENDING_SUGGESTION_PHOTOS.length
           ? `<div class="fld-sec">Suggested photo</div><div class="fld full"><div class="photogrid">${PENDING_SUGGESTION_PHOTOS.map(u=>`<div class="thumb"><img src="${u}" alt="" loading="lazy" /></div>`).join('')}</div><div class="photomsg">Will be added to this place on save.</div></div>`
           : '')
-      : '<div class="fld-sec">Photos</div><div class="fld full"><div id="f_photos" class="photogrid"></div><label class="uploadbtn"><input type="file" id="f_photofile" accept="image/*" hidden multiple /><span>+ Upload photo</span></label><div id="f_photomsg" class="photomsg"></div></div>');
+      : '<div class="fld-sec">Photos</div><div class="fld full"><div id="f_photos" class="photogrid"></div><label class="uploadbtn"><input type="file" id="f_photofile" accept="image/*" hidden multiple /><span>+ Upload photo</span></label><div id="f_photomsg" class="photomsg"></div></div>'
+          + (PENDING_SUGGESTION_ID && PENDING_SUGGESTION_PHOTOS.length
+              ? `<div class="fld-sec">Suggested photo</div><div class="fld full"><div class="photogrid">${PENDING_SUGGESTION_PHOTOS.map(u=>`<div class="thumb"><img src="${u}" alt="" loading="lazy" /></div>`).join('')}</div><div class="photomsg">Will be appended to Photos on save.</div></div>`
+              : ''));
   if(!creating) renderThumbs();
   document.getElementById('f_name_en').addEventListener('input', updateDupWarning);
   document.getElementById('f_name_th').addEventListener('input', updateDupWarning);
@@ -2285,6 +2291,29 @@ function openCreateFromSuggestion(id){
   document.getElementById('pedit').classList.remove('hidden');
 }
 window.openCreateFromSuggestion = openCreateFromSuggestion;
+function openEditFromSuggestion(id){
+  const s = SUGGESTIONS.find(x=>x.id===id); if(!s) return;
+  const p = PLACES.find(x=>x.id===s.targetPlaceId);
+  if(!p){ alert('Target place no longer exists (' + s.targetPlaceId + ').'); return; }
+  switchTab('pumgoda');
+  CUR = p.id; CREATING = false; PENDING_SUGGESTION_ID = id;
+  PENDING_SUGGESTION_PHOTOS = Array.isArray(s.photos) ? s.photos : [];
+  document.querySelector('.pedit-hd b').textContent = 'Edit place (suggested edit)';
+  document.getElementById('pedit-id').textContent = p.id;
+  if(delBtn) delBtn.style.display = '';
+  document.getElementById('pedit-err').classList.add('hidden');
+  const suggested = {
+    ...p,
+    name: { ...(p.name||{}), en: s.name || (p.name&&p.name.en) || '' },
+    googleMapsUrl: s.googleMapsUrl || p.googleMapsUrl || '',
+    notes: { ...(p.notes||{}), en: s.note || (p.notes&&p.notes.en) || '' },
+    policy: { ...(p.policy||{}), ...(s.policy||{}) },
+    priceTier: s.priceTier || p.priceTier || null,
+  };
+  buildForm(suggested, false);
+  document.getElementById('pedit').classList.remove('hidden');
+}
+window.openEditFromSuggestion = openEditFromSuggestion;
 function rejectSuggestion(id){ rejectSuggestionsBulk([id]); }
 function rejectSelectedSuggestions(){ rejectSuggestionsBulk([...SELECTED_SUGGESTIONS]); }
 function rejectSuggestionsBulk(ids){
@@ -2321,7 +2350,11 @@ function rejectSuggestionsBulk(ids){
 document.addEventListener('click', (e) => {
   const reviewBtn = e.target.closest('.sugg-review');
   const rejectBtn = e.target.closest('.sugg-reject');
-  if(reviewBtn) openCreateFromSuggestion(reviewBtn.dataset.sid);
+  if(reviewBtn){
+    const s = SUGGESTIONS.find(x=>x.id===reviewBtn.dataset.sid);
+    if(s && s.targetPlaceId) openEditFromSuggestion(reviewBtn.dataset.sid);
+    else openCreateFromSuggestion(reviewBtn.dataset.sid);
+  }
   if(rejectBtn) rejectSuggestion(rejectBtn.dataset.sid);
 });
 function closeEditor(){ document.getElementById('pedit').classList.add('hidden'); CUR = null; CREATING = false; PENDING_SUGGESTION_ID = null; PENDING_SUGGESTION_PHOTOS = []; }
@@ -2347,7 +2380,11 @@ function buildBody(){
     notes:{ en:vget('f_notes_en'), th:vget('f_notes_th') },
     tags: vget('f_tags').split(';').map(t=>t.trim()).filter(Boolean),
     lastVerified: vget('f_last_verified')||null,
-    photos: Array.isArray(orig.photos) ? orig.photos : (CREATING ? PENDING_SUGGESTION_PHOTOS : []),
+    photos: Array.isArray(orig.photos)
+      ? (PENDING_SUGGESTION_ID && !CREATING
+          ? [...orig.photos, ...PENDING_SUGGESTION_PHOTOS.filter(u=>!orig.photos.includes(u))]
+          : orig.photos)
+      : (CREATING ? PENDING_SUGGESTION_PHOTOS : []),
   };
   delete body.id;
   body.lastModified = serverTimestamp();

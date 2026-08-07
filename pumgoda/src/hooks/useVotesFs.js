@@ -15,20 +15,24 @@ import {
 // Replaces the legacy RTDB-based useVotes which used a per-device
 // localStorage id. Now uses the Google account uid as identity.
 //
-// Schema: placeVotes/<uid>_<placeId> with { uid, placeId, vote, ts,
-// lastModified }. Composite key enforces one vote per user per place
-// at the security-rule level (see handoff §9.1 for the rule body).
+// Schema: placeVotes/<uid>_<placeId> with { uid, placeId, vote, note,
+// ts, lastModified }. Composite key enforces one vote per user per place
+// at the security-rule level (see handoff §9.1 for the rule body). note
+// is optional free text (≤140 chars, enforced in firestore.rules) — a
+// short tip attached to that vote, e.g. "pet fee now applies weekends".
 //
 // Signed-out callers see submitVote as a no-op + 'auth' lastError.
 // The UI (VoteButtons.jsx) gates buttons + shows a sign-in prompt
 // based on the `user` field returned here.
 
 const SIGNALS = ['up', 'paw', 'warn']
+const NOTE_MAX_LEN = 140
 
 export function useVotesFs() {
   const [user, setUser] = useState(null)
   const [tallies, setTallies] = useState({})
   const [myVotes, setMyVotes] = useState({})
+  const [notesByPlace, setNotesByPlace] = useState({})
   const [status, setStatus] = useState('loading')
   const [lastError, setLastError] = useState(null)
 
@@ -48,15 +52,22 @@ export function useVotesFs() {
       (snap) => {
         const t = {}
         const mine = {}
+        const notes = {}
         snap.docs.forEach((d) => {
           const v = d.data()
           if (!v || !v.placeId || SIGNALS.indexOf(v.vote) === -1) return
           if (!t[v.placeId]) t[v.placeId] = { up: 0, paw: 0, warn: 0 }
           t[v.placeId][v.vote] += 1
           if (user && v.uid === user.uid) mine[v.placeId] = v.vote
+          if (v.note && typeof v.note === 'string') {
+            if (!notes[v.placeId]) notes[v.placeId] = []
+            notes[v.placeId].push({ uid: v.uid, vote: v.vote, note: v.note, ts: v.ts || 0 })
+          }
         })
+        Object.values(notes).forEach((list) => list.sort((a, b) => b.ts - a.ts))
         setTallies(t)
         setMyVotes(mine)
+        setNotesByPlace(notes)
         setStatus('ready')
       },
       (e) => {
@@ -101,13 +112,14 @@ export function useVotesFs() {
       }
       setMyVotes((m) => ({ ...m, [placeId]: vote }))
       try {
-        await setDoc(ref, {
-          uid: user.uid,
-          placeId,
-          vote,
-          ts: Date.now(),
-          lastModified: serverTimestamp(),
-        })
+        // merge: true — switching which signal you picked (up → paw etc.)
+        // shouldn't silently wipe a note you'd already left; only the
+        // fields touched here (vote/ts) actually change.
+        await setDoc(
+          ref,
+          { uid: user.uid, placeId, vote, ts: Date.now(), lastModified: serverTimestamp() },
+          { merge: true }
+        )
       } catch (e) {
         console.warn('[useVotesFs] write failed:', e)
         setLastError('write')
@@ -122,5 +134,26 @@ export function useVotesFs() {
     [user, myVotes]
   )
 
-  return { user, tallies, myVotes, status, lastError, submitVote, clearError }
+  // Attaches/updates a short free-text tip on the caller's OWN existing
+  // vote — there's nothing to attach a note to until they've voted, so
+  // this is a no-op (with a surfaced error) if they haven't yet.
+  const submitNote = useCallback(
+    async (placeId, note) => {
+      if (!user) { setLastError('auth'); return }
+      if (!myVotes[placeId]) { setLastError('write'); return }
+      const trimmed = (note || '').trim().slice(0, NOTE_MAX_LEN)
+      setLastError(null)
+      const voteId = user.uid + '_' + placeId
+      const ref = doc(firestore, 'placeVotes', voteId)
+      try {
+        await setDoc(ref, { note: trimmed || null, lastModified: serverTimestamp() }, { merge: true })
+      } catch (e) {
+        console.warn('[useVotesFs] note write failed:', e)
+        setLastError('write')
+      }
+    },
+    [user, myVotes]
+  )
+
+  return { user, tallies, myVotes, notesByPlace, status, lastError, submitVote, submitNote, clearError, NOTE_MAX_LEN }
 }

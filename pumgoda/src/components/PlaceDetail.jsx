@@ -8,7 +8,7 @@ import VoteButtons from './VoteButtons'
 import './PlaceDetail.css'
 import { shareToLine, isInLine } from '../liff.js'
 
-export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSaved }) {
+export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSaved, onSuggestEdit }) {
   const s = STRINGS[lang]
   const name = venue.name?.[lang] || venue.name?.en || venue.name?.th || venue.id
   const address = venue.address?.[lang] || venue.address?.en
@@ -239,6 +239,15 @@ export default function PlaceDetail({ venue, lang, onClose, onToggleSave, isSave
             <h3 className="ph-section-title">{s.detail.sections.notes}</h3>
             <p className="ph-notes">{notes}</p>
           </section>
+        )}
+
+        {/* Something here out of date? Reuses SuggestPlaceSheet in edit mode
+            (App.jsx) rather than only supporting brand-new place suggestions —
+            fixing a wrong fee/hours previously required the admin editor. */}
+        {onSuggestEdit && (
+          <button type="button" className="ph-suggest-edit-btn" onClick={onSuggestEdit}>
+            ✎ {s.detail.suggestEdit}
+          </button>
         )}
 
         {/* Open in Maps */}

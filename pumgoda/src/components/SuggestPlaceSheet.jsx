@@ -41,24 +41,33 @@ function findPossibleDuplicate(name, places) {
 // (signed in or not) may create one, only admin/pumgodaAdmin may read or
 // delete. If the caller happens to be signed in, submittedBy is attributed
 // to their account; otherwise it's just whatever name they optionally type.
-export default function SuggestPlaceSheet({ lang = 'en', user, places = [], onSignIn, signingIn, onClose }) {
+//
+// editTarget (optional): the venue being corrected, from PlaceDetail's
+// "Suggest an edit" button. When set, this is the SAME form/collection —
+// just prefilled from the existing place and tagged with targetPlaceId so
+// admindepum.html's review queue can tell "new place" and "edit to place X"
+// suggestions apart (see the sibling openEditFromSuggestion handler there).
+export default function SuggestPlaceSheet({ lang = 'en', user, places = [], onSignIn, signingIn, onClose, editTarget = null }) {
   const s = STRINGS[lang] || STRINGS.en
   const t = s.suggestForm
-  const [name, setName] = useState('')
-  const [mapsUrl, setMapsUrl] = useState('')
+  const isEdit = Boolean(editTarget)
+  const [name, setName] = useState(() => (isEdit ? editTarget.name?.[lang] || editTarget.name?.en || editTarget.name?.th || '' : ''))
+  const [mapsUrl, setMapsUrl] = useState(() => (isEdit ? editTarget.googleMapsUrl || '' : ''))
   const [note, setNote] = useState('')
   const [yourName, setYourName] = useState('')
-  const [policy, setPolicy] = useState({})
-  const [sizeLimitKg, setSizeLimitKg] = useState('')
-  const [feeBaht, setFeeBaht] = useState('')
-  const [priceTier, setPriceTier] = useState('')
+  const [policy, setPolicy] = useState(() => (isEdit ? { ...(editTarget.policy || {}) } : {}))
+  const [sizeLimitKg, setSizeLimitKg] = useState(() => (isEdit && editTarget.policy?.size_limit_kg != null ? String(editTarget.policy.size_limit_kg) : ''))
+  const [feeBaht, setFeeBaht] = useState(() => (isEdit && editTarget.policy?.fee_baht != null ? String(editTarget.policy.fee_baht) : ''))
+  const [priceTier, setPriceTier] = useState(() => (isEdit ? editTarget.priceTier || '' : ''))
   const [photoUrl, setPhotoUrl] = useState(null)
   const [photoStatus, setPhotoStatus] = useState('idle') // idle | uploading | done | error
   const [status, setStatus] = useState('idle') // idle | submitting | success | error
 
   const canSubmit = name.trim().length > 0 && status !== 'submitting'
   const togglePolicy = (key) => setPolicy((p) => ({ ...p, [key]: !p[key] }))
-  const duplicateMatch = useMemo(() => findPossibleDuplicate(name, places), [name, places])
+  // A duplicate-name nudge doesn't make sense when editing a place that
+  // obviously already exists — that's the whole point of this mode.
+  const duplicateMatch = useMemo(() => (isEdit ? null : findPossibleDuplicate(name, places)), [name, places, isEdit])
 
   const handlePhotoSelect = async (e) => {
     const file = e.target.files?.[0]
@@ -106,6 +115,7 @@ export default function SuggestPlaceSheet({ lang = 'en', user, places = [], onSi
         policy: policyOut,
         priceTier: priceTier || null,
         ...(photoUrl ? { photos: [photoUrl] } : {}),
+        ...(isEdit ? { targetPlaceId: editTarget.id } : {}),
         submittedBy,
         submittedAt: serverTimestamp(),
       })
@@ -138,7 +148,7 @@ export default function SuggestPlaceSheet({ lang = 'en', user, places = [], onSi
     <div style={overlayStyle} onClick={onClose}>
       <div style={sheetStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>{t.title}</h2>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>{isEdit ? t.editTitle : t.title}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -148,11 +158,11 @@ export default function SuggestPlaceSheet({ lang = 'en', user, places = [], onSi
             ✕
           </button>
         </div>
-        <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--muted)' }}>{t.subtitle}</p>
+        <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--muted)' }}>{isEdit ? t.editSubtitle : t.subtitle}</p>
 
         {status === 'success' ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{t.success}</p>
+            <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{isEdit ? t.editSuccess : t.success}</p>
             <button
               type="button"
               onClick={onClose}
@@ -197,11 +207,11 @@ export default function SuggestPlaceSheet({ lang = 'en', user, places = [], onSi
             </label>
             <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--muted)' }}>{t.mapsLinkHelp}</p>
             <label style={labelStyle}>
-              {t.noteLabel}
+              {isEdit ? t.editNoteLabel : t.noteLabel}
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder={t.notePlaceholder}
+                placeholder={isEdit ? t.editNotePlaceholder : t.notePlaceholder}
                 maxLength={2000}
                 rows={3}
                 style={{ ...fieldStyle, resize: 'vertical' }}
@@ -321,7 +331,7 @@ export default function SuggestPlaceSheet({ lang = 'en', user, places = [], onSi
                 opacity: canSubmit ? 1 : 0.6, font: 'inherit',
               }}
             >
-              {status === 'submitting' ? t.submitting : t.submit}
+              {status === 'submitting' ? t.submitting : (isEdit ? t.editSubmit : t.submit)}
             </button>
           </form>
         )}
