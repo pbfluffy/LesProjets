@@ -11,7 +11,7 @@
 // birthday privilege found at all) are deliberately left out rather than
 // included with a guess — see the research log in README.md.
 
-export const CATEGORIES = ['cafe', 'restaurant', 'buffet', 'fastfood']
+export const CATEGORIES = ['cafe', 'restaurant', 'buffet', 'fastfood', 'entertainment']
 
 // Tier reflects how "free" the privilege actually is end-to-end — both
 // whether the item itself costs money, and what it takes to become eligible.
@@ -276,5 +276,31 @@ export const privileges = [
     lastVerified: '2026-08-08',
     sourceUrl: 'https://www.facebook.com/sukiteenoithailand/posts/982969643864831/',
     sourceLabel: 'สุกี้ตี๋น้อย (Suki Teenoi) — official Facebook post (2 Dec 2024)',
+  },
+  {
+    id: 'major-cineplex-mgen',
+    brand: 'Major Cineplex (M GEN)',
+    category: 'entertainment',
+    item: {
+      th: 'ตั๋วหนังฟรี 1 ที่นั่ง (ที่นั่งปกติ ระบบดิจิตอล) ในสัปดาห์เกิด',
+      en: 'One free movie ticket (standard seat, digital format) during your birth week',
+    },
+    tier: 'SSS',
+    tierReason: {
+      th: 'ของฟรีและสมัครสมาชิก M GEN ฟรีผ่านแอป ไม่มีเงื่อนไขยอดใช้จ่ายขั้นต่ำ — สิทธิ์นี้ใช้ได้ทุกระดับสมาชิก ไม่ใช่แค่ระดับสูง',
+      en: 'Free item and free M GEN membership via the app, no spend threshold — available at every membership level, not just the top tier',
+    },
+    gate: {
+      th: 'สมัครสมาชิก M GEN ฟรีผ่านแอป ต้องสมัครหรือต่ออายุบัตรอย่างน้อย 2 สัปดาห์ก่อนวันเกิด (หมายเหตุ: หน้าเงื่อนไขหลักที่พบระบุช่วงเวลา "ถึง 31 ธ.ค. 2562" แต่พบประกาศเปลี่ยนแปลงสิทธิ์ระดับ First Class ที่ไม่ระบุวันที่แยกต่างหาก ซึ่งยืนยันว่าโปรแกรมนี้ยังดำเนินการอยู่และมีการอัปเดตต่อเนื่อง ไม่ใช่หน้าที่ถูกทิ้งร้าง)',
+      en: 'Free M GEN membership via the app; must register or renew your card at least 2 weeks before your birthday (note: the main terms page found is dated "through 31 Dec 2019", but a separate undated notice about a First Class tier change confirms the program is still actively maintained, not an abandoned page)',
+    },
+    howToClaim: {
+      th: 'แสดงบัตร/แอป M GEN พร้อมบัตรประชาชนที่ตู้ E-ticketing ในสัปดาห์เกิด (อาทิตย์-เสาร์)',
+      en: 'Show your M GEN card/app plus ID at the E-ticketing kiosk during your birth week (Sunday-Saturday)',
+    },
+    confidence: 'official',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://www.majorcineplex.com/promotion/m-gen-happy-birthday',
+    sourceLabel: 'Major Cineplex — official promotion page',
   },
 ]

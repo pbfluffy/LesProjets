@@ -18,9 +18,11 @@ Each entry also carries a hand-set `tier` (`SSS`/`S`/`A`/`B`) reflecting how fre
 
 ### Research log (as of 2026-08-08)
 
-~68 brands checked across seven rounds. 9 made the cut:
+~73 brands checked across eight rounds. 10 made the cut:
 
-**Included:** Starbucks Thailand, MK Restaurant, Sizzler, Greyhound Café (all `official`); Café Amazon, McDonald's Thailand, Oh! Juice, Potato Corner, Suki Teenoi (`social`).
+**Included:** Starbucks Thailand, MK Restaurant, Sizzler, Greyhound Café, Major Cineplex (M GEN) (all `official`); Café Amazon, McDonald's Thailand, Oh! Juice, Potato Corner, Suki Teenoi (`social`).
+
+Major Cineplex is the first non-food/drink entry — added a new `entertainment` category. Worth a flag: the clearest official terms page for it is dated through 2019, but a separate, undated policy-change notice for the First Class tier confirms the program is still actively maintained, not abandoned — see the entry's `gate` field for the full reasoning.
 
 **Checked and dropped** — worth recording so a future re-check doesn't waste time on the same dead ends:
 - **The Pizza Company** — dedicated birthday campaign page (`hbd.1112pizza.com`) no longer resolves.
@@ -34,7 +36,7 @@ Each entry also carries a hand-set `tier` (`SSS`/`S`/`A`/`B`) reflecting how fre
 - **ZEN Japanese Restaurant** — found the exact terms (15% birthday discount) on their own official Facebook post, but it's dated **9 March 2014** — 12 years stale, dropped rather than trust it's still current.
 - **Santa Fe' Steak** — a search summary claimed a 15% birthday discount, but the only official promo found (199฿ member card) has no birthday-specific terms and has already expired.
 - **Tenya** — the tempura chain closed all Thailand locations after 10 years, moot regardless of any historical privilege.
-- **Hachiban Ramen, Bourbon Street, Five Star Chicken (ไก่ห้าดาว), KAMU Tea, AKA Yakiniku, Daniel Thaiger** — no birthday-month privilege found on any official page.
+- **Hachiban Ramen, Bourbon Street, Five Star Chicken (ไก่ห้าดาว), KAMU Tea, AKA Yakiniku, Daniel Thaiger, Cinnabon Thailand, Somboon Seafood, Savoey Seafood, Nana Coffee Roasters** — no birthday-month privilege found on any official page.
 - **KFC Thailand, Oishi Group, After You, Fuji, Black Canyon, Auntie Anne's, Inthanin, Dunkin' Thailand, Chester's, Mister Donut, Din Tai Fung, Yoshinoya, Mo-Mo-Paradise, True Coffee, CoCo Ichibanya, Coffee World, Baskin Robbins, bb.q Chicken Thailand, Cha Tra Mue, Aroi Dee, Lotteria (not in Thailand), Jollibee Thailand, Subway Thailand, Domino's Pizza Thailand, Wingstop Thailand (opened Dec 2025, too new), Coca Suki, Shabushi, Gyu-Kaku, BarBQ Plaza, Peppina, iberry, Kyochon Thailand, Emack & Bolio's, Cold Stone Creamery, Ippudo Thailand, Erawan Tea Room, Kub Kao' Kub Pla, The Coffee Club, Wine Connection** — no birthday-month privilege found on any official page (Dunkin's own member-card page was outright broken).
 - **Swensen's, Bonchon, Krispy Kreme** — privilege may exist but only via app-exclusive or boutique/Facebook-only sourcing, not independently verifiable.
 - **Dairy Queen, Yayoi** — conflicting claims across sources with no single authoritative page to resolve them.
