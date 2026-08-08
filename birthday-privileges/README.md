@@ -18,15 +18,18 @@ Each entry also carries a hand-set `tier` (`SSS`/`S`/`A`/`B`) reflecting how fre
 
 ### Research log (as of 2026-08-08)
 
-~35 brands checked across three rounds. Only 6 made the cut:
+~41 brands checked across five rounds. 8 made the cut:
 
-**Included:** Starbucks Thailand, MK Restaurant, Sizzler, Greyhound Café (all `official`); Café Amazon, McDonald's Thailand (`social`).
+**Included:** Starbucks Thailand, MK Restaurant, Sizzler, Greyhound Café (all `official`); Café Amazon, McDonald's Thailand, Oh! Juice, Potato Corner (`social`).
 
 **Checked and dropped** — worth recording so a future re-check doesn't waste time on the same dead ends:
 - **The Pizza Company** — dedicated birthday campaign page (`hbd.1112pizza.com`) no longer resolves.
 - **Pizza Hut Thailand** — a search summary claimed a birthday breadstick reward, but the official Hut Rewards page (checked directly, full FAQ read) never mentions birthday anything — that claim doesn't hold up for the Thailand program specifically.
 - **S&P** — official promo post exists but is dated Jan 2022 and image-only, no live text terms.
 - **Texas Chicken Thailand** — the chain closed all Thailand branches (Sept 2026), moot regardless of any historical privilege.
+- **Jones Salad** — checked their own site directly (jonessalad.com/promotion/, full nav); no membership or birthday terms page exists there at all. The 15% birth-month claim traces only to third-party aggregators referencing a LINE-only announcement.
+- **Ohkajhu (โอ้กะจู๋)** — Family Card birthday privilege is repeatedly described by third parties, but the parent company site (okjgroup.com) is corporate-only with no consumer terms; benefit appears to live entirely inside their app, unverifiable from here.
+- **Au Bon Pain Thailand** — ABP Privilege Card exists (points-based), but no birthday-specific terms found anywhere official; their promotions page was empty.
 - **KFC Thailand, Oishi Group, After You, Fuji, Black Canyon, Auntie Anne's, Inthanin, Dunkin' Thailand, Chester's, Mister Donut, Din Tai Fung, Yoshinoya, Mo-Mo-Paradise, True Coffee, CoCo Ichibanya, Coffee World, Baskin Robbins, bb.q Chicken Thailand, Cha Tra Mue, Aroi Dee** — no birthday-month privilege found on any official page (Dunkin's own member-card page was outright broken).
 - **Swensen's, Bonchon, Krispy Kreme** — privilege may exist but only via app-exclusive or boutique/Facebook-only sourcing, not independently verifiable.
 - **Dairy Queen, Yayoi** — conflicting claims across sources with no single authoritative page to resolve them.

@@ -199,4 +199,56 @@ export const privileges = [
     sourceUrl: 'https://www.greyhoundcafe.co.th/news/greyhound-member-privilege/',
     sourceLabel: 'Greyhound Café — official member privilege page',
   },
+  {
+    id: 'oh-juice',
+    brand: 'Oh! Juice',
+    category: 'cafe',
+    item: {
+      th: 'เครื่องดื่มฟรี 1 แก้วในเดือนเกิด (เลือกได้ทุกขนาด ทุกเมนู ยกเว้น Signature)',
+      en: 'One free drink in your birth month (any size, any menu except Signature items)',
+    },
+    tier: 'A',
+    tierReason: {
+      th: 'ของฟรี แต่ต้องสะสมแต้มให้ครบ 50 Star ก่อนถึงจะใช้สิทธิ์ได้ ไม่มีทางลัดจ่ายเงินแทน',
+      en: 'Item is free, but you must accumulate 50 Stars before you can redeem it — no paid shortcut',
+    },
+    gate: {
+      th: 'สมัครสมาชิกฟรีผ่าน LINE OA แล้วสะสมแต้มจากการซื้อจนครบ 50 Star',
+      en: 'Free membership via LINE Official Account, then accumulate 50 Stars from purchases',
+    },
+    howToClaim: {
+      th: 'แสดงสถานะสมาชิกผ่าน LINE OA @ohjuice.thailand เมื่อครบ 50 Star ในเดือนเกิด',
+      en: 'Show your member status via LINE OA @ohjuice.thailand once you have 50+ Stars, during your birth month',
+    },
+    confidence: 'social',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://www.facebook.com/61557673142882/posts/122174373278255771/',
+    sourceLabel: 'Oh! Juice — official Facebook post (7 Jan 2025)',
+  },
+  {
+    id: 'potato-corner',
+    brand: 'Potato Corner',
+    category: 'fastfood',
+    item: {
+      th: 'เฟรนช์ฟรายส์ฟรี 1 ถ้วยในเดือนเกิด (ใช้ได้ 1 ครั้ง/ปี)',
+      en: 'One free cup of French fries in your birth month (once per year)',
+    },
+    tier: 'SSS',
+    tierReason: {
+      th: 'ของฟรีและสมัครสมาชิก TOTO Club ฟรีทันที ไม่มีเงื่อนไขยอดใช้จ่ายขั้นต่ำ',
+      en: 'Free item and free TOTO Club membership with immediate privileges — no spend threshold',
+    },
+    gate: {
+      th: 'สมัครสมาชิก TOTO Club ฟรีผ่าน LINE OA @PotatoCornerTH ได้สิทธิ์ทันทีที่สมัคร',
+      en: 'Free TOTO Club membership via LINE OA @PotatoCornerTH — privileges apply immediately upon signup',
+    },
+    howToClaim: {
+      th: 'กดรับคูปองในเมนู TOTO Club > Promotion ผ่าน LINE OA ใช้ได้ภายใน 1 ชั่วโมงหลังกดรับ ทุกสาขายกเว้นสนามบิน',
+      en: 'Claim the coupon via the LINE OA menu: TOTO Club > Promotion. Valid for 1 hour after claiming, all branches except airport locations',
+    },
+    confidence: 'social',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://www.tiktok.com/@potatocornerth/video/7459270262756756744',
+    sourceLabel: 'Potato Corner Thailand — official TikTok account',
+  },
 ]
