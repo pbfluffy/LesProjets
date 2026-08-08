@@ -11,7 +11,7 @@
 // birthday privilege found at all) are deliberately left out rather than
 // included with a guess — see the research log in README.md.
 
-export const CATEGORIES = ['cafe', 'restaurant', 'buffet', 'fastfood', 'entertainment']
+export const CATEGORIES = ['cafe', 'restaurant', 'buffet', 'fastfood', 'entertainment', 'wellness']
 
 // Tier reflects how "free" the privilege actually is end-to-end — both
 // whether the item itself costs money, and what it takes to become eligible.
@@ -302,5 +302,31 @@ export const privileges = [
     lastVerified: '2026-08-08',
     sourceUrl: 'https://www.majorcineplex.com/promotion/m-gen-happy-birthday',
     sourceLabel: 'Major Cineplex — official promotion page',
+  },
+  {
+    id: 'lets-relax-spa',
+    brand: "Let's Relax Spa (WellnessMe)",
+    category: 'wellness',
+    item: {
+      th: 'ส่วนลดค่าบริการสปา 20-30% ตลอดเดือนเกิด (ตามระดับสมาชิก Silver/Gold/Platinum)',
+      en: '20-30% off spa services throughout your birth month (Silver/Gold/Platinum tier dependent)',
+    },
+    tier: 'B',
+    tierReason: {
+      th: 'เป็นส่วนลด ไม่ใช่ของฟรี — ยังต้องจ่ายค่าบริการอยู่ดี แม้สมัครสมาชิก WellnessMe จะฟรี',
+      en: "It's a discount, not a free service — you still pay, even though WellnessMe membership itself is free to join",
+    },
+    gate: {
+      th: 'สมัครสมาชิก WellnessMe ฟรีผ่าน www.WellnessMe.co หรือ LINE OA ของแบรนด์ในเครือ ส่วนลดขึ้นกับระดับสมาชิก (Silver 20% / Gold 25% / Platinum 30%) ซึ่งอิงจากคะแนนสะสม (ทุก 25 บาท = 1 คะแนน) แต่ไม่พบเกณฑ์คะแนนที่ต้องใช้เพื่อขึ้นแต่ละระดับจากแหล่งทางการ',
+      en: "Free WellnessMe membership via www.WellnessMe.co or the brand's LINE OA; the discount depends on tier (Silver 20% / Gold 25% / Platinum 30%), based on accumulated points (25฿ = 1 point), but the exact point thresholds for each tier weren't stated on any official source found",
+    },
+    howToClaim: {
+      th: 'Birthday Voucher จะขึ้นในระบบ WellnessMe อัตโนมัติเมื่อถึงเดือนเกิด แสดงให้พนักงานก่อนรับบริการที่ Let\'s Relax Spa ทุกสาขา',
+      en: "The Birthday Voucher appears automatically in the WellnessMe app during your birth month; show it to staff before your service at any Let's Relax Spa branch",
+    },
+    confidence: 'official',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://letsrelaxspa.com/news/wellnessme-birthday-privilege/',
+    sourceLabel: "Let's Relax Spa — official WellnessMe birthday privilege page",
   },
 ]

@@ -18,11 +18,11 @@ Each entry also carries a hand-set `tier` (`SSS`/`S`/`A`/`B`) reflecting how fre
 
 ### Research log (as of 2026-08-08)
 
-~73 brands checked across eight rounds. 10 made the cut:
+~78 brands checked across nine rounds. 11 made the cut:
 
-**Included:** Starbucks Thailand, MK Restaurant, Sizzler, Greyhound Café, Major Cineplex (M GEN) (all `official`); Café Amazon, McDonald's Thailand, Oh! Juice, Potato Corner, Suki Teenoi (`social`).
+**Included:** Starbucks Thailand, MK Restaurant, Sizzler, Greyhound Café, Major Cineplex (M GEN), Let's Relax Spa (all `official`); Café Amazon, McDonald's Thailand, Oh! Juice, Potato Corner, Suki Teenoi (`social`).
 
-Major Cineplex is the first non-food/drink entry — added a new `entertainment` category. Worth a flag: the clearest official terms page for it is dated through 2019, but a separate, undated policy-change notice for the First Class tier confirms the program is still actively maintained, not abandoned — see the entry's `gate` field for the full reasoning.
+Major Cineplex and Let's Relax Spa are the first non-food/drink entries — added new `entertainment` and `wellness` categories. Worth a flag on Major Cineplex: the clearest official terms page for it is dated through 2019, but a separate, undated policy-change notice for the First Class tier confirms the program is still actively maintained, not abandoned — see the entry's `gate` field for the full reasoning.
 
 **Checked and dropped** — worth recording so a future re-check doesn't waste time on the same dead ends:
 - **The Pizza Company** — dedicated birthday campaign page (`hbd.1112pizza.com`) no longer resolves.
@@ -37,6 +37,9 @@ Major Cineplex is the first non-food/drink entry — added a new `entertainment`
 - **Santa Fe' Steak** — a search summary claimed a 15% birthday discount, but the only official promo found (199฿ member card) has no birthday-specific terms and has already expired.
 - **Tenya** — the tempura chain closed all Thailand locations after 10 years, moot regardless of any historical privilege.
 - **Hachiban Ramen, Bourbon Street, Five Star Chicken (ไก่ห้าดาว), KAMU Tea, AKA Yakiniku, Daniel Thaiger, Cinnabon Thailand, Somboon Seafood, Savoey Seafood, Nana Coffee Roasters** — no birthday-month privilege found on any official page.
+- **SF Cinema** — third-party sources consistently describe a birthday free-movie perk (parallel to Major Cineplex's M GEN), but every official page found returned a 404, the app subdomain refused to load, the Facebook photo post is login-walled, and even a direct WebFetch hit an SSL certificate error. Real signal, no primary source I could actually verify — left out despite the strong corroboration.
+- **B2S Club** — has a genuine official birthday page, but the specific offer found (10x points) is a one-off expired May–June 2024 campaign, not a standing benefit, and points aren't equivalent to a free item anyway.
+- **Watsons Thailand, Boots Thailand** — Boots' own official Twitter/X mentions a 10% birthday discount, but no dated page could be found stating current terms; Watsons had no birthday-specific info found at all.
 - **KFC Thailand, Oishi Group, After You, Fuji, Black Canyon, Auntie Anne's, Inthanin, Dunkin' Thailand, Chester's, Mister Donut, Din Tai Fung, Yoshinoya, Mo-Mo-Paradise, True Coffee, CoCo Ichibanya, Coffee World, Baskin Robbins, bb.q Chicken Thailand, Cha Tra Mue, Aroi Dee, Lotteria (not in Thailand), Jollibee Thailand, Subway Thailand, Domino's Pizza Thailand, Wingstop Thailand (opened Dec 2025, too new), Coca Suki, Shabushi, Gyu-Kaku, BarBQ Plaza, Peppina, iberry, Kyochon Thailand, Emack & Bolio's, Cold Stone Creamery, Ippudo Thailand, Erawan Tea Room, Kub Kao' Kub Pla, The Coffee Club, Wine Connection** — no birthday-month privilege found on any official page (Dunkin's own member-card page was outright broken).
 - **Swensen's, Bonchon, Krispy Kreme** — privilege may exist but only via app-exclusive or boutique/Facebook-only sourcing, not independently verifiable.
 - **Dairy Queen, Yayoi** — conflicting claims across sources with no single authoritative page to resolve them.
