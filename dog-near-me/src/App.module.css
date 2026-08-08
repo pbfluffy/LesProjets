@@ -52,6 +52,7 @@
   cursor: pointer;
   transition: background 0.15s;
   letter-spacing: 0.03em;
+  text-decoration: none;
 }
 .ctrlBtn:hover { background: var(--color-border); }
 

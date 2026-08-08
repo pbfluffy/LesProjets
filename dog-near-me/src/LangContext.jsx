@@ -8,6 +8,7 @@ export const STRINGS = {
     tagline: "Report a stray dog you spotted — see if someone's already named it",
     navMap: 'Map',
     navReport: 'Report a dog',
+    backToHome: 'Back to portfolio',
 
     signIn: 'Sign in',
     signInWithGoogle: 'Continue with Google',
@@ -132,6 +133,7 @@ export const STRINGS = {
     tagline: 'รายงานหมาจรที่เจอ — ดูว่ามีใครตั้งชื่อไว้แล้วหรือยัง',
     navMap: 'แผนที่',
     navReport: 'รายงานหมา',
+    backToHome: 'กลับสู่หน้ารวมแอป',
 
     signIn: 'เข้าสู่ระบบ',
     signInWithGoogle: 'ดำเนินการต่อด้วย Google',
