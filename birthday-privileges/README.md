@@ -1,20 +1,69 @@
 # Birthday Month Privileges — Thailand
 
-Curated list of Thai brands' birthday-month member privileges (สิทธิพิเศษเดือนเกิด). Not linked from the main landing page — reachable directly at its own URL.
+Curated checklist of Thai brands' birthday-month member privileges (สิทธิพิเศษเดือนเกิด). Not linked from the main landing page — reachable directly at its own URL.
 
 Live: https://pumbafluffycorgi.com/birthday-privileges/
 
-## Status
+## What this app does
+
+A single-page checklist: for each brand, what you get, what it costs to be eligible, how to claim it, and how sure we are the info is current. No backend, no accounts, no build-time data fetching — it's a static site rendering a hand-maintained list in `src/data/privileges.js`.
+
+### Features (all in `src/App.jsx`)
+
+- **TH/EN toggle** — top-right button, default language is Thai (`useLang` hook, persisted to `localStorage` under `birthday_privileges_lang`). Every string in the app, including each data entry's text fields, is bilingual.
+- **Light/dark theme toggle** — top-right button, shares the site-wide `theme` `localStorage` key with every other app on the origin (`useTheme` hook), so switching theme here carries over to other apps and vice versa.
+- **Category filter chips** — "All" plus one chip per category in `CATEGORIES` (see Data model below).
+- **Brand search** — plain substring match on `brand`, case-insensitive.
+- **Checklist grouped by tier** — entries are grouped under tier headings (SSS → S → A → B, see Tiers below), each a colored pill. Within a filtered/searched view, empty tier groups are hidden entirely.
+- **Checkbox per entry** ("claimed it") — click to strike through the row. See "Checklist behavior" below for exactly how this is stored.
+- **Expandable detail** — click a row (or its ▼/▲ button) to reveal membership requirement, how to claim, the tier's reasoning for *this* entry, a confidence badge, a link to the source, and the last-verified date. Collapsed by default so the top-level view stays scannable.
+
+### Checklist behavior (no accounts)
+
+The "claimed it" checkboxes are stored in `localStorage` (key `birthday_privileges_checked`, see `useLocalStorage` in `App.jsx`) — there is no login and no backend, so state is **per-device, per-browser only**. Anyone who opens the page can check items off, but nothing is shared or synced: a box checked on one phone won't show as checked on a laptop or for any other visitor, and there's no way to see or aggregate anyone else's progress. Clearing site data/localStorage resets it. If cross-device sync or a shared/social checklist is ever wanted, that requires adding real accounts + a backend, which this app deliberately doesn't have today.
+
+## Data model
+
+Everything lives in `src/data/privileges.js`, in the `privileges` array. Each entry:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `id` | string | Unique slug, used as React key and the checklist's localStorage identity |
+| `brand` | string | Display name |
+| `category` | string | One of `CATEGORIES` (see below) |
+| `item` | `{th, en}` | What you actually get — the one-line checklist summary |
+| `tier` | `'SSS'\|'S'\|'A'\|'B'` | Hand-set, see Tiers below |
+| `tierReason` | `{th, en}` | Why this entry got that tier — shown in the expanded detail |
+| `gate` | `{th, en}` | Membership requirement / eligibility condition |
+| `howToClaim` | `{th, en}` | Redemption mechanics |
+| `confidence` | `'official'\|'social'` | See Confidence below |
+| `lastVerified` | `'YYYY-MM-DD'` | Date this entry was last hand-checked |
+| `sourceUrl` | string | Link to re-verify |
+| `sourceLabel` | string | Human-readable source description (e.g. "Starbucks Rewards — official FAQ") |
+
+**Categories** (`CATEGORIES` export): `cafe`, `restaurant`, `buffet`, `fastfood`, `entertainment`, `wellness`. `entertainment` and `wellness` were added later (Major Cineplex, Let's Relax Spa) — this app isn't strictly food/drink, just "birthday privileges in Thailand" generally. Add a new category by appending to `CATEGORIES` and adding a label to both `STRINGS.th.category` and `STRINGS.en.category` in `App.jsx`.
+
+### Tiers (`TIERS` export)
+
+Reflects how free the privilege actually is end-to-end — both whether the item itself costs money, and what it takes to become eligible. This is a **hand-made judgment call per entry**, not a formula computed from other fields — kept explicit so the reasoning is visible and reviewable in the data itself (see each entry's `tierReason`).
+
+| Tier | Color | Meaning |
+|---|---|---|
+| SSS | green | Actually free, no strings — free item, free membership, no spend threshold |
+| S | blue | Free item, but a small paid shortcut exists (e.g. a one-time paid card that skips a spend requirement) |
+| A | amber | Free item, but reaching eligibility needs a real spend threshold — no paid shortcut |
+| B | red | Not actually free — it's a discounted price or member discount, you still pay |
+
+### Confidence
+
+- `'official'` — a dated, structured page on the brand's own domain states the terms directly (e.g. Starbucks Rewards FAQ, Sizzler's member benefits table).
+- `'social'` — confirmed via the brand's own official social account (verified TikTok/Facebook post), but no static webpage states the same terms, so it's less re-checkable.
+
+## Status & research methodology
 
 This is deliberately a **short, hand-checked list**, not an attempt at a comprehensive database. The Lemon8/TrueID-style roundups (`16 ร้านดัง`, `22 ร้านบุฟเฟ่ต์`, etc.) that inspired this app include a lot of stuff that turned out to be dead campaign pages, years-stale "official" posts, or boutique brands whose only documentation is "message us on Facebook for details." Building a comprehensive list means including that noise; this app doesn't.
 
-Every entry in `src/data/privileges.js` was checked by hand, one brand at a time, against the brand's own site/app/social account — no scraping, no aggregator content copied in. Each entry carries:
-
-- `confidence: 'official'` — a dated, structured page on the brand's own domain states the terms directly (e.g. Starbucks Rewards FAQ, Sizzler's member benefits table).
-- `confidence: 'social'` — confirmed via the brand's own official social account (verified TikTok/Facebook page), but no static webpage states the same terms, so it's less re-checkable.
-- `lastVerified` — the date it was checked. `sourceUrl` — where to re-check it.
-
-Each entry also carries a hand-set `tier` (`SSS`/`S`/`A`/`B`) reflecting how free the privilege actually is end-to-end — both whether the item itself costs money, and what it takes to become eligible (see `TIERS` in `src/data/privileges.js` for the scale, and each entry's `tierReason` for the specific reasoning).
+Every entry was checked by hand, one brand at a time, against the brand's own site/app/social account — no scraping, no aggregator content copied in.
 
 ### Research log (as of 2026-08-08)
 
@@ -50,7 +99,7 @@ Re-check `lastVerified` dates periodically — every brand here can and does cha
 
 ## Stack
 
-React 18 + Vite, `vite-plugin-pwa` for install support — same as every other app on this site. No backend, no auth: it's a static build over a local data file.
+React 18 + Vite, `vite-plugin-pwa` for install support — same as every other app on this site.
 
 ## Local development
 
