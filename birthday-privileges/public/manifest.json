@@ -1,0 +1,33 @@
+{
+  "name": "สิทธิพิเศษเดือนเกิด — curated birthday-month privileges in Thailand",
+  "short_name": "Birthday Perks",
+  "description": "Curated list of Thai brands' verified birthday-month member privileges.",
+  "id": "/birthday-privileges/",
+  "start_url": "/birthday-privileges/",
+  "scope": "/birthday-privileges/",
+  "lang": "th",
+  "dir": "ltr",
+  "display": "standalone",
+  "background_color": "#f7f6f2",
+  "theme_color": "#f7f6f2",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

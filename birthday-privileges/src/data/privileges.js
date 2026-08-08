@@ -1,0 +1,202 @@
+// Curated birthday-month privileges for Thai brands. This is intentionally a
+// short, hand-checked list, not an attempt at a comprehensive database — see
+// README.md for why. Every entry was checked directly against the brand's
+// own site/app/social account on `lastVerified`; confidence reflects how
+// citable that source actually is:
+//   'official'  — a dated, structured page on the brand's own domain
+//   'social'    — confirmed via the brand's own official social account,
+//                 but no stable webpage states the same terms
+// Brands that were checked and turned up nothing citable (dead campaign
+// pages, boutique brands with only third-party aggregator mentions, no
+// birthday privilege found at all) are deliberately left out rather than
+// included with a guess — see the research log in README.md.
+
+export const CATEGORIES = ['cafe', 'restaurant', 'buffet', 'fastfood']
+
+// Tier reflects how "free" the privilege actually is end-to-end — both
+// whether the item itself costs money, and what it takes to become eligible.
+// Ordered best (SSS) to worst (B); see each entry's `tierReason` for the
+// specific reasoning. This is a judgment call made by hand per entry, not a
+// formula — kept as an explicit field rather than derived at render time so
+// the reasoning is visible and reviewable in the data itself.
+export const TIERS = [
+  {
+    key: 'SSS',
+    color: 'green',
+    label: { th: 'SSS — ฟรีจริง ไม่มีเงื่อนไข', en: 'SSS — Actually free, no strings' },
+  },
+  {
+    key: 'S',
+    color: 'blue',
+    label: { th: 'S — ของฟรี แต่มีทางลัดจ่ายเงินเล็กน้อย', en: 'S — Free item, small paid shortcut exists' },
+  },
+  {
+    key: 'A',
+    color: 'amber',
+    label: { th: 'A — ของฟรี แต่ต้องมียอดใช้จ่ายสะสม', en: 'A — Free item, but needs a real spend threshold' },
+  },
+  {
+    key: 'B',
+    color: 'red',
+    label: { th: 'B — ไม่ใช่ของฟรี เป็นแค่ราคาพิเศษ', en: 'B — Not actually free, just a member discount' },
+  },
+]
+
+export const privileges = [
+  {
+    id: 'starbucks-th',
+    brand: 'Starbucks Thailand',
+    category: 'cafe',
+    item: {
+      th: 'เครื่องดื่มชงสด 1 แก้ว (ปรับสูตรได้ฟรี 2 อย่าง) + เค้ก 1 ชิ้น (มูลค่าไม่เกิน 150 บาท)',
+      en: 'One free handcrafted drink (any size, 2 free customizations) + one free slice of cake (max value 150฿)',
+    },
+    tier: 'A',
+    tierReason: {
+      th: 'ของฟรี แต่ต้องสะสม 300 ดาว (~7,500 บาท) ภายใน 12 เดือนก่อนถึงจะได้สิทธิ์ ไม่มีทางลัดจ่ายเงินแทน',
+      en: 'Item is free, but reaching Gold takes ~7,500฿ of spend (300 Stars) within 12 months — no paid shortcut',
+    },
+    gate: {
+      th: 'ต้องเป็นสมาชิกระดับ Gold (สะสม 300 ดาวภายใน 12 เดือน) — ระดับ Green ยังไม่ได้สิทธิ์นี้',
+      en: 'Gold Level members only (300+ Stars within 12 months) — not available at entry Green level',
+    },
+    howToClaim: {
+      th: 'ลงทะเบียนบัตร Starbucks Card หรือแอป Starbucks TH แล้วรับสิทธิ์อัตโนมัติในเดือนเกิด',
+      en: 'Register a Starbucks Card or the Starbucks TH app; the reward is added automatically in your birth month',
+    },
+    confidence: 'official',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://www.stagingsr.com/Home/Faq',
+    sourceLabel: 'Starbucks Rewards — official FAQ',
+  },
+  {
+    id: 'mk-restaurant',
+    brand: 'MK Restaurant',
+    category: 'restaurant',
+    item: {
+      th: 'ชุด Birthday Special ราคาพิเศษสำหรับสมาชิก (ราคาลดจากปกติ)',
+      en: 'Birthday Special Set at a discounted member price',
+    },
+    tier: 'B',
+    tierReason: {
+      th: 'สมัครสมาชิก MK Red ฟรี แต่ตัวชุดวันเกิดเองยังต้องจ่ายเงิน (แค่ลดราคา) ไม่ใช่ของแจกฟรี',
+      en: 'MK Red membership is free to join, but the birthday set itself still costs money — it\'s a discount, not a giveaway',
+    },
+    gate: {
+      th: 'ต้องเป็นสมาชิก MK Red การ์ดขึ้นไป ใช้ได้ 1 ครั้งต่อบิล เฉพาะทานที่ร้าน',
+      en: 'MK Red card members and above; once per receipt, dine-in only',
+    },
+    howToClaim: {
+      th: 'จองสิทธิ์ผ่าน LINE OA ของ MK, เว็บไซต์ thisismymk.com หรือแอป MyMK',
+      en: 'Claim via MK LINE Official Account, thisismymk.com, or the MyMK app',
+    },
+    confidence: 'official',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://www.mkrestaurant.com/th/promotion/detail/สมาชิก-mk-red-ฉลองวันเกิดสุดพิเศษกับชุด-birthday-special-เพียง-599-บาท-ปกติ-859-บาท-1',
+    sourceLabel: 'MK Restaurant — official promotion page',
+  },
+  {
+    id: 'sizzler-th',
+    brand: 'Sizzler',
+    category: 'buffet',
+    item: {
+      th: 'Combination Platter มูลค่า 399 บาท เลือกได้ 1 จานเมนูใดก็ได้ (เฉพาะเดือนเกิด)',
+      en: 'Combination Platter worth 399฿, any 1 dish (birth month only)',
+    },
+    tier: 'S',
+    tierReason: {
+      th: 'ของฟรี และมีทางลัดจ่ายครั้งเดียว 399 บาทซื้อบัตรสมาชิก แทนการรอสะสมยอดใช้จ่าย 8,000 บาท',
+      en: 'Item is free, and there\'s a one-time 399฿ paid-card shortcut instead of waiting to hit the 8,000฿ spend threshold',
+    },
+    gate: {
+      th: 'ต้องเป็นสมาชิกระดับ Gold ขึ้นไป (สะสมยอดใช้จ่าย 8,000 บาทใน 12 เดือน หรือซื้อบัตรสมาชิก 399 บาท)',
+      en: 'Gold Level+ members only (8,000฿ spend within 12 months, or purchase the 399฿ member card)',
+    },
+    howToClaim: {
+      th: 'แลกคูปองผ่าน LINE Official Account ของ Sizzler ก่อนเข้าใช้บริการ',
+      en: 'Redeem the coupon via Sizzler\'s LINE Official Account before dining',
+    },
+    confidence: 'official',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://www.sizzler.co.th/th/e-member-benefits-info',
+    sourceLabel: 'Sizzler — official member benefits table',
+  },
+  {
+    id: 'cafe-amazon',
+    brand: 'Café Amazon',
+    category: 'cafe',
+    item: {
+      th: 'เครื่องดื่มฟรี 1 แก้วในเดือนเกิด',
+      en: 'One free drink in your birth month',
+    },
+    tier: 'A',
+    tierReason: {
+      th: 'ของฟรี แต่ต้องสะสมคะแนนจากยอดใช้จ่าย (~7,200 บาทขึ้นไป) ก่อนถึงระดับ Gold ไม่มีทางลัดจ่ายเงินแทน',
+      en: 'Item is free, but reaching Gold takes real spend (~7,200฿+ to earn 360 points) — no paid shortcut',
+    },
+    gate: {
+      th: 'ต้องเป็นสมาชิกระดับ Gold (สะสม 360 คะแนน) หรือ Platinum (สะสม 1,000 คะแนน) ผ่านแอป blueplus+',
+      en: 'Gold (360+ points) or Platinum (1,000+ points) member via the blueplus+ app',
+    },
+    howToClaim: {
+      th: 'ตรวจสอบระดับสมาชิกและรับสิทธิ์ผ่านเมนู Café Amazon Rewards ในแอป blueplus+',
+      en: 'Check tier and claim via the Café Amazon Rewards section in the blueplus+ app',
+    },
+    confidence: 'social',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://www.tiktok.com/@cafeamazon.official',
+    sourceLabel: 'Café Amazon — official TikTok account (no static page states this)',
+  },
+  {
+    id: 'mcdonalds-th',
+    brand: "McDonald's Thailand",
+    category: 'fastfood',
+    item: {
+      th: 'ไอศกรีมซันเดฟรี 1 ถ้วยในเดือนเกิด',
+      en: 'One free ice cream sundae in your birth month',
+    },
+    tier: 'SSS',
+    tierReason: {
+      th: 'ฟรีทันทีที่สมัครแอป ไม่ต้องมียอดใช้จ่ายหรือค่าสมาชิกใดๆ',
+      en: 'Free the moment you register in the app — no spend, no membership fee',
+    },
+    gate: {
+      th: 'สมัครสมาชิกผ่านแอป McDonald\'s พร้อมระบุวันเกิดในโปรไฟล์',
+      en: 'Free app membership — just register with your birthdate in your profile',
+    },
+    howToClaim: {
+      th: 'คูปองจะปรากฏในแอป McDonald\'s Thailand ในช่วงเดือนเกิดของสมาชิก',
+      en: 'The coupon appears in the McDonald\'s Thailand app during your birth month',
+    },
+    confidence: 'social',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://www.facebook.com/McThai/',
+    sourceLabel: "McDonald's Thailand — official Facebook page (no static page states this)",
+  },
+  {
+    id: 'greyhound-cafe',
+    brand: 'Greyhound Café',
+    category: 'cafe',
+    item: {
+      th: 'เค้กวันเกิดพิเศษ + Gift Voucher มูลค่า 500 บาท ที่ Greyhound Café / Another Hound Café ในเดือนเกิด',
+      en: 'A specially-made birthday cake + 500฿ Gift Voucher at Greyhound Café / Another Hound Café in your birth month',
+    },
+    tier: 'SSS',
+    tierReason: {
+      th: 'ของฟรีและสมัครสมาชิกฟรี ไม่มีเงื่อนไขยอดใช้จ่ายขั้นต่ำสำหรับสิทธิพิเศษวันเกิดพื้นฐาน',
+      en: 'Free item, free membership — no spend threshold required for the base birthday privilege',
+    },
+    gate: {
+      th: 'สมัครสมาชิก Greyhound Family ฟรีผ่านแอป ไม่ต้องมียอดใช้จ่ายขั้นต่ำ (สมาชิกระดับ Black ที่สะสม 10,000 คะแนน จะได้เค้กไอศกรีมรุ่นพิเศษกว่าและคะแนนโบนัส 2.5 เท่าเพิ่มเติม)',
+      en: 'Free to join via the Greyhound Family app, no spend threshold for the base benefit (Black Members, 10,000+ points, get an upgraded ice-cream cake plus 2.5x bonus points on top)',
+    },
+    howToClaim: {
+      th: 'แสดงบัตรสมาชิกหรือแอป Greyhound Family เมื่อทานที่ร้านในเดือนเกิด',
+      en: 'Show your Greyhound Family app/membership when dining in during your birth month',
+    },
+    confidence: 'official',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://www.greyhoundcafe.co.th/news/greyhound-member-privilege/',
+    sourceLabel: 'Greyhound Café — official member privilege page',
+  },
+]

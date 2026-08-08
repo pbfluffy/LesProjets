@@ -34,6 +34,13 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", "-l", "5178", "."],
       "port": 5178
+    },
+    {
+      "name": "birthday-privileges",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5179"],
+      "cwd": "birthday-privileges",
+      "port": 5179
     }
   ]
 }
