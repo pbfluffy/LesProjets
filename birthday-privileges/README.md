@@ -18,9 +18,9 @@ Each entry also carries a hand-set `tier` (`SSS`/`S`/`A`/`B`) reflecting how fre
 
 ### Research log (as of 2026-08-08)
 
-~41 brands checked across five rounds. 8 made the cut:
+~58 brands checked across six rounds. 9 made the cut:
 
-**Included:** Starbucks Thailand, MK Restaurant, Sizzler, Greyhound Café (all `official`); Café Amazon, McDonald's Thailand, Oh! Juice, Potato Corner (`social`).
+**Included:** Starbucks Thailand, MK Restaurant, Sizzler, Greyhound Café (all `official`); Café Amazon, McDonald's Thailand, Oh! Juice, Potato Corner, Suki Teenoi (`social`).
 
 **Checked and dropped** — worth recording so a future re-check doesn't waste time on the same dead ends:
 - **The Pizza Company** — dedicated birthday campaign page (`hbd.1112pizza.com`) no longer resolves.
@@ -30,11 +30,14 @@ Each entry also carries a hand-set `tier` (`SSS`/`S`/`A`/`B`) reflecting how fre
 - **Jones Salad** — checked their own site directly (jonessalad.com/promotion/, full nav); no membership or birthday terms page exists there at all. The 15% birth-month claim traces only to third-party aggregators referencing a LINE-only announcement.
 - **Ohkajhu (โอ้กะจู๋)** — Family Card birthday privilege is repeatedly described by third parties, but the parent company site (okjgroup.com) is corporate-only with no consumer terms; benefit appears to live entirely inside their app, unverifiable from here.
 - **Au Bon Pain Thailand** — ABP Privilege Card exists (points-based), but no birthday-specific terms found anywhere official; their promotions page was empty.
-- **KFC Thailand, Oishi Group, After You, Fuji, Black Canyon, Auntie Anne's, Inthanin, Dunkin' Thailand, Chester's, Mister Donut, Din Tai Fung, Yoshinoya, Mo-Mo-Paradise, True Coffee, CoCo Ichibanya, Coffee World, Baskin Robbins, bb.q Chicken Thailand, Cha Tra Mue, Aroi Dee** — no birthday-month privilege found on any official page (Dunkin's own member-card page was outright broken).
+- **Sukishi (Korean BBQ)** — third-party sources describe a VIP birthday discount, but the brand's own `sukishigroup.com/Sukishi/privilege/` page is dead (404), and their member portal (sukishiclub.com) is login-gated with no public terms.
+- **KFC Thailand, Oishi Group, After You, Fuji, Black Canyon, Auntie Anne's, Inthanin, Dunkin' Thailand, Chester's, Mister Donut, Din Tai Fung, Yoshinoya, Mo-Mo-Paradise, True Coffee, CoCo Ichibanya, Coffee World, Baskin Robbins, bb.q Chicken Thailand, Cha Tra Mue, Aroi Dee, Lotteria (not in Thailand), Jollibee Thailand, Subway Thailand, Domino's Pizza Thailand, Wingstop Thailand (opened Dec 2025, too new), Coca Suki, Shabushi, Gyu-Kaku, BarBQ Plaza, Peppina, iberry, Kyochon Thailand, Emack & Bolio's, Cold Stone Creamery, Ippudo Thailand, Erawan Tea Room, Kub Kao' Kub Pla, The Coffee Club, Wine Connection** — no birthday-month privilege found on any official page (Dunkin's own member-card page was outright broken).
 - **Swensen's, Bonchon, Krispy Kreme** — privilege may exist but only via app-exclusive or boutique/Facebook-only sourcing, not independently verifiable.
 - **Dairy Queen, Yayoi** — conflicting claims across sources with no single authoritative page to resolve them.
 
-Re-check `lastVerified` dates periodically — every brand here can and does change terms without notice (see MK's own discounted price varying across differently-dated official pages).
+**Not yet decided — flagged for a scoping call, not dropped:** Lotus's own loyalty page (`my.lotuss.com/articles/birthday-promo-my-lotus-restaurants/th`) lists ~18 partner restaurants with precise, dated, official birthday terms (several fully free items, no spend threshold: e.g. a free 500฿ cake at ภัตตาคาร เลอค็อกดอร์). It's a legitimately citable official source, but the restaurants are mostly small regional chains rather than the recognizable multi-branch national brands this list has focused on so far, and claiming requires *myLotus's* membership — a separate loyalty system from the restaurant itself. Left out of the main list pending a decision on whether that fits this app's scope.
+
+Re-check `lastVerified` dates periodically — every brand here can and does change terms without notice (see MK's own discounted price varying across differently-dated official pages). Also worth flagging: Suki Teenoi's actual terms turned out stricter than third-party summaries suggested — the "free membership" claim was true, but reaching even its lowest qualifying tier requires ~13,800฿ of spend within a calendar year, which only surfaced by reading the brand's own dated Facebook post in full rather than trusting the paraphrase.
 
 ## Stack
 

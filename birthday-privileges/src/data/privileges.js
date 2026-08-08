@@ -251,4 +251,30 @@ export const privileges = [
     sourceUrl: 'https://www.tiktok.com/@potatocornerth/video/7459270262756756744',
     sourceLabel: 'Potato Corner Thailand — official TikTok account',
   },
+  {
+    id: 'suki-teenoi',
+    brand: 'สุกี้ตี๋น้อย (Suki Teenoi)',
+    category: 'buffet',
+    item: {
+      th: 'บุฟเฟต์สุกี้ฟรี 1 มื้อ (มูลค่า 276 บาท) ในเดือนเกิด + ผู้ติดตาม 1-5 คนลด 50% (ตามระดับสถานะ)',
+      en: 'One free hotpot buffet meal (worth 276฿) in your birth month, plus 50% off for 1-5 guests dining with you (depending on tier)',
+    },
+    tier: 'A',
+    tierReason: {
+      th: 'ของฟรี แต่ต้องสะสมยอดใช้จ่ายให้ครบ 50 คอนโด (1 คอนโด = 276 บาท) คือประมาณ 13,800 บาทภายในปีปฏิทิน ก่อนถึงจะได้สถานะ Baby ซึ่งเป็นสถานะต่ำสุดที่มีสิทธิ์นี้ และคะแนนรีเซ็ตทุกสิ้นปี — เกณฑ์สูงกว่าแบรนด์อื่นในลิสต์นี้',
+      en: 'Item is free, but you need ~13,800฿ of spend within the calendar year (50 points at 276฿ each) just to reach the lowest qualifying tier, and points reset every December 31 — a notably higher bar than other entries here',
+    },
+    gate: {
+      th: 'สมัครฟรีผ่าน LINE OA @sukiteenoi แต่ต้องสะสมคะแนนให้ครบ 50 คอนโด (Baby) / 70 คอนโด (Teen) / 100 คอนโด (Topfan) ภายในปีปฏิทิน จึงจะได้สิทธิ์ในปีถัดไป',
+      en: 'Free registration via LINE OA @sukiteenoi, but must accumulate 50 points (Baby) / 70 (Teen) / 100 (Topfan) within the calendar year to unlock the benefit the following year',
+    },
+    howToClaim: {
+      th: 'แสดงคูปองจากระบบสะสมแต้ม @Sukiteenoi พร้อมบัตรประชาชนที่ร้านในเดือนเกิด (ใช้ได้ 1 ครั้ง/ปี)',
+      en: 'Show the coupon from the @Sukiteenoi points system plus your ID card at the restaurant during your birth month (once per year)',
+    },
+    confidence: 'social',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://www.facebook.com/sukiteenoithailand/posts/982969643864831/',
+    sourceLabel: 'สุกี้ตี๋น้อย (Suki Teenoi) — official Facebook post (2 Dec 2024)',
+  },
 ]
