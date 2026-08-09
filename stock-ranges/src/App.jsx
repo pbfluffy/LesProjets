@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { LangProvider, useLang } from './LangContext.jsx'
+import { getThbRates } from './fx.js'
 import TickerCard from './components/TickerCard.jsx'
 import styles from './App.module.css'
 
 const WATCHLIST_KEY = 'stockranges_watchlist'
 const RANGE_KEY = 'stockranges_range'
+const CURRENCY_KEY = 'stockranges_currency'
 const THEME_KEY = 'theme'
 const SYMBOL_RE = /^[A-Za-z0-9.\-]{1,10}$/
 const RANGES = ['3mo', '6mo', '1y', '2y', '5y']
@@ -37,6 +39,8 @@ function Dashboard() {
   const [dark, toggleTheme] = useTheme()
   const [watchlist, setWatchlist] = useState(loadWatchlist)
   const [range, setRange] = useState(() => localStorage.getItem(RANGE_KEY) || '1y')
+  const [currency, setCurrency] = useState(() => localStorage.getItem(CURRENCY_KEY) || 'USD')
+  const [rates, setRates] = useState(null)
   const [input, setInput] = useState('')
   const [warning, setWarning] = useState('')
 
@@ -47,6 +51,16 @@ function Dashboard() {
   useEffect(() => {
     localStorage.setItem(RANGE_KEY, range)
   }, [range])
+
+  useEffect(() => {
+    localStorage.setItem(CURRENCY_KEY, currency)
+  }, [currency])
+
+  useEffect(() => {
+    let cancelled = false
+    getThbRates().then((r) => { if (!cancelled) setRates(r) })
+    return () => { cancelled = true }
+  }, [])
 
   function addTicker(e) {
     e.preventDefault()
@@ -77,6 +91,13 @@ function Dashboard() {
           <div className={styles.tagline}>{s.tagline}</div>
         </div>
         <div className={styles.headerBtns}>
+          <button
+            className={styles.ctrlBtn}
+            onClick={() => setCurrency((c) => (c === 'USD' ? 'THB' : 'USD'))}
+            title={s.currencyToggle}
+          >
+            {currency}
+          </button>
           <button className={styles.ctrlBtn} onClick={toggleLang}>{lang === 'th' ? 'EN' : 'TH'}</button>
           <button className={styles.ctrlBtn} onClick={toggleTheme}>{dark ? '🌞' : '🌙'}</button>
         </div>
@@ -110,7 +131,7 @@ function Dashboard() {
       ) : (
         <div className={styles.list}>
           {watchlist.map((symbol) => (
-            <TickerCard key={symbol} symbol={symbol} range={range} onRemove={removeTicker} />
+            <TickerCard key={symbol} symbol={symbol} range={range} currency={currency} rates={rates} onRemove={removeTicker} />
           ))}
         </div>
       )}
