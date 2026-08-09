@@ -41,12 +41,17 @@ const STRINGS = {
   },
 }
 
-// Small brand mark next to each row. Uses Google's public favicon service
+// Small brand mark next to each row. Uses DuckDuckGo's public icon service
 // keyed off the brand's own domain (see `domain` in privileges.js) — no
 // logos are stored in this repo, so there's nothing to source/license per
-// brand. Falls back to a plain colored initial when `domain` is unset (we
+// brand. Tried Google's favicon service first, but it frequently fell back
+// to a generic 16x16 icon for these specific domains (McDonald's, Major
+// Cineplex, Sizzler, Café Amazon, MK Restaurant all did) — visually blank/
+// unrecognizable. DuckDuckGo's returned a real, larger icon (32-128px+) for
+// every domain in this list when spot-checked, so it's the better default.
+// Falls back to a plain colored initial when `domain` is unset (we
 // deliberately don't guess a domain just to have an image) or when the
-// favicon fails to load.
+// icon fails to load.
 function BrandLogo({ domain, brand }) {
   const [failed, setFailed] = useState(false)
   const showImg = domain && !failed
@@ -54,7 +59,7 @@ function BrandLogo({ domain, brand }) {
     <span className={styles.logo} aria-hidden="true">
       {showImg && (
         <img
-          src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`}
+          src={`https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`}
           alt=""
           className={styles.logoImg}
           onError={() => setFailed(true)}
