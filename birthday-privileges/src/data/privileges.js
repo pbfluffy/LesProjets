@@ -10,6 +10,12 @@
 // pages, boutique brands with only third-party aggregator mentions, no
 // birthday privilege found at all) are deliberately left out rather than
 // included with a guess — see the research log in README.md.
+//
+// `domain` (optional) is the brand's own official website, used to fetch a
+// small logo via Google's public favicon service at render time (see
+// App.jsx) — deliberately left off entries where no confirmed brand-owned
+// domain was found during research, rather than guessing one just to fill
+// the field. Those entries fall back to a plain colored initial instead.
 
 export const CATEGORIES = ['cafe', 'restaurant', 'buffet', 'fastfood', 'entertainment', 'wellness']
 
@@ -47,6 +53,7 @@ export const privileges = [
     id: 'starbucks-th',
     brand: 'Starbucks Thailand',
     category: 'cafe',
+    domain: 'starbucks.co.th',
     item: {
       th: 'เครื่องดื่มชงสด 1 แก้ว (ปรับสูตรได้ฟรี 2 อย่าง) + เค้ก 1 ชิ้น (มูลค่าไม่เกิน 150 บาท)',
       en: 'One free handcrafted drink (any size, 2 free customizations) + one free slice of cake (max value 150฿)',
@@ -73,6 +80,7 @@ export const privileges = [
     id: 'mk-restaurant',
     brand: 'MK Restaurant',
     category: 'restaurant',
+    domain: 'mkrestaurant.com',
     item: {
       th: 'ชุด Birthday Special ราคาพิเศษสำหรับสมาชิก (ราคาลดจากปกติ)',
       en: 'Birthday Special Set at a discounted member price',
@@ -99,6 +107,7 @@ export const privileges = [
     id: 'sizzler-th',
     brand: 'Sizzler',
     category: 'buffet',
+    domain: 'sizzler.co.th',
     item: {
       th: 'Combination Platter มูลค่า 399 บาท เลือกได้ 1 จานเมนูใดก็ได้ (เฉพาะเดือนเกิด)',
       en: 'Combination Platter worth 399฿, any 1 dish (birth month only)',
@@ -125,6 +134,7 @@ export const privileges = [
     id: 'cafe-amazon',
     brand: 'Café Amazon',
     category: 'cafe',
+    domain: 'cafe-amazon.com',
     item: {
       th: 'เครื่องดื่มฟรี 1 แก้วในเดือนเกิด',
       en: 'One free drink in your birth month',
@@ -151,6 +161,7 @@ export const privileges = [
     id: 'mcdonalds-th',
     brand: "McDonald's Thailand",
     category: 'fastfood',
+    domain: 'mcdonalds.co.th',
     item: {
       th: 'ไอศกรีมซันเดฟรี 1 ถ้วยในเดือนเกิด',
       en: 'One free ice cream sundae in your birth month',
@@ -177,6 +188,7 @@ export const privileges = [
     id: 'greyhound-cafe',
     brand: 'Greyhound Café',
     category: 'cafe',
+    domain: 'greyhoundcafe.co.th',
     item: {
       th: 'เค้กวันเกิดพิเศษ + Gift Voucher มูลค่า 500 บาท ที่ Greyhound Café / Another Hound Café ในเดือนเกิด',
       en: 'A specially-made birthday cake + 500฿ Gift Voucher at Greyhound Café / Another Hound Café in your birth month',
@@ -229,6 +241,7 @@ export const privileges = [
     id: 'potato-corner',
     brand: 'Potato Corner',
     category: 'fastfood',
+    domain: 'potatocornerthailand.com',
     item: {
       th: 'เฟรนช์ฟรายส์ฟรี 1 ถ้วยในเดือนเกิด (ใช้ได้ 1 ครั้ง/ปี)',
       en: 'One free cup of French fries in your birth month (once per year)',
@@ -281,6 +294,7 @@ export const privileges = [
     id: 'major-cineplex-mgen',
     brand: 'Major Cineplex (M GEN)',
     category: 'entertainment',
+    domain: 'majorcineplex.com',
     item: {
       th: 'ตั๋วหนังฟรี 1 ที่นั่ง (ที่นั่งปกติ ระบบดิจิตอล) ในสัปดาห์เกิด',
       en: 'One free movie ticket (standard seat, digital format) during your birth week',
@@ -307,6 +321,7 @@ export const privileges = [
     id: 'lets-relax-spa',
     brand: "Let's Relax Spa (WellnessMe)",
     category: 'wellness',
+    domain: 'letsrelaxspa.com',
     item: {
       th: 'ส่วนลดค่าบริการสปา 20-30% ตลอดเดือนเกิด (ตามระดับสมาชิก Silver/Gold/Platinum)',
       en: '20-30% off spa services throughout your birth month (Silver/Gold/Platinum tier dependent)',
@@ -333,6 +348,7 @@ export const privileges = [
     id: 'dream-world',
     brand: 'Dream World',
     category: 'entertainment',
+    domain: 'dreamworld.co.th',
     item: {
       th: 'บัตรเข้าสวนสนุกดรีมเวิลด์ฟรี 1 ใบ (มูลค่า 800 บาท) เฉพาะวันเกิดจริง',
       en: 'One free Dream World theme park ticket (worth 800฿) on your actual birthday',
@@ -359,6 +375,7 @@ export const privileges = [
     id: 'burger-king-th',
     brand: 'Burger King Thailand',
     category: 'fastfood',
+    domain: 'burgerking.co.th',
     item: {
       th: 'เฟรนช์ฟรายส์ฟรี ไซซ์ปกติ ในเดือนเกิด (ระดับสมาชิกสูงขึ้นได้ไซซ์ใหญ่กว่าหรือชุดพิเศษ)',
       en: 'Free regular-size fries in your birth month (higher membership tiers get bigger sizes or a special set)',
@@ -385,6 +402,7 @@ export const privileges = [
     id: 'chagee-thailand',
     brand: 'CHAGEE Thailand',
     category: 'cafe',
+    domain: 'global.chagee.com',
     item: {
       th: 'เครื่องดื่มฟรี 1 แก้วในเดือนเกิด (ทุกเมนู)',
       en: 'One free drink in your birth month (any menu item)',

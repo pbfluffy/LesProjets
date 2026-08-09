@@ -17,6 +17,7 @@ A single-page checklist: for each brand, what you get, what it costs to be eligi
 - **Checklist grouped by tier** — entries are grouped under tier headings (SSS → S → A → B, see Tiers below), each a colored pill. Within a filtered/searched view, empty tier groups are hidden entirely.
 - **Checkbox per entry** ("claimed it") — click to strike through the row. See "Checklist behavior" below for exactly how this is stored.
 - **Expandable detail** — click a row (or its ▼/▲ button) to reveal membership requirement, how to claim, the tier's reasoning for *this* entry, a confidence badge, a link to the source, and the last-verified date. Collapsed by default so the top-level view stays scannable.
+- **Brand logo** — a small mark next to each row. Fetched at render time from Google's public favicon service (`google.com/s2/favicons?domain=...`), keyed off the entry's `domain` field. No logo images are stored in this repo — nothing to source or license per brand. Entries without a confirmed `domain` (or where the favicon fails to load) fall back to a plain colored circle with the brand's first letter, rather than guessing a domain or leaving a broken image. See `BrandLogo` in `App.jsx`.
 
 ### Checklist behavior (no accounts)
 
@@ -30,6 +31,7 @@ Everything lives in `src/data/privileges.js`, in the `privileges` array. Each en
 |---|---|---|
 | `id` | string | Unique slug, used as React key and the checklist's localStorage identity |
 | `brand` | string | Display name |
+| `domain` | string, optional | Brand's own official website, used to fetch a favicon-based logo (see Features above). Omitted rather than guessed when no confirmed domain was found |
 | `category` | string | One of `CATEGORIES` (see below) |
 | `item` | `{th, en}` | What you actually get — the one-line checklist summary |
 | `tier` | `'SSS'\|'S'\|'A'\|'B'` | Hand-set, see Tiers below |

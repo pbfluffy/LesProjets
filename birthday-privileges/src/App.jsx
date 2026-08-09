@@ -41,6 +41,30 @@ const STRINGS = {
   },
 }
 
+// Small brand mark next to each row. Uses Google's public favicon service
+// keyed off the brand's own domain (see `domain` in privileges.js) — no
+// logos are stored in this repo, so there's nothing to source/license per
+// brand. Falls back to a plain colored initial when `domain` is unset (we
+// deliberately don't guess a domain just to have an image) or when the
+// favicon fails to load.
+function BrandLogo({ domain, brand }) {
+  const [failed, setFailed] = useState(false)
+  const showImg = domain && !failed
+  return (
+    <span className={styles.logo} aria-hidden="true">
+      {showImg && (
+        <img
+          src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`}
+          alt=""
+          className={styles.logoImg}
+          onError={() => setFailed(true)}
+        />
+      )}
+      {!showImg && <span className={styles.logoFallback}>{brand.trim().charAt(0)}</span>}
+    </span>
+  )
+}
+
 export default function App() {
   const [theme, setTheme] = useTheme()
   const [lang, setLang] = useLang()
@@ -152,6 +176,7 @@ export default function App() {
                         >
                           {isChecked ? '✓' : ''}
                         </button>
+                        <BrandLogo domain={p.domain} brand={p.brand} />
                         <button type="button" className={styles.rowText} onClick={() => toggleExpanded(p.id)}>
                           <span className={styles.brand}>{p.brand}</span>
                           <span className={styles.itemSummary}>{p.item[lang] || p.item.en}</span>
