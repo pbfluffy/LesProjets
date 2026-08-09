@@ -1,0 +1,88 @@
+.card {
+  background: var(--color-surface);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.titleBlock { min-width: 0; }
+
+.symbol {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: -0.01em;
+}
+
+.name {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.headRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.price {
+  font-size: 17px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+.removeBtn {
+  background: transparent;
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-faint);
+  font-size: 13px;
+  width: 26px;
+  height: 26px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.removeBtn:hover { background: var(--color-surface-alt); color: var(--color-text); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
+  margin-bottom: 10px;
+}
+.badge[data-zone='buy'] { background: var(--color-green-bg); color: var(--color-green); }
+.badge[data-zone='hold'] { background: var(--color-amber-bg); color: var(--color-amber); }
+.badge[data-zone='sell'] { background: var(--color-red-bg); color: var(--color-red); }
+.badge[data-zone='flat'] { background: var(--color-surface-alt); color: var(--color-text-faint); }
+
+.state {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  padding: 8px 0;
+}
+.state[data-error='true'] { color: var(--color-red); }

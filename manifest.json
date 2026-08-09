@@ -46,6 +46,12 @@
       "short_name": "Dog near me",
       "url": "/dog-near-me/",
       "icons": [{"src": "./icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Stock Ranges",
+      "short_name": "Stock Ranges",
+      "url": "/stock-ranges/",
+      "icons": [{"src": "./icon-192.png", "sizes": "192x192"}]
     }
   ]
 }

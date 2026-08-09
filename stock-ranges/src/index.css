@@ -1,0 +1,89 @@
+:root {
+  --font-body: 'Noto Sans Thai', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --color-bg: #f7f6f2;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f0eeea;
+  --color-border: #e4e1db;
+  --color-border-strong: #ccc9c2;
+
+  --color-text: #1a1916;
+  --color-text-muted: #6b6862;
+  --color-text-faint: #a09d98;
+
+  --color-accent: #c45c1a;
+  --color-accent-light: #fdf0e8;
+
+  --color-green: #2d6a4f;
+  --color-green-bg: #d8f3dc;
+  --color-amber: #7d5a00;
+  --color-amber-bg: #fef3cd;
+  --color-red: #922b21;
+  --color-red-bg: #fadbd8;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 0 0.5px var(--color-border);
+}
+
+[data-theme='dark'] {
+  --color-bg: #161614;
+  --color-surface: #1e1e1b;
+  --color-surface-alt: #272723;
+  --color-border: #2e2e2a;
+  --color-border-strong: #3e3e39;
+
+  --color-text: #f0ede8;
+  --color-text-muted: #8a8780;
+  --color-text-faint: #55534e;
+
+  --color-accent: #e8924a;
+  --color-accent-light: #2a1e10;
+
+  --color-green: #74c69d;
+  --color-green-bg: #1a3a28;
+  --color-amber: #e8c84a;
+  --color-amber-bg: #2a2008;
+  --color-red: #f1948a;
+  --color-red-bg: #3a1a18;
+
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 0.5px var(--color-border);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  min-height: 100dvh;
+  transition: background 0.2s, color 0.2s;
+}
+
+input, select {
+  font-family: var(--font-body);
+  font-size: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 0.5px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus { border-color: var(--color-accent); }
+
+button { cursor: pointer; font-family: var(--font-body); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}

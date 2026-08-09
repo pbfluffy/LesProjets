@@ -1,0 +1,33 @@
+{
+  "name": "Stock Ranges — price-range watchlist dashboard",
+  "short_name": "Stock Ranges",
+  "description": "See where each stock sits in a 10-band price range over a chosen lookback period.",
+  "id": "/stock-ranges/",
+  "start_url": "/stock-ranges/",
+  "scope": "/stock-ranges/",
+  "lang": "en",
+  "dir": "ltr",
+  "display": "standalone",
+  "background_color": "#f7f6f2",
+  "theme_color": "#f7f6f2",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

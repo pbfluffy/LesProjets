@@ -283,6 +283,18 @@
       <p class="card-desc" id="majon-desc">Report a stray dog you spotted — see if the community already named it. A shared ID map of Thailand's soi dogs.</p>
     </a>
 
+    <a class="card" href="./stock-ranges/">
+      <div class="card-header">
+        <div class="icon">📈</div>
+        <div>
+          <div class="card-name" id="stock-name">ช่วงราคาหุ้น</div>
+          <div class="card-type">React App</div>
+        </div>
+        <span class="arrow">→</span>
+      </div>
+      <p class="card-desc" id="stock-desc">ดูว่าราคาหุ้นแต่ละตัวอยู่ตรงไหนในช่วงราคาล่าสุดของมันเอง แบ่งเป็น 10 ระดับ พร้อมป้ายซื้อ/ถือ/ขาย</p>
+    </a>
+
     <a class="card" href="./backyard-rampage/">
       <div class="card-header">
         <div class="icon">🎮</div>
@@ -354,6 +366,8 @@
       pumgodaDesc: "ค้นหาคาเฟ่ ร้านอาหาร โรงแรม ที่พาน้องไปได้ในกรุงเทพและต่างจังหวัด มีระบบจัดระดับเป็นอุ้งเท้า 1–4 และตรา 'พุมบ้าเคยมา'",
       majonName: "หมาใกล้ฉัน",
       majonDesc: "รายงานหมาจรที่เจอ — ดูว่ามีใครตั้งชื่อไว้แล้วหรือยัง แผนที่หมาจรที่ชุมชนช่วยกันสร้าง",
+      stockName: "ช่วงราคาหุ้น",
+      stockDesc: "ดูว่าราคาหุ้นแต่ละตัวอยู่ตรงไหนในช่วงราคาล่าสุดของมันเอง แบ่งเป็น 10 ระดับ พร้อมป้ายซื้อ/ถือ/ขาย",
       gameName: "Backyard Rampage",
       gameDesc: "เกมแอ็กชันโรกไลต์ — บังคับพุมบ้าลุยศัตรูเป็นเวฟในสนามหลังบ้าน เก็บกระดูก 🦴 ไปอัปเกรดอาวุธ สกิน และพลังถาวรที่ติดตัวทุกรอบ บังคับด้วยลูกศร/WASD หรือลากบนจอสัมผัส",
       studioName: "Pum's Office",
@@ -399,6 +413,8 @@
       pumgodaDesc: "Find cafés, restaurants, hotels, and parks across Thailand that welcome pets — paw tier 1–4 plus 'Pumba was here' verification stamp.",
       majonName: "Dog near me",
       majonDesc: "Report a stray dog you spotted — see if the community already named it. A shared ID map of Thailand's soi dogs.",
+      stockName: "Stock Ranges",
+      stockDesc: "See where each stock sits in its own recent price range — split into 10 bands with a buy/hold/sell badge.",
       gameName: "Backyard Rampage",
       gameDesc: "An action roguelite — fight off waves in the backyard as Pumba, bank 🦴 bones for weapons, skins, and permanent upgrades that carry into every run. Move with arrows/WASD or drag on touch.",
       studioName: "Pum's Office",
@@ -456,6 +472,8 @@
       document.getElementById("pumgoda-desc").textContent = s.pumgodaDesc
       document.getElementById("majon-name").textContent = s.majonName
       document.getElementById("majon-desc").textContent = s.majonDesc
+      document.getElementById("stock-name").textContent = s.stockName
+      document.getElementById("stock-desc").textContent = s.stockDesc
       document.getElementById("game-name").textContent = s.gameName
       document.getElementById("studio-name").textContent = s.studioName
       document.getElementById("studio-desc").textContent = s.studioDesc

@@ -1,0 +1,9 @@
+name = "stock-ranges-quotes"
+main = "src/index.js"
+compatibility_date = "2026-07-15"
+
+# The app's own JS calls this worker directly via
+# stock-ranges-quotes.pbfluffygaming.workers.dev — no zone route needed,
+# unlike majon-photo/pumgoda (those rewrite og:* tags on the real app URL
+# for link-preview crawlers; stock-ranges has no per-item share links).
+workers_dev = true
