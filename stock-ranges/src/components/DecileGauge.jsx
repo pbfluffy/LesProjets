@@ -5,11 +5,16 @@ function zoneOf(band) {
   return band <= 3 ? 'buy' : band <= 7 ? 'hold' : 'sell'
 }
 
+// Vertical, top-down: band 10 (near the period high) renders at the top,
+// band 1 (near the period low) at the bottom — column-reverse places the
+// first DOM child (band 1) at the main-start (bottom) and the last (band
+// 10) at the main-end (top), so the array stays in natural 1..10 order.
 export default function DecileGauge({ band, low, high, currency, s }) {
   const segments = Array.from({ length: BAND_COUNT }, (_, i) => i + 1)
 
   return (
-    <div>
+    <div className={styles.wrap}>
+      <div className={styles.label}>{s.high}<br />{formatPrice(high, currency)}</div>
       <div className={styles.gauge} role="img" aria-label={`${s.band} ${band} / ${BAND_COUNT}`}>
         {segments.map((n) => (
           <div
@@ -20,10 +25,7 @@ export default function DecileGauge({ band, low, high, currency, s }) {
           />
         ))}
       </div>
-      <div className={styles.labels}>
-        <span>{s.low} {formatPrice(low, currency)}</span>
-        <span>{s.high} {formatPrice(high, currency)}</span>
-      </div>
+      <div className={styles.label}>{s.low}<br />{formatPrice(low, currency)}</div>
     </div>
   )
 }

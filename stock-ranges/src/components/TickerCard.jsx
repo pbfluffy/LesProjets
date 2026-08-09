@@ -48,12 +48,14 @@ export default function TickerCard({ symbol, range, onRemove }) {
         const zone = deciles.signal || 'flat'
         const label = deciles.signal ? s[SIGNAL_LABEL_KEY[deciles.signal]] : s.signalFlat
         return (
-          <>
-            <span className={styles.badge} data-zone={zone}>
-              {s.band} {deciles.band}/10 · {label}
-            </span>
+          <div className={styles.body}>
             <DecileGauge band={deciles.band} low={deciles.low} high={deciles.high} currency={state.data.currency} s={s} />
-          </>
+            <div className={styles.details}>
+              <span className={styles.badge} data-zone={zone}>
+                {s.band} {deciles.band}/10 · {label}
+              </span>
+            </div>
+          </div>
         )
       })()}
     </div>
