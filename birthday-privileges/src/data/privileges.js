@@ -355,4 +355,56 @@ export const privileges = [
     sourceUrl: 'https://www.dreamworld.co.th/promotion',
     sourceLabel: 'Dream World — official promotion page',
   },
+  {
+    id: 'burger-king-th',
+    brand: 'Burger King Thailand',
+    category: 'fastfood',
+    item: {
+      th: 'เฟรนช์ฟรายส์ฟรี ไซซ์ปกติ ในเดือนเกิด (ระดับสมาชิกสูงขึ้นได้ไซซ์ใหญ่กว่าหรือชุดพิเศษ)',
+      en: 'Free regular-size fries in your birth month (higher membership tiers get bigger sizes or a special set)',
+    },
+    tier: 'SSS',
+    tierReason: {
+      th: 'ของฟรีและสมัครสมาชิกฟรีผ่านแอป ไม่มีเงื่อนไขยอดใช้จ่ายขั้นต่ำสำหรับสิทธิ์พื้นฐาน',
+      en: 'Free item and free app membership — no spend threshold for the base-tier benefit',
+    },
+    gate: {
+      th: 'สมัครสมาชิกฟรีผ่านแอป Burger King Thailand กดรับคูปอง "For You" จากหน้าแรกสมาชิกในเดือนเกิด (โพสต์ทางการที่พบยืนยันกลไกนี้ แต่ระบุรายการของแถมที่แน่นอนไว้เพียง "เป็นไปตามที่บริษัทฯ กำหนด" — รายละเอียดไซซ์ฟรายส์อ้างอิงจากหลายแหล่งข่าวโปรโมชั่นที่ตรงกัน)',
+      en: 'Free membership via the Burger King Thailand app; claim the "For You" coupon from the member home screen during your birth month (the official post found confirms this mechanism but leaves exact coupon contents as "set by the company" — the specific fries size is corroborated by multiple consistent third-party promo write-ups)',
+    },
+    howToClaim: {
+      th: 'เปิดแอป Burger King Thailand กดรับคูปองที่หน้าแรกสมาชิกในเดือนเกิด แล้วใช้เมื่อสั่งซื้อ',
+      en: 'Open the Burger King Thailand app, claim the coupon from the member home screen during your birth month, then use it on an order',
+    },
+    confidence: 'social',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://www.facebook.com/BurgerKingThailand/posts/8465814523491086/',
+    sourceLabel: 'Burger King Thailand — official Facebook post (14 Jan 2023)',
+  },
+  {
+    id: 'chagee-thailand',
+    brand: 'CHAGEE Thailand',
+    category: 'cafe',
+    item: {
+      th: 'เครื่องดื่มฟรี 1 แก้วในเดือนเกิด (ทุกเมนู)',
+      en: 'One free drink in your birth month (any menu item)',
+    },
+    tier: 'SSS',
+    tierReason: {
+      th: 'ของฟรีและสมัครสมาชิกฟรีผ่าน LINE OA ไม่มีเงื่อนไขยอดใช้จ่ายขั้นต่ำที่ระบุไว้สำหรับสิทธิ์นี้',
+      en: 'Free item and free membership via LINE OA — no spend threshold stated for this specific perk',
+    },
+    gate: {
+      th: 'สมัครสมาชิกฟรีผ่าน LINE OFFICIAL ของ CHAGEE Thailand',
+      en: "Free membership via CHAGEE Thailand's LINE Official Account",
+    },
+    howToClaim: {
+      th: 'ตรวจสอบคูปองเครื่องดื่มฟรีในระบบสมาชิกช่วงเดือนเกิด แสดงที่ร้าน CHAGEE ทุกสาขา',
+      en: 'Check for the free drink coupon in your member account during your birth month, show it at any CHAGEE branch',
+    },
+    confidence: 'social',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://www.facebook.com/chagee.thailand/posts/861321449349454/',
+    sourceLabel: 'CHAGEE Thailand — official Facebook post (24 June 2024)',
+  },
 ]

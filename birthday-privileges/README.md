@@ -67,9 +67,9 @@ Every entry was checked by hand, one brand at a time, against the brand's own si
 
 ### Research log (as of 2026-08-08)
 
-~90 brands checked across ten rounds. 12 made the cut:
+~105 brands checked across eleven rounds. 14 made the cut:
 
-**Included:** Starbucks Thailand, MK Restaurant, Sizzler, Greyhound Café, Major Cineplex (M GEN), Let's Relax Spa, Dream World (all `official`); Café Amazon, McDonald's Thailand, Oh! Juice, Potato Corner, Suki Teenoi (`social`).
+**Included:** Starbucks Thailand, MK Restaurant, Sizzler, Greyhound Café, Major Cineplex (M GEN), Let's Relax Spa, Dream World (all `official`); Café Amazon, McDonald's Thailand, Oh! Juice, Potato Corner, Suki Teenoi, Burger King Thailand, CHAGEE Thailand (`social`).
 
 Dream World is the strongest SSS-tier find yet: a fully free theme park ticket (worth 800฿) on your actual birthday, with just a free 1-day-advance registration and an ID check — no membership card, no spend threshold anywhere in the pipeline.
 
@@ -94,6 +94,10 @@ Major Cineplex and Let's Relax Spa are the first non-food/drink entries — adde
 - **A&W Thailand, Ootoya, Mont Nomsod, EVEANDBOY** — no birthday-month privilege found on any official page (EVEANDBOY's own terms page exists but the birthday section content didn't render/extract; a follow-up direct check may be worth it).
 - **Carl's Jr Thailand** — closed all Thailand locations in March 2022, moot.
 - **Safari World** — third-party sources exist but the official ticketing site (ticket.safariworld.com) only rendered a near-empty shell; no birthday content could be confirmed this session.
+- **Haidilao Thailand** — the widely-shared "free birthday shrimp" claim traces to a single-branch promo (explicitly "เฉพาะที่ Haidilao Central Pinklao เท่านั้น" in the source post), not a Thailand-wide company policy — dropped as too narrow to present as a general Haidilao privilege.
+- **Sushiro Thailand, Yenly Yours, TEA65, Fuku Cha/Fuku Matcha** — third-party sources describe birthday coupons (Fuku Matcha specifically: a 100฿ coupon), but no official page or social post could be directly verified for any of them.
+- **Dairy Queen (re-checked)** — a Nov 2024 aggregator compilation gives more specific terms (free Quart Blizzard, 259฿ value, with 100฿+ purchase) than what was found before, but still no official DQ page/post directly verified — stays dropped pending that direct confirmation.
+- **BOOST, Thank You Cup, Self. Smoothie** — appeared in the same Nov 2024 aggregator compilation with specific birthday-drink claims, not yet individually verified against an official source.
 - **KFC Thailand, Oishi Group, After You, Fuji, Black Canyon, Auntie Anne's, Inthanin, Dunkin' Thailand, Chester's, Mister Donut, Din Tai Fung, Yoshinoya, Mo-Mo-Paradise, True Coffee, CoCo Ichibanya, Coffee World, Baskin Robbins, bb.q Chicken Thailand, Cha Tra Mue, Aroi Dee, Lotteria (not in Thailand), Jollibee Thailand, Subway Thailand, Domino's Pizza Thailand, Wingstop Thailand (opened Dec 2025, too new), Coca Suki, Shabushi, Gyu-Kaku, BarBQ Plaza, Peppina, iberry, Kyochon Thailand, Emack & Bolio's, Cold Stone Creamery, Ippudo Thailand, Erawan Tea Room, Kub Kao' Kub Pla, The Coffee Club, Wine Connection** — no birthday-month privilege found on any official page (Dunkin's own member-card page was outright broken).
 - **Swensen's, Bonchon, Krispy Kreme** — privilege may exist but only via app-exclusive or boutique/Facebook-only sourcing, not independently verifiable.
 - **Dairy Queen, Yayoi** — conflicting claims across sources with no single authoritative page to resolve them.
