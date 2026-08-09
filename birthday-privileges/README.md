@@ -67,9 +67,11 @@ Every entry was checked by hand, one brand at a time, against the brand's own si
 
 ### Research log (as of 2026-08-08)
 
-~78 brands checked across nine rounds. 11 made the cut:
+~90 brands checked across ten rounds. 12 made the cut:
 
-**Included:** Starbucks Thailand, MK Restaurant, Sizzler, Greyhound Café, Major Cineplex (M GEN), Let's Relax Spa (all `official`); Café Amazon, McDonald's Thailand, Oh! Juice, Potato Corner, Suki Teenoi (`social`).
+**Included:** Starbucks Thailand, MK Restaurant, Sizzler, Greyhound Café, Major Cineplex (M GEN), Let's Relax Spa, Dream World (all `official`); Café Amazon, McDonald's Thailand, Oh! Juice, Potato Corner, Suki Teenoi (`social`).
+
+Dream World is the strongest SSS-tier find yet: a fully free theme park ticket (worth 800฿) on your actual birthday, with just a free 1-day-advance registration and an ID check — no membership card, no spend threshold anywhere in the pipeline.
 
 Major Cineplex and Let's Relax Spa are the first non-food/drink entries — added new `entertainment` and `wellness` categories. Worth a flag on Major Cineplex: the clearest official terms page for it is dated through 2019, but a separate, undated policy-change notice for the First Class tier confirms the program is still actively maintained, not abandoned — see the entry's `gate` field for the full reasoning.
 
@@ -89,6 +91,9 @@ Major Cineplex and Let's Relax Spa are the first non-food/drink entries — adde
 - **SF Cinema** — third-party sources consistently describe a birthday free-movie perk (parallel to Major Cineplex's M GEN), but every official page found returned a 404, the app subdomain refused to load, the Facebook photo post is login-walled, and even a direct WebFetch hit an SSL certificate error. Real signal, no primary source I could actually verify — left out despite the strong corroboration.
 - **B2S Club** — has a genuine official birthday page, but the specific offer found (10x points) is a one-off expired May–June 2024 campaign, not a standing benefit, and points aren't equivalent to a free item anyway.
 - **Watsons Thailand, Boots Thailand** — Boots' own official Twitter/X mentions a 10% birthday discount, but no dated page could be found stating current terms; Watsons had no birthday-specific info found at all.
+- **A&W Thailand, Ootoya, Mont Nomsod, EVEANDBOY** — no birthday-month privilege found on any official page (EVEANDBOY's own terms page exists but the birthday section content didn't render/extract; a follow-up direct check may be worth it).
+- **Carl's Jr Thailand** — closed all Thailand locations in March 2022, moot.
+- **Safari World** — third-party sources exist but the official ticketing site (ticket.safariworld.com) only rendered a near-empty shell; no birthday content could be confirmed this session.
 - **KFC Thailand, Oishi Group, After You, Fuji, Black Canyon, Auntie Anne's, Inthanin, Dunkin' Thailand, Chester's, Mister Donut, Din Tai Fung, Yoshinoya, Mo-Mo-Paradise, True Coffee, CoCo Ichibanya, Coffee World, Baskin Robbins, bb.q Chicken Thailand, Cha Tra Mue, Aroi Dee, Lotteria (not in Thailand), Jollibee Thailand, Subway Thailand, Domino's Pizza Thailand, Wingstop Thailand (opened Dec 2025, too new), Coca Suki, Shabushi, Gyu-Kaku, BarBQ Plaza, Peppina, iberry, Kyochon Thailand, Emack & Bolio's, Cold Stone Creamery, Ippudo Thailand, Erawan Tea Room, Kub Kao' Kub Pla, The Coffee Club, Wine Connection** — no birthday-month privilege found on any official page (Dunkin's own member-card page was outright broken).
 - **Swensen's, Bonchon, Krispy Kreme** — privilege may exist but only via app-exclusive or boutique/Facebook-only sourcing, not independently verifiable.
 - **Dairy Queen, Yayoi** — conflicting claims across sources with no single authoritative page to resolve them.

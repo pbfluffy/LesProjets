@@ -329,4 +329,30 @@ export const privileges = [
     sourceUrl: 'https://letsrelaxspa.com/news/wellnessme-birthday-privilege/',
     sourceLabel: "Let's Relax Spa — official WellnessMe birthday privilege page",
   },
+  {
+    id: 'dream-world',
+    brand: 'Dream World',
+    category: 'entertainment',
+    item: {
+      th: 'บัตรเข้าสวนสนุกดรีมเวิลด์ฟรี 1 ใบ (มูลค่า 800 บาท) เฉพาะวันเกิดจริง',
+      en: 'One free Dream World theme park ticket (worth 800฿) on your actual birthday',
+    },
+    tier: 'SSS',
+    tierReason: {
+      th: 'ของฟรีทั้งใบ ลงทะเบียนล่วงหน้าฟรี ไม่มีค่าสมาชิกหรือยอดใช้จ่ายขั้นต่ำ',
+      en: 'Fully free ticket, free advance registration, no membership fee or spend threshold',
+    },
+    gate: {
+      th: 'ลงทะเบียนล่วงหน้าอย่างน้อย 1 วันที่ dreamworld.co.th/regdw และแสดงบัตรประชาชนตัวจริงตรงกับวันเกิดที่หน้าประตู (ผู้ติดตามสูงสุด 3 ท่าน ซื้อบัตรราคาพิเศษ 695 บาทได้)',
+      en: 'Register in advance (at least 1 day ahead) at dreamworld.co.th/regdw and show your real ID card matching your birthdate at the gate (up to 3 companions can buy discounted 695฿ tickets)',
+    },
+    howToClaim: {
+      th: 'หลังลงทะเบียนแล้ว ไปที่สวนสนุกในวันเกิดจริงพร้อมบัตรประชาชน รับบัตรเข้าฟรีที่หน้าประตู',
+      en: 'After registering, visit the park on your actual birthday with your ID card to receive the free entry ticket at the gate',
+    },
+    confidence: 'official',
+    lastVerified: '2026-08-08',
+    sourceUrl: 'https://www.dreamworld.co.th/promotion',
+    sourceLabel: 'Dream World — official promotion page',
+  },
 ]
