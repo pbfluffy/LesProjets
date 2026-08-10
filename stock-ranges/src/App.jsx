@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { LangProvider, useLang } from './LangContext.jsx'
 import { getThbRates } from './fx.js'
+import { useCloudSync } from './hooks/useCloudSync.js'
 import TickerCard from './components/TickerCard.jsx'
 import TickerSearch from './components/TickerSearch.jsx'
+import AccountButton from './components/AccountButton.jsx'
+import ConflictModal from './components/ConflictModal.jsx'
 import styles from './App.module.css'
 
 const WATCHLIST_KEY = 'stockranges_watchlist'
@@ -79,6 +82,15 @@ function Dashboard() {
     return () => clearInterval(id)
   }, [])
 
+  const cloudSync = useCloudSync({
+    watchlist, range, currency,
+    applyRemote: (remote) => {
+      if (Array.isArray(remote?.watchlist)) setWatchlist(remote.watchlist)
+      if (typeof remote?.range === 'string') setRange(remote.range)
+      if (typeof remote?.currency === 'string') setCurrency(remote.currency)
+    },
+  })
+
   function addSymbol(symbol) {
     setWarning('')
     if (!symbol) return
@@ -141,6 +153,7 @@ function Dashboard() {
           </button>
           <button className={styles.ctrlBtn} onClick={toggleLang}>{lang === 'th' ? 'EN' : 'TH'}</button>
           <button className={styles.ctrlBtn} onClick={toggleTheme}>{dark ? '🌞' : '🌙'}</button>
+          <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} />
         </div>
       </div>
 
@@ -176,6 +189,15 @@ function Dashboard() {
       </div>
 
       <div className={styles.footer}>🐾 pumbafluffycorgi.com</div>
+
+      {cloudSync.syncStatus === 'awaiting-decision' && cloudSync.pendingServer && (
+        <ConflictModal
+          localData={{ watchlist, range, currency }}
+          cloudData={cloudSync.pendingServer}
+          onUseLocal={cloudSync.confirmLocalWins}
+          onUseCloud={cloudSync.confirmCloudWins}
+        />
+      )}
     </div>
   )
 }

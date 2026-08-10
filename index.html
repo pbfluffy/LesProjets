@@ -200,6 +200,7 @@
             <div class="acct-sync-row"><span id="acct-app-nutr">Nutritions</span><span class="status" id="acct-status-nutr">· local only</span></div>
             <div class="acct-sync-row"><span id="acct-app-bill">Bill history</span><span class="status" id="acct-status-bill">· local only</span></div>
             <div class="acct-sync-row"><span id="acct-app-pgd">Saved places</span><span class="status" id="acct-status-pgd">· local only</span></div>
+            <div class="acct-sync-row"><span id="acct-app-stock">Stock Ranges</span><span class="status" id="acct-status-stock">· local only</span></div>
           </div>
           <div class="acct-backup">
             <div class="acct-sync-row"><span id="acct-backup-label">Cloud backup</span><span class="status" id="acct-backup-when" data-ts="">· none yet</span></div>
@@ -382,6 +383,7 @@
         acctAppNutr: "โภชนาการ",
         acctAppBill: "ประวัติบิล",
         acctAppPgd: "สถานที่ที่บันทึก",
+        acctAppStock: "ช่วงราคาหุ้น",
         acctStatusLocal: "· เฉพาะในเครื่อง",
         acctStatusSyncing: "· กำลังซิงค์…",
         acctAccount: "บัญชี",
@@ -429,6 +431,7 @@
         acctAppNutr: "Nutritions",
         acctAppBill: "Bill history",
         acctAppPgd: "Saved places",
+        acctAppStock: "Stock Ranges",
         acctStatusLocal: "· local only",
         acctStatusSyncing: "· syncing…",
         acctAccount: "Account",
@@ -489,12 +492,15 @@
       document.getElementById("acct-app-nutr").textContent = s.acctAppNutr
       document.getElementById("acct-app-bill").textContent = s.acctAppBill
       document.getElementById("acct-app-pgd").textContent = s.acctAppPgd
+      document.getElementById("acct-app-stock").textContent = s.acctAppStock
       const _nutrSynced = document.getElementById("acct-status-nutr").dataset.synced === "true";
       const _billSynced = document.getElementById("acct-status-bill").dataset.synced === "true";
       const _pgdSynced = document.getElementById("acct-status-pgd").dataset.synced === "true";
+      const _stockSynced = document.getElementById("acct-status-stock").dataset.synced === "true";
       document.getElementById("acct-status-nutr").textContent = (_nutrSynced ? s.acctStatusSynced + (document.getElementById("acct-status-nutr").dataset.count ? " (" + document.getElementById("acct-status-nutr").dataset.count + ")" : "") : s.acctStatusLocal);
       document.getElementById("acct-status-bill").textContent = (_billSynced ? s.acctStatusSynced + (document.getElementById("acct-status-bill").dataset.count ? " (" + document.getElementById("acct-status-bill").dataset.count + ")" : "") : s.acctStatusLocal);
       document.getElementById("acct-status-pgd").textContent = (_pgdSynced ? s.acctStatusSynced + (document.getElementById("acct-status-pgd").dataset.count ? " (" + document.getElementById("acct-status-pgd").dataset.count + ")" : "") : s.acctStatusLocal);
+      document.getElementById("acct-status-stock").textContent = (_stockSynced ? s.acctStatusSynced + (document.getElementById("acct-status-stock").dataset.count ? " (" + document.getElementById("acct-status-stock").dataset.count + ")" : "") : s.acctStatusLocal);
       // backup section
       const _bkLabel = document.getElementById("acct-backup-label"); if (_bkLabel) _bkLabel.textContent = s.acctBackupLabel;
       const _bkNow = document.getElementById("acct-backup-now"); if (_bkNow) _bkNow.textContent = s.acctBackupNow;
@@ -580,6 +586,7 @@
     { key: 'nutritions', col: 'users' },
     { key: 'bills', col: 'userBills' },
     { key: 'places', col: 'userPlaces' },
+    { key: 'stockRanges', col: 'userStockRanges' },
   ];
 
   function curLang() { return (window.curLang ? window.curLang() : 'en'); }
@@ -592,7 +599,8 @@
     const b = apps.bills && Array.isArray(apps.bills.history) ? apps.bills.history.length : 0;
     const n = apps.nutritions && apps.nutritions.days ? Object.keys(apps.nutritions.days).length : 0;
     const p = apps.places && Array.isArray(apps.places.savedIds) ? apps.places.savedIds.length : 0;
-    return '\uD83C\uDF7D\uFE0F ' + b + ' \u00b7 \uD83E\uDD57 ' + n + ' \u00b7 \uD83D\uDCCD ' + p;
+    const st = apps.stockRanges && Array.isArray(apps.stockRanges.watchlist) ? apps.stockRanges.watchlist.length : 0;
+    return '\uD83C\uDF7D\uFE0F ' + b + ' \u00b7 \uD83E\uDD57 ' + n + ' \u00b7 \uD83D\uDCCD ' + p + ' \u00b7 \uD83D\uDCC8 ' + st;
   }
 
   async function readAppDocs(uid) {
@@ -760,6 +768,7 @@
         { el: document.getElementById("acct-status-nutr"), col: 'users' },
         { el: document.getElementById("acct-status-bill"), col: 'userBills' },
         { el: document.getElementById("acct-status-pgd"), col: 'userPlaces' },
+        { el: document.getElementById("acct-status-stock"), col: 'userStockRanges' },
       ];
       if (user) {
         setDoc(doc(db, 'userProfiles', user.uid), { name: user.displayName || null, email: user.email || null, photoURL: user.photoURL || null, lastSeen: serverTimestamp() }, { merge: true }).catch(function (e) { console.warn('[profile] write failed:', e); });
@@ -775,6 +784,7 @@
                 if (r.col === 'users' && d.days) n = Object.keys(d.days).length;
                 else if (r.col === 'userBills' && Array.isArray(d.history)) n = d.history.length;
                 else if (r.col === 'userPlaces' && Array.isArray(d.savedIds)) n = d.savedIds.length;
+                else if (r.col === 'userStockRanges' && Array.isArray(d.watchlist)) n = d.watchlist.length;
                 if (n > 0) r.el.dataset.count = String(n);
                 else delete r.el.dataset.count;
               } else {

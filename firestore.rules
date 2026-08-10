@@ -207,6 +207,19 @@ service cloud.firestore {
                    && request.resource.data.payees.size() <= 20;
     }
 
+    // ── Stock Ranges — user watchlist ───────────────────────────────────────
+    match /userStockRanges/{uid} {
+      allow read:  if isUser(uid) || isAdmin();
+      allow write: if isUser(uid)
+                   && request.resource.data.watchlist is list
+                   && request.resource.data.watchlist.size() <= 100
+                   && request.resource.data.range is string
+                   && request.resource.data.currency is string
+                   && (!('lastModified' in request.resource.data)
+                       || request.resource.data.lastModified is timestamp
+                       || request.resource.data.lastModified is number);
+    }
+
     // ── Nutritions — user data ───────────────────────────────────────────────
     match /users/{uid} {
       allow read:  if isUser(uid) || isAdmin();
