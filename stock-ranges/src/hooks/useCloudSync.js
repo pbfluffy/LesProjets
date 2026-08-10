@@ -28,6 +28,16 @@ function fingerprint(data) {
   return JSON.stringify(canonical(data || {}))
 }
 
+// Firestore docs also carry `lastModified` (a serverTimestamp), which local
+// state never has — fingerprinting the raw doc against local state meant
+// they could never match even when watchlist/range/currency were identical,
+// so every sign-in re-triggered the conflict prompt. Stripping to just the
+// three synced fields keeps both sides of every comparison apples-to-apples.
+function stripDoc(d) {
+  if (!d) return null
+  return { watchlist: d.watchlist, range: d.range, currency: d.currency }
+}
+
 // True only if the local state differs from the untouched default — a
 // fresh browser's seed watchlist shouldn't trigger a conflict prompt
 // against real cloud data on first sign-in.
@@ -45,9 +55,12 @@ export function useCloudSync({ watchlist, range, currency, applyRemote }) {
     applyRemote,
     hasData,
     serialize: (d) => ({ watchlist: d.watchlist, range: d.range, currency: d.currency }),
-    readRemote: (snap) => (snap.exists() ? snap.data() : null),
+    readRemote: (snap) => (snap.exists() ? stripDoc(snap.data()) : null),
+    // Keeps the full doc (incl. lastModified) for the conflict modal's
+    // "last saved" display — only readRemote/applyPending need stripping
+    // since those two feed the fingerprint comparison.
     stashPending: (snap) => snap.data(),
-    applyPending: (p) => { applyRemote(p); return p },
+    applyPending: (p) => { const stripped = stripDoc(p); applyRemote(stripped); return stripped },
     conflictFp: fingerprint,
     echoFp: fingerprint,
     syncingOnChange: false,
