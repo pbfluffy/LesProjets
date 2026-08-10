@@ -8,9 +8,17 @@ const WATCHLIST_KEY = 'stockranges_watchlist'
 const RANGE_KEY = 'stockranges_range'
 const CURRENCY_KEY = 'stockranges_currency'
 const THEME_KEY = 'theme'
-const SYMBOL_RE = /^[A-Za-z0-9.\-]{1,10}$/
+// Allows '=' too — Yahoo's futures/forex symbols use it, e.g. gold's "GC=F".
+const SYMBOL_RE = /^[A-Za-z0-9.\-=]{1,10}$/
 const RANGES = ['3mo', '6mo', '1y', '2y', '5y']
 const RANGE_LABEL_KEY = { '3mo': 'range3mo', '6mo': 'range6mo', '1y': 'range1y', '2y': 'range2y', '5y': 'range5y' }
+// Crypto and commodities trade on the same Yahoo chart API as stocks, just
+// under different symbol conventions — surfaced as one-tap shortcuts since
+// "GC=F" for gold isn't something a user would guess to type.
+const QUICK_ADD = [
+  { symbol: 'BTC-USD', labelKey: 'quickAddBitcoin' },
+  { symbol: 'GC=F', labelKey: 'quickAddGold' },
+]
 
 function loadWatchlist() {
   try {
@@ -62,9 +70,7 @@ function Dashboard() {
     return () => { cancelled = true }
   }, [])
 
-  function addTicker(e) {
-    e.preventDefault()
-    const symbol = input.trim().toUpperCase()
+  function addSymbol(symbol) {
     setWarning('')
     if (!symbol) return
     if (!SYMBOL_RE.test(symbol)) {
@@ -76,6 +82,11 @@ function Dashboard() {
       return
     }
     setWatchlist((list) => [...list, symbol])
+  }
+
+  function addTicker(e) {
+    e.preventDefault()
+    addSymbol(input.trim().toUpperCase())
     setInput('')
   }
 
@@ -113,6 +124,19 @@ function Dashboard() {
           />
           <button className={styles.addBtn} type="submit">{s.addBtn}</button>
         </form>
+      </div>
+
+      <div className={styles.quickAdd}>
+        {QUICK_ADD.map(({ symbol, labelKey }) => (
+          <button
+            key={symbol}
+            className={styles.quickAddBtn}
+            disabled={watchlist.includes(symbol)}
+            onClick={() => addSymbol(symbol)}
+          >
+            + {s[labelKey]}
+          </button>
+        ))}
       </div>
 
       {warning && <div className={styles.warning}>{warning}</div>}

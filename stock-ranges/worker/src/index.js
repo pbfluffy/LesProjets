@@ -16,7 +16,9 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 }
 
-const SYMBOL_RE = /^[A-Za-z0-9.\-]{1,10}$/
+// Allows '=' too — Yahoo's futures/forex symbols use it, e.g. gold's
+// "GC=F" (COMEX futures) or "XAUUSD=X" (spot forex-style quote).
+const SYMBOL_RE = /^[A-Za-z0-9.\-=]{1,10}$/
 const ALLOWED_RANGES = new Set(['3mo', '6mo', '1y', '2y', '5y'])
 const CACHE_TTL_SECONDS = 5 * 60
 
