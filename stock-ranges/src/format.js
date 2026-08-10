@@ -16,3 +16,23 @@ export function dayChange(current, previousClose) {
   const direction = percent > 0.005 ? 'up' : percent < -0.005 ? 'down' : 'flat'
   return { percent, direction }
 }
+
+const DAY_SECONDS = 86400
+
+// Formats a unix-seconds timestamp for a chart axis label, choosing
+// granularity from how wide the whole series spans — a two-day intraday
+// range wants a time of day, a five-year range wants a month and year, and
+// showing full dates on everything would either waste space or lose the
+// only detail that's actually informative for that range.
+export function formatAxisDate(unixSeconds, spanSeconds, lang) {
+  if (typeof unixSeconds !== 'number' || !Number.isFinite(unixSeconds)) return ''
+  const date = new Date(unixSeconds * 1000)
+  const locale = lang === 'th' ? 'th-TH' : 'en-US'
+  if (spanSeconds < 2 * DAY_SECONDS) {
+    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+  }
+  if (spanSeconds < 500 * DAY_SECONDS) {
+    return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+  }
+  return date.toLocaleDateString(locale, { month: 'short', year: 'numeric' })
+}

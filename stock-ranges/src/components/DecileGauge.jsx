@@ -1,4 +1,5 @@
 import { BAND_COUNT } from '../deciles.js'
+import { formatAxisDate } from '../format.js'
 import styles from './DecileGauge.module.css'
 
 const CHART_WIDTH = 300
@@ -15,7 +16,7 @@ function zoneOf(band) {
 // conversion would scale every value by the same factor, so it can't change
 // where the chart falls relative to the bands; only the corner labels need
 // the converted price.
-export default function DecileGauge({ prices, ohlc, current, low, high, band, chartType, labelHigh, labelLow, s }) {
+export default function DecileGauge({ prices, ohlc, timestamps, current, low, high, band, chartType, labelHigh, labelLow, s, lang }) {
   const range = high - low || 1
   const toY = (price) => CHART_HEIGHT - ((price - low) / range) * CHART_HEIGHT
 
@@ -27,6 +28,11 @@ export default function DecileGauge({ prices, ohlc, current, low, high, band, ch
   }))
 
   const useCandles = chartType === 'candle' && Array.isArray(ohlc) && ohlc.length > 0
+
+  const validTimestamps = Array.isArray(timestamps) ? timestamps.filter((t) => typeof t === 'number') : []
+  const startTs = validTimestamps[0]
+  const endTs = validTimestamps[validTimestamps.length - 1]
+  const span = typeof startTs === 'number' && typeof endTs === 'number' ? endTs - startTs : 0
 
   return (
     <div className={styles.wrap}>
@@ -49,6 +55,12 @@ export default function DecileGauge({ prices, ohlc, current, low, high, band, ch
           : <LineChart prices={prices} current={current} toY={toY} band={band} />}
       </svg>
       <div className={styles.axisLabel} data-pos="bottom">{s.low} {labelLow}</div>
+      {validTimestamps.length > 1 && (
+        <div className={styles.dateRow}>
+          <span>{formatAxisDate(startTs, span, lang)}</span>
+          <span>{formatAxisDate(endTs, span, lang)}</span>
+        </div>
+      )}
     </div>
   )
 }

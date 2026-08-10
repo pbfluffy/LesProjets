@@ -7,9 +7,10 @@
 //
 // GET /?symbol=AAPL&range=1y   (range: 1d, 7d, 3mo, 6mo, 1y, 2y, or 5y)
 //   -> { symbol, name, currency, current, previousClose,
-//        prices: number[], ohlc: [{o,h,l,c}, ...] }
+//        prices: number[], ohlc: [{o,h,l,c}, ...], timestamps: number[] }
 //      (previousClose is yesterday's close, for a day-change indicator;
-//      ohlc is parallel to prices, for the candlestick view)
+//      ohlc and timestamps are parallel to prices — ohlc for the
+//      candlestick view, timestamps (unix seconds) for the axis labels)
 //   -> 404 { error } if the symbol is unknown / Yahoo has no data
 //   -> 400 { error } if symbol/range fail validation
 //
@@ -154,14 +155,17 @@ export default {
         return json({ error: 'not found' }, 404)
       }
 
-      // ohlc is built alongside prices (not filtered independently) so the
-      // two arrays stay index-aligned — a candle without its own open/high/
-      // low falls back to its close rather than creating a gap.
+      // ohlc/timestamps are built alongside prices (not filtered
+      // independently) so all three stay index-aligned — a candle without
+      // its own open/high/low falls back to its close rather than creating
+      // a gap.
       const opens = quote?.open || []
       const highs = quote?.high || []
       const lows = quote?.low || []
+      const rawTimestamps = result?.timestamp || []
       const prices = []
       const ohlc = []
+      const timestamps = []
       for (let i = 0; i < closes.length; i++) {
         const c = closes[i]
         if (typeof c !== 'number' || !Number.isFinite(c)) continue
@@ -172,6 +176,7 @@ export default {
           l: typeof lows[i] === 'number' ? lows[i] : c,
           c,
         })
+        timestamps.push(typeof rawTimestamps[i] === 'number' ? rawTimestamps[i] : null)
       }
       if (!prices.length) {
         return json({ error: 'not found' }, 404)
@@ -198,6 +203,7 @@ export default {
         previousClose,
         prices,
         ohlc,
+        timestamps,
       })
     })
   },

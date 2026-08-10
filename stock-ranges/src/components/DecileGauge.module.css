@@ -71,3 +71,12 @@
 }
 .axisLabel[data-pos='top'] { top: 4px; }
 .axisLabel[data-pos='bottom'] { bottom: 4px; }
+
+.dateRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-text-faint);
+  margin-top: 4px;
+}

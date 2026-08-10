@@ -11,7 +11,7 @@ const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSe
 const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
 
 export default function TickerCard({ symbol, range, currency, rates, chartType, onRemove, onStatus }) {
-  const { s } = useLang()
+  const { s, lang } = useLang()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
 
   useEffect(() => {
@@ -89,6 +89,7 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
             <DecileGauge
               prices={state.data.prices}
               ohlc={state.data.ohlc}
+              timestamps={state.data.timestamps}
               current={state.data.current}
               low={deciles.low}
               high={deciles.high}
@@ -97,6 +98,7 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
               labelHigh={formatPrice(fxOk ? convertedHigh : deciles.high, fxOk ? currency : state.data.currency)}
               labelLow={formatPrice(fxOk ? convertedLow : deciles.low, fxOk ? currency : state.data.currency)}
               s={s}
+              lang={lang}
             />
             {!fxOk && currency !== state.data.currency && (
               <div className={styles.fxNote}>{s.fxUnavailable}</div>
