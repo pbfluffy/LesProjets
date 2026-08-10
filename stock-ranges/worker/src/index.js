@@ -5,7 +5,7 @@
 // worth gating behind an origin allowlist or a per-user rate limit — a
 // shared 5-minute edge cache (below) is enough to keep Yahoo happy.
 //
-// GET /?symbol=AAPL&range=1y
+// GET /?symbol=AAPL&range=1y   (range: 1d, 7d, 3mo, 6mo, 1y, 2y, or 5y)
 //   -> { symbol, name, currency, current, previousClose, prices: number[] }
 //      (previousClose is yesterday's close, for a day-change indicator)
 //   -> 404 { error } if the symbol is unknown / Yahoo has no data
@@ -26,7 +26,19 @@ const CORS_HEADERS = {
 // for indices like "^GSPC" (S&P 500), which autocomplete can surface.
 const SYMBOL_RE = /^[A-Za-z0-9.\-=^]{1,10}$/
 const SEARCH_QUERY_RE = /^[\w .\-&]{1,30}$/
-const ALLOWED_RANGES = new Set(['3mo', '6mo', '1y', '2y', '5y'])
+// '1d'/'7d' need intraday candles (a single day's worth of daily closes is
+// one point, not a range) — Yahoo's `range` enum has '1d' but not '7d', so
+// 7d goes through explicit period1/period2 instead. Everything 3mo+ keeps
+// using daily closes via the plain `range` param, unchanged.
+const RANGE_CONFIG = {
+  '1d': { range: '1d', interval: '5m' },
+  '7d': { days: 7, interval: '30m' },
+  '3mo': { range: '3mo', interval: '1d' },
+  '6mo': { range: '6mo', interval: '1d' },
+  '1y': { range: '1y', interval: '1d' },
+  '2y': { range: '2y', interval: '1d' },
+  '5y': { range: '5y', interval: '1d' },
+}
 const CACHE_TTL_SECONDS = 5 * 60
 
 function json(body, status = 200) {
@@ -107,16 +119,20 @@ export default {
     if (!SYMBOL_RE.test(symbol)) {
       return json({ error: 'invalid symbol' }, 400)
     }
-    if (!ALLOWED_RANGES.has(range)) {
+    const rangeConfig = RANGE_CONFIG[range]
+    if (!rangeConfig) {
       return json({ error: 'invalid range' }, 400)
     }
 
     const cacheKey = new Request(`https://stock-ranges-cache.internal/${symbol}/${range}`)
     return withCache(cache, cacheKey, ctx, async () => {
+      const params = rangeConfig.days
+        ? `period1=${Math.floor(Date.now() / 1000) - rangeConfig.days * 86400}&period2=${Math.floor(Date.now() / 1000)}`
+        : `range=${rangeConfig.range}`
       let upstream
       try {
         upstream = await fetch(
-          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=1d`,
+          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?${params}&interval=${rangeConfig.interval}`,
           { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; stock-ranges/1.0)' } },
         )
       } catch {
@@ -141,17 +157,24 @@ export default {
       }
 
       // meta.chartPreviousClose is the close *before the whole requested
-      // range* (e.g. a year ago for range=1y), not yesterday's close — not
-      // useful for a day-change indicator. The prices array's last entry
-      // tracks today's live price during market hours (or today's settled
-      // close after hours), so the second-to-last entry is the actual most
-      // recent prior trading day's close.
+      // range* (a year ago for range=1y, last week for period-based 7d),
+      // not yesterday's close — not useful for a day-change indicator.
+      // meta.previousClose (only present for intraday requests like 1d/7d)
+      // is the real yesterday's close, so prefer it when Yahoo provides it.
+      // For the daily-interval ranges (3mo+) it's absent, so fall back to
+      // the prices array's second-to-last entry — the last entry tracks
+      // today's live price during market hours, so the one before it is
+      // the actual most recent prior trading day's close.
+      const previousClose = typeof meta.previousClose === 'number'
+        ? meta.previousClose
+        : (prices.length > 1 ? prices[prices.length - 2] : null)
+
       return json({
         symbol: meta.symbol || symbol,
         name: meta.shortName || meta.longName || meta.symbol || symbol,
         currency: meta.currency || 'USD',
         current: typeof meta.regularMarketPrice === 'number' ? meta.regularMarketPrice : prices[prices.length - 1],
-        previousClose: prices.length > 1 ? prices[prices.length - 2] : null,
+        previousClose,
         prices,
       })
     })
