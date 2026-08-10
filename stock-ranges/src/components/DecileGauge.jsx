@@ -1,4 +1,5 @@
 import { BAND_COUNT } from '../deciles.js'
+import { formatPrice } from '../format.js'
 import styles from './DecileGauge.module.css'
 
 function zoneOf(band) {
@@ -28,9 +29,4 @@ export default function DecileGauge({ band, low, high, currency, s }) {
       <div className={styles.label}>{s.low}<br />{formatPrice(low, currency)}</div>
     </div>
   )
-}
-
-function formatPrice(value, currency) {
-  if (typeof value !== 'number') return '—'
-  return `${currency ? currency + ' ' : ''}${value.toFixed(2)}`
 }

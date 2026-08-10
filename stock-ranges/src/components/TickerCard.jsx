@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react'
 import { fetchQuote } from '../stockApi.js'
 import { computeDeciles } from '../deciles.js'
 import { convert } from '../fx.js'
+import { formatPrice, dayChange } from '../format.js'
 import DecileGauge from './DecileGauge.jsx'
 import { useLang } from '../LangContext.jsx'
 import styles from './TickerCard.module.css'
 
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
+const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
 
-export default function TickerCard({ symbol, range, currency, rates, onRemove }) {
+export default function TickerCard({ symbol, range, currency, rates, onRemove, onStatus }) {
   const { s } = useLang()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
 
@@ -21,6 +23,19 @@ export default function TickerCard({ symbol, range, currency, rates, onRemove })
     return () => { cancelled = true }
   }, [symbol, range])
 
+  const deciles = state.status === 'ready'
+    ? computeDeciles({ prices: state.data.prices, current: state.data.current })
+    : null
+
+  // Reports this card's computed band up to the Dashboard so the whole
+  // watchlist can be sorted by opportunity (buy-zone first), and marks
+  // when the fetch settled so a global "updated Xm ago" stays accurate.
+  useEffect(() => {
+    if (!onStatus) return
+    if (state.status === 'ready') onStatus(symbol, { band: deciles?.band ?? null, ts: Date.now() })
+    else if (state.status === 'error') onStatus(symbol, { band: null, ts: null })
+  }, [state.status, deciles?.band]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className={styles.card}>
       <div className={styles.head}>
@@ -32,9 +47,15 @@ export default function TickerCard({ symbol, range, currency, rates, onRemove })
           {state.data && (() => {
             const shown = convert(state.data.current, state.data.currency, currency, rates)
             const code = shown === null ? state.data.currency : currency
+            const change = dayChange(state.data.current, state.data.previousClose)
             return (
-              <div className={styles.price}>
-                {code} {(shown === null ? state.data.current : shown).toFixed(2)}
+              <div className={styles.priceBlock}>
+                <div className={styles.price}>{formatPrice(shown === null ? state.data.current : shown, code)}</div>
+                {change && (
+                  <div className={styles.change} data-direction={change.direction}>
+                    {CHANGE_ARROW[change.direction]} {Math.abs(change.percent).toFixed(2)}%
+                  </div>
+                )}
               </div>
             )
           })()}
@@ -44,11 +65,19 @@ export default function TickerCard({ symbol, range, currency, rates, onRemove })
         </div>
       </div>
 
-      {state.status === 'loading' && <div className={styles.state}>{s.loading}</div>}
+      {state.status === 'loading' && (
+        <div className={styles.body}>
+          <div className={styles.skeletonGauge} aria-hidden="true" />
+          <div className={styles.skeletonLines} aria-hidden="true">
+            <div className={styles.skeletonLine} style={{ width: '70%' }} />
+            <div className={styles.skeletonLine} style={{ width: '45%' }} />
+          </div>
+          <span className="sr-only">{s.loading}</span>
+        </div>
+      )}
       {state.status === 'error' && <div className={styles.state} data-error="true">{s.errorPrefix}{state.error}</div>}
 
       {state.status === 'ready' && (() => {
-        const deciles = computeDeciles({ prices: state.data.prices, current: state.data.current })
         if (!deciles) return <div className={styles.state} data-error="true">{s.errorPrefix}—</div>
         const zone = deciles.signal || 'flat'
         const label = deciles.signal ? s[SIGNAL_LABEL_KEY[deciles.signal]] : s.signalFlat

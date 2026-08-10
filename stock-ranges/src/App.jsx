@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { LangProvider, useLang } from './LangContext.jsx'
 import { getThbRates } from './fx.js'
 import TickerCard from './components/TickerCard.jsx'
@@ -14,6 +14,14 @@ const THEME_KEY = 'theme'
 const SYMBOL_RE = /^[A-Za-z0-9.\-=^]{1,10}$/
 const RANGES = ['3mo', '6mo', '1y', '2y', '5y']
 const RANGE_LABEL_KEY = { '3mo': 'range3mo', '6mo': 'range6mo', '1y': 'range1y', '2y': 'range2y', '5y': 'range5y' }
+const RELATIVE_TIME_TICK_MS = 30 * 1000
+
+function formatRelativeTime(ts, now, s) {
+  if (!ts) return null
+  const minutes = Math.floor((now - ts) / 60000)
+  if (minutes < 1) return s.updatedJustNow
+  return `${s.updatedPrefix} ${minutes}${s.updatedMinSuffix}`
+}
 
 function loadWatchlist() {
   try {
@@ -45,6 +53,8 @@ function Dashboard() {
   const [currency, setCurrency] = useState(() => localStorage.getItem(CURRENCY_KEY) || 'USD')
   const [rates, setRates] = useState(null)
   const [warning, setWarning] = useState('')
+  const [signals, setSignals] = useState({})
+  const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
     localStorage.setItem(WATCHLIST_KEY, JSON.stringify(watchlist))
@@ -64,6 +74,11 @@ function Dashboard() {
     return () => { cancelled = true }
   }, [])
 
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), RELATIVE_TIME_TICK_MS)
+    return () => clearInterval(id)
+  }, [])
+
   function addSymbol(symbol) {
     setWarning('')
     if (!symbol) return
@@ -80,7 +95,34 @@ function Dashboard() {
 
   function removeTicker(symbol) {
     setWatchlist((list) => list.filter((t) => t !== symbol))
+    setSignals((prev) => {
+      if (!(symbol in prev)) return prev
+      const next = { ...prev }
+      delete next[symbol]
+      return next
+    })
   }
+
+  function handleStatus(symbol, info) {
+    setSignals((prev) => ({ ...prev, [symbol]: info }))
+  }
+
+  // Buy-zone (band 1-3) first so the dashboard is scannable at a glance —
+  // opportunities surface without reading every card. Tickers still loading
+  // or errored (band === null) sort to the end rather than jumping around.
+  const sortedWatchlist = useMemo(() => {
+    return [...watchlist].sort((a, b) => {
+      const bandA = signals[a]?.band ?? Infinity
+      const bandB = signals[b]?.band ?? Infinity
+      if (bandA !== bandB) return bandA - bandB
+      return watchlist.indexOf(a) - watchlist.indexOf(b)
+    })
+  }, [watchlist, signals])
+
+  const lastUpdated = useMemo(() => {
+    const timestamps = Object.values(signals).map((v) => v?.ts).filter(Boolean)
+    return timestamps.length ? Math.max(...timestamps) : null
+  }, [signals])
 
   return (
     <div className={styles.page}>
@@ -115,14 +157,15 @@ function Dashboard() {
             <option key={r} value={r}>{s[RANGE_LABEL_KEY[r]]}</option>
           ))}
         </select>
+        {lastUpdated && <span className={styles.updated}>{formatRelativeTime(lastUpdated, now, s)}</span>}
       </div>
 
       {watchlist.length === 0 ? (
         <div className={styles.empty}>{s.emptyWatchlist}</div>
       ) : (
         <div className={styles.list}>
-          {watchlist.map((symbol) => (
-            <TickerCard key={symbol} symbol={symbol} range={range} currency={currency} rates={rates} onRemove={removeTicker} />
+          {sortedWatchlist.map((symbol) => (
+            <TickerCard key={symbol} symbol={symbol} range={range} currency={currency} rates={rates} onRemove={removeTicker} onStatus={handleStatus} />
           ))}
         </div>
       )}

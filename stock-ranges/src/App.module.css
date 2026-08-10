@@ -61,6 +61,12 @@
   font-family: var(--font-mono);
 }
 .lookbackRow select { width: auto; }
+.updated {
+  margin-left: auto;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-text-faint);
+}
 
 .warning {
   font-size: 12px;

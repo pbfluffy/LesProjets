@@ -24,6 +24,7 @@ export default function TickerSearch({ onAdd }) {
   useEffect(() => {
     const query = input.trim()
     if (query.length < MIN_QUERY_LENGTH) {
+      requestId.current++ // invalidate any still-pending search (e.g. right after commit() clears input)
       setResults([])
       setOpen(false)
       return

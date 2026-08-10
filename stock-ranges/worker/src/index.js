@@ -6,7 +6,8 @@
 // shared 5-minute edge cache (below) is enough to keep Yahoo happy.
 //
 // GET /?symbol=AAPL&range=1y
-//   -> { symbol, name, currency, current, prices: number[] }  (daily closes)
+//   -> { symbol, name, currency, current, previousClose, prices: number[] }
+//      (previousClose is yesterday's close, for a day-change indicator)
 //   -> 404 { error } if the symbol is unknown / Yahoo has no data
 //   -> 400 { error } if symbol/range fail validation
 //
@@ -139,11 +140,18 @@ export default {
         return json({ error: 'not found' }, 404)
       }
 
+      // meta.chartPreviousClose is the close *before the whole requested
+      // range* (e.g. a year ago for range=1y), not yesterday's close — not
+      // useful for a day-change indicator. The prices array's last entry
+      // tracks today's live price during market hours (or today's settled
+      // close after hours), so the second-to-last entry is the actual most
+      // recent prior trading day's close.
       return json({
         symbol: meta.symbol || symbol,
         name: meta.shortName || meta.longName || meta.symbol || symbol,
         currency: meta.currency || 'USD',
         current: typeof meta.regularMarketPrice === 'number' ? meta.regularMarketPrice : prices[prices.length - 1],
+        previousClose: prices.length > 1 ? prices[prices.length - 2] : null,
         prices,
       })
     })
