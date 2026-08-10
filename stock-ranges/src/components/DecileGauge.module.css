@@ -1,47 +1,59 @@
 .wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
+  position: relative;
+  width: 100%;
 }
 
-.label {
+.chart {
+  display: block;
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  border: 0.5px solid var(--color-border);
+  overflow: hidden;
+}
+
+.bandRect[data-zone='buy'] { fill: var(--color-green-bg); }
+.bandRect[data-zone='hold'] { fill: var(--color-amber-bg); }
+.bandRect[data-zone='sell'] { fill: var(--color-red-bg); }
+
+.gridLine {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.priceLine {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.85;
+}
+
+.marker {
+  stroke: var(--color-surface);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.marker[data-zone='buy'] { fill: var(--color-green); }
+.marker[data-zone='hold'] { fill: var(--color-amber); }
+.marker[data-zone='sell'] { fill: var(--color-red); }
+
+.axisLabel {
+  position: absolute;
+  right: 6px;
   font-size: 10px;
   font-family: var(--font-mono);
   color: var(--color-text-faint);
-  white-space: nowrap;
-  text-align: center;
-}
-
-.gauge {
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 3px;
-  width: 26px;
-  height: 140px;
-}
-
-.segment {
-  flex: 1;
-  width: 100%;
+  background: var(--color-surface);
+  padding: 1px 4px;
   border-radius: 3px;
-  background: var(--color-surface-alt);
-  border: 0.5px solid var(--color-border);
-  position: relative;
-  transition: transform 0.15s;
+  line-height: 1.4;
+  text-align: right;
+  pointer-events: none;
+  opacity: 0.92;
 }
-
-.segment[data-zone='buy'] { background: var(--color-green-bg); }
-.segment[data-zone='hold'] { background: var(--color-amber-bg); }
-.segment[data-zone='sell'] { background: var(--color-red-bg); }
-
-.segment[data-active='true'] {
-  transform: scaleX(1.35);
-  border-color: var(--color-text);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  z-index: 1;
-}
-.segment[data-active='true'][data-zone='buy'] { background: var(--color-green); }
-.segment[data-active='true'][data-zone='hold'] { background: var(--color-amber); }
-.segment[data-active='true'][data-zone='sell'] { background: var(--color-red); }
+.axisLabel[data-pos='top'] { top: 4px; }
+.axisLabel[data-pos='bottom'] { bottom: 4px; }

@@ -80,18 +80,8 @@
 
 .body {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.details {
-  flex: 1;
-  display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
   gap: 8px;
-  min-height: 140px;
 }
 
 .fxNote {
@@ -101,6 +91,7 @@
 
 .badge {
   display: inline-flex;
+  align-self: flex-start;
   align-items: center;
   gap: 6px;
   font-size: 11px;
@@ -128,31 +119,22 @@
   50% { opacity: 1; }
 }
 
-.skeletonGauge {
-  width: 26px;
-  height: 140px;
-  border-radius: 6px;
+.skeletonBadge {
+  width: 110px;
+  height: 20px;
+  border-radius: var(--radius-pill);
   background: var(--color-surface-alt);
   animation: pulse 1.6s ease-in-out infinite;
-  flex-shrink: 0;
 }
 
-.skeletonLines {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 10px;
-  min-height: 140px;
-}
-
-.skeletonLine {
-  height: 14px;
-  border-radius: var(--radius-sm);
+.skeletonChart {
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
   background: var(--color-surface-alt);
   animation: pulse 1.6s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .skeletonGauge, .skeletonLine { animation: none; opacity: 0.7; }
+  .skeletonBadge, .skeletonChart { animation: none; opacity: 0.7; }
 }

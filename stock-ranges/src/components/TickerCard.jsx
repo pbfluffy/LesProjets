@@ -67,11 +67,8 @@ export default function TickerCard({ symbol, range, currency, rates, onRemove, o
 
       {state.status === 'loading' && (
         <div className={styles.body}>
-          <div className={styles.skeletonGauge} aria-hidden="true" />
-          <div className={styles.skeletonLines} aria-hidden="true">
-            <div className={styles.skeletonLine} style={{ width: '70%' }} />
-            <div className={styles.skeletonLine} style={{ width: '45%' }} />
-          </div>
+          <div className={styles.skeletonBadge} aria-hidden="true" />
+          <div className={styles.skeletonChart} aria-hidden="true" />
           <span className="sr-only">{s.loading}</span>
         </div>
       )}
@@ -86,21 +83,22 @@ export default function TickerCard({ symbol, range, currency, rates, onRemove, o
         const fxOk = convertedLow !== null && convertedHigh !== null
         return (
           <div className={styles.body}>
+            <span className={styles.badge} data-zone={zone}>
+              {s.band} {deciles.band}/10 · {label}
+            </span>
             <DecileGauge
+              prices={state.data.prices}
+              current={state.data.current}
+              low={deciles.low}
+              high={deciles.high}
               band={deciles.band}
-              low={fxOk ? convertedLow : deciles.low}
-              high={fxOk ? convertedHigh : deciles.high}
-              currency={fxOk ? currency : state.data.currency}
+              labelHigh={formatPrice(fxOk ? convertedHigh : deciles.high, fxOk ? currency : state.data.currency)}
+              labelLow={formatPrice(fxOk ? convertedLow : deciles.low, fxOk ? currency : state.data.currency)}
               s={s}
             />
-            <div className={styles.details}>
-              <span className={styles.badge} data-zone={zone}>
-                {s.band} {deciles.band}/10 · {label}
-              </span>
-              {!fxOk && currency !== state.data.currency && (
-                <div className={styles.fxNote}>{s.fxUnavailable}</div>
-              )}
-            </div>
+            {!fxOk && currency !== state.data.currency && (
+              <div className={styles.fxNote}>{s.fxUnavailable}</div>
+            )}
           </div>
         )
       })()}
