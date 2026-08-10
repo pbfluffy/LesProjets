@@ -6,8 +6,10 @@
 // shared 5-minute edge cache (below) is enough to keep Yahoo happy.
 //
 // GET /?symbol=AAPL&range=1y   (range: 1d, 7d, 3mo, 6mo, 1y, 2y, or 5y)
-//   -> { symbol, name, currency, current, previousClose, prices: number[] }
-//      (previousClose is yesterday's close, for a day-change indicator)
+//   -> { symbol, name, currency, current, previousClose,
+//        prices: number[], ohlc: [{o,h,l,c}, ...] }
+//      (previousClose is yesterday's close, for a day-change indicator;
+//      ohlc is parallel to prices, for the candlestick view)
 //   -> 404 { error } if the symbol is unknown / Yahoo has no data
 //   -> 400 { error } if symbol/range fail validation
 //
@@ -146,12 +148,31 @@ export default {
       const data = await upstream.json().catch(() => null)
       const result = data?.chart?.result?.[0]
       const meta = result?.meta
-      const closes = result?.indicators?.quote?.[0]?.close
+      const quote = result?.indicators?.quote?.[0]
+      const closes = quote?.close
       if (!meta || !Array.isArray(closes)) {
         return json({ error: 'not found' }, 404)
       }
 
-      const prices = closes.filter((c) => typeof c === 'number' && Number.isFinite(c))
+      // ohlc is built alongside prices (not filtered independently) so the
+      // two arrays stay index-aligned — a candle without its own open/high/
+      // low falls back to its close rather than creating a gap.
+      const opens = quote?.open || []
+      const highs = quote?.high || []
+      const lows = quote?.low || []
+      const prices = []
+      const ohlc = []
+      for (let i = 0; i < closes.length; i++) {
+        const c = closes[i]
+        if (typeof c !== 'number' || !Number.isFinite(c)) continue
+        prices.push(c)
+        ohlc.push({
+          o: typeof opens[i] === 'number' ? opens[i] : c,
+          h: typeof highs[i] === 'number' ? highs[i] : c,
+          l: typeof lows[i] === 'number' ? lows[i] : c,
+          c,
+        })
+      }
       if (!prices.length) {
         return json({ error: 'not found' }, 404)
       }
@@ -176,6 +197,7 @@ export default {
         current: typeof meta.regularMarketPrice === 'number' ? meta.regularMarketPrice : prices[prices.length - 1],
         previousClose,
         prices,
+        ohlc,
       })
     })
   },

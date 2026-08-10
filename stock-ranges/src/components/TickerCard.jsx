@@ -10,7 +10,7 @@ import styles from './TickerCard.module.css'
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
 const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
 
-export default function TickerCard({ symbol, range, currency, rates, onRemove, onStatus }) {
+export default function TickerCard({ symbol, range, currency, rates, chartType, onRemove, onStatus }) {
   const { s } = useLang()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
 
@@ -88,10 +88,12 @@ export default function TickerCard({ symbol, range, currency, rates, onRemove, o
             </span>
             <DecileGauge
               prices={state.data.prices}
+              ohlc={state.data.ohlc}
               current={state.data.current}
               low={deciles.low}
               high={deciles.high}
               band={deciles.band}
+              chartType={chartType}
               labelHigh={formatPrice(fxOk ? convertedHigh : deciles.high, fxOk ? currency : state.data.currency)}
               labelLow={formatPrice(fxOk ? convertedLow : deciles.low, fxOk ? currency : state.data.currency)}
               s={s}

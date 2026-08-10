@@ -41,6 +41,20 @@
 .marker[data-zone='hold'] { fill: var(--color-amber); }
 .marker[data-zone='sell'] { fill: var(--color-red); }
 
+.candleWick {
+  stroke: var(--color-text-muted);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.candleBody {
+  stroke: none;
+}
+.candle[data-direction='up'] .candleBody { fill: var(--color-green); }
+.candle[data-direction='down'] .candleBody { fill: var(--color-red); }
+.candle[data-direction='up'] .candleWick { stroke: var(--color-green); }
+.candle[data-direction='down'] .candleWick { stroke: var(--color-red); }
+
 .axisLabel {
   position: absolute;
   right: 6px;

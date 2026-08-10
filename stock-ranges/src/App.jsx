@@ -11,6 +11,7 @@ import styles from './App.module.css'
 const WATCHLIST_KEY = 'stockranges_watchlist'
 const RANGE_KEY = 'stockranges_range'
 const CURRENCY_KEY = 'stockranges_currency'
+const CHART_TYPE_KEY = 'stockranges_charttype'
 const THEME_KEY = 'theme'
 // Allows '=' (futures/forex, e.g. gold's "GC=F") and '^' (indices, e.g.
 // "^GSPC") — autocomplete can surface both.
@@ -54,6 +55,7 @@ function Dashboard() {
   const [watchlist, setWatchlist] = useState(loadWatchlist)
   const [range, setRange] = useState(() => localStorage.getItem(RANGE_KEY) || '1y')
   const [currency, setCurrency] = useState(() => localStorage.getItem(CURRENCY_KEY) || 'USD')
+  const [chartType, setChartType] = useState(() => localStorage.getItem(CHART_TYPE_KEY) || 'line')
   const [rates, setRates] = useState(null)
   const [warning, setWarning] = useState('')
   const [signals, setSignals] = useState({})
@@ -70,6 +72,10 @@ function Dashboard() {
   useEffect(() => {
     localStorage.setItem(CURRENCY_KEY, currency)
   }, [currency])
+
+  useEffect(() => {
+    localStorage.setItem(CHART_TYPE_KEY, chartType)
+  }, [chartType])
 
   useEffect(() => {
     let cancelled = false
@@ -170,6 +176,13 @@ function Dashboard() {
             <option key={r} value={r}>{s[RANGE_LABEL_KEY[r]]}</option>
           ))}
         </select>
+        <button
+          className={styles.chartTypeBtn}
+          onClick={() => setChartType((t) => (t === 'line' ? 'candle' : 'line'))}
+          title={chartType === 'line' ? s.chartTypeSwitchToCandle : s.chartTypeSwitchToLine}
+        >
+          {chartType === 'line' ? '📈' : '🕯️'}
+        </button>
         {lastUpdated && <span className={styles.updated}>{formatRelativeTime(lastUpdated, now, s)}</span>}
       </div>
 
@@ -178,7 +191,7 @@ function Dashboard() {
       ) : (
         <div className={styles.list}>
           {sortedWatchlist.map((symbol) => (
-            <TickerCard key={symbol} symbol={symbol} range={range} currency={currency} rates={rates} onRemove={removeTicker} onStatus={handleStatus} />
+            <TickerCard key={symbol} symbol={symbol} range={range} currency={currency} rates={rates} chartType={chartType} onRemove={removeTicker} onStatus={handleStatus} />
           ))}
         </div>
       )}

@@ -61,6 +61,20 @@
   font-family: var(--font-mono);
 }
 .lookbackRow select { width: auto; }
+
+.chartTypeBtn {
+  background: var(--color-surface-alt);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.chartTypeBtn:hover { background: var(--color-border); }
 .updated {
   margin-left: auto;
   font-size: 11px;
