@@ -49,24 +49,6 @@
   margin-bottom: 12px;
 }
 
-.quickAdd {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.quickAddBtn {
-  background: var(--color-surface-alt);
-  border: 0.5px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  color: var(--color-text);
-  font-size: 12px;
-  font-family: var(--font-mono);
-  padding: 4px 12px;
-}
-.quickAddBtn:hover:not(:disabled) { background: var(--color-border); }
-.quickAddBtn:disabled { opacity: 0.4; cursor: default; }
-
 .lookbackRow {
   display: flex;
   align-items: center;

@@ -14,13 +14,6 @@ const THEME_KEY = 'theme'
 const SYMBOL_RE = /^[A-Za-z0-9.\-=^]{1,10}$/
 const RANGES = ['3mo', '6mo', '1y', '2y', '5y']
 const RANGE_LABEL_KEY = { '3mo': 'range3mo', '6mo': 'range6mo', '1y': 'range1y', '2y': 'range2y', '5y': 'range5y' }
-// Crypto and commodities trade on the same Yahoo chart API as stocks, just
-// under different symbol conventions — surfaced as one-tap shortcuts since
-// "GC=F" for gold isn't something a user would guess to type.
-const QUICK_ADD = [
-  { symbol: 'BTC-USD', labelKey: 'quickAddBitcoin' },
-  { symbol: 'GC=F', labelKey: 'quickAddGold' },
-]
 
 function loadWatchlist() {
   try {
@@ -111,19 +104,6 @@ function Dashboard() {
 
       <div className={styles.controls}>
         <TickerSearch onAdd={addSymbol} />
-      </div>
-
-      <div className={styles.quickAdd}>
-        {QUICK_ADD.map(({ symbol, labelKey }) => (
-          <button
-            key={symbol}
-            className={styles.quickAddBtn}
-            disabled={watchlist.includes(symbol)}
-            onClick={() => addSymbol(symbol)}
-          >
-            + {s[labelKey]}
-          </button>
-        ))}
       </div>
 
       {warning && <div className={styles.warning}>{warning}</div>}
