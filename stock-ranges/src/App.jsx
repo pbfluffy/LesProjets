@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react'
 import { LangProvider, useLang } from './LangContext.jsx'
 import { getThbRates } from './fx.js'
 import TickerCard from './components/TickerCard.jsx'
+import TickerSearch from './components/TickerSearch.jsx'
 import styles from './App.module.css'
 
 const WATCHLIST_KEY = 'stockranges_watchlist'
 const RANGE_KEY = 'stockranges_range'
 const CURRENCY_KEY = 'stockranges_currency'
 const THEME_KEY = 'theme'
-// Allows '=' too — Yahoo's futures/forex symbols use it, e.g. gold's "GC=F".
-const SYMBOL_RE = /^[A-Za-z0-9.\-=]{1,10}$/
+// Allows '=' (futures/forex, e.g. gold's "GC=F") and '^' (indices, e.g.
+// "^GSPC") — autocomplete can surface both.
+const SYMBOL_RE = /^[A-Za-z0-9.\-=^]{1,10}$/
 const RANGES = ['3mo', '6mo', '1y', '2y', '5y']
 const RANGE_LABEL_KEY = { '3mo': 'range3mo', '6mo': 'range6mo', '1y': 'range1y', '2y': 'range2y', '5y': 'range5y' }
 // Crypto and commodities trade on the same Yahoo chart API as stocks, just
@@ -49,7 +51,6 @@ function Dashboard() {
   const [range, setRange] = useState(() => localStorage.getItem(RANGE_KEY) || '1y')
   const [currency, setCurrency] = useState(() => localStorage.getItem(CURRENCY_KEY) || 'USD')
   const [rates, setRates] = useState(null)
-  const [input, setInput] = useState('')
   const [warning, setWarning] = useState('')
 
   useEffect(() => {
@@ -84,12 +85,6 @@ function Dashboard() {
     setWatchlist((list) => [...list, symbol])
   }
 
-  function addTicker(e) {
-    e.preventDefault()
-    addSymbol(input.trim().toUpperCase())
-    setInput('')
-  }
-
   function removeTicker(symbol) {
     setWatchlist((list) => list.filter((t) => t !== symbol))
   }
@@ -115,15 +110,7 @@ function Dashboard() {
       </div>
 
       <div className={styles.controls}>
-        <form className={styles.addForm} onSubmit={addTicker}>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={s.addPlaceholder}
-            maxLength={10}
-          />
-          <button className={styles.addBtn} type="submit">{s.addBtn}</button>
-        </form>
+        <TickerSearch onAdd={addSymbol} />
       </div>
 
       <div className={styles.quickAdd}>

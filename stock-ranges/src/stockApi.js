@@ -57,3 +57,27 @@ export async function fetchQuote(symbol, range) {
   writeCache(key, data)
   return data
 }
+
+// Returns [{ symbol, name, exchange, type }, ...] for a partial ticker/name
+// query (autocomplete), or [] on any failure — callers should treat that as
+// "no suggestions right now", not an error worth surfacing to the user.
+export async function searchSymbols(query) {
+  const key = `search:${query.toLowerCase()}`
+  const cached = readCache(key)
+  if (cached) return cached
+
+  if (!WORKER_URL) return []
+
+  let res
+  try {
+    res = await fetch(`${WORKER_URL}?q=${encodeURIComponent(query)}`)
+  } catch {
+    return []
+  }
+  if (!res.ok) return []
+
+  const data = await res.json().catch(() => null)
+  const results = Array.isArray(data) ? data : []
+  writeCache(key, results)
+  return results
+}
