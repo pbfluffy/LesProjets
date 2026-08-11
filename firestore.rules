@@ -216,6 +216,11 @@ service cloud.firestore {
                    && request.resource.data.range is string
                    && request.resource.data.currency is string
                    && (!('tags' in request.resource.data) || request.resource.data.tags is map)
+                   && (!('holdings' in request.resource.data) || request.resource.data.holdings is map)
+                   && (!('investmentPlans' in request.resource.data)
+                       || (request.resource.data.investmentPlans is list && request.resource.data.investmentPlans.size() <= 50))
+                   && (!('dividends' in request.resource.data)
+                       || (request.resource.data.dividends is list && request.resource.data.dividends.size() <= 500))
                    && (!('lastModified' in request.resource.data)
                        || request.resource.data.lastModified is timestamp
                        || request.resource.data.lastModified is number);

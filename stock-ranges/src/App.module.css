@@ -56,6 +56,33 @@
 }
 .ctrlBtn:hover { background: var(--color-border); }
 
+.tabRow {
+  display: flex;
+  gap: 4px;
+  background: var(--color-surface-alt);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  margin-bottom: 16px;
+  width: fit-content;
+}
+
+.tabBtn {
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 16px;
+}
+.tabBtn:hover { color: var(--color-text); }
+.tabBtn[data-active='true'] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+}
+
 .summaryRow {
   display: flex;
   gap: 8px;
