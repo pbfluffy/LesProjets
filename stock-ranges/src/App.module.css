@@ -40,6 +40,9 @@
   font-family: var(--font-mono);
   padding: 4px 10px;
   height: 30px;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
 }
 .ctrlBtn:hover { background: var(--color-border); }
 

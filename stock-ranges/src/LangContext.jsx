@@ -6,6 +6,7 @@ export const STRINGS = {
   en: {
     appName: 'Stock Ranges',
     tagline: 'See where each stock sits in its own recent price range.',
+    backToHome: 'Back to portfolio',
     addPlaceholder: 'Ticker, e.g. AAPL',
     addBtn: 'Add',
     lookbackLabel: 'Lookback',
@@ -57,6 +58,7 @@ export const STRINGS = {
   th: {
     appName: 'ช่วงราคาหุ้น',
     tagline: 'ดูว่าราคาหุ้นแต่ละตัวอยู่ตรงไหนในช่วงราคาล่าสุดของมันเอง',
+    backToHome: 'กลับสู่หน้ารวมแอป',
     addPlaceholder: 'สัญลักษณ์หุ้น เช่น AAPL',
     addBtn: 'เพิ่ม',
     lookbackLabel: 'ช่วงเวลาย้อนหลัง',
