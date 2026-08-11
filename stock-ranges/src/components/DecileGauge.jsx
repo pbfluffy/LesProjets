@@ -4,6 +4,17 @@ import styles from './DecileGauge.module.css'
 
 const CHART_WIDTH = 300
 const CHART_HEIGHT = 120
+const AXIS_LABEL_COUNT = 4
+
+// Picks up to `count` evenly-spaced indices spanning [0, n-1], always
+// including both endpoints — e.g. for a 100-point series and count=4:
+// [0, 33, 66, 99]. Falls back to every index when there are fewer points
+// than the requested label count.
+function pickEvenIndices(n, count) {
+  if (n <= count) return Array.from({ length: n }, (_, i) => i)
+  const indices = Array.from({ length: count }, (_, i) => Math.round((i / (count - 1)) * (n - 1)))
+  return [...new Set(indices)]
+}
 
 function zoneOf(band) {
   return band <= 3 ? 'buy' : band <= 7 ? 'hold' : 'sell'
@@ -33,6 +44,7 @@ export default function DecileGauge({ prices, ohlc, timestamps, current, low, hi
   const startTs = validTimestamps[0]
   const endTs = validTimestamps[validTimestamps.length - 1]
   const span = typeof startTs === 'number' && typeof endTs === 'number' ? endTs - startTs : 0
+  const axisTimestamps = pickEvenIndices(validTimestamps.length, AXIS_LABEL_COUNT).map((i) => validTimestamps[i])
 
   return (
     <div className={styles.wrap}>
@@ -57,8 +69,9 @@ export default function DecileGauge({ prices, ohlc, timestamps, current, low, hi
       <div className={styles.axisLabel} data-pos="bottom">{s.low} {labelLow}</div>
       {validTimestamps.length > 1 && (
         <div className={styles.dateRow}>
-          <span>{formatAxisDate(startTs, span, lang)}</span>
-          <span>{formatAxisDate(endTs, span, lang)}</span>
+          {axisTimestamps.map((ts, i) => (
+            <span key={i}>{formatAxisDate(ts, span, lang)}</span>
+          ))}
         </div>
       )}
     </div>
