@@ -19,6 +19,7 @@
   font-weight: 600;
   flex-shrink: 0;
 }
+.addBtn:hover { filter: brightness(0.92); }
 
 .dropdown {
   position: absolute;
@@ -42,7 +43,9 @@
   padding: 8px 12px;
   cursor: pointer;
   font-size: 13px;
+  transition: background-color 0.1s ease;
 }
+.dropdown li:hover,
 .dropdown li[data-active='true'] { background: var(--color-surface-alt); }
 
 .rSymbol {

@@ -252,21 +252,23 @@ function Dashboard() {
           <div className={styles.tagline}>{s.tagline}</div>
         </div>
         <div className={styles.headerBtns}>
-          <a href="../" className={styles.ctrlBtn} title={s.backToHome} aria-label="Home">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <path d="M9 22V12h6v10" />
-            </svg>
-          </a>
-          <button
-            className={styles.ctrlBtn}
-            onClick={() => setCurrency((c) => (c === 'USD' ? 'THB' : 'USD'))}
-            title={s.currencyToggle}
-          >
-            {currency}
-          </button>
-          <button className={styles.ctrlBtn} onClick={toggleLang} title={s.langToggle} aria-label={s.langToggle}>{lang === 'th' ? 'EN' : 'TH'}</button>
-          <button className={styles.ctrlBtn} onClick={toggleTheme} title={dark ? s.themeToggleLight : s.themeToggleDark} aria-label={dark ? s.themeToggleLight : s.themeToggleDark}>{dark ? '🌞' : '🌙'}</button>
+          <div className={styles.toolGroup}>
+            <a href="../" className={styles.ctrlBtn} title={s.backToHome} aria-label="Home">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <path d="M9 22V12h6v10" />
+              </svg>
+            </a>
+            <button
+              className={styles.ctrlBtn}
+              onClick={() => setCurrency((c) => (c === 'USD' ? 'THB' : 'USD'))}
+              title={s.currencyToggle}
+            >
+              {currency}
+            </button>
+            <button className={styles.ctrlBtn} onClick={toggleLang} title={s.langToggle} aria-label={s.langToggle}>{lang === 'th' ? 'EN' : 'TH'}</button>
+            <button className={styles.ctrlBtn} onClick={toggleTheme} title={dark ? s.themeToggleLight : s.themeToggleDark} aria-label={dark ? s.themeToggleLight : s.themeToggleDark}>{dark ? '🌞' : '🌙'}</button>
+          </div>
           <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} />
         </div>
       </div>
@@ -299,11 +301,17 @@ function Dashboard() {
         >
           {chartType === 'line' ? '📈' : '🕯️'}
         </button>
-        {lastUpdated && <span className={styles.updated}>{formatRelativeTime(lastUpdated, now, s)}</span>}
+        {lastUpdated && (
+          <span className={styles.updated}>
+            <span className={styles.updatedDot} aria-hidden="true" />
+            {formatRelativeTime(lastUpdated, now, s)}
+          </span>
+        )}
       </div>
 
       {allTags.length > 0 && (
         <div className={styles.tagFilterRow}>
+          <span className={styles.tagFilterLabel}>{s.filterByTag}</span>
           {allTags.map((tag) => (
             <button
               key={tag}

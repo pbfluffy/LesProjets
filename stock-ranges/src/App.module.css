@@ -26,19 +26,29 @@
 
 .headerBtns {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 10px;
   flex-shrink: 0;
 }
 
-.ctrlBtn {
+.toolGroup {
+  display: flex;
+  align-items: stretch;
   background: var(--color-surface-alt);
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.toolGroup > * + * { border-left: 0.5px solid var(--color-border); }
+
+.ctrlBtn {
+  background: transparent;
+  border: 0;
   color: var(--color-text);
   font-size: 12px;
   font-weight: 600;
   font-family: var(--font-mono);
-  padding: 4px 10px;
+  padding: 0 10px;
   height: 30px;
   display: flex;
   align-items: center;
@@ -74,8 +84,9 @@
 .lookbackRow {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 18px;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 .lookbackRow label {
   font-size: 12px;
@@ -97,18 +108,37 @@
   flex-shrink: 0;
 }
 .chartTypeBtn:hover { background: var(--color-border); }
+
 .updated {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
   font-family: var(--font-mono);
   color: var(--color-text-faint);
 }
+.updatedDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-green);
+  flex-shrink: 0;
+}
 
 .tagFilterRow {
   display: flex;
+  align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
+}
+
+.tagFilterLabel {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  margin-right: 2px;
 }
 
 .tagFilterChip {
