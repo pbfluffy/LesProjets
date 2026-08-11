@@ -9,6 +9,7 @@ const CHART_HEIGHT = 120
 // most recent point (today's price) sits flush against the right border,
 // which reads as clipped rather than intentional.
 const PAD_X = 8
+const PAD_Y = 6
 const FALLBACK_AXIS_LABEL_COUNT = 4
 // ~56px covers the widest realistic label ("10 ธ.ค. 2569"-style short
 // dates, "Aug 2021"-style month/year) at 10px IBM Plex Mono, with a little
@@ -55,7 +56,8 @@ export default function DecileGauge({ prices, ohlc, timestamps, current, low, hi
   }, [])
 
   const range = high - low || 1
-  const toY = (price) => CHART_HEIGHT - ((price - low) / range) * CHART_HEIGHT
+  const drawHeight = CHART_HEIGHT - 2 * PAD_Y
+  const toY = (price) => CHART_HEIGHT - PAD_Y - ((price - low) / range) * drawHeight
 
   const bandHeight = CHART_HEIGHT / BAND_COUNT
   const bands = Array.from({ length: BAND_COUNT }, (_, i) => ({
@@ -77,27 +79,25 @@ export default function DecileGauge({ prices, ohlc, timestamps, current, low, hi
 
   return (
     <div className={styles.wrap} ref={wrapRef}>
-      <div className={styles.chartBox}>
-        <div className={styles.axisLabel} data-pos="top">{s.high} {labelHigh}</div>
-        <svg
-          className={styles.chart}
-          viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-          preserveAspectRatio="none"
-          role="img"
-          aria-label={`${s.band} ${band} / ${BAND_COUNT}`}
-        >
-          {bands.map((b) => (
-            <rect key={b.bandNum} className={styles.bandRect} data-zone={zoneOf(b.bandNum)} x={0} y={b.y} width={CHART_WIDTH} height={bandHeight} />
-          ))}
-          {bands.slice(1).map((b) => (
-            <line key={`grid-${b.bandNum}`} className={styles.gridLine} x1={0} y1={b.y} x2={CHART_WIDTH} y2={b.y} />
-          ))}
-          {useCandles
-            ? <Candlesticks ohlc={ohlc} toY={toY} />
-            : <LineChart prices={prices} current={current} toY={toY} band={band} />}
-        </svg>
-        <div className={styles.axisLabel} data-pos="bottom">{s.low} {labelLow}</div>
-      </div>
+      <div className={styles.priceLabel}>{s.high} {labelHigh}</div>
+      <svg
+        className={styles.chart}
+        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={`${s.band} ${band} / ${BAND_COUNT}`}
+      >
+        {bands.map((b) => (
+          <rect key={b.bandNum} className={styles.bandRect} data-zone={zoneOf(b.bandNum)} x={0} y={b.y} width={CHART_WIDTH} height={bandHeight} />
+        ))}
+        {bands.slice(1).map((b) => (
+          <line key={`grid-${b.bandNum}`} className={styles.gridLine} x1={0} y1={b.y} x2={CHART_WIDTH} y2={b.y} />
+        ))}
+        {useCandles
+          ? <Candlesticks ohlc={ohlc} toY={toY} />
+          : <LineChart prices={prices} current={current} toY={toY} band={band} />}
+      </svg>
+      <div className={styles.priceLabel}>{s.low} {labelLow}</div>
       {validTimestamps.length > 1 && (
         <div className={styles.dateRow}>
           {axisTimestamps.map((ts, i) => (

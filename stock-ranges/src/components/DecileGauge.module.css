@@ -2,11 +2,6 @@
   width: 100%;
 }
 
-.chartBox {
-  position: relative;
-  width: 100%;
-}
-
 .chart {
   display: block;
   width: 100%;
@@ -59,22 +54,17 @@
 .candle[data-direction='up'] .candleWick { stroke: var(--color-green); }
 .candle[data-direction='down'] .candleWick { stroke: var(--color-red); }
 
-.axisLabel {
-  position: absolute;
-  right: 6px;
+/* High/low sit in normal flow above/below the chart rather than overlaid
+   on top of it — by definition the highest/lowest points are always near
+   the edges the labels would occupy, so overlaying them collided with the
+   line/candles on essentially every real dataset. */
+.priceLabel {
   font-size: 10px;
   font-family: var(--font-mono);
   color: var(--color-text-faint);
-  background: var(--color-surface);
-  padding: 1px 4px;
-  border-radius: 3px;
-  line-height: 1.4;
   text-align: right;
-  pointer-events: none;
-  opacity: 0.92;
+  margin: 4px 0;
 }
-.axisLabel[data-pos='top'] { top: 4px; }
-.axisLabel[data-pos='bottom'] { bottom: 4px; }
 
 .dateRow {
   display: flex;
