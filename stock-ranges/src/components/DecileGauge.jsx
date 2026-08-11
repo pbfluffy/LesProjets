@@ -5,6 +5,10 @@ import styles from './DecileGauge.module.css'
 
 const CHART_WIDTH = 300
 const CHART_HEIGHT = 120
+// Keeps the line/candles from touching the chart's edges — without this the
+// most recent point (today's price) sits flush against the right border,
+// which reads as clipped rather than intentional.
+const PAD_X = 8
 const FALLBACK_AXIS_LABEL_COUNT = 4
 // ~56px covers the widest realistic label ("10 ธ.ค. 2569"-style short
 // dates, "Aug 2021"-style month/year) at 10px IBM Plex Mono, with a little
@@ -73,25 +77,27 @@ export default function DecileGauge({ prices, ohlc, timestamps, current, low, hi
 
   return (
     <div className={styles.wrap} ref={wrapRef}>
-      <div className={styles.axisLabel} data-pos="top">{s.high} {labelHigh}</div>
-      <svg
-        className={styles.chart}
-        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-        preserveAspectRatio="none"
-        role="img"
-        aria-label={`${s.band} ${band} / ${BAND_COUNT}`}
-      >
-        {bands.map((b) => (
-          <rect key={b.bandNum} className={styles.bandRect} data-zone={zoneOf(b.bandNum)} x={0} y={b.y} width={CHART_WIDTH} height={bandHeight} />
-        ))}
-        {bands.slice(1).map((b) => (
-          <line key={`grid-${b.bandNum}`} className={styles.gridLine} x1={0} y1={b.y} x2={CHART_WIDTH} y2={b.y} />
-        ))}
-        {useCandles
-          ? <Candlesticks ohlc={ohlc} toY={toY} />
-          : <LineChart prices={prices} current={current} toY={toY} band={band} />}
-      </svg>
-      <div className={styles.axisLabel} data-pos="bottom">{s.low} {labelLow}</div>
+      <div className={styles.chartBox}>
+        <div className={styles.axisLabel} data-pos="top">{s.high} {labelHigh}</div>
+        <svg
+          className={styles.chart}
+          viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+          preserveAspectRatio="none"
+          role="img"
+          aria-label={`${s.band} ${band} / ${BAND_COUNT}`}
+        >
+          {bands.map((b) => (
+            <rect key={b.bandNum} className={styles.bandRect} data-zone={zoneOf(b.bandNum)} x={0} y={b.y} width={CHART_WIDTH} height={bandHeight} />
+          ))}
+          {bands.slice(1).map((b) => (
+            <line key={`grid-${b.bandNum}`} className={styles.gridLine} x1={0} y1={b.y} x2={CHART_WIDTH} y2={b.y} />
+          ))}
+          {useCandles
+            ? <Candlesticks ohlc={ohlc} toY={toY} />
+            : <LineChart prices={prices} current={current} toY={toY} band={band} />}
+        </svg>
+        <div className={styles.axisLabel} data-pos="bottom">{s.low} {labelLow}</div>
+      </div>
       {validTimestamps.length > 1 && (
         <div className={styles.dateRow}>
           {axisTimestamps.map((ts, i) => (
@@ -105,12 +111,13 @@ export default function DecileGauge({ prices, ohlc, timestamps, current, low, hi
 
 function LineChart({ prices, current, toY, band }) {
   const series = Array.isArray(prices) && typeof current === 'number' ? [...prices, current] : prices || []
+  const drawWidth = CHART_WIDTH - 2 * PAD_X
   const points = series.map((price, i) => {
-    const x = series.length > 1 ? (i / (series.length - 1)) * CHART_WIDTH : CHART_WIDTH
+    const x = series.length > 1 ? PAD_X + (i / (series.length - 1)) * drawWidth : CHART_WIDTH / 2
     return [x, toY(price)]
   })
   const pathD = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
-  const [markerX, markerY] = points[points.length - 1] || [CHART_WIDTH, CHART_HEIGHT / 2]
+  const [markerX, markerY] = points[points.length - 1] || [CHART_WIDTH - PAD_X, CHART_HEIGHT / 2]
 
   return (
     <>
@@ -122,13 +129,14 @@ function LineChart({ prices, current, toY, band }) {
 
 function Candlesticks({ ohlc, toY }) {
   const n = ohlc.length
-  const slot = CHART_WIDTH / n
+  const drawWidth = CHART_WIDTH - 2 * PAD_X
+  const slot = drawWidth / n
   const bodyWidth = Math.max(slot * 0.6, 1)
 
   return (
     <>
       {ohlc.map((candle, i) => {
-        const cx = (i + 0.5) * slot
+        const cx = PAD_X + (i + 0.5) * slot
         const up = candle.c >= candle.o
         const bodyTop = toY(Math.max(candle.o, candle.c))
         const bodyBottom = toY(Math.min(candle.o, candle.c))

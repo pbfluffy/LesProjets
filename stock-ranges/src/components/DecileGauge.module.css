@@ -1,4 +1,8 @@
 .wrap {
+  width: 100%;
+}
+
+.chartBox {
   position: relative;
   width: 100%;
 }
