@@ -1,10 +1,15 @@
+import { useEffect, useRef, useState } from 'react'
 import { BAND_COUNT } from '../deciles.js'
 import { formatAxisDate } from '../format.js'
 import styles from './DecileGauge.module.css'
 
 const CHART_WIDTH = 300
 const CHART_HEIGHT = 120
-const AXIS_LABEL_COUNT = 4
+const FALLBACK_AXIS_LABEL_COUNT = 4
+// ~56px covers the widest realistic label ("10 ธ.ค. 2569"-style short
+// dates, "Aug 2021"-style month/year) at 10px IBM Plex Mono, with a little
+// breathing room so adjacent labels don't touch.
+const MIN_LABEL_WIDTH = 56
 
 // Picks up to `count` evenly-spaced indices spanning [0, n-1], always
 // including both endpoints — e.g. for a 100-point series and count=4:
@@ -28,6 +33,23 @@ function zoneOf(band) {
 // where the chart falls relative to the bands; only the corner labels need
 // the converted price.
 export default function DecileGauge({ prices, ohlc, timestamps, current, low, high, band, chartType, labelHigh, labelLow, s, lang }) {
+  const wrapRef = useRef(null)
+  const [containerWidth, setContainerWidth] = useState(0)
+
+  // "As many labels as fit" — measure the actual rendered width (the card
+  // this sits in varies from ~340px on mobile to ~560px on desktop) rather
+  // than hardcoding a count that's too sparse on wide screens or overlaps
+  // on narrow ones.
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const measure = () => setContainerWidth(el.clientWidth)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   const range = high - low || 1
   const toY = (price) => CHART_HEIGHT - ((price - low) / range) * CHART_HEIGHT
 
@@ -44,10 +66,13 @@ export default function DecileGauge({ prices, ohlc, timestamps, current, low, hi
   const startTs = validTimestamps[0]
   const endTs = validTimestamps[validTimestamps.length - 1]
   const span = typeof startTs === 'number' && typeof endTs === 'number' ? endTs - startTs : 0
-  const axisTimestamps = pickEvenIndices(validTimestamps.length, AXIS_LABEL_COUNT).map((i) => validTimestamps[i])
+  const labelCount = containerWidth > 0
+    ? Math.max(2, Math.min(validTimestamps.length, Math.floor(containerWidth / MIN_LABEL_WIDTH)))
+    : FALLBACK_AXIS_LABEL_COUNT
+  const axisTimestamps = pickEvenIndices(validTimestamps.length, labelCount).map((i) => validTimestamps[i])
 
   return (
-    <div className={styles.wrap}>
+    <div className={styles.wrap} ref={wrapRef}>
       <div className={styles.axisLabel} data-pos="top">{s.high} {labelHigh}</div>
       <svg
         className={styles.chart}
