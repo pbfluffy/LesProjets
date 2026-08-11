@@ -7,6 +7,7 @@ import TickerSearch from './components/TickerSearch.jsx'
 import AccountButton from './components/AccountButton.jsx'
 import ConflictModal from './components/ConflictModal.jsx'
 import { TAG_DATALIST_ID } from './components/TagChips.jsx'
+import { tagHue } from './tagColor.js'
 import styles from './App.module.css'
 
 const WATCHLIST_KEY = 'stockranges_watchlist'
@@ -317,6 +318,7 @@ function Dashboard() {
               key={tag}
               className={styles.tagFilterChip}
               data-active={activeTagFilters.has(tag)}
+              style={{ '--tag-hue': tagHue(tag) }}
               onClick={() => toggleTagFilter(tag)}
             >
               {tag}

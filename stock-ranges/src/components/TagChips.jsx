@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLang } from '../LangContext.jsx'
+import { tagHue } from '../tagColor.js'
 import styles from './TagChips.module.css'
 
 const MAX_TAGS_PER_TICKER = 8
@@ -35,7 +36,7 @@ export default function TagChips({ tags, onAdd, onRemove }) {
   return (
     <div className={styles.row}>
       {tags.map((tag) => (
-        <span key={tag} className={styles.chip}>
+        <span key={tag} className={styles.chip} style={{ '--tag-hue': tagHue(tag) }}>
           {tag}
           <button
             className={styles.chipRemove}

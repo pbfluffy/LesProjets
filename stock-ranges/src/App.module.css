@@ -143,19 +143,29 @@
 
 .tagFilterChip {
   background: var(--color-surface-alt);
-  border: 0.5px solid var(--color-border);
+  border: 0.5px solid hsl(var(--tag-hue) 35% 75%);
   border-radius: var(--radius-pill);
-  color: var(--color-text-muted);
+  color: hsl(var(--tag-hue) 45% 40%);
   font-size: 12px;
   font-family: var(--font-mono);
   padding: 4px 12px;
 }
-.tagFilterChip:hover { border-color: var(--color-text-faint); }
+[data-theme='dark'] .tagFilterChip {
+  border-color: hsl(var(--tag-hue) 30% 35%);
+  color: hsl(var(--tag-hue) 55% 65%);
+}
+.tagFilterChip:hover { background: hsl(var(--tag-hue) 55% 93%); }
+[data-theme='dark'] .tagFilterChip:hover { background: hsl(var(--tag-hue) 30% 22%); }
 .tagFilterChip[data-active='true'] {
-  background: var(--color-accent-light);
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  background: hsl(var(--tag-hue) 60% 88%);
+  border-color: hsl(var(--tag-hue) 50% 55%);
+  color: hsl(var(--tag-hue) 60% 28%);
   font-weight: 700;
+}
+[data-theme='dark'] .tagFilterChip[data-active='true'] {
+  background: hsl(var(--tag-hue) 40% 22%);
+  border-color: hsl(var(--tag-hue) 50% 50%);
+  color: hsl(var(--tag-hue) 70% 78%);
 }
 
 .warning {
