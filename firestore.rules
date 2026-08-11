@@ -215,6 +215,7 @@ service cloud.firestore {
                    && request.resource.data.watchlist.size() <= 100
                    && request.resource.data.range is string
                    && request.resource.data.currency is string
+                   && (!('tags' in request.resource.data) || request.resource.data.tags is map)
                    && (!('lastModified' in request.resource.data)
                        || request.resource.data.lastModified is timestamp
                        || request.resource.data.lastModified is number);

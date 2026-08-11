@@ -7,12 +7,14 @@ import { useCloudSyncCore } from '../../../shared/useCloudSyncCore.js'
 // Thin wrapper over the shared cloud-sync core (same one bill-splitter,
 // nutritions-thailand, and pumgoda use) — see shared/useCloudSyncCore.js
 // for the actual sync/conflict logic. Stock Ranges data lives in
-// /userStockRanges/<uid>: watchlist + lookback range + display currency.
-// Theme/language stay local-only, same as every sibling app.
+// /userStockRanges/<uid>: watchlist + lookback range + display currency +
+// per-ticker tags. Theme/language/tag-filter-selection stay local-only,
+// same as every sibling app.
 const COLL = 'userStockRanges'
 const DEFAULT_WATCHLIST = ['AAPL', 'MSFT']
 const DEFAULT_RANGE = '1y'
 const DEFAULT_CURRENCY = 'USD'
+const DEFAULT_TAGS = {}
 
 // Deep, deterministic stringification — sorts keys recursively so identical
 // data with different field order produces the same fingerprint.
@@ -35,18 +37,18 @@ function fingerprint(data) {
 // three synced fields keeps both sides of every comparison apples-to-apples.
 function stripDoc(d) {
   if (!d) return null
-  return { watchlist: d.watchlist, range: d.range, currency: d.currency }
+  return { watchlist: d.watchlist, range: d.range, currency: d.currency, tags: d.tags || {} }
 }
 
 // True only if the local state differs from the untouched default — a
 // fresh browser's seed watchlist shouldn't trigger a conflict prompt
 // against real cloud data on first sign-in.
 function hasData(local) {
-  return fingerprint(local) !== fingerprint({ watchlist: DEFAULT_WATCHLIST, range: DEFAULT_RANGE, currency: DEFAULT_CURRENCY })
+  return fingerprint(local) !== fingerprint({ watchlist: DEFAULT_WATCHLIST, range: DEFAULT_RANGE, currency: DEFAULT_CURRENCY, tags: DEFAULT_TAGS })
 }
 
-export function useCloudSync({ watchlist, range, currency, applyRemote }) {
-  const localData = { watchlist, range, currency }
+export function useCloudSync({ watchlist, range, currency, tags, applyRemote }) {
+  const localData = { watchlist, range, currency, tags }
   const r = useCloudSyncCore({
     auth, db, onAuthStateChanged, doc, setDoc, serverTimestamp, onSnapshot,
     collection: COLL,
@@ -54,7 +56,7 @@ export function useCloudSync({ watchlist, range, currency, applyRemote }) {
     localData,
     applyRemote,
     hasData,
-    serialize: (d) => ({ watchlist: d.watchlist, range: d.range, currency: d.currency }),
+    serialize: (d) => ({ watchlist: d.watchlist, range: d.range, currency: d.currency, tags: d.tags || {} }),
     readRemote: (snap) => (snap.exists() ? stripDoc(snap.data()) : null),
     // Keeps the full doc (incl. lastModified) for the conflict modal's
     // "last saved" display — only readRemote/applyPending need stripping

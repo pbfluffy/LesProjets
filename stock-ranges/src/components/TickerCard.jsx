@@ -4,13 +4,14 @@ import { computeDeciles } from '../deciles.js'
 import { convert } from '../fx.js'
 import { formatPrice, dayChange } from '../format.js'
 import DecileGauge from './DecileGauge.jsx'
+import TagChips from './TagChips.jsx'
 import { useLang } from '../LangContext.jsx'
 import styles from './TickerCard.module.css'
 
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
 const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
 
-export default function TickerCard({ symbol, range, currency, rates, chartType, onRemove, onStatus }) {
+export default function TickerCard({ symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, onRemove, onStatus }) {
   const { s, lang } = useLang()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
 
@@ -65,6 +66,8 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
           </button>
         </div>
       </div>
+
+      <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} />
 
       {state.status === 'loading' && (
         <div className={styles.body}>

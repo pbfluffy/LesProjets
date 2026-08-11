@@ -6,12 +6,15 @@ import TickerCard from './components/TickerCard.jsx'
 import TickerSearch from './components/TickerSearch.jsx'
 import AccountButton from './components/AccountButton.jsx'
 import ConflictModal from './components/ConflictModal.jsx'
+import { TAG_DATALIST_ID } from './components/TagChips.jsx'
 import styles from './App.module.css'
 
 const WATCHLIST_KEY = 'stockranges_watchlist'
 const RANGE_KEY = 'stockranges_range'
 const CURRENCY_KEY = 'stockranges_currency'
 const CHART_TYPE_KEY = 'stockranges_charttype'
+const TAGS_KEY = 'stockranges_tags'
+const ACTIVE_TAG_FILTERS_KEY = 'stockranges_active_tag_filters'
 const THEME_KEY = 'theme'
 // Allows '=' (futures/forex, e.g. gold's "GC=F") and '^' (indices, e.g.
 // "^GSPC") — autocomplete can surface both.
@@ -37,6 +40,28 @@ function loadWatchlist() {
   }
 }
 
+function loadTags() {
+  try {
+    const raw = localStorage.getItem(TAGS_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+// Which tag filters are toggled on — a display preference, so (like
+// theme/language) it stays local-only rather than syncing across devices.
+function loadActiveTagFilters() {
+  try {
+    const raw = localStorage.getItem(ACTIVE_TAG_FILTERS_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    return Array.isArray(parsed) ? new Set(parsed) : new Set()
+  } catch {
+    return new Set()
+  }
+}
+
 function useTheme() {
   const [dark, setDark] = useState(() => {
     const saved = localStorage.getItem(THEME_KEY)
@@ -56,6 +81,8 @@ function Dashboard() {
   const [range, setRange] = useState(() => localStorage.getItem(RANGE_KEY) || '1y')
   const [currency, setCurrency] = useState(() => localStorage.getItem(CURRENCY_KEY) || 'USD')
   const [chartType, setChartType] = useState(() => localStorage.getItem(CHART_TYPE_KEY) || 'line')
+  const [tags, setTags] = useState(loadTags)
+  const [activeTagFilters, setActiveTagFilters] = useState(loadActiveTagFilters)
   const [rates, setRates] = useState(null)
   const [warning, setWarning] = useState('')
   const [signals, setSignals] = useState({})
@@ -78,6 +105,14 @@ function Dashboard() {
   }, [chartType])
 
   useEffect(() => {
+    localStorage.setItem(TAGS_KEY, JSON.stringify(tags))
+  }, [tags])
+
+  useEffect(() => {
+    localStorage.setItem(ACTIVE_TAG_FILTERS_KEY, JSON.stringify([...activeTagFilters]))
+  }, [activeTagFilters])
+
+  useEffect(() => {
     let cancelled = false
     getThbRates().then((r) => { if (!cancelled) setRates(r) })
     return () => { cancelled = true }
@@ -89,11 +124,12 @@ function Dashboard() {
   }, [])
 
   const cloudSync = useCloudSync({
-    watchlist, range, currency,
+    watchlist, range, currency, tags,
     applyRemote: (remote) => {
       if (Array.isArray(remote?.watchlist)) setWatchlist(remote.watchlist)
       if (typeof remote?.range === 'string') setRange(remote.range)
       if (typeof remote?.currency === 'string') setCurrency(remote.currency)
+      if (remote?.tags && typeof remote.tags === 'object' && !Array.isArray(remote.tags)) setTags(remote.tags)
     },
   })
 
@@ -119,10 +155,38 @@ function Dashboard() {
       delete next[symbol]
       return next
     })
+    setTags((prev) => {
+      if (!(symbol in prev)) return prev
+      const next = { ...prev }
+      delete next[symbol]
+      return next
+    })
   }
 
   function handleStatus(symbol, info) {
     setSignals((prev) => ({ ...prev, [symbol]: info }))
+  }
+
+  function addTag(symbol, tag) {
+    setTags((prev) => ({ ...prev, [symbol]: [...(prev[symbol] || []), tag] }))
+  }
+
+  function removeTag(symbol, tag) {
+    setTags((prev) => {
+      const current = prev[symbol]
+      if (!current) return prev
+      const next = current.filter((t) => t !== tag)
+      return { ...prev, [symbol]: next }
+    })
+  }
+
+  function toggleTagFilter(tag) {
+    setActiveTagFilters((prev) => {
+      const next = new Set(prev)
+      if (next.has(tag)) next.delete(tag)
+      else next.add(tag)
+      return next
+    })
   }
 
   // Buy-zone (band 1-3) first so the dashboard is scannable at a glance —
@@ -136,6 +200,32 @@ function Dashboard() {
       return watchlist.indexOf(a) - watchlist.indexOf(b)
     })
   }, [watchlist, signals])
+
+  // All distinct tags in use, for the filter row — sorted so the row order
+  // doesn't jump around as tags are added/removed elsewhere.
+  const allTags = useMemo(() => {
+    const set = new Set()
+    Object.values(tags).forEach((list) => (list || []).forEach((t) => set.add(t)))
+    return [...set].sort((a, b) => a.localeCompare(b))
+  }, [tags])
+
+  // Drop any active filter for a tag that no longer exists on anything
+  // (e.g. it was removed from the only ticker that had it) instead of
+  // silently filtering the list down to nothing.
+  useEffect(() => {
+    setActiveTagFilters((prev) => {
+      const next = new Set([...prev].filter((t) => allTags.includes(t)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [allTags])
+
+  // No active filters shows everything; otherwise a ticker shows if it has
+  // at least one of the active tags (OR, not AND — narrower "must have all"
+  // filtering is easy to add later if it turns out to be wanted).
+  const filteredWatchlist = useMemo(() => {
+    if (activeTagFilters.size === 0) return sortedWatchlist
+    return sortedWatchlist.filter((symbol) => (tags[symbol] || []).some((t) => activeTagFilters.has(t)))
+  }, [sortedWatchlist, tags, activeTagFilters])
 
   const lastUpdated = useMemo(() => {
     const timestamps = Object.values(signals).map((v) => v?.ts).filter(Boolean)
@@ -212,12 +302,45 @@ function Dashboard() {
         {lastUpdated && <span className={styles.updated}>{formatRelativeTime(lastUpdated, now, s)}</span>}
       </div>
 
+      {allTags.length > 0 && (
+        <div className={styles.tagFilterRow}>
+          {allTags.map((tag) => (
+            <button
+              key={tag}
+              className={styles.tagFilterChip}
+              data-active={activeTagFilters.has(tag)}
+              onClick={() => toggleTagFilter(tag)}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <datalist id={TAG_DATALIST_ID}>
+        {allTags.map((tag) => <option key={tag} value={tag} />)}
+      </datalist>
+
       {watchlist.length === 0 ? (
         <div className={styles.empty}>{s.emptyWatchlist}</div>
+      ) : filteredWatchlist.length === 0 ? (
+        <div className={styles.empty}>{s.noTagMatches}</div>
       ) : (
         <div className={styles.list}>
-          {sortedWatchlist.map((symbol) => (
-            <TickerCard key={symbol} symbol={symbol} range={range} currency={currency} rates={rates} chartType={chartType} onRemove={removeTicker} onStatus={handleStatus} />
+          {filteredWatchlist.map((symbol) => (
+            <TickerCard
+              key={symbol}
+              symbol={symbol}
+              range={range}
+              currency={currency}
+              rates={rates}
+              chartType={chartType}
+              tags={tags[symbol] || []}
+              onAddTag={(tag) => addTag(symbol, tag)}
+              onRemoveTag={(tag) => removeTag(symbol, tag)}
+              onRemove={removeTicker}
+              onStatus={handleStatus}
+            />
           ))}
         </div>
       )}
