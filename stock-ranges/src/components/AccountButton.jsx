@@ -45,11 +45,12 @@ export default function AccountButton({ user, syncStatus }) {
     <div className={styles.wrap} ref={wrapRef}>
       <button
         className={styles.avatarBtn}
+        data-photo={user?.photoURL ? 'true' : 'false'}
         onClick={() => setOpen((o) => !o)}
         aria-label={user ? user.email : s.acctSignIn}
         title={user ? user.email : s.acctSignIn}
       >
-        {user?.photoURL ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" /> : '👤'}
+        {user?.photoURL ? <img className={styles.avatarImg} src={user.photoURL} alt="" referrerPolicy="no-referrer" /> : '👤'}
         {dotStatus && dotStatus !== 'idle' && <span className={styles.dot} data-status={dotStatus} />}
       </button>
 

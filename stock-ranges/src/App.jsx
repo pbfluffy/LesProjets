@@ -175,8 +175,8 @@ function Dashboard() {
           >
             {currency}
           </button>
-          <button className={styles.ctrlBtn} onClick={toggleLang}>{lang === 'th' ? 'EN' : 'TH'}</button>
-          <button className={styles.ctrlBtn} onClick={toggleTheme}>{dark ? '🌞' : '🌙'}</button>
+          <button className={styles.ctrlBtn} onClick={toggleLang} title={s.langToggle} aria-label={s.langToggle}>{lang === 'th' ? 'EN' : 'TH'}</button>
+          <button className={styles.ctrlBtn} onClick={toggleTheme} title={dark ? s.themeToggleLight : s.themeToggleDark} aria-label={dark ? s.themeToggleLight : s.themeToggleDark}>{dark ? '🌞' : '🌙'}</button>
           <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} />
         </div>
       </div>

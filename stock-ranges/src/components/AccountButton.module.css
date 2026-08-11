@@ -14,12 +14,25 @@
   background: var(--color-surface-alt);
   border: 0.5px solid var(--color-border);
   font-size: 14px;
+  transition: opacity 0.15s;
 }
-.avatarBtn img {
+.avatarBtn:hover { opacity: 0.8; }
+
+/* Once a real Google photo loads, match the circular avatar treatment used
+   everywhere else on the site (root index.html, bill-splitter, dog-near-me)
+   instead of the square icon-button shape used for the signed-out 👤 state. */
+.avatarBtn[data-photo='true'] {
+  border-radius: 50%;
+  border: 1.5px solid var(--color-accent);
+  background: transparent;
+}
+
+.avatarImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  border-radius: 50%;
 }
 
 .dot {
