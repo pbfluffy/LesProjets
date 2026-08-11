@@ -142,6 +142,18 @@ function Dashboard() {
     return timestamps.length ? Math.max(...timestamps) : null
   }, [signals])
 
+  // At-a-glance counts across the whole watchlist — the gist without
+  // reading every card. Only counts tickers that have actually loaded;
+  // still-loading/errored ones (signal === null) just aren't counted yet.
+  const summaryCounts = useMemo(() => {
+    const counts = { buy: 0, hold: 0, sell: 0 }
+    Object.values(signals).forEach((v) => {
+      if (v?.signal && counts[v.signal] !== undefined) counts[v.signal]++
+    })
+    return counts
+  }, [signals])
+  const summaryTotal = summaryCounts.buy + summaryCounts.hold + summaryCounts.sell
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -168,6 +180,14 @@ function Dashboard() {
           <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} />
         </div>
       </div>
+
+      {summaryTotal > 0 && (
+        <div className={styles.summaryRow}>
+          {summaryCounts.buy > 0 && <span className={styles.summaryChip} data-zone="buy">{summaryCounts.buy} {s.signalBuy}</span>}
+          {summaryCounts.hold > 0 && <span className={styles.summaryChip} data-zone="hold">{summaryCounts.hold} {s.signalHold}</span>}
+          {summaryCounts.sell > 0 && <span className={styles.summaryChip} data-zone="sell">{summaryCounts.sell} {s.signalSell}</span>}
+        </div>
+      )}
 
       <div className={styles.controls}>
         <TickerSearch onAdd={addSymbol} />

@@ -46,6 +46,25 @@
 }
 .ctrlBtn:hover { background: var(--color-border); }
 
+.summaryRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.summaryChip {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-pill);
+  padding: 4px 12px;
+}
+.summaryChip[data-zone='buy'] { background: var(--color-green-bg); color: var(--color-green); }
+.summaryChip[data-zone='hold'] { background: var(--color-amber-bg); color: var(--color-amber); }
+.summaryChip[data-zone='sell'] { background: var(--color-red-bg); color: var(--color-red); }
+
 .controls {
   display: flex;
   gap: 8px;

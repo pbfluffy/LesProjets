@@ -27,14 +27,15 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
     ? computeDeciles({ prices: state.data.prices, current: state.data.current })
     : null
 
-  // Reports this card's computed band up to the Dashboard so the whole
-  // watchlist can be sorted by opportunity (buy-zone first), and marks
-  // when the fetch settled so a global "updated Xm ago" stays accurate.
+  // Reports this card's computed band/signal up to the Dashboard so the
+  // whole watchlist can be sorted by opportunity (buy-zone first) and
+  // summarized (N buy / N hold / N sell), and marks when the fetch settled
+  // so a global "updated Xm ago" stays accurate.
   useEffect(() => {
     if (!onStatus) return
-    if (state.status === 'ready') onStatus(symbol, { band: deciles?.band ?? null, ts: Date.now() })
-    else if (state.status === 'error') onStatus(symbol, { band: null, ts: null })
-  }, [state.status, deciles?.band]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (state.status === 'ready') onStatus(symbol, { band: deciles?.band ?? null, signal: deciles?.signal ?? null, ts: Date.now() })
+    else if (state.status === 'error') onStatus(symbol, { band: null, signal: null, ts: null })
+  }, [state.status, deciles?.band, deciles?.signal]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className={styles.card}>
