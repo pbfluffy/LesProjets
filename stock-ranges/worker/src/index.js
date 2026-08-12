@@ -1,9 +1,10 @@
 // stock-ranges-quotes Worker — public read-only proxy for Yahoo Finance's
 // chart API, which does not send CORS headers so the browser can't call it
-// directly. No auth, no bindings: this only ever forwards public market
-// data, so unlike majon-photo/trip-planner-generate there's nothing here
-// worth gating behind an origin allowlist or a per-user rate limit — a
-// shared 5-minute edge cache (below) is enough to keep Yahoo happy.
+// directly. The GET routes below have no auth/bindings (only ever forward
+// public market data, shared 5-minute edge cache is enough to keep Yahoo
+// happy) — but the POST import route calls paid Workers AI inference, so
+// unlike those it's rate-limited per IP via a KV binding, same convention
+// as majon-photo/trip-planner-generate's external-vision-API routes.
 //
 // GET /?symbol=AAPL&range=1y   (range: 1d, 7d, 3mo, 6mo, 1y, 2y, or 5y)
 //   -> { symbol, name, currency, current, previousClose,
@@ -21,10 +22,18 @@
 // GET /?q=btc   (autocomplete, so a user isn't guessing "GC=F" for gold)
 //   -> [{ symbol, name, exchange, type }, ...]  (top matches, pre-filtered
 //      to symbols the quote endpoint above can actually serve)
+//
+// POST / (multipart/form-data, repeated `pages` image files — one per
+// rendered PDF page from the wallet's "Import from PDF" flow)
+//   -> { rows: [{ symbol, shares, avgCost, currency, page }, ...] }
+//      (Workers AI vision extraction per page; pages with no holdings
+//      table just contribute no rows, not an error)
+//   -> 429 { error } if the per-IP import rate limit is exceeded
+//   -> 400 { error } if the upload fails validation
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 }
 
@@ -103,10 +112,103 @@ async function handleSearch(query, cache, ctx) {
   })
 }
 
+const IMPORT_MAX_PAGES = 20
+const IMPORT_MAX_IMAGE_BYTES = 4 * 1024 * 1024
+const IMPORT_RATE_LIMIT_MAX = 8
+const IMPORT_RATE_LIMIT_WINDOW_SECONDS = 60 * 60
+const VISION_MODEL = '@cf/meta/llama-3.2-11b-vision-instruct'
+
+const EXTRACTION_PROMPT = `You are reading one page of a brokerage account statement, which may be in Thai and/or English. If this image contains a holdings table (columns like Stock Name/Symbol, Shares, Average Cost, Price — headers may be in Thai), return a JSON array with one object per holdings row: {"symbol": the ticker/symbol shown for that row (not the full company name), "shares": the number of shares as a plain number, "avgCost": the average cost per share as a plain number, "currency": the 3-letter currency code the table is denominated in, or "USD" if not shown}. Skip subtotal/total rows. If this image has no such holdings table, return exactly []. Respond with ONLY the raw JSON array — no explanation, no markdown code fences.`
+
+function stripJsonFences(text) {
+  return String(text || '').replace(/```json/gi, '').replace(/```/g, '').trim()
+}
+
+// A page with no table, a model hiccup, or a malformed response all just
+// contribute zero rows rather than failing the whole import — the user
+// reviews the aggregated result before anything is saved, so silently
+// skipping a bad page is safer than surfacing a scary per-page error.
+async function extractPageHoldings(env, bytes) {
+  let result
+  try {
+    result = await env.AI.run(VISION_MODEL, {
+      image: [...new Uint8Array(bytes)],
+      prompt: EXTRACTION_PROMPT,
+      max_tokens: 1024,
+    })
+  } catch {
+    return []
+  }
+
+  let parsed
+  try {
+    parsed = JSON.parse(stripJsonFences(result?.response))
+  } catch {
+    return []
+  }
+  if (!Array.isArray(parsed)) return []
+
+  return parsed
+    .map((row) => {
+      const symbol = typeof row?.symbol === 'string' ? row.symbol.trim().toUpperCase() : ''
+      const shares = typeof row?.shares === 'number' ? row.shares : parseFloat(row?.shares)
+      const avgCost = typeof row?.avgCost === 'number' ? row.avgCost : parseFloat(row?.avgCost)
+      const currency = typeof row?.currency === 'string' && /^[A-Za-z]{3}$/.test(row.currency) ? row.currency.toUpperCase() : 'USD'
+      return { symbol, shares, avgCost, currency }
+    })
+    .filter((row) => SYMBOL_RE.test(row.symbol) && Number.isFinite(row.shares) && row.shares > 0 && Number.isFinite(row.avgCost) && row.avgCost >= 0)
+}
+
+// Fixed-window per-IP counter in KV, TTL'd to the window so it self-clears
+// — good enough for bounding cost on a personal-use endpoint, no need for
+// a sliding-window algorithm here.
+async function checkImportRateLimit(env, ip) {
+  if (!env.IMPORT_RATE_LIMITER) return true // binding not configured (e.g. local dev) — don't block
+  const key = `import:${ip}`
+  const current = parseInt((await env.IMPORT_RATE_LIMITER.get(key)) || '0', 10)
+  if (current >= IMPORT_RATE_LIMIT_MAX) return false
+  await env.IMPORT_RATE_LIMITER.put(key, String(current + 1), { expirationTtl: IMPORT_RATE_LIMIT_WINDOW_SECONDS })
+  return true
+}
+
+async function handleImport(request, env) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown'
+  if (!(await checkImportRateLimit(env, ip))) {
+    return json({ error: 'rate limit exceeded' }, 429)
+  }
+
+  let form
+  try {
+    form = await request.formData()
+  } catch {
+    return json({ error: 'invalid form data' }, 400)
+  }
+
+  const files = form.getAll('pages').filter((f) => f instanceof File)
+  if (files.length === 0) return json({ error: 'no pages provided' }, 400)
+  if (files.length > IMPORT_MAX_PAGES) return json({ error: 'too many pages' }, 400)
+  for (const f of files) {
+    if (!f.type.startsWith('image/')) return json({ error: 'invalid file type' }, 400)
+    if (f.size > IMPORT_MAX_IMAGE_BYTES) return json({ error: 'file too large' }, 400)
+  }
+
+  const rows = []
+  for (let i = 0; i < files.length; i++) {
+    const bytes = await files[i].arrayBuffer()
+    const pageRows = await extractPageHoldings(env, bytes)
+    pageRows.forEach((row) => rows.push({ ...row, page: i + 1 }))
+  }
+
+  return json({ rows })
+}
+
 export default {
   async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS_HEADERS })
+    }
+    if (request.method === 'POST') {
+      return handleImport(request, env)
     }
     if (request.method !== 'GET') {
       return json({ error: 'method not allowed' }, 405)

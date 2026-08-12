@@ -6,6 +6,7 @@ import { formatPrice } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome } from '../wallet.js'
 import AddHoldingForm from './AddHoldingForm.jsx'
 import HoldingCard from './HoldingCard.jsx'
+import ImportPdfModal from './ImportPdfModal.jsx'
 import styles from './WalletView.module.css'
 
 // A holdings list independent from the watchlist — you can watch a stock
@@ -21,6 +22,7 @@ export default function WalletView({
   const [quotes, setQuotes] = useState({})
   const [formOpen, setFormOpen] = useState(false)
   const [editingSymbol, setEditingSymbol] = useState(null)
+  const [importOpen, setImportOpen] = useState(false)
 
   const symbols = useMemo(() => Object.keys(holdings), [holdings])
 
@@ -113,7 +115,14 @@ export default function WalletView({
           onCancel={closeForm}
         />
       ) : (
-        <button className={styles.addBtn} onClick={() => setFormOpen(true)}>{s.addHoldingBtn}</button>
+        <div className={styles.addRow}>
+          <button className={styles.addBtn} onClick={() => setFormOpen(true)}>{s.addHoldingBtn}</button>
+          <button className={styles.importBtn} onClick={() => setImportOpen(true)}>{s.importFromPdfBtn}</button>
+        </div>
+      )}
+
+      {importOpen && (
+        <ImportPdfModal onImport={onAddHolding} onClose={() => setImportOpen(false)} />
       )}
 
       <div className={styles.list}>

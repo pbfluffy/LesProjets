@@ -7,3 +7,12 @@ compatibility_date = "2026-07-15"
 # unlike majon-photo/pumgoda (those rewrite og:* tags on the real app URL
 # for link-preview crawlers; stock-ranges has no per-item share links).
 workers_dev = true
+
+# Vision extraction for the wallet's "Import from PDF" flow.
+[ai]
+binding = "AI"
+
+# Per-IP rate limit on the (paid, AI-calling) POST import route.
+[[kv_namespaces]]
+binding = "IMPORT_RATE_LIMITER"
+id = "c41511c9e6104ee8853565194dfec708"

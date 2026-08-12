@@ -31,6 +31,13 @@
   margin-bottom: 14px;
 }
 
+.addRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
 .addBtn {
   background: var(--color-accent);
   color: #fff;
@@ -39,9 +46,19 @@
   padding: 8px 16px;
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 16px;
 }
 .addBtn:hover { filter: brightness(0.92); }
+
+.importBtn {
+  background: var(--color-surface-alt);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.importBtn:hover { background: var(--color-border); }
 
 .list {
   display: flex;
