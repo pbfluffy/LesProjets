@@ -47,6 +47,10 @@ export default function ImportPdfModal({ onImport, onClose }) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)))
   }
 
+  function toggleAll(checked) {
+    setRows((prev) => prev.map((r) => ({ ...r, selected: checked })))
+  }
+
   function confirmImport() {
     rows.filter((r) => r.selected).forEach((r) => {
       const qtyNum = parseFloat(r.qty)
@@ -93,7 +97,16 @@ export default function ImportPdfModal({ onImport, onClose }) {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th />
+                  <th>
+                    <input
+                      type="checkbox"
+                      checked={selectedCount === rows.length}
+                      ref={(el) => { if (el) el.indeterminate = selectedCount > 0 && selectedCount < rows.length }}
+                      onChange={(e) => toggleAll(e.target.checked)}
+                      aria-label={s.importSelectAll}
+                      title={s.importSelectAll}
+                    />
+                  </th>
                   <th>{s.importColSymbol}</th>
                   <th>{s.qtyLabel}</th>
                   <th>{s.avgCostLabel}</th>

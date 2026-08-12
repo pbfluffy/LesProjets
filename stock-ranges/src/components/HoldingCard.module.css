@@ -89,6 +89,22 @@
 }
 .stat span { color: var(--color-text-faint); font-family: var(--font-mono); }
 .stat strong { font-size: 13px; font-family: var(--font-mono); }
+.statsRow[data-direction='up'] .stat strong { color: var(--color-green); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.skeletonStat {
+  width: 64px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeletonStat { animation: none; opacity: 0.7; }
+}
 
 .fxNote {
   font-size: 11px;

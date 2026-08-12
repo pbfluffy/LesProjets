@@ -1,11 +1,11 @@
 import { useLang } from '../LangContext.jsx'
 import { convert } from '../fx.js'
-import { formatPrice } from '../format.js'
+import { formatPrice, formatQty } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, groupDividendsByPeriod, inferDividendCadence } from '../wallet.js'
 import styles from './HoldingCard.module.css'
 
 export default function HoldingCard({
-  symbol, holding, currentPrice, currentCurrency, dividendEvents, displayCurrency, rates,
+  symbol, holding, currentPrice, currentCurrency, dividendEvents, loading, displayCurrency, rates,
   onEdit, onRemove,
 }) {
   const { s } = useLang()
@@ -26,7 +26,7 @@ export default function HoldingCard({
       <div className={styles.head}>
         <div className={styles.titleBlock}>
           <div className={styles.symbol}>{symbol}</div>
-          <div className={styles.qtyLine}>{holding.qty} @ {formatPrice(holding.avgCost, holding.costCurrency)}</div>
+          <div className={styles.qtyLine}>{formatQty(holding.qty)} @ {formatPrice(holding.avgCost, holding.costCurrency)}</div>
         </div>
         <div className={styles.headRight}>
           {pl && (
@@ -42,7 +42,14 @@ export default function HoldingCard({
         </div>
       </div>
 
-      {fxOk ? (
+      {loading ? (
+        <div className={styles.statsRow}>
+          <div className={styles.skeletonStat} aria-hidden="true" />
+          <div className={styles.skeletonStat} aria-hidden="true" />
+          <div className={styles.skeletonStat} aria-hidden="true" />
+          <span className="sr-only">{s.loading}</span>
+        </div>
+      ) : fxOk ? (
         <div className={styles.statsRow}>
           <div className={styles.stat}><span>{s.currentPriceLabel}</span><strong>{formatPrice(convertedCurrent, displayCurrency)}</strong></div>
           <div className={styles.stat}><span>{s.summaryCostBasis}</span><strong>{formatPrice(pl.costBasis, displayCurrency)}</strong></div>
@@ -56,16 +63,22 @@ export default function HoldingCard({
         <div className={styles.sectionHead}>
           <span>{s.dividendSectionTitle}</span>
         </div>
-        {projectedOk ? (
+        {loading ? (
+          <div className={styles.statsRow}>
+            <div className={styles.skeletonStat} aria-hidden="true" />
+            <div className={styles.skeletonStat} aria-hidden="true" />
+            <div className={styles.skeletonStat} aria-hidden="true" />
+          </div>
+        ) : projectedOk ? (
           <>
-            <div className={styles.statsRow}>
+            <div className={styles.statsRow} data-direction="up">
               <div className={styles.stat}><span>{s.estPerMonth}</span><strong>{formatPrice(cv(projected.perMonth), displayCurrency)}</strong></div>
               <div className={styles.stat}><span>{s.estPerQuarter}</span><strong>{formatPrice(cv(projected.perQuarter), displayCurrency)}</strong></div>
               <div className={styles.stat}><span>{s.trailingTwelveMonth}</span><strong>{formatPrice(cv(projected.trailingTwelveMonth), displayCurrency)}</strong></div>
             </div>
             <ul className={styles.scheduleList}>
               {periods.map((p) => (
-                <li key={p.period} data-done="true">
+                <li key={p.period}>
                   <span>{p.period}</span>
                   <span>{formatPrice(cv(p.amount), displayCurrency)}</span>
                 </li>

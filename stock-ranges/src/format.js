@@ -6,6 +6,15 @@ export function formatPrice(value, currency) {
   return currency ? `${currency} ${formatted}` : formatted
 }
 
+// Share counts (especially from fractional-share brokers / PDF imports)
+// often carry 6-7 decimal places, e.g. 0.1976964 — fine for the underlying
+// math, but clutters a card header. Rounds to 4 decimals for display only;
+// the stored value stays exact.
+export function formatQty(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—'
+  return value.toLocaleString('en-US', { maximumFractionDigits: 4 })
+}
+
 // Returns { percent, direction } where direction is 'up' | 'down' | 'flat',
 // or null if there isn't a valid previous close to compare against.
 export function dayChange(current, previousClose) {

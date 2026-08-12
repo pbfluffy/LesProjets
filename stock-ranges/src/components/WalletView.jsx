@@ -93,11 +93,11 @@ export default function WalletView({
             <span>{s.summaryUnrealizedPL}</span>
             <strong>{summary.unrealizedPL >= 0 ? '+' : ''}{formatPrice(summary.unrealizedPL, currency)}</strong>
           </div>
-          <div className={styles.summaryStat}>
+          <div className={styles.summaryStat} data-direction="up">
             <span>{s.estPerMonth}</span>
             <strong>{formatPrice(summary.perMonth, currency)}</strong>
           </div>
-          <div className={styles.summaryStat}>
+          <div className={styles.summaryStat} data-direction="up">
             <span>{s.estPerQuarter}</span>
             <strong>{formatPrice(summary.perQuarter, currency)}</strong>
           </div>
@@ -134,6 +134,7 @@ export default function WalletView({
             currentPrice={quotes[symbol]?.current ?? null}
             currentCurrency={quotes[symbol]?.currency ?? null}
             dividendEvents={quotes[symbol]?.dividends ?? []}
+            loading={!quotes[symbol]}
             displayCurrency={currency}
             rates={rates}
             onEdit={startEdit}
