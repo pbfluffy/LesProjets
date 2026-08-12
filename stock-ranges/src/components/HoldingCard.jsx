@@ -1,7 +1,7 @@
 import { useLang } from '../LangContext.jsx'
 import { convert } from '../fx.js'
 import { formatPrice } from '../format.js'
-import { computeHoldingPL, projectedDividendIncome, groupDividendsByPeriod } from '../wallet.js'
+import { computeHoldingPL, projectedDividendIncome, groupDividendsByPeriod, inferDividendCadence } from '../wallet.js'
 import styles from './HoldingCard.module.css'
 
 export default function HoldingCard({
@@ -17,7 +17,8 @@ export default function HoldingCard({
 
   const projected = projectedDividendIncome(dividendEvents, holding.qty)
   const projectedOk = fxOk && projected && projected.eventCount > 0
-  const periods = projectedOk ? groupDividendsByPeriod(dividendEvents, holding.qty, 'quarter') : []
+  const cadence = projectedOk ? inferDividendCadence(dividendEvents) : 'quarter'
+  const periods = projectedOk ? groupDividendsByPeriod(dividendEvents, holding.qty, cadence) : []
   const cv = (amount) => convert(amount, currentCurrency, displayCurrency, rates)
 
   return (

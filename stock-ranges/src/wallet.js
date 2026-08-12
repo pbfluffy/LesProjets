@@ -40,6 +40,22 @@ export function projectedDividendIncome(dividendEvents, qty) {
   }
 }
 
+// Not every stock pays quarterly — REITs and some ETFs pay monthly, a few
+// pay semi-annually. Inferred from the median gap between actual payment
+// dates rather than assumed, so the breakdown below buckets by whatever
+// cadence the stock actually uses.
+export function inferDividendCadence(dividendEvents) {
+  if (!Array.isArray(dividendEvents) || dividendEvents.length < 2) return 'quarter'
+  const sorted = [...dividendEvents].sort((a, b) => a.date - b.date)
+  const gapsDays = []
+  for (let i = 1; i < sorted.length; i++) {
+    gapsDays.push((sorted[i].date - sorted[i - 1].date) / 86400)
+  }
+  gapsDays.sort((a, b) => a - b)
+  const medianGap = gapsDays[Math.floor(gapsDays.length / 2)]
+  return medianGap <= 45 ? 'month' : 'quarter'
+}
+
 // Buckets actual dividend events (amount already multiplied by qty held) by
 // calendar month or quarter, oldest first — for a "here's what you actually
 // got, and when" breakdown alongside the projected monthly/quarterly figure.
