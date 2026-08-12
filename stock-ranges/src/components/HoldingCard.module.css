@@ -155,6 +155,25 @@
   color: var(--color-text-faint);
 }
 
+.historyToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 2px 0;
+}
+.historyToggle:hover { color: var(--color-text); }
+
+.historyChevron {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+.historyChevron[data-open='true'] { transform: rotate(180deg); }
+
 .scheduleList {
   list-style: none;
   display: flex;

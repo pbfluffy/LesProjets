@@ -7,6 +7,7 @@ import { computeHoldingPL, projectedDividendIncome, groupSymbolsByInstrumentType
 import AddHoldingForm from './AddHoldingForm.jsx'
 import HoldingCard from './HoldingCard.jsx'
 import ImportPdfModal from './ImportPdfModal.jsx'
+import AllocationChart from './AllocationChart.jsx'
 import styles from './WalletView.module.css'
 
 const GROUP_LABEL_KEY = { EQUITY: 'groupCommonStock', ETF: 'groupETF', OTHER: 'groupOther' }
@@ -87,6 +88,21 @@ export default function WalletView({
 
   const groupedSymbols = useMemo(() => groupSymbolsByInstrumentType(symbols, quotes), [symbols, quotes])
 
+  // Per-holding market value for the allocation pie — only symbols whose
+  // quote has resolved contribute a slice; the rest just aren't drawn yet
+  // rather than showing a wrong/zero-value wedge.
+  const allocationItems = useMemo(() => {
+    return symbols
+      .map((symbol) => {
+        const quote = quotes[symbol]
+        const convertedCurrent = quote?.current != null ? convert(quote.current, quote.currency, currency, rates) : null
+        if (convertedCurrent === null) return null
+        return { symbol, value: holdings[symbol].qty * convertedCurrent }
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.value - a.value)
+  }, [symbols, holdings, quotes, currency, rates])
+
   return (
     <div>
       {symbols.length > 0 && (
@@ -112,6 +128,10 @@ export default function WalletView({
             <strong>{formatPrice(summary.perQuarter, currency)}</strong>
           </div>
         </div>
+      )}
+
+      {allocationItems.length > 0 && (
+        <AllocationChart items={allocationItems} total={summary.marketValue} currency={currency} />
       )}
 
       {symbols.length === 0 && !formOpen && <div className={styles.empty}>{s.walletEmpty}</div>}

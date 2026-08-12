@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useLang } from '../LangContext.jsx'
 import { convert } from '../fx.js'
 import { formatPrice, formatQty } from '../format.js'
@@ -11,6 +12,7 @@ export default function HoldingCard({
   onEdit, onRemove,
 }) {
   const { s } = useLang()
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const convertedAvgCost = convert(holding.avgCost, holding.costCurrency, displayCurrency, rates)
   const convertedCurrent = typeof currentPrice === 'number' ? convert(currentPrice, currentCurrency, displayCurrency, rates) : null
@@ -82,14 +84,25 @@ export default function HoldingCard({
               <div className={styles.stat}><span>{s.estPerQuarter}</span><strong>{formatPrice(cv(projected.perQuarter), displayCurrency)}</strong></div>
               <div className={styles.stat}><span>{s.trailingTwelveMonth}</span><strong>{formatPrice(cv(projected.trailingTwelveMonth), displayCurrency)}</strong></div>
             </div>
-            <ul className={styles.scheduleList}>
-              {periods.map((p) => (
-                <li key={p.period}>
-                  <span>{p.period}</span>
-                  <span>{formatPrice(cv(p.amount), displayCurrency)}</span>
-                </li>
-              ))}
-            </ul>
+            <button
+              type="button"
+              className={styles.historyToggle}
+              onClick={() => setHistoryOpen((v) => !v)}
+              aria-expanded={historyOpen}
+            >
+              {historyOpen ? s.hideHistory : s.showHistory} ({periods.length})
+              <span className={styles.historyChevron} data-open={historyOpen} aria-hidden="true">▾</span>
+            </button>
+            {historyOpen && (
+              <ul className={styles.scheduleList}>
+                {periods.map((p) => (
+                  <li key={p.period}>
+                    <span>{p.period}</span>
+                    <span>{formatPrice(cv(p.amount), displayCurrency)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </>
         ) : (
           <div className={styles.emptyNote}>{s.noDividendHistory}</div>
