@@ -60,7 +60,14 @@ export async function renderPdfToImages(file, onProgress) {
       if (blob) images.push(blob)
     }
   } finally {
-    await doc.destroy()
+    // Cleanup failing here shouldn't discard pages that already rendered
+    // successfully — worst case the worker thread lingers until the tab
+    // closes, which is far better than losing a completed render.
+    try {
+      await doc.destroy()
+    } catch {
+      worker.terminate()
+    }
   }
   return images
 }
