@@ -76,13 +76,15 @@
 .table tr:last-child td { border-bottom: none; }
 
 .cellInput {
-  width: 72px;
+  width: 76px;
+  padding: 4px 6px;
   font-family: var(--font-mono);
   font-weight: 700;
   text-transform: uppercase;
 }
 .cellInputNarrow {
-  width: 76px;
+  width: 104px;
+  padding: 4px 6px;
   font-family: var(--font-mono);
 }
 
