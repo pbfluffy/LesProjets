@@ -43,10 +43,12 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
   return (
     <div className={styles.card} style={{ '--tag-hue': tagHue(symbol) }}>
       <div className={styles.head}>
-        <TickerLogo symbol={symbol} size={32} />
-        <div className={styles.titleBlock}>
-          <div className={styles.symbol}>{symbol}</div>
-          {state.data && <div className={styles.name}>{state.data.name}</div>}
+        <div className={styles.identity}>
+          <TickerLogo symbol={symbol} size={36} />
+          <div className={styles.titleBlock}>
+            <div className={styles.symbol}>{symbol}</div>
+            {state.data && <div className={styles.name}>{state.data.name}</div>}
+          </div>
         </div>
         <div className={styles.headRight}>
           {state.data && (() => {

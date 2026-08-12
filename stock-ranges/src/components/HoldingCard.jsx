@@ -26,10 +26,12 @@ export default function HoldingCard({
   return (
     <div className={styles.card} style={{ '--tag-hue': tagHue(symbol) }}>
       <div className={styles.head}>
-        <TickerLogo symbol={symbol} size={32} />
-        <div className={styles.titleBlock}>
-          <div className={styles.symbol}>{symbol}</div>
-          <div className={styles.qtyLine}>{formatQty(holding.qty)} @ {formatPrice(holding.avgCost, holding.costCurrency)}</div>
+        <div className={styles.identity}>
+          <TickerLogo symbol={symbol} size={36} />
+          <div className={styles.titleBlock}>
+            <div className={styles.symbol}>{symbol}</div>
+            <div className={styles.qtyLine}>{formatQty(holding.qty)} @ {formatPrice(holding.avgCost, holding.costCurrency)}</div>
+          </div>
         </div>
         <div className={styles.headRight}>
           {pl && (

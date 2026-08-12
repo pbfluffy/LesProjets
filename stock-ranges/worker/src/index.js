@@ -222,6 +222,91 @@ async function handleImport(request, env) {
   return json({ rows })
 }
 
+// Fetches + parses one symbol's chart data, or returns null on any failure
+// (network error, 404, no usable price series) so the caller can decide
+// whether to retry with a different symbol spelling.
+async function resolveQuote(symbol, rangeConfig, params) {
+  let upstream
+  try {
+    upstream = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?${params}&interval=${rangeConfig.interval}&events=div`,
+      { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; stock-ranges/1.0)' } },
+    )
+  } catch {
+    return null
+  }
+  if (!upstream.ok) return null
+
+  const data = await upstream.json().catch(() => null)
+  const result = data?.chart?.result?.[0]
+  const meta = result?.meta
+  const quote = result?.indicators?.quote?.[0]
+  const closes = quote?.close
+  if (!meta || !Array.isArray(closes)) return null
+
+  // ohlc/timestamps are built alongside prices (not filtered
+  // independently) so all three stay index-aligned — a candle without
+  // its own open/high/low falls back to its close rather than creating
+  // a gap.
+  const opens = quote?.open || []
+  const highs = quote?.high || []
+  const lows = quote?.low || []
+  const rawTimestamps = result?.timestamp || []
+  const prices = []
+  const ohlc = []
+  const timestamps = []
+  for (let i = 0; i < closes.length; i++) {
+    const c = closes[i]
+    if (typeof c !== 'number' || !Number.isFinite(c)) continue
+    prices.push(c)
+    ohlc.push({
+      o: typeof opens[i] === 'number' ? opens[i] : c,
+      h: typeof highs[i] === 'number' ? highs[i] : c,
+      l: typeof lows[i] === 'number' ? lows[i] : c,
+      c,
+    })
+    timestamps.push(typeof rawTimestamps[i] === 'number' ? rawTimestamps[i] : null)
+  }
+  if (!prices.length) return null
+
+  // meta.chartPreviousClose is the close *before the whole requested
+  // range* (a year ago for range=1y, last week for period-based 7d),
+  // not yesterday's close — not useful for a day-change indicator.
+  // meta.previousClose (only present for intraday requests like 1d/7d)
+  // is the real yesterday's close, so prefer it when Yahoo provides it.
+  // For the daily-interval ranges (3mo+) it's absent, so fall back to
+  // the prices array's second-to-last entry — the last entry tracks
+  // today's live price during market hours, so the one before it is
+  // the actual most recent prior trading day's close.
+  const previousClose = typeof meta.previousClose === 'number'
+    ? meta.previousClose
+    : (prices.length > 1 ? prices[prices.length - 2] : null)
+
+  // Yahoo returns dividends as an object keyed by unix-second timestamp
+  // (only present when the symbol has paid any within the requested
+  // range) — flatten to an array, oldest first, for the wallet's
+  // income-by-period math.
+  const rawDividends = result?.events?.dividends
+  const dividends = rawDividends
+    ? Object.values(rawDividends)
+        .filter((d) => typeof d?.amount === 'number' && typeof d?.date === 'number')
+        .map((d) => ({ date: d.date, amount: d.amount }))
+        .sort((a, b) => a.date - b.date)
+    : []
+
+  return {
+    symbol: meta.symbol || symbol,
+    name: meta.shortName || meta.longName || meta.symbol || symbol,
+    currency: meta.currency || 'USD',
+    current: typeof meta.regularMarketPrice === 'number' ? meta.regularMarketPrice : prices[prices.length - 1],
+    previousClose,
+    prices,
+    ohlc,
+    timestamps,
+    dividends,
+  }
+}
+
 export default {
   async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
@@ -258,92 +343,19 @@ export default {
       const params = rangeConfig.days
         ? `period1=${Math.floor(Date.now() / 1000) - rangeConfig.days * 86400}&period2=${Math.floor(Date.now() / 1000)}`
         : `range=${rangeConfig.range}`
-      let upstream
-      try {
-        upstream = await fetch(
-          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?${params}&interval=${rangeConfig.interval}&events=div`,
-          { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; stock-ranges/1.0)' } },
-        )
-      } catch {
-        return json({ error: 'upstream fetch failed' }, 502)
-      }
 
-      if (!upstream.ok) {
+      let body = await resolveQuote(symbol, rangeConfig, params)
+      // Conventional NYSE-style share-class notation ("BRK.B", "BF.B") uses
+      // a dot; Yahoo's real symbols use a hyphen ("BRK-B", "BF-B"). Retry
+      // once with that substitution instead of erroring on a ticker format
+      // that's the common, printed-on-the-exchange way to write it.
+      if (!body && symbol.includes('.')) {
+        body = await resolveQuote(symbol.replace(/\./g, '-'), rangeConfig, params)
+      }
+      if (!body) {
         return json({ error: 'not found' }, 404)
       }
-
-      const data = await upstream.json().catch(() => null)
-      const result = data?.chart?.result?.[0]
-      const meta = result?.meta
-      const quote = result?.indicators?.quote?.[0]
-      const closes = quote?.close
-      if (!meta || !Array.isArray(closes)) {
-        return json({ error: 'not found' }, 404)
-      }
-
-      // ohlc/timestamps are built alongside prices (not filtered
-      // independently) so all three stay index-aligned — a candle without
-      // its own open/high/low falls back to its close rather than creating
-      // a gap.
-      const opens = quote?.open || []
-      const highs = quote?.high || []
-      const lows = quote?.low || []
-      const rawTimestamps = result?.timestamp || []
-      const prices = []
-      const ohlc = []
-      const timestamps = []
-      for (let i = 0; i < closes.length; i++) {
-        const c = closes[i]
-        if (typeof c !== 'number' || !Number.isFinite(c)) continue
-        prices.push(c)
-        ohlc.push({
-          o: typeof opens[i] === 'number' ? opens[i] : c,
-          h: typeof highs[i] === 'number' ? highs[i] : c,
-          l: typeof lows[i] === 'number' ? lows[i] : c,
-          c,
-        })
-        timestamps.push(typeof rawTimestamps[i] === 'number' ? rawTimestamps[i] : null)
-      }
-      if (!prices.length) {
-        return json({ error: 'not found' }, 404)
-      }
-
-      // meta.chartPreviousClose is the close *before the whole requested
-      // range* (a year ago for range=1y, last week for period-based 7d),
-      // not yesterday's close — not useful for a day-change indicator.
-      // meta.previousClose (only present for intraday requests like 1d/7d)
-      // is the real yesterday's close, so prefer it when Yahoo provides it.
-      // For the daily-interval ranges (3mo+) it's absent, so fall back to
-      // the prices array's second-to-last entry — the last entry tracks
-      // today's live price during market hours, so the one before it is
-      // the actual most recent prior trading day's close.
-      const previousClose = typeof meta.previousClose === 'number'
-        ? meta.previousClose
-        : (prices.length > 1 ? prices[prices.length - 2] : null)
-
-      // Yahoo returns dividends as an object keyed by unix-second timestamp
-      // (only present when the symbol has paid any within the requested
-      // range) — flatten to an array, oldest first, for the wallet's
-      // income-by-period math.
-      const rawDividends = result?.events?.dividends
-      const dividends = rawDividends
-        ? Object.values(rawDividends)
-            .filter((d) => typeof d?.amount === 'number' && typeof d?.date === 'number')
-            .map((d) => ({ date: d.date, amount: d.amount }))
-            .sort((a, b) => a.date - b.date)
-        : []
-
-      return json({
-        symbol: meta.symbol || symbol,
-        name: meta.shortName || meta.longName || meta.symbol || symbol,
-        currency: meta.currency || 'USD',
-        current: typeof meta.regularMarketPrice === 'number' ? meta.regularMarketPrice : prices[prices.length - 1],
-        previousClose,
-        prices,
-        ohlc,
-        timestamps,
-        dividends,
-      })
+      return json(body)
     })
   },
 }
