@@ -2,6 +2,8 @@ import { useLang } from '../LangContext.jsx'
 import { convert } from '../fx.js'
 import { formatPrice, formatQty } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, groupDividendsByPeriod, inferDividendCadence } from '../wallet.js'
+import TickerLogo from './TickerLogo.jsx'
+import { tagHue } from '../tagColor.js'
 import styles from './HoldingCard.module.css'
 
 export default function HoldingCard({
@@ -22,8 +24,9 @@ export default function HoldingCard({
   const cv = (amount) => convert(amount, currentCurrency, displayCurrency, rates)
 
   return (
-    <div className={styles.card}>
+    <div className={styles.card} style={{ '--tag-hue': tagHue(symbol) }}>
       <div className={styles.head}>
+        <TickerLogo symbol={symbol} size={32} />
         <div className={styles.titleBlock}>
           <div className={styles.symbol}>{symbol}</div>
           <div className={styles.qtyLine}>{formatQty(holding.qty)} @ {formatPrice(holding.avgCost, holding.costCurrency)}</div>

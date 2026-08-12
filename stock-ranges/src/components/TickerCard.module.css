@@ -1,6 +1,7 @@
 .card {
   background: var(--color-surface);
   border: 0.5px solid var(--color-border);
+  border-left: 3px solid hsl(var(--tag-hue) 55% 60%);
   border-radius: var(--radius-lg);
   padding: 16px 18px;
   box-shadow: var(--shadow-card);
@@ -8,12 +9,13 @@
 }
 .card:hover {
   border-color: var(--color-border-strong);
+  border-left-color: hsl(var(--tag-hue) 55% 60%);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 0 0 0.5px var(--color-border-strong);
 }
 
 .head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;

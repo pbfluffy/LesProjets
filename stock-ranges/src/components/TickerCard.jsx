@@ -5,6 +5,8 @@ import { convert } from '../fx.js'
 import { formatPrice, dayChange } from '../format.js'
 import DecileGauge from './DecileGauge.jsx'
 import TagChips from './TagChips.jsx'
+import TickerLogo from './TickerLogo.jsx'
+import { tagHue } from '../tagColor.js'
 import { useLang } from '../LangContext.jsx'
 import styles from './TickerCard.module.css'
 
@@ -39,8 +41,9 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
   }, [state.status, deciles?.band, deciles?.signal]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className={styles.card}>
+    <div className={styles.card} style={{ '--tag-hue': tagHue(symbol) }}>
       <div className={styles.head}>
+        <TickerLogo symbol={symbol} size={32} />
         <div className={styles.titleBlock}>
           <div className={styles.symbol}>{symbol}</div>
           {state.data && <div className={styles.name}>{state.data.name}</div>}
