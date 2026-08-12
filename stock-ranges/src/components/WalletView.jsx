@@ -3,19 +3,19 @@ import { useLang } from '../LangContext.jsx'
 import { fetchQuote } from '../stockApi.js'
 import { convert } from '../fx.js'
 import { formatPrice } from '../format.js'
-import { computeHoldingPL } from '../wallet.js'
+import { computeHoldingPL, projectedDividendIncome } from '../wallet.js'
 import AddHoldingForm from './AddHoldingForm.jsx'
 import HoldingCard from './HoldingCard.jsx'
 import styles from './WalletView.module.css'
 
 // A holdings list independent from the watchlist — you can watch a stock
-// without owning it. Current prices are fetched with the cheapest range
-// ('1d') since only the latest close/current is needed here, not a chart.
+// without owning it. Fetches a 2-year daily range per held symbol: enough
+// history for Yahoo to report actual dividend events (used to project
+// monthly/quarterly income), while `current` still gives the live price
+// needed for P/L regardless of range.
 export default function WalletView({
-  holdings, plans, dividends, currency, rates,
+  holdings, currency, rates,
   onAddHolding, onRemoveHolding,
-  onAddPlan, onMarkPlanDone, onRemovePlan,
-  onAddDividend, onRemoveDividend,
 }) {
   const { s } = useLang()
   const [quotes, setQuotes] = useState({})
@@ -27,32 +27,38 @@ export default function WalletView({
   useEffect(() => {
     symbols.forEach((symbol) => {
       if (quotes[symbol]) return
-      fetchQuote(symbol, '1d')
-        .then((data) => setQuotes((prev) => ({ ...prev, [symbol]: { current: data.current, currency: data.currency } })))
-        .catch(() => setQuotes((prev) => ({ ...prev, [symbol]: { current: null, currency: null } })))
+      fetchQuote(symbol, '2y')
+        .then((data) => setQuotes((prev) => ({
+          ...prev,
+          [symbol]: { current: data.current, currency: data.currency, dividends: data.dividends || [] },
+        })))
+        .catch(() => setQuotes((prev) => ({ ...prev, [symbol]: { current: null, currency: null, dividends: [] } })))
     })
   }, [symbols]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const summary = useMemo(() => {
     let costBasis = 0
     let marketValue = 0
-    let dividendsTotal = 0
+    let perMonth = 0
+    let perQuarter = 0
     symbols.forEach((symbol) => {
       const holding = holdings[symbol]
       const quote = quotes[symbol]
       const convertedAvgCost = convert(holding.avgCost, holding.costCurrency, currency, rates)
       const convertedCurrent = quote?.current != null ? convert(quote.current, quote.currency, currency, rates) : null
-      if (convertedAvgCost === null || convertedCurrent === null) return
-      const pl = computeHoldingPL({ qty: holding.qty, avgCost: convertedAvgCost, currentPrice: convertedCurrent })
-      costBasis += pl.costBasis
-      marketValue += pl.marketValue
+      if (convertedAvgCost !== null && convertedCurrent !== null) {
+        const pl = computeHoldingPL({ qty: holding.qty, avgCost: convertedAvgCost, currentPrice: convertedCurrent })
+        costBasis += pl.costBasis
+        marketValue += pl.marketValue
+      }
+      const projected = quote ? projectedDividendIncome(quote.dividends, holding.qty) : null
+      if (projected && quote.currency) {
+        perMonth += convert(projected.perMonth, quote.currency, currency, rates) ?? 0
+        perQuarter += convert(projected.perQuarter, quote.currency, currency, rates) ?? 0
+      }
     })
-    dividends.forEach((d) => {
-      dividendsTotal += convert(d.amount, d.currency, currency, rates) ?? 0
-    })
-    const unrealizedPL = marketValue - costBasis
-    return { costBasis, marketValue, unrealizedPL, dividendsTotal, totalReturn: unrealizedPL + dividendsTotal }
-  }, [symbols, holdings, quotes, dividends, currency, rates])
+    return { costBasis, marketValue, unrealizedPL: marketValue - costBasis, perMonth, perQuarter }
+  }, [symbols, holdings, quotes, currency, rates])
 
   function startEdit(symbol) {
     setEditingSymbol(symbol)
@@ -86,12 +92,12 @@ export default function WalletView({
             <strong>{summary.unrealizedPL >= 0 ? '+' : ''}{formatPrice(summary.unrealizedPL, currency)}</strong>
           </div>
           <div className={styles.summaryStat}>
-            <span>{s.summaryDividends}</span>
-            <strong>{formatPrice(summary.dividendsTotal, currency)}</strong>
+            <span>{s.estPerMonth}</span>
+            <strong>{formatPrice(summary.perMonth, currency)}</strong>
           </div>
-          <div className={styles.summaryStat} data-direction={summary.totalReturn >= 0 ? 'up' : 'down'}>
-            <span>{s.summaryTotalReturn}</span>
-            <strong>{summary.totalReturn >= 0 ? '+' : ''}{formatPrice(summary.totalReturn, currency)}</strong>
+          <div className={styles.summaryStat}>
+            <span>{s.estPerQuarter}</span>
+            <strong>{formatPrice(summary.perQuarter, currency)}</strong>
           </div>
         </div>
       )}
@@ -118,17 +124,11 @@ export default function WalletView({
             holding={holdings[symbol]}
             currentPrice={quotes[symbol]?.current ?? null}
             currentCurrency={quotes[symbol]?.currency ?? null}
+            dividendEvents={quotes[symbol]?.dividends ?? []}
             displayCurrency={currency}
             rates={rates}
-            plans={plans}
-            dividends={dividends}
             onEdit={startEdit}
             onRemove={onRemoveHolding}
-            onAddPlan={onAddPlan}
-            onMarkPlanDone={onMarkPlanDone}
-            onRemovePlan={onRemovePlan}
-            onAddDividend={onAddDividend}
-            onRemoveDividend={onRemoveDividend}
           />
         ))}
       </div>

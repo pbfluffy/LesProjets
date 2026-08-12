@@ -18,8 +18,6 @@ const CHART_TYPE_KEY = 'stockranges_charttype'
 const TAGS_KEY = 'stockranges_tags'
 const ACTIVE_TAG_FILTERS_KEY = 'stockranges_active_tag_filters'
 const HOLDINGS_KEY = 'stockranges_holdings'
-const PLANS_KEY = 'stockranges_plans'
-const DIVIDENDS_KEY = 'stockranges_dividends'
 const TAB_KEY = 'stockranges_tab'
 const THEME_KEY = 'theme'
 // Allows '=' (futures/forex, e.g. gold's "GC=F") and '^' (indices, e.g.
@@ -78,26 +76,6 @@ function loadHoldings() {
   }
 }
 
-function loadPlans() {
-  try {
-    const raw = localStorage.getItem(PLANS_KEY)
-    const parsed = raw ? JSON.parse(raw) : null
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-function loadDividends() {
-  try {
-    const raw = localStorage.getItem(DIVIDENDS_KEY)
-    const parsed = raw ? JSON.parse(raw) : null
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
 function useTheme() {
   const [dark, setDark] = useState(() => {
     const saved = localStorage.getItem(THEME_KEY)
@@ -120,8 +98,6 @@ function Dashboard() {
   const [tags, setTags] = useState(loadTags)
   const [activeTagFilters, setActiveTagFilters] = useState(loadActiveTagFilters)
   const [holdings, setHoldings] = useState(loadHoldings)
-  const [investmentPlans, setInvestmentPlans] = useState(loadPlans)
-  const [dividends, setDividends] = useState(loadDividends)
   const [tab, setTab] = useState(() => (localStorage.getItem(TAB_KEY) === 'wallet' ? 'wallet' : 'watchlist'))
   const [rates, setRates] = useState(null)
   const [warning, setWarning] = useState('')
@@ -157,14 +133,6 @@ function Dashboard() {
   }, [holdings])
 
   useEffect(() => {
-    localStorage.setItem(PLANS_KEY, JSON.stringify(investmentPlans))
-  }, [investmentPlans])
-
-  useEffect(() => {
-    localStorage.setItem(DIVIDENDS_KEY, JSON.stringify(dividends))
-  }, [dividends])
-
-  useEffect(() => {
     localStorage.setItem(TAB_KEY, tab)
   }, [tab])
 
@@ -180,15 +148,13 @@ function Dashboard() {
   }, [])
 
   const cloudSync = useCloudSync({
-    watchlist, range, currency, tags, holdings, investmentPlans, dividends,
+    watchlist, range, currency, tags, holdings,
     applyRemote: (remote) => {
       if (Array.isArray(remote?.watchlist)) setWatchlist(remote.watchlist)
       if (typeof remote?.range === 'string') setRange(remote.range)
       if (typeof remote?.currency === 'string') setCurrency(remote.currency)
       if (remote?.tags && typeof remote.tags === 'object' && !Array.isArray(remote.tags)) setTags(remote.tags)
       if (remote?.holdings && typeof remote.holdings === 'object' && !Array.isArray(remote.holdings)) setHoldings(remote.holdings)
-      if (Array.isArray(remote?.investmentPlans)) setInvestmentPlans(remote.investmentPlans)
-      if (Array.isArray(remote?.dividends)) setDividends(remote.dividends)
     },
   })
 
@@ -243,9 +209,6 @@ function Dashboard() {
     setHoldings((prev) => ({ ...prev, [symbol]: data }))
   }
 
-  // Cascades into plans/dividends the same way removeTicker cascades into
-  // tags — otherwise they'd become orphaned records with no UI left to view
-  // or delete them, since HoldingCard only renders for symbols still held.
   function removeHolding(symbol) {
     setHoldings((prev) => {
       if (!(symbol in prev)) return prev
@@ -253,30 +216,6 @@ function Dashboard() {
       delete next[symbol]
       return next
     })
-    setInvestmentPlans((prev) => prev.filter((p) => p.symbol !== symbol))
-    setDividends((prev) => prev.filter((d) => d.symbol !== symbol))
-  }
-
-  function addPlan(symbol, plan) {
-    setInvestmentPlans((prev) => [...prev, { ...plan, symbol }])
-  }
-
-  function markPlanDone(planId) {
-    setInvestmentPlans((prev) => prev.map((p) => (
-      p.id === planId ? { ...p, completed: Math.min(p.completed + 1, p.periods) } : p
-    )))
-  }
-
-  function removePlan(planId) {
-    setInvestmentPlans((prev) => prev.filter((p) => p.id !== planId))
-  }
-
-  function addDividend(symbol, dividend) {
-    setDividends((prev) => [...prev, { ...dividend, symbol }])
-  }
-
-  function removeDividend(dividendId) {
-    setDividends((prev) => prev.filter((d) => d.id !== dividendId))
   }
 
   function toggleTagFilter(tag) {
@@ -380,17 +319,10 @@ function Dashboard() {
       {tab === 'wallet' ? (
         <WalletView
           holdings={holdings}
-          plans={investmentPlans}
-          dividends={dividends}
           currency={currency}
           rates={rates}
           onAddHolding={addOrUpdateHolding}
           onRemoveHolding={removeHolding}
-          onAddPlan={addPlan}
-          onMarkPlanDone={markPlanDone}
-          onRemovePlan={removePlan}
-          onAddDividend={addDividend}
-          onRemoveDividend={removeDividend}
         />
       ) : (
       <>

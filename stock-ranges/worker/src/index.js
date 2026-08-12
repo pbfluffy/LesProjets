@@ -7,10 +7,14 @@
 //
 // GET /?symbol=AAPL&range=1y   (range: 1d, 7d, 3mo, 6mo, 1y, 2y, or 5y)
 //   -> { symbol, name, currency, current, previousClose,
-//        prices: number[], ohlc: [{o,h,l,c}, ...], timestamps: number[] }
+//        prices: number[], ohlc: [{o,h,l,c}, ...], timestamps: number[],
+//        dividends: [{date, amount}, ...] }
 //      (previousClose is yesterday's close, for a day-change indicator;
 //      ohlc and timestamps are parallel to prices — ohlc for the
-//      candlestick view, timestamps (unix seconds) for the axis labels)
+//      candlestick view, timestamps (unix seconds) for the axis labels;
+//      dividends is per-share cash dividend events — unix seconds + amount
+//      in the quote's native currency — within the requested range, oldest
+//      first, [] if the symbol pays none)
 //   -> 404 { error } if the symbol is unknown / Yahoo has no data
 //   -> 400 { error } if symbol/range fail validation
 //
@@ -135,7 +139,7 @@ export default {
       let upstream
       try {
         upstream = await fetch(
-          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?${params}&interval=${rangeConfig.interval}`,
+          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?${params}&interval=${rangeConfig.interval}&events=div`,
           { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; stock-ranges/1.0)' } },
         )
       } catch {
@@ -195,6 +199,18 @@ export default {
         ? meta.previousClose
         : (prices.length > 1 ? prices[prices.length - 2] : null)
 
+      // Yahoo returns dividends as an object keyed by unix-second timestamp
+      // (only present when the symbol has paid any within the requested
+      // range) — flatten to an array, oldest first, for the wallet's
+      // income-by-period math.
+      const rawDividends = result?.events?.dividends
+      const dividends = rawDividends
+        ? Object.values(rawDividends)
+            .filter((d) => typeof d?.amount === 'number' && typeof d?.date === 'number')
+            .map((d) => ({ date: d.date, amount: d.amount }))
+            .sort((a, b) => a.date - b.date)
+        : []
+
       return json({
         symbol: meta.symbol || symbol,
         name: meta.shortName || meta.longName || meta.symbol || symbol,
@@ -204,6 +220,7 @@ export default {
         prices,
         ohlc,
         timestamps,
+        dividends,
       })
     })
   },

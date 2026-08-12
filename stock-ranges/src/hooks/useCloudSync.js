@@ -8,17 +8,16 @@ import { useCloudSyncCore } from '../../../shared/useCloudSyncCore.js'
 // nutritions-thailand, and pumgoda use) — see shared/useCloudSyncCore.js
 // for the actual sync/conflict logic. Stock Ranges data lives in
 // /userStockRanges/<uid>: watchlist + lookback range + display currency +
-// per-ticker tags + wallet holdings/investment plans/dividends.
-// Theme/language/tag-filter-selection stay local-only, same as every
-// sibling app.
+// per-ticker tags + wallet holdings (qty/avg cost — dividend income is
+// computed from the ticker's actual paid-dividend history, not synced
+// state). Theme/language/tag-filter-selection stay local-only, same as
+// every sibling app.
 const COLL = 'userStockRanges'
 const DEFAULT_WATCHLIST = ['AAPL', 'MSFT']
 const DEFAULT_RANGE = '1y'
 const DEFAULT_CURRENCY = 'USD'
 const DEFAULT_TAGS = {}
 const DEFAULT_HOLDINGS = {}
-const DEFAULT_PLANS = []
-const DEFAULT_DIVIDENDS = []
 
 // Deep, deterministic stringification — sorts keys recursively so identical
 // data with different field order produces the same fingerprint.
@@ -43,7 +42,7 @@ function stripDoc(d) {
   if (!d) return null
   return {
     watchlist: d.watchlist, range: d.range, currency: d.currency, tags: d.tags || {},
-    holdings: d.holdings || {}, investmentPlans: d.investmentPlans || [], dividends: d.dividends || [],
+    holdings: d.holdings || {},
   }
 }
 
@@ -53,12 +52,12 @@ function stripDoc(d) {
 function hasData(local) {
   return fingerprint(local) !== fingerprint({
     watchlist: DEFAULT_WATCHLIST, range: DEFAULT_RANGE, currency: DEFAULT_CURRENCY, tags: DEFAULT_TAGS,
-    holdings: DEFAULT_HOLDINGS, investmentPlans: DEFAULT_PLANS, dividends: DEFAULT_DIVIDENDS,
+    holdings: DEFAULT_HOLDINGS,
   })
 }
 
-export function useCloudSync({ watchlist, range, currency, tags, holdings, investmentPlans, dividends, applyRemote }) {
-  const localData = { watchlist, range, currency, tags, holdings, investmentPlans, dividends }
+export function useCloudSync({ watchlist, range, currency, tags, holdings, applyRemote }) {
+  const localData = { watchlist, range, currency, tags, holdings }
   const r = useCloudSyncCore({
     auth, db, onAuthStateChanged, doc, setDoc, serverTimestamp, onSnapshot,
     collection: COLL,
@@ -68,7 +67,7 @@ export function useCloudSync({ watchlist, range, currency, tags, holdings, inves
     hasData,
     serialize: (d) => ({
       watchlist: d.watchlist, range: d.range, currency: d.currency, tags: d.tags || {},
-      holdings: d.holdings || {}, investmentPlans: d.investmentPlans || [], dividends: d.dividends || [],
+      holdings: d.holdings || {},
     }),
     readRemote: (snap) => (snap.exists() ? stripDoc(snap.data()) : null),
     // Keeps the full doc (incl. lastModified) for the conflict modal's
