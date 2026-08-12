@@ -7,7 +7,7 @@
 // as majon-photo/trip-planner-generate's external-vision-API routes.
 //
 // GET /?symbol=AAPL&range=1y   (range: 1d, 7d, 3mo, 6mo, 1y, 2y, or 5y)
-//   -> { symbol, name, currency, current, previousClose,
+//   -> { symbol, name, currency, instrumentType, current, previousClose,
 //        prices: number[], ohlc: [{o,h,l,c}, ...], timestamps: number[],
 //        dividends: [{date, amount}, ...] }
 //      (previousClose is yesterday's close, for a day-change indicator;
@@ -298,6 +298,9 @@ async function resolveQuote(symbol, rangeConfig, params) {
     symbol: meta.symbol || symbol,
     name: meta.shortName || meta.longName || meta.symbol || symbol,
     currency: meta.currency || 'USD',
+    // e.g. EQUITY, ETF, CRYPTOCURRENCY, FUTURE, INDEX, MUTUALFUND — used by
+    // the wallet to group holdings into Common Stock / ETF / Other.
+    instrumentType: meta.instrumentType || null,
     current: typeof meta.regularMarketPrice === 'number' ? meta.regularMarketPrice : prices[prices.length - 1],
     previousClose,
     prices,

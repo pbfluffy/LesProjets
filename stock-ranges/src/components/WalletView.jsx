@@ -3,11 +3,13 @@ import { useLang } from '../LangContext.jsx'
 import { fetchQuote } from '../stockApi.js'
 import { convert } from '../fx.js'
 import { formatPrice } from '../format.js'
-import { computeHoldingPL, projectedDividendIncome } from '../wallet.js'
+import { computeHoldingPL, projectedDividendIncome, groupSymbolsByInstrumentType } from '../wallet.js'
 import AddHoldingForm from './AddHoldingForm.jsx'
 import HoldingCard from './HoldingCard.jsx'
 import ImportPdfModal from './ImportPdfModal.jsx'
 import styles from './WalletView.module.css'
+
+const GROUP_LABEL_KEY = { EQUITY: 'groupCommonStock', ETF: 'groupETF', OTHER: 'groupOther' }
 
 // A holdings list independent from the watchlist — you can watch a stock
 // without owning it. Fetches a 2-year daily range per held symbol: enough
@@ -32,9 +34,15 @@ export default function WalletView({
       fetchQuote(symbol, '2y')
         .then((data) => setQuotes((prev) => ({
           ...prev,
-          [symbol]: { current: data.current, currency: data.currency, dividends: data.dividends || [] },
+          [symbol]: {
+            current: data.current, currency: data.currency, dividends: data.dividends || [],
+            name: data.name || null, instrumentType: data.instrumentType || null,
+          },
         })))
-        .catch(() => setQuotes((prev) => ({ ...prev, [symbol]: { current: null, currency: null, dividends: [] } })))
+        .catch(() => setQuotes((prev) => ({
+          ...prev,
+          [symbol]: { current: null, currency: null, dividends: [], name: null, instrumentType: null },
+        })))
     })
   }, [symbols]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -76,6 +84,8 @@ export default function WalletView({
     onAddHolding(symbol, data)
     closeForm()
   }
+
+  const groupedSymbols = useMemo(() => groupSymbolsByInstrumentType(symbols, quotes), [symbols, quotes])
 
   return (
     <div>
@@ -126,20 +136,28 @@ export default function WalletView({
       )}
 
       <div className={styles.list}>
-        {symbols.map((symbol) => (
-          <HoldingCard
-            key={symbol}
-            symbol={symbol}
-            holding={holdings[symbol]}
-            currentPrice={quotes[symbol]?.current ?? null}
-            currentCurrency={quotes[symbol]?.currency ?? null}
-            dividendEvents={quotes[symbol]?.dividends ?? []}
-            loading={!quotes[symbol]}
-            displayCurrency={currency}
-            rates={rates}
-            onEdit={startEdit}
-            onRemove={onRemoveHolding}
-          />
+        {groupedSymbols.map((group) => (
+          <div key={group.key} className={styles.group}>
+            <div className={styles.groupHeader}>{s[GROUP_LABEL_KEY[group.key]]}</div>
+            <div className={styles.groupCards}>
+              {group.symbols.map((symbol) => (
+                <HoldingCard
+                  key={symbol}
+                  symbol={symbol}
+                  holding={holdings[symbol]}
+                  name={quotes[symbol]?.name ?? null}
+                  currentPrice={quotes[symbol]?.current ?? null}
+                  currentCurrency={quotes[symbol]?.currency ?? null}
+                  dividendEvents={quotes[symbol]?.dividends ?? []}
+                  loading={!quotes[symbol]}
+                  displayCurrency={currency}
+                  rates={rates}
+                  onEdit={startEdit}
+                  onRemove={onRemoveHolding}
+                />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     </div>

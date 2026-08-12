@@ -7,7 +7,7 @@ import { tagHue } from '../tagColor.js'
 import styles from './HoldingCard.module.css'
 
 export default function HoldingCard({
-  symbol, holding, currentPrice, currentCurrency, dividendEvents, loading, displayCurrency, rates,
+  symbol, holding, name, currentPrice, currentCurrency, dividendEvents, loading, displayCurrency, rates,
   onEdit, onRemove,
 }) {
   const { s } = useLang()
@@ -30,6 +30,7 @@ export default function HoldingCard({
           <TickerLogo symbol={symbol} size={36} />
           <div className={styles.titleBlock}>
             <div className={styles.symbol}>{symbol}</div>
+            {name && <div className={styles.name}>{name}</div>}
             <div className={styles.qtyLine}>{formatQty(holding.qty)} @ {formatPrice(holding.avgCost, holding.costCurrency)}</div>
           </div>
         </div>
