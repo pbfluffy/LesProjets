@@ -118,10 +118,24 @@ const IMPORT_RATE_LIMIT_MAX = 8
 const IMPORT_RATE_LIMIT_WINDOW_SECONDS = 60 * 60
 const VISION_MODEL = '@cf/meta/llama-3.2-11b-vision-instruct'
 
-const EXTRACTION_PROMPT = `You are reading one page of a brokerage account statement, which may be in Thai and/or English. If this image contains a holdings table (columns like Stock Name/Symbol, Shares, Average Cost, Price — headers may be in Thai), return a JSON array with one object per holdings row: {"symbol": the ticker/symbol shown for that row (not the full company name), "shares": the number of shares as a plain number, "avgCost": the average cost per share as a plain number, "currency": the 3-letter currency code the table is denominated in, or "USD" if not shown}. Skip subtotal/total rows. If this image has no such holdings table, return exactly []. Respond with ONLY the raw JSON array — no explanation, no markdown code fences.`
+const EXTRACTION_PROMPT = `This image may be one page of a brokerage statement (Thai and/or English) with a per-stock holdings table: Stock Name, Allocation % (ends with %), Shares (a share count specific to that one stock, e.g. 0.1976964 or 159.5), Average Cost (currency amount per share), Price, and other columns.
+
+Only extract from that exact table. Do NOT extract from a sector/industry allocation summary (rows like "Technology", "Real Estate", "ETF" naming a category, not a stock — these have no per-share Shares/Average Cost column) and do NOT extract from a grid of fund-company names or logos (e.g. "KTAM", "KAsset", "SCBAM") — those are not stock holdings either. If you are not looking at individual stock tickers each with their own share count and per-share average cost, output [].
+
+If the real per-stock holdings table is present, output a JSON array, one object per stock row: {"symbol": ticker text, "shares": value from the Shares column, "avgCost": value from the Average Cost column, "currency": 3-letter currency code or "USD"}. Skip any row labeled Total/รวม.
+
+Output only the JSON array, nothing else — no explanation before or after it.`
 
 function stripJsonFences(text) {
-  return String(text || '').replace(/```json/gi, '').replace(/```/g, '').trim()
+  const stripped = String(text || '').replace(/```json/gi, '').replace(/```/g, '').trim()
+  // The model sometimes wraps the array in explanatory prose despite being
+  // told not to ("Here is the output... [1,2,3]") — pull out just the
+  // outermost [...] substring rather than requiring the whole response to
+  // be clean JSON.
+  const start = stripped.indexOf('[')
+  const end = stripped.lastIndexOf(']')
+  if (start === -1 || end === -1 || end < start) return stripped
+  return stripped.slice(start, end + 1)
 }
 
 // A page with no table, a model hiccup, or a malformed response all just
@@ -135,16 +149,22 @@ async function extractPageHoldings(env, bytes) {
       image: [...new Uint8Array(bytes)],
       prompt: EXTRACTION_PROMPT,
       max_tokens: 1024,
+      temperature: 0,
     })
   } catch {
     return []
   }
 
-  let parsed
-  try {
-    parsed = JSON.parse(stripJsonFences(result?.response))
-  } catch {
-    return []
+  // The model sometimes returns `response` as an already-parsed array
+  // (structured JSON mode) and sometimes as a JSON string — handle both
+  // rather than assuming one.
+  let parsed = result?.response
+  if (!Array.isArray(parsed)) {
+    try {
+      parsed = JSON.parse(stripJsonFences(parsed))
+    } catch {
+      return []
+    }
   }
   if (!Array.isArray(parsed)) return []
 
