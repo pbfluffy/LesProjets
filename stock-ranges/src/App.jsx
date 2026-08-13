@@ -8,6 +8,8 @@ import AccountButton from './components/AccountButton.jsx'
 import ConflictModal from './components/ConflictModal.jsx'
 import Icon from './components/Icon.jsx'
 import { TAG_DATALIST_ID } from './components/TagChips.jsx'
+import TagManagerModal from './components/TagManagerModal.jsx'
+import UndoToast from './components/UndoToast.jsx'
 import WalletView from './components/WalletView.jsx'
 import { tagHue } from './tagColor.js'
 import styles from './App.module.css'
@@ -28,6 +30,7 @@ const SYMBOL_RE = /^[A-Za-z0-9.\-=^]{1,10}$/
 const RANGES = ['1d', '7d', '3mo', '6mo', '1y', '2y', '5y']
 const RANGE_LABEL_KEY = { '1d': 'range1d', '7d': 'range7d', '3mo': 'range3mo', '6mo': 'range6mo', '1y': 'range1y', '2y': 'range2y', '5y': 'range5y' }
 const RELATIVE_TIME_TICK_MS = 30 * 1000
+const UNDO_TIMEOUT_MS = 6000
 
 function formatRelativeTime(ts, now, s) {
   if (!ts) return null
@@ -110,6 +113,8 @@ function Dashboard() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
   const [highlightSymbol, setHighlightSymbol] = useState(null)
+  const [undoInfo, setUndoInfo] = useState(null)
+  const [tagManagerOpen, setTagManagerOpen] = useState(false)
 
   useEffect(() => {
     localStorage.setItem(WATCHLIST_KEY, JSON.stringify(watchlist))
@@ -183,7 +188,12 @@ function Dashboard() {
     setWatchlist((list) => [...list, symbol])
   }
 
+  // Tags are a property of the symbol, not of watchlist/holdings
+  // membership (they're shared between both lists) — removing a ticker
+  // here no longer wipes its tags, since the same symbol might still be
+  // held in the Wallet (or vice versa in removeHolding below).
   function removeTicker(symbol) {
+    const index = watchlist.indexOf(symbol)
     setWatchlist((list) => list.filter((t) => t !== symbol))
     setSignals((prev) => {
       if (!(symbol in prev)) return prev
@@ -191,12 +201,7 @@ function Dashboard() {
       delete next[symbol]
       return next
     })
-    setTags((prev) => {
-      if (!(symbol in prev)) return prev
-      const next = { ...prev }
-      delete next[symbol]
-      return next
-    })
+    showUndo('ticker', symbol, { index })
   }
 
   function handleStatus(symbol, info) {
@@ -225,6 +230,12 @@ function Dashboard() {
     setTimeout(() => setRefreshing(false), 1500)
   }
 
+  useEffect(() => {
+    if (!undoInfo) return
+    const timer = setTimeout(() => setUndoInfo(null), UNDO_TIMEOUT_MS)
+    return () => clearTimeout(timer)
+  }, [undoInfo])
+
   function addTag(symbol, tag) {
     setTags((prev) => ({ ...prev, [symbol]: [...(prev[symbol] || []), tag] }))
   }
@@ -238,17 +249,78 @@ function Dashboard() {
     })
   }
 
+  // Renames a tag on every symbol that has it — a typo'd tag otherwise has
+  // to be fixed one ticker at a time. Merges into an existing tag of the
+  // new name if one already exists rather than creating a duplicate.
+  function renameTag(oldTag, newTag) {
+    const trimmed = newTag.trim()
+    if (!trimmed || trimmed === oldTag) return
+    setTags((prev) => {
+      const next = {}
+      Object.entries(prev).forEach(([symbol, list]) => {
+        if (!list.includes(oldTag)) { next[symbol] = list; return }
+        next[symbol] = [...new Set(list.map((t) => (t === oldTag ? trimmed : t)))]
+      })
+      return next
+    })
+    setActiveTagFilters((prev) => {
+      if (!prev.has(oldTag)) return prev
+      const next = new Set(prev)
+      next.delete(oldTag)
+      next.add(trimmed)
+      return next
+    })
+  }
+
+  function deleteTagEverywhere(tag) {
+    setTags((prev) => {
+      const next = {}
+      Object.entries(prev).forEach(([symbol, list]) => { next[symbol] = list.filter((t) => t !== tag) })
+      return next
+    })
+    setActiveTagFilters((prev) => {
+      if (!prev.has(tag)) return prev
+      const next = new Set(prev)
+      next.delete(tag)
+      return next
+    })
+  }
+
   function addOrUpdateHolding(symbol, data) {
     setHoldings((prev) => ({ ...prev, [symbol]: data }))
   }
 
   function removeHolding(symbol) {
+    const data = holdings[symbol]
     setHoldings((prev) => {
       if (!(symbol in prev)) return prev
       const next = { ...prev }
       delete next[symbol]
       return next
     })
+    showUndo('holding', symbol, { data })
+  }
+
+  // A single undo slot — removing a second item while one is still
+  // pending replaces it, same as most snackbar UIs (only the latest
+  // action is undoable).
+  function showUndo(type, symbol, data) {
+    setUndoInfo({ type, symbol, data })
+  }
+
+  function handleUndo() {
+    if (!undoInfo) return
+    if (undoInfo.type === 'ticker') {
+      setWatchlist((list) => {
+        if (list.includes(undoInfo.symbol)) return list
+        const next = [...list]
+        next.splice(Math.min(undoInfo.data.index, next.length), 0, undoInfo.symbol)
+        return next
+      })
+    } else {
+      setHoldings((prev) => ({ ...prev, [undoInfo.symbol]: undoInfo.data.data }))
+    }
+    setUndoInfo(null)
   }
 
   function toggleTagFilter(tag) {
@@ -381,12 +453,32 @@ function Dashboard() {
               {tag}
             </button>
           ))}
+          <button
+            type="button"
+            className={styles.manageTagsBtn}
+            onClick={() => setTagManagerOpen(true)}
+            aria-label={s.manageTagsTitle}
+            title={s.manageTagsTitle}
+          >
+            <Icon name="edit" size={11} />
+          </button>
         </div>
       )}
 
       <datalist id={TAG_DATALIST_ID}>
         {allTags.map((tag) => <option key={tag} value={tag} />)}
       </datalist>
+
+      {tagManagerOpen && (
+        <TagManagerModal
+          tags={allTags}
+          onRename={renameTag}
+          onDelete={deleteTagEverywhere}
+          onClose={() => setTagManagerOpen(false)}
+        />
+      )}
+
+      {undoInfo && <UndoToast symbol={undoInfo.symbol} onUndo={handleUndo} />}
 
       {tab === 'wallet' ? (
         <WalletView
@@ -439,6 +531,7 @@ function Dashboard() {
           className={styles.chartTypeBtn}
           onClick={() => setChartType((t) => (t === 'line' ? 'candle' : 'line'))}
           title={chartType === 'line' ? s.chartTypeSwitchToCandle : s.chartTypeSwitchToLine}
+          aria-label={chartType === 'line' ? s.chartTypeSwitchToCandle : s.chartTypeSwitchToLine}
         >
           <Icon name={chartType === 'line' ? 'trendingUp' : 'candlestick'} size={15} />
         </button>
