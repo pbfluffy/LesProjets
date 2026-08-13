@@ -374,6 +374,14 @@ function Dashboard() {
     return [...set].sort((a, b) => a.localeCompare(b))
   }, [tags])
 
+  // How many symbols each tag is on — shown in the Tag Manager so a
+  // rename/delete decision isn't made blind.
+  const tagCounts = useMemo(() => {
+    const counts = {}
+    Object.values(tags).forEach((list) => (list || []).forEach((t) => { counts[t] = (counts[t] || 0) + 1 }))
+    return counts
+  }, [tags])
+
   // Drop any active filter for a tag that no longer exists on anything
   // (e.g. it was removed from the only ticker that had it) instead of
   // silently filtering the list down to nothing.
@@ -484,6 +492,7 @@ function Dashboard() {
       {tagManagerOpen && (
         <TagManagerModal
           tags={allTags}
+          counts={tagCounts}
           onRename={renameTag}
           onDelete={deleteTagEverywhere}
           onClose={() => setTagManagerOpen(false)}

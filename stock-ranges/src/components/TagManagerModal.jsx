@@ -4,10 +4,14 @@ import { useLang } from '../LangContext.jsx'
 import Icon from './Icon.jsx'
 import styles from './TagManagerModal.module.css'
 
+function interp(str, vars) {
+  return str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '')
+}
+
 // Renaming/deleting here applies everywhere a tag is used, across both
 // the Watchlist and Wallet — a typo'd tag otherwise has to be fixed one
 // ticker at a time (see renameTag/deleteTagEverywhere in App.jsx).
-export default function TagManagerModal({ tags, onRename, onDelete, onClose }) {
+export default function TagManagerModal({ tags, counts, onRename, onDelete, onClose }) {
   const { s } = useLang()
 
   useEffect(() => {
@@ -43,6 +47,9 @@ export default function TagManagerModal({ tags, onRename, onDelete, onClose }) {
                 }}
                 aria-label={`${s.renameTagLabel} ${tag}`}
               />
+              <span className={styles.count} title={interp(s.tagUsageLabel, { n: counts[tag] ?? 0 })}>
+                {counts[tag] ?? 0}
+              </span>
               <button
                 type="button"
                 className={styles.deleteBtn}
