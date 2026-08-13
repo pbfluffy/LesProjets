@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLang } from '../LangContext.jsx'
 import { fetchQuote } from '../stockApi.js'
@@ -7,6 +7,7 @@ import { formatPrice, maskPrice } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, groupSymbolsByInstrumentType, sortHoldingSymbols } from '../wallet.js'
 import { generateSummaryImage } from '../shareImage.js'
 import { loadPortfolioHistory, recordPortfolioSnapshot } from '../portfolioHistory.js'
+import { usePortfolioHistorySync } from '../hooks/usePortfolioHistorySync.js'
 import Icon from './Icon.jsx'
 import AddHoldingForm from './AddHoldingForm.jsx'
 import HoldingCard from './HoldingCard.jsx'
@@ -27,7 +28,7 @@ const SORT_LABEL_KEY = { value: 'sortValue', pl: 'sortPL', alpha: 'sortAlpha', y
 // needed for P/L regardless of range.
 export default function WalletView({
   holdings, currency, rates,
-  onAddHolding, onRemoveHolding, actionsPortalNode,
+  onAddHolding, onRemoveHolding, actionsPortalNode, user, watchlist, refreshKey,
 }) {
   const { s } = useLang()
   const [quotes, setQuotes] = useState({})
@@ -38,8 +39,10 @@ export default function WalletView({
   const [sharing, setSharing] = useState(false)
   const [sortBy, setSortBy] = useState(() => localStorage.getItem(SORT_KEY) || 'value')
   const [history, setHistory] = useState(() => loadPortfolioHistory())
+  const { pushSnapshot } = usePortfolioHistorySync(user, setHistory)
 
   const symbols = useMemo(() => Object.keys(holdings), [holdings])
+  const watchedSet = useMemo(() => new Set(watchlist || []), [watchlist])
 
   useEffect(() => {
     localStorage.setItem(MASK_KEY, masked ? '1' : '0')
@@ -49,10 +52,17 @@ export default function WalletView({
     localStorage.setItem(SORT_KEY, sortBy)
   }, [sortBy])
 
+  // Re-fetches everything (ignoring the "already have it" cache below)
+  // when refreshKey changes rather than just when a symbol is added —
+  // tracked via a ref since including `quotes` itself in the deps would
+  // re-run this on every fetch completion.
+  const prevRefreshKey = useRef(refreshKey)
   useEffect(() => {
+    const isRefresh = prevRefreshKey.current !== refreshKey
+    prevRefreshKey.current = refreshKey
     symbols.forEach((symbol) => {
-      if (quotes[symbol]) return
-      fetchQuote(symbol, '2y')
+      if (!isRefresh && quotes[symbol]) return
+      fetchQuote(symbol, '2y', { bypassCache: isRefresh })
         .then((data) => setQuotes((prev) => ({
           ...prev,
           [symbol]: {
@@ -65,7 +75,7 @@ export default function WalletView({
           [symbol]: { current: null, currency: null, dividends: [], name: null, instrumentType: null },
         })))
     })
-  }, [symbols]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [symbols, refreshKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const summary = useMemo(() => {
     let costBasis = 0
@@ -97,9 +107,10 @@ export default function WalletView({
   const allQuotesResolved = symbols.length > 0 && symbols.every((symbol) => quotes[symbol])
   useEffect(() => {
     if (!allQuotesResolved) return
-    recordPortfolioSnapshot({ marketValue: summary.marketValue, costBasis: summary.costBasis, currency })
+    const entry = recordPortfolioSnapshot({ marketValue: summary.marketValue, costBasis: summary.costBasis, currency })
     setHistory(loadPortfolioHistory())
-  }, [allQuotesResolved, summary.marketValue, summary.costBasis, currency])
+    pushSnapshot(entry)
+  }, [allQuotesResolved, summary.marketValue, summary.costBasis, currency]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function startEdit(symbol) {
     setEditingSymbol(symbol)
@@ -298,6 +309,7 @@ export default function WalletView({
                   displayCurrency={currency}
                   rates={rates}
                   masked={masked}
+                  watched={watchedSet.has(symbol)}
                   onEdit={startEdit}
                   onRemove={onRemoveHolding}
                 />

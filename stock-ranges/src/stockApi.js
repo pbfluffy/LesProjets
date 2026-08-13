@@ -30,9 +30,11 @@ function writeCache(key, data) {
 
 // Returns { symbol, name, currency, current, prices } or throws with a
 // short user-facing message on failure (unknown ticker, network error, ...).
-export async function fetchQuote(symbol, range) {
+// `bypassCache` skips the session cache read (used by the manual refresh
+// button) but still writes the fresh result, so later normal calls benefit.
+export async function fetchQuote(symbol, range, { bypassCache = false } = {}) {
   const key = `${symbol}:${range}`
-  const cached = readCache(key)
+  const cached = !bypassCache && readCache(key)
   if (cached) return cached
 
   if (!WORKER_URL) {

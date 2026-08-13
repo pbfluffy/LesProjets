@@ -10,7 +10,7 @@ import styles from './HoldingCard.module.css'
 
 export default function HoldingCard({
   symbol, holding, name, currentPrice, currentCurrency, dividendEvents, loading, displayCurrency, rates,
-  onEdit, onRemove, masked,
+  onEdit, onRemove, masked, watched,
 }) {
   const { s } = useLang()
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -26,6 +26,10 @@ export default function HoldingCard({
   const cadence = projectedOk ? inferDividendCadence(dividendEvents) : 'quarter'
   const periods = projectedOk ? groupDividendsByPeriod(dividendEvents, holding.qty, cadence) : []
   const cv = (amount) => convert(amount, currentCurrency, displayCurrency, rates)
+  const convertedAnnualDividend = projectedOk ? cv(projected.trailingTwelveMonth) : null
+  const yieldPercent = (projectedOk && pl && pl.marketValue > 0 && convertedAnnualDividend !== null)
+    ? (convertedAnnualDividend / pl.marketValue) * 100
+    : null
 
   return (
     <div className={styles.card} style={{ '--tag-hue': tagHue(symbol) }}>
@@ -33,7 +37,14 @@ export default function HoldingCard({
         <div className={styles.identity}>
           <TickerLogo symbol={symbol} size={36} />
           <div className={styles.titleBlock}>
-            <div className={styles.symbol}>{symbol}</div>
+            <div className={styles.symbol}>
+              {symbol}
+              {watched && (
+                <span className={styles.watchedBadge} title={s.watchedBadgeTitle}>
+                  <Icon name="eye" size={10} strokeWidth={2.25} />
+                </span>
+              )}
+            </div>
             {name && <div className={styles.name}>{name}</div>}
             <div className={styles.qtyLine}>{formatQty(holding.qty)} @ {mp(holding.avgCost, holding.costCurrency)}</div>
           </div>
@@ -85,6 +96,9 @@ export default function HoldingCard({
               <div className={styles.stat}><span>{s.estPerMonth}</span><strong>{mp(cv(projected.perMonth), displayCurrency)}</strong></div>
               <div className={styles.stat}><span>{s.estPerQuarter}</span><strong>{mp(cv(projected.perQuarter), displayCurrency)}</strong></div>
               <div className={styles.stat}><span>{s.trailingTwelveMonth}</span><strong>{mp(cv(projected.trailingTwelveMonth), displayCurrency)}</strong></div>
+              {yieldPercent !== null && (
+                <div className={styles.stat}><span>{s.dividendYieldLabel}</span><strong>{yieldPercent.toFixed(2)}%</strong></div>
+              )}
             </div>
             <button
               type="button"

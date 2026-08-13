@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchQuote } from '../stockApi.js'
 import { computeDeciles } from '../deciles.js'
 import { convert } from '../fx.js'
-import { formatPrice, dayChange } from '../format.js'
+import { formatPrice, formatQty, dayChange } from '../format.js'
 import DecileGauge from './DecileGauge.jsx'
 import TagChips from './TagChips.jsx'
 import TickerLogo from './TickerLogo.jsx'
@@ -14,18 +14,21 @@ import styles from './TickerCard.module.css'
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
 const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
 
-export default function TickerCard({ symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, onRemove, onStatus }) {
+export default function TickerCard({ symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, onRemove, onStatus, refreshKey, ownedQty }) {
   const { s, lang } = useLang()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
+  const prevRefreshKey = useRef(refreshKey)
 
   useEffect(() => {
     let cancelled = false
+    const isRefresh = prevRefreshKey.current !== refreshKey
+    prevRefreshKey.current = refreshKey
     setState({ status: 'loading', data: null, error: null })
-    fetchQuote(symbol, range)
+    fetchQuote(symbol, range, { bypassCache: isRefresh })
       .then((data) => { if (!cancelled) setState({ status: 'ready', data, error: null }) })
       .catch((err) => { if (!cancelled) setState({ status: 'error', data: null, error: err.message }) })
     return () => { cancelled = true }
-  }, [symbol, range])
+  }, [symbol, range, refreshKey])
 
   const deciles = state.status === 'ready'
     ? computeDeciles({ prices: state.data.prices, current: state.data.current })
@@ -48,7 +51,14 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
         <div className={styles.identity}>
           <TickerLogo symbol={symbol} size={36} />
           <div className={styles.titleBlock}>
-            <div className={styles.symbol}>{symbol}</div>
+            <div className={styles.symbol}>
+              {symbol}
+              {ownedQty != null && (
+                <span className={styles.ownedBadge} title={`${s.ownedBadgeTitle}: ${formatQty(ownedQty)}`}>
+                  <Icon name="briefcase" size={10} strokeWidth={2.25} />
+                </span>
+              )}
+            </div>
             {state.data && <div className={styles.name}>{state.data.name}</div>}
           </div>
         </div>

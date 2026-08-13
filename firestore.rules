@@ -217,6 +217,9 @@ service cloud.firestore {
                    && request.resource.data.currency is string
                    && (!('tags' in request.resource.data) || request.resource.data.tags is map)
                    && (!('holdings' in request.resource.data) || request.resource.data.holdings is map)
+                   && (!('portfolioHistory' in request.resource.data)
+                       || (request.resource.data.portfolioHistory is map
+                           && request.resource.data.portfolioHistory.size() <= 400))
                    && (!('lastModified' in request.resource.data)
                        || request.resource.data.lastModified is timestamp
                        || request.resource.data.lastModified is number);

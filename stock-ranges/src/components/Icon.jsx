@@ -80,6 +80,19 @@ const PATHS = {
       <line x1="20" y1="16" x2="20" y2="21" />
     </>
   ),
+  refresh: (
+    <>
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </>
+  ),
+  briefcase: (
+    <>
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+    </>
+  ),
 }
 
 // One inline stroke-icon set (feather-style, 24x24, currentColor) used

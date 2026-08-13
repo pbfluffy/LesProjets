@@ -35,6 +35,21 @@
   font-weight: 700;
   font-family: var(--font-mono);
   letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ownedBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  flex-shrink: 0;
 }
 
 .name {

@@ -107,6 +107,7 @@ function Dashboard() {
   const [warning, setWarning] = useState('')
   const [signals, setSignals] = useState({})
   const [now, setNow] = useState(() => Date.now())
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     localStorage.setItem(WATCHLIST_KEY, JSON.stringify(watchlist))
@@ -326,6 +327,9 @@ function Dashboard() {
             <button className={styles.ctrlBtn} onClick={toggleTheme} title={dark ? s.themeToggleLight : s.themeToggleDark} aria-label={dark ? s.themeToggleLight : s.themeToggleDark}>
               <Icon name={dark ? 'sun' : 'moon'} size={16} />
             </button>
+            <button className={styles.ctrlBtn} onClick={() => setRefreshKey((k) => k + 1)} title={s.refreshBtn} aria-label={s.refreshBtn}>
+              <Icon name="refresh" size={15} />
+            </button>
           </div>
           <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} />
         </div>
@@ -347,6 +351,9 @@ function Dashboard() {
           onAddHolding={addOrUpdateHolding}
           onRemoveHolding={removeHolding}
           actionsPortalNode={tabActionsEl}
+          user={cloudSync.user}
+          watchlist={watchlist}
+          refreshKey={refreshKey}
         />
       ) : (
       <>
@@ -432,6 +439,8 @@ function Dashboard() {
               onRemoveTag={(tag) => removeTag(symbol, tag)}
               onRemove={removeTicker}
               onStatus={handleStatus}
+              refreshKey={refreshKey}
+              ownedQty={holdings[symbol]?.qty ?? null}
             />
           ))}
         </div>
