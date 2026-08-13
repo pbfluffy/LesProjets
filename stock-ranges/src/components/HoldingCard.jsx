@@ -4,13 +4,14 @@ import { convert } from '../fx.js'
 import { formatPrice, formatQty, maskPrice } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, groupDividendsByPeriod, inferDividendCadence } from '../wallet.js'
 import TickerLogo from './TickerLogo.jsx'
+import TagChips from './TagChips.jsx'
 import { tagHue } from '../tagColor.js'
 import Icon from './Icon.jsx'
 import styles from './HoldingCard.module.css'
 
 export default function HoldingCard({
   symbol, holding, name, currentPrice, currentCurrency, dividendEvents, loading, displayCurrency, rates,
-  onEdit, onRemove, masked, watched, onWatchedClick, highlighted,
+  onEdit, onRemove, masked, watched, onWatchedClick, highlighted, tags = [], onAddTag, onRemoveTag,
 }) {
   const { s } = useLang()
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -68,6 +69,8 @@ export default function HoldingCard({
           <button className={styles.iconBtn} onClick={() => onRemove(symbol)} aria-label={s.removeHoldingLabel} title={s.removeHoldingLabel}><Icon name="x" size={14} /></button>
         </div>
       </div>
+
+      <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} />
 
       {loading ? (
         <div className={styles.statsRow}>

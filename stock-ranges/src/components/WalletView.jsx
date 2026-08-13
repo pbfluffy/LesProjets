@@ -29,7 +29,7 @@ const SORT_LABEL_KEY = { value: 'sortValue', pl: 'sortPL', alpha: 'sortAlpha', y
 export default function WalletView({
   holdings, currency, rates,
   onAddHolding, onRemoveHolding, actionsPortalNode, user, watchlist, refreshKey,
-  highlightSymbol, onWatchedClick,
+  highlightSymbol, onWatchedClick, tags, onAddTag, onRemoveTag, activeTagFilters,
 }) {
   const { s } = useLang()
   const [quotes, setQuotes] = useState({})
@@ -159,7 +159,15 @@ export default function WalletView({
 
   const sortedSymbols = useMemo(() => sortHoldingSymbols(symbols, sortBy, metrics), [symbols, sortBy, metrics])
 
-  const groupedSymbols = useMemo(() => groupSymbolsByInstrumentType(sortedSymbols, quotes), [sortedSymbols, quotes])
+  // Tag filtering only narrows which cards render — summary/allocation
+  // stats below stay computed over every holding, same as the Watchlist's
+  // buy/hold/sell counts ignoring its own tag filter.
+  const tagFilteredSymbols = useMemo(() => {
+    if (!activeTagFilters || activeTagFilters.size === 0) return sortedSymbols
+    return sortedSymbols.filter((symbol) => (tags[symbol] || []).some((t) => activeTagFilters.has(t)))
+  }, [sortedSymbols, tags, activeTagFilters])
+
+  const groupedSymbols = useMemo(() => groupSymbolsByInstrumentType(tagFilteredSymbols, quotes), [tagFilteredSymbols, quotes])
 
   // Per-holding market value for the allocation pie — only symbols whose
   // quote has resolved contribute a slice; the rest just aren't drawn yet
@@ -261,6 +269,7 @@ export default function WalletView({
       )}
 
       {symbols.length === 0 && !formOpen && <div className={styles.empty}>{s.walletEmpty}</div>}
+      {symbols.length > 0 && tagFilteredSymbols.length === 0 && <div className={styles.empty}>{s.noTagMatches}</div>}
 
       {formOpen ? (
         <AddHoldingForm
@@ -313,6 +322,9 @@ export default function WalletView({
                   watched={watchedSet.has(symbol)}
                   onWatchedClick={onWatchedClick ? () => onWatchedClick(symbol) : undefined}
                   highlighted={symbol === highlightSymbol}
+                  tags={tags[symbol] || []}
+                  onAddTag={(tag) => onAddTag(symbol, tag)}
+                  onRemoveTag={(tag) => onRemoveTag(symbol, tag)}
                   onEdit={startEdit}
                   onRemove={onRemoveHolding}
                 />

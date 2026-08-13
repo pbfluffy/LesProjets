@@ -367,6 +367,27 @@ function Dashboard() {
         <div className={styles.tabActions} ref={setTabActionsEl} />
       </div>
 
+      {allTags.length > 0 && (
+        <div className={styles.tagFilterRow}>
+          <span className={styles.tagFilterLabel}>{s.filterByTag}</span>
+          {allTags.map((tag) => (
+            <button
+              key={tag}
+              className={styles.tagFilterChip}
+              data-active={activeTagFilters.has(tag)}
+              style={{ '--tag-hue': tagHue(tag) }}
+              onClick={() => toggleTagFilter(tag)}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <datalist id={TAG_DATALIST_ID}>
+        {allTags.map((tag) => <option key={tag} value={tag} />)}
+      </datalist>
+
       {tab === 'wallet' ? (
         <WalletView
           holdings={holdings}
@@ -380,6 +401,10 @@ function Dashboard() {
           refreshKey={refreshKey}
           highlightSymbol={highlightSymbol}
           onWatchedClick={(symbol) => jumpToSymbol(symbol, 'watchlist')}
+          tags={tags}
+          onAddTag={addTag}
+          onRemoveTag={removeTag}
+          activeTagFilters={activeTagFilters}
         />
       ) : (
       <>
@@ -424,27 +449,6 @@ function Dashboard() {
           </span>
         )}
       </div>
-
-      {allTags.length > 0 && (
-        <div className={styles.tagFilterRow}>
-          <span className={styles.tagFilterLabel}>{s.filterByTag}</span>
-          {allTags.map((tag) => (
-            <button
-              key={tag}
-              className={styles.tagFilterChip}
-              data-active={activeTagFilters.has(tag)}
-              style={{ '--tag-hue': tagHue(tag) }}
-              onClick={() => toggleTagFilter(tag)}
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <datalist id={TAG_DATALIST_ID}>
-        {allTags.map((tag) => <option key={tag} value={tag} />)}
-      </datalist>
 
       {watchlist.length === 0 ? (
         <div className={styles.empty}>{s.emptyWatchlist}</div>
