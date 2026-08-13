@@ -273,6 +273,7 @@ function Dashboard() {
   }
 
   function deleteTagEverywhere(tag) {
+    const affectedSymbols = Object.entries(tags).filter(([, list]) => list.includes(tag)).map(([symbol]) => symbol)
     setTags((prev) => {
       const next = {}
       Object.entries(prev).forEach(([symbol, list]) => { next[symbol] = list.filter((t) => t !== tag) })
@@ -284,6 +285,7 @@ function Dashboard() {
       next.delete(tag)
       return next
     })
+    showUndo('tag', tag, { symbols: affectedSymbols })
   }
 
   function addOrUpdateHolding(symbol, data) {
@@ -315,6 +317,16 @@ function Dashboard() {
         if (list.includes(undoInfo.symbol)) return list
         const next = [...list]
         next.splice(Math.min(undoInfo.data.index, next.length), 0, undoInfo.symbol)
+        return next
+      })
+    } else if (undoInfo.type === 'tag') {
+      const tag = undoInfo.symbol
+      setTags((prev) => {
+        const next = { ...prev }
+        undoInfo.data.symbols.forEach((symbol) => {
+          const current = next[symbol] || []
+          if (!current.includes(tag)) next[symbol] = [...current, tag]
+        })
         return next
       })
     } else {
@@ -478,7 +490,7 @@ function Dashboard() {
         />
       )}
 
-      {undoInfo && <UndoToast symbol={undoInfo.symbol} onUndo={handleUndo} />}
+      {undoInfo && <UndoToast type={undoInfo.type} label={undoInfo.symbol} onUndo={handleUndo} />}
 
       {tab === 'wallet' ? (
         <WalletView
