@@ -61,6 +61,25 @@ const PATHS = {
       <line x1="19" y1="19" x2="19" y2="3" />
     </>
   ),
+  trendingUp: (
+    <>
+      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+      <polyline points="17 6 23 6 23 12" />
+    </>
+  ),
+  candlestick: (
+    <>
+      <line x1="6" y1="2" x2="6" y2="8" />
+      <rect x="4" y="8" width="4" height="7" fill="currentColor" stroke="none" />
+      <line x1="6" y1="15" x2="6" y2="21" />
+      <line x1="14" y1="5" x2="14" y2="9" />
+      <rect x="12" y="9" width="4" height="6" fill="currentColor" stroke="none" />
+      <line x1="14" y1="15" x2="14" y2="19" />
+      <line x1="20" y1="3" x2="20" y2="7" />
+      <rect x="18" y="7" width="4" height="9" fill="currentColor" stroke="none" />
+      <line x1="20" y1="16" x2="20" y2="21" />
+    </>
+  ),
 }
 
 // One inline stroke-icon set (feather-style, 24x24, currentColor) used

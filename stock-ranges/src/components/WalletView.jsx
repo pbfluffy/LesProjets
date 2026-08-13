@@ -6,11 +6,13 @@ import { convert } from '../fx.js'
 import { formatPrice, maskPrice } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, groupSymbolsByInstrumentType, sortHoldingSymbols } from '../wallet.js'
 import { generateSummaryImage } from '../shareImage.js'
+import { loadPortfolioHistory, recordPortfolioSnapshot } from '../portfolioHistory.js'
 import Icon from './Icon.jsx'
 import AddHoldingForm from './AddHoldingForm.jsx'
 import HoldingCard from './HoldingCard.jsx'
 import ImportPdfModal from './ImportPdfModal.jsx'
 import AllocationChart from './AllocationChart.jsx'
+import PortfolioHistoryChart from './PortfolioHistoryChart.jsx'
 import styles from './WalletView.module.css'
 
 const GROUP_LABEL_KEY = { EQUITY: 'groupCommonStock', ETF: 'groupETF', OTHER: 'groupOther' }
@@ -35,6 +37,7 @@ export default function WalletView({
   const [masked, setMasked] = useState(() => localStorage.getItem(MASK_KEY) === '1')
   const [sharing, setSharing] = useState(false)
   const [sortBy, setSortBy] = useState(() => localStorage.getItem(SORT_KEY) || 'value')
+  const [history, setHistory] = useState(() => loadPortfolioHistory())
 
   const symbols = useMemo(() => Object.keys(holdings), [holdings])
 
@@ -87,6 +90,16 @@ export default function WalletView({
     })
     return { costBasis, marketValue, unrealizedPL: marketValue - costBasis, perMonth, perQuarter }
   }, [symbols, holdings, quotes, currency, rates])
+
+  // Records today's market-value snapshot once every holding's quote has
+  // resolved — records the same day's entry again on a later visit
+  // (overwriting, not duplicating) rather than needing a scheduled job.
+  const allQuotesResolved = symbols.length > 0 && symbols.every((symbol) => quotes[symbol])
+  useEffect(() => {
+    if (!allQuotesResolved) return
+    recordPortfolioSnapshot({ marketValue: summary.marketValue, costBasis: summary.costBasis, currency })
+    setHistory(loadPortfolioHistory())
+  }, [allQuotesResolved, summary.marketValue, summary.costBasis, currency])
 
   function startEdit(symbol) {
     setEditingSymbol(symbol)
@@ -225,6 +238,10 @@ export default function WalletView({
             <strong>{masked ? maskPrice(currency) : formatPrice(summary.perQuarter, currency)}</strong>
           </div>
         </div>
+      )}
+
+      {symbols.length > 0 && (
+        <PortfolioHistoryChart history={history} currency={currency} rates={rates} masked={masked} />
       )}
 
       {allocationItems.length > 0 && (

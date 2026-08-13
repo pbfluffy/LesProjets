@@ -382,7 +382,7 @@ function Dashboard() {
           onClick={() => setChartType((t) => (t === 'line' ? 'candle' : 'line'))}
           title={chartType === 'line' ? s.chartTypeSwitchToCandle : s.chartTypeSwitchToLine}
         >
-          {chartType === 'line' ? '📈' : '🕯️'}
+          <Icon name={chartType === 'line' ? 'trendingUp' : 'candlestick'} size={15} />
         </button>
         {lastUpdated && (
           <span className={styles.updated}>
