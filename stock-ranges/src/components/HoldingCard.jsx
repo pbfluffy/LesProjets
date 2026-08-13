@@ -5,6 +5,7 @@ import { formatPrice, formatQty, maskPrice } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, groupDividendsByPeriod, inferDividendCadence } from '../wallet.js'
 import TickerLogo from './TickerLogo.jsx'
 import { tagHue } from '../tagColor.js'
+import Icon from './Icon.jsx'
 import styles from './HoldingCard.module.css'
 
 export default function HoldingCard({
@@ -46,8 +47,8 @@ export default function HoldingCard({
               )}
             </div>
           )}
-          <button className={styles.iconBtn} onClick={() => onEdit(symbol)} aria-label={s.saveHoldingBtn} title={s.saveHoldingBtn}>✎</button>
-          <button className={styles.iconBtn} onClick={() => onRemove(symbol)} aria-label={s.removeHoldingLabel} title={s.removeHoldingLabel}>✕</button>
+          <button className={styles.iconBtn} onClick={() => onEdit(symbol)} aria-label={s.editHoldingLabel} title={s.editHoldingLabel}><Icon name="edit" size={13} /></button>
+          <button className={styles.iconBtn} onClick={() => onRemove(symbol)} aria-label={s.removeHoldingLabel} title={s.removeHoldingLabel}><Icon name="x" size={14} /></button>
         </div>
       </div>
 
@@ -92,7 +93,7 @@ export default function HoldingCard({
               aria-expanded={historyOpen}
             >
               {historyOpen ? s.hideHistory : s.showHistory} ({periods.length})
-              <span className={styles.historyChevron} data-open={historyOpen} aria-hidden="true">▾</span>
+              <span className={styles.historyChevron} data-open={historyOpen}><Icon name="chevronDown" size={12} strokeWidth={2.5} /></span>
             </button>
             {historyOpen && (
               <ul className={styles.scheduleList}>

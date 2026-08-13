@@ -8,13 +8,12 @@
 .summaryStrip {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 20px;
   flex: 1;
   min-width: 0;
-  background: var(--color-surface);
+  background: var(--color-surface-alt);
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
   padding: 14px 18px;
 }
 
@@ -22,16 +21,15 @@
   flex-shrink: 0;
   width: 38px;
   height: 38px;
-  background: var(--color-surface);
+  background: var(--color-surface-alt);
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  font-size: 16px;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.maskToggle:hover { background: var(--color-surface-alt); }
+.maskToggle:hover { background: var(--color-border); color: var(--color-text); }
 .maskToggle:disabled { opacity: 0.5; cursor: default; }
 
 .summaryStat {

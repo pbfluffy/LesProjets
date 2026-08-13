@@ -169,7 +169,7 @@
 .historyToggle:hover { color: var(--color-text); }
 
 .historyChevron {
-  display: inline-block;
+  display: inline-flex;
   transition: transform 0.15s ease;
 }
 .historyChevron[data-open='true'] { transform: rotate(180deg); }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { auth, GoogleAuthProvider, signInWithPopup, signOut } from '../firebase.js'
 import { useLang } from '../LangContext.jsx'
+import Icon from './Icon.jsx'
 import styles from './AccountButton.module.css'
 
 const STATUS_LABEL_KEY = { syncing: 'acctSyncing', synced: 'acctSynced', error: 'acctSyncError' }
@@ -50,7 +51,7 @@ export default function AccountButton({ user, syncStatus }) {
         aria-label={user ? user.email : s.acctSignIn}
         title={user ? user.email : s.acctSignIn}
       >
-        {user?.photoURL ? <img className={styles.avatarImg} src={user.photoURL} alt="" referrerPolicy="no-referrer" /> : '👤'}
+        {user?.photoURL ? <img className={styles.avatarImg} src={user.photoURL} alt="" referrerPolicy="no-referrer" /> : <Icon name="user" size={16} />}
         {dotStatus && dotStatus !== 'idle' && <span className={styles.dot} data-status={dotStatus} />}
       </button>
 

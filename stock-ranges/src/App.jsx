@@ -6,6 +6,7 @@ import TickerCard from './components/TickerCard.jsx'
 import TickerSearch from './components/TickerSearch.jsx'
 import AccountButton from './components/AccountButton.jsx'
 import ConflictModal from './components/ConflictModal.jsx'
+import Icon from './components/Icon.jsx'
 import { TAG_DATALIST_ID } from './components/TagChips.jsx'
 import WalletView from './components/WalletView.jsx'
 import { tagHue } from './tagColor.js'
@@ -285,17 +286,17 @@ function Dashboard() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <div>
-          <div className={styles.title}>{s.appName}</div>
-          <div className={styles.tagline}>{s.tagline}</div>
+        <div className={styles.brand}>
+          <div className={styles.mark} aria-hidden="true"><Icon name="bars" size={18} strokeWidth={2.25} /></div>
+          <div>
+            <div className={styles.title}>{s.appName}</div>
+            <div className={styles.tagline}>{s.tagline}</div>
+          </div>
         </div>
         <div className={styles.headerBtns}>
           <div className={styles.toolGroup}>
             <a href="../" className={styles.ctrlBtn} title={s.backToHome} aria-label="Home">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <path d="M9 22V12h6v10" />
-              </svg>
+              <Icon name="home" size={17} />
             </a>
             <button
               className={styles.ctrlBtn}
@@ -305,7 +306,9 @@ function Dashboard() {
               {currency}
             </button>
             <button className={styles.ctrlBtn} onClick={toggleLang} title={s.langToggle} aria-label={s.langToggle}>{lang === 'th' ? 'EN' : 'TH'}</button>
-            <button className={styles.ctrlBtn} onClick={toggleTheme} title={dark ? s.themeToggleLight : s.themeToggleDark} aria-label={dark ? s.themeToggleLight : s.themeToggleDark}>{dark ? '🌞' : '🌙'}</button>
+            <button className={styles.ctrlBtn} onClick={toggleTheme} title={dark ? s.themeToggleLight : s.themeToggleDark} aria-label={dark ? s.themeToggleLight : s.themeToggleDark}>
+              <Icon name={dark ? 'sun' : 'moon'} size={16} />
+            </button>
           </div>
           <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} />
         </div>

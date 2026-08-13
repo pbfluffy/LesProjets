@@ -5,6 +5,7 @@ import { convert } from '../fx.js'
 import { formatPrice, maskPrice } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, groupSymbolsByInstrumentType } from '../wallet.js'
 import { generateSummaryImage } from '../shareImage.js'
+import Icon from './Icon.jsx'
 import AddHoldingForm from './AddHoldingForm.jsx'
 import HoldingCard from './HoldingCard.jsx'
 import ImportPdfModal from './ImportPdfModal.jsx'
@@ -168,7 +169,7 @@ export default function WalletView({
             title={masked ? s.maskShow : s.maskHide}
             aria-label={masked ? s.maskShow : s.maskHide}
           >
-            {masked ? '🙈' : '👁'}
+            <Icon name={masked ? 'eyeOff' : 'eye'} size={17} />
           </button>
           <button
             type="button"
@@ -178,7 +179,7 @@ export default function WalletView({
             title={s.shareBtn}
             aria-label={s.shareBtn}
           >
-            📤
+            <Icon name="share" size={16} />
           </button>
         </div>
       )}

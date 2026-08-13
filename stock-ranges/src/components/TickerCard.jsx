@@ -8,6 +8,7 @@ import TagChips from './TagChips.jsx'
 import TickerLogo from './TickerLogo.jsx'
 import { tagHue } from '../tagColor.js'
 import { useLang } from '../LangContext.jsx'
+import Icon from './Icon.jsx'
 import styles from './TickerCard.module.css'
 
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
@@ -67,7 +68,7 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
             )
           })()}
           <button className={styles.removeBtn} onClick={() => onRemove(symbol)} aria-label={s.removeLabel} title={s.removeLabel}>
-            ✕
+            <Icon name="x" size={14} />
           </button>
         </div>
       </div>
