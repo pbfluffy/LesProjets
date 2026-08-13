@@ -161,26 +161,28 @@ export default function WalletView({
               <strong>{masked ? maskPrice(currency) : formatPrice(summary.perQuarter, currency)}</strong>
             </div>
           </div>
-          <button
-            type="button"
-            className={styles.maskToggle}
-            onClick={() => setMasked((v) => !v)}
-            aria-pressed={masked}
-            title={masked ? s.maskShow : s.maskHide}
-            aria-label={masked ? s.maskShow : s.maskHide}
-          >
-            <Icon name={masked ? 'eyeOff' : 'eye'} size={17} />
-          </button>
-          <button
-            type="button"
-            className={styles.maskToggle}
-            onClick={handleShare}
-            disabled={sharing}
-            title={s.shareBtn}
-            aria-label={s.shareBtn}
-          >
-            <Icon name="share" size={16} />
-          </button>
+          <div className={styles.toggleGroup}>
+            <button
+              type="button"
+              className={styles.maskToggle}
+              onClick={() => setMasked((v) => !v)}
+              aria-pressed={masked}
+              title={masked ? s.maskShow : s.maskHide}
+              aria-label={masked ? s.maskShow : s.maskHide}
+            >
+              <Icon name={masked ? 'eyeOff' : 'eye'} size={17} />
+            </button>
+            <button
+              type="button"
+              className={styles.maskToggle}
+              onClick={handleShare}
+              disabled={sharing}
+              title={s.shareBtn}
+              aria-label={s.shareBtn}
+            >
+              <Icon name="share" size={16} />
+            </button>
+          </div>
         </div>
       )}
 

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { tagHue } from '../tagColor.js'
 import { formatPrice, maskPrice } from '../format.js'
 import { useLang } from '../LangContext.jsx'
@@ -6,6 +7,11 @@ import styles from './AllocationChart.module.css'
 const CX = 100
 const CY = 100
 const R = 96
+const COLLAPSED_COUNT = 6
+
+function interp(str, vars) {
+  return str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '')
+}
 
 function polarToCartesian(angleDeg) {
   const rad = ((angleDeg - 90) * Math.PI) / 180
@@ -24,6 +30,7 @@ function describeSlice(startAngle, endAngle) {
 // color stays consistent between its card, the pie, and the legend.
 export default function AllocationChart({ items, total, currency, masked }) {
   const { s } = useLang()
+  const [expanded, setExpanded] = useState(false)
   if (!items.length || total <= 0) return null
 
   let cursor = 0
@@ -34,6 +41,8 @@ export default function AllocationChart({ items, total, currency, masked }) {
     cursor = endAngle
     return { ...item, pct, startAngle, endAngle }
   })
+  const visibleSlices = expanded ? slices : slices.slice(0, COLLAPSED_COUNT)
+  const hiddenCount = slices.length - visibleSlices.length
 
   return (
     <div className={styles.wrap}>
@@ -54,16 +63,23 @@ export default function AllocationChart({ items, total, currency, masked }) {
             ))
           )}
         </svg>
-        <ul className={styles.legend}>
-          {slices.map((slice) => (
-            <li key={slice.symbol}>
-              <span className={styles.dot} style={{ background: `hsl(${tagHue(slice.symbol)} 60% 60%)` }} aria-hidden="true" />
-              <span className={styles.legendSymbol}>{slice.symbol}</span>
-              <span className={styles.legendPct}>{slice.pct.toFixed(1)}%</span>
-              <span className={styles.legendValue}>{masked ? maskPrice(currency) : formatPrice(slice.value, currency)}</span>
-            </li>
-          ))}
-        </ul>
+        <div className={styles.legendCol}>
+          <ul className={styles.legend}>
+            {visibleSlices.map((slice) => (
+              <li key={slice.symbol}>
+                <span className={styles.dot} style={{ background: `hsl(${tagHue(slice.symbol)} 60% 60%)` }} aria-hidden="true" />
+                <span className={styles.legendSymbol}>{slice.symbol}</span>
+                <span className={styles.legendPct}>{slice.pct.toFixed(1)}%</span>
+                <span className={styles.legendValue}>{masked ? maskPrice(currency) : formatPrice(slice.value, currency)}</span>
+              </li>
+            ))}
+          </ul>
+          {slices.length > COLLAPSED_COUNT && (
+            <button type="button" className={styles.legendToggle} onClick={() => setExpanded((v) => !v)}>
+              {expanded ? s.allocationShowLess : interp(s.allocationShowMore, { n: hiddenCount })}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

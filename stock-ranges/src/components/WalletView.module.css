@@ -32,6 +32,26 @@
 .maskToggle:hover { background: var(--color-border); color: var(--color-text); }
 .maskToggle:disabled { opacity: 0.5; cursor: default; }
 
+.toggleGroup {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .summaryBar {
+    flex-direction: column;
+  }
+  .toggleGroup {
+    align-self: flex-end;
+  }
+  .summaryStrip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+  }
+}
+
 .summaryStat {
   display: flex;
   flex-direction: column;
