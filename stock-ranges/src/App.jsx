@@ -108,6 +108,8 @@ function Dashboard() {
   const [signals, setSignals] = useState({})
   const [now, setNow] = useState(() => Date.now())
   const [refreshKey, setRefreshKey] = useState(0)
+  const [refreshing, setRefreshing] = useState(false)
+  const [highlightSymbol, setHighlightSymbol] = useState(null)
 
   useEffect(() => {
     localStorage.setItem(WATCHLIST_KEY, JSON.stringify(watchlist))
@@ -199,6 +201,28 @@ function Dashboard() {
 
   function handleStatus(symbol, info) {
     setSignals((prev) => ({ ...prev, [symbol]: info }))
+  }
+
+  // Cross-linking: a Watchlist card's "owned" badge or a Wallet card's
+  // "watching" badge jumps to the other tab and scrolls/highlights the
+  // matching card there — see the scroll+highlight effect below.
+  function jumpToSymbol(symbol, targetTab) {
+    setTab(targetTab)
+    setHighlightSymbol(symbol)
+  }
+
+  useEffect(() => {
+    if (!highlightSymbol) return
+    const id = tab === 'wallet' ? `holding-${highlightSymbol}` : `ticker-${highlightSymbol}`
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const timer = setTimeout(() => setHighlightSymbol(null), 1800)
+    return () => clearTimeout(timer)
+  }, [tab, highlightSymbol])
+
+  function handleRefresh() {
+    setRefreshKey((k) => k + 1)
+    setRefreshing(true)
+    setTimeout(() => setRefreshing(false), 1500)
   }
 
   function addTag(symbol, tag) {
@@ -327,7 +351,7 @@ function Dashboard() {
             <button className={styles.ctrlBtn} onClick={toggleTheme} title={dark ? s.themeToggleLight : s.themeToggleDark} aria-label={dark ? s.themeToggleLight : s.themeToggleDark}>
               <Icon name={dark ? 'sun' : 'moon'} size={16} />
             </button>
-            <button className={styles.ctrlBtn} onClick={() => setRefreshKey((k) => k + 1)} title={s.refreshBtn} aria-label={s.refreshBtn}>
+            <button className={styles.ctrlBtn} onClick={handleRefresh} disabled={refreshing} data-loading={refreshing} title={s.refreshBtn} aria-label={s.refreshBtn}>
               <Icon name="refresh" size={15} />
             </button>
           </div>
@@ -354,6 +378,8 @@ function Dashboard() {
           user={cloudSync.user}
           watchlist={watchlist}
           refreshKey={refreshKey}
+          highlightSymbol={highlightSymbol}
+          onWatchedClick={(symbol) => jumpToSymbol(symbol, 'watchlist')}
         />
       ) : (
       <>
@@ -441,6 +467,8 @@ function Dashboard() {
               onStatus={handleStatus}
               refreshKey={refreshKey}
               ownedQty={holdings[symbol]?.qty ?? null}
+              onOwnedClick={() => jumpToSymbol(symbol, 'wallet')}
+              highlighted={symbol === highlightSymbol}
             />
           ))}
         </div>

@@ -29,6 +29,7 @@ const SORT_LABEL_KEY = { value: 'sortValue', pl: 'sortPL', alpha: 'sortAlpha', y
 export default function WalletView({
   holdings, currency, rates,
   onAddHolding, onRemoveHolding, actionsPortalNode, user, watchlist, refreshKey,
+  highlightSymbol, onWatchedClick,
 }) {
   const { s } = useLang()
   const [quotes, setQuotes] = useState({})
@@ -310,6 +311,8 @@ export default function WalletView({
                   rates={rates}
                   masked={masked}
                   watched={watchedSet.has(symbol)}
+                  onWatchedClick={onWatchedClick ? () => onWatchedClick(symbol) : undefined}
+                  highlighted={symbol === highlightSymbol}
                   onEdit={startEdit}
                   onRemove={onRemoveHolding}
                 />

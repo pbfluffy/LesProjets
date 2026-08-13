@@ -85,6 +85,16 @@
   text-decoration: none;
 }
 .ctrlBtn:hover { background: var(--color-border); }
+.ctrlBtn:disabled { opacity: 0.6; cursor: default; }
+
+@keyframes ctrlSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.ctrlBtn[data-loading='true'] svg { animation: ctrlSpin 0.7s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ctrlBtn[data-loading='true'] svg { animation: none; }
+}
 
 .tabBar {
   display: flex;

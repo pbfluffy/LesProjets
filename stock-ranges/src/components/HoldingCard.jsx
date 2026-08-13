@@ -10,7 +10,7 @@ import styles from './HoldingCard.module.css'
 
 export default function HoldingCard({
   symbol, holding, name, currentPrice, currentCurrency, dividendEvents, loading, displayCurrency, rates,
-  onEdit, onRemove, masked, watched,
+  onEdit, onRemove, masked, watched, onWatchedClick, highlighted,
 }) {
   const { s } = useLang()
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -32,7 +32,7 @@ export default function HoldingCard({
     : null
 
   return (
-    <div className={styles.card} style={{ '--tag-hue': tagHue(symbol) }}>
+    <div id={`holding-${symbol}`} className={styles.card} data-highlighted={highlighted} style={{ '--tag-hue': tagHue(symbol) }}>
       <div className={styles.head}>
         <div className={styles.identity}>
           <TickerLogo symbol={symbol} size={36} />
@@ -40,9 +40,15 @@ export default function HoldingCard({
             <div className={styles.symbol}>
               {symbol}
               {watched && (
-                <span className={styles.watchedBadge} title={s.watchedBadgeTitle}>
+                <button
+                  type="button"
+                  className={styles.watchedBadge}
+                  title={s.watchedBadgeTitle}
+                  aria-label={s.watchedBadgeTitle}
+                  onClick={(e) => { e.stopPropagation(); onWatchedClick?.() }}
+                >
                   <Icon name="eye" size={10} strokeWidth={2.25} />
-                </span>
+                </button>
               )}
             </div>
             {name && <div className={styles.name}>{name}</div>}

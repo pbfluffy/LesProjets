@@ -14,7 +14,7 @@ import styles from './TickerCard.module.css'
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
 const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
 
-export default function TickerCard({ symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, onRemove, onStatus, refreshKey, ownedQty }) {
+export default function TickerCard({ symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, onRemove, onStatus, refreshKey, ownedQty, onOwnedClick, highlighted }) {
   const { s, lang } = useLang()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
   const prevRefreshKey = useRef(refreshKey)
@@ -46,7 +46,7 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
   }, [state.status, deciles?.band, deciles?.signal, change?.percent]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className={styles.card} style={{ '--tag-hue': tagHue(symbol) }}>
+    <div id={`ticker-${symbol}`} className={styles.card} data-highlighted={highlighted} style={{ '--tag-hue': tagHue(symbol) }}>
       <div className={styles.head}>
         <div className={styles.identity}>
           <TickerLogo symbol={symbol} size={36} />
@@ -54,9 +54,15 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
             <div className={styles.symbol}>
               {symbol}
               {ownedQty != null && (
-                <span className={styles.ownedBadge} title={`${s.ownedBadgeTitle}: ${formatQty(ownedQty)}`}>
+                <button
+                  type="button"
+                  className={styles.ownedBadge}
+                  title={`${s.ownedBadgeTitle}: ${formatQty(ownedQty)}`}
+                  aria-label={`${s.ownedBadgeTitle}: ${formatQty(ownedQty)}`}
+                  onClick={(e) => { e.stopPropagation(); onOwnedClick?.() }}
+                >
                   <Icon name="briefcase" size={10} strokeWidth={2.25} />
-                </span>
+                </button>
               )}
             </div>
             {state.data && <div className={styles.name}>{state.data.name}</div>}
