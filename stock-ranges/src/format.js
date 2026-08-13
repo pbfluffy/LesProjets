@@ -6,6 +6,13 @@ export function formatPrice(value, currency) {
   return currency ? `${currency} ${formatted}` : formatted
 }
 
+// Privacy placeholder for a money amount — same shape as formatPrice's
+// output (currency prefix + fixed-width digits) so masking doesn't reflow
+// the layout it replaces.
+export function maskPrice(currency) {
+  return currency ? `${currency} ••••••` : '••••••'
+}
+
 // Share counts (especially from fractional-share brokers / PDF imports)
 // often carry 6-7 decimal places, e.g. 0.1976964 — fine for the underlying
 // math, but clutters a card header. Rounds to 4 decimals for display only;

@@ -31,6 +31,17 @@
   flex-shrink: 0;
 }
 
+@media (max-width: 480px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .headerBtns {
+    justify-content: space-between;
+  }
+}
+
 .toolGroup {
   display: flex;
   align-items: stretch;

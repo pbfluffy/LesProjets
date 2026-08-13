@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLang } from '../LangContext.jsx'
 import { convert } from '../fx.js'
-import { formatPrice, formatQty } from '../format.js'
+import { formatPrice, formatQty, maskPrice } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, groupDividendsByPeriod, inferDividendCadence } from '../wallet.js'
 import TickerLogo from './TickerLogo.jsx'
 import { tagHue } from '../tagColor.js'
@@ -9,10 +9,11 @@ import styles from './HoldingCard.module.css'
 
 export default function HoldingCard({
   symbol, holding, name, currentPrice, currentCurrency, dividendEvents, loading, displayCurrency, rates,
-  onEdit, onRemove,
+  onEdit, onRemove, masked,
 }) {
   const { s } = useLang()
   const [historyOpen, setHistoryOpen] = useState(false)
+  const mp = (value, currency) => (masked ? maskPrice(currency) : formatPrice(value, currency))
 
   const convertedAvgCost = convert(holding.avgCost, holding.costCurrency, displayCurrency, rates)
   const convertedCurrent = typeof currentPrice === 'number' ? convert(currentPrice, currentCurrency, displayCurrency, rates) : null
@@ -33,13 +34,13 @@ export default function HoldingCard({
           <div className={styles.titleBlock}>
             <div className={styles.symbol}>{symbol}</div>
             {name && <div className={styles.name}>{name}</div>}
-            <div className={styles.qtyLine}>{formatQty(holding.qty)} @ {formatPrice(holding.avgCost, holding.costCurrency)}</div>
+            <div className={styles.qtyLine}>{formatQty(holding.qty)} @ {mp(holding.avgCost, holding.costCurrency)}</div>
           </div>
         </div>
         <div className={styles.headRight}>
           {pl && (
             <div className={styles.plBlock} data-direction={pl.pl >= 0 ? 'up' : 'down'}>
-              <div className={styles.plValue}>{pl.pl >= 0 ? '+' : ''}{formatPrice(pl.pl, displayCurrency)}</div>
+              <div className={styles.plValue}>{masked ? maskPrice(displayCurrency) : `${pl.pl >= 0 ? '+' : ''}${formatPrice(pl.pl, displayCurrency)}`}</div>
               {pl.plPercent !== null && (
                 <div className={styles.plPercent}>{pl.pl >= 0 ? '+' : ''}{pl.plPercent.toFixed(2)}%</div>
               )}
@@ -60,8 +61,8 @@ export default function HoldingCard({
       ) : fxOk ? (
         <div className={styles.statsRow}>
           <div className={styles.stat}><span>{s.currentPriceLabel}</span><strong>{formatPrice(convertedCurrent, displayCurrency)}</strong></div>
-          <div className={styles.stat}><span>{s.summaryCostBasis}</span><strong>{formatPrice(pl.costBasis, displayCurrency)}</strong></div>
-          <div className={styles.stat}><span>{s.summaryMarketValue}</span><strong>{formatPrice(pl.marketValue, displayCurrency)}</strong></div>
+          <div className={styles.stat}><span>{s.summaryCostBasis}</span><strong>{mp(pl.costBasis, displayCurrency)}</strong></div>
+          <div className={styles.stat}><span>{s.summaryMarketValue}</span><strong>{mp(pl.marketValue, displayCurrency)}</strong></div>
         </div>
       ) : (
         <div className={styles.fxNote}>{s.fxUnavailable}</div>
@@ -80,9 +81,9 @@ export default function HoldingCard({
         ) : projectedOk ? (
           <>
             <div className={styles.statsRow} data-direction="up">
-              <div className={styles.stat}><span>{s.estPerMonth}</span><strong>{formatPrice(cv(projected.perMonth), displayCurrency)}</strong></div>
-              <div className={styles.stat}><span>{s.estPerQuarter}</span><strong>{formatPrice(cv(projected.perQuarter), displayCurrency)}</strong></div>
-              <div className={styles.stat}><span>{s.trailingTwelveMonth}</span><strong>{formatPrice(cv(projected.trailingTwelveMonth), displayCurrency)}</strong></div>
+              <div className={styles.stat}><span>{s.estPerMonth}</span><strong>{mp(cv(projected.perMonth), displayCurrency)}</strong></div>
+              <div className={styles.stat}><span>{s.estPerQuarter}</span><strong>{mp(cv(projected.perQuarter), displayCurrency)}</strong></div>
+              <div className={styles.stat}><span>{s.trailingTwelveMonth}</span><strong>{mp(cv(projected.trailingTwelveMonth), displayCurrency)}</strong></div>
             </div>
             <button
               type="button"
@@ -98,7 +99,7 @@ export default function HoldingCard({
                 {periods.map((p) => (
                   <li key={p.period}>
                     <span>{p.period}</span>
-                    <span>{formatPrice(cv(p.amount), displayCurrency)}</span>
+                    <span>{mp(cv(p.amount), displayCurrency)}</span>
                   </li>
                 ))}
               </ul>

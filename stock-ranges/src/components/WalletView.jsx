@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLang } from '../LangContext.jsx'
 import { fetchQuote } from '../stockApi.js'
 import { convert } from '../fx.js'
-import { formatPrice } from '../format.js'
+import { formatPrice, maskPrice } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, groupSymbolsByInstrumentType } from '../wallet.js'
+import { generateSummaryImage } from '../shareImage.js'
 import AddHoldingForm from './AddHoldingForm.jsx'
 import HoldingCard from './HoldingCard.jsx'
 import ImportPdfModal from './ImportPdfModal.jsx'
@@ -11,6 +12,7 @@ import AllocationChart from './AllocationChart.jsx'
 import styles from './WalletView.module.css'
 
 const GROUP_LABEL_KEY = { EQUITY: 'groupCommonStock', ETF: 'groupETF', OTHER: 'groupOther' }
+const MASK_KEY = 'stockranges_mask_amounts'
 
 // A holdings list independent from the watchlist — you can watch a stock
 // without owning it. Fetches a 2-year daily range per held symbol: enough
@@ -26,8 +28,14 @@ export default function WalletView({
   const [formOpen, setFormOpen] = useState(false)
   const [editingSymbol, setEditingSymbol] = useState(null)
   const [importOpen, setImportOpen] = useState(false)
+  const [masked, setMasked] = useState(() => localStorage.getItem(MASK_KEY) === '1')
+  const [sharing, setSharing] = useState(false)
 
   const symbols = useMemo(() => Object.keys(holdings), [holdings])
+
+  useEffect(() => {
+    localStorage.setItem(MASK_KEY, masked ? '1' : '0')
+  }, [masked])
 
   useEffect(() => {
     symbols.forEach((symbol) => {
@@ -103,35 +111,80 @@ export default function WalletView({
       .sort((a, b) => b.value - a.value)
   }, [symbols, holdings, quotes, currency, rates])
 
+  async function handleShare() {
+    if (sharing) return
+    setSharing(true)
+    try {
+      const blob = await generateSummaryImage({ s, summary, allocationItems, currency, masked, appName: s.appName })
+      const file = new File([blob], 'portfolio-summary.png', { type: 'image/png' })
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: s.appName })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'portfolio-summary.png'
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (err) {
+      if (err?.name !== 'AbortError') console.error(err)
+    } finally {
+      setSharing(false)
+    }
+  }
+
   return (
     <div>
       {symbols.length > 0 && (
-        <div className={styles.summaryStrip}>
-          <div className={styles.summaryStat}>
-            <span>{s.summaryCostBasis}</span>
-            <strong>{formatPrice(summary.costBasis, currency)}</strong>
+        <div className={styles.summaryBar}>
+          <div className={styles.summaryStrip}>
+            <div className={styles.summaryStat}>
+              <span>{s.summaryCostBasis}</span>
+              <strong>{masked ? maskPrice(currency) : formatPrice(summary.costBasis, currency)}</strong>
+            </div>
+            <div className={styles.summaryStat}>
+              <span>{s.summaryMarketValue}</span>
+              <strong>{masked ? maskPrice(currency) : formatPrice(summary.marketValue, currency)}</strong>
+            </div>
+            <div className={styles.summaryStat} data-direction={summary.unrealizedPL >= 0 ? 'up' : 'down'}>
+              <span>{s.summaryUnrealizedPL}</span>
+              <strong>{masked ? maskPrice(currency) : `${summary.unrealizedPL >= 0 ? '+' : ''}${formatPrice(summary.unrealizedPL, currency)}`}</strong>
+            </div>
+            <div className={styles.summaryStat} data-direction="up">
+              <span>{s.estPerMonth}</span>
+              <strong>{masked ? maskPrice(currency) : formatPrice(summary.perMonth, currency)}</strong>
+            </div>
+            <div className={styles.summaryStat} data-direction="up">
+              <span>{s.estPerQuarter}</span>
+              <strong>{masked ? maskPrice(currency) : formatPrice(summary.perQuarter, currency)}</strong>
+            </div>
           </div>
-          <div className={styles.summaryStat}>
-            <span>{s.summaryMarketValue}</span>
-            <strong>{formatPrice(summary.marketValue, currency)}</strong>
-          </div>
-          <div className={styles.summaryStat} data-direction={summary.unrealizedPL >= 0 ? 'up' : 'down'}>
-            <span>{s.summaryUnrealizedPL}</span>
-            <strong>{summary.unrealizedPL >= 0 ? '+' : ''}{formatPrice(summary.unrealizedPL, currency)}</strong>
-          </div>
-          <div className={styles.summaryStat} data-direction="up">
-            <span>{s.estPerMonth}</span>
-            <strong>{formatPrice(summary.perMonth, currency)}</strong>
-          </div>
-          <div className={styles.summaryStat} data-direction="up">
-            <span>{s.estPerQuarter}</span>
-            <strong>{formatPrice(summary.perQuarter, currency)}</strong>
-          </div>
+          <button
+            type="button"
+            className={styles.maskToggle}
+            onClick={() => setMasked((v) => !v)}
+            aria-pressed={masked}
+            title={masked ? s.maskShow : s.maskHide}
+            aria-label={masked ? s.maskShow : s.maskHide}
+          >
+            {masked ? '🙈' : '👁'}
+          </button>
+          <button
+            type="button"
+            className={styles.maskToggle}
+            onClick={handleShare}
+            disabled={sharing}
+            title={s.shareBtn}
+            aria-label={s.shareBtn}
+          >
+            📤
+          </button>
         </div>
       )}
 
       {allocationItems.length > 0 && (
-        <AllocationChart items={allocationItems} total={summary.marketValue} currency={currency} />
+        <AllocationChart items={allocationItems} total={summary.marketValue} currency={currency} masked={masked} />
       )}
 
       {symbols.length === 0 && !formOpen && <div className={styles.empty}>{s.walletEmpty}</div>}
@@ -172,6 +225,7 @@ export default function WalletView({
                   loading={!quotes[symbol]}
                   displayCurrency={currency}
                   rates={rates}
+                  masked={masked}
                   onEdit={startEdit}
                   onRemove={onRemoveHolding}
                 />

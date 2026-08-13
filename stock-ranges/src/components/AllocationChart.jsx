@@ -1,5 +1,5 @@
 import { tagHue } from '../tagColor.js'
-import { formatPrice } from '../format.js'
+import { formatPrice, maskPrice } from '../format.js'
 import { useLang } from '../LangContext.jsx'
 import styles from './AllocationChart.module.css'
 
@@ -22,7 +22,7 @@ function describeSlice(startAngle, endAngle) {
 // Per-holding allocation, by market value — each slice/legend dot reuses
 // the same symbol-hash hue as everywhere else in the wallet, so a ticker's
 // color stays consistent between its card, the pie, and the legend.
-export default function AllocationChart({ items, total, currency }) {
+export default function AllocationChart({ items, total, currency, masked }) {
   const { s } = useLang()
   if (!items.length || total <= 0) return null
 
@@ -60,7 +60,7 @@ export default function AllocationChart({ items, total, currency }) {
               <span className={styles.dot} style={{ background: `hsl(${tagHue(slice.symbol)} 60% 60%)` }} aria-hidden="true" />
               <span className={styles.legendSymbol}>{slice.symbol}</span>
               <span className={styles.legendPct}>{slice.pct.toFixed(1)}%</span>
-              <span className={styles.legendValue}>{formatPrice(slice.value, currency)}</span>
+              <span className={styles.legendValue}>{masked ? maskPrice(currency) : formatPrice(slice.value, currency)}</span>
             </li>
           ))}
         </ul>
