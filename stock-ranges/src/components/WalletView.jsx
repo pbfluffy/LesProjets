@@ -4,7 +4,7 @@ import { useLang } from '../LangContext.jsx'
 import { fetchQuote } from '../stockApi.js'
 import { convert } from '../fx.js'
 import { formatPrice, maskPrice } from '../format.js'
-import { computeHoldingPL, projectedDividendIncome, groupSymbolsByInstrumentType } from '../wallet.js'
+import { computeHoldingPL, projectedDividendIncome, groupSymbolsByInstrumentType, sortHoldingSymbols } from '../wallet.js'
 import { generateSummaryImage } from '../shareImage.js'
 import Icon from './Icon.jsx'
 import AddHoldingForm from './AddHoldingForm.jsx'
@@ -15,6 +15,8 @@ import styles from './WalletView.module.css'
 
 const GROUP_LABEL_KEY = { EQUITY: 'groupCommonStock', ETF: 'groupETF', OTHER: 'groupOther' }
 const MASK_KEY = 'stockranges_mask_amounts'
+const SORT_KEY = 'stockranges_wallet_sort'
+const SORT_LABEL_KEY = { value: 'sortValue', pl: 'sortPL', alpha: 'sortAlpha', yield: 'sortYield' }
 
 // A holdings list independent from the watchlist — you can watch a stock
 // without owning it. Fetches a 2-year daily range per held symbol: enough
@@ -32,12 +34,17 @@ export default function WalletView({
   const [importOpen, setImportOpen] = useState(false)
   const [masked, setMasked] = useState(() => localStorage.getItem(MASK_KEY) === '1')
   const [sharing, setSharing] = useState(false)
+  const [sortBy, setSortBy] = useState(() => localStorage.getItem(SORT_KEY) || 'value')
 
   const symbols = useMemo(() => Object.keys(holdings), [holdings])
 
   useEffect(() => {
     localStorage.setItem(MASK_KEY, masked ? '1' : '0')
   }, [masked])
+
+  useEffect(() => {
+    localStorage.setItem(SORT_KEY, sortBy)
+  }, [sortBy])
 
   useEffect(() => {
     symbols.forEach((symbol) => {
@@ -96,7 +103,38 @@ export default function WalletView({
     closeForm()
   }
 
-  const groupedSymbols = useMemo(() => groupSymbolsByInstrumentType(symbols, quotes), [symbols, quotes])
+  // Per-symbol metrics the sort control can rank by — value/P&L come from
+  // the same P/L calc as the card itself, yield is trailing-12mo actual
+  // dividends over market value (not the projected run-rate, since a
+  // realized yield is what "sort by yield" implies).
+  const metrics = useMemo(() => {
+    const result = {}
+    symbols.forEach((symbol) => {
+      const holding = holdings[symbol]
+      const quote = quotes[symbol]
+      const convertedAvgCost = convert(holding.avgCost, holding.costCurrency, currency, rates)
+      const convertedCurrent = quote?.current != null ? convert(quote.current, quote.currency, currency, rates) : null
+      const pl = (convertedAvgCost !== null && convertedCurrent !== null)
+        ? computeHoldingPL({ qty: holding.qty, avgCost: convertedAvgCost, currentPrice: convertedCurrent })
+        : null
+      const projected = quote ? projectedDividendIncome(quote.dividends, holding.qty) : null
+      const convertedAnnualDividend = (projected && quote.currency)
+        ? convert(projected.trailingTwelveMonth, quote.currency, currency, rates)
+        : null
+      result[symbol] = {
+        value: pl ? pl.marketValue : null,
+        plPercent: pl ? pl.plPercent : null,
+        yieldPercent: (pl && pl.marketValue > 0 && convertedAnnualDividend != null)
+          ? (convertedAnnualDividend / pl.marketValue) * 100
+          : null,
+      }
+    })
+    return result
+  }, [symbols, holdings, quotes, currency, rates])
+
+  const sortedSymbols = useMemo(() => sortHoldingSymbols(symbols, sortBy, metrics), [symbols, sortBy, metrics])
+
+  const groupedSymbols = useMemo(() => groupSymbolsByInstrumentType(sortedSymbols, quotes), [sortedSymbols, quotes])
 
   // Per-holding market value for the allocation pie — only symbols whose
   // quote has resolved contribute a slice; the rest just aren't drawn yet
@@ -212,6 +250,17 @@ export default function WalletView({
 
       {importOpen && (
         <ImportPdfModal onImport={onAddHolding} onClose={() => setImportOpen(false)} />
+      )}
+
+      {symbols.length > 0 && (
+        <div className={styles.sortRow}>
+          <label htmlFor="wallet-sort">{s.sortByLabel}</label>
+          <select id="wallet-sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            {Object.entries(SORT_LABEL_KEY).map(([key, labelKey]) => (
+              <option key={key} value={key}>{s[labelKey]}</option>
+            ))}
+          </select>
+        </div>
       )}
 
       <div className={styles.list}>

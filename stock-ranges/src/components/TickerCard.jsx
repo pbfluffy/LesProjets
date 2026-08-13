@@ -30,16 +30,17 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
   const deciles = state.status === 'ready'
     ? computeDeciles({ prices: state.data.prices, current: state.data.current })
     : null
+  const change = state.data ? dayChange(state.data.current, state.data.previousClose) : null
 
-  // Reports this card's computed band/signal up to the Dashboard so the
-  // whole watchlist can be sorted by opportunity (buy-zone first) and
-  // summarized (N buy / N hold / N sell), and marks when the fetch settled
-  // so a global "updated Xm ago" stays accurate.
+  // Reports this card's computed band/signal/change up to the Dashboard so
+  // the whole watchlist can be sorted (buy-zone first, or by day change)
+  // and summarized (N buy / N hold / N sell), and marks when the fetch
+  // settled so a global "updated Xm ago" stays accurate.
   useEffect(() => {
     if (!onStatus) return
-    if (state.status === 'ready') onStatus(symbol, { band: deciles?.band ?? null, signal: deciles?.signal ?? null, ts: Date.now() })
-    else if (state.status === 'error') onStatus(symbol, { band: null, signal: null, ts: null })
-  }, [state.status, deciles?.band, deciles?.signal]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (state.status === 'ready') onStatus(symbol, { band: deciles?.band ?? null, signal: deciles?.signal ?? null, changePercent: change?.percent ?? null, ts: Date.now() })
+    else if (state.status === 'error') onStatus(symbol, { band: null, signal: null, changePercent: null, ts: null })
+  }, [state.status, deciles?.band, deciles?.signal, change?.percent]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className={styles.card} style={{ '--tag-hue': tagHue(symbol) }}>
@@ -55,7 +56,6 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
           {state.data && (() => {
             const shown = convert(state.data.current, state.data.currency, currency, rates)
             const code = shown === null ? state.data.currency : currency
-            const change = dayChange(state.data.current, state.data.previousClose)
             return (
               <div className={styles.priceBlock}>
                 <div className={styles.price}>{formatPrice(shown === null ? state.data.current : shown, code)}</div>

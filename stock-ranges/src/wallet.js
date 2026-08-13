@@ -98,3 +98,22 @@ export function groupSymbolsByInstrumentType(symbols, quotes) {
     .map((key) => ({ key, symbols: buckets[key] }))
     .filter((group) => group.symbols.length > 0)
 }
+
+const SORT_METRIC_KEY = { value: 'value', pl: 'plPercent', yield: 'yieldPercent' }
+
+// Orders symbols by the chosen metric before grouping, so each
+// instrument-type section ends up internally sorted too. A symbol whose
+// metric hasn't resolved yet (quote still loading) sorts to the end
+// rather than jumping around as data streams in.
+export function sortHoldingSymbols(symbols, sortBy, metrics) {
+  if (sortBy === 'alpha') return [...symbols].sort((a, b) => a.localeCompare(b))
+  const key = SORT_METRIC_KEY[sortBy] || 'value'
+  return [...symbols].sort((a, b) => {
+    const va = metrics[a]?.[key]
+    const vb = metrics[b]?.[key]
+    if (va == null && vb == null) return 0
+    if (va == null) return 1
+    if (vb == null) return -1
+    return vb - va
+  })
+}

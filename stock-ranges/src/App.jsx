@@ -20,6 +20,7 @@ const TAGS_KEY = 'stockranges_tags'
 const ACTIVE_TAG_FILTERS_KEY = 'stockranges_active_tag_filters'
 const HOLDINGS_KEY = 'stockranges_holdings'
 const TAB_KEY = 'stockranges_tab'
+const WATCHLIST_SORT_KEY = 'stockranges_watchlist_sort'
 const THEME_KEY = 'theme'
 // Allows '=' (futures/forex, e.g. gold's "GC=F") and '^' (indices, e.g.
 // "^GSPC") — autocomplete can surface both.
@@ -101,6 +102,7 @@ function Dashboard() {
   const [holdings, setHoldings] = useState(loadHoldings)
   const [tab, setTab] = useState(() => (localStorage.getItem(TAB_KEY) === 'wallet' ? 'wallet' : 'watchlist'))
   const [tabActionsEl, setTabActionsEl] = useState(null)
+  const [watchlistSort, setWatchlistSort] = useState(() => localStorage.getItem(WATCHLIST_SORT_KEY) || 'signal')
   const [rates, setRates] = useState(null)
   const [warning, setWarning] = useState('')
   const [signals, setSignals] = useState({})
@@ -121,6 +123,10 @@ function Dashboard() {
   useEffect(() => {
     localStorage.setItem(CHART_TYPE_KEY, chartType)
   }, [chartType])
+
+  useEffect(() => {
+    localStorage.setItem(WATCHLIST_SORT_KEY, watchlistSort)
+  }, [watchlistSort])
 
   useEffect(() => {
     localStorage.setItem(TAGS_KEY, JSON.stringify(tags))
@@ -229,17 +235,27 @@ function Dashboard() {
     })
   }
 
-  // Buy-zone (band 1-3) first so the dashboard is scannable at a glance —
-  // opportunities surface without reading every card. Tickers still loading
-  // or errored (band === null) sort to the end rather than jumping around.
+  // Default sort is buy-zone (band 1-3) first so the dashboard is scannable
+  // at a glance — opportunities surface without reading every card.
+  // Tickers still loading/errored sort to the end of whichever metric is
+  // active rather than jumping around.
   const sortedWatchlist = useMemo(() => {
     return [...watchlist].sort((a, b) => {
+      if (watchlistSort === 'alpha') return a.localeCompare(b)
+      if (watchlistSort === 'change') {
+        const changeA = signals[a]?.changePercent
+        const changeB = signals[b]?.changePercent
+        if (changeA == null && changeB == null) return 0
+        if (changeA == null) return 1
+        if (changeB == null) return -1
+        return changeB - changeA
+      }
       const bandA = signals[a]?.band ?? Infinity
       const bandB = signals[b]?.band ?? Infinity
       if (bandA !== bandB) return bandA - bandB
       return watchlist.indexOf(a) - watchlist.indexOf(b)
     })
-  }, [watchlist, signals])
+  }, [watchlist, signals, watchlistSort])
 
   // All distinct tags in use, for the filter row — sorted so the row order
   // doesn't jump around as tags are added/removed elsewhere.
@@ -354,6 +370,12 @@ function Dashboard() {
           {RANGES.map((r) => (
             <option key={r} value={r}>{s[RANGE_LABEL_KEY[r]]}</option>
           ))}
+        </select>
+        <label htmlFor="watchlist-sort">{s.sortByLabel}</label>
+        <select id="watchlist-sort" value={watchlistSort} onChange={(e) => setWatchlistSort(e.target.value)}>
+          <option value="signal">{s.sortSignal}</option>
+          <option value="change">{s.sortChange}</option>
+          <option value="alpha">{s.sortAlpha}</option>
         </select>
         <button
           className={styles.chartTypeBtn}
