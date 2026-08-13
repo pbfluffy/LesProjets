@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useLang } from '../LangContext.jsx'
 import { fetchQuote } from '../stockApi.js'
 import { convert } from '../fx.js'
@@ -22,7 +23,7 @@ const MASK_KEY = 'stockranges_mask_amounts'
 // needed for P/L regardless of range.
 export default function WalletView({
   holdings, currency, rates,
-  onAddHolding, onRemoveHolding,
+  onAddHolding, onRemoveHolding, actionsPortalNode,
 }) {
   const { s } = useLang()
   const [quotes, setQuotes] = useState({})
@@ -137,51 +138,53 @@ export default function WalletView({
 
   return (
     <div>
+      {symbols.length > 0 && actionsPortalNode && createPortal(
+        <div className={styles.toggleGroup}>
+          <button
+            type="button"
+            className={styles.maskToggle}
+            onClick={() => setMasked((v) => !v)}
+            aria-pressed={masked}
+            title={masked ? s.maskShow : s.maskHide}
+            aria-label={masked ? s.maskShow : s.maskHide}
+          >
+            <Icon name={masked ? 'eyeOff' : 'eye'} size={17} />
+          </button>
+          <button
+            type="button"
+            className={styles.maskToggle}
+            onClick={handleShare}
+            disabled={sharing}
+            title={s.shareBtn}
+            aria-label={s.shareBtn}
+          >
+            <Icon name="share" size={16} />
+          </button>
+        </div>,
+        actionsPortalNode
+      )}
+
       {symbols.length > 0 && (
-        <div className={styles.summaryBar}>
-          <div className={styles.summaryStrip}>
-            <div className={styles.summaryStat}>
-              <span>{s.summaryCostBasis}</span>
-              <strong>{masked ? maskPrice(currency) : formatPrice(summary.costBasis, currency)}</strong>
-            </div>
-            <div className={styles.summaryStat}>
-              <span>{s.summaryMarketValue}</span>
-              <strong>{masked ? maskPrice(currency) : formatPrice(summary.marketValue, currency)}</strong>
-            </div>
-            <div className={styles.summaryStat} data-direction={summary.unrealizedPL >= 0 ? 'up' : 'down'}>
-              <span>{s.summaryUnrealizedPL}</span>
-              <strong>{masked ? maskPrice(currency) : `${summary.unrealizedPL >= 0 ? '+' : ''}${formatPrice(summary.unrealizedPL, currency)}`}</strong>
-            </div>
-            <div className={styles.summaryStat} data-direction="up">
-              <span>{s.estPerMonth}</span>
-              <strong>{masked ? maskPrice(currency) : formatPrice(summary.perMonth, currency)}</strong>
-            </div>
-            <div className={styles.summaryStat} data-direction="up">
-              <span>{s.estPerQuarter}</span>
-              <strong>{masked ? maskPrice(currency) : formatPrice(summary.perQuarter, currency)}</strong>
-            </div>
+        <div className={styles.summaryStrip}>
+          <div className={styles.summaryStat}>
+            <span>{s.summaryCostBasis}</span>
+            <strong>{masked ? maskPrice(currency) : formatPrice(summary.costBasis, currency)}</strong>
           </div>
-          <div className={styles.toggleGroup}>
-            <button
-              type="button"
-              className={styles.maskToggle}
-              onClick={() => setMasked((v) => !v)}
-              aria-pressed={masked}
-              title={masked ? s.maskShow : s.maskHide}
-              aria-label={masked ? s.maskShow : s.maskHide}
-            >
-              <Icon name={masked ? 'eyeOff' : 'eye'} size={17} />
-            </button>
-            <button
-              type="button"
-              className={styles.maskToggle}
-              onClick={handleShare}
-              disabled={sharing}
-              title={s.shareBtn}
-              aria-label={s.shareBtn}
-            >
-              <Icon name="share" size={16} />
-            </button>
+          <div className={styles.summaryStat}>
+            <span>{s.summaryMarketValue}</span>
+            <strong>{masked ? maskPrice(currency) : formatPrice(summary.marketValue, currency)}</strong>
+          </div>
+          <div className={styles.summaryStat} data-direction={summary.unrealizedPL >= 0 ? 'up' : 'down'}>
+            <span>{s.summaryUnrealizedPL}</span>
+            <strong>{masked ? maskPrice(currency) : `${summary.unrealizedPL >= 0 ? '+' : ''}${formatPrice(summary.unrealizedPL, currency)}`}</strong>
+          </div>
+          <div className={styles.summaryStat} data-direction="up">
+            <span>{s.estPerMonth}</span>
+            <strong>{masked ? maskPrice(currency) : formatPrice(summary.perMonth, currency)}</strong>
+          </div>
+          <div className={styles.summaryStat} data-direction="up">
+            <span>{s.estPerQuarter}</span>
+            <strong>{masked ? maskPrice(currency) : formatPrice(summary.perQuarter, currency)}</strong>
           </div>
         </div>
       )}

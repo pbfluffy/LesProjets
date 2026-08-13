@@ -100,6 +100,7 @@ function Dashboard() {
   const [activeTagFilters, setActiveTagFilters] = useState(loadActiveTagFilters)
   const [holdings, setHoldings] = useState(loadHoldings)
   const [tab, setTab] = useState(() => (localStorage.getItem(TAB_KEY) === 'wallet' ? 'wallet' : 'watchlist'))
+  const [tabActionsEl, setTabActionsEl] = useState(null)
   const [rates, setRates] = useState(null)
   const [warning, setWarning] = useState('')
   const [signals, setSignals] = useState({})
@@ -314,9 +315,12 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className={styles.tabRow}>
-        <button className={styles.tabBtn} data-active={tab === 'watchlist'} onClick={() => setTab('watchlist')}>{s.navWatchlist}</button>
-        <button className={styles.tabBtn} data-active={tab === 'wallet'} onClick={() => setTab('wallet')}>{s.navWallet}</button>
+      <div className={styles.tabBar}>
+        <div className={styles.tabRow}>
+          <button className={styles.tabBtn} data-active={tab === 'watchlist'} onClick={() => setTab('watchlist')}>{s.navWatchlist}</button>
+          <button className={styles.tabBtn} data-active={tab === 'wallet'} onClick={() => setTab('wallet')}>{s.navWallet}</button>
+        </div>
+        <div className={styles.tabActions} ref={setTabActionsEl} />
       </div>
 
       {tab === 'wallet' ? (
@@ -326,6 +330,7 @@ function Dashboard() {
           rates={rates}
           onAddHolding={addOrUpdateHolding}
           onRemoveHolding={removeHolding}
+          actionsPortalNode={tabActionsEl}
         />
       ) : (
       <>

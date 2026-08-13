@@ -1,20 +1,12 @@
-.summaryBar {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
 .summaryStrip {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
-  flex: 1;
-  min-width: 0;
   background: var(--color-surface-alt);
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 14px 18px;
+  margin-bottom: 16px;
 }
 
 .maskToggle {
@@ -39,12 +31,6 @@
 }
 
 @media (max-width: 480px) {
-  .summaryBar {
-    flex-direction: column;
-  }
-  .toggleGroup {
-    align-self: flex-end;
-  }
   .summaryStrip {
     display: grid;
     grid-template-columns: 1fr 1fr;
