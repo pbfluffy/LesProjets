@@ -202,7 +202,8 @@ export default function WalletView({
       .sort((a, b) => b.value - a.value)
   }, [symbols, holdings, quotes, currency, rates])
 
-  // Recent past payments (actual, from Yahoo) plus one upcoming estimate
+  // Recent past ex-dividend dates (actual, from Yahoo — its historical
+  // endpoint is keyed by ex-date, not pay date) plus one upcoming estimate
   // per holding (guessed from cadence — see estimateNextDividend), merged
   // into a single chronological list across the whole portfolio.
   const dividendCalendarEntries = useMemo(() => {

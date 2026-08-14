@@ -7,11 +7,12 @@ function monthKey(unixSeconds) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-// Chronological view of dividend payments across the whole portfolio —
-// past events are Yahoo's actual paid-dividend history, upcoming ones are
-// estimated from each holding's typical cadence (see estimateNextDividend
-// in wallet.js). Anything not yet paid is a guess, never a scheduled date,
-// so it's tagged as estimated rather than presented as fact.
+// Chronological view of ex-dividend dates across the whole portfolio —
+// Yahoo's historical-events endpoint (the only one this app calls) keys
+// dividends by ex-date, not pay date, so that's what "past" here means.
+// Upcoming entries are estimated from each holding's typical cadence (see
+// estimateNextDividend in wallet.js), never a scheduled date, so they're
+// tagged as estimated rather than presented as fact.
 export default function DividendCalendar({ entries, currency, masked }) {
   const { s, lang } = useLang()
   if (entries.length === 0) return null
