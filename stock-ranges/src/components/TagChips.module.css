@@ -64,3 +64,10 @@
   background: var(--color-surface);
   color: var(--color-text);
 }
+.input[aria-invalid='true'] { border-color: var(--color-red); }
+
+.error {
+  font-size: 11px;
+  color: var(--color-red);
+  flex-basis: 100%;
+}

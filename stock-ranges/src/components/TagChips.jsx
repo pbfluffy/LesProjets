@@ -17,6 +17,7 @@ export default function TagChips({ tags, onAdd, onRemove }) {
   const { s } = useLang()
   const [adding, setAdding] = useState(false)
   const [value, setValue] = useState('')
+  const [error, setError] = useState('')
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -25,11 +26,22 @@ export default function TagChips({ tags, onAdd, onRemove }) {
 
   function commit() {
     const tag = value.trim()
+    if (!tag) {
+      setValue('')
+      setAdding(false)
+      return
+    }
+    if (tags.some((t) => t.toLowerCase() === tag.toLowerCase())) {
+      setError(s.duplicateTagError)
+      return
+    }
+    if (tags.length >= MAX_TAGS_PER_TICKER) {
+      setError(s.maxTagsError)
+      return
+    }
     setValue('')
     setAdding(false)
-    if (!tag) return
-    if (tags.some((t) => t.toLowerCase() === tag.toLowerCase())) return
-    if (tags.length >= MAX_TAGS_PER_TICKER) return
+    setError('')
     onAdd(tag)
   }
 
@@ -49,20 +61,24 @@ export default function TagChips({ tags, onAdd, onRemove }) {
         </span>
       ))}
       {adding ? (
-        <input
-          ref={inputRef}
-          className={styles.input}
-          list={TAG_DATALIST_ID}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); commit() }
-            else if (e.key === 'Escape') { setValue(''); setAdding(false) }
-          }}
-          placeholder={s.addTagPlaceholder}
-          maxLength={MAX_TAG_LENGTH}
-        />
+        <>
+          <input
+            ref={inputRef}
+            className={styles.input}
+            list={TAG_DATALIST_ID}
+            value={value}
+            onChange={(e) => { setValue(e.target.value); setError('') }}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); commit() }
+              else if (e.key === 'Escape') { setValue(''); setAdding(false); setError('') }
+            }}
+            placeholder={s.addTagPlaceholder}
+            maxLength={MAX_TAG_LENGTH}
+            aria-invalid={!!error}
+          />
+          {error && <span className={styles.error}>{error}</span>}
+        </>
       ) : (
         tags.length < MAX_TAGS_PER_TICKER && (
           <button className={styles.addBtn} onClick={() => setAdding(true)}>+ {s.addTag}</button>
