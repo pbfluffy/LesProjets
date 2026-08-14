@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLang } from '../LangContext.jsx'
 import { renderPdfToImages, importHoldingsFromImages } from '../pdfImport.js'
+import { useFocusTrap } from '../hooks/useFocusTrap.js'
 import styles from './ImportPdfModal.module.css'
 
 function interp(str, vars) {
@@ -26,6 +27,7 @@ export default function ImportPdfModal({ onImport, onClose }) {
   const [rows, setRows] = useState(null)
   const [importError, setImportError] = useState('')
   const modalRef = useRef(null)
+  useFocusTrap(modalRef)
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -34,13 +36,6 @@ export default function ImportPdfModal({ onImport, onClose }) {
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onClose])
-
-  // Dialog role announces "you're in a dialog" but doesn't move focus —
-  // without this, a keyboard/screen-reader user has to tab in from
-  // wherever they were before the modal opened.
-  useEffect(() => {
-    modalRef.current?.querySelector('input, button')?.focus()
-  }, [])
 
   async function handleFile(file) {
     if (!file) return

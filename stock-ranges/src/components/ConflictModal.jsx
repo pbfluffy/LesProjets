@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { useLang } from '../LangContext.jsx'
+import { useFocusTrap } from '../hooks/useFocusTrap.js'
 import styles from './ConflictModal.module.css'
 
 function interp(str, vars) {
@@ -13,13 +14,7 @@ function interp(str, vars) {
 export default function ConflictModal({ localData, cloudData, onUseLocal, onUseCloud }) {
   const { s, lang } = useLang()
   const modalRef = useRef(null)
-
-  // Dialog role announces "you're in a dialog" but doesn't move focus —
-  // without this, a keyboard/screen-reader user has to tab in from
-  // wherever they were before the modal opened.
-  useEffect(() => {
-    modalRef.current?.querySelector('input, button')?.focus()
-  }, [])
+  useFocusTrap(modalRef)
 
   const localCount = localData.watchlist.length
   const cloudCount = Array.isArray(cloudData?.watchlist) ? cloudData.watchlist.length : 0

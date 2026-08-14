@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { tagHue } from '../tagColor.js'
 import { useLang } from '../LangContext.jsx'
+import { useFocusTrap } from '../hooks/useFocusTrap.js'
 import Icon from './Icon.jsx'
 import styles from './TagManagerModal.module.css'
 
@@ -14,6 +15,7 @@ function interp(str, vars) {
 export default function TagManagerModal({ tags, counts, onRename, onDelete, onClose }) {
   const { s } = useLang()
   const modalRef = useRef(null)
+  useFocusTrap(modalRef)
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -22,13 +24,6 @@ export default function TagManagerModal({ tags, counts, onRename, onDelete, onCl
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onClose])
-
-  // Dialog role announces "you're in a dialog" but doesn't move focus —
-  // without this, a keyboard/screen-reader user has to tab in from
-  // wherever they were before the modal opened.
-  useEffect(() => {
-    modalRef.current?.querySelector('input, button')?.focus()
-  }, [])
 
   function commitRename(tag, value) {
     const trimmed = value.trim()
