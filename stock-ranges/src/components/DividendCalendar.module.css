@@ -1,0 +1,72 @@
+.wrap {
+  background: var(--color-surface-alt);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.group + .group {
+  margin-top: 12px;
+}
+
+.groupLabel {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  margin-bottom: 6px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.date {
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  width: 18px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.symbol {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.estimatedTag {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-faint);
+  background: var(--color-surface);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  padding: 1px 6px;
+  flex-shrink: 0;
+}
+
+.amount {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  color: var(--color-green);
+  flex-shrink: 0;
+}

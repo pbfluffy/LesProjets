@@ -56,6 +56,20 @@ export function inferDividendCadence(dividendEvents) {
   return medianGap <= 45 ? 'month' : 'quarter'
 }
 
+// Guesses the next payment's date and amount from the last actual payment
+// plus the inferred cadence — this app never calls Yahoo's forward-looking
+// calendar endpoint, only its historical-events one, so there is no real
+// scheduled date to show. Wrong whenever a company changes or suspends its
+// dividend; callers must present this as an estimate, not a fact.
+export function estimateNextDividend(dividendEvents, qty) {
+  if (!Array.isArray(dividendEvents) || dividendEvents.length === 0 || typeof qty !== 'number') return null
+  const sorted = [...dividendEvents].sort((a, b) => a.date - b.date)
+  const last = sorted[sorted.length - 1]
+  const cadence = inferDividendCadence(dividendEvents)
+  const gapDays = cadence === 'month' ? 30 : 91
+  return { date: last.date + gapDays * 86400, amount: last.amount * qty }
+}
+
 // Buckets actual dividend events (amount already multiplied by qty held) by
 // calendar month or quarter, oldest first — for a "here's what you actually
 // got, and when" breakdown alongside the projected monthly/quarterly figure.

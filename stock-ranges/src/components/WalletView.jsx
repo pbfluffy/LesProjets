@@ -4,7 +4,7 @@ import { useLang } from '../LangContext.jsx'
 import { fetchQuote } from '../stockApi.js'
 import { convert } from '../fx.js'
 import { formatPrice, maskPrice } from '../format.js'
-import { computeHoldingPL, projectedDividendIncome, groupSymbolsByInstrumentType, sortHoldingSymbols } from '../wallet.js'
+import { computeHoldingPL, projectedDividendIncome, estimateNextDividend, groupSymbolsByInstrumentType, sortHoldingSymbols } from '../wallet.js'
 import { generateSummaryImage } from '../shareImage.js'
 import { loadPortfolioHistory, recordPortfolioSnapshot } from '../portfolioHistory.js'
 import { usePortfolioHistorySync } from '../hooks/usePortfolioHistorySync.js'
@@ -15,7 +15,10 @@ import HoldingCard from './HoldingCard.jsx'
 import ImportPdfModal from './ImportPdfModal.jsx'
 import AllocationChart from './AllocationChart.jsx'
 import PortfolioHistoryChart from './PortfolioHistoryChart.jsx'
+import DividendCalendar from './DividendCalendar.jsx'
 import styles from './WalletView.module.css'
+
+const DIVIDEND_CALENDAR_PAST_DAYS = 45
 
 const GROUP_LABEL_KEY = { EQUITY: 'groupCommonStock', ETF: 'groupETF', OTHER: 'groupOther' }
 const MASK_KEY = 'stockranges_mask_amounts'
@@ -199,6 +202,31 @@ export default function WalletView({
       .sort((a, b) => b.value - a.value)
   }, [symbols, holdings, quotes, currency, rates])
 
+  // Recent past payments (actual, from Yahoo) plus one upcoming estimate
+  // per holding (guessed from cadence — see estimateNextDividend), merged
+  // into a single chronological list across the whole portfolio.
+  const dividendCalendarEntries = useMemo(() => {
+    const nowSec = Date.now() / 1000
+    const pastCutoff = nowSec - DIVIDEND_CALENDAR_PAST_DAYS * 86400
+    const entries = []
+    symbols.forEach((symbol) => {
+      const quote = quotes[symbol]
+      if (!quote || !quote.dividends) return
+      const qty = holdings[symbol].qty
+      quote.dividends.forEach((d) => {
+        if (d.date < pastCutoff || d.date > nowSec) return
+        const amount = convert(d.amount * qty, quote.currency, currency, rates)
+        if (amount !== null) entries.push({ symbol, date: d.date, amount, kind: 'past' })
+      })
+      const next = estimateNextDividend(quote.dividends, qty)
+      if (next) {
+        const amount = convert(next.amount, quote.currency, currency, rates)
+        if (amount !== null) entries.push({ symbol, date: next.date, amount, kind: 'estimated' })
+      }
+    })
+    return entries.sort((a, b) => a.date - b.date)
+  }, [symbols, holdings, quotes, currency, rates])
+
   async function handleShare() {
     if (sharing) return
     setSharing(true)
@@ -288,6 +316,8 @@ export default function WalletView({
       {allocationItems.length > 0 && (
         <AllocationChart items={allocationItems} total={summary.marketValue} currency={currency} masked={masked} />
       )}
+
+      <DividendCalendar entries={dividendCalendarEntries} currency={currency} masked={masked} />
 
       {symbols.length === 0 && !formOpen && <div className={styles.empty}>{s.walletEmpty}</div>}
       {symbols.length > 0 && searchFilteredSymbols.length === 0 && (
