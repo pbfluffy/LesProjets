@@ -5,6 +5,8 @@ import styles from './TickerSearch.module.css'
 
 const DEBOUNCE_MS = 300
 const MIN_QUERY_LENGTH = 2
+// Allows '=' (futures/forex, e.g. gold's "GC=F") and '^' (indices, e.g.
+// "^GSPC") — autocomplete can surface both.
 const SYMBOL_RE = /^[A-Za-z0-9.\-=^]{1,10}$/
 
 // Autocomplete input: typing a name or partial ticker ("btc", "gold", "aapl")
@@ -18,6 +20,7 @@ export default function TickerSearch({ onAdd }) {
   const [results, setResults] = useState([])
   const [open, setOpen] = useState(false)
   const [highlight, setHighlight] = useState(-1)
+  const [error, setError] = useState('')
   const wrapRef = useRef(null)
   const requestId = useRef(0)
 
@@ -54,12 +57,17 @@ export default function TickerSearch({ onAdd }) {
     setInput('')
     setResults([])
     setOpen(false)
+    setError('')
   }
 
   function submitTyped(e) {
     e.preventDefault()
     const symbol = input.trim().toUpperCase()
-    if (!symbol || !SYMBOL_RE.test(symbol)) return
+    if (!symbol) return
+    if (!SYMBOL_RE.test(symbol)) {
+      setError(s.invalidTickerFormat)
+      return
+    }
     commit(symbol)
   }
 
@@ -84,15 +92,17 @@ export default function TickerSearch({ onAdd }) {
       <form className={styles.form} onSubmit={submitTyped}>
         <input
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => { setInput(e.target.value); setError('') }}
           onKeyDown={onKeyDown}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder={s.addPlaceholder}
           maxLength={40}
           autoComplete="off"
+          aria-invalid={!!error}
         />
         <button className={styles.addBtn} type="submit">{s.addBtn}</button>
       </form>
+      {error && <div className={styles.error}>{error}</div>}
       {open && (
         <ul className={styles.dropdown} role="listbox">
           {results.map((r, i) => (

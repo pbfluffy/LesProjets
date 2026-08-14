@@ -8,6 +8,13 @@
   gap: 8px;
 }
 .form input { flex: 1; text-transform: uppercase; }
+.form input[aria-invalid='true'] { border-color: var(--color-red); }
+
+.error {
+  font-size: 12px;
+  color: var(--color-red);
+  margin-top: 4px;
+}
 
 .addBtn {
   background: var(--color-accent);

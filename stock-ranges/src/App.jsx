@@ -25,9 +25,6 @@ const HOLDINGS_KEY = 'stockranges_holdings'
 const TAB_KEY = 'stockranges_tab'
 const WATCHLIST_SORT_KEY = 'stockranges_watchlist_sort'
 const THEME_KEY = 'theme'
-// Allows '=' (futures/forex, e.g. gold's "GC=F") and '^' (indices, e.g.
-// "^GSPC") — autocomplete can surface both.
-const SYMBOL_RE = /^[A-Za-z0-9.\-=^]{1,10}$/
 const RANGES = ['1d', '7d', '3mo', '6mo', '1y', '2y', '5y']
 const RANGE_LABEL_KEY = { '1d': 'range1d', '7d': 'range7d', '3mo': 'range3mo', '6mo': 'range6mo', '1y': 'range1y', '2y': 'range2y', '5y': 'range5y' }
 const RELATIVE_TIME_TICK_MS = 30 * 1000
@@ -179,10 +176,6 @@ function Dashboard() {
   function addSymbol(symbol) {
     setWarning('')
     if (!symbol) return
-    if (!SYMBOL_RE.test(symbol)) {
-      setWarning(s.errorPrefix + 'invalid ticker')
-      return
-    }
     if (watchlist.includes(symbol)) {
       setWarning(s.duplicateTicker)
       return
