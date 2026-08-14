@@ -1,23 +1,29 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { db, doc, getDoc, setDoc } from '../firebase.js'
 import { loadPortfolioHistory, savePortfolioHistory, mergePortfolioHistories } from '../portfolioHistory.js'
 
 const COLL = 'userStockRanges'
 
+// Module-level, not a ref — WalletView fully unmounts on every tab switch
+// (App.jsx renders it via a ternary, not a hide/show), so a ref-based
+// "already pulled" guard would reset on every remount and silently
+// re-fetch from Firestore each time you switched back to the Wallet tab.
+// A plain module variable survives that remount while still resetting on
+// an actual page reload.
+let pulledForUid = null
+
 // Syncs daily portfolio-value snapshots across devices — same Firestore
 // collection the rest of Stock Ranges uses, but bypassing the whole-doc
 // conflict-resolution flow in useCloudSync.js (see mergePortfolioHistories
 // for why: this is regenerable derived data, not something worth a "pick a
-// side" prompt). Pulls and merges once per sign-in, then pushes each new
-// local snapshot up as it's recorded. Best-effort — a failed pull/push
-// just means this device stays local-only until the next attempt, same
-// as everything else optional about cloud sync in this app.
+// side" prompt). Pulls and merges once per page load per account, then
+// pushes each new local snapshot up as it's recorded. Best-effort — a
+// failed pull/push just means this device stays local-only until the next
+// attempt, same as everything else optional about cloud sync in this app.
 export function usePortfolioHistorySync(user, onMerged) {
-  const pulledForUid = useRef(null)
-
   useEffect(() => {
-    if (!user || pulledForUid.current === user.uid) return
-    pulledForUid.current = user.uid
+    if (!user || pulledForUid === user.uid) return
+    pulledForUid = user.uid
     const ref = doc(db, COLL, user.uid)
     getDoc(ref)
       .then((snap) => {
