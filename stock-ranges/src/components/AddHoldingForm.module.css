@@ -59,6 +59,11 @@
   width: 100%;
 }
 
+.error {
+  font-size: 12px;
+  color: var(--color-red);
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

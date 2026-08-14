@@ -13,6 +13,7 @@ export default function AddHoldingForm({ holdings = {}, editingSymbol = null, ed
   const [qty, setQty] = useState(editingHolding ? String(editingHolding.qty) : '')
   const [avgCost, setAvgCost] = useState(editingHolding ? String(editingHolding.avgCost) : '')
   const [costCurrency, setCostCurrency] = useState(editingHolding?.costCurrency || 'USD')
+  const [error, setError] = useState('')
 
   // Picking a symbol that's already held (via search, not the explicit
   // "edit" entry point) pre-fills its existing qty/cost too — holdings are
@@ -30,9 +31,18 @@ export default function AddHoldingForm({ holdings = {}, editingSymbol = null, ed
 
   function submit(e) {
     e.preventDefault()
+    if (!symbol) return
     const qtyNum = parseFloat(qty)
     const costNum = parseFloat(avgCost)
-    if (!symbol || !Number.isFinite(qtyNum) || qtyNum <= 0 || !Number.isFinite(costNum) || costNum < 0) return
+    if (!Number.isFinite(qtyNum) || qtyNum <= 0) {
+      setError(s.invalidQtyError)
+      return
+    }
+    if (!Number.isFinite(costNum) || costNum < 0) {
+      setError(s.invalidCostError)
+      return
+    }
+    setError('')
     onSave(symbol, { qty: qtyNum, avgCost: costNum, costCurrency })
   }
 
@@ -56,11 +66,19 @@ export default function AddHoldingForm({ holdings = {}, editingSymbol = null, ed
       <div className={styles.fields}>
         <label className={styles.field}>
           <span>{s.qtyLabel}</span>
-          <input type="number" min="0" step="any" value={qty} onChange={(e) => setQty(e.target.value)} required autoFocus />
+          <input
+            type="number" min="0" step="any" value={qty}
+            onChange={(e) => { setQty(e.target.value); setError('') }}
+            required autoFocus
+          />
         </label>
         <label className={styles.field}>
           <span>{s.avgCostLabel}</span>
-          <input type="number" min="0" step="any" value={avgCost} onChange={(e) => setAvgCost(e.target.value)} required />
+          <input
+            type="number" min="0" step="any" value={avgCost}
+            onChange={(e) => { setAvgCost(e.target.value); setError('') }}
+            required
+          />
         </label>
         <label className={styles.field}>
           <span>{s.costCurrencyLabel}</span>
@@ -70,6 +88,7 @@ export default function AddHoldingForm({ holdings = {}, editingSymbol = null, ed
           </select>
         </label>
       </div>
+      {error && <div className={styles.error}>{error}</div>}
       <div className={styles.actions}>
         <button type="button" className={styles.secondaryBtn} onClick={onCancel}>{s.cancelBtn}</button>
         <button type="submit" className={styles.saveBtn}>{s.saveHoldingBtn}</button>
