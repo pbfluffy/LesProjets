@@ -87,6 +87,12 @@
 .googleBtn:disabled { opacity: 0.6; cursor: default; }
 .googleBtn svg { width: 16px; height: 16px; flex-shrink: 0; }
 
+.errorText {
+  font-size: 11px;
+  color: var(--color-red);
+  margin-top: 8px;
+}
+
 .row {
   display: flex;
   align-items: center;
