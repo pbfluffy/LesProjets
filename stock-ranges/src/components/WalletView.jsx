@@ -39,6 +39,7 @@ export default function WalletView({
   const [importOpen, setImportOpen] = useState(false)
   const [masked, setMasked] = useState(() => localStorage.getItem(MASK_KEY) === '1')
   const [sharing, setSharing] = useState(false)
+  const [shareError, setShareError] = useState('')
   const [sortBy, setSortBy] = useState(() => localStorage.getItem(SORT_KEY) || 'value')
   const [search, setSearch] = useState('')
   const [history, setHistory] = useState(() => loadPortfolioHistory())
@@ -201,6 +202,7 @@ export default function WalletView({
   async function handleShare() {
     if (sharing) return
     setSharing(true)
+    setShareError('')
     try {
       const blob = await generateSummaryImage({ s, summary, allocationItems, currency, masked, appName: s.appName })
       const file = new File([blob], 'portfolio-summary.png', { type: 'image/png' })
@@ -215,7 +217,10 @@ export default function WalletView({
         URL.revokeObjectURL(url)
       }
     } catch (err) {
-      if (err?.name !== 'AbortError') console.error(err)
+      if (err?.name !== 'AbortError') {
+        console.error(err)
+        setShareError(s.shareError)
+      }
     } finally {
       setSharing(false)
     }
@@ -248,6 +253,8 @@ export default function WalletView({
         </div>,
         actionsPortalNode
       )}
+
+      {shareError && <div className={styles.shareError}>{shareError}</div>}
 
       {symbols.length > 0 && (
         <div className={styles.summaryStrip}>
