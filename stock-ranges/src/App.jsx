@@ -4,6 +4,7 @@ import { getThbRates } from './fx.js'
 import { useCloudSync } from './hooks/useCloudSync.js'
 import TickerCard from './components/TickerCard.jsx'
 import TickerSearch from './components/TickerSearch.jsx'
+import SearchBox from './components/SearchBox.jsx'
 import AccountButton from './components/AccountButton.jsx'
 import ConflictModal from './components/ConflictModal.jsx'
 import Icon from './components/Icon.jsx'
@@ -106,6 +107,7 @@ function Dashboard() {
   const [tab, setTab] = useState(() => (localStorage.getItem(TAB_KEY) === 'wallet' ? 'wallet' : 'watchlist'))
   const [tabActionsEl, setTabActionsEl] = useState(null)
   const [watchlistSort, setWatchlistSort] = useState(() => localStorage.getItem(WATCHLIST_SORT_KEY) || 'signal')
+  const [watchlistSearch, setWatchlistSearch] = useState('')
   const [rates, setRates] = useState(null)
   const [warning, setWarning] = useState('')
   const [signals, setSignals] = useState({})
@@ -394,11 +396,17 @@ function Dashboard() {
 
   // No active filters shows everything; otherwise a ticker shows if it has
   // at least one of the active tags (OR, not AND — narrower "must have all"
-  // filtering is easy to add later if it turns out to be wanted).
+  // filtering is easy to add later if it turns out to be wanted). The
+  // search box narrows further by symbol substring, on top of tag filtering.
   const filteredWatchlist = useMemo(() => {
-    if (activeTagFilters.size === 0) return sortedWatchlist
-    return sortedWatchlist.filter((symbol) => (tags[symbol] || []).some((t) => activeTagFilters.has(t)))
-  }, [sortedWatchlist, tags, activeTagFilters])
+    let list = sortedWatchlist
+    if (activeTagFilters.size > 0) {
+      list = list.filter((symbol) => (tags[symbol] || []).some((t) => activeTagFilters.has(t)))
+    }
+    const query = watchlistSearch.trim().toUpperCase()
+    if (query) list = list.filter((symbol) => symbol.includes(query))
+    return list
+  }, [sortedWatchlist, tags, activeTagFilters, watchlistSearch])
 
   const lastUpdated = useMemo(() => {
     const timestamps = Object.values(signals).map((v) => v?.ts).filter(Boolean)
@@ -536,6 +544,7 @@ function Dashboard() {
       {warning && <div className={styles.warning}>{warning}</div>}
 
       <div className={styles.lookbackRow}>
+        <SearchBox value={watchlistSearch} onChange={setWatchlistSearch} />
         <label htmlFor="lookback">{s.lookbackLabel}</label>
         <select id="lookback" value={range} onChange={(e) => setRange(e.target.value)}>
           {RANGES.map((r) => (
@@ -567,7 +576,7 @@ function Dashboard() {
       {watchlist.length === 0 ? (
         <div className={styles.empty}>{s.emptyWatchlist}</div>
       ) : filteredWatchlist.length === 0 ? (
-        <div className={styles.empty}>{s.noTagMatches}</div>
+        <div className={styles.empty}>{watchlistSearch.trim() ? s.noSearchMatches : s.noTagMatches}</div>
       ) : (
         <div className={styles.list}>
           {filteredWatchlist.map((symbol) => (

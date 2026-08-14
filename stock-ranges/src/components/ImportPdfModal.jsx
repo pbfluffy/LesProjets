@@ -7,6 +7,13 @@ function interp(str, vars) {
   return str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '')
 }
 
+const ERROR_LABEL_KEYS = {
+  RATE_LIMIT: 'importErrorRateLimit',
+  NETWORK: 'importErrorNetwork',
+  SERVICE: 'importErrorService',
+  CONFIG: 'importErrorConfig',
+}
+
 // Upload a broker-statement PDF -> render its pages to images client-side
 // -> worker extracts holdings via Workers AI vision -> review/edit the
 // result here -> confirmed rows go through the same onImport (= the
@@ -45,7 +52,7 @@ export default function ImportPdfModal({ onImport, onClose }) {
       }))
       setRows(withSelection)
     } catch (err) {
-      setError(err.message)
+      setError(s[ERROR_LABEL_KEYS[err.code]] || err.message)
     } finally {
       setStatus('idle')
     }

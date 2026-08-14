@@ -10,6 +10,7 @@ import { loadPortfolioHistory, recordPortfolioSnapshot } from '../portfolioHisto
 import { usePortfolioHistorySync } from '../hooks/usePortfolioHistorySync.js'
 import Icon from './Icon.jsx'
 import AddHoldingForm from './AddHoldingForm.jsx'
+import SearchBox from './SearchBox.jsx'
 import HoldingCard from './HoldingCard.jsx'
 import ImportPdfModal from './ImportPdfModal.jsx'
 import AllocationChart from './AllocationChart.jsx'
@@ -39,6 +40,7 @@ export default function WalletView({
   const [masked, setMasked] = useState(() => localStorage.getItem(MASK_KEY) === '1')
   const [sharing, setSharing] = useState(false)
   const [sortBy, setSortBy] = useState(() => localStorage.getItem(SORT_KEY) || 'value')
+  const [search, setSearch] = useState('')
   const [history, setHistory] = useState(() => loadPortfolioHistory())
   const { pushSnapshot } = usePortfolioHistorySync(user, setHistory)
 
@@ -167,7 +169,19 @@ export default function WalletView({
     return sortedSymbols.filter((symbol) => (tags[symbol] || []).some((t) => activeTagFilters.has(t)))
   }, [sortedSymbols, tags, activeTagFilters])
 
-  const groupedSymbols = useMemo(() => groupSymbolsByInstrumentType(tagFilteredSymbols, quotes), [tagFilteredSymbols, quotes])
+  // Matches the company name too (unlike the Watchlist's search, which is
+  // symbol-only — the name isn't lifted to that component's state).
+  const searchFilteredSymbols = useMemo(() => {
+    const query = search.trim().toUpperCase()
+    if (!query) return tagFilteredSymbols
+    return tagFilteredSymbols.filter((symbol) => {
+      if (symbol.includes(query)) return true
+      const name = quotes[symbol]?.name
+      return name ? name.toUpperCase().includes(query) : false
+    })
+  }, [tagFilteredSymbols, search, quotes])
+
+  const groupedSymbols = useMemo(() => groupSymbolsByInstrumentType(searchFilteredSymbols, quotes), [searchFilteredSymbols, quotes])
 
   // Per-holding market value for the allocation pie — only symbols whose
   // quote has resolved contribute a slice; the rest just aren't drawn yet
@@ -269,7 +283,9 @@ export default function WalletView({
       )}
 
       {symbols.length === 0 && !formOpen && <div className={styles.empty}>{s.walletEmpty}</div>}
-      {symbols.length > 0 && tagFilteredSymbols.length === 0 && <div className={styles.empty}>{s.noTagMatches}</div>}
+      {symbols.length > 0 && searchFilteredSymbols.length === 0 && (
+        <div className={styles.empty}>{search.trim() ? s.noSearchMatches : s.noTagMatches}</div>
+      )}
 
       {formOpen ? (
         <AddHoldingForm
@@ -292,6 +308,7 @@ export default function WalletView({
 
       {symbols.length > 0 && (
         <div className={styles.sortRow}>
+          <SearchBox value={search} onChange={setSearch} />
           <label htmlFor="wallet-sort">{s.sortByLabel}</label>
           <select id="wallet-sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
             {Object.entries(SORT_LABEL_KEY).map(([key, labelKey]) => (

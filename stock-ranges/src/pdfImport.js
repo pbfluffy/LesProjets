@@ -72,12 +72,19 @@ export async function renderPdfToImages(file, onProgress) {
   return images
 }
 
+function codedError(code, message) {
+  const err = new Error(message)
+  err.code = code
+  return err
+}
+
 // Returns { rows: [{symbol, shares, avgCost, currency, page}, ...] }.
-// Throws with a short user-facing message on failure (rate limit, network,
-// worker error).
+// Throws an Error with a `code` (RATE_LIMIT | NETWORK | SERVICE | CONFIG) so
+// the caller can show a localized message — the message text here is only
+// an English fallback for non-UI contexts (e.g. console logs).
 export async function importHoldingsFromImages(images) {
   if (!WORKER_URL) {
-    throw new Error('Worker URL not configured (VITE_STOCK_WORKER_URL)')
+    throw codedError('CONFIG', 'Worker URL not configured (VITE_STOCK_WORKER_URL)')
   }
   const form = new FormData()
   images.forEach((blob, i) => form.append('pages', blob, `page-${i + 1}.jpg`))
@@ -86,14 +93,14 @@ export async function importHoldingsFromImages(images) {
   try {
     res = await fetch(WORKER_URL, { method: 'POST', body: form })
   } catch {
-    throw new Error('Network error — could not reach the import service')
+    throw codedError('NETWORK', 'Network error — could not reach the import service')
   }
 
   if (res.status === 429) {
-    throw new Error('Too many imports recently — try again in a bit')
+    throw codedError('RATE_LIMIT', 'Too many imports recently — try again in a bit')
   }
   if (!res.ok) {
-    throw new Error('Import service error')
+    throw codedError('SERVICE', 'Import service error')
   }
   return res.json()
 }

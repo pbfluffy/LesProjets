@@ -93,6 +93,12 @@ const PATHS = {
       <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
     </>
   ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </>
+  ),
 }
 
 // One inline stroke-icon set (feather-style, 24x24, currentColor) used
