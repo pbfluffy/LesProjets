@@ -61,13 +61,24 @@ export function inferDividendCadence(dividendEvents) {
 // calendar endpoint, only its historical-events one, so there is no real
 // scheduled date to show. Wrong whenever a company changes or suspends its
 // dividend; callers must present this as an estimate, not a fact.
+//
+// If the last payment is further back than one cadence gap (the holding
+// hasn't paid as recently as its history suggests it should have), a
+// single last-date-plus-gap calculation lands in the past — keep adding
+// gap periods until the estimate is actually upcoming, so "next payment"
+// never means "should have already happened."
 export function estimateNextDividend(dividendEvents, qty) {
   if (!Array.isArray(dividendEvents) || dividendEvents.length === 0 || typeof qty !== 'number') return null
   const sorted = [...dividendEvents].sort((a, b) => a.date - b.date)
   const last = sorted[sorted.length - 1]
   const cadence = inferDividendCadence(dividendEvents)
-  const gapDays = cadence === 'month' ? 30 : 91
-  return { date: last.date + gapDays * 86400, amount: last.amount * qty }
+  const gapSeconds = (cadence === 'month' ? 30 : 91) * 86400
+  const nowSec = Date.now() / 1000
+  let nextDate = last.date + gapSeconds
+  if (nextDate < nowSec) {
+    nextDate += Math.ceil((nowSec - nextDate) / gapSeconds) * gapSeconds
+  }
+  return { date: nextDate, amount: last.amount * qty }
 }
 
 // Buckets actual dividend events (amount already multiplied by qty held) by

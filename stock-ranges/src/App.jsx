@@ -105,6 +105,7 @@ function Dashboard() {
   const [tabActionsEl, setTabActionsEl] = useState(null)
   const [watchlistSort, setWatchlistSort] = useState(() => localStorage.getItem(WATCHLIST_SORT_KEY) || 'signal')
   const [watchlistSearch, setWatchlistSearch] = useState('')
+  const [activeSignalFilter, setActiveSignalFilter] = useState(null)
   const [rates, setRates] = useState(null)
   const [warning, setWarning] = useState('')
   const [signals, setSignals] = useState({})
@@ -390,16 +391,22 @@ function Dashboard() {
   // No active filters shows everything; otherwise a ticker shows if it has
   // at least one of the active tags (OR, not AND — narrower "must have all"
   // filtering is easy to add later if it turns out to be wanted). The
-  // search box narrows further by symbol substring, on top of tag filtering.
+  // signal filter (clicking a summary chip) is single-select, unlike tags —
+  // a ticker only ever has one signal at a time, so "buy OR hold" isn't a
+  // meaningful combination the way "tech OR dividend" tags are. The search
+  // box narrows further by symbol substring, on top of both.
   const filteredWatchlist = useMemo(() => {
     let list = sortedWatchlist
     if (activeTagFilters.size > 0) {
       list = list.filter((symbol) => (tags[symbol] || []).some((t) => activeTagFilters.has(t)))
     }
+    if (activeSignalFilter) {
+      list = list.filter((symbol) => signals[symbol]?.signal === activeSignalFilter)
+    }
     const query = watchlistSearch.trim().toUpperCase()
     if (query) list = list.filter((symbol) => symbol.includes(query))
     return list
-  }, [sortedWatchlist, tags, activeTagFilters, watchlistSearch])
+  }, [sortedWatchlist, tags, activeTagFilters, activeSignalFilter, signals, watchlistSearch])
 
   const lastUpdated = useMemo(() => {
     const timestamps = Object.values(signals).map((v) => v?.ts).filter(Boolean)
@@ -524,9 +531,19 @@ function Dashboard() {
       <>
       {summaryTotal > 0 && (
         <div className={styles.summaryRow}>
-          {summaryCounts.buy > 0 && <span className={styles.summaryChip} data-zone="buy">{summaryCounts.buy} {s.signalBuy}</span>}
-          {summaryCounts.hold > 0 && <span className={styles.summaryChip} data-zone="hold">{summaryCounts.hold} {s.signalHold}</span>}
-          {summaryCounts.sell > 0 && <span className={styles.summaryChip} data-zone="sell">{summaryCounts.sell} {s.signalSell}</span>}
+          {['buy', 'hold', 'sell'].map((zone) => summaryCounts[zone] > 0 && (
+            <button
+              key={zone}
+              type="button"
+              className={styles.summaryChip}
+              data-zone={zone}
+              data-active={activeSignalFilter === zone}
+              onClick={() => setActiveSignalFilter((f) => (f === zone ? null : zone))}
+              aria-pressed={activeSignalFilter === zone}
+            >
+              {summaryCounts[zone]} {s[`signal${zone[0].toUpperCase()}${zone.slice(1)}`]}
+            </button>
+          ))}
         </div>
       )}
 
@@ -569,7 +586,7 @@ function Dashboard() {
       {watchlist.length === 0 ? (
         <div className={styles.empty}>{s.emptyWatchlist}</div>
       ) : filteredWatchlist.length === 0 ? (
-        <div className={styles.empty}>{watchlistSearch.trim() ? s.noSearchMatches : s.noTagMatches}</div>
+        <div className={styles.empty}>{watchlistSearch.trim() ? s.noSearchMatches : s.noFilterMatches}</div>
       ) : (
         <div className={styles.list}>
           {filteredWatchlist.map((symbol) => (
