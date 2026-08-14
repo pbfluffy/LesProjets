@@ -75,7 +75,7 @@ export default function AllocationChart({ items, total, currency, masked }) {
             ))}
           </ul>
           {slices.length > COLLAPSED_COUNT && (
-            <button type="button" className={styles.legendToggle} onClick={() => setExpanded((v) => !v)}>
+            <button type="button" className={styles.legendToggle} onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
               {expanded ? s.allocationShowLess : interp(s.allocationShowMore, { n: hiddenCount })}
             </button>
           )}
