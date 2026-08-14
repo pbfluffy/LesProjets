@@ -24,6 +24,7 @@ export default function ImportPdfModal({ onImport, onClose }) {
   const [progress, setProgress] = useState({ page: 0, total: 0 })
   const [error, setError] = useState('')
   const [rows, setRows] = useState(null)
+  const [importError, setImportError] = useState('')
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -60,6 +61,7 @@ export default function ImportPdfModal({ onImport, onClose }) {
 
   function updateRow(id, field, value) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)))
+    setImportError('')
   }
 
   function toggleAll(checked) {
@@ -67,12 +69,20 @@ export default function ImportPdfModal({ onImport, onClose }) {
   }
 
   function confirmImport() {
+    const skipped = []
     rows.filter((r) => r.selected).forEach((r) => {
       const qtyNum = parseFloat(r.qty)
       const avgCostNum = parseFloat(r.avgCost)
-      if (!r.symbol || !Number.isFinite(qtyNum) || qtyNum <= 0 || !Number.isFinite(avgCostNum) || avgCostNum < 0) return
+      if (!r.symbol || !Number.isFinite(qtyNum) || qtyNum <= 0 || !Number.isFinite(avgCostNum) || avgCostNum < 0) {
+        skipped.push(r.symbol || '?')
+        return
+      }
       onImport(r.symbol, { qty: qtyNum, avgCost: avgCostNum, costCurrency: r.currency })
     })
+    if (skipped.length > 0) {
+      setImportError(interp(s.importSkippedRows, { n: skipped.length, symbols: skipped.join(', ') }))
+      return
+    }
     onClose()
   }
 
@@ -173,6 +183,8 @@ export default function ImportPdfModal({ onImport, onClose }) {
             </table>
           </div>
         )}
+
+        {importError && <div className={styles.errorText}>{importError}</div>}
 
         <div className={styles.actions}>
           <button className={styles.secondaryBtn} onClick={onClose}>{s.cancelBtn}</button>
