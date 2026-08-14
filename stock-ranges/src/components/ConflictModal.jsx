@@ -18,8 +18,8 @@ export default function ConflictModal({ localData, cloudData, onUseLocal, onUseC
 
   return (
     <div className={styles.overlay}>
-      <div className={styles.modal}>
-        <div className={styles.title}>{s.conflictTitle}</div>
+      <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="conflict-modal-title">
+        <div className={styles.title} id="conflict-modal-title">{s.conflictTitle}</div>
         <div className={styles.body}>{s.conflictBody}</div>
         <div className={styles.cards}>
           <div className={styles.card}>

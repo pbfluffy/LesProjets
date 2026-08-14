@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLang } from '../LangContext.jsx'
 import { renderPdfToImages, importHoldingsFromImages } from '../pdfImport.js'
 import styles from './ImportPdfModal.module.css'
@@ -17,6 +17,14 @@ export default function ImportPdfModal({ onImport, onClose }) {
   const [progress, setProgress] = useState({ page: 0, total: 0 })
   const [error, setError] = useState('')
   const [rows, setRows] = useState(null)
+
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
 
   async function handleFile(file) {
     if (!file) return
@@ -66,8 +74,8 @@ export default function ImportPdfModal({ onImport, onClose }) {
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.title}>{s.importModalTitle}</div>
+      <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="import-modal-title" onClick={(e) => e.stopPropagation()}>
+        <div className={styles.title} id="import-modal-title">{s.importModalTitle}</div>
 
         {!rows && (
           <div className={styles.pickPanel}>
