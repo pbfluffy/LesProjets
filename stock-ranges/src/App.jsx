@@ -473,10 +473,12 @@ function Dashboard() {
           {allTags.map((tag) => (
             <button
               key={tag}
+              type="button"
               className={styles.tagFilterChip}
               data-active={activeTagFilters.has(tag)}
               style={{ '--tag-hue': tagHue(tag) }}
               onClick={() => toggleTagFilter(tag)}
+              aria-pressed={activeTagFilters.has(tag)}
             >
               {tag}
             </button>
