@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLang } from '../LangContext.jsx'
 import { renderPdfToImages, importHoldingsFromImages } from '../pdfImport.js'
 import styles from './ImportPdfModal.module.css'
@@ -25,6 +25,7 @@ export default function ImportPdfModal({ onImport, onClose }) {
   const [error, setError] = useState('')
   const [rows, setRows] = useState(null)
   const [importError, setImportError] = useState('')
+  const modalRef = useRef(null)
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -33,6 +34,13 @@ export default function ImportPdfModal({ onImport, onClose }) {
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onClose])
+
+  // Dialog role announces "you're in a dialog" but doesn't move focus —
+  // without this, a keyboard/screen-reader user has to tab in from
+  // wherever they were before the modal opened.
+  useEffect(() => {
+    modalRef.current?.querySelector('input, button')?.focus()
+  }, [])
 
   async function handleFile(file) {
     if (!file) return
@@ -91,7 +99,7 @@ export default function ImportPdfModal({ onImport, onClose }) {
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="import-modal-title" onClick={(e) => e.stopPropagation()}>
+      <div ref={modalRef} className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="import-modal-title" onClick={(e) => e.stopPropagation()}>
         <div className={styles.title} id="import-modal-title">{s.importModalTitle}</div>
 
         {!rows && (

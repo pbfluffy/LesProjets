@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useLang } from '../LangContext.jsx'
 import styles from './ConflictModal.module.css'
 
@@ -11,6 +12,15 @@ function interp(str, vars) {
 // and trivially rebuilt, unlike bill history.
 export default function ConflictModal({ localData, cloudData, onUseLocal, onUseCloud }) {
   const { s, lang } = useLang()
+  const modalRef = useRef(null)
+
+  // Dialog role announces "you're in a dialog" but doesn't move focus —
+  // without this, a keyboard/screen-reader user has to tab in from
+  // wherever they were before the modal opened.
+  useEffect(() => {
+    modalRef.current?.querySelector('input, button')?.focus()
+  }, [])
+
   const localCount = localData.watchlist.length
   const cloudCount = Array.isArray(cloudData?.watchlist) ? cloudData.watchlist.length : 0
   const cloudWhen = cloudData?.lastModified?.toDate ? cloudData.lastModified.toDate() : null
@@ -18,7 +28,7 @@ export default function ConflictModal({ localData, cloudData, onUseLocal, onUseC
 
   return (
     <div className={styles.overlay}>
-      <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="conflict-modal-title">
+      <div ref={modalRef} className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="conflict-modal-title">
         <div className={styles.title} id="conflict-modal-title">{s.conflictTitle}</div>
         <div className={styles.body}>{s.conflictBody}</div>
         <div className={styles.cards}>

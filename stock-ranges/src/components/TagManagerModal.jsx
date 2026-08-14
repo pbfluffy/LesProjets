@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { tagHue } from '../tagColor.js'
 import { useLang } from '../LangContext.jsx'
 import Icon from './Icon.jsx'
@@ -13,6 +13,7 @@ function interp(str, vars) {
 // ticker at a time (see renameTag/deleteTagEverywhere in App.jsx).
 export default function TagManagerModal({ tags, counts, onRename, onDelete, onClose }) {
   const { s } = useLang()
+  const modalRef = useRef(null)
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -22,6 +23,13 @@ export default function TagManagerModal({ tags, counts, onRename, onDelete, onCl
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
+  // Dialog role announces "you're in a dialog" but doesn't move focus —
+  // without this, a keyboard/screen-reader user has to tab in from
+  // wherever they were before the modal opened.
+  useEffect(() => {
+    modalRef.current?.querySelector('input, button')?.focus()
+  }, [])
+
   function commitRename(tag, value) {
     const trimmed = value.trim()
     if (trimmed && trimmed !== tag) onRename(tag, trimmed)
@@ -29,7 +37,7 @@ export default function TagManagerModal({ tags, counts, onRename, onDelete, onCl
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="tag-manager-title" onClick={(e) => e.stopPropagation()}>
+      <div ref={modalRef} className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="tag-manager-title" onClick={(e) => e.stopPropagation()}>
         <div className={styles.title} id="tag-manager-title">{s.manageTagsTitle}</div>
         <div className={styles.body}>{s.manageTagsBody}</div>
         <ul className={styles.list}>
