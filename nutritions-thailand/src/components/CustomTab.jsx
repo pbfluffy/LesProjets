@@ -299,7 +299,7 @@ export default function CustomTab({ store }) {
               onClick={() => photoRef.current?.click()}
               type="button"
             >
-              📷 {t('custom.photo')}
+              {t('custom.photo')}
             </button>
           )}
           <input
@@ -372,7 +372,7 @@ export default function CustomTab({ store }) {
                       onClick={() => editPhotoRef.current?.click()}
                       type="button"
                     >
-                      📷 {t('custom.photo')}
+                      {t('custom.photo')}
                     </button>
                   )}
                   <input

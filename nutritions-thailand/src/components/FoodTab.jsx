@@ -16,7 +16,7 @@ export default function FoodTab({ store }) {
     const cats = [...MEALS];
     if (customFoods.length > 0) {
       cats.push({
-        category: '⭐ ของฉัน',
+        category: 'ของฉัน',
         categoryEn: t('food.custom'),
         color: '#FFD166',
         id: 'custom',
@@ -61,7 +61,7 @@ export default function FoodTab({ store }) {
       .filter((cat) => cat.items.length > 0);
   }, [allCategories, search, filterCat]);
 
-  // Favorites section shows on the "All" view and when the 📌 chip is active.
+  // Favorites section shows on the "All" view and when the Favorites chip is active.
   const showFav = (filterCat === 'all' || filterCat === 'fav') && favItems.length > 0;
 
   const renderItem = (item, key) => (

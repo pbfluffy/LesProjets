@@ -2,7 +2,7 @@ import { useLang } from '../LangContext.jsx';
 import styles from './StreakCard.module.css';
 
 // Feature #20 — Protein streak card.
-// Shows current streak (🔥 N day streak), best, and a state-dependent hint.
+// Shows current streak (N day streak), best, and a state-dependent hint.
 export default function StreakCard({ current, best, todayMet, todayProtein, proteinTarget }) {
   const { t } = useLang();
   const active = current > 0;
