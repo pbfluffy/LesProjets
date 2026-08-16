@@ -7,6 +7,7 @@ const MAX_DIM = 1568;
 const JPEG_QUALITY = 0.85;
 const THUMB_MAX = 600; // max px for custom-food thumbnail stored in localStorage
 const PORTION_MULT = { S: 0.7, M: 1.0, L: 1.4 };
+const LOG_FLASH_MS = 2500;
 
 const PROMPT = `You are a food identifier for a nutrition tracker used in Thailand. Identify the dish in the photo, estimate portion size, and estimate macros.
 
@@ -179,12 +180,30 @@ function makeItemId() {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function dishName(result, lang) {
+  return lang === 'th'
+    ? result.dishNameTh || result.dishNameEn || 'อาหารจากรูปภาพ'
+    : result.dishNameEn || result.dishNameTh || 'Photo dish';
+}
+
+function scaleResult(result, portionSize) {
+  const mult = PORTION_MULT[portionSize] ?? 1.0;
+  return {
+    kcal: Math.round((result.kcal || 0) * mult),
+    protein: Math.round((result.protein || 0) * mult),
+    fat: Math.round((result.fat || 0) * mult),
+    carbs: Math.round((result.carbs || 0) * mult),
+  };
+}
+
 export default function PhotoTab({ store }) {
   const { t, lang } = useLang();
   // Each item: { id, file, preview, status: 'pending'|'loading'|'done'|'error',
   // result, error, portionSize, logged, saved }
   const [items, setItems] = useState([]);
   const [batchRunning, setBatchRunning] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ done: 0, total: 0 });
+  const [justLoggedAll, setJustLoggedAll] = useState(0); // 0 = hidden, else count just logged
   const fileRef = useRef(null);
   const itemsRef = useRef(items);
 
@@ -228,6 +247,8 @@ export default function PhotoTab({ store }) {
   }
 
   function clearAll() {
+    const unsaved = items.filter((it) => it.status === 'done' && it.result && !it.logged && !it.saved).length;
+    if (unsaved > 0 && !window.confirm(t('photo.clearConfirm', { n: unsaved }))) return;
     items.forEach((it) => it.preview && URL.revokeObjectURL(it.preview));
     setItems([]);
     if (fileRef.current) fileRef.current.value = '';
@@ -252,10 +273,13 @@ export default function PhotoTab({ store }) {
   }
 
   async function identifyAll() {
-    setBatchRunning(true);
     const toRun = items.filter((it) => it.status === 'pending' || it.status === 'error');
-    for (const it of toRun) {
-      await identifyOne(it.id, it.file);
+    if (toRun.length === 0) return;
+    setBatchRunning(true);
+    setBatchProgress({ done: 0, total: toRun.length });
+    for (let i = 0; i < toRun.length; i++) {
+      await identifyOne(toRun[i].id, toRun[i].file);
+      setBatchProgress({ done: i + 1, total: toRun.length });
     }
     setBatchRunning(false);
   }
@@ -267,33 +291,31 @@ export default function PhotoTab({ store }) {
   function logItem(id) {
     const it = items.find((x) => x.id === id);
     if (!it || !it.result) return;
-    const mult = PORTION_MULT[it.portionSize] ?? 1.0;
-    const name =
-      lang === 'th'
-        ? it.result.dishNameTh || it.result.dishNameEn || 'อาหารจากรูปภาพ'
-        : it.result.dishNameEn || it.result.dishNameTh || 'Photo dish';
-    store.addToLog({
-      name,
-      kcal: Math.round((it.result.kcal || 0) * mult),
-      protein: Math.round((it.result.protein || 0) * mult),
-      fat: Math.round((it.result.fat || 0) * mult),
-      carbs: Math.round((it.result.carbs || 0) * mult),
-      note: t('photo.logNote'),
-    });
+    store.addToLog({ name: dishName(it.result, lang), ...scaleResult(it.result, it.portionSize), note: t('photo.logNote') });
     setItems((prev) => prev.map((x) => (x.id === id ? { ...x, logged: true } : x)));
     setTimeout(() => {
       setItems((prev) => prev.map((x) => (x.id === id ? { ...x, logged: false } : x)));
-    }, 2500);
+    }, LOG_FLASH_MS);
+  }
+
+  function logAll() {
+    const toLog = items.filter((it) => it.status === 'done' && it.result && !it.logged);
+    if (toLog.length === 0) return;
+    toLog.forEach((it) => {
+      store.addToLog({ name: dishName(it.result, lang), ...scaleResult(it.result, it.portionSize), note: t('photo.logNote') });
+    });
+    const ids = new Set(toLog.map((it) => it.id));
+    setItems((prev) => prev.map((x) => (ids.has(x.id) ? { ...x, logged: true } : x)));
+    setJustLoggedAll(toLog.length);
+    setTimeout(() => {
+      setItems((prev) => prev.map((x) => (ids.has(x.id) ? { ...x, logged: false } : x)));
+      setJustLoggedAll(0);
+    }, LOG_FLASH_MS);
   }
 
   async function saveItem(id) {
     const it = items.find((x) => x.id === id);
     if (!it || !it.result) return;
-    const mult = PORTION_MULT[it.portionSize] ?? 1.0;
-    const name =
-      lang === 'th'
-        ? it.result.dishNameTh || it.result.dishNameEn || 'อาหารจากรูปภาพ'
-        : it.result.dishNameEn || it.result.dishNameTh || 'Photo dish';
     // Compress the original file to a small thumbnail for localStorage storage.
     let image = null;
     try {
@@ -302,21 +324,24 @@ export default function PhotoTab({ store }) {
       // image stays null — food still saves without photo
     }
     store.addCustomFood({
-      name,
-      kcal: Math.round((it.result.kcal || 0) * mult),
-      protein: Math.round((it.result.protein || 0) * mult),
-      fat: Math.round((it.result.fat || 0) * mult),
-      carbs: Math.round((it.result.carbs || 0) * mult),
+      name: dishName(it.result, lang),
+      ...scaleResult(it.result, it.portionSize),
       note: t('photo.logNote'),
       image,
     });
     setItems((prev) => prev.map((x) => (x.id === id ? { ...x, saved: true } : x)));
     setTimeout(() => {
       setItems((prev) => prev.map((x) => (x.id === id ? { ...x, saved: false } : x)));
-    }, 2500);
+    }, LOG_FLASH_MS);
   }
 
   const hasRunnable = items.some((it) => it.status === 'pending' || it.status === 'error');
+  const doneCount = items.filter((it) => it.status === 'done').length;
+  const loggableCount = items.filter((it) => it.status === 'done' && it.result && !it.logged).length;
+  const totalKcal = items.reduce(
+    (sum, it) => (it.status === 'done' && it.result ? sum + scaleResult(it.result, it.portionSize).kcal : sum),
+    0
+  );
 
   return (
     <div className={styles.wrap}>
@@ -328,6 +353,8 @@ export default function PhotoTab({ store }) {
           {t('photo.choose')}
         </button>
 
+        {items.length === 0 && <div className={styles.hint}>{t('photo.chooseHint')}</div>}
+
         <input
           ref={fileRef}
           type="file"
@@ -338,18 +365,38 @@ export default function PhotoTab({ store }) {
         />
 
         {items.length > 0 && (
-          <div className={styles.row} style={{ marginTop: 10 }}>
-            <button
-              className={`${styles.btn} ${styles.primary}`}
-              onClick={identifyAll}
-              disabled={batchRunning || !hasRunnable}
-            >
-              {batchRunning ? t('photo.identifying') : t('photo.identifyAll', { n: items.length })}
-            </button>
-            <button className={styles.btn} onClick={clearAll} disabled={batchRunning}>
-              {t('photo.clearAll')}
-            </button>
-          </div>
+          <>
+            <div className={styles.row} style={{ marginTop: 10 }}>
+              <button
+                className={`${styles.btn} ${styles.primary}`}
+                onClick={identifyAll}
+                disabled={batchRunning || !hasRunnable}
+                aria-busy={batchRunning}
+              >
+                {batchRunning
+                  ? t('photo.identifyingProgress', { done: batchProgress.done, total: batchProgress.total })
+                  : t('photo.identifyAll', { n: items.length })}
+              </button>
+              <button className={styles.btn} onClick={clearAll} disabled={batchRunning}>
+                {t('photo.clearAll')}
+              </button>
+            </div>
+
+            <div className={styles.summary} aria-live="polite">
+              {t('photo.summary', { done: doneCount, total: items.length, kcal: totalKcal.toLocaleString() })}
+            </div>
+
+            {(loggableCount > 0 || justLoggedAll > 0) && (
+              <button
+                className={styles.logBtn}
+                style={{ marginTop: 10 }}
+                onClick={logAll}
+                disabled={justLoggedAll > 0}
+              >
+                {justLoggedAll > 0 ? t('photo.logAllDone', { n: justLoggedAll }) : t('photo.logAll', { n: loggableCount })}
+              </button>
+            )}
+          </>
         )}
       </div>
 
@@ -373,41 +420,26 @@ export default function PhotoTab({ store }) {
 
 function PhotoItemCard({ item, lang, t, disabled, onIdentify, onRemove, onPortion, onLog, onSave }) {
   const { status, result } = item;
-  const mult = PORTION_MULT[item.portionSize] ?? 1.0;
-  const scaledResult = result
-    ? {
-        ...result,
-        kcal: Math.round((result.kcal || 0) * mult),
-        protein: Math.round((result.protein || 0) * mult),
-        fat: Math.round((result.fat || 0) * mult),
-        carbs: Math.round((result.carbs || 0) * mult),
-      }
-    : null;
-  const dishName = result
-    ? lang === 'th'
-      ? result.dishNameTh || result.dishNameEn
-      : result.dishNameEn || result.dishNameTh
-    : null;
-
-  const statusText =
-    status === 'loading'
-      ? t('photo.identifying')
-      : status === 'error'
-      ? item.error
-      : status === 'pending'
-      ? t('photo.pendingHint')
-      : null;
+  const scaledResult = result ? scaleResult(result, item.portionSize) : null;
+  const name = result ? dishName(result, lang) : null;
 
   return (
     <div className={styles.card}>
       <div className={styles.itemHeader}>
-        <img src={item.preview} alt="" className={styles.itemThumb} />
+        <img src={item.preview} alt={name || item.file.name} className={styles.itemThumb} />
         <div className={styles.itemHeaderInfo}>
           {status === 'done' ? (
-            <div className={styles.dishName}>{dishName}</div>
+            <div className={styles.dishName}>{name}</div>
           ) : (
             <div className={styles.itemStatus} style={status === 'error' ? { color: 'var(--red)' } : undefined}>
-              {statusText}
+              {status === 'loading' && <span className={styles.spinner} aria-hidden="true" />}
+              {status === 'loading'
+                ? t('photo.identifying')
+                : status === 'error'
+                ? item.error
+                : status === 'pending'
+                ? t('photo.pendingHint')
+                : null}
             </div>
           )}
         </div>
@@ -445,6 +477,7 @@ function PhotoItemCard({ item, lang, t, disabled, onIdentify, onRemove, onPortio
                 key={sz}
                 className={`${styles.portionBtn} ${item.portionSize === sz ? styles.portionActive : ''}`}
                 onClick={() => onPortion(sz)}
+                aria-pressed={item.portionSize === sz}
               >
                 {sz === 'S'
                   ? lang === 'th'
