@@ -6,6 +6,7 @@ const WORKER_URL = 'https://nutritions-photo.pbfluffygaming.workers.dev/';
 const MAX_DIM = 1568;
 const JPEG_QUALITY = 0.85;
 const THUMB_MAX = 600; // max px for custom-food thumbnail stored in localStorage
+const PORTION_MULT = { S: 0.7, M: 1.0, L: 1.4 };
 
 const PROMPT = `You are a food identifier for a nutrition tracker used in Thailand. Identify the dish in the photo, estimate portion size, and estimate macros.
 
@@ -20,13 +21,13 @@ Portion sizing rules — apply these strictly:
 - When uncertain about oil or sauce quantity, assume a moderate home-cook amount, not a deep-fry or heavy-sauce default.
 - Report calories conservatively: if your estimate range is e.g. 400–600 kcal, return 400, not 500 or 600.
 
-Be honest about uncertainty — portion estimation from a photo alone typically has \u00b120-40% error, especially without a reference object for scale.
+Be honest about uncertainty — portion estimation from a photo alone typically has ±20-40% error, especially without a reference object for scale.
 
 Respond ONLY with valid JSON, no markdown fences, no preamble:
 
 {
   "dishNameEn": "English name, e.g. Pad Krapao Gai",
-  "dishNameTh": "Thai name in Thai script, e.g. \u0e1c\u0e31\u0e14\u0e01\u0e30\u0e40\u0e1e\u0e23\u0e32\u0e44\u0e01\u0e48",
+  "dishNameTh": "Thai name in Thai script, e.g. ผัดกะเพราไก่",
   "cuisine": "Thai | Western | Japanese | Chinese | Korean | Other",
   "alternatives": [{"en": "alternate name 1", "th": "alternate Thai name 1"}, {"en": "alternate 2", "th": "alternate Thai 2"}],
   "confidence": "high" | "medium" | "low",
@@ -174,237 +175,292 @@ function localizeError(msg, lang) {
   return msg;
 }
 
+function makeItemId() {
+  return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export default function PhotoTab({ store }) {
   const { t, lang } = useLang();
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [result, setResult] = useState(null);
-  const [logged, setLogged] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [portionSize, setPortionSize] = useState('M'); // S / M / L
+  // Each item: { id, file, preview, status: 'pending'|'loading'|'done'|'error',
+  // result, error, portionSize, logged, saved }
+  const [items, setItems] = useState([]);
+  const [batchRunning, setBatchRunning] = useState(false);
   const fileRef = useRef(null);
-  // BUG-04 — monotonically increasing request id. Each onIdentify captures the
-  // current id; any setResult/setError after that checks the id is still
-  // current. Picking a new image or clearing bumps the id, invalidating any
-  // in-flight identify call so its result can't land on the wrong photo.
-  const requestIdRef = useRef(0);
+  const itemsRef = useRef(items);
 
-  // BUG-02 Leak A — revoke the object URL on imagePreview change OR unmount.
-  // Switching tabs unmounts PhotoTab; without this cleanup the multi-MB blob
-  // stays in memory until full page reload.
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  // Revoke every remaining preview object URL on unmount (switching tabs
+  // unmounts PhotoTab). Per-item revocation on removal is handled in
+  // removeItem/clearAll.
   useEffect(() => {
     return () => {
-      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      itemsRef.current.forEach((it) => it.preview && URL.revokeObjectURL(it.preview));
     };
-  }, [imagePreview]);
+  }, []);
 
-  function onFile(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    requestIdRef.current++; // invalidate any in-flight identify
-    setImageFile(f);
-    setImagePreview(URL.createObjectURL(f));
-    setResult(null);
-    setError(null);
-    setLoading(false);
-    setPortionSize('M');
-  }
-
-  function onClear() {
-    requestIdRef.current++; // invalidate any in-flight identify
-    setImageFile(null);
-    setImagePreview(null);
-    setResult(null);
-    setError(null);
-    setLoading(false);
-    setPortionSize('M');
+  function onFiles(e) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const newItems = files.map((f) => ({
+      id: makeItemId(),
+      file: f,
+      preview: URL.createObjectURL(f),
+      status: 'pending',
+      result: null,
+      error: null,
+      portionSize: 'M',
+      logged: false,
+      saved: false,
+    }));
+    setItems((prev) => [...prev, ...newItems]);
     if (fileRef.current) fileRef.current.value = '';
   }
 
-  async function onIdentify() {
-    if (!imageFile) {
-      setError(t('photo.noImage'));
-      return;
-    }
-    const reqId = ++requestIdRef.current;
-    const submittedFile = imageFile;
-    setLoading(true);
-    setError(null);
-    setResult(null);
+  function removeItem(id) {
+    setItems((prev) => {
+      const target = prev.find((it) => it.id === id);
+      if (target?.preview) URL.revokeObjectURL(target.preview);
+      return prev.filter((it) => it.id !== id);
+    });
+  }
+
+  function clearAll() {
+    items.forEach((it) => it.preview && URL.revokeObjectURL(it.preview));
+    setItems([]);
+    if (fileRef.current) fileRef.current.value = '';
+  }
+
+  // Race-safe by construction: every update is a functional setState keyed
+  // by item id, so a removed item's id simply matches nothing.
+  async function identifyOne(id, file) {
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, status: 'loading', error: null } : it)));
     try {
-      const base64 = await compressImage(submittedFile);
+      const base64 = await compressImage(file);
       const r = await identifyDish(base64);
-      // BUG-04 — guard against a new image being picked mid-flight
-      if (reqId !== requestIdRef.current) return;
       if (r.error) throw new Error(r.error);
-      setResult(r);
+      setItems((prev) => prev.map((it) => (it.id === id ? { ...it, status: 'done', result: r } : it)));
     } catch (e) {
-      if (reqId !== requestIdRef.current) return;
-      setError(localizeError(e.message || String(e), lang));
-    } finally {
-      if (reqId === requestIdRef.current) setLoading(false);
+      setItems((prev) =>
+        prev.map((it) =>
+          it.id === id ? { ...it, status: 'error', error: localizeError(e.message || String(e), lang) } : it
+        )
+      );
     }
   }
 
-  const PORTION_MULT = { S: 0.7, M: 1.0, L: 1.4 };
-  const mult = PORTION_MULT[portionSize] ?? 1.0;
-  const scaledResult = result ? {
-    ...result,
-    kcal:    Math.round((result.kcal    || 0) * mult),
-    protein: Math.round((result.protein || 0) * mult),
-    fat:     Math.round((result.fat     || 0) * mult),
-    carbs:   Math.round((result.carbs   || 0) * mult),
-  } : null;
+  async function identifyAll() {
+    setBatchRunning(true);
+    const toRun = items.filter((it) => it.status === 'pending' || it.status === 'error');
+    for (const it of toRun) {
+      await identifyOne(it.id, it.file);
+    }
+    setBatchRunning(false);
+  }
 
+  function setItemPortion(id, size) {
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, portionSize: size } : it)));
+  }
+
+  function logItem(id) {
+    const it = items.find((x) => x.id === id);
+    if (!it || !it.result) return;
+    const mult = PORTION_MULT[it.portionSize] ?? 1.0;
+    const name =
+      lang === 'th'
+        ? it.result.dishNameTh || it.result.dishNameEn || 'อาหารจากรูปภาพ'
+        : it.result.dishNameEn || it.result.dishNameTh || 'Photo dish';
+    store.addToLog({
+      name,
+      kcal: Math.round((it.result.kcal || 0) * mult),
+      protein: Math.round((it.result.protein || 0) * mult),
+      fat: Math.round((it.result.fat || 0) * mult),
+      carbs: Math.round((it.result.carbs || 0) * mult),
+      note: t('photo.logNote'),
+    });
+    setItems((prev) => prev.map((x) => (x.id === id ? { ...x, logged: true } : x)));
+    setTimeout(() => {
+      setItems((prev) => prev.map((x) => (x.id === id ? { ...x, logged: false } : x)));
+    }, 2500);
+  }
+
+  async function saveItem(id) {
+    const it = items.find((x) => x.id === id);
+    if (!it || !it.result) return;
+    const mult = PORTION_MULT[it.portionSize] ?? 1.0;
+    const name =
+      lang === 'th'
+        ? it.result.dishNameTh || it.result.dishNameEn || 'อาหารจากรูปภาพ'
+        : it.result.dishNameEn || it.result.dishNameTh || 'Photo dish';
+    // Compress the original file to a small thumbnail for localStorage storage.
+    let image = null;
+    try {
+      image = await compressToThumbnail(it.file);
+    } catch {
+      // image stays null — food still saves without photo
+    }
+    store.addCustomFood({
+      name,
+      kcal: Math.round((it.result.kcal || 0) * mult),
+      protein: Math.round((it.result.protein || 0) * mult),
+      fat: Math.round((it.result.fat || 0) * mult),
+      carbs: Math.round((it.result.carbs || 0) * mult),
+      note: t('photo.logNote'),
+      image,
+    });
+    setItems((prev) => prev.map((x) => (x.id === id ? { ...x, saved: true } : x)));
+    setTimeout(() => {
+      setItems((prev) => prev.map((x) => (x.id === id ? { ...x, saved: false } : x)));
+    }, 2500);
+  }
+
+  const hasRunnable = items.some((it) => it.status === 'pending' || it.status === 'error');
+
+  return (
+    <div className={styles.wrap}>
+      {/* Picker card */}
+      <div className={styles.card}>
+        <div className={styles.title}>{t('photo.title')}</div>
+
+        <button className={styles.pickBtn} onClick={() => fileRef.current?.click()}>
+          {t('photo.choose')}
+        </button>
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={onFiles}
+          style={{ display: 'none' }}
+        />
+
+        {items.length > 0 && (
+          <div className={styles.row} style={{ marginTop: 10 }}>
+            <button
+              className={`${styles.btn} ${styles.primary}`}
+              onClick={identifyAll}
+              disabled={batchRunning || !hasRunnable}
+            >
+              {batchRunning ? t('photo.identifying') : t('photo.identifyAll', { n: items.length })}
+            </button>
+            <button className={styles.btn} onClick={clearAll} disabled={batchRunning}>
+              {t('photo.clearAll')}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {items.map((it) => (
+        <PhotoItemCard
+          key={it.id}
+          item={it}
+          lang={lang}
+          t={t}
+          disabled={batchRunning && it.status === 'pending'}
+          onIdentify={() => identifyOne(it.id, it.file)}
+          onRemove={() => removeItem(it.id)}
+          onPortion={(size) => setItemPortion(it.id, size)}
+          onLog={() => logItem(it.id)}
+          onSave={() => saveItem(it.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function PhotoItemCard({ item, lang, t, disabled, onIdentify, onRemove, onPortion, onLog, onSave }) {
+  const { status, result } = item;
+  const mult = PORTION_MULT[item.portionSize] ?? 1.0;
+  const scaledResult = result
+    ? {
+        ...result,
+        kcal: Math.round((result.kcal || 0) * mult),
+        protein: Math.round((result.protein || 0) * mult),
+        fat: Math.round((result.fat || 0) * mult),
+        carbs: Math.round((result.carbs || 0) * mult),
+      }
+    : null;
   const dishName = result
     ? lang === 'th'
       ? result.dishNameTh || result.dishNameEn
       : result.dishNameEn || result.dishNameTh
     : null;
 
-  const handleLog = () => {
-    if (!result) return;
-    const name =
-      lang === 'th'
-        ? result.dishNameTh || result.dishNameEn || 'อาหารจากรูปภาพ'
-        : result.dishNameEn || result.dishNameTh || 'Photo dish';
-    store.addToLog({
-      name,
-      kcal: scaledResult.kcal,
-      protein: scaledResult.protein,
-      fat: scaledResult.fat,
-      carbs: scaledResult.carbs,
-      note: t('photo.logNote'),
-    });
-    setLogged(true);
-    setTimeout(() => setLogged(false), 2500);
-  };
-  const handleSave = async () => {
-    if (!result) return;
-    const name =
-      lang === 'th'
-        ? result.dishNameTh || result.dishNameEn || 'อาหารจากรูปภาพ'
-        : result.dishNameEn || result.dishNameTh || 'Photo dish';
-    // Compress the original file to a small thumbnail for localStorage storage.
-    let image = null;
-    if (imageFile) {
-      try {
-        image = await compressToThumbnail(imageFile);
-      } catch {
-        // image stays null — food still saves without photo
-      }
-    }
-    store.addCustomFood({
-      name,
-      kcal: scaledResult.kcal,
-      protein: scaledResult.protein,
-      fat: scaledResult.fat,
-      carbs: scaledResult.carbs,
-      note: t('photo.logNote'),
-      image,
-    });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-  };
-
-
-
+  const statusText =
+    status === 'loading'
+      ? t('photo.identifying')
+      : status === 'error'
+      ? item.error
+      : status === 'pending'
+      ? t('photo.pendingHint')
+      : null;
 
   return (
-    <div className={styles.wrap}>
-      {/* Picker / preview card */}
-      <div className={styles.card}>
-        <div className={styles.title}>{t('photo.title')}</div>
-
-        {!imagePreview && (
-          <button
-            className={styles.pickBtn}
-            onClick={() => fileRef.current?.click()}
-          >
-            {t('photo.choose')}
-          </button>
-        )}
-
-        {imagePreview && (
-          <>
-            <img src={imagePreview} alt="preview" className={styles.preview} />
-            <div className={styles.row}>
-              <button
-                className={`${styles.btn} ${styles.primary}`}
-                onClick={onIdentify}
-                disabled={loading}
-              >
-                {loading
-                  ? t('photo.identifying')
-                  : error
-                  ? t('photo.retry')
-                  : t('photo.identify')}
-              </button>
-              <button
-                className={styles.btn}
-                onClick={onClear}
-                disabled={loading}
-              >
-                {t('photo.clear')}
-              </button>
+    <div className={styles.card}>
+      <div className={styles.itemHeader}>
+        <img src={item.preview} alt="" className={styles.itemThumb} />
+        <div className={styles.itemHeaderInfo}>
+          {status === 'done' ? (
+            <div className={styles.dishName}>{dishName}</div>
+          ) : (
+            <div className={styles.itemStatus} style={status === 'error' ? { color: 'var(--red)' } : undefined}>
+              {statusText}
             </div>
-          </>
-        )}
-
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          onChange={onFile}
-          style={{ display: 'none' }}
-        />
-
-        {error && <div className={styles.error}>{error}</div>}
+          )}
+        </div>
+        <button className={styles.removeBtn} onClick={onRemove} aria-label={t('photo.removeItem')} disabled={disabled}>
+          ×
+        </button>
       </div>
 
-      {/* Result card */}
-      {result && (
-        <div className={styles.card}>
+      {(status === 'pending' || status === 'error') && (
+        <div className={styles.row} style={{ marginTop: 10 }}>
+          <button className={`${styles.btn} ${styles.primary}`} onClick={onIdentify} disabled={disabled}>
+            {status === 'error' ? t('photo.retry') : t('photo.identify')}
+          </button>
+        </div>
+      )}
+
+      {status === 'done' && result && (
+        <div className={styles.itemBody}>
           <div className={styles.resultHeader}>
-            <div className={styles.dishName}>{dishName}</div>
-            <div
-              className={`${styles.confidence} ${
-                styles[`conf_${result.confidence}`] || ''
-              }`}
-            >
+            <div />
+            <div className={`${styles.confidence} ${styles[`conf_${result.confidence}`] || ''}`}>
               {result.confidence}
             </div>
           </div>
 
-          {/* The other-language name */}
           {result.dishNameEn && result.dishNameTh && (
-            <div className={styles.altName}>
-              {lang === 'th' ? result.dishNameEn : result.dishNameTh}
-            </div>
+            <div className={styles.altName}>{lang === 'th' ? result.dishNameEn : result.dishNameTh}</div>
           )}
 
-          <div className={styles.portion}>
-            {t('photo.portion', { v: result.estimatedPortion || '—' })}
-          </div>
+          <div className={styles.portion}>{t('photo.portion', { v: result.estimatedPortion || '—' })}</div>
 
-          {/* S / M / L portion selector */}
           <div className={styles.portionRow}>
             {['S', 'M', 'L'].map((sz) => (
               <button
                 key={sz}
-                className={`${styles.portionBtn} ${portionSize === sz ? styles.portionActive : ''}`}
-                onClick={() => setPortionSize(sz)}
+                className={`${styles.portionBtn} ${item.portionSize === sz ? styles.portionActive : ''}`}
+                onClick={() => onPortion(sz)}
               >
-                {sz === 'S' ? (lang === 'th' ? 'เล็ก' : 'Small') :
-                 sz === 'M' ? (lang === 'th' ? 'กลาง' : 'Medium') :
-                              (lang === 'th' ? 'ใหญ่' : 'Large')}
+                {sz === 'S'
+                  ? lang === 'th'
+                    ? 'เล็ก'
+                    : 'Small'
+                  : sz === 'M'
+                  ? lang === 'th'
+                    ? 'กลาง'
+                    : 'Medium'
+                  : lang === 'th'
+                  ? 'ใหญ่'
+                  : 'Large'}
               </button>
             ))}
           </div>
 
-          {/* Macro grid */}
           <div className={styles.macros}>
             <div className={styles.macroCell}>
               <div className={styles.macroVal}>{scaledResult.kcal ?? '—'}</div>
@@ -429,11 +485,7 @@ export default function PhotoTab({ store }) {
               <div className={styles.altTitle}>{t('photo.alternatives')}</div>
               <ul className={styles.altList}>
                 {result.alternatives.map((alt, i) => (
-                  <li key={i}>
-                    {lang === 'th'
-                      ? alt.th || alt.en
-                      : alt.en || alt.th}
-                  </li>
+                  <li key={i}>{lang === 'th' ? alt.th || alt.en : alt.en || alt.th}</li>
                 ))}
               </ul>
             </>
@@ -445,20 +497,13 @@ export default function PhotoTab({ store }) {
               <div className={styles.notes}>{result.notes}</div>
             </>
           )}
-        <button
-          className={styles.logBtn}
-          onClick={handleLog}
-          disabled={logged}
-        >
-          {logged ? t('photo.logged') : t('photo.logBtn')}
-        </button>
-        <button
-          className={styles.saveBtn}
-          onClick={handleSave}
-          disabled={saved}
-        >
-          {saved ? t('photo.saved') : t('photo.saveBtn')}
-        </button>
+
+          <button className={styles.logBtn} onClick={onLog} disabled={item.logged}>
+            {item.logged ? t('photo.logged') : t('photo.logBtn')}
+          </button>
+          <button className={styles.saveBtn} onClick={onSave} disabled={item.saved}>
+            {item.saved ? t('photo.saved') : t('photo.saveBtn')}
+          </button>
 
           <div className={styles.disclaimer}>{t('photo.disclaimer')}</div>
         </div>

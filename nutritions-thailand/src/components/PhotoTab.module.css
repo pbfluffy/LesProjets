@@ -331,3 +331,55 @@ html[data-theme='dark'] .saveBtn { color: #1a1916; }
 }
 
 html[data-theme='dark'] .portionActive { color: #fff; }
+
+/* Batch item cards */
+.itemHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.itemThumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.itemHeaderInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemStatus {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.removeBtn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.removeBtn:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.itemBody {
+  margin-top: 12px;
+}
