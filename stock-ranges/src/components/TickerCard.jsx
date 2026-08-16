@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchQuote } from '../stockApi.js'
+import { fetchQuote, QUOTE_ERROR_LABEL_KEY } from '../stockApi.js'
 import { computeDeciles } from '../deciles.js'
 import { convert } from '../fx.js'
 import { formatPrice, formatQty, dayChange } from '../format.js'
@@ -13,12 +13,6 @@ import styles from './TickerCard.module.css'
 
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
 const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
-const QUOTE_ERROR_LABEL_KEY = {
-  NOT_FOUND: 'quoteErrorNotFound',
-  NETWORK: 'quoteErrorNetwork',
-  SERVICE: 'quoteErrorService',
-  CONFIG: 'quoteErrorConfig',
-}
 
 export default function TickerCard({ symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, onRemove, onStatus, refreshKey, ownedQty, onOwnedClick, highlighted }) {
   const { s, lang } = useLang()

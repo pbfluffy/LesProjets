@@ -74,12 +74,12 @@ export default function WalletView({
           ...prev,
           [symbol]: {
             current: data.current, currency: data.currency, dividends: data.dividends || [],
-            name: data.name || null, instrumentType: data.instrumentType || null,
+            name: data.name || null, instrumentType: data.instrumentType || null, error: null,
           },
         })))
-        .catch(() => setQuotes((prev) => ({
+        .catch((err) => setQuotes((prev) => ({
           ...prev,
-          [symbol]: { current: null, currency: null, dividends: [], name: null, instrumentType: null },
+          [symbol]: { current: null, currency: null, dividends: [], name: null, instrumentType: null, error: err.code || 'SERVICE' },
         })))
     })
   }, [symbols, refreshKey]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -371,6 +371,7 @@ export default function WalletView({
                   currentCurrency={quotes[symbol]?.currency ?? null}
                   dividendEvents={quotes[symbol]?.dividends ?? []}
                   loading={!quotes[symbol]}
+                  quoteError={quotes[symbol]?.error ?? null}
                   displayCurrency={currency}
                   rates={rates}
                   masked={masked}

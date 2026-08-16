@@ -9,6 +9,16 @@ const WORKER_URL = import.meta.env.VITE_STOCK_WORKER_URL
 const CACHE_PREFIX = 'stockranges_quote_'
 const CACHE_TTL_MS = 5 * 60 * 1000
 
+// Maps a fetchQuote error's `code` to a LangContext key — shared so every
+// caller (Watchlist and Wallet cards alike) shows the same localized
+// message for the same underlying failure.
+export const QUOTE_ERROR_LABEL_KEY = {
+  NOT_FOUND: 'quoteErrorNotFound',
+  NETWORK: 'quoteErrorNetwork',
+  SERVICE: 'quoteErrorService',
+  CONFIG: 'quoteErrorConfig',
+}
+
 function readCache(key) {
   try {
     const raw = sessionStorage.getItem(CACHE_PREFIX + key)

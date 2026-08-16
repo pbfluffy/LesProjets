@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useLang } from '../LangContext.jsx'
+import { QUOTE_ERROR_LABEL_KEY } from '../stockApi.js'
 import { convert } from '../fx.js'
 import { formatPrice, formatQty, maskPrice } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, groupDividendsByPeriod, inferDividendCadence } from '../wallet.js'
@@ -10,7 +11,7 @@ import Icon from './Icon.jsx'
 import styles from './HoldingCard.module.css'
 
 export default function HoldingCard({
-  symbol, holding, name, currentPrice, currentCurrency, dividendEvents, loading, displayCurrency, rates,
+  symbol, holding, name, currentPrice, currentCurrency, dividendEvents, loading, quoteError, displayCurrency, rates,
   onEdit, onRemove, masked, watched, onWatchedClick, highlighted, tags = [], onAddTag, onRemoveTag,
 }) {
   const { s } = useLang()
@@ -79,6 +80,8 @@ export default function HoldingCard({
           <div className={styles.skeletonStat} aria-hidden="true" />
           <span className="sr-only">{s.loading}</span>
         </div>
+      ) : quoteError ? (
+        <div className={styles.fxNote}>{s[QUOTE_ERROR_LABEL_KEY[quoteError]] || quoteError}</div>
       ) : fxOk ? (
         <div className={styles.statsRow}>
           <div className={styles.stat}><span>{s.currentPriceLabel}</span><strong>{formatPrice(convertedCurrent, displayCurrency)}</strong></div>
