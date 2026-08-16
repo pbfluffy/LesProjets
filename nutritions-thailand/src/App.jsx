@@ -69,13 +69,14 @@ export default function App() {
         onReset={store.resetDay}
         syncStatus={cloudSync.syncStatus}
       />
-      <TabBar active={tab} onChange={setTab} />
 
       {tab === 'overview' && <OverviewTab store={store} />}
       {tab === 'food' && <FoodTab store={store} />}
       {tab === 'photo' && <PhotoTab store={store} />}
       {tab === 'adjust' && <AdjustTab store={store} cloudSync={cloudSync} />}
       {tab === 'custom' && <CustomTab store={store} />}
+
+      <TabBar active={tab} onChange={setTab} />
 
       {cloudSync.syncStatus === 'awaiting-decision' && (
         <ConflictModal cloudSync={cloudSync} localState={cloudState} t={t} />

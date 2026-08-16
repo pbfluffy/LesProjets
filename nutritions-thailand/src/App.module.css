@@ -1,5 +1,7 @@
 .app {
   max-width: 600px;
   margin: 0 auto;
-  padding: 0 0 80px;
+  /* Clears the fixed bottom TabBar (its own height + safe-area inset) so
+     the last bit of scrollable content never sits under it. */
+  padding: 0 0 calc(84px + env(safe-area-inset-bottom));
 }
