@@ -13,6 +13,12 @@ import styles from './TickerCard.module.css'
 
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
 const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
+const QUOTE_ERROR_LABEL_KEY = {
+  NOT_FOUND: 'quoteErrorNotFound',
+  NETWORK: 'quoteErrorNetwork',
+  SERVICE: 'quoteErrorService',
+  CONFIG: 'quoteErrorConfig',
+}
 
 export default function TickerCard({ symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, onRemove, onStatus, refreshKey, ownedQty, onOwnedClick, highlighted }) {
   const { s, lang } = useLang()
@@ -26,7 +32,7 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
     setState({ status: 'loading', data: null, error: null })
     fetchQuote(symbol, range, { bypassCache: isRefresh })
       .then((data) => { if (!cancelled) setState({ status: 'ready', data, error: null }) })
-      .catch((err) => { if (!cancelled) setState({ status: 'error', data: null, error: err.message }) })
+      .catch((err) => { if (!cancelled) setState({ status: 'error', data: null, error: s[QUOTE_ERROR_LABEL_KEY[err.code]] || err.message }) })
     return () => { cancelled = true }
   }, [symbol, range, refreshKey])
 

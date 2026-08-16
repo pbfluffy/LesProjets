@@ -28,8 +28,16 @@ function writeCache(key, data) {
   }
 }
 
-// Returns { symbol, name, currency, current, prices } or throws with a
-// short user-facing message on failure (unknown ticker, network error, ...).
+function codedError(code, message) {
+  const err = new Error(message)
+  err.code = code
+  return err
+}
+
+// Returns { symbol, name, currency, current, prices } or throws an Error
+// with a `code` (CONFIG | NETWORK | NOT_FOUND | SERVICE) so the caller can
+// show a localized message — the message text here is only an English
+// fallback for non-UI contexts (e.g. console logs).
 // `bypassCache` skips the session cache read (used by the manual refresh
 // button) but still writes the fresh result, so later normal calls benefit.
 export async function fetchQuote(symbol, range, { bypassCache = false } = {}) {
@@ -38,21 +46,21 @@ export async function fetchQuote(symbol, range, { bypassCache = false } = {}) {
   if (cached) return cached
 
   if (!WORKER_URL) {
-    throw new Error('Worker URL not configured (VITE_STOCK_WORKER_URL)')
+    throw codedError('CONFIG', 'Worker URL not configured (VITE_STOCK_WORKER_URL)')
   }
 
   let res
   try {
     res = await fetch(`${WORKER_URL}?symbol=${encodeURIComponent(symbol)}&range=${encodeURIComponent(range)}`)
   } catch {
-    throw new Error('Network error — could not reach the quote service')
+    throw codedError('NETWORK', 'Network error — could not reach the quote service')
   }
 
   if (res.status === 404) {
-    throw new Error('Ticker not found')
+    throw codedError('NOT_FOUND', 'Ticker not found')
   }
   if (!res.ok) {
-    throw new Error('Quote service error')
+    throw codedError('SERVICE', 'Quote service error')
   }
 
   const data = await res.json()
