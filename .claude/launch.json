@@ -55,6 +55,13 @@
       "runtimeArgs": ["vite", "preview", "--port", "5181"],
       "cwd": "stock-ranges",
       "port": 5181
+    },
+    {
+      "name": "nutritions-thailand",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5182"],
+      "cwd": "nutritions-thailand",
+      "port": 5182
     }
   ]
 }

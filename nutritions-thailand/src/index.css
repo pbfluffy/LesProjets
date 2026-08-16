@@ -51,6 +51,11 @@ input[type='range'] {
   width: 100%;
   accent-color: var(--accent);
   cursor: pointer;
+  /* Track stays thin, but padding grows the tappable/draggable bounding
+     box toward the ~44px touch-target guideline without changing how
+     the slider looks. */
+  padding: 14px 0;
+  box-sizing: content-box;
 }
 
 select {
