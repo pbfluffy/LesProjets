@@ -151,7 +151,7 @@ function ConflictModal({ cloudSync, localState, t }) {
   const cardConfirming = {
     ...cardBase,
     cursor: 'default',
-    borderColor: 'var(--accent, #f57c00)',
+    borderColor: 'var(--yellow)',
     background: 'rgba(245, 124, 0, 0.06)',
   };
   const newerBadge = {
@@ -175,7 +175,7 @@ function ConflictModal({ cloudSync, localState, t }) {
     width: '100%',
     padding: '8px 12px',
     border: 'none',
-    background: 'var(--accent, #f57c00)',
+    background: 'var(--yellow)',
     color: '#fff',
     borderRadius: 6,
     fontSize: 13,
@@ -195,7 +195,7 @@ function ConflictModal({ cloudSync, localState, t }) {
   };
 
   const hoverIn = (e) => {
-    e.currentTarget.style.borderColor = 'var(--accent, #f57c00)';
+    e.currentTarget.style.borderColor = 'var(--yellow)';
   };
   const hoverOut = (e) => {
     e.currentTarget.style.borderColor = 'var(--border, #e5e5e5)';

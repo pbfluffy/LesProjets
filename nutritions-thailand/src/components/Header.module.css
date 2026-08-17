@@ -136,7 +136,7 @@
   justify-content: center;
   gap: 8px;
   padding: 10px 12px;
-  background: var(--accent, #f57c00);
+  background: var(--accent);
   color: #fff;
   border: none;
   border-radius: 8px;
