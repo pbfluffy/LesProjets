@@ -165,7 +165,7 @@ export default function BillHistory({ entries, onLoad, onRemove, onClear, onClos
                       title={t.historyLoad}
                     >
                       <span className={styles.rowName}>
-                        {entry.billName || (entry.tab === 'sushi' ? `🍣 ${t.tabSushi}` : t.untitledBill)}
+                        {entry.billName || (entry.tab === 'sushi' ? t.tabSushi : t.untitledBill)}
                       </span>
                       <span className={styles.rowMeta}>
                         {entrySummary(entry, t)} · {fmtWhen(entry.savedAt, lang)}

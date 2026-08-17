@@ -364,7 +364,7 @@ function AppInner() {
             {(shortLinkStatus === 'expired' || shortLinkStatus === 'error') && (
         <div className={styles.sharedBanner}>
           <span className={styles.sharedBannerText}>
-            ⚠️ {shortLinkStatus === 'expired' ? t.shareLinkExpired : t.shareError}
+            {shortLinkStatus === 'expired' ? t.shareLinkExpired : t.shareError}
           </span>
           <button className={styles.sharedBannerBtn} onClick={() => { setShortLinkStatus(null); clearShareHash() }}>
             {t.startYourOwn}
@@ -374,9 +374,7 @@ function AppInner() {
       {shared && (
         <div className={styles.sharedBanner}>
           <span className={styles.sharedBannerText}>
-            {sharedBillName
-              ? `\u{1F374} ${sharedBillName}`
-              : `\u{1F441}\u{FE0F} ${t.viewingShared}`}
+            {sharedBillName || t.viewingShared}
           </span>
           <button className={styles.sharedBannerBtn} onClick={exitShared}>{t.startYourOwn}</button>
         </div>

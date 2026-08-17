@@ -143,8 +143,8 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
         ? (
             <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8 }}>
               {rateLoading
-                ? `💱 ${t.tripConvertLoading ?? 'Loading exchange rates…'}`
-                : `💱 ${t.tripConvertHint ?? 'Showing original currencies — tap "Convert to ฿" for totals'}`}
+                ? (t.tripConvertLoading ?? 'Loading exchange rates…')
+                : (t.tripConvertHint ?? 'Showing original currencies — tap "Convert to ฿" for totals')}
             </div>
           )
         : hasOwedData
@@ -161,7 +161,7 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
             ))
           : (
               <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8 }}>
-                💡 {t.tripSummaryAddHint ?? 'Open each bill and tap Save to record per-person amounts'}
+                {t.tripSummaryAddHint ?? 'Open each bill and tap Save to record per-person amounts'}
               </div>
             )
       }
@@ -178,7 +178,7 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
 
       {summary.hasPayers && !unresolvedMixed && displaySettlements.length > 0 && (
         <>
-          <div className={styles.summaryTitle} style={{ marginTop: 14 }}>{t.tripSummaryTransfers ?? '💸 Who pays whom'}</div>
+          <div className={styles.summaryTitle} style={{ marginTop: 14 }}>{t.tripSummaryTransfers ?? 'Who pays whom'}</div>
           {displaySettlements.map((s, i) => (
             <div key={i} className={styles.paymentCard}>
               <div className={styles.paymentPeople}>
@@ -214,13 +214,13 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
 
       {summary.hasPayers && !unresolvedMixed && displaySettlements.length === 0 && (
         <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10, textAlign: 'center' }}>
-          {t.tripSummaryAllSettled ?? '✅ All settled'}
+          {t.tripSummaryAllSettled ?? 'All settled'}
         </div>
       )}
 
       {!summary.hasPayers && (
         <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10 }}>
-          💳 {t.tripSummaryNoPayers ?? 'Select who paid each bill to calculate transfers'}
+          {t.tripSummaryNoPayers ?? 'Select who paid each bill to calculate transfers'}
         </div>
       )}
     </div>
@@ -302,7 +302,6 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip })
           fontSize: 13, fontFamily: 'var(--font-body)', cursor: loading ? 'default' : 'pointer',
         }}
       >
-        <span style={{ fontSize: 16 }}>{loading ? '⏳' : '📷'}</span>
         <span>{loading ? (t.receiptScanning ?? 'Scanning…') : (t.tripScanNew ?? 'Scan receipt → add to trip')}</span>
       </button>
       {error && <div style={{ fontSize: 12, color: 'var(--color-error,#c00)', marginTop: 6, padding: '0 4px' }}>{error}</div>}
@@ -331,7 +330,7 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip })
             ))}
             {preview.items.length === 0 && <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12 }}>No items detected</div>}
             <div style={{ marginTop: 12, fontSize: 12, color: 'var(--color-text-muted)' }}>
-              {preview.vatIncluded && '✓ VAT  '}{preview.scIncluded && `✓ SC ${preview.scRate}%  `}
+              {preview.vatIncluded && 'VAT  '}{preview.scIncluded && `SC ${preview.scRate}%  `}
               {trip.members.length > 0 && `Split: ${trip.members.join(', ')}`}
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
@@ -339,7 +338,7 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip })
                 {t.receiptCancel}
               </button>
               <button onClick={handleConfirm} style={{ flex: 2, padding: '10px', borderRadius: 8, border: 'none', background: 'var(--color-text)', color: 'var(--color-bg)', fontFamily: 'var(--font-body)', fontWeight: 600, cursor: 'pointer' }}>
-                ✓ {t.tripScanAdd ?? 'Add to trip'}
+                {t.tripScanAdd ?? 'Add to trip'}
               </button>
             </div>
           </div>
@@ -605,7 +604,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   : buildShareUrl('trips', payload)
                 const result = await shareLink({ title: trip.name, text: `Trip: ${trip.name}`, url })
                 // Only show toast for clipboard copy — share sheet is its own confirmation
-                if (result !== 'shared') showToast('✓ Link copied')
+                if (result !== 'shared') showToast('Link copied')
               } catch { showToast('Share failed') }
               finally { setShareStatus(null) }
             }}
@@ -647,9 +646,9 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                     })()
                   : summary.settlements
                 const dispTotal = rates ? Object.values(dispOwed).reduce((a, v) => a + (v || 0), 0) : (rate && !isTHB ? Math.round(summary.grandTotal * rate) : summary.grandTotal)
-                const lines = [`🧳 ${trip.name}`, '']
+                const lines = [trip.name, '']
                 if (summary?.hasPayers && dispSettlements?.length > 0) {
-                  lines.push('💸 Who pays whom:')
+                  lines.push('Who pays whom:')
                   dispSettlements.forEach(s => lines.push(`  ${s.from} → ${s.to}: ${fmtAmount(s.amount, dispCurrency)}`))
                   lines.push('')
                 }
@@ -711,11 +710,11 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   try { await navigator.share({ files: [file], title: trip.name }); return } catch (e) { if (e?.name === 'AbortError') return }
                 }
                 const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${safeName}.png`; document.body.appendChild(a); a.click(); a.remove()
-                showToast(t.imageSaved ?? '✓ Image saved')
+                showToast(t.imageSaved ?? 'Image saved')
               } catch { showToast(t.imageFailed ?? 'Failed') } finally { setCapturing(false) }
             }}
           >
-            {t.saveImage ?? '📷 Save image'}
+            {t.saveImage ?? 'Save image'}
           </button>
 
         </div>
@@ -781,7 +780,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
             {trip.members.length > 0 && (
               <div data-snapshot-hide style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px 10px', borderTop: '0.5px solid var(--color-border)' }}>
                 <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>
-                  💳 {payer ? '' : 'ใครจ่าย?'}
+                  {payer ? '' : 'ใครจ่าย?'}
                 </span>
                 {payer && <Avatar name={payer} size={16} />}
                 <select
@@ -927,7 +926,7 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
         {available.length === 0 && <p className={styles.empty}>{t.tripNoBillsToAdd ?? 'No saved bills to add'}</p>}
         {available.length > 1 && (
           <button onClick={selectAll} style={{ fontSize: 12, color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 12px 8px', fontFamily: 'var(--font-body)', display: 'block' }}>
-            {selected.size === available.length ? '☐ Deselect all' : '☑ Select all'}
+            {selected.size === available.length ? 'Deselect all' : 'Select all'}
           </button>
         )}
         {available.map(entry => {
@@ -998,8 +997,8 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
       <div>
         {onExitShared && (
           <div style={{ background: 'var(--color-surface-alt)', padding: '8px 12px', borderRadius: 8, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: 'var(--color-text-muted)' }}>👁️ Viewing shared trip</span>
-            <button onClick={onExitShared} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--color-text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>✕ Exit</button>
+            <span style={{ color: 'var(--color-text-muted)' }}>Viewing shared trip</span>
+            <button onClick={onExitShared} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--color-text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Exit</button>
           </div>
         )}
         <TripDetail

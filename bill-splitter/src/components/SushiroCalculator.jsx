@@ -118,7 +118,7 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
     lines.push(`${t.shareTotal} ฿${fmt(result.grandTotal)}`)
     if (store.promptPay) lines.push(`PromptPay: ${store.promptPay}`)
     if (store.bankInfo) lines.push(store.bankInfo)
-    if (store.notes) lines.push(`📝 ${store.notes}`)
+    if (store.notes) lines.push(store.notes)
     return lines.join('\n')
   }
 

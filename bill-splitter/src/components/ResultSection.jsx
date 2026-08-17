@@ -85,7 +85,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
   }
 
   const buildSummaryText = () => {
-    const prefix = billName && billName.trim() ? `\u{1F374} ${billName.trim()}` : t.sharePrefix
+    const prefix = billName && billName.trim() ? billName.trim() : t.sharePrefix
     const lines = [prefix, '']
     members.forEach(m => {
       lines.push(`${m}: ${sym}${fmtC(result.totals[m] ?? 0)}`)
@@ -106,7 +106,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
     lines.push(`${t.shareTotal} ${sym}${fmtC(result.grandTotal)}`)
     if (promptPay) lines.push(`PromptPay: ${promptPay}`)
     if (bankInfo) lines.push(bankInfo)
-    if (notes) lines.push(`📝 ${notes}`)
+    if (notes) lines.push(notes)
     return lines.join('\n')
   }
 

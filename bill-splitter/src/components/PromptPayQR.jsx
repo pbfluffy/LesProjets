@@ -109,7 +109,7 @@ export default function PromptPayQR({ promptPay, amount, size = 132, name, refer
         disabled={saving}
         className={styles.saveBtn}
       >
-        {saving ? '…' : '💾 Save QR'}
+        {saving ? '…' : 'Save QR'}
       </button>
     </div>
   )
