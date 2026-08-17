@@ -1,21 +1,27 @@
 /* Bottom nav, not a top row — primary tabs stay in one-handed thumb reach
    on a phone, and stay reachable while scrolling a long tab (Overview)
    instead of scrolling away with the header. Fixed + safe-area padding so
-   it clears the iOS home-indicator gesture bar; max-width/margin mirrors
-   .app's own centering so it still lines up on wide viewports. */
+   it clears the iOS home-indicator gesture bar.
+   The background/border live on the full-width outer bar so it stays
+   anchored edge-to-edge on wide viewports instead of reading as a
+   detached, floating island — only the button row itself is capped at
+   .app's own max-width and centered inside it. */
 .tabBar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 50;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.tabBarInner {
   max-width: 600px;
   margin: 0 auto;
   display: flex;
   gap: 6px;
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-  background: var(--bg);
-  border-top: 1px solid var(--border);
 }
 
 .tabBtn {
