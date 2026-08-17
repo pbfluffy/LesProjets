@@ -36,13 +36,6 @@
       "port": 5178
     },
     {
-      "name": "birthday-privileges",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5179"],
-      "cwd": "birthday-privileges",
-      "port": 5179
-    },
-    {
       "name": "stock-ranges",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--port", "5180"],

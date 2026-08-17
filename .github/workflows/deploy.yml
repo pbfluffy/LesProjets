@@ -58,12 +58,6 @@ jobs:
           npm install
           npm run build
 
-      - name: Build birthday-privileges
-        working-directory: birthday-privileges
-        run: |
-          npm install
-          npm run build
-
       - name: Build stock-ranges
         working-directory: stock-ranges
         env:
@@ -74,7 +68,7 @@ jobs:
 
       - name: Assemble site
         run: |
-          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/trip-planner _site/dog-near-me _site/birthday-privileges _site/stock-ranges
+          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/trip-planner _site/dog-near-me _site/stock-ranges
           cp index.html _site/index.html
           cp admindepum.html _site/admindepum.html
           cp temp.html _site/temp.html
@@ -86,7 +80,6 @@ jobs:
           cp -r pumgoda/dist/. _site/pumgoda/
           cp -r trip-planner/dist/. _site/trip-planner/
           cp -r dog-near-me/dist/. _site/dog-near-me/
-          cp -r birthday-privileges/dist/. _site/birthday-privileges/
           cp -r stock-ranges/dist/. _site/stock-ranges/
           cp pumba.png _site/pumba.png
           cp apple-touch-icon.png _site/apple-touch-icon.png
