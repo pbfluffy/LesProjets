@@ -16,6 +16,7 @@
   /* accent — app identity, NOT aliased to ink */
   --accent: #c45c1a;
   --accent-light: #fdf0e8;
+  --accent-text: #fff;
   --danger: var(--color-red);
 
   /* semantic identity colors (were hardcoded across components — #98.1 1b) */
@@ -28,6 +29,10 @@ html[data-theme='dark'] {
   /* structural tokens flip via the shared [data-theme="dark"]; only accent needs an override */
   --accent: #e8924a;
   --accent-light: #2a1e10;
+  /* dark theme's accent is a bright orange, not near-black like the shared ink —
+     white text (fine against the light-theme accent) reads at ~2.4:1 against it,
+     well under WCAG minimums, so dark text is needed here instead. */
+  --accent-text: #1a1916;
 }
 
 *,

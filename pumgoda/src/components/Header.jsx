@@ -180,7 +180,7 @@ export default function Header({
                           width: '100%',
                           padding: '8px 12px',
                           border: 'none',
-                          background: 'var(--accent, #ff6b35)',
+                          background: 'var(--accent)',
                           color: 'white',
                           borderRadius: 6,
                           cursor: signingIn ? 'default' : 'pointer',
