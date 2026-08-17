@@ -346,7 +346,7 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
                   </div>
                 )}
               </div>
-              <button type="button" className={styles.shareBtn} style={{ background: 'var(--accent, #4f46e5)', color: 'white', fontWeight: 600 }} onClick={handleShareLink} disabled={creatingLink}>{creatingLink ? t.shareCreating : <><ShareIcon style={{ width: 15, height: 15 }} /> {t.shareLink}</>}</button>
+              <button type="button" className={styles.shareBtn} style={{ background: 'var(--color-accent)', color: 'var(--color-accent-text)', fontWeight: 600 }} onClick={handleShareLink} disabled={creatingLink}>{creatingLink ? t.shareCreating : <><ShareIcon style={{ width: 15, height: 15 }} /> {t.shareLink}</>}</button>
             </div>
           </div>
           {toast && <div className={styles.toast}>{toast}</div>}

@@ -521,7 +521,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
           {/* 1. Share link ↗ — purple */}
           <button
             className={styles.shareBtn}
-            style={{ background: 'var(--accent, #4f46e5)', color: 'white' }}
+            style={{ background: 'var(--color-accent)', color: 'var(--color-accent-text)' }}
             disabled={shareStatus === 'creating'}
             onClick={async () => {
               setShareStatus('creating')

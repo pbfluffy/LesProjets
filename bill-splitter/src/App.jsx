@@ -58,10 +58,10 @@ function ConflictModal({ t, lang, localEntries, cloudEntries, onUseLocal, onUseC
       </div>
     )
   }
-  const cardStyle = (newer) => ({ flex: 1, textAlign: 'left', padding: 14, border: '2px solid', borderColor: newer ? 'var(--accent, #ff6b35)' : 'var(--color-border, #ddd)', background: 'var(--color-surface-alt, #f8f8f8)', color: 'inherit', borderRadius: 10, cursor: 'pointer', font: 'inherit' })
+  const cardStyle = (newer) => ({ flex: 1, textAlign: 'left', padding: 14, border: '2px solid', borderColor: newer ? 'var(--color-accent)' : 'var(--color-border, #ddd)', background: 'var(--color-surface-alt, #f8f8f8)', color: 'inherit', borderRadius: 10, cursor: 'pointer', font: 'inherit' })
   const cardHeaderStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }
-  const newerBadgeStyle = { fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'var(--accent, #ff6b35)', color: 'white', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }
-  const tsStyle = (newer) => ({ fontSize: 11, color: newer ? 'var(--accent, #ff6b35)' : 'var(--color-text-muted, #666)', fontWeight: newer ? 600 : 400 })
+  const newerBadgeStyle = { fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'var(--color-accent)', color: 'var(--color-accent-text)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }
+  const tsStyle = (newer) => ({ fontSize: 11, color: newer ? 'var(--color-accent)' : 'var(--color-text-muted, #666)', fontWeight: newer ? 600 : 400 })
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
@@ -350,7 +350,7 @@ function AppInner() {
                           </button>
                         </>
                       ) : (
-                        <button onClick={handleSignIn} disabled={signingIn} style={{ width: '100%', padding: '8px 12px', border: 'none', background: 'var(--accent, #ff6b35)', color: 'white', borderRadius: 6, cursor: signingIn ? 'default' : 'pointer', font: 'inherit', fontWeight: 600 }}>{signingIn ? t.acctSigningIn : t.acctContinueWithGoogle}</button>
+                        <button onClick={handleSignIn} disabled={signingIn} style={{ width: '100%', padding: '8px 12px', border: 'none', background: 'var(--color-accent)', color: 'var(--color-accent-text)', borderRadius: 6, cursor: signingIn ? 'default' : 'pointer', font: 'inherit', fontWeight: 600 }}>{signingIn ? t.acctSigningIn : t.acctContinueWithGoogle}</button>
                       )}
                     </>
                   )}
