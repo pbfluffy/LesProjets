@@ -156,7 +156,25 @@
   color: var(--color-text-muted);
   padding: 8px 0;
 }
-.state[data-error='true'] { color: var(--color-red); }
+.state[data-error='true'] {
+  color: var(--color-red);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.retryBtn {
+  background: transparent;
+  border: 0.5px solid var(--color-red);
+  border-radius: var(--radius-sm);
+  color: var(--color-red);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  flex-shrink: 0;
+}
+.retryBtn:hover { background: var(--color-red-bg); }
 
 @keyframes pulse {
   0%, 100% { opacity: 0.5; }

@@ -17,18 +17,22 @@ const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
 export default function TickerCard({ symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, onRemove, onStatus, refreshKey, ownedQty, onOwnedClick, highlighted }) {
   const { s, lang } = useLang()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
+  const [retryNonce, setRetryNonce] = useState(0)
   const prevRefreshKey = useRef(refreshKey)
+  const prevRetryNonce = useRef(retryNonce)
 
   useEffect(() => {
     let cancelled = false
     const isRefresh = prevRefreshKey.current !== refreshKey
+    const isRetry = prevRetryNonce.current !== retryNonce
     prevRefreshKey.current = refreshKey
+    prevRetryNonce.current = retryNonce
     setState({ status: 'loading', data: null, error: null })
-    fetchQuote(symbol, range, { bypassCache: isRefresh })
+    fetchQuote(symbol, range, { bypassCache: isRefresh || isRetry })
       .then((data) => { if (!cancelled) setState({ status: 'ready', data, error: null }) })
       .catch((err) => { if (!cancelled) setState({ status: 'error', data: null, error: s[QUOTE_ERROR_LABEL_KEY[err.code]] || err.message }) })
     return () => { cancelled = true }
-  }, [symbol, range, refreshKey])
+  }, [symbol, range, refreshKey, retryNonce])
 
   const deciles = state.status === 'ready'
     ? computeDeciles({ prices: state.data.prices, current: state.data.current })
@@ -98,7 +102,14 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
           <span className="sr-only">{s.loading}</span>
         </div>
       )}
-      {state.status === 'error' && <div className={styles.state} data-error="true">{s.errorPrefix}{state.error}</div>}
+      {state.status === 'error' && (
+        <div className={styles.state} data-error="true">
+          <span>{s.errorPrefix}{state.error}</span>
+          <button type="button" className={styles.retryBtn} onClick={() => setRetryNonce((n) => n + 1)}>
+            {s.retry}
+          </button>
+        </div>
+      )}
 
       {state.status === 'ready' && (() => {
         if (!deciles) return <div className={styles.state} data-error="true">{s.errorPrefix}—</div>
