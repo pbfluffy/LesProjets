@@ -4,6 +4,7 @@ import { computeDeciles } from '../deciles.js'
 import { convert } from '../fx.js'
 import { formatPrice, formatQty, dayChange } from '../format.js'
 import DecileGauge from './DecileGauge.jsx'
+import KnownFor from './KnownFor.jsx'
 import TagChips from './TagChips.jsx'
 import TickerLogo from './TickerLogo.jsx'
 import { tagHue } from '../tagColor.js'
@@ -45,8 +46,19 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
   // settled so a global "updated Xm ago" stays accurate.
   useEffect(() => {
     if (!onStatus) return
-    if (state.status === 'ready') onStatus(symbol, { band: deciles?.band ?? null, signal: deciles?.signal ?? null, changePercent: change?.percent ?? null, ts: Date.now() })
-    else if (state.status === 'error') onStatus(symbol, { band: null, signal: null, changePercent: null, ts: null })
+    if (state.status === 'ready') {
+      onStatus(symbol, {
+        band: deciles?.band ?? null,
+        signal: deciles?.signal ?? null,
+        changePercent: change?.percent ?? null,
+        ts: Date.now(),
+        current: state.data.current ?? null,
+        currency: state.data.currency ?? null,
+        name: state.data.name ?? null,
+      })
+    } else if (state.status === 'error') {
+      onStatus(symbol, { band: null, signal: null, changePercent: null, ts: null, current: null, currency: null, name: null })
+    }
   }, [state.status, deciles?.band, deciles?.signal, change?.percent]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -94,6 +106,7 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
       </div>
 
       <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} />
+      <KnownFor symbol={symbol} />
 
       {state.status === 'loading' && (
         <div className={styles.body}>

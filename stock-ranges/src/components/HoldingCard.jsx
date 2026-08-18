@@ -5,6 +5,7 @@ import { convert } from '../fx.js'
 import { formatPrice, formatQty, maskPrice } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, groupDividendsByPeriod, inferDividendCadence } from '../wallet.js'
 import TickerLogo from './TickerLogo.jsx'
+import KnownFor from './KnownFor.jsx'
 import TagChips from './TagChips.jsx'
 import { tagHue } from '../tagColor.js'
 import Icon from './Icon.jsx'
@@ -72,6 +73,7 @@ export default function HoldingCard({
       </div>
 
       <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} />
+      <KnownFor symbol={symbol} />
 
       {loading ? (
         <div className={styles.statsRow}>

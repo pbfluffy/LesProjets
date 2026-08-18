@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { LangProvider, useLang } from './LangContext.jsx'
 import { getThbRates } from './fx.js'
 import { useCloudSync } from './hooks/useCloudSync.js'
+import { useInstallPrompt } from './hooks/useInstallPrompt.js'
 import TickerCard from './components/TickerCard.jsx'
 import TickerSearch from './components/TickerSearch.jsx'
 import SearchBox from './components/SearchBox.jsx'
@@ -13,6 +14,7 @@ import TagManagerModal from './components/TagManagerModal.jsx'
 import UndoToast from './components/UndoToast.jsx'
 import WalletView from './components/WalletView.jsx'
 import WalletLocked from './components/WalletLocked.jsx'
+import { generateWatchlistImage } from './shareImage.js'
 import { tagHue } from './tagColor.js'
 import styles from './App.module.css'
 
@@ -95,6 +97,9 @@ function useTheme() {
 function Dashboard() {
   const { s, lang, toggle: toggleLang } = useLang()
   const [dark, toggleTheme] = useTheme()
+  const { showAndroidPrompt, showIosHint, promptInstall, dismiss: dismissInstall } = useInstallPrompt()
+  const [sharingWatchlist, setSharingWatchlist] = useState(false)
+  const [watchlistShareError, setWatchlistShareError] = useState('')
   const [watchlist, setWatchlist] = useState(loadWatchlist)
   const [range, setRange] = useState(() => localStorage.getItem(RANGE_KEY) || '1y')
   const [currency, setCurrency] = useState(() => localStorage.getItem(CURRENCY_KEY) || 'USD')
@@ -225,6 +230,36 @@ function Dashboard() {
     setRefreshKey((k) => k + 1)
     setRefreshing(true)
     setTimeout(() => setRefreshing(false), 1500)
+  }
+
+  async function handleShareWatchlist() {
+    if (sharingWatchlist) return
+    setSharingWatchlist(true)
+    setWatchlistShareError('')
+    try {
+      const entries = filteredWatchlist
+        .map((symbol) => ({ symbol, ...signals[symbol] }))
+        .filter((e) => e.signal)
+      const blob = await generateWatchlistImage({ s, entries, summaryCounts, appName: s.appName })
+      const file = new File([blob], 'watchlist.png', { type: 'image/png' })
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: s.appName })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'watchlist.png'
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (err) {
+      if (err?.name !== 'AbortError') {
+        console.error(err)
+        setWatchlistShareError(s.shareError)
+      }
+    } finally {
+      setSharingWatchlist(false)
+    }
   }
 
   useEffect(() => {
@@ -460,12 +495,35 @@ function Dashboard() {
         </div>
       </div>
 
+      {(showAndroidPrompt || showIosHint) && (
+        <div className={styles.installBar}>
+          <span className={styles.installText}>{showAndroidPrompt ? s.installTitle : s.installIosHint}</span>
+          {showAndroidPrompt && (
+            <button type="button" className={styles.installBtn} onClick={promptInstall}>{s.installButton}</button>
+          )}
+          <button type="button" className={styles.installDismiss} onClick={dismissInstall} aria-label={s.installDismissLabel}>×</button>
+        </div>
+      )}
+
       <div className={styles.tabBar}>
         <div className={styles.tabRow}>
           <button className={styles.tabBtn} data-active={tab === 'watchlist'} onClick={() => setTab('watchlist')}>{s.navWatchlist}</button>
           <button className={styles.tabBtn} data-active={tab === 'wallet'} onClick={() => setTab('wallet')}>{s.navWallet}</button>
         </div>
-        <div className={styles.tabActions} ref={setTabActionsEl} />
+        <div className={styles.tabActions} ref={setTabActionsEl}>
+          {tab === 'watchlist' && filteredWatchlist.length > 0 && (
+            <button
+              type="button"
+              className={styles.tabActionBtn}
+              onClick={handleShareWatchlist}
+              disabled={sharingWatchlist}
+              title={s.shareWatchlistBtn}
+              aria-label={s.shareWatchlistBtn}
+            >
+              <Icon name="share" size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       {allTags.length > 0 && (
@@ -559,6 +617,7 @@ function Dashboard() {
       </div>
 
       {warning && <div className={styles.warning}>{warning}</div>}
+      {watchlistShareError && <div className={styles.warning}>{watchlistShareError}</div>}
 
       <div className={styles.lookbackRow}>
         <SearchBox value={watchlistSearch} onChange={setWatchlistSearch} />

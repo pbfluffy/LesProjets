@@ -120,3 +120,106 @@ export function generateSummaryImage({ s, summary, allocationItems, currency, ma
 
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
 }
+
+const SIGNAL_COLOR = { buy: '#4ade80', hold: '#fbbf24', sell: '#f87171' }
+
+// Draws a fixed-style (always dark) watchlist snapshot to an off-screen
+// canvas and resolves a PNG blob, mirroring generateSummaryImage's visual
+// conventions. Each entry gets its signal (buy/hold/sell) called out with
+// a colored dot, plus day change and last price where known.
+export function generateWatchlistImage({ s, entries, summaryCounts, appName }) {
+  const headerH = 84
+  const statsH = 74
+  const rowH = 30
+  const footerH = 36
+  const height = headerH + statsH + entries.length * rowH + 20 + footerH
+
+  const canvas = document.createElement('canvas')
+  canvas.width = WIDTH * SCALE
+  canvas.height = height * SCALE
+  const ctx = canvas.getContext('2d')
+  ctx.scale(SCALE, SCALE)
+
+  ctx.fillStyle = '#12141a'
+  ctx.fillRect(0, 0, WIDTH, height)
+
+  ctx.fillStyle = '#f2f3f5'
+  ctx.font = `700 24px ${SANS}`
+  ctx.fillText(appName, PAD, 44)
+
+  ctx.fillStyle = '#8a90a0'
+  ctx.font = `400 13px ${SANS}`
+  const dateStr = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  ctx.fillText(dateStr, PAD, 64)
+
+  ctx.strokeStyle = '#262a33'
+  ctx.beginPath()
+  ctx.moveTo(PAD, headerH)
+  ctx.lineTo(WIDTH - PAD, headerH)
+  ctx.stroke()
+
+  const stats = [
+    [s.signalBuy, summaryCounts.buy, SIGNAL_COLOR.buy],
+    [s.signalHold, summaryCounts.hold, SIGNAL_COLOR.hold],
+    [s.signalSell, summaryCounts.sell, SIGNAL_COLOR.sell],
+  ]
+  const colW = (WIDTH - PAD * 2) / stats.length
+  const statsY = headerH + 34
+  stats.forEach(([label, value, color], i) => {
+    const x = PAD + i * colW
+    ctx.fillStyle = '#8a90a0'
+    ctx.font = `600 11px ${SANS}`
+    ctx.fillText(label.toUpperCase(), x, statsY)
+    ctx.fillStyle = color
+    ctx.font = `700 20px ${MONO}`
+    ctx.fillText(String(value), x, statsY + 26)
+  })
+
+  ctx.strokeStyle = '#262a33'
+  ctx.beginPath()
+  ctx.moveTo(PAD, headerH + statsH)
+  ctx.lineTo(WIDTH - PAD, headerH + statsH)
+  ctx.stroke()
+
+  let rowY = headerH + statsH + 22
+  entries.forEach((entry) => {
+    const color = SIGNAL_COLOR[entry.signal] || '#8a90a0'
+    ctx.fillStyle = color
+    ctx.beginPath()
+    ctx.arc(PAD + 5, rowY - 4, 5, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.fillStyle = '#f2f3f5'
+    ctx.font = `700 14px ${MONO}`
+    ctx.fillText(entry.symbol, PAD + 18, rowY)
+
+    if (entry.current != null) {
+      ctx.fillStyle = '#c4c8d1'
+      ctx.font = `400 13px ${MONO}`
+      ctx.fillText(formatPrice(entry.current, entry.currency), PAD + 130, rowY)
+    }
+
+    if (entry.changePercent != null) {
+      const changeColor = entry.changePercent >= 0 ? '#4ade80' : '#f87171'
+      const changeText = `${entry.changePercent >= 0 ? '+' : ''}${entry.changePercent.toFixed(2)}%`
+      ctx.fillStyle = changeColor
+      ctx.font = `600 13px ${MONO}`
+      const cw = ctx.measureText(changeText).width
+      ctx.fillText(changeText, WIDTH - PAD - 90 - cw, rowY)
+    }
+
+    ctx.fillStyle = color
+    ctx.font = `600 12px ${SANS}`
+    const label = s[`signal${entry.signal[0].toUpperCase()}${entry.signal.slice(1)}`] || entry.signal
+    const lw = ctx.measureText(label).width
+    ctx.fillText(label, WIDTH - PAD - lw, rowY)
+
+    rowY += rowH
+  })
+
+  ctx.fillStyle = '#5b606c'
+  ctx.font = `400 11px ${SANS}`
+  ctx.fillText('pumbafluffycorgi.com/stock-ranges', PAD, height - 14)
+
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
+}

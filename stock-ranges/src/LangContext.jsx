@@ -152,6 +152,12 @@ export const STRINGS = {
     conflictLastSaved: 'Last saved {when}',
     conflictNeverSaved: 'Not saved yet',
     conflictUse: 'Use this',
+    installTitle: 'Install this app for quicker access',
+    installButton: 'Install',
+    installIosHint: 'Add to Home Screen: tap Share, then "Add to Home Screen".',
+    installDismissLabel: 'Dismiss',
+    shareWatchlistBtn: 'Share watchlist as image',
+    knownForLabel: 'Known for',
   },
   th: {
     appName: 'ช่วงราคาหุ้น',
@@ -302,6 +308,12 @@ export const STRINGS = {
     conflictLastSaved: 'บันทึกล่าสุด {when}',
     conflictNeverSaved: 'ยังไม่ได้บันทึก',
     conflictUse: 'ใช้อันนี้',
+    installTitle: 'ติดตั้งแอปนี้เพื่อเข้าใช้งานได้เร็วขึ้น',
+    installButton: 'ติดตั้ง',
+    installIosHint: 'เพิ่มไปยังหน้าจอหลัก: แตะปุ่มแชร์ แล้วเลือก "เพิ่มไปยังหน้าจอหลัก"',
+    installDismissLabel: 'ปิด',
+    shareWatchlistBtn: 'แชร์รายการเฝ้าดูเป็นรูปภาพ',
+    knownForLabel: 'รู้จักในชื่อ',
   },
 }
 

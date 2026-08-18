@@ -1,0 +1,87 @@
+// Curated ticker -> consumer-facing brand names, so a watchlist/wallet
+// entry like "QSR" reads as "Tim Hortons, Burger King, Popeyes" instead of
+// a bare ticker most people don't recognize. Best-effort and not
+// exhaustive — covers well-known consumer, retail, and media tickers only;
+// a symbol with no entry here just shows no "known for" section.
+export const BRANDS = {
+  QSR: ['Tim Hortons', 'Burger King', 'Popeyes', 'Firehouse Subs'],
+  MCD: ['McDonald’s'],
+  SBUX: ['Starbucks'],
+  YUM: ['KFC', 'Pizza Hut', 'Taco Bell', 'Habit Burger'],
+  CMG: ['Chipotle'],
+  DPZ: ['Domino’s Pizza'],
+  WEN: ['Wendy’s'],
+  DRI: ['Olive Garden', 'LongHorn Steakhouse', 'Cheddar’s'],
+  CAKE: ['The Cheesecake Factory'],
+  DIN: ['Applebee’s', 'IHOP'],
+  SHAK: ['Shake Shack'],
+
+  KO: ['Coca-Cola', 'Sprite', 'Fanta', 'Minute Maid', 'Dasani', 'Powerade'],
+  PEP: ['Pepsi', 'Frito-Lay', 'Lay’s', 'Doritos', 'Gatorade', 'Quaker', 'Mountain Dew'],
+  KDP: ['Keurig', 'Dr Pepper', 'Snapple', '7Up'],
+  MNST: ['Monster Energy'],
+  STZ: ['Corona', 'Modelo', 'Svedka'],
+  BUD: ['Budweiser', 'Corona', 'Stella Artois', 'Michelob'],
+  TAP: ['Coors', 'Miller', 'Blue Moon'],
+  DEO: ['Johnnie Walker', 'Guinness', 'Smirnoff', 'Baileys', 'Captain Morgan'],
+
+  PG: ['Tide', 'Pampers', 'Gillette', 'Crest', 'Pantene', 'Old Spice'],
+  KMB: ['Kleenex', 'Huggies', 'Cottonelle', 'Scott'],
+  CL: ['Colgate', 'Palmolive', 'Speed Stick'],
+  UL: ['Dove', 'Axe', 'Ben & Jerry’s', 'Hellmann’s', 'Lipton'],
+  CLX: ['Clorox', 'Pine-Sol', 'Burt’s Bees'],
+  CHD: ['Arm & Hammer', 'Trojan', 'OxiClean'],
+  EL: ['Estée Lauder', 'MAC', 'Clinique', 'Bobbi Brown'],
+
+  MDLZ: ['Oreo', 'Cadbury', 'Ritz', 'Toblerone', 'Trident'],
+  HSY: ['Hershey’s', 'Reese’s', 'Kit Kat', 'Jolly Rancher'],
+  GIS: ['Cheerios', 'Betty Crocker', 'Pillsbury', 'Häagen-Dazs'],
+  K: ['Pringles', 'Pop-Tarts', 'Cheez-It', 'Eggo'],
+  KHC: ['Heinz', 'Kraft', 'Oscar Mayer', 'Philadelphia', 'Jell-O'],
+  CAG: ['Slim Jim', 'Chef Boyardee', 'Marie Callender’s'],
+  CPB: ['Campbell’s', 'Pepperidge Farm', 'Prego', 'V8'],
+
+  NKE: ['Nike', 'Converse', 'Jordan'],
+  LULU: ['Lululemon'],
+  VFC: ['Vans', 'The North Face', 'Timberland'],
+  CROX: ['Crocs'],
+  DECK: ['UGG', 'Hoka'],
+  UAA: ['Under Armour'],
+  RL: ['Ralph Lauren'],
+  TPR: ['Coach', 'Kate Spade'],
+  LVMUY: ['Louis Vuitton', 'Moët & Chandon', 'Dior', 'Tiffany & Co.'],
+
+  WMT: ['Walmart', 'Sam’s Club'],
+  TGT: ['Target'],
+  COST: ['Costco', 'Kirkland Signature'],
+  HD: ['The Home Depot'],
+  LOW: ['Lowe’s'],
+  TJX: ['TJ Maxx', 'Marshalls', 'HomeGoods'],
+  ROST: ['Ross Dress for Less'],
+  BBY: ['Best Buy'],
+  ULTA: ['Ulta Beauty'],
+
+  AMZN: ['Amazon', 'Whole Foods', 'Prime Video', 'Zappos', 'Audible', 'Twitch'],
+  AAPL: ['iPhone', 'Mac', 'iPad', 'AirPods', 'Apple Watch'],
+  GOOGL: ['Google', 'YouTube', 'Android', 'Gmail'],
+  GOOG: ['Google', 'YouTube', 'Android', 'Gmail'],
+  META: ['Facebook', 'Instagram', 'WhatsApp'],
+  MSFT: ['Windows', 'Office', 'Xbox', 'LinkedIn', 'GitHub'],
+  NFLX: ['Netflix'],
+  DIS: ['Disney', 'Pixar', 'Marvel', 'ESPN', 'Hulu'],
+  SONY: ['PlayStation'],
+  SPOT: ['Spotify'],
+
+  JNJ: ['Band-Aid', 'Tylenol', 'Neutrogena', 'Listerine'],
+  PM: ['Marlboro', 'IQOS'],
+  MO: ['Marlboro', 'Copenhagen'],
+
+  F: ['Ford', 'Lincoln'],
+  GM: ['Chevrolet', 'Cadillac', 'GMC', 'Buick'],
+  TSLA: ['Tesla'],
+  TM: ['Toyota', 'Lexus'],
+  HMC: ['Honda', 'Acura'],
+  STLA: ['Jeep', 'Ram', 'Chrysler', 'Dodge'],
+
+  YETI: ['Yeti'],
+}

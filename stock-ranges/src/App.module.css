@@ -120,6 +120,64 @@
   gap: 10px;
 }
 
+.tabActionBtn {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  background: var(--color-surface-alt);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tabActionBtn:hover { background: var(--color-border); color: var(--color-text); }
+.tabActionBtn:disabled { opacity: 0.5; cursor: default; }
+
+.installBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-surface-alt);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.installText {
+  flex: 1;
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.installBtn {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.installDismiss {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0 2px;
+}
+.installDismiss:hover { color: var(--color-text); }
+
 .tabBtn {
   background: transparent;
   border: none;
