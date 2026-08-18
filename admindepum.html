@@ -565,6 +565,7 @@ html.light body{
     <button type="button" id="tab-btn-bills" aria-pressed="false">🧾 Bill Splitter</button>
     <button type="button" id="tab-btn-nutrition" aria-pressed="false">🥗 Nutrition</button>
     <button type="button" id="tab-btn-pumgoda" aria-pressed="false">📍 Pumgoda<span class="tb-badge hidden" id="tab-badge-pumgoda"></span></button>
+    <button type="button" id="tab-btn-stock" aria-pressed="false">📈 Stock Ranges</button>
     <button type="button" id="tab-btn-backyard" aria-pressed="false">🎮 Backyard</button>
   </nav>
 
@@ -653,6 +654,23 @@ html.light body{
         <div>User</div><div>Days logged</div><div>Last logged</div><div>Last sync</div>
       </div>
       <div id="tab-nutr-rows"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ TAB: STOCK RANGES ═══════════ -->
+  <div id="tab-pane-stock" class="tab-pane hidden">
+    <div class="tab-summary" id="stock-stats"></div>
+    <p class="app-note">Click any user row to open Stock Ranges details, including watchlist tickers and wallet holdings.</p>
+    <div class="toolbar">
+      <label class="search"><span style="color:var(--faint)">⌕</span>
+        <input id="stock-search" type="text" placeholder="search user name / email" /></label>
+      <span class="refreshed" id="stock-count"></span>
+    </div>
+    <div class="panel">
+      <div class="row head" style="grid-template-columns:1.8fr .8fr .8fr 1fr">
+        <div>User</div><div>Watchlist</div><div>Wallet holdings</div><div>Last sync</div>
+      </div>
+      <div id="tab-stock-rows"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
     </div>
   </div>
 
@@ -909,7 +927,7 @@ function initialTab(){
 }
 function applyRoleRestrictions(){
   if(ROLE !== 'pumgoda') return;
-  ['overall','bills','nutrition','backyard'].forEach(t => {
+  ['overall','bills','nutrition','stock','backyard'].forEach(t => {
     const btn = document.getElementById('tab-btn-'+t);
     if(btn) btn.classList.add('hidden');
   });
@@ -923,7 +941,7 @@ async function loadData(){
   $('errbox').classList.add('hidden');
   PROFILE_MAP = new Map();
   const map = new Map();
-  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,stock:0,sync:0,name:null,email:null,photoURL:null,_drawer:null,_lastNutrDate:null,_billMode:null,_shareCount:null,_events:[]}); return map.get(uid); };
+  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,stock:0,sync:0,name:null,email:null,photoURL:null,_drawer:null,_lastNutrDate:null,_billMode:null,_shareCount:null,_holdingsCount:0,_events:[]}); return map.get(uid); };
   const errors = [];
   async function scan(col, apply){
     try{ const snap = await getDocs(collection(db, col)); snap.forEach(s => apply(ensure(s.id), s.data()||{})); }
@@ -963,7 +981,7 @@ async function loadData(){
   }));
 
   await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; if(u.places) u._events.push({type:'place', title:'Saved places', detail:u.places+' places', time:ts(d.lastModified)}); u.sync = Math.max(u.sync, ts(d.lastModified)); });
-  await scan('userStockRanges', (u,d) => { u.stock = Array.isArray(d.watchlist) ? d.watchlist.length : 0; if(u.stock) u._events.push({type:'stock', title:'Stock Ranges watchlist', detail:u.stock+' tickers', time:ts(d.lastModified)}); u.sync = Math.max(u.sync, ts(d.lastModified)); });
+  await scan('userStockRanges', (u,d) => { u.stock = Array.isArray(d.watchlist) ? d.watchlist.length : 0; u._holdingsCount = d.holdings && typeof d.holdings === 'object' ? Object.keys(d.holdings).length : 0; if(u.stock) u._events.push({type:'stock', title:'Stock Ranges watchlist', detail:u.stock+' tickers', time:ts(d.lastModified)}); u.sync = Math.max(u.sync, ts(d.lastModified)); });
   await scan('userProfiles',(u,d) => { PROFILE_MAP.set(u.uid, d); u.name = d.name || null; u.email = d.email || null; u.photoURL = d.photoURL || d.photoUrl || d.avatarUrl || d.avatar || d.picture || null; if(ts(d.lastSeen)) u._events.push({type:'profile', title:'User active', detail:d.email || d.name || 'Profile seen', time:ts(d.lastSeen)}); u.sync = Math.max(u.sync, ts(d.lastSeen)); });
   try{
     const links = await getDocs(collection(db, 'shareLinks'));
@@ -1133,6 +1151,7 @@ function render(){
   renderActivityFeed();
   renderBillsTab();
   renderNutrTab();
+  renderStockTab();
 }
 
 function donut(segs){
@@ -1544,7 +1563,7 @@ function showUndoToast(message, onCommit, opts){
 
 
 // ---- tabs ----
-const TABS = ['overall','bills','nutrition','pumgoda','backyard'];
+const TABS = ['overall','bills','nutrition','pumgoda','stock','backyard'];
 function switchTab(name){
   if(!TABS.includes(name)) name = 'overall';
   if(ROLE === 'pumgoda') name = 'pumgoda'; // restricted role: no other tab is ever reachable
@@ -1562,6 +1581,7 @@ function switchTab(name){
   if(name === 'bills'){ renderBillsTab(); loadShareLinks(); }
   if(name === 'nutrition') renderNutrTab();
   if(name === 'pumgoda'){ renderPlaces(); loadSuggestions(); }
+  if(name === 'stock') renderStockTab();
   if(name === 'backyard') renderBackyardTab();
 }
 
@@ -1743,6 +1763,13 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
         <div class="drawer-section" data-section="nutr">
           <h4>🥗 Nutritions</h4>
           ${nutrHtml}
+        </div>
+      </div>`;
+    } else if(activeTab === 'stock'){
+      html = `<div class="drawer-body drawer-single">
+        <div class="drawer-section" data-section="stock">
+          <h4>📈 Stock Ranges</h4>
+          ${stockHtml}
         </div>
       </div>`;
     } else {
@@ -2017,11 +2044,50 @@ function renderNutrTab(){
   }).join('');
 }
 
+function renderStockTab(){
+  const users = DATA.filter(u => u.stock > 0);
+  const q = ($('stock-search').value||'').toLowerCase().trim();
+  let rows = users.filter(u =>
+    !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || u.uid.toLowerCase().includes(q)
+  );
+  rows.sort((a,b) => b.stock - a.stock || b.sync - a.sync);
+  const totalTickers = users.reduce((sum,u)=>sum+u.stock,0);
+  const totalHoldings = users.reduce((sum,u)=>sum+(u._holdingsCount||0),0);
+  const active7 = users.filter(u => u.sync && Date.now()-u.sync < 7*DAY).length;
+  statCards('stock-stats', [
+    ['Stock Ranges users', users.length, ''],
+    ['Total watchlist tickers', totalTickers, ''],
+    ['Total wallet holdings', totalHoldings, ''],
+    ['Active · 7d', active7, '<small>/ '+users.length+'</small>'],
+  ]);
+  $('stock-count').textContent = rows.length + ' users';
+  if(!rows.length){
+    $('tab-stock-rows').innerHTML = '<div class="empty">No Stock Ranges users yet.</div>';
+    return;
+  }
+  $('tab-stock-rows').innerHTML = rows.map(u => {
+    const [s,,cls] = rel(u.sync);
+    const nm = u.name || (u.uid.slice(0,12)+'…');
+    return `<div class="user-block" data-uid="${u.uid}">
+      <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','stock')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','stock')}">
+        <div class="user">
+          ${userAvatarHtml(u)}
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
+        </div>
+        <div class="metric"><span class="lab">Watchlist</span><span>${u.stock}</span></div>
+        <div class="metric"><span class="lab">Wallet holdings</span><span>${u._holdingsCount||0}</span></div>
+        <div class="sync ${cls}">${s}<span class="abs">${safeAbs(u.sync)}</span><span class="drawer-arrow">▶</span></div>
+      </div>
+      <div class="drawer-slot" style="display:none"></div>
+    </div>`;
+  }).join('');
+}
+
 
 
 // ---- controls ----
 // wire tab buttons
-["overall","bills","nutrition","pumgoda","backyard"].forEach(t => {
+["overall","bills","nutrition","pumgoda","stock","backyard"].forEach(t => {
   const btn = document.getElementById("tab-btn-"+t);
   if(btn) btn.addEventListener("click", ()=> switchTab(t));
 });
@@ -2037,6 +2103,7 @@ $("themeBtn") && $('themeBtn').addEventListener('click', () => {
 $('overall-search').addEventListener('input', render);
 $('bills-search').addEventListener('input', renderBillsTab);
 $('nutr-search').addEventListener('input', renderNutrTab);
+$('stock-search').addEventListener('input', renderStockTab);
 $('refreshBtn').addEventListener('click', () => {
   BACKYARD = { loaded:false, loading:false, leaderboard:[], error:'' };
   loadData();
