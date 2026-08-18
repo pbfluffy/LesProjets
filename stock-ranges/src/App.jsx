@@ -12,6 +12,7 @@ import { TAG_DATALIST_ID } from './components/TagChips.jsx'
 import TagManagerModal from './components/TagManagerModal.jsx'
 import UndoToast from './components/UndoToast.jsx'
 import WalletView from './components/WalletView.jsx'
+import WalletLocked from './components/WalletLocked.jsx'
 import { tagHue } from './tagColor.js'
 import styles from './App.module.css'
 
@@ -512,23 +513,27 @@ function Dashboard() {
       {undoInfo && <UndoToast type={undoInfo.type} label={undoInfo.symbol} onUndo={handleUndo} />}
 
       {tab === 'wallet' ? (
-        <WalletView
-          holdings={holdings}
-          currency={currency}
-          rates={rates}
-          onAddHolding={addOrUpdateHolding}
-          onRemoveHolding={removeHolding}
-          actionsPortalNode={tabActionsEl}
-          user={cloudSync.user}
-          watchlist={watchlist}
-          refreshKey={refreshKey}
-          highlightSymbol={highlightSymbol}
-          onWatchedClick={(symbol) => jumpToSymbol(symbol, 'watchlist')}
-          tags={tags}
-          onAddTag={addTag}
-          onRemoveTag={removeTag}
-          activeTagFilters={activeTagFilters}
-        />
+        cloudSync.user ? (
+          <WalletView
+            holdings={holdings}
+            currency={currency}
+            rates={rates}
+            onAddHolding={addOrUpdateHolding}
+            onRemoveHolding={removeHolding}
+            actionsPortalNode={tabActionsEl}
+            user={cloudSync.user}
+            watchlist={watchlist}
+            refreshKey={refreshKey}
+            highlightSymbol={highlightSymbol}
+            onWatchedClick={(symbol) => jumpToSymbol(symbol, 'watchlist')}
+            tags={tags}
+            onAddTag={addTag}
+            onRemoveTag={removeTag}
+            activeTagFilters={activeTagFilters}
+          />
+        ) : (
+          <WalletLocked />
+        )
       ) : (
       <>
       {summaryTotal > 0 && (

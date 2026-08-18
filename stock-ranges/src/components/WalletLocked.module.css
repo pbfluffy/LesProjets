@@ -1,0 +1,48 @@
+.locked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: var(--color-text-faint);
+  padding: 48px 20px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+}
+
+.locked svg {
+  color: var(--color-text-faint);
+  margin-bottom: 12px;
+}
+
+.title {
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.body {
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 320px;
+  margin: 0 0 20px;
+}
+
+.signInBtn {
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 20px;
+}
+.signInBtn:hover:not(:disabled) { filter: brightness(0.94); }
+.signInBtn:disabled { opacity: 0.6; cursor: default; }
+
+.errorText {
+  font-size: 11px;
+  color: var(--color-red);
+  margin-top: 10px;
+}
