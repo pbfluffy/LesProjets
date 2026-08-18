@@ -144,6 +144,7 @@ body{
 }
 
 .prow{grid-template-columns:2fr .9fr 1fr .8fr .6fr}
+.orow{grid-template-columns:1.5fr .6fr .6fr .6fr .6fr 1fr}
 .pname b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pname .pth{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 .pname .pid{font-size:10px;color:var(--faint);font-family:'JetBrains Mono',monospace}
@@ -591,8 +592,8 @@ html.light body{
       <span class="refreshed" id="refreshed"></span>
     </div>
     <div class="panel">
-      <div class="row head">
-        <div>User</div><div>Nutr · days</div><div>Bills</div><div>Places</div><div>Last sync</div>
+      <div class="row head orow">
+        <div>User</div><div>Nutr · days</div><div>Bills</div><div>Places</div><div>Watchlist</div><div>Last sync</div>
       </div>
       <div id="tab-overall-rows"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
     </div>
@@ -922,7 +923,7 @@ async function loadData(){
   $('errbox').classList.add('hidden');
   PROFILE_MAP = new Map();
   const map = new Map();
-  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,sync:0,name:null,email:null,photoURL:null,_drawer:null,_lastNutrDate:null,_billMode:null,_shareCount:null,_events:[]}); return map.get(uid); };
+  const ensure = (uid) => { if(!map.has(uid)) map.set(uid,{uid,nutr:0,bills:0,places:0,stock:0,sync:0,name:null,email:null,photoURL:null,_drawer:null,_lastNutrDate:null,_billMode:null,_shareCount:null,_events:[]}); return map.get(uid); };
   const errors = [];
   async function scan(col, apply){
     try{ const snap = await getDocs(collection(db, col)); snap.forEach(s => apply(ensure(s.id), s.data()||{})); }
@@ -962,6 +963,7 @@ async function loadData(){
   }));
 
   await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; if(u.places) u._events.push({type:'place', title:'Saved places', detail:u.places+' places', time:ts(d.lastModified)}); u.sync = Math.max(u.sync, ts(d.lastModified)); });
+  await scan('userStockRanges', (u,d) => { u.stock = Array.isArray(d.watchlist) ? d.watchlist.length : 0; if(u.stock) u._events.push({type:'stock', title:'Stock Ranges watchlist', detail:u.stock+' tickers', time:ts(d.lastModified)}); u.sync = Math.max(u.sync, ts(d.lastModified)); });
   await scan('userProfiles',(u,d) => { PROFILE_MAP.set(u.uid, d); u.name = d.name || null; u.email = d.email || null; u.photoURL = d.photoURL || d.photoUrl || d.avatarUrl || d.avatar || d.picture || null; if(ts(d.lastSeen)) u._events.push({type:'profile', title:'User active', detail:d.email || d.name || 'Profile seen', time:ts(d.lastSeen)}); u.sync = Math.max(u.sync, ts(d.lastSeen)); });
   try{
     const links = await getDocs(collection(db, 'shareLinks'));
@@ -1090,7 +1092,7 @@ function render(){
   let rows = DATA.filter(u => !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || u.uid.toLowerCase().includes(q));
   rows.sort((a,b) => {
     if(sortKey==='name') return (a.name||a.uid).localeCompare(b.name||b.uid);
-    if(sortKey==='data') return (b.nutr+b.bills+b.places)-(a.nutr+a.bills+a.places);
+    if(sortKey==='data') return (b.nutr+b.bills+b.places+b.stock)-(a.nutr+a.bills+a.places+a.stock);
     return b.sync-a.sync;
   });
 
@@ -1103,6 +1105,7 @@ function render(){
     ['Nutrition days', sum('nutr'), ''],
     ['Saved bills', sum('bills'), ''],
     ['Saved places', sum('places'), ''],
+    ['Watchlist tickers', sum('stock'), ''],
   ].map(([k,v,x]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}${x}</div></div>`).join('');
 
   if(rows.length===0){
@@ -1110,16 +1113,16 @@ function render(){
   } else {
     $('tab-overall-rows').innerHTML = rows.map(u => {
       const [s,abs,cls] = rel(u.sync);
-      const apps = [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
+      const apps = [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD', u.stock>0&&'STOCK'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
       const m = (n,lab,sec) => n===0 ? `<div class="metric zero"><span class="lab">${lab}</span><span>—</span></div>` : `<div class="metric" onclick="toggleDrawer('${u.uid}','${sec||''}')" style="cursor:pointer" title="Click for details"><span class="lab">${lab}</span><span>${n}</span></div>`;
       const nm = u.name || (u.uid.slice(0,12)+'…');
       return `<div class="user-block" data-uid="${u.uid}">
-      <div class="row body" onclick="toggleDrawer('${u.uid}')">
+      <div class="row body orow" onclick="toggleDrawer('${u.uid}')">
         <div class="user">
           ${userAvatarHtml(u)}
           <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><span class="uid">${u.uid.slice(0,10)}…</span><div class="apps">${apps}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
-        ${m(u.nutr,'Nutrition days','nutr')}${m(u.bills,'Bills','bills')}${m(u.places,'Places','places')}
+        ${m(u.nutr,'Nutrition days','nutr')}${m(u.bills,'Bills','bills')}${m(u.places,'Places','places')}${m(u.stock,'Watchlist','stock')}
         <div class="sync ${cls}">${s}<span class="abs">${abs}</span><span class="drawer-arrow">▶</span></div>
       </div>
       <div class="drawer-slot" id="drawer-${u.uid}" style="display:none"></div>
@@ -1164,17 +1167,18 @@ function renderCharts(){
     {label:'Nutritions',    color:'#7fb069', v:DATA.filter(u=>u.nutr>0).length},
     {label:'Bill Splitter', color:'#e8a13a', v:DATA.filter(u=>u.bills>0).length},
     {label:'Pumgoda',       color:'#5b9bd5', v:DATA.filter(u=>u.places>0).length},
+    {label:'Stock Ranges',  color:'#9b7fd4', v:DATA.filter(u=>u.stock>0).length},
   ];
   $('chart-adoption').innerHTML = apps.map(a=>hbar(a.label,a.v,total,a.color,a.v+' / '+total)).join('');
 
-  const top = [...DATA].map(u=>({n:u.name||u.uid.slice(0,8), t:u.nutr+u.bills+u.places, c:colorFor(u.uid)}))
+  const top = [...DATA].map(u=>({n:u.name||u.uid.slice(0,8), t:u.nutr+u.bills+u.places+u.stock, c:colorFor(u.uid)}))
     .sort((x,y)=>y.t-x.t).slice(0,6);
   const max = top[0] ? top[0].t : 1;
   $('chart-top').innerHTML = top.map(u=>hbar(u.n,u.t,max,u.c,String(u.t))).join('');
 }
 
 
-function feedIcon(type){ return ({nutrition:'🥗', bill:'🧾', place:'📍', profile:'👤', share:'🔗'}[type] || '•'); }
+function feedIcon(type){ return ({nutrition:'🥗', bill:'🧾', place:'📍', profile:'👤', share:'🔗', stock:'📈'}[type] || '•'); }
 function eventTimeLabel(t){ const r = rel(t||0); return r[0] || '—'; }
 function renderActivityFeed(){
   const feed = $('activity-feed');
@@ -1363,17 +1367,19 @@ window.openUserProfile = async function(uid){
   $('uprof-body').innerHTML = '<div class="drawer-loading">Loading profile…</div>';
   $('uprof').classList.remove('hidden');
   try{
-    const [nutrSnap,billsSnap,placesSnap,profileSnap,shareSnap] = await Promise.all([
+    const [nutrSnap,billsSnap,placesSnap,profileSnap,shareSnap,stockSnap] = await Promise.all([
       getDoc(doc(db,'users',uid)).catch(()=>null),
       getDoc(doc(db,'userBills',uid)).catch(()=>null),
       getDoc(doc(db,'userPlaces',uid)).catch(()=>null),
       getDoc(doc(db,'userProfiles',uid)).catch(()=>null),
       getDocs(query(collection(db,'shareLinks'),where('createdBy','==',uid))).catch(()=>null),
+      getDoc(doc(db,'userStockRanges',uid)).catch(()=>null),
     ]);
     const nutr = nutrSnap && nutrSnap.exists() ? nutrSnap.data() : {};
     const bills = billsSnap && billsSnap.exists() ? billsSnap.data() : {};
     const places = placesSnap && placesSnap.exists() ? placesSnap.data() : {};
     const prof = profileSnap && profileSnap.exists() ? profileSnap.data() : {};
+    const stock = stockSnap && stockSnap.exists() ? stockSnap.data() : {};
     setProfileAvatar(av, uid, prof.name || u.name || prof.email || u.email || uid, prof.photoURL || prof.photoUrl || prof.avatarUrl || u.photoURL);
     const days = nutr.days || {};
     const dayKeys = Object.keys(days).sort();
@@ -1381,6 +1387,8 @@ window.openUserProfile = async function(uid){
     const history = Array.isArray(bills.history) ? bills.history : [];
     const savedIds = Array.isArray(places.savedIds) ? places.savedIds : [];
     const shareCount = shareSnap ? shareSnap.size : 0;
+    const tickers = Array.isArray(stock.watchlist) ? stock.watchlist : [];
+    const holdingsCount = stock.holdings && typeof stock.holdings === 'object' ? Object.keys(stock.holdings).length : 0;
     const profilePhoto = normalizePhotoURL(prof.photoURL || prof.photoUrl || prof.avatarUrl || u.photoURL);
     const billTotal = history.reduce((sum,b)=>{
       const foods = b && b.state && Array.isArray(b.state.foods) ? b.state.foods : [];
@@ -1393,6 +1401,7 @@ window.openUserProfile = async function(uid){
     trips.slice(-5).reverse().forEach(t=>events.push({time:ts(t.updatedAt)||ts(t.createdAt)||0, title:'Trip: '+(t.name||'Untitled'), detail:(Array.isArray(t.members)?t.members.length:0)+' members'}));
     if(savedIds.length) events.push({time:ts(places.lastModified)||0, title:'Pumgoda saved places', detail:savedIds.length+' saved IDs'});
     if(shareCount) events.push({time:0, title:'Share links created', detail:String(shareCount)});
+    if(tickers.length) events.push({time:ts(stock.lastModified)||0, title:'Stock Ranges watchlist', detail:tickers.length+' tickers'});
     events.sort((a,b)=>(b.time||0)-(a.time||0));
     const timeline = events.length ? events.map(e=>timelineItem(e.time?eventTimeLabel(e.time):'—', e.title, e.detail)).join('') : '<div class="ds-empty">No timeline events available.</div>';
     $('uprof-body').innerHTML = `
@@ -1403,8 +1412,10 @@ window.openUserProfile = async function(uid){
         ${profileStat('Bill total', billTotal ? '฿'+billTotal.toLocaleString('en',{maximumFractionDigits:0}) : '—')}
         ${profileStat('Share links', shareCount)}
         ${profileStat('Saved places', savedIds.length)}
+        ${profileStat('Watchlist tickers', tickers.length)}
+        ${profileStat('Wallet holdings', holdingsCount)}
       </div>
-      <div class="uprof-section"><h4>Apps used</h4><div class="apps">${userApps({nutr:dayKeys.length,bills:trips.length||history.length,places:savedIds.length}) || '<span class="chip">NO DATA</span>'}</div></div>
+      <div class="uprof-section"><h4>Apps used</h4><div class="apps">${userApps({nutr:dayKeys.length,bills:trips.length||history.length,places:savedIds.length,stock:tickers.length}) || '<span class="chip">NO DATA</span>'}</div></div>
       <div class="uprof-section"><h4>Activity timeline</h4><div class="timeline">${timeline}</div></div>
       <div class="uprof-section"><h4>Raw profile summary</h4>
         <div class="drawer-row"><span class="dk">Name</span><span class="dv">${escAdm(prof.name || u.name || '—')}</span></div>
@@ -1593,11 +1604,12 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
   if(DRAWER_CACHE[uid]){ slot.innerHTML = DRAWER_CACHE[uid]; scrollToSection(slot, section); return; }
   slot.innerHTML = '<div class="drawer-loading">Loading…</div>';
   try {
-    const [nutrSnap, billsSnap, placesSnap, shareLinksSnap] = await Promise.all([
+    const [nutrSnap, billsSnap, placesSnap, shareLinksSnap, stockSnap] = await Promise.all([
       getDoc(doc(db,'users',uid)).catch(()=>null),
       getDoc(doc(db,'userBills',uid)).catch(()=>null),
       getDoc(doc(db,'userPlaces',uid)).catch(()=>null),
       getDocs(query(collection(db,'shareLinks'),where('createdBy','==',uid))).catch(()=>null),
+      getDoc(doc(db,'userStockRanges',uid)).catch(()=>null),
     ]);
 
     // --- Nutrition ---
@@ -1705,6 +1717,18 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
       placesHtml = `<div class="drawer-row"><span class="dk">Saved places</span><span class="dv">${ids.length||'—'}</span></div>`;
     }
 
+    // --- Stock Ranges ---
+    let stockHtml = '<div class="ds-empty">No data</div>';
+    if(stockSnap && stockSnap.exists()){
+      const sd = stockSnap.data();
+      const tickers = Array.isArray(sd.watchlist) ? sd.watchlist : [];
+      const holdingsCount = sd.holdings && typeof sd.holdings === 'object' ? Object.keys(sd.holdings).length : 0;
+      stockHtml = `
+        <div class="drawer-row"><span class="dk">Watchlist tickers</span><span class="dv">${tickers.length||'—'}</span></div>
+        <div class="drawer-row"><span class="dk">Wallet holdings</span><span class="dv">${holdingsCount||'—'}</span></div>
+        ${tickers.length ? `<div class="drawer-row"><span class="dk">Symbols</span><span class="dv">${escAdm(tickers.join(', '))}</span></div>` : ''}`;
+    }
+
     const activeTab = localStorage.getItem('admin_tab') || 'overall';
     let html;
     if(activeTab === 'bills'){
@@ -1735,6 +1759,10 @@ window.toggleDrawer = async function toggleDrawer(uid, section){
           <h4>📍 Pumgoda</h4>
           ${placesHtml}
         </div>
+        <div class="drawer-section" data-section="stock">
+          <h4>📈 Stock Ranges</h4>
+          ${stockHtml}
+        </div>
       </div>`;
     }
 
@@ -1754,7 +1782,7 @@ function statCards(target, cards){
   el.innerHTML = cards.map(([k,v,x]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}${x||''}</div></div>`).join('');
 }
 function userApps(u){
-  return [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
+  return [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD', u.stock>0&&'STOCK'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
 }
 function safeAbs(t){
   return t ? new Date(t).toISOString().slice(0,16).replace('T',' ') : '—';
