@@ -1,13 +1,15 @@
 // Curated ticker -> consumer-facing brands, so a watchlist/wallet entry
 // like "QSR" reads as "Tim Hortons, Burger King, Popeyes" instead of a
 // bare ticker most people don't recognize. Each brand carries a `domain`
-// used to fetch its real logo (Clearbit's free no-key logo endpoint,
-// same idea as TickerLogo.jsx's per-ticker logo) — KnownFor.jsx falls
-// back to a colored initial if that domain has no logo there. Best-effort
-// and not exhaustive; a symbol with no entry here just shows no section.
+// used to fetch its real favicon (Google's free no-key favicon endpoint —
+// KnownFor.jsx falls back to a colored initial if that request fails
+// outright). Best-effort and not exhaustive; a symbol with no entry here
+// just shows no section.
 function b(name, domain) {
   return { name, domain }
 }
+
+const BERKSHIRE_BRANDS = [b('GEICO', 'geico.com'), b('Dairy Queen', 'dairyqueen.com'), b('See’s Candies', 'sees.com'), b('Duracell', 'duracell.com'), b('Fruit of the Loom', 'fruit.com')]
 
 export const BRANDS = {
   QSR: [b('Tim Hortons', 'timhortons.com'), b('Burger King', 'bk.com'), b('Popeyes', 'popeyes.com'), b('Firehouse Subs', 'firehousesubs.com')],
@@ -93,8 +95,12 @@ export const BRANDS = {
   HMC: [b('Honda', 'honda.com'), b('Acura', 'acura.com')],
   STLA: [b('Jeep', 'jeep.com'), b('Ram', 'ramtrucks.com'), b('Chrysler', 'chrysler.com'), b('Dodge', 'dodge.com')],
 
-  'BRK-B': [b('GEICO', 'geico.com'), b('Dairy Queen', 'dairyqueen.com'), b('See’s Candies', 'sees.com'), b('Duracell', 'duracell.com'), b('Fruit of the Loom', 'fruit.com')],
-  'BRK-A': [b('GEICO', 'geico.com'), b('Dairy Queen', 'dairyqueen.com'), b('See’s Candies', 'sees.com'), b('Duracell', 'duracell.com'), b('Fruit of the Loom', 'fruit.com')],
+  // Yahoo's real symbol uses a hyphen ("BRK-B"), but the exchange-printed
+  // form uses a dot ("BRK.B") and the app stores whatever the user typed
+  // verbatim (the worker only substitutes dot->dash for the Yahoo request
+  // itself) — key both spellings so the section shows either way.
+  'BRK-B': BERKSHIRE_BRANDS, 'BRK.B': BERKSHIRE_BRANDS,
+  'BRK-A': BERKSHIRE_BRANDS, 'BRK.A': BERKSHIRE_BRANDS,
 
   YETI: [b('Yeti', 'yeti.com')],
 
