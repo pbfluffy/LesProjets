@@ -108,4 +108,7 @@ export const BRANDS = {
   // rents the real estate. Listing the biggest tenants is the closest
   // equivalent to "what business you're invested in" for these tickers.
   O: [b('7-Eleven', '7-eleven.com'), b('Walgreens', 'walgreens.com'), b('Dollar General', 'dollargeneral.com'), b('FedEx', 'fedex.com'), b('Dollar Tree', 'dollartree.com')],
+
+  DOGZ: [b('Dogness', 'dogness.com')],
+  SPCX: [b('Starlink', 'starlink.com'), b('Falcon 9', 'spacex.com'), b('Starship', 'spacex.com')],
 }
