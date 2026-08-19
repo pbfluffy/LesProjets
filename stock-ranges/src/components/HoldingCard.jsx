@@ -12,7 +12,7 @@ import Icon from './Icon.jsx'
 import styles from './HoldingCard.module.css'
 
 export default function HoldingCard({
-  symbol, holding, name, currentPrice, currentCurrency, dividendEvents, loading, quoteError, displayCurrency, rates,
+  symbol, holding, name, currentPrice, currentCurrency, instrumentType, dividendEvents, loading, quoteError, displayCurrency, rates,
   onEdit, onRemove, masked, watched, onWatchedClick, highlighted, tags = [], onAddTag, onRemoveTag,
 }) {
   const { s } = useLang()
@@ -73,7 +73,7 @@ export default function HoldingCard({
       </div>
 
       <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} />
-      <KnownFor symbol={symbol} />
+      <KnownFor symbol={symbol} instrumentType={instrumentType} />
 
       {loading ? (
         <div className={styles.statsRow}>

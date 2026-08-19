@@ -32,23 +32,42 @@ function BrandChip({ brand }) {
   )
 }
 
+const FUND_TYPES = new Set(['ETF', 'MUTUALFUND'])
+
 // Shown by default (not folded away) so a ticker like QSR reads as
 // "Tim Hortons, Burger King, Popeyes" instead of a bare symbol — the point
 // is helping the user recognize what business they're actually invested
-// in, so hiding it behind a toggle would defeat the purpose.
-export default function KnownFor({ symbol }) {
+// in, so hiding it behind a toggle would defeat the purpose. When there's
+// no curated entry, a bare missing section reads as broken rather than
+// "nothing to show here" — so once the quote has actually resolved (an
+// `instrumentType` is known), it explains why: a fund holds many
+// companies rather than being one, and some equities just don't have a
+// widely recognized consumer brand. Says nothing while still loading,
+// since we don't know which case applies yet.
+export default function KnownFor({ symbol, instrumentType }) {
   const { s } = useLang()
   const brands = BRANDS[symbol]
-  if (!brands || brands.length === 0) return null
+  if (brands && brands.length > 0) {
+    return (
+      <div className={styles.knownFor}>
+        <span className={styles.label}>
+          <Icon name="grid" size={11} strokeWidth={2.5} />
+          {s.knownForLabel}
+        </span>
+        <div className={styles.chips}>
+          {brands.map((brand) => <BrandChip key={brand.name} brand={brand} />)}
+        </div>
+      </div>
+    )
+  }
+  if (!instrumentType) return null
   return (
-    <div className={styles.knownFor}>
+    <div className={styles.knownFor} data-empty="true">
       <span className={styles.label}>
         <Icon name="grid" size={11} strokeWidth={2.5} />
         {s.knownForLabel}
       </span>
-      <div className={styles.chips}>
-        {brands.map((brand) => <BrandChip key={brand.name} brand={brand} />)}
-      </div>
+      <span className={styles.emptyNote}>{FUND_TYPES.has(instrumentType) ? s.knownForFundNote : s.knownForNoneNote}</span>
     </div>
   )
 }

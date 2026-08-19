@@ -369,6 +369,7 @@ export default function WalletView({
                   name={quotes[symbol]?.name ?? null}
                   currentPrice={quotes[symbol]?.current ?? null}
                   currentCurrency={quotes[symbol]?.currency ?? null}
+                  instrumentType={quotes[symbol]?.instrumentType ?? null}
                   dividendEvents={quotes[symbol]?.dividends ?? []}
                   loading={!quotes[symbol]}
                   quoteError={quotes[symbol]?.error ?? null}

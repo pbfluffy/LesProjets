@@ -106,7 +106,7 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
       </div>
 
       <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} />
-      <KnownFor symbol={symbol} />
+      <KnownFor symbol={symbol} instrumentType={state.data?.instrumentType} />
 
       {state.status === 'loading' && (
         <div className={styles.body}>

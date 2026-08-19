@@ -158,6 +158,8 @@ export const STRINGS = {
     installDismissLabel: 'Dismiss',
     shareWatchlistBtn: 'Share watchlist as image',
     knownForLabel: 'Known for',
+    knownForFundNote: 'A fund holding many companies, not a single brand.',
+    knownForNoneNote: 'No widely recognized consumer brand for this stock.',
   },
   th: {
     appName: 'ช่วงราคาหุ้น',
@@ -314,6 +316,8 @@ export const STRINGS = {
     installDismissLabel: 'ปิด',
     shareWatchlistBtn: 'แชร์รายการเฝ้าดูเป็นรูปภาพ',
     knownForLabel: 'รู้จักในชื่อ',
+    knownForFundNote: 'เป็นกองทุนที่ถือหลายบริษัท ไม่ใช่แบรนด์เดียว',
+    knownForNoneNote: 'หุ้นตัวนี้ไม่มีแบรนด์สินค้าที่คนทั่วไปรู้จัก',
   },
 }
 
