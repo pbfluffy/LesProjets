@@ -72,6 +72,7 @@
 .toolGroup > * + * { border-left: 0.5px solid var(--color-border); }
 
 .ctrlBtn {
+  position: relative;
   background: transparent;
   border: 0;
   color: var(--color-text);
@@ -83,6 +84,14 @@
   display: flex;
   align-items: center;
   text-decoration: none;
+}
+/* Adjacent ctrlBtns sit flush (zero gap, divided only by a border), so
+   only the vertical tap area can safely grow without bleeding sideways
+   into the next button. */
+.ctrlBtn::before {
+  content: '';
+  position: absolute;
+  inset: -6px 0;
 }
 .ctrlBtn:hover { background: var(--color-border); }
 .ctrlBtn:disabled { opacity: 0.6; cursor: default; }
@@ -237,6 +246,7 @@
 .lookbackRow select { width: auto; }
 
 .chartTypeBtn {
+  position: relative;
   background: var(--color-surface-alt);
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -249,6 +259,13 @@
   flex-shrink: 0;
 }
 .chartTypeBtn:hover { background: var(--color-border); }
+/* Isolated in the lookback row (no adjacent button), so this can grow
+   to a full ~44px tappable area. */
+.chartTypeBtn::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+}
 
 .updated {
   margin-left: auto;
@@ -310,6 +327,7 @@
 }
 
 .manageTagsBtn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -323,6 +341,13 @@
   flex-shrink: 0;
 }
 .manageTagsBtn:hover { background: var(--color-surface-alt); color: var(--color-text); }
+/* Sits 6px from the nearest tag-filter chip, so kept a bit more
+   conservative than the fully-isolated buttons elsewhere. */
+.manageTagsBtn::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
 
 .warning {
   font-size: 12px;

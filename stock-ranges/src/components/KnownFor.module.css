@@ -88,6 +88,7 @@
 }
 
 .chipRemove {
+  position: relative;
   background: transparent;
   border: none;
   color: currentColor;
@@ -102,5 +103,12 @@
   justify-content: center;
   flex-shrink: 0;
   margin-left: -2px;
+}
+/* Neighboring chips' remove buttons are a chip-width apart, so there's
+   plenty of room to grow this one's tappable area without overlap. */
+.chipRemove::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }
 .chipRemove:hover { background: hsl(var(--brand-hue) 45% 78% / 0.4); opacity: 1; }

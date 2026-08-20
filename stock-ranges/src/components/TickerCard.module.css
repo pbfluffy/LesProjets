@@ -107,6 +107,7 @@
 .change[data-direction='flat'] { color: var(--color-text-faint); }
 
 .removeBtn {
+  position: relative;
   background: transparent;
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -119,6 +120,13 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+/* Grows the tappable area to ~42px (isolated button, no adjacent
+   sibling to overlap) without growing the visible 26px box. */
+.removeBtn::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }
 .removeBtn:hover { background: var(--color-surface-alt); color: var(--color-text); }
 

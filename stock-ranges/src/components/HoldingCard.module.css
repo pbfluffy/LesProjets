@@ -105,6 +105,7 @@
 .plBlock[data-direction='down'] .plPercent { color: var(--color-red); }
 
 .iconBtn {
+  position: relative;
   background: transparent;
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -117,6 +118,14 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+/* Edit and remove sit 8px apart (.headRight gap), so the tappable area
+   can only grow by half that on each side before the two would overlap
+   — capped at -4px rather than the fuller expansion used elsewhere. */
+.iconBtn::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
 }
 .iconBtn:hover { background: var(--color-surface-alt); color: var(--color-text); }
 
