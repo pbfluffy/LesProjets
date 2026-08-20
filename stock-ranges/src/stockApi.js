@@ -1,9 +1,19 @@
 // Fetches daily-close price history from the stock-ranges Worker (a CORS
 // proxy in front of Yahoo Finance's chart API, which sends no CORS headers
-// of its own — see worker/src/index.js). Cached in sessionStorage per
-// symbol+range so switching between watchlist entries or re-rendering
-// doesn't refetch on every mount; the Worker itself also caches for 5min,
-// this just saves the round trip entirely within a tab session.
+// of its own — see worker/src/index.js). Cached in localStorage per
+// symbol+range so switching between watchlist entries, re-rendering, or
+// reopening the app doesn't refetch needlessly; the Worker itself also
+// caches for 5min, this just saves the round trip entirely.
+//
+// Quotes get a market-hours-aware cache lifetime instead of a flat one:
+// while the market's open, 5 minutes (matching the Worker's own edge
+// cache); while it's closed, the price can't have moved, so the cache is
+// extended until the market's next open instead of expiring every 5
+// minutes for no reason — the common real case being someone reopening a
+// PWA a few times over an evening and getting the same last-close price
+// back from disk instead of a wasted network round trip each time.
+
+import { getMarketStatus } from './marketHours.js'
 
 const WORKER_URL = import.meta.env.VITE_STOCK_WORKER_URL
 const CACHE_PREFIX = 'stockranges_quote_'
@@ -19,22 +29,31 @@ export const QUOTE_ERROR_LABEL_KEY = {
   CONFIG: 'quoteErrorConfig',
 }
 
+// Search results (ticker/name autocomplete) aren't price data and don't
+// depend on market hours at all, so they always use the flat TTL — only
+// quotes get the market-aware extension below.
+function quoteCacheTtlMs() {
+  const status = getMarketStatus()
+  if (status.open || !status.nextOpen) return CACHE_TTL_MS
+  return Math.max(status.nextOpen.getTime() - Date.now(), CACHE_TTL_MS)
+}
+
 function readCache(key) {
   try {
-    const raw = sessionStorage.getItem(CACHE_PREFIX + key)
+    const raw = localStorage.getItem(CACHE_PREFIX + key)
     if (!raw) return null
-    const { ts, data } = JSON.parse(raw)
-    return Date.now() - ts < CACHE_TTL_MS ? data : null
+    const { expiresAt, data } = JSON.parse(raw)
+    return Date.now() < expiresAt ? data : null
   } catch {
     return null
   }
 }
 
-function writeCache(key, data) {
+function writeCache(key, data, ttlMs) {
   try {
-    sessionStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ ts: Date.now(), data }))
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ expiresAt: Date.now() + ttlMs, data }))
   } catch {
-    // sessionStorage full/unavailable — fine, just no caching this session.
+    // localStorage full/unavailable — fine, just no caching.
   }
 }
 
@@ -48,8 +67,8 @@ function codedError(code, message) {
 // with a `code` (CONFIG | NETWORK | NOT_FOUND | SERVICE) so the caller can
 // show a localized message — the message text here is only an English
 // fallback for non-UI contexts (e.g. console logs).
-// `bypassCache` skips the session cache read (used by the manual refresh
-// button) but still writes the fresh result, so later normal calls benefit.
+// `bypassCache` skips the cache read (used by the manual refresh button)
+// but still writes the fresh result, so later normal calls benefit.
 export async function fetchQuote(symbol, range, { bypassCache = false } = {}) {
   const key = `${symbol}:${range}`
   const cached = !bypassCache && readCache(key)
@@ -74,7 +93,7 @@ export async function fetchQuote(symbol, range, { bypassCache = false } = {}) {
   }
 
   const data = await res.json()
-  writeCache(key, data)
+  writeCache(key, data, quoteCacheTtlMs())
   return data
 }
 
@@ -98,6 +117,6 @@ export async function searchSymbols(query) {
 
   const data = await res.json().catch(() => null)
   const results = Array.isArray(data) ? data : []
-  writeCache(key, results)
+  writeCache(key, results, CACHE_TTL_MS)
   return results
 }
