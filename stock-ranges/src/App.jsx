@@ -3,6 +3,7 @@ import { LangProvider, useLang } from './LangContext.jsx'
 import { getThbRates } from './fx.js'
 import { useCloudSync } from './hooks/useCloudSync.js'
 import { useInstallPrompt } from './hooks/useInstallPrompt.js'
+import { usePriceAlerts } from './hooks/usePriceAlerts.js'
 import TickerCard from './components/TickerCard.jsx'
 import TickerSearch from './components/TickerSearch.jsx'
 import SearchBox from './components/SearchBox.jsx'
@@ -29,6 +30,7 @@ const CURRENCY_KEY = 'stockranges_currency'
 const CHART_TYPE_KEY = 'stockranges_charttype'
 const TAGS_KEY = 'stockranges_tags'
 const KNOWN_FOR_KEY = 'stockranges_knownfor'
+const ALERTS_KEY = 'stockranges_alerts'
 const ACTIVE_TAG_FILTERS_KEY = 'stockranges_active_tag_filters'
 const HOLDINGS_KEY = 'stockranges_holdings'
 const TAB_KEY = 'stockranges_tab'
@@ -75,6 +77,22 @@ function loadActiveTagFilters() {
     return Array.isArray(parsed) ? new Set(parsed) : new Set()
   } catch {
     return new Set()
+  }
+}
+
+// Mirrors the toggle state shown in the UI (which symbol/direction the
+// user turned on) across their own devices — the Worker never reads
+// this; its own KV-backed alerts:{uid} entry (written via the /alerts
+// endpoint alongside this) is the actual source of truth for the cron
+// job. If the two ever disagree, re-toggling fixes it — there's no
+// reconciliation logic beyond that for v1.
+function loadAlerts() {
+  try {
+    const raw = localStorage.getItem(ALERTS_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
   }
 }
 
@@ -143,6 +161,8 @@ function Dashboard() {
   const [chartType, setChartType] = useState(() => localStorage.getItem(CHART_TYPE_KEY) || 'line')
   const [tags, setTags] = useState(loadTags)
   const [customKnownFor, setCustomKnownFor] = useState(loadKnownFor)
+  const [alerts, setAlerts] = useState(loadAlerts)
+  const priceAlerts = usePriceAlerts()
   const [activeTagFilters, setActiveTagFilters] = useState(loadActiveTagFilters)
   const [holdings, setHoldings] = useState(loadHoldings)
   const [tab, setTab] = useState(() => (localStorage.getItem(TAB_KEY) === 'wallet' ? 'wallet' : 'watchlist'))
@@ -189,6 +209,10 @@ function Dashboard() {
   }, [customKnownFor])
 
   useEffect(() => {
+    localStorage.setItem(ALERTS_KEY, JSON.stringify(alerts))
+  }, [alerts])
+
+  useEffect(() => {
     localStorage.setItem(ACTIVE_TAG_FILTERS_KEY, JSON.stringify([...activeTagFilters]))
   }, [activeTagFilters])
 
@@ -212,7 +236,7 @@ function Dashboard() {
   }, [])
 
   const cloudSync = useCloudSync({
-    watchlist, range, currency, tags, holdings, knownFor: customKnownFor,
+    watchlist, range, currency, tags, holdings, knownFor: customKnownFor, alerts,
     applyRemote: (remote) => {
       if (Array.isArray(remote?.watchlist)) setWatchlist(remote.watchlist)
       if (typeof remote?.range === 'string') setRange(remote.range)
@@ -220,6 +244,7 @@ function Dashboard() {
       if (remote?.tags && typeof remote.tags === 'object' && !Array.isArray(remote.tags)) setTags(remote.tags)
       if (remote?.holdings && typeof remote.holdings === 'object' && !Array.isArray(remote.holdings)) setHoldings(remote.holdings)
       if (remote?.knownFor && typeof remote.knownFor === 'object' && !Array.isArray(remote.knownFor)) setCustomKnownFor(remote.knownFor)
+      if (remote?.alerts && typeof remote.alerts === 'object' && !Array.isArray(remote.alerts)) setAlerts(remote.alerts)
     },
   })
 
@@ -337,6 +362,35 @@ function Dashboard() {
 
   function removeCustomBrand(symbol, brand) {
     removeFromSymbolList(setCustomKnownFor, symbol, brand)
+  }
+
+  // Turns one direction (buy/sell) on or off for a ticker. The first
+  // alert ever enabled is what triggers the Notification-permission
+  // request + push subscription (ensureSubscribed no-ops instantly once
+  // already granted/subscribed) — nothing to set up ahead of time.
+  // Local state only updates after the Worker confirms the change, so a
+  // failed request can't leave the toggle showing something that isn't
+  // actually registered server-side.
+  async function handleToggleAlert(symbol, range, direction, next) {
+    if (!cloudSync.user) return false
+    const current = alerts[symbol] || {}
+    const buy = direction === 'buy' ? next : !!current.buy
+    const sell = direction === 'sell' ? next : !!current.sell
+
+    if (buy || sell) {
+      const subscribed = await priceAlerts.ensureSubscribed(cloudSync.user)
+      if (!subscribed) return false
+    }
+    const ok = await priceAlerts.setAlert(cloudSync.user, { symbol, buy, sell, range })
+    if (!ok) return false
+
+    setAlerts((prev) => {
+      const nextAlerts = { ...prev }
+      if (!buy && !sell) delete nextAlerts[symbol]
+      else nextAlerts[symbol] = { buy, sell, range }
+      return nextAlerts
+    })
+    return true
   }
 
   // Renames a tag on every symbol that has it — a typo'd tag otherwise has
@@ -744,6 +798,8 @@ function Dashboard() {
               onOwnedClick={() => jumpToSymbol(symbol, 'wallet')}
               highlighted={symbol === highlightSymbol}
               marketOpen={marketStatus.open}
+              alertConfig={alerts[symbol]}
+              onToggleAlert={cloudSync.user ? handleToggleAlert : undefined}
             />
             </ErrorBoundary>
           ))}

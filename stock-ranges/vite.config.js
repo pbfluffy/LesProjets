@@ -9,20 +9,15 @@ export default defineConfig({
       registerType: 'prompt',
       manifest: false,
       injectRegister: false,
-      workbox: {
+      // Switched from generateSW to injectManifest so src/sw.js can host a
+      // custom `push` listener — the auto-generated service worker had no
+      // hook point for that. Precaching + the one runtime-caching rule the
+      // old config had are recreated by hand in src/sw.js.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: ({ request }) => request.mode === 'navigate',
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'stock-ranges-pages',
-              expiration: { maxEntries: 10, maxAgeSeconds: 7 * 24 * 60 * 60 },
-            },
-          },
-        ],
-        cleanupOutdatedCaches: true,
-        clientsClaim: true,
       },
       devOptions: { enabled: false },
     }),

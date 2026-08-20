@@ -10,8 +10,12 @@ import { useCloudSyncCore } from '../../../shared/useCloudSyncCore.js'
 // /userStockRanges/<uid>: watchlist + lookback range + display currency +
 // per-ticker tags + per-ticker user-added "known for" brand names + wallet
 // holdings (qty/avg cost — dividend income is computed from the ticker's
-// actual paid-dividend history, not synced state). Theme/language/
-// tag-filter-selection stay local-only, same as every sibling app.
+// actual paid-dividend history, not synced state) + price-alert toggle
+// state (which symbol/direction is on — the push subscription + the
+// Worker's own copy used for the actual cron check live in Cloudflare KV
+// instead, not here; this is purely so the on-screen toggles restore
+// across the user's own devices). Theme/language/tag-filter-selection
+// stay local-only, same as every sibling app.
 const COLL = 'userStockRanges'
 const DEFAULT_WATCHLIST = ['AAPL', 'MSFT']
 const DEFAULT_RANGE = '1y'
@@ -19,6 +23,7 @@ const DEFAULT_CURRENCY = 'USD'
 const DEFAULT_TAGS = {}
 const DEFAULT_HOLDINGS = {}
 const DEFAULT_KNOWN_FOR = {}
+const DEFAULT_ALERTS = {}
 
 // Deep, deterministic stringification — sorts keys recursively so identical
 // data with different field order produces the same fingerprint.
@@ -43,7 +48,7 @@ function stripDoc(d) {
   if (!d) return null
   return {
     watchlist: d.watchlist, range: d.range, currency: d.currency, tags: d.tags || {},
-    holdings: d.holdings || {}, knownFor: d.knownFor || {},
+    holdings: d.holdings || {}, knownFor: d.knownFor || {}, alerts: d.alerts || {},
   }
 }
 
@@ -53,12 +58,12 @@ function stripDoc(d) {
 function hasData(local) {
   return fingerprint(local) !== fingerprint({
     watchlist: DEFAULT_WATCHLIST, range: DEFAULT_RANGE, currency: DEFAULT_CURRENCY, tags: DEFAULT_TAGS,
-    holdings: DEFAULT_HOLDINGS, knownFor: DEFAULT_KNOWN_FOR,
+    holdings: DEFAULT_HOLDINGS, knownFor: DEFAULT_KNOWN_FOR, alerts: DEFAULT_ALERTS,
   })
 }
 
-export function useCloudSync({ watchlist, range, currency, tags, holdings, knownFor, applyRemote }) {
-  const localData = { watchlist, range, currency, tags, holdings, knownFor }
+export function useCloudSync({ watchlist, range, currency, tags, holdings, knownFor, alerts, applyRemote }) {
+  const localData = { watchlist, range, currency, tags, holdings, knownFor, alerts }
   const r = useCloudSyncCore({
     auth, db, onAuthStateChanged, doc, setDoc, serverTimestamp, onSnapshot,
     collection: COLL,
@@ -68,7 +73,7 @@ export function useCloudSync({ watchlist, range, currency, tags, holdings, known
     hasData,
     serialize: (d) => ({
       watchlist: d.watchlist, range: d.range, currency: d.currency, tags: d.tags || {},
-      holdings: d.holdings || {}, knownFor: d.knownFor || {},
+      holdings: d.holdings || {}, knownFor: d.knownFor || {}, alerts: d.alerts || {},
     }),
     readRemote: (snap) => (snap.exists() ? stripDoc(snap.data()) : null),
     // Keeps the full doc (incl. lastModified) for the conflict modal's

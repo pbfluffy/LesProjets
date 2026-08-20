@@ -1,0 +1,57 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0.5px solid var(--color-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-faint);
+  flex-shrink: 0;
+}
+.toggle:hover { background: var(--color-surface-alt); color: var(--color-text-muted); }
+.toggle:disabled { opacity: 0.5; cursor: default; }
+
+/* Grows the tappable area to ~34px without growing the visible 18px
+   circle — same technique used on the other small icon buttons. */
+.toggle::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.toggle[data-zone='buy'][data-active='true'] {
+  background: var(--color-green-bg);
+  border-color: var(--color-green);
+  color: var(--color-green);
+}
+.toggle[data-zone='sell'][data-active='true'] {
+  background: var(--color-red-bg);
+  border-color: var(--color-red);
+  color: var(--color-red);
+}
+
+.error {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 180px;
+  font-size: 11px;
+  color: var(--color-red);
+  background: var(--color-surface);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  box-shadow: var(--shadow-card);
+  z-index: 10;
+}

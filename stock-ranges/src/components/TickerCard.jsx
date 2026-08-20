@@ -6,6 +6,7 @@ import { formatPrice, formatQty, dayChange } from '../format.js'
 import BandInfo from './BandInfo.jsx'
 import DecileGauge from './DecileGauge.jsx'
 import KnownFor from './KnownFor.jsx'
+import PriceAlertToggle from './PriceAlertToggle.jsx'
 import TagChips from './TagChips.jsx'
 import TickerLogo from './TickerLogo.jsx'
 import { tagHue } from '../tagColor.js'
@@ -16,7 +17,10 @@ import styles from './TickerCard.module.css'
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
 const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
 
-export default function TickerCard({ symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, customBrands = [], onAddBrand, onRemoveBrand, onRemove, onStatus, refreshKey, ownedQty, onOwnedClick, highlighted, marketOpen }) {
+export default function TickerCard({
+  symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, customBrands = [], onAddBrand, onRemoveBrand,
+  onRemove, onStatus, refreshKey, ownedQty, onOwnedClick, highlighted, marketOpen, alertConfig, onToggleAlert,
+}) {
   const { s, lang } = useLang()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
   const [retryNonce, setRetryNonce] = useState(0)
@@ -146,6 +150,12 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
                 {s.band} {deciles.band}/10 · {label}
               </span>
               <BandInfo />
+              {onToggleAlert && (
+                <PriceAlertToggle
+                  config={alertConfig}
+                  onToggle={(direction, next) => onToggleAlert(symbol, range, direction, next)}
+                />
+              )}
             </div>
             <DecileGauge
               prices={state.data.prices}

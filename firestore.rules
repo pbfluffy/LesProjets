@@ -224,6 +224,13 @@ service cloud.firestore {
                            // bounding the number of keys still bounds the overall blast radius.
                            && request.resource.data.knownFor.size() <= 100))
                    && (!('holdings' in request.resource.data) || request.resource.data.holdings is map)
+                   && (!('alerts' in request.resource.data)
+                       || (request.resource.data.alerts is map
+                           // Toggle-state mirror only (see useCloudSync.js) — the
+                           // Worker's own KV copy is what the cron job actually
+                           // reads, so this just needs the same shape/size bound
+                           // as knownFor above, not deep validation.
+                           && request.resource.data.alerts.size() <= 100))
                    && (!('portfolioHistory' in request.resource.data)
                        || (request.resource.data.portfolioHistory is map
                            && request.resource.data.portfolioHistory.size() <= 400))

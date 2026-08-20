@@ -30,31 +30,34 @@
 //      table just contribute no rows, not an error)
 //   -> 429 { error } if the per-IP import rate limit is exceeded
 //   -> 400 { error } if the upload fails validation
+//
+// POST /alerts (JSON, Authorization: Bearer <Firebase ID token> — the only
+// auth-gated route; every route above stays fully public)
+//   body { type: 'subscribe', subscription: {endpoint, keys, expirationTime} }
+//     -> registers/refreshes one device's push subscription
+//   body { type: 'setAlert', symbol, buy, sell, range }
+//     -> sets (or clears, if both buy/sell are false) that symbol's alert
+//   -> 401 { error } if the token is missing/invalid
+//   -> 400 { error } if the body fails validation
+//
+// scheduled() — Cron Trigger (see wrangler.toml), not reachable via HTTP.
+// Checks every symbol:range pair anyone has an alert on; on a buy/sell
+// zone transition, pushes a notification to whoever asked for it. See
+// scheduled.js.
+
+import { SYMBOL_RE, RANGE_CONFIG } from './constants.js'
+import { getQuote } from './quotes.js'
+import { verifyFirebaseToken } from './auth.js'
+import { upsertSubscription, setAlert } from './alerts.js'
+import { runScheduled } from './scheduled.js'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
-// Allows '=' too — Yahoo's futures/forex symbols use it, e.g. gold's
-// "GC=F" (COMEX futures) or "XAUUSD=X" (spot forex-style quote) — and '^'
-// for indices like "^GSPC" (S&P 500), which autocomplete can surface.
-const SYMBOL_RE = /^[A-Za-z0-9.\-=^]{1,10}$/
 const SEARCH_QUERY_RE = /^[\w .\-&]{1,30}$/
-// '1d'/'7d' need intraday candles (a single day's worth of daily closes is
-// one point, not a range) — Yahoo's `range` enum has '1d' but not '7d', so
-// 7d goes through explicit period1/period2 instead. Everything 3mo+ keeps
-// using daily closes via the plain `range` param, unchanged.
-const RANGE_CONFIG = {
-  '1d': { range: '1d', interval: '5m' },
-  '7d': { days: 7, interval: '30m' },
-  '3mo': { range: '3mo', interval: '1d' },
-  '6mo': { range: '6mo', interval: '1d' },
-  '1y': { range: '1y', interval: '1d' },
-  '2y': { range: '2y', interval: '1d' },
-  '5y': { range: '5y', interval: '1d' },
-}
 const CACHE_TTL_SECONDS = 5 * 60
 
 function json(body, status = 200) {
@@ -222,92 +225,29 @@ async function handleImport(request, env) {
   return json({ rows })
 }
 
-// Fetches + parses one symbol's chart data, or returns null on any failure
-// (network error, 404, no usable price series) so the caller can decide
-// whether to retry with a different symbol spelling.
-async function resolveQuote(symbol, rangeConfig, params) {
-  let upstream
+// Verifies the caller's Firebase ID token, then dispatches on the body's
+// `type` — this is the only auth-gated route the worker has; every GET
+// route stays fully public (they only ever forward public market data).
+async function handleAlerts(request, env) {
+  const uid = await verifyFirebaseToken(request, env)
+  if (!uid) return json({ error: 'unauthorized' }, 401)
+
+  let body
   try {
-    upstream = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?${params}&interval=${rangeConfig.interval}&events=div`,
-      { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; stock-ranges/1.0)' } },
-    )
+    body = await request.json()
   } catch {
-    return null
+    return json({ error: 'invalid body' }, 400)
   }
-  if (!upstream.ok) return null
 
-  const data = await upstream.json().catch(() => null)
-  const result = data?.chart?.result?.[0]
-  const meta = result?.meta
-  const quote = result?.indicators?.quote?.[0]
-  const closes = quote?.close
-  if (!meta || !Array.isArray(closes)) return null
-
-  // ohlc/timestamps are built alongside prices (not filtered
-  // independently) so all three stay index-aligned — a candle without
-  // its own open/high/low falls back to its close rather than creating
-  // a gap.
-  const opens = quote?.open || []
-  const highs = quote?.high || []
-  const lows = quote?.low || []
-  const rawTimestamps = result?.timestamp || []
-  const prices = []
-  const ohlc = []
-  const timestamps = []
-  for (let i = 0; i < closes.length; i++) {
-    const c = closes[i]
-    if (typeof c !== 'number' || !Number.isFinite(c)) continue
-    prices.push(c)
-    ohlc.push({
-      o: typeof opens[i] === 'number' ? opens[i] : c,
-      h: typeof highs[i] === 'number' ? highs[i] : c,
-      l: typeof lows[i] === 'number' ? lows[i] : c,
-      c,
-    })
-    timestamps.push(typeof rawTimestamps[i] === 'number' ? rawTimestamps[i] : null)
+  if (body?.type === 'subscribe') {
+    const ok = await upsertSubscription(env, uid, body.subscription)
+    return ok ? json({ ok: true }) : json({ error: 'invalid subscription' }, 400)
   }
-  if (!prices.length) return null
-
-  // meta.chartPreviousClose is the close *before the whole requested
-  // range* (a year ago for range=1y, last week for period-based 7d),
-  // not yesterday's close — not useful for a day-change indicator.
-  // meta.previousClose (only present for intraday requests like 1d/7d)
-  // is the real yesterday's close, so prefer it when Yahoo provides it.
-  // For the daily-interval ranges (3mo+) it's absent, so fall back to
-  // the prices array's second-to-last entry — the last entry tracks
-  // today's live price during market hours, so the one before it is
-  // the actual most recent prior trading day's close.
-  const previousClose = typeof meta.previousClose === 'number'
-    ? meta.previousClose
-    : (prices.length > 1 ? prices[prices.length - 2] : null)
-
-  // Yahoo returns dividends as an object keyed by unix-second timestamp
-  // (only present when the symbol has paid any within the requested
-  // range) — flatten to an array, oldest first, for the wallet's
-  // income-by-period math.
-  const rawDividends = result?.events?.dividends
-  const dividends = rawDividends
-    ? Object.values(rawDividends)
-        .filter((d) => typeof d?.amount === 'number' && typeof d?.date === 'number')
-        .map((d) => ({ date: d.date, amount: d.amount }))
-        .sort((a, b) => a.date - b.date)
-    : []
-
-  return {
-    symbol: meta.symbol || symbol,
-    name: meta.shortName || meta.longName || meta.symbol || symbol,
-    currency: meta.currency || 'USD',
-    // e.g. EQUITY, ETF, CRYPTOCURRENCY, FUTURE, INDEX, MUTUALFUND — used by
-    // the wallet to group holdings into Common Stock / ETF / Other.
-    instrumentType: meta.instrumentType || null,
-    current: typeof meta.regularMarketPrice === 'number' ? meta.regularMarketPrice : prices[prices.length - 1],
-    previousClose,
-    prices,
-    ohlc,
-    timestamps,
-    dividends,
+  if (body?.type === 'setAlert') {
+    const ok = await setAlert(env, uid, body)
+    return ok ? json({ ok: true }) : json({ error: 'invalid alert' }, 400)
   }
+  return json({ error: 'unknown type' }, 400)
 }
 
 export default {
@@ -315,14 +255,19 @@ export default {
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS_HEADERS })
     }
+
+    const url = new URL(request.url)
+
     if (request.method === 'POST') {
+      if (url.pathname === '/alerts') {
+        return handleAlerts(request, env)
+      }
       return handleImport(request, env)
     }
     if (request.method !== 'GET') {
       return json({ error: 'method not allowed' }, 405)
     }
 
-    const url = new URL(request.url)
     const cache = caches.default
 
     const query = url.searchParams.get('q')
@@ -336,29 +281,21 @@ export default {
     if (!SYMBOL_RE.test(symbol)) {
       return json({ error: 'invalid symbol' }, 400)
     }
-    const rangeConfig = RANGE_CONFIG[range]
-    if (!rangeConfig) {
+    if (!RANGE_CONFIG[range]) {
       return json({ error: 'invalid range' }, 400)
     }
 
-    const cacheKey = new Request(`https://stock-ranges-cache.internal/${symbol}/${range}`)
-    return withCache(cache, cacheKey, ctx, async () => {
-      const params = rangeConfig.days
-        ? `period1=${Math.floor(Date.now() / 1000) - rangeConfig.days * 86400}&period2=${Math.floor(Date.now() / 1000)}`
-        : `range=${rangeConfig.range}`
+    const body = await getQuote(symbol, range, ctx)
+    if (!body) {
+      return json({ error: 'not found' }, 404)
+    }
+    return json(body)
+  },
 
-      let body = await resolveQuote(symbol, rangeConfig, params)
-      // Conventional NYSE-style share-class notation ("BRK.B", "BF.B") uses
-      // a dot; Yahoo's real symbols use a hyphen ("BRK-B", "BF-B"). Retry
-      // once with that substitution instead of erroring on a ticker format
-      // that's the common, printed-on-the-exchange way to write it.
-      if (!body && symbol.includes('.')) {
-        body = await resolveQuote(symbol.replace(/\./g, '-'), rangeConfig, params)
-      }
-      if (!body) {
-        return json({ error: 'not found' }, 404)
-      }
-      return json(body)
-    })
+  // Cloudflare Cron Trigger (see wrangler.toml's [triggers]) — checks
+  // every symbol:range pair anyone has an active alert on and pushes a
+  // notification on a buy/sell zone transition. See scheduled.js.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runScheduled(env, ctx))
   },
 }
