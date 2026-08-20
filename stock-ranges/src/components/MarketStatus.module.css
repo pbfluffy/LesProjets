@@ -1,0 +1,24 @@
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--color-text-faint);
+  margin-top: 4px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-text-faint);
+}
+.status[data-open='true'] .dot {
+  background: var(--color-green);
+  box-shadow: 0 0 0 2px var(--color-green-bg);
+}
+.status[data-open='true'] {
+  color: var(--color-green);
+}

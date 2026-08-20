@@ -6,6 +6,10 @@ export const STRINGS = {
   en: {
     appName: 'Stock Ranges',
     tagline: 'See where each stock sits in its own recent price range.',
+    marketOpenLabel: 'Market open',
+    marketClosedLabel: 'Market closed',
+    marketClosesAt: 'closes',
+    marketOpensAt: 'opens',
     backToHome: 'Back to portfolio',
     addPlaceholder: 'Ticker, e.g. AAPL',
     addBtn: 'Add',
@@ -173,6 +177,10 @@ export const STRINGS = {
   th: {
     appName: 'ช่วงราคาหุ้น',
     tagline: 'ดูว่าราคาหุ้นแต่ละตัวอยู่ตรงไหนในช่วงราคาล่าสุดของมันเอง',
+    marketOpenLabel: 'ตลาดเปิดอยู่',
+    marketClosedLabel: 'ตลาดปิดแล้ว',
+    marketClosesAt: 'ปิด',
+    marketOpensAt: 'เปิด',
     backToHome: 'กลับสู่หน้ารวมแอป',
     addPlaceholder: 'สัญลักษณ์หุ้น เช่น AAPL',
     addBtn: 'เพิ่ม',

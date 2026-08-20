@@ -16,6 +16,7 @@ import WalletView from './components/WalletView.jsx'
 import WalletLocked from './components/WalletLocked.jsx'
 import { MAX_CUSTOM_BRANDS } from './components/KnownFor.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import MarketStatus from './components/MarketStatus.jsx'
 import { generateWatchlistImage } from './shareImage.js'
 import { tagHue } from './tagColor.js'
 import { BRANDS } from './data/brands.js'
@@ -525,6 +526,7 @@ function Dashboard() {
           <div>
             <div className={styles.title}>{s.appName}</div>
             <div className={styles.tagline}>{s.tagline}</div>
+            <MarketStatus now={now} />
           </div>
         </div>
         <div className={styles.headerBtns}>
