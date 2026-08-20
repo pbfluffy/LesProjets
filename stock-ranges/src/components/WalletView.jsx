@@ -34,6 +34,7 @@ export default function WalletView({
   holdings, currency, rates,
   onAddHolding, onRemoveHolding, actionsPortalNode, user, watchlist, refreshKey,
   highlightSymbol, onWatchedClick, tags, onAddTag, onRemoveTag, activeTagFilters,
+  knownFor, onAddBrand, onRemoveBrand,
 }) {
   const { s } = useLang()
   const [quotes, setQuotes] = useState({})
@@ -382,6 +383,9 @@ export default function WalletView({
                   tags={tags[symbol] || []}
                   onAddTag={(tag) => onAddTag(symbol, tag)}
                   onRemoveTag={(tag) => onRemoveTag(symbol, tag)}
+                  customBrands={knownFor[symbol] || []}
+                  onAddBrand={(brand) => onAddBrand(symbol, brand)}
+                  onRemoveBrand={(brand) => onRemoveBrand(symbol, brand)}
                   onEdit={startEdit}
                   onRemove={onRemoveHolding}
                 />

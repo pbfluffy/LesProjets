@@ -160,6 +160,11 @@ export const STRINGS = {
     knownForLabel: 'Known for',
     knownForFundNote: 'A fund holding many companies, not a single brand.',
     knownForNoneNote: 'No widely recognized consumer brand for this stock.',
+    addBrand: 'Add',
+    addBrandPlaceholder: 'Brand name',
+    duplicateBrandError: 'Already added',
+    maxBrandsError: 'Maximum 6 brands per ticker.',
+    removeBrandLabel: 'Remove',
   },
   th: {
     appName: 'ช่วงราคาหุ้น',
@@ -318,6 +323,11 @@ export const STRINGS = {
     knownForLabel: 'รู้จักในชื่อ',
     knownForFundNote: 'เป็นกองทุนที่ถือหลายบริษัท ไม่ใช่แบรนด์เดียว',
     knownForNoneNote: 'หุ้นตัวนี้ไม่มีแบรนด์สินค้าที่คนทั่วไปรู้จัก',
+    addBrand: 'เพิ่ม',
+    addBrandPlaceholder: 'ชื่อแบรนด์',
+    duplicateBrandError: 'เพิ่มไปแล้ว',
+    maxBrandsError: 'ใส่แบรนด์ได้สูงสุด 6 รายการต่อหุ้นหนึ่งตัว',
+    removeBrandLabel: 'ลบ',
   },
 }
 

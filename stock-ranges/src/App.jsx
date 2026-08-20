@@ -14,8 +14,10 @@ import TagManagerModal from './components/TagManagerModal.jsx'
 import UndoToast from './components/UndoToast.jsx'
 import WalletView from './components/WalletView.jsx'
 import WalletLocked from './components/WalletLocked.jsx'
+import { MAX_CUSTOM_BRANDS } from './components/KnownFor.jsx'
 import { generateWatchlistImage } from './shareImage.js'
 import { tagHue } from './tagColor.js'
+import { BRANDS } from './data/brands.js'
 import styles from './App.module.css'
 
 const WATCHLIST_KEY = 'stockranges_watchlist'
@@ -23,6 +25,7 @@ const RANGE_KEY = 'stockranges_range'
 const CURRENCY_KEY = 'stockranges_currency'
 const CHART_TYPE_KEY = 'stockranges_charttype'
 const TAGS_KEY = 'stockranges_tags'
+const KNOWN_FOR_KEY = 'stockranges_knownfor'
 const ACTIVE_TAG_FILTERS_KEY = 'stockranges_active_tag_filters'
 const HOLDINGS_KEY = 'stockranges_holdings'
 const TAB_KEY = 'stockranges_tab'
@@ -72,6 +75,37 @@ function loadActiveTagFilters() {
   }
 }
 
+function loadKnownFor() {
+  try {
+    const raw = localStorage.getItem(KNOWN_FOR_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+// Shared add/remove for the two symbol-keyed lists (tags, custom known-for
+// brands) that otherwise drift into separately-maintained copies of the
+// same shape. `guard`, when given, inspects the array-so-far and returning
+// false skips the add — checked inside the updater (not by the caller)
+// so it's evaluated against the true latest state, not a stale snapshot.
+function addToSymbolList(setState, symbol, value, guard) {
+  setState((prev) => {
+    const current = prev[symbol] || []
+    if (guard && !guard(current)) return prev
+    return { ...prev, [symbol]: [...current, value] }
+  })
+}
+
+function removeFromSymbolList(setState, symbol, value) {
+  setState((prev) => {
+    const current = prev[symbol]
+    if (!current) return prev
+    return { ...prev, [symbol]: current.filter((v) => v !== value) }
+  })
+}
+
 function loadHoldings() {
   try {
     const raw = localStorage.getItem(HOLDINGS_KEY)
@@ -105,6 +139,7 @@ function Dashboard() {
   const [currency, setCurrency] = useState(() => localStorage.getItem(CURRENCY_KEY) || 'USD')
   const [chartType, setChartType] = useState(() => localStorage.getItem(CHART_TYPE_KEY) || 'line')
   const [tags, setTags] = useState(loadTags)
+  const [customKnownFor, setCustomKnownFor] = useState(loadKnownFor)
   const [activeTagFilters, setActiveTagFilters] = useState(loadActiveTagFilters)
   const [holdings, setHoldings] = useState(loadHoldings)
   const [tab, setTab] = useState(() => (localStorage.getItem(TAB_KEY) === 'wallet' ? 'wallet' : 'watchlist'))
@@ -147,6 +182,10 @@ function Dashboard() {
   }, [tags])
 
   useEffect(() => {
+    localStorage.setItem(KNOWN_FOR_KEY, JSON.stringify(customKnownFor))
+  }, [customKnownFor])
+
+  useEffect(() => {
     localStorage.setItem(ACTIVE_TAG_FILTERS_KEY, JSON.stringify([...activeTagFilters]))
   }, [activeTagFilters])
 
@@ -170,13 +209,14 @@ function Dashboard() {
   }, [])
 
   const cloudSync = useCloudSync({
-    watchlist, range, currency, tags, holdings,
+    watchlist, range, currency, tags, holdings, knownFor: customKnownFor,
     applyRemote: (remote) => {
       if (Array.isArray(remote?.watchlist)) setWatchlist(remote.watchlist)
       if (typeof remote?.range === 'string') setRange(remote.range)
       if (typeof remote?.currency === 'string') setCurrency(remote.currency)
       if (remote?.tags && typeof remote.tags === 'object' && !Array.isArray(remote.tags)) setTags(remote.tags)
       if (remote?.holdings && typeof remote.holdings === 'object' && !Array.isArray(remote.holdings)) setHoldings(remote.holdings)
+      if (remote?.knownFor && typeof remote.knownFor === 'object' && !Array.isArray(remote.knownFor)) setCustomKnownFor(remote.knownFor)
     },
   })
 
@@ -269,16 +309,31 @@ function Dashboard() {
   }, [undoInfo])
 
   function addTag(symbol, tag) {
-    setTags((prev) => ({ ...prev, [symbol]: [...(prev[symbol] || []), tag] }))
+    addToSymbolList(setTags, symbol, tag)
   }
 
   function removeTag(symbol, tag) {
-    setTags((prev) => {
-      const current = prev[symbol]
-      if (!current) return prev
-      const next = current.filter((t) => t !== tag)
-      return { ...prev, [symbol]: next }
+    removeFromSymbolList(setTags, symbol, tag)
+  }
+
+  // Cap and duplicate checks live here (not just in the input's own
+  // client-side check) because they run inside the setState updater,
+  // which always sees the true latest state — the same symbol can be
+  // showing simultaneously in the watchlist and the wallet, each with its
+  // own add-brand input and its own possibly-stale snapshot of what's
+  // already there, so only a check made against `prev` at commit time is
+  // race-proof against two of those inputs being used back to back.
+  function addCustomBrand(symbol, brand) {
+    addToSymbolList(setCustomKnownFor, symbol, brand, (current) => {
+      if (current.length >= MAX_CUSTOM_BRANDS) return false
+      const lower = brand.toLowerCase()
+      const curatedNames = (BRANDS[symbol] || []).map((b) => b.name.toLowerCase())
+      return !curatedNames.includes(lower) && !current.some((b) => b.toLowerCase() === lower)
     })
+  }
+
+  function removeCustomBrand(symbol, brand) {
+    removeFromSymbolList(setCustomKnownFor, symbol, brand)
   }
 
   // Renames a tag on every symbol that has it — a typo'd tag otherwise has
@@ -588,6 +643,9 @@ function Dashboard() {
             onAddTag={addTag}
             onRemoveTag={removeTag}
             activeTagFilters={activeTagFilters}
+            knownFor={customKnownFor}
+            onAddBrand={addCustomBrand}
+            onRemoveBrand={removeCustomBrand}
           />
         ) : (
           <WalletLocked />
@@ -666,6 +724,9 @@ function Dashboard() {
               tags={tags[symbol] || []}
               onAddTag={(tag) => addTag(symbol, tag)}
               onRemoveTag={(tag) => removeTag(symbol, tag)}
+              customBrands={customKnownFor[symbol] || []}
+              onAddBrand={(brand) => addCustomBrand(symbol, brand)}
+              onRemoveBrand={(brand) => removeCustomBrand(symbol, brand)}
               onRemove={removeTicker}
               onStatus={handleStatus}
               refreshKey={refreshKey}

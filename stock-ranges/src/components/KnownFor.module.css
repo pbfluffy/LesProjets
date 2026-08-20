@@ -8,6 +8,10 @@
   border-radius: var(--radius-md);
   padding: 8px 10px;
   margin: 4px 0 12px;
+  /* This box's own background is already --color-surface-alt, so the
+     shared ChipAdder's default addBtn background (also surface-alt)
+     would have no contrast here — override it to plain surface. */
+  --adder-bg: var(--color-surface);
 }
 .knownFor[data-empty='true'] {
   opacity: 0.8;
@@ -82,3 +86,21 @@
   justify-content: center;
   flex-shrink: 0;
 }
+
+.chipRemove {
+  background: transparent;
+  border: none;
+  color: currentColor;
+  opacity: 0.6;
+  font-size: 12px;
+  line-height: 1;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: -2px;
+}
+.chipRemove:hover { background: hsl(var(--brand-hue) 45% 78% / 0.4); opacity: 1; }

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
 import { useLang } from '../LangContext.jsx'
 import { tagHue } from '../tagColor.js'
+import ChipAdder from './ChipAdder.jsx'
 import styles from './TagChips.module.css'
 
 const MAX_TAGS_PER_TICKER = 8
@@ -15,36 +15,6 @@ export const TAG_DATALIST_ID = 'stockranges-tag-options'
 // risk) so the native browser affordance is enough.
 export default function TagChips({ tags, onAdd, onRemove }) {
   const { s } = useLang()
-  const [adding, setAdding] = useState(false)
-  const [value, setValue] = useState('')
-  const [error, setError] = useState('')
-  const inputRef = useRef(null)
-
-  useEffect(() => {
-    if (adding) inputRef.current?.focus()
-  }, [adding])
-
-  function commit() {
-    const tag = value.trim()
-    if (!tag) {
-      setValue('')
-      setAdding(false)
-      return
-    }
-    if (tags.some((t) => t.toLowerCase() === tag.toLowerCase())) {
-      setError(s.duplicateTagError)
-      return
-    }
-    if (tags.length >= MAX_TAGS_PER_TICKER) {
-      setError(s.maxTagsError)
-      return
-    }
-    setValue('')
-    setAdding(false)
-    setError('')
-    onAdd(tag)
-  }
-
   return (
     <div className={styles.row}>
       {tags.map((tag) => (
@@ -60,30 +30,17 @@ export default function TagChips({ tags, onAdd, onRemove }) {
           </button>
         </span>
       ))}
-      {adding ? (
-        <>
-          <input
-            ref={inputRef}
-            className={styles.input}
-            list={TAG_DATALIST_ID}
-            value={value}
-            onChange={(e) => { setValue(e.target.value); setError('') }}
-            onBlur={commit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') { e.preventDefault(); commit() }
-              else if (e.key === 'Escape') { setValue(''); setAdding(false); setError('') }
-            }}
-            placeholder={s.addTagPlaceholder}
-            maxLength={MAX_TAG_LENGTH}
-            aria-invalid={!!error}
-          />
-          {error && <span className={styles.error}>{error}</span>}
-        </>
-      ) : (
-        tags.length < MAX_TAGS_PER_TICKER && (
-          <button className={styles.addBtn} onClick={() => setAdding(true)}>+ {s.addTag}</button>
-        )
-      )}
+      <ChipAdder
+        existingValues={tags}
+        onAdd={onAdd}
+        addLabel={s.addTag}
+        placeholder={s.addTagPlaceholder}
+        maxLength={MAX_TAG_LENGTH}
+        duplicateError={s.duplicateTagError}
+        maxCountError={s.maxTagsError}
+        atMax={tags.length >= MAX_TAGS_PER_TICKER}
+        datalistId={TAG_DATALIST_ID}
+      />
     </div>
   )
 }

@@ -15,7 +15,7 @@ import styles from './TickerCard.module.css'
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
 const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
 
-export default function TickerCard({ symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, onRemove, onStatus, refreshKey, ownedQty, onOwnedClick, highlighted }) {
+export default function TickerCard({ symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, customBrands = [], onAddBrand, onRemoveBrand, onRemove, onStatus, refreshKey, ownedQty, onOwnedClick, highlighted }) {
   const { s, lang } = useLang()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
   const [retryNonce, setRetryNonce] = useState(0)
@@ -106,7 +106,13 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
       </div>
 
       <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} />
-      <KnownFor symbol={symbol} instrumentType={state.data?.instrumentType} />
+      <KnownFor
+        symbol={symbol}
+        instrumentType={state.data?.instrumentType}
+        customBrands={customBrands}
+        onAddBrand={onAddBrand}
+        onRemoveBrand={onRemoveBrand}
+      />
 
       {state.status === 'loading' && (
         <div className={styles.body}>

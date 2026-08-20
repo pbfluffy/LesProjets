@@ -216,6 +216,13 @@ service cloud.firestore {
                    && request.resource.data.range is string
                    && request.resource.data.currency is string
                    && (!('tags' in request.resource.data) || request.resource.data.tags is map)
+                   && (!('knownFor' in request.resource.data)
+                       || (request.resource.data.knownFor is map
+                           // Only watchlisted/held symbols ever get an entry here, so this
+                           // mirrors watchlist's own 100-symbol cap above — rules can't walk
+                           // into each symbol's array to cap its length/entry size too, but
+                           // bounding the number of keys still bounds the overall blast radius.
+                           && request.resource.data.knownFor.size() <= 100))
                    && (!('holdings' in request.resource.data) || request.resource.data.holdings is map)
                    && (!('portfolioHistory' in request.resource.data)
                        || (request.resource.data.portfolioHistory is map

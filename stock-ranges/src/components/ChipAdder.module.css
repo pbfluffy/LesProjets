@@ -1,0 +1,29 @@
+.addBtn {
+  background: var(--adder-bg, var(--color-surface-alt));
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  padding: 2px 10px;
+}
+.addBtn:hover { color: var(--color-text); background: var(--color-border); }
+
+.input {
+  width: 100px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 0.5px solid var(--color-accent);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.input[aria-invalid='true'] { border-color: var(--color-red); }
+
+.error {
+  font-size: 11px;
+  color: var(--color-red);
+  flex-basis: 100%;
+}
