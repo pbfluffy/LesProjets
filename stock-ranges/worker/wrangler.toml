@@ -1,11 +1,6 @@
 name = "stock-ranges-quotes"
 main = "src/index.js"
 compatibility_date = "2026-07-15"
-# @block65/webcrypto-web-push has a node:crypto fallback path (isomorphic
-# crypto detection) that needs this even though the actual VAPID/push
-# code it runs is pure Web Crypto — without it, wrangler warns the build
-# may throw at runtime.
-compatibility_flags = ["nodejs_compat"]
 
 # The app's own JS calls this worker directly via
 # stock-ranges-quotes.pbfluffygaming.workers.dev — no zone route needed,
@@ -23,22 +18,14 @@ binding = "IMPORT_RATE_LIMITER"
 id = "c41511c9e6104ee8853565194dfec708"
 
 # Price-alerts: per-user push subscriptions + alert config, plus a
-# transition-detection cache keyed by symbol:range. NOT YET CREATED — id
-# below is a placeholder; run `wrangler kv namespace create ALERTS` and
-# paste the real id here before this can deploy.
+# transition-detection cache keyed by symbol:range.
 [[kv_namespaces]]
 binding = "ALERTS"
-id = "REPLACE_WITH_REAL_ALERTS_KV_NAMESPACE_ID"
+id = "3a005aaf9deb41e48856476250ecf3f2"
 
-# Cron Trigger for price-alert checks. Cron syntax can't express exact
-# NYSE hours across a DST shift, so this window is deliberately loose
-# (covers both EST and EDT) — getMarketStatus() inside scheduled() does
-# the precise gating, this just bounds how often the Worker wakes up at
-# all. NOTE: Cron Triggers get only 10ms CPU on the Workers Free plan —
-# this account needs to be on Workers Paid for the handler to run to
-# completion.
-[triggers]
-crons = ["*/15 9-21 * * 1-5"]
+# No [triggers]/Cron Trigger here — the price-alert check runs as a
+# GitHub Actions scheduled workflow instead (worker/scripts/check-alerts.mjs),
+# to stay on the free tier (Workers Free caps Cron Trigger CPU at 10ms).
 
 [vars]
 # Public by design — already embedded in the client bundle's Firebase
@@ -47,6 +34,6 @@ crons = ["*/15 9-21 * * 1-5"]
 FIREBASE_PROJECT_ID = "pumgoda"
 # VAPID public key is not secret (it's also shipped to the client as
 # VITE_PUSH_VAPID_PUBLIC_KEY so the browser can pass it to
-# pushManager.subscribe()) — only the private key needs `wrangler secret
-# put VAPID_PRIVATE_KEY`. NOT YET GENERATED — placeholder below.
-VAPID_PUBLIC_KEY = "REPLACE_WITH_REAL_VAPID_PUBLIC_KEY"
+# pushManager.subscribe()) — private key is stored via `wrangler secret
+# put VAPID_PRIVATE_KEY`, not here.
+VAPID_PUBLIC_KEY = "BIMb5dO11tY3FjhLmRWXGWxAxwCTUTgfzTHYwDzxTbkvBTWfoOttCSOC0-ikoh-eJmvflWugbzPQtrLlI-aqtUs"

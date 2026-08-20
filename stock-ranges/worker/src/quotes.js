@@ -1,9 +1,7 @@
-// Quote fetching + the shared edge cache, split out from index.js so both
-// the GET request handler and the cron-triggered scheduled handler
-// (scheduled.js) can use the exact same cache-aware path without either
-// importing from the other — index.js imports scheduled.js (to wire up
-// the `scheduled` export), so scheduled.js importing back from index.js
-// would be a circular import.
+// Quote fetching + the shared edge cache used by the GET request handler.
+// worker/scripts/check-alerts.mjs (the price-alert cron, run via GitHub
+// Actions — see wrangler.toml) has its own copy of the fetch logic minus
+// the Workers-only caches.default edge cache, since it isn't a Worker.
 import { RANGE_CONFIG } from './constants.js'
 
 const CACHE_TTL_SECONDS = 5 * 60

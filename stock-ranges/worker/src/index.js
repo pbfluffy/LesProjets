@@ -40,16 +40,19 @@
 //   -> 401 { error } if the token is missing/invalid
 //   -> 400 { error } if the body fails validation
 //
-// scheduled() — Cron Trigger (see wrangler.toml), not reachable via HTTP.
-// Checks every symbol:range pair anyone has an alert on; on a buy/sell
-// zone transition, pushes a notification to whoever asked for it. See
-// scheduled.js.
+// The actual buy/sell-zone check (and push send) does NOT run in this
+// Worker — Workers Free caps Cron Trigger CPU at 10ms, not enough for N
+// quote fetches + decile math + push crypto per tick, and Paid is $5/mo.
+// Instead a GitHub Actions scheduled workflow runs
+// worker/scripts/check-alerts.mjs (plain Node, no CPU cap, already-free
+// CI minutes), which talks to the ALERTS KV namespace via Cloudflare's
+// REST API rather than a Workers binding. This Worker only ever reads
+// alerts:{uid} entries it wrote itself, via the route above.
 
 import { SYMBOL_RE, RANGE_CONFIG } from './constants.js'
 import { getQuote } from './quotes.js'
 import { verifyFirebaseToken } from './auth.js'
 import { upsertSubscription, setAlert } from './alerts.js'
-import { runScheduled } from './scheduled.js'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -290,12 +293,5 @@ export default {
       return json({ error: 'not found' }, 404)
     }
     return json(body)
-  },
-
-  // Cloudflare Cron Trigger (see wrangler.toml's [triggers]) — checks
-  // every symbol:range pair anyone has an active alert on and pushes a
-  // notification on a buy/sell zone transition. See scheduled.js.
-  async scheduled(event, env, ctx) {
-    ctx.waitUntil(runScheduled(env, ctx))
   },
 }

@@ -1,0 +1,38 @@
+name: Price alerts check
+
+# Stands in for a Cloudflare Cron Trigger, which would need the Workers
+# Paid plan (Free caps Cron Trigger CPU at 10ms — not enough for this
+# job). Plain GitHub Actions has no such cap and this repo already uses
+# free scheduled-workflow minutes elsewhere, so the check runs here
+# instead — see stock-ranges/worker/scripts/check-alerts.mjs.
+#
+# Cron syntax can't express exact NYSE hours across a DST shift, so this
+# window is deliberately loose (covers both EST and EDT) — the script's
+# own getMarketStatus() check does the precise gating and no-ops outside
+# real market hours.
+on:
+  schedule:
+    - cron: '*/15 9-21 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install worker dependencies
+        working-directory: stock-ranges/worker
+        run: npm install
+
+      - name: Check alerts
+        working-directory: stock-ranges/worker
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VITE_PUSH_VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+        run: node scripts/check-alerts.mjs
