@@ -25,6 +25,7 @@ const CACHE_TTL_MS = 5 * 60 * 1000
 export const QUOTE_ERROR_LABEL_KEY = {
   NOT_FOUND: 'quoteErrorNotFound',
   NETWORK: 'quoteErrorNetwork',
+  OFFLINE: 'quoteErrorOffline',
   SERVICE: 'quoteErrorService',
   CONFIG: 'quoteErrorConfig',
 }
@@ -82,6 +83,14 @@ export async function fetchQuote(symbol, range, { bypassCache = false } = {}) {
   try {
     res = await fetch(`${WORKER_URL}?symbol=${encodeURIComponent(symbol)}&range=${encodeURIComponent(range)}`)
   } catch {
+    // navigator.onLine is a coarse signal (reflects the OS network adapter,
+    // not real internet reachability) but it's the only client-side check
+    // available, and good enough to tell "you're offline" apart from "the
+    // quote service itself is unreachable" — different problems, different
+    // fixes, so worth not lumping into one generic message.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      throw codedError('OFFLINE', 'You appear to be offline')
+    }
     throw codedError('NETWORK', 'Network error — could not reach the quote service')
   }
 

@@ -150,9 +150,15 @@
   color: var(--color-text-faint);
 }
 
+.badgeRow {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px;
+}
+
 .badge {
   display: inline-flex;
-  align-self: flex-start;
   align-items: center;
   gap: 6px;
   font-size: 11px;

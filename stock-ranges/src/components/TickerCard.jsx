@@ -3,6 +3,7 @@ import { fetchQuote, QUOTE_ERROR_LABEL_KEY } from '../stockApi.js'
 import { computeDeciles } from '../deciles.js'
 import { convert } from '../fx.js'
 import { formatPrice, formatQty, dayChange } from '../format.js'
+import BandInfo from './BandInfo.jsx'
 import DecileGauge from './DecileGauge.jsx'
 import KnownFor from './KnownFor.jsx'
 import TagChips from './TagChips.jsx'
@@ -140,9 +141,12 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
         const fxOk = convertedLow !== null && convertedHigh !== null
         return (
           <div className={styles.body}>
-            <span className={styles.badge} data-zone={zone}>
-              {s.band} {deciles.band}/10 · {label}
-            </span>
+            <div className={styles.badgeRow}>
+              <span className={styles.badge} data-zone={zone}>
+                {s.band} {deciles.band}/10 · {label}
+              </span>
+              <BandInfo />
+            </div>
             <DecileGauge
               prices={state.data.prices}
               ohlc={state.data.ohlc}
