@@ -90,6 +90,15 @@
   gap: 2px;
 }
 
+.lastCloseLabel {
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-faint);
+}
+
 .price {
   font-size: 17px;
   font-weight: 700;

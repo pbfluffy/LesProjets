@@ -15,7 +15,7 @@ import styles from './TickerCard.module.css'
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
 const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
 
-export default function TickerCard({ symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, customBrands = [], onAddBrand, onRemoveBrand, onRemove, onStatus, refreshKey, ownedQty, onOwnedClick, highlighted }) {
+export default function TickerCard({ symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, customBrands = [], onAddBrand, onRemoveBrand, onRemove, onStatus, refreshKey, ownedQty, onOwnedClick, highlighted, marketOpen }) {
   const { s, lang } = useLang()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
   const [retryNonce, setRetryNonce] = useState(0)
@@ -90,6 +90,7 @@ export default function TickerCard({ symbol, range, currency, rates, chartType, 
             const code = shown === null ? state.data.currency : currency
             return (
               <div className={styles.priceBlock}>
+                {marketOpen === false && <div className={styles.lastCloseLabel}>{s.lastCloseLabel}</div>}
                 <div className={styles.price}>{formatPrice(shown === null ? state.data.current : shown, code)}</div>
                 {change && (
                   <div className={styles.change} data-direction={change.direction}>

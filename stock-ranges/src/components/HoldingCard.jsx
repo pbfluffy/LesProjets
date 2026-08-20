@@ -14,7 +14,7 @@ import styles from './HoldingCard.module.css'
 export default function HoldingCard({
   symbol, holding, name, currentPrice, currentCurrency, instrumentType, dividendEvents, loading, quoteError, displayCurrency, rates,
   onEdit, onRemove, masked, watched, onWatchedClick, highlighted, tags = [], onAddTag, onRemoveTag,
-  customBrands = [], onAddBrand, onRemoveBrand,
+  customBrands = [], onAddBrand, onRemoveBrand, marketOpen,
 }) {
   const { s } = useLang()
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -93,7 +93,7 @@ export default function HoldingCard({
         <div className={styles.fxNote}>{s[QUOTE_ERROR_LABEL_KEY[quoteError]] || quoteError}</div>
       ) : fxOk ? (
         <div className={styles.statsRow}>
-          <div className={styles.stat}><span>{s.currentPriceLabel}</span><strong>{formatPrice(convertedCurrent, displayCurrency)}</strong></div>
+          <div className={styles.stat}><span>{marketOpen === false ? s.lastCloseLabel : s.currentPriceLabel}</span><strong>{formatPrice(convertedCurrent, displayCurrency)}</strong></div>
           <div className={styles.stat}><span>{s.summaryCostBasis}</span><strong>{mp(pl.costBasis, displayCurrency)}</strong></div>
           <div className={styles.stat}><span>{s.summaryMarketValue}</span><strong>{mp(pl.marketValue, displayCurrency)}</strong></div>
         </div>

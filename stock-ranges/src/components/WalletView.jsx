@@ -35,7 +35,7 @@ export default function WalletView({
   holdings, currency, rates,
   onAddHolding, onRemoveHolding, actionsPortalNode, user, watchlist, refreshKey,
   highlightSymbol, onWatchedClick, tags, onAddTag, onRemoveTag, activeTagFilters,
-  knownFor, onAddBrand, onRemoveBrand,
+  knownFor, onAddBrand, onRemoveBrand, marketOpen,
 }) {
   const { s } = useLang()
   const [quotes, setQuotes] = useState({})
@@ -389,6 +389,7 @@ export default function WalletView({
                   onRemoveBrand={(brand) => onRemoveBrand(symbol, brand)}
                   onEdit={startEdit}
                   onRemove={onRemoveHolding}
+                  marketOpen={marketOpen}
                 />
                 </ErrorBoundary>
               ))}

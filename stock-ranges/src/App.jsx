@@ -20,6 +20,7 @@ import MarketStatus from './components/MarketStatus.jsx'
 import { generateWatchlistImage } from './shareImage.js'
 import { tagHue } from './tagColor.js'
 import { BRANDS } from './data/brands.js'
+import { getMarketStatus } from './marketHours.js'
 import styles from './App.module.css'
 
 const WATCHLIST_KEY = 'stockranges_watchlist'
@@ -518,6 +519,11 @@ function Dashboard() {
   }, [signals])
   const summaryTotal = summaryCounts.buy + summaryCounts.hold + summaryCounts.sell
 
+  // Computed once per minute and shared by the header's MarketStatus
+  // display and every card's "last close" labeling, instead of each
+  // recomputing its own copy of the same date arithmetic.
+  const marketStatus = useMemo(() => getMarketStatus(new Date(now)), [Math.floor(now / 60000)]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -526,7 +532,7 @@ function Dashboard() {
           <div>
             <div className={styles.title}>{s.appName}</div>
             <div className={styles.tagline}>{s.tagline}</div>
-            <MarketStatus now={now} />
+            <MarketStatus status={marketStatus} now={now} />
           </div>
         </div>
         <div className={styles.headerBtns}>
@@ -649,6 +655,7 @@ function Dashboard() {
             knownFor={customKnownFor}
             onAddBrand={addCustomBrand}
             onRemoveBrand={removeCustomBrand}
+            marketOpen={marketStatus.open}
           />
         ) : (
           <WalletLocked />
@@ -736,6 +743,7 @@ function Dashboard() {
               ownedQty={holdings[symbol]?.qty ?? null}
               onOwnedClick={() => jumpToSymbol(symbol, 'wallet')}
               highlighted={symbol === highlightSymbol}
+              marketOpen={marketStatus.open}
             />
             </ErrorBoundary>
           ))}

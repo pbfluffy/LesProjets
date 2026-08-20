@@ -1,6 +1,4 @@
-import { useMemo } from 'react'
 import { useLang } from '../LangContext.jsx'
-import { getMarketStatus } from '../marketHours.js'
 import styles from './MarketStatus.module.css'
 
 // Formats a Date in the viewer's own local time (not ET — most of this
@@ -17,17 +15,18 @@ function formatLocal(date, now, lang) {
   })
 }
 
-// Recomputed on the same 30s tick App.jsx already runs for "updated Xm
-// ago" — cheap (no network, just date arithmetic), so no extra timer
-// needed. `now` is a timestamp (ms) so the memo only redoes the work once
-// a minute actually changes, not on every unrelated re-render.
-export default function MarketStatus({ now }) {
+// `status` comes from App.jsx, which computes getMarketStatus() once and
+// shares it with both this display and the watchlist/wallet cards' "last
+// close" labeling — one source of truth instead of every consumer
+// recomputing its own. `now` is the same timestamp (ms) App.jsx already
+// ticks every 30s for "updated Xm ago".
+export default function MarketStatus({ status, now }) {
   const { s, lang } = useLang()
-  const status = useMemo(() => getMarketStatus(new Date(now)), [Math.floor(now / 60000)]) // eslint-disable-line react-hooks/exhaustive-deps
+  const nowDate = new Date(now)
 
   const label = status.open
-    ? `${s.marketOpenLabel} · ${s.marketClosesAt} ${formatLocal(status.closesAt, new Date(now), lang)}`
-    : `${s.marketClosedLabel} · ${s.marketOpensAt} ${formatLocal(status.nextOpen, new Date(now), lang)}`
+    ? `${s.marketOpenLabel} · ${s.marketClosesAt} ${formatLocal(status.closesAt, nowDate, lang)}`
+    : `${s.marketClosedLabel} · ${s.marketOpensAt} ${formatLocal(status.nextOpen, nowDate, lang)}`
 
   return (
     <div className={styles.status} data-open={status.open}>
