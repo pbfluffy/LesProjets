@@ -165,6 +165,10 @@ export const STRINGS = {
     duplicateBrandError: 'Already added',
     maxBrandsError: 'Maximum 6 brands per ticker.',
     removeBrandLabel: 'Remove',
+    errorBoundaryTitle: 'Something went wrong',
+    errorBoundaryBody: 'This page hit an unexpected error. Reloading usually fixes it.',
+    errorBoundaryCardMessage: 'Couldn’t display this ticker.',
+    reloadPage: 'Reload',
   },
   th: {
     appName: 'ช่วงราคาหุ้น',
@@ -328,6 +332,10 @@ export const STRINGS = {
     duplicateBrandError: 'เพิ่มไปแล้ว',
     maxBrandsError: 'ใส่แบรนด์ได้สูงสุด 6 รายการต่อหุ้นหนึ่งตัว',
     removeBrandLabel: 'ลบ',
+    errorBoundaryTitle: 'เกิดข้อผิดพลาดที่ไม่คาดคิด',
+    errorBoundaryBody: 'หน้านี้พบข้อผิดพลาดที่ไม่คาดคิด การโหลดหน้าใหม่มักจะช่วยแก้ปัญหาได้',
+    errorBoundaryCardMessage: 'ไม่สามารถแสดงหุ้นตัวนี้ได้',
+    reloadPage: 'โหลดหน้าใหม่',
   },
 }
 

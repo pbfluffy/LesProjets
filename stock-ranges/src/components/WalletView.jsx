@@ -9,6 +9,7 @@ import { generateSummaryImage } from '../shareImage.js'
 import { loadPortfolioHistory, recordPortfolioSnapshot } from '../portfolioHistory.js'
 import { usePortfolioHistorySync } from '../hooks/usePortfolioHistorySync.js'
 import Icon from './Icon.jsx'
+import ErrorBoundary from './ErrorBoundary.jsx'
 import AddHoldingForm from './AddHoldingForm.jsx'
 import SearchBox from './SearchBox.jsx'
 import HoldingCard from './HoldingCard.jsx'
@@ -363,8 +364,8 @@ export default function WalletView({
             <div className={styles.groupHeader}>{s[GROUP_LABEL_KEY[group.key]]}</div>
             <div className={styles.groupCards}>
               {group.symbols.map((symbol) => (
+                <ErrorBoundary key={symbol} compact label={symbol}>
                 <HoldingCard
-                  key={symbol}
                   symbol={symbol}
                   holding={holdings[symbol]}
                   name={quotes[symbol]?.name ?? null}
@@ -389,6 +390,7 @@ export default function WalletView({
                   onEdit={startEdit}
                   onRemove={onRemoveHolding}
                 />
+                </ErrorBoundary>
               ))}
             </div>
           </div>

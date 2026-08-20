@@ -15,6 +15,7 @@ import UndoToast from './components/UndoToast.jsx'
 import WalletView from './components/WalletView.jsx'
 import WalletLocked from './components/WalletLocked.jsx'
 import { MAX_CUSTOM_BRANDS } from './components/KnownFor.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { generateWatchlistImage } from './shareImage.js'
 import { tagHue } from './tagColor.js'
 import { BRANDS } from './data/brands.js'
@@ -714,8 +715,8 @@ function Dashboard() {
       ) : (
         <div className={styles.list}>
           {filteredWatchlist.map((symbol) => (
+            <ErrorBoundary key={symbol} compact label={symbol}>
             <TickerCard
-              key={symbol}
               symbol={symbol}
               range={range}
               currency={currency}
@@ -734,6 +735,7 @@ function Dashboard() {
               onOwnedClick={() => jumpToSymbol(symbol, 'wallet')}
               highlighted={symbol === highlightSymbol}
             />
+            </ErrorBoundary>
           ))}
         </div>
       )}
