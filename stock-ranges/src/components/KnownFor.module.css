@@ -13,8 +13,15 @@
      would have no contrast here — override it to plain surface. */
   --adder-bg: var(--color-surface);
 }
+/* The bordered/filled box reads fine when it holds real brand chips, but
+   on a card with nothing to show it's just a caption explaining the gap —
+   giving it the same boxed weight as populated cards makes a long
+   watchlist read as more cluttered than it is, so the empty state drops
+   the border/background and shrinks down to an inline note instead. */
 .knownFor[data-empty='true'] {
-  opacity: 0.8;
+  background: transparent;
+  border-color: transparent;
+  padding: 0 0 4px;
 }
 
 .label {

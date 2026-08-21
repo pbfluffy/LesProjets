@@ -59,6 +59,13 @@
   .headerBtns {
     justify-content: space-between;
   }
+  /* Static onboarding copy — not worth the vertical space it costs a
+     returning user on a small screen, where every row before the
+     watchlist itself pushes real content further down. Still shown on
+     desktop, where there's room to spare. */
+  .tagline {
+    display: none;
+  }
 }
 
 .toolGroup {
