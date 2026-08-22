@@ -79,7 +79,9 @@ async function kvDelete(key) {
 // ---- quote fetch (mirrors worker/src/quotes.js, minus the Workers-only
 // edge cache — this runs every ~15min at most, no need for it here) ----
 
-const RANGE_CONFIG = {
+// Null prototype so a plain truthy lookup (`RANGE_CONFIG[range]`) can't be
+// tricked by an inherited key like 'constructor' or 'toString'.
+const RANGE_CONFIG = Object.assign(Object.create(null), {
   '1d': { range: '1d', interval: '5m' },
   '7d': { days: 7, interval: '30m' },
   '3mo': { range: '3mo', interval: '1d' },
@@ -87,7 +89,7 @@ const RANGE_CONFIG = {
   '1y': { range: '1y', interval: '1d' },
   '2y': { range: '2y', interval: '1d' },
   '5y': { range: '5y', interval: '1d' },
-}
+})
 
 async function resolveQuote(symbol, rangeConfig, params) {
   let upstream
@@ -144,7 +146,13 @@ async function pruneSubscription(uid, endpoint) {
   const entry = await kvGet(key)
   if (!entry) return
   entry.subscriptions = (entry.subscriptions || []).filter((s) => s.endpoint !== endpoint)
-  if (!entry.subscriptions.length || !Object.keys(entry.symbols || {}).length) {
+  // Only delete when there's truly nothing left to track (matches
+  // worker/src/alerts.js's saveOrPrune) — this device's subscription
+  // going dead doesn't mean the user's configured symbols should vanish
+  // too if another device is still (or was ever) subscribed, or vice
+  // versa. `||` here would wipe the whole entry on the first stale
+  // device even with real symbols still configured.
+  if (!entry.subscriptions.length && !Object.keys(entry.symbols || {}).length) {
     await kvDelete(key)
   } else {
     await kvPut(key, { ...entry, updatedAt: new Date().toISOString() })

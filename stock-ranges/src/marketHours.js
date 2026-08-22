@@ -100,8 +100,13 @@ function observedFixedDate(year, month, day) {
 function nyseHolidays(year) {
   const easter = easterSunday(year)
   const goodFriday = addDays(year, easter.month, easter.day, -2)
-  return [
-    observedFixedDate(year, 1, 1), // New Year's Day
+  const holidays = [
+    // New Year's Day: Sunday shifts forward to Jan 2, still in this
+    // year. Saturday shifts backward to Dec 31 of the PREVIOUS year —
+    // observedFixedDate can't express that (it only shifts within the
+    // month/year it's given), so that case is skipped here and handled
+    // below instead, appended to the previous year's own list.
+    ...(utcWeekday(year, 1, 1) === 6 ? [] : [observedFixedDate(year, 1, 1)]),
     { month: 1, day: nthWeekdayOfMonth(year, 1, 1, 3) }, // MLK Day
     { month: 2, day: nthWeekdayOfMonth(year, 2, 1, 3) }, // Presidents Day
     { month: goodFriday.month, day: goodFriday.day },
@@ -112,6 +117,10 @@ function nyseHolidays(year) {
     { month: 11, day: nthWeekdayOfMonth(year, 11, 4, 4) }, // Thanksgiving
     observedFixedDate(year, 12, 25), // Christmas
   ]
+  // If NEXT year's New Year's Day falls on a Saturday, NYSE observes it
+  // this Dec 31 instead — a closure that falls within this calendar year.
+  if (utcWeekday(year + 1, 1, 1) === 6) holidays.push({ month: 12, day: 31 })
+  return holidays
 }
 
 // The two NYSE half-days: the Friday after Thanksgiving, and Christmas Eve

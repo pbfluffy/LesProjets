@@ -22,9 +22,15 @@ export async function getAlerts(env, uid) {
 async function saveOrPrune(env, uid, entry) {
   const hasSymbols = Object.keys(entry.symbols).length > 0
   const hasSubs = entry.subscriptions.length > 0
-  if (!hasSymbols || !hasSubs) {
-    // No point keeping a config with nothing to check or nowhere to send —
-    // the cron scan stays lean by not having to skip empty entries every tick.
+  // Only delete when there's truly nothing left to track — subscribing and
+  // setting a symbol are two separate client calls (upsertSubscription then
+  // setAlert), so right after the first one on a brand-new account, exactly
+  // one of these lists is legitimately still empty. Deleting on that alone
+  // (the old `||` here) meant the second call read back an already-wiped
+  // entry and got wiped again in turn — nothing ever survived a first-ever
+  // alert. `&&` still cleans up the real "removed my last alert and
+  // unsubscribed" case, just not this transient one.
+  if (!hasSymbols && !hasSubs) {
     await env.ALERTS.delete(alertsKey(uid))
     return
   }

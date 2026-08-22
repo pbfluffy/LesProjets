@@ -13,7 +13,11 @@ export const SYMBOL_RE = /^[A-Za-z0-9.\-=^]{1,10}$/
 // one point, not a range) — Yahoo's `range` enum has '1d' but not '7d', so
 // 7d goes through explicit period1/period2 instead. Everything 3mo+ keeps
 // using daily closes via the plain `range` param, unchanged.
-export const RANGE_CONFIG = {
+// Every consumer validates a range by plain truthy lookup (`RANGE_CONFIG[range]`)
+// rather than `Object.hasOwn` — a null prototype closes the gap that would
+// otherwise leave, so an inherited key like 'constructor' or 'toString'
+// can't be mistaken for a configured range.
+export const RANGE_CONFIG = Object.assign(Object.create(null), {
   '1d': { range: '1d', interval: '5m' },
   '7d': { days: 7, interval: '30m' },
   '3mo': { range: '3mo', interval: '1d' },
@@ -21,4 +25,4 @@ export const RANGE_CONFIG = {
   '1y': { range: '1y', interval: '1d' },
   '2y': { range: '2y', interval: '1d' },
   '5y': { range: '5y', interval: '1d' },
-}
+})
