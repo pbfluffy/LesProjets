@@ -13,6 +13,7 @@ import webpush from 'web-push'
 import { getMarketStatus } from '../../src/marketHours.js'
 import { computeDeciles } from '../../src/deciles.js'
 import { formatPrice } from '../../src/format.js'
+import { convert } from '../../src/fx.js'
 
 const ACCOUNT_ID = '53848ae47b2ea39eddb5a90460cf9bb0'
 const NAMESPACE_ID = '3a005aaf9deb41e48856476250ecf3f2' // ALERTS — see wrangler.toml
@@ -75,6 +76,25 @@ async function kvPut(key, value) {
 async function kvDelete(key) {
   const res = await kvFetch(`/values/${encodeURIComponent(key)}`, { method: 'DELETE' })
   if (!res.ok && res.status !== 404) throw new Error(`KV delete ${key} failed: ${res.status}`)
+}
+
+// ---- USD/THB conversion (mirrors src/fx.js's getThbRates, minus the
+// localStorage caching — that's a browser-only API, and this script only
+// ever needs one fetch per run anyway) ----
+
+async function fetchThbRates() {
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/THB')
+    const data = await res.json()
+    if (!data?.rates) return null
+    const map = { THB: 1 }
+    for (const [code, rate] of Object.entries(data.rates)) {
+      if (typeof rate === 'number' && rate > 0) map[code] = Math.round((1 / rate) * 10000) / 10000
+    }
+    return map
+  } catch {
+    return null
+  }
 }
 
 // ---- quote fetch (mirrors worker/src/quotes.js, minus the Workers-only
@@ -187,11 +207,20 @@ async function inBatches(items, size, fn) {
 // notification just falls back to whatever icon the OS shows for a
 // missing image. `tag: symbol` replaces any still-showing notification
 // for the same ticker instead of stacking a second one, in case two
-// transitions for the same symbol land close together.
-function notificationCopy(symbol, direction, band, quote) {
+// transitions for the same symbol land close together. `targetCurrency`
+// is the recipient's own USD/THB display preference (worker/src/alerts.js's
+// `entry.currency`) — a conversion failure (rates unavailable, or an
+// exotic quote currency open.er-api.com doesn't track) just falls back to
+// the quote's native currency, same degrade as the in-app card.
+function notificationCopy(symbol, direction, band, quote, targetCurrency, rates) {
   const zone = direction === 'buy' ? 'Buy' : 'Sell'
   const name = quote?.name && quote.name !== symbol ? quote.name : symbol
-  const price = formatPrice(quote?.current, quote?.currency)
+  const converted = targetCurrency && targetCurrency !== quote?.currency
+    ? convert(quote?.current, quote?.currency, targetCurrency, rates)
+    : null
+  const price = converted !== null
+    ? formatPrice(converted, targetCurrency)
+    : formatPrice(quote?.current, quote?.currency)
   return {
     title: `${name} entered the ${zone} zone`,
     body: `${price} · Band ${band}/10 · tap to view`,
@@ -226,8 +255,13 @@ async function main() {
     }
   }
   const subsByUid = new Map(allAlerts.map(({ uid, entry }) => [uid, entry.subscriptions || []]))
+  const currencyByUid = new Map(allAlerts.map(({ uid, entry }) => [uid, entry.currency === 'THB' ? 'THB' : 'USD']))
+  // One fetch per run, reused for every notification below, regardless of
+  // how many pairs/subscribers need it — same rationale as the Worker's
+  // getQuote sharing one edge-cache entry across requests.
+  const rates = await fetchThbRates()
 
-  const toNotify = [] // { uid, payload }
+  const toNotify = [] // { uid, symbol, direction, band, quote }
   await inBatches([...pairs.entries()], BATCH_SIZE, async ([key, subscribers]) => {
     const [symbol, range] = key.split(':')
     const quote = await getQuote(symbol, range).catch(() => null)
@@ -245,15 +279,15 @@ async function main() {
     if (prev.signal === signal) return
     if (signal !== 'buy' && signal !== 'sell') return
 
-    const payload = notificationCopy(symbol, signal, deciles.band, quote)
     for (const sub of subscribers) {
-      if (sub[signal]) toNotify.push({ uid: sub.uid, payload })
+      if (sub[signal]) toNotify.push({ uid: sub.uid, symbol, direction: signal, band: deciles.band, quote })
     }
   })
 
   console.log(`${toNotify.length} notification(s) to send.`)
-  await inBatches(toNotify, BATCH_SIZE, async ({ uid, payload }) => {
+  await inBatches(toNotify, BATCH_SIZE, async ({ uid, symbol, direction, band, quote }) => {
     const subscriptions = subsByUid.get(uid) || []
+    const payload = notificationCopy(symbol, direction, band, quote, currencyByUid.get(uid), rates)
     await Promise.all(subscriptions.map(async (subscription) => {
       const result = await sendPush(subscription, payload)
       if (result === 'gone') await pruneSubscription(uid, subscription.endpoint)

@@ -16,7 +16,7 @@ function alertsKey(uid) {
 
 export async function getAlerts(env, uid) {
   const raw = await env.ALERTS.get(alertsKey(uid), 'json')
-  return raw && typeof raw === 'object' ? raw : { symbols: {}, subscriptions: [] }
+  return raw && typeof raw === 'object' ? raw : { symbols: {}, subscriptions: [], currency: 'USD' }
 }
 
 async function saveOrPrune(env, uid, entry) {
@@ -58,7 +58,11 @@ export async function upsertSubscription(env, uid, subscription) {
 // config. `range` is captured here rather than always read live from the
 // user's current UI — computeDeciles is range-relative, so the cron check
 // has to reproduce whichever lookback the user actually had in mind.
-export async function setAlert(env, uid, { symbol, buy, sell, range }) {
+// `currency` is the app's global USD/THB display toggle, mirrored here so
+// the cron can format the notification price the same way the user has
+// their in-app prices displayed — it's a user-level preference, not
+// per-symbol, so every call just re-stamps it on the whole entry.
+export async function setAlert(env, uid, { symbol, buy, sell, range, currency }) {
   if (typeof symbol !== 'string' || !SYMBOL_RE.test(symbol)) return false
   if (!RANGE_CONFIG[range]) return false
   const entry = await getAlerts(env, uid)
@@ -68,6 +72,7 @@ export async function setAlert(env, uid, { symbol, buy, sell, range }) {
     if (!(symbol in entry.symbols) && Object.keys(entry.symbols).length >= MAX_SYMBOLS) return false
     entry.symbols[symbol] = { buy: !!buy, sell: !!sell, range }
   }
+  entry.currency = currency === 'THB' ? 'THB' : 'USD'
   await saveOrPrune(env, uid, entry)
   return true
 }

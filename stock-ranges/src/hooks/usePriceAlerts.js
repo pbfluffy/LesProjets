@@ -62,8 +62,8 @@ export function usePriceAlerts() {
     return postAlerts(user, { type: 'subscribe', subscription: subscription.toJSON() })
   }
 
-  async function setAlert(user, { symbol, buy, sell, range }) {
-    return postAlerts(user, { type: 'setAlert', symbol, buy, sell, range })
+  async function setAlert(user, { symbol, buy, sell, range, currency }) {
+    return postAlerts(user, { type: 'setAlert', symbol, buy, sell, range, currency })
   }
 
   return { permission, ensureSubscribed, setAlert }

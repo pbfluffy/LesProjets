@@ -381,7 +381,7 @@ function Dashboard() {
       const subscribed = await priceAlerts.ensureSubscribed(cloudSync.user)
       if (!subscribed) return false
     }
-    const ok = await priceAlerts.setAlert(cloudSync.user, { symbol, buy, sell, range })
+    const ok = await priceAlerts.setAlert(cloudSync.user, { symbol, buy, sell, range, currency })
     if (!ok) return false
 
     setAlerts((prev) => {
