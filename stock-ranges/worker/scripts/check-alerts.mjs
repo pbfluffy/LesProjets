@@ -12,6 +12,7 @@
 import webpush from 'web-push'
 import { getMarketStatus } from '../../src/marketHours.js'
 import { computeDeciles } from '../../src/deciles.js'
+import { formatPrice } from '../../src/format.js'
 
 const ACCOUNT_ID = '53848ae47b2ea39eddb5a90460cf9bb0'
 const NAMESPACE_ID = '3a005aaf9deb41e48856476250ecf3f2' // ALERTS — see wrangler.toml
@@ -113,6 +114,8 @@ async function resolveQuote(symbol, rangeConfig, params) {
   return {
     current: typeof meta.regularMarketPrice === 'number' ? meta.regularMarketPrice : prices[prices.length - 1],
     prices,
+    name: meta.shortName || meta.longName || meta.symbol || symbol,
+    currency: meta.currency || 'USD',
   }
 }
 
@@ -179,9 +182,23 @@ async function inBatches(items, size, fn) {
   }
 }
 
-function notificationCopy(symbol, direction, band) {
+// Ticker's real logo (same free public endpoint TickerLogo.jsx uses) —
+// won't resolve for crypto/futures/index symbols, which is fine, a push
+// notification just falls back to whatever icon the OS shows for a
+// missing image. `tag: symbol` replaces any still-showing notification
+// for the same ticker instead of stacking a second one, in case two
+// transitions for the same symbol land close together.
+function notificationCopy(symbol, direction, band, quote) {
   const zone = direction === 'buy' ? 'Buy' : 'Sell'
-  return { title: `${symbol} entered the ${zone} zone`, body: `Band ${band}/10 · tap to view`, symbol }
+  const name = quote?.name && quote.name !== symbol ? quote.name : symbol
+  const price = formatPrice(quote?.current, quote?.currency)
+  return {
+    title: `${name} entered the ${zone} zone`,
+    body: `${price} · Band ${band}/10 · tap to view`,
+    icon: `https://financialmodelingprep.com/image-stock/${encodeURIComponent(symbol)}.png`,
+    tag: symbol,
+    symbol,
+  }
 }
 
 async function main() {
@@ -228,7 +245,7 @@ async function main() {
     if (prev.signal === signal) return
     if (signal !== 'buy' && signal !== 'sell') return
 
-    const payload = notificationCopy(symbol, signal, deciles.band)
+    const payload = notificationCopy(symbol, signal, deciles.band, quote)
     for (const sub of subscribers) {
       if (sub[signal]) toNotify.push({ uid: sub.uid, payload })
     }

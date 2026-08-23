@@ -22,8 +22,13 @@ registerRoute(
   }),
 )
 
-// Price-alert push notifications — see worker/src/scheduled.js for what
-// sends these. Payload shape: { title, body, symbol }.
+// Price-alert push notifications — see worker/scripts/check-alerts.mjs
+// for what sends these. Payload shape: { title, body, icon, tag, symbol }.
+// `icon` is the ticker's own logo when one resolves (falls back to the
+// app icon otherwise); `badge` stays the app icon always, same as any
+// app whose notifications show a small consistent status-bar mark next
+// to a per-item image. `tag` replaces any still-showing notification for
+// the same ticker instead of stacking a second one.
 self.addEventListener('push', (event) => {
   let data = {}
   try {
@@ -34,8 +39,9 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'Stock Ranges', {
       body: data.body || '',
-      icon: '/icon-192.png',
+      icon: data.icon || '/icon-192.png',
       badge: '/icon-192.png',
+      tag: data.tag || data.symbol,
       data: { symbol: data.symbol },
     }),
   )
