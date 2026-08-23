@@ -817,7 +817,7 @@ function Dashboard() {
 
       {cloudSync.syncStatus === 'awaiting-decision' && cloudSync.pendingServer && (
         <ConflictModal
-          localData={{ watchlist, range, currency }}
+          localData={{ watchlist, range, currency, tags, holdings, knownFor: customKnownFor, alerts }}
           cloudData={cloudSync.pendingServer}
           onUseLocal={cloudSync.confirmLocalWins}
           onUseCloud={cloudSync.confirmCloudWins}
