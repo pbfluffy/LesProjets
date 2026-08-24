@@ -30,6 +30,14 @@
   inset: -8px;
 }
 
+/* At rest (not yet toggled on) the two bells were previously identical
+   faint outlines — no way to tell buy from sell without tapping one, and
+   there's no hover on a touchscreen to reveal the title tooltip either.
+   A faint tint at rest, matching the same green/red the active state and
+   the band badge itself already use, makes them scannable at a glance. */
+.toggle[data-zone='buy'] { border-color: var(--color-green); color: var(--color-green); }
+.toggle[data-zone='sell'] { border-color: var(--color-red); color: var(--color-red); }
+
 .toggle[data-zone='buy'][data-active='true'] {
   background: var(--color-green-bg);
   border-color: var(--color-green);

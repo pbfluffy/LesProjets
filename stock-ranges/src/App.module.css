@@ -252,6 +252,16 @@
 }
 .lookbackRow select { width: auto; }
 
+/* Keeps a label and its own select together as one flex-wrap unit — bare
+   label/select children wrap independently, which could split a label
+   onto its own line with the control it names stranded on the next. */
+.controlPair {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .chartTypeBtn {
   position: relative;
   background: var(--color-surface-alt);

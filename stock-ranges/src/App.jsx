@@ -36,8 +36,8 @@ const HOLDINGS_KEY = 'stockranges_holdings'
 const TAB_KEY = 'stockranges_tab'
 const WATCHLIST_SORT_KEY = 'stockranges_watchlist_sort'
 const THEME_KEY = 'theme'
-const RANGES = ['1d', '7d', '3mo', '6mo', '1y', '2y', '5y']
-const RANGE_LABEL_KEY = { '1d': 'range1d', '7d': 'range7d', '3mo': 'range3mo', '6mo': 'range6mo', '1y': 'range1y', '2y': 'range2y', '5y': 'range5y' }
+const RANGES = ['1d', '7d', '3mo', '6mo', 'ytd', '1y', '2y', '5y']
+const RANGE_LABEL_KEY = { '1d': 'range1d', '7d': 'range7d', '3mo': 'range3mo', '6mo': 'range6mo', ytd: 'rangeYtd', '1y': 'range1y', '2y': 'range2y', '5y': 'range5y' }
 const RELATIVE_TIME_TICK_MS = 30 * 1000
 const UNDO_TIMEOUT_MS = 6000
 
@@ -743,18 +743,22 @@ function Dashboard() {
 
       <div className={styles.lookbackRow}>
         <SearchBox value={watchlistSearch} onChange={setWatchlistSearch} />
-        <label htmlFor="lookback">{s.lookbackLabel}</label>
-        <select id="lookback" value={range} onChange={(e) => setRange(e.target.value)}>
-          {RANGES.map((r) => (
-            <option key={r} value={r}>{s[RANGE_LABEL_KEY[r]]}</option>
-          ))}
-        </select>
-        <label htmlFor="watchlist-sort">{s.sortByLabel}</label>
-        <select id="watchlist-sort" value={watchlistSort} onChange={(e) => setWatchlistSort(e.target.value)}>
-          <option value="signal">{s.sortSignal}</option>
-          <option value="change">{s.sortChange}</option>
-          <option value="alpha">{s.sortAlpha}</option>
-        </select>
+        <span className={styles.controlPair}>
+          <label htmlFor="lookback">{s.lookbackLabel}</label>
+          <select id="lookback" value={range} onChange={(e) => setRange(e.target.value)}>
+            {RANGES.map((r) => (
+              <option key={r} value={r}>{s[RANGE_LABEL_KEY[r]]}</option>
+            ))}
+          </select>
+        </span>
+        <span className={styles.controlPair}>
+          <label htmlFor="watchlist-sort">{s.sortByLabel}</label>
+          <select id="watchlist-sort" value={watchlistSort} onChange={(e) => setWatchlistSort(e.target.value)}>
+            <option value="signal">{s.sortSignal}</option>
+            <option value="change">{s.sortChange}</option>
+            <option value="alpha">{s.sortAlpha}</option>
+          </select>
+        </span>
         <button
           className={styles.chartTypeBtn}
           onClick={() => setChartType((t) => (t === 'line' ? 'candle' : 'line'))}

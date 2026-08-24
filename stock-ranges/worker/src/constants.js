@@ -22,6 +22,7 @@ export const RANGE_CONFIG = Object.assign(Object.create(null), {
   '7d': { days: 7, interval: '30m' },
   '3mo': { range: '3mo', interval: '1d' },
   '6mo': { range: '6mo', interval: '1d' },
+  ytd: { range: 'ytd', interval: '1d' },
   '1y': { range: '1y', interval: '1d' },
   '2y': { range: '2y', interval: '1d' },
   '5y': { range: '5y', interval: '1d' },
