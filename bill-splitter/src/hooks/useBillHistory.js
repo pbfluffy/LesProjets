@@ -15,10 +15,16 @@ function readAll() {
   }
 }
 
+// Returns whether the write actually landed — a full localStorage quota
+// (this app shares its origin's storage with sibling apps in the monorepo)
+// silently failed here before, while callers still told the user "Saved".
 function writeAll(entries) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(entries.slice(0, MAX_ENTRIES)))
-  } catch {}
+    return true
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -49,12 +55,13 @@ export function useBillHistory() {
       billName: trimmedName,
       state,
     }
+    let ok = true
     setEntries(prev => {
       const next = [entry, ...prev].slice(0, MAX_ENTRIES)
-      writeAll(next)
+      ok = writeAll(next)
       return next
     })
-    return entry
+    return { ...entry, ok }
   }, [])
 
   const remove = useCallback((id) => {
@@ -78,14 +85,16 @@ export function useBillHistory() {
 
   const update = useCallback((id, tab, state) => {
     const trimmedName = (state?.billName || '').trim()
+    let ok = true
     setEntries(prev => {
       const next = prev.map(e => e.id === id
         ? { ...e, savedAt: Date.now(), tab, billName: trimmedName, state }
         : e
       )
-      writeAll(next)
+      ok = writeAll(next)
       return next
     })
+    return { id, ok }
   }, [])
 
   return { entries, save, update, remove, clear, replaceEntries }

@@ -220,9 +220,9 @@ function AppInner() {
 
   const handleSaveBill = (tab, snapshot) => {
     if (loadedEntryId) {
-      history.update(loadedEntryId, tab, snapshot)
+      const result = history.update(loadedEntryId, tab, snapshot)
       setLoadedEntryId(null)
-      return { id: loadedEntryId }
+      return result
     }
     return history.save(tab, snapshot)
   }

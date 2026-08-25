@@ -148,8 +148,8 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
 
   const handleSave = () => {
     if (onSave) {
-      onSave()
-      showToast(t.saved)
+      const result = onSave()
+      showToast(result?.ok === false ? t.saveFailed : t.saved)
     }
   }
 
