@@ -15,6 +15,7 @@ const en = {
   'header.themeLight': '🌙',
   'header.reset': '↺',
   'header.resetTitle': 'Reset today',
+  'header.resetConfirm': "Erase today's log (food + water)?",
 
   'stat.tdee': 'TDEE',
   'stat.tdeeUnit': 'kcal/day',
@@ -230,6 +231,7 @@ const th = {
   'header.themeLight': '🌙',
   'header.reset': '↺',
   'header.resetTitle': 'รีเซ็ตวันนี้',
+  'header.resetConfirm': 'ลบบันทึกวันนี้ (อาหาร + น้ำ) หรือไม่?',
 
   'stat.tdee': 'TDEE',
   'stat.tdeeUnit': 'kcal/วัน',

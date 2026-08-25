@@ -85,7 +85,7 @@ export default function Header({ theme, onToggleTheme, onReset, syncStatus }) {
         </button>
         <button
           className={styles.iconBtn}
-          onClick={onReset}
+          onClick={() => { if (window.confirm(t('header.resetConfirm'))) onReset(); }}
           title={t('header.resetTitle')}
           aria-label={t('header.resetTitle')}
         >
