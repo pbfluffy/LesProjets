@@ -206,6 +206,14 @@ async function inBatches(items, size, fn) {
   }
 }
 
+// Same EN/TH strings TickerCard's own badge uses (LangContext.jsx's
+// signalBuy/signalSell), so a notification reads the same way the app
+// itself already does for that user.
+const NOTIFICATION_COPY = {
+  en: { buy: 'Buy zone', sell: 'Sell zone', entered: (name, zone) => `${name} entered the ${zone}`, tapToView: 'tap to view' },
+  th: { buy: 'โซนซื้อ', sell: 'โซนขาย', entered: (name, zone) => `${name} เข้าสู่${zone}แล้ว`, tapToView: 'แตะเพื่อดู' },
+}
+
 // Ticker's real logo (same free public endpoint TickerLogo.jsx uses) —
 // won't resolve for crypto/futures/index symbols, which is fine, a push
 // notification just falls back to whatever icon the OS shows for a
@@ -216,8 +224,9 @@ async function inBatches(items, size, fn) {
 // `entry.currency`) — a conversion failure (rates unavailable, or an
 // exotic quote currency open.er-api.com doesn't track) just falls back to
 // the quote's native currency, same degrade as the in-app card.
-function notificationCopy(symbol, direction, quote, targetCurrency, rates) {
-  const zone = direction === 'buy' ? 'Buy' : 'Sell'
+function notificationCopy(symbol, direction, quote, targetCurrency, rates, targetLang) {
+  const copy = NOTIFICATION_COPY[targetLang] || NOTIFICATION_COPY.en
+  const zone = direction === 'buy' ? copy.buy : copy.sell
   const name = quote?.name && quote.name !== symbol ? quote.name : symbol
   const converted = targetCurrency && targetCurrency !== quote?.currency
     ? convert(quote?.current, quote?.currency, targetCurrency, rates)
@@ -226,8 +235,8 @@ function notificationCopy(symbol, direction, quote, targetCurrency, rates) {
     ? formatPrice(converted, targetCurrency)
     : formatPrice(quote?.current, quote?.currency)
   return {
-    title: `${name} entered the ${zone} zone`,
-    body: `${price} · tap to view`,
+    title: copy.entered(name, zone),
+    body: `${price} · ${copy.tapToView}`,
     icon: `https://financialmodelingprep.com/image-stock/${encodeURIComponent(symbol)}.png`,
     tag: symbol,
     symbol,
@@ -261,6 +270,7 @@ async function main() {
   }
   const subsByUid = new Map(allAlerts.map(({ uid, entry }) => [uid, entry.subscriptions || []]))
   const currencyByUid = new Map(allAlerts.map(({ uid, entry }) => [uid, entry.currency === 'THB' ? 'THB' : 'USD']))
+  const langByUid = new Map(allAlerts.map(({ uid, entry }) => [uid, entry.lang === 'th' ? 'th' : 'en']))
   // One fetch per run, reused for every notification below, regardless of
   // how many pairs/subscribers need it — same rationale as the Worker's
   // getQuote sharing one edge-cache entry across requests.
@@ -293,7 +303,7 @@ async function main() {
   console.log(`${toNotify.length} notification(s) to send.`)
   await inBatches(toNotify, BATCH_SIZE, async ({ uid, symbol, direction, quote }) => {
     const subscriptions = subsByUid.get(uid) || []
-    const payload = notificationCopy(symbol, direction, quote, currencyByUid.get(uid), rates)
+    const payload = notificationCopy(symbol, direction, quote, currencyByUid.get(uid), rates, langByUid.get(uid))
     await Promise.all(subscriptions.map(async (subscription) => {
       const result = await sendPush(subscription, payload)
       if (result === 'gone') await pruneSubscription(uid, subscription.endpoint)
