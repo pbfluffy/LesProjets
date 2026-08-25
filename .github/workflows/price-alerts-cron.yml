@@ -2,17 +2,17 @@ name: Price alerts check
 
 # Stands in for a Cloudflare Cron Trigger, which would need the Workers
 # Paid plan (Free caps Cron Trigger CPU at 10ms — not enough for this
-# job). Plain GitHub Actions has no such cap and this repo already uses
-# free scheduled-workflow minutes elsewhere, so the check runs here
+# job). Plain GitHub Actions has no such cap, and this is a public repo
+# so scheduled-workflow minutes are unlimited, so the check runs here
 # instead — see stock-ranges/worker/scripts/check-alerts.mjs.
 #
-# Cron syntax can't express exact NYSE hours across a DST shift, so this
-# window is deliberately loose (covers both EST and EDT) — the script's
-# own getMarketStatus() check does the precise gating and no-ops outside
-# real market hours.
+# Runs around the clock, every day — crypto trades 24/7, so a schedule
+# limited to NYSE-ish hours would mean a BTC alert never fires on a
+# weekend. The script's own getMarketStatus() check still gates stock/ETF
+# pairs to real market hours; only crypto pairs get checked on every tick.
 on:
   schedule:
-    - cron: '*/15 9-21 * * 1-5'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 jobs:

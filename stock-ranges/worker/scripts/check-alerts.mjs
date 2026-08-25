@@ -137,6 +137,9 @@ async function resolveQuote(symbol, rangeConfig, params) {
     prices,
     name: meta.shortName || meta.longName || meta.symbol || symbol,
     currency: meta.currency || 'USD',
+    // e.g. EQUITY, ETF, CRYPTOCURRENCY, FUTURE, INDEX — same field
+    // wallet.js already uses to tell crypto apart from stocks/ETFs.
+    instrumentType: meta.instrumentType || null,
   }
 }
 
@@ -232,10 +235,11 @@ function notificationCopy(symbol, direction, quote, targetCurrency, rates) {
 }
 
 async function main() {
-  if (!getMarketStatus().open) {
-    console.log('Market closed — skipping.')
-    return
-  }
+  // Gated per-pair below, not here — crypto trades 24/7, so skipping the
+  // whole run whenever NYSE is closed meant a BTC alert would never fire
+  // outside stock-market hours. Only stocks/ETFs/etc. still wait for the
+  // market to be open; crypto pairs get checked on every tick.
+  const marketOpen = getMarketStatus().open
 
   const allAlerts = await listAllAlerts()
   if (allAlerts.length === 0) {
@@ -267,6 +271,7 @@ async function main() {
     const [symbol, range] = key.split(':')
     const quote = await getQuote(symbol, range).catch(() => null)
     if (!quote) return
+    if (!marketOpen && quote.instrumentType !== 'CRYPTOCURRENCY') return
     const deciles = computeDeciles({ prices: quote.prices, current: quote.current })
     const signal = deciles?.signal ?? null
 

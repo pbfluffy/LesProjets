@@ -11,6 +11,12 @@ import styles from './PriceAlertToggle.module.css'
 // nothing to set up ahead of time.
 export default function PriceAlertToggle({ config, onToggle }) {
   const { s } = useLang()
+  // Which direction's request is in flight, or null. Both buttons disable
+  // whenever EITHER is busy (not just the one clicked) — onToggle resends
+  // the *other* direction's current value alongside whichever one changed
+  // (they share one KV entry), so a second click landing before the first
+  // resolves would race against a stale snapshot of that other value and
+  // could silently revert it.
   const [busy, setBusy] = useState(null) // 'buy' | 'sell' | null
   const [error, setError] = useState('')
 
@@ -34,7 +40,7 @@ export default function PriceAlertToggle({ config, onToggle }) {
         className={styles.toggle}
         data-zone="buy"
         data-active={!!config?.buy}
-        disabled={busy === 'buy'}
+        disabled={busy !== null}
         onClick={() => handleClick('buy')}
         aria-pressed={!!config?.buy}
         aria-label={s.alertBuyLabel}
@@ -47,7 +53,7 @@ export default function PriceAlertToggle({ config, onToggle }) {
         className={styles.toggle}
         data-zone="sell"
         data-active={!!config?.sell}
-        disabled={busy === 'sell'}
+        disabled={busy !== null}
         onClick={() => handleClick('sell')}
         aria-pressed={!!config?.sell}
         aria-label={s.alertSellLabel}
