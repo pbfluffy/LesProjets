@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   useSightings, renameDog, summarizeFriendliness, deleteSighting, detachSighting, mergeDogs,
   useFlags, flagDog, dismissFlag, deleteDogEntirely, friendlinessColor,
+  reportDisappeared, retractDisappearedReport, DISAPPEAR_VOTES_NEEDED,
 } from '../hooks/useDogs'
 import { currentShareUrl } from '../shareDog'
 import { shareToLine } from '../shareLine'
@@ -77,6 +78,8 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
   const [deletingDog, setDeletingDog] = useState(false)
   const [deleteDogBusy, setDeleteDogBusy] = useState(false)
   const [deleteDogError, setDeleteDogError] = useState(null)
+  const [disappearBusy, setDisappearBusy] = useState(false)
+  const [disappearError, setDisappearError] = useState(null)
 
   const admin = isAdmin(user)
   const { flags } = useFlags(dog?.id, admin)
@@ -229,6 +232,33 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
       console.error('[majon] delete dog failed:', err)
       setDeleteDogError(t.dogFlagDeleteFailed)
       setDeleteDogBusy(false)
+    }
+  }
+
+  async function handleReportDisappeared() {
+    setDisappearBusy(true)
+    setDisappearError(null)
+    try {
+      const { removed } = await reportDisappeared(dog.id, dog.disappearVotes, user.uid)
+      if (removed) { onClose(); return }
+      setDisappearBusy(false)
+    } catch (err) {
+      console.error('[majon] report disappeared failed:', err)
+      setDisappearError(t.dogDisappearFailed)
+      setDisappearBusy(false)
+    }
+  }
+
+  async function handleRetractDisappeared() {
+    setDisappearBusy(true)
+    setDisappearError(null)
+    try {
+      await retractDisappearedReport(dog.id, user.uid)
+      setDisappearBusy(false)
+    } catch (err) {
+      console.error('[majon] retract disappeared failed:', err)
+      setDisappearError(t.dogDisappearFailed)
+      setDisappearBusy(false)
     }
   }
 
@@ -413,6 +443,32 @@ export default function DogDetail({ dog, dogs = [], user, t, lang, onClose, onRe
               </div>
             )}
             {reportMsg && <p className={styles.meta}>{reportMsg}</p>}
+          </div>
+        )}
+
+        {user && (
+          <div className={styles.mergeSection}>
+            {dog.disappearVotes?.includes(user.uid) ? (
+              <div className={styles.confirmRow}>
+                <span className={styles.meta}>
+                  {interp(t.dogDisappearVoted, { n: dog.disappearVotes.length, needed: DISAPPEAR_VOTES_NEEDED })}
+                </span>
+                <button type="button" className={styles.confirmCancelBtn} onClick={handleRetractDisappeared} disabled={disappearBusy}>
+                  {disappearBusy ? '…' : t.dogDisappearRetract}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className={styles.mergeToggleBtn}
+                onClick={handleReportDisappeared}
+                disabled={disappearBusy}
+                title={interp(t.dogDisappearHint, { needed: DISAPPEAR_VOTES_NEEDED })}
+              >
+                👻 {interp(t.dogDisappearReport, { n: dog.disappearVotes?.length || 0, needed: DISAPPEAR_VOTES_NEEDED })}
+              </button>
+            )}
+            {disappearError && <div className={styles.deleteError}>{disappearError}</div>}
           </div>
         )}
 

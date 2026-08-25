@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import {
   db, doc, collection, addDoc, updateDoc, deleteDoc, getDocs, query, orderBy, serverTimestamp, onSnapshot, writeBatch,
+  arrayUnion, arrayRemove,
 } from '../firebase'
 import { haversineMeters } from '../haversine'
 
 const COLLECTION = 'strayDogs'
+export const DISAPPEAR_VOTES_NEEDED = 5
 
 // Live list of every reported dog — small hobby-scale collection, so a single
 // whole-collection subscription (used for both the map and candidate
@@ -306,6 +308,38 @@ export async function deleteDogEntirely(dogId) {
   flagsSnap.docs.forEach((d) => batch.delete(d.ref))
   batch.delete(doc(db, COLLECTION, dogId))
   await batch.commit()
+}
+
+// Community "report as gone" consensus: any signed-in user can vote that a
+// dog is no longer around; once DISAPPEAR_VOTES_NEEDED distinct people have,
+// the voter whose click crosses that line removes it. `currentVotes` comes
+// from the caller's live onSnapshot data (no extra read needed) — the count
+// after this vote is computed locally, then acted on.
+//
+// Unlike deleteDogEntirely (admin-only in the UI), this can't clean up the
+// flags subcollection — flags.delete is owner-only in firestore.rules, and
+// a non-admin voter crossing the threshold isn't the owner. Any flags on a
+// dog removed this way are left orphaned; harmless (they're just admin-
+// visible moderation notes with nothing left to moderate), and admin's own
+// deleteDogEntirely path already handles the normal cleanup case.
+export async function reportDisappeared(dogId, currentVotes, uid) {
+  const votes = currentVotes || []
+  if (votes.includes(uid)) return { removed: false }
+  await updateDoc(doc(db, COLLECTION, dogId), { disappearVotes: arrayUnion(uid) })
+  if (votes.length + 1 < DISAPPEAR_VOTES_NEEDED) return { removed: false }
+
+  const sightingsSnap = await getDocs(collection(db, COLLECTION, dogId, 'sightings'))
+  const batch = writeBatch(db)
+  sightingsSnap.docs.forEach((d) => batch.delete(d.ref))
+  batch.delete(doc(db, COLLECTION, dogId))
+  await batch.commit()
+  return { removed: true }
+}
+
+// Retracts the caller's own "gone" vote — a mis-tap, or the dog turned out
+// to still be around.
+export async function retractDisappearedReport(dogId, uid) {
+  await updateDoc(doc(db, COLLECTION, dogId), { disappearVotes: arrayRemove(uid) })
 }
 
 const FRIENDLINESS_LEVELS = ['friendly', 'neutral', 'cautious']

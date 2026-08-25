@@ -365,7 +365,16 @@ service cloud.firestore {
 match /strayDogs/{dogId} {
   allow read: if true;
   allow create: if request.auth != null;
-  allow update: if request.auth != null;
+  // disappearVotes (community "report as gone" consensus — dog-near-me
+  // AGENTS notes) is only shape-validated here, not access-restricted:
+  // every other update path (addSightingToDog, deleteSighting, mergeDogs)
+  // is called by any signed-in user and never touches this field, so the
+  // `in` check is a no-op for them. Writes that DO touch it (reportDisappeared/
+  // retractDisappearedReport) must leave it as a bounded list.
+  allow update: if request.auth != null
+                && (!('disappearVotes' in request.resource.data)
+                    || (request.resource.data.disappearVotes is list
+                        && request.resource.data.disappearVotes.size() <= 999));
   allow delete: if request.auth != null;
   match /sightings/{sightingId} {
     allow read: if true;

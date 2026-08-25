@@ -58,12 +58,15 @@ npm run dev
    then paste the returned `id` into `worker/wrangler.toml`.
 3. **Set the Gemini key**: `npx wrangler secret put GOOGLE_API_KEY` (same key used by the other photo workers).
 4. **Bind BUCKET in the wrangler.toml** — already declared; just make sure the bucket name matches.
-5. **Firestore rules** (this repo has no Firestore IaC — paste into the Firebase console → Firestore → Rules):
+5. **Firestore rules** — this now lives in the repo root's `firestore.rules` (deployed via Firebase CLI alongside pumgoda/stock-ranges' rules, same project), not a console-only paste. Current `strayDogs` block:
    ```
    match /strayDogs/{dogId} {
      allow read: if true;
      allow create: if request.auth != null;
-     allow update: if request.auth != null;
+     allow update: if request.auth != null
+                   && (!('disappearVotes' in request.resource.data)
+                       || (request.resource.data.disappearVotes is list
+                           && request.resource.data.disappearVotes.size() <= 999));
      allow delete: if request.auth != null;
      match /sightings/{sightingId} {
        allow read: if true;
@@ -77,7 +80,7 @@ npm run dev
      }
    }
    ```
-   (Updated for the moderation/flagging feature — re-paste this into the Firebase console if you set the rules up before it shipped. Two changes from the previous version: sightings `delete` is no longer restricted to the original reporter — it was scoped that way for the "delete your own report" feature, but that same restriction silently broke merging duplicate dogs whenever the dog being merged away had sightings from someone else, since a Firestore batch write fails whole if any single operation in it violates a rule; and a new `flags` subcollection is added, readable/dismissible only by the hardcoded admin UID above — that UID is the same owner account used by pumgoda's admin panel.)
+   History: sightings `delete` isn't restricted to the original reporter — it was scoped that way for the "delete your own report" feature, but that broke merging duplicate dogs whenever the dog being merged away had sightings from someone else, since a Firestore batch write fails whole if any single operation in it violates a rule. `flags` is readable/dismissible only by the hardcoded admin UID above (same owner account as pumgoda's admin panel). `strayDogs.update`/`.delete` stay open to any signed-in user rather than owner/admin-only — tightening either would also block `mergeDogs`, which is intentionally usable by any signed-in user, not just admin; the `disappearVotes` check above only validates that field's shape when present, it doesn't restrict who can write it. The community "report as gone" flow (`reportDisappeared`/`retractDisappearedReport` in `src/hooks/useDogs.js`) is the real access-control answer for casual removal — once 5 distinct users confirm, it's removed automatically — while admin's `deleteDogEntirely` stays an instant, unconditional bypass.
 6. **Deploy the worker**: `cd dog-near-me/worker && npm run deploy`, then set
    `VITE_MAJON_WORKER_URL` (as a GitHub Actions secret, for the deploy
    workflow) to the deployed Worker URL.
