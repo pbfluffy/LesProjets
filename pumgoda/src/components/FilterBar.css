@@ -5,6 +5,42 @@
   padding-top: 12px;
 }
 
+.ph-search {
+  position: relative;
+  padding: 0 16px;
+}
+
+.ph-search-input {
+  width: 100%;
+  padding: 9px 32px 9px 12px;
+  font-size: 13px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+}
+.ph-search-input::placeholder { color: var(--muted); }
+.ph-search-input:focus { border-color: var(--accent); outline: none; }
+
+.ph-search-clear {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ph-search-clear:hover { color: var(--text); }
+
 /* Region — segmented control */
 .ph-region {
   display: flex;

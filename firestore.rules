@@ -65,7 +65,10 @@ service cloud.firestore {
     // vote (e.g. "pet fee now applies weekends"), settable on create or via
     // a later update — same size cap enforced both times.
     match /placeVotes/{voteId} {
-      allow read:   if signedIn();
+      // Public read — vote tallies are meant to inform anyone browsing,
+      // signed in or not (useVotesFs.js subscribes unconditionally on
+      // mount); only submitting/editing a vote requires being signed in.
+      allow read:   if true;
       allow create: if signedIn()
                     && request.resource.data.uid    == request.auth.uid
                     && request.resource.data.vote   in ['up','paw','warn']

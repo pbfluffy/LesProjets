@@ -11,7 +11,7 @@ const TIERS = [
 ]
 const PUMBA_IMG = `${import.meta.env.BASE_URL}pumba.png`
 
-export default function FilterBar({ lang, filters, setRegion, toggleType, togglePolicy, setMinPaws, toggleOpenNow, clearFilters, collapsed }) {
+export default function FilterBar({ lang, filters, setRegion, toggleType, togglePolicy, setMinPaws, setQuery, toggleOpenNow, clearFilters, collapsed }) {
   const s = STRINGS[lang]
   const activeCount =
     (filters.region !== 'all' ? 1 : 0) +
@@ -23,6 +23,34 @@ export default function FilterBar({ lang, filters, setRegion, toggleType, toggle
 
   return (
     <div className="ph-filters">
+      {/* Free-text search — the filtering logic (useFilters' applyFilters)
+          already matches name/neighborhood/notes/type/policy in both
+          languages, this was just never wired to an actual input. Always
+          visible (not gated by `collapsed`) since search is a primary
+          control, not a secondary filter chip. */}
+      {setQuery && (
+        <div className="ph-search">
+          <input
+            type="text"
+            className="ph-search-input"
+            value={filters.query || ''}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={s.search.placeholder}
+            aria-label={s.search.placeholder}
+          />
+          {filters.query && (
+            <button
+              type="button"
+              className="ph-search-clear"
+              onClick={() => setQuery('')}
+              aria-label={lang === 'th' ? 'ล้างคำค้นหา' : 'Clear search'}
+            >
+              ×
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Region segmented control */}
       <div className="ph-region">
         {['all', 'bangkok_metro', 'weekend_escape'].map((r) => (
