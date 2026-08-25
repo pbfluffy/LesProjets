@@ -42,14 +42,6 @@ jobs:
           npm install
           npm run build
 
-      - name: Build trip-planner
-        working-directory: trip-planner
-        env:
-          VITE_TRIP_WORKER_URL: ${{ secrets.VITE_TRIP_WORKER_URL }}
-        run: |
-          npm install
-          npm run build
-
       - name: Build dog-near-me
         working-directory: dog-near-me
         env:
@@ -69,7 +61,7 @@ jobs:
 
       - name: Assemble site
         run: |
-          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/trip-planner _site/dog-near-me _site/stock-ranges
+          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/dog-near-me _site/stock-ranges
           cp index.html _site/index.html
           cp admindepum.html _site/admindepum.html
           cp temp.html _site/temp.html
@@ -79,7 +71,6 @@ jobs:
           cp -r bill-splitter/dist/. _site/bill-splitter/
           cp -r nutritions-thailand/dist/. _site/nutritions-thailand/
           cp -r pumgoda/dist/. _site/pumgoda/
-          cp -r trip-planner/dist/. _site/trip-planner/
           cp -r dog-near-me/dist/. _site/dog-near-me/
           cp -r stock-ranges/dist/. _site/stock-ranges/
           cp pumba.png _site/pumba.png

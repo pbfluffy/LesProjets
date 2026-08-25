@@ -1,7 +1,0 @@
-name = "trip-planner-generate"
-main = "src/index.js"
-compatibility_date = "2026-07-15"
-
-[[kv_namespaces]]
-binding = "TRIPS_KV"
-id = "4b2a6cce3878486e8b1634d7112f2df4"
