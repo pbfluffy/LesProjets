@@ -39,8 +39,20 @@ async function saveOrPrune(env, uid, entry) {
 
 // Adds/replaces one device's push subscription (idempotent by endpoint —
 // re-subscribing the same device just refreshes its keys/timestamp).
+// p256dh/auth are checked as actual non-empty strings, not just "keys is
+// truthy" — a subscription missing either would still get accepted here,
+// then fail every future push inside web-push's own validation before any
+// network call, so the thrown error has no HTTP status to classify as
+// "gone" and the dead subscription would never get pruned, just retried
+// forever on every cron tick.
 export async function upsertSubscription(env, uid, subscription) {
-  if (!subscription || typeof subscription.endpoint !== 'string' || !subscription.keys) return false
+  if (
+    !subscription ||
+    typeof subscription.endpoint !== 'string' ||
+    !subscription.keys ||
+    typeof subscription.keys.p256dh !== 'string' || !subscription.keys.p256dh ||
+    typeof subscription.keys.auth !== 'string' || !subscription.keys.auth
+  ) return false
   const entry = await getAlerts(env, uid)
   const next = entry.subscriptions.filter((s) => s.endpoint !== subscription.endpoint)
   next.push({
