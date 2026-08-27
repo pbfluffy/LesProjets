@@ -210,8 +210,36 @@ async function inBatches(items, size, fn) {
 // signalBuy/signalSell), so a notification reads the same way the app
 // itself already does for that user.
 const NOTIFICATION_COPY = {
-  en: { buy: 'Buy zone', sell: 'Sell zone', entered: (name, zone) => `${name} entered the ${zone}`, tapToView: 'tap to view' },
-  th: { buy: 'โซนซื้อ', sell: 'โซนขาย', entered: (name, zone) => `${name} เข้าสู่${zone}แล้ว`, tapToView: 'แตะเพื่อดู' },
+  en: {
+    buy: 'Buy zone', sell: 'Sell zone',
+    entered: (name, zone) => `${name} entered the ${zone}`,
+    near: (word) => `near its ${word} low`,
+    nearSell: (word) => `near its ${word} high`,
+    tapToView: 'tap to view',
+  },
+  th: {
+    buy: 'โซนซื้อ', sell: 'โซนขาย',
+    entered: (name, zone) => `${name} เข้าสู่${zone}แล้ว`,
+    near: (word) => `ใกล้จุดต่ำสุด${word}`,
+    nearSell: (word) => `ใกล้จุดสูงสุด${word}`,
+    tapToView: 'แตะเพื่อดู',
+  },
+}
+
+// The "band" number this used to show (e.g. "Band 3/10") was confusing
+// without the in-app popover for context, but the underlying fact — where
+// today's price sits in its own recent range — is worth keeping, just in
+// plain language instead of a raw fraction. "near its 1-year low/high" is
+// the same well-known phrasing as a stock's real "52-week low/high", tied
+// to whichever lookback range the user actually picked for this alert.
+// Thai's "ในรอบ {duration}" doesn't fit YTD (it isn't a fixed duration —
+// it means "since the start of the year"), so that one gets its own phrase.
+const RANGE_QUALIFIER = {
+  en: { '1d': '1-day', '7d': '7-day', '3mo': '3-month', '6mo': '6-month', ytd: 'YTD', '1y': '1-year', '2y': '2-year', '5y': '5-year' },
+  th: {
+    '1d': 'ในรอบ 1 วัน', '7d': 'ในรอบ 7 วัน', '3mo': 'ในรอบ 3 เดือน', '6mo': 'ในรอบ 6 เดือน',
+    ytd: 'ตั้งแต่ต้นปี', '1y': 'ในรอบ 1 ปี', '2y': 'ในรอบ 2 ปี', '5y': 'ในรอบ 5 ปี',
+  },
 }
 
 // Ticker's real logo (same free public endpoint TickerLogo.jsx uses) —
@@ -224,8 +252,9 @@ const NOTIFICATION_COPY = {
 // `entry.currency`) — a conversion failure (rates unavailable, or an
 // exotic quote currency open.er-api.com doesn't track) just falls back to
 // the quote's native currency, same degrade as the in-app card.
-function notificationCopy(symbol, direction, quote, targetCurrency, rates, targetLang) {
+function notificationCopy(symbol, direction, range, quote, targetCurrency, rates, targetLang) {
   const copy = NOTIFICATION_COPY[targetLang] || NOTIFICATION_COPY.en
+  const qualifiers = RANGE_QUALIFIER[targetLang] || RANGE_QUALIFIER.en
   const zone = direction === 'buy' ? copy.buy : copy.sell
   const name = quote?.name && quote.name !== symbol ? quote.name : symbol
   const converted = targetCurrency && targetCurrency !== quote?.currency
@@ -234,9 +263,11 @@ function notificationCopy(symbol, direction, quote, targetCurrency, rates, targe
   const price = converted !== null
     ? formatPrice(converted, targetCurrency)
     : formatPrice(quote?.current, quote?.currency)
+  const rangeWord = qualifiers[range]
+  const position = rangeWord ? (direction === 'buy' ? copy.near(rangeWord) : copy.nearSell(rangeWord)) : null
   return {
     title: copy.entered(name, zone),
-    body: `${price} · ${copy.tapToView}`,
+    body: position ? `${price} · ${position} · ${copy.tapToView}` : `${price} · ${copy.tapToView}`,
     icon: `https://financialmodelingprep.com/image-stock/${encodeURIComponent(symbol)}.png`,
     tag: symbol,
     symbol,
@@ -296,14 +327,14 @@ async function main() {
     if (signal !== 'buy' && signal !== 'sell') return
 
     for (const sub of subscribers) {
-      if (sub[signal]) toNotify.push({ uid: sub.uid, symbol, direction: signal, quote })
+      if (sub[signal]) toNotify.push({ uid: sub.uid, symbol, range, direction: signal, quote })
     }
   })
 
   console.log(`${toNotify.length} notification(s) to send.`)
-  await inBatches(toNotify, BATCH_SIZE, async ({ uid, symbol, direction, quote }) => {
+  await inBatches(toNotify, BATCH_SIZE, async ({ uid, symbol, range, direction, quote }) => {
     const subscriptions = subsByUid.get(uid) || []
-    const payload = notificationCopy(symbol, direction, quote, currencyByUid.get(uid), rates, langByUid.get(uid))
+    const payload = notificationCopy(symbol, direction, range, quote, currencyByUid.get(uid), rates, langByUid.get(uid))
     await Promise.all(subscriptions.map(async (subscription) => {
       const result = await sendPush(subscription, payload)
       if (result === 'gone') await pruneSubscription(uid, subscription.endpoint)
