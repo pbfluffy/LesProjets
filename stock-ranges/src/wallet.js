@@ -2,6 +2,7 @@
 // dividend income derived from a symbol's actual paid-dividend history
 // (fetched from Yahoo via the worker), not a manually entered amount. No
 // React, no I/O, same style as deciles.js.
+import { sectorFor, SECTOR } from './data/sectors.js'
 
 // Unrealized P/L for one holding, all inputs already in the same currency
 // (callers convert with fx.js's convert() first — this file knows nothing
@@ -123,6 +124,37 @@ export function groupSymbolsByInstrumentType(symbols, quotes) {
   return INSTRUMENT_GROUP_ORDER
     .map((key) => ({ key, symbols: buckets[key] }))
     .filter((group) => group.symbols.length > 0)
+}
+
+const FUND_INSTRUMENT_TYPES = new Set(['ETF', 'MUTUALFUND'])
+const SECTOR_ORDER = [
+  SECTOR.TECHNOLOGY, SECTOR.COMMUNICATION_SERVICES, SECTOR.CONSUMER_DISCRETIONARY,
+  SECTOR.CONSUMER_STAPLES, SECTOR.HEALTHCARE, SECTOR.FINANCIAL_SERVICES,
+  SECTOR.INDUSTRIALS, SECTOR.ENERGY, SECTOR.UTILITIES, SECTOR.REAL_ESTATE,
+  SECTOR.MATERIALS, SECTOR.FUND, SECTOR.OTHER,
+]
+
+// Groups the wallet's per-ticker allocation (AllocationChart's `items`,
+// {symbol, value}) into per-sector slices, for the "group by business
+// line" view. Funds (ETFs/mutual funds) hold many companies across
+// sectors, so they're bucketed by the live quote's instrumentType rather
+// than a guessed single sector — that's live data already fetched for
+// every holding, unlike sectors.js's curated (necessarily incomplete)
+// ticker map, which only decides the non-fund case.
+export function groupAllocationBySector(items, quotes) {
+  const buckets = new Map() // sector -> { value, symbols }
+  items.forEach(({ symbol, value }) => {
+    const instrumentType = quotes[symbol]?.instrumentType
+    const sector = FUND_INSTRUMENT_TYPES.has(instrumentType) ? SECTOR.FUND : (sectorFor(symbol) || SECTOR.OTHER)
+    if (!buckets.has(sector)) buckets.set(sector, { value: 0, symbols: [] })
+    const bucket = buckets.get(sector)
+    bucket.value += value
+    bucket.symbols.push(symbol)
+  })
+  return SECTOR_ORDER
+    .filter((sector) => buckets.has(sector))
+    .map((sector) => ({ key: sector, value: buckets.get(sector).value, symbols: buckets.get(sector).symbols }))
+    .sort((a, b) => b.value - a.value)
 }
 
 const SORT_METRIC_KEY = { value: 'value', pl: 'plPercent', yield: 'yieldPercent' }

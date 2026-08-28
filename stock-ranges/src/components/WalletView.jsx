@@ -4,7 +4,7 @@ import { useLang } from '../LangContext.jsx'
 import { fetchQuote } from '../stockApi.js'
 import { convert } from '../fx.js'
 import { formatPrice, maskPrice } from '../format.js'
-import { computeHoldingPL, projectedDividendIncome, estimateNextDividend, groupSymbolsByInstrumentType, sortHoldingSymbols } from '../wallet.js'
+import { computeHoldingPL, projectedDividendIncome, estimateNextDividend, groupSymbolsByInstrumentType, sortHoldingSymbols, groupAllocationBySector } from '../wallet.js'
 import { generateSummaryImage } from '../shareImage.js'
 import { loadPortfolioHistory, recordPortfolioSnapshot } from '../portfolioHistory.js'
 import { usePortfolioHistorySync } from '../hooks/usePortfolioHistorySync.js'
@@ -204,6 +204,13 @@ export default function WalletView({
       .sort((a, b) => b.value - a.value)
   }, [symbols, holdings, quotes, currency, rates])
 
+  // Same per-ticker values, regrouped by business line/sector for the
+  // allocation chart's other view — see wallet.js's groupAllocationBySector.
+  const sectorAllocationItems = useMemo(
+    () => groupAllocationBySector(allocationItems, quotes),
+    [allocationItems, quotes],
+  )
+
   // Recent past ex-dividend dates (actual, from Yahoo — its historical
   // endpoint is keyed by ex-date, not pay date) plus one upcoming estimate
   // per holding (guessed from cadence — see estimateNextDividend), merged
@@ -317,7 +324,7 @@ export default function WalletView({
       )}
 
       {allocationItems.length > 0 && (
-        <AllocationChart items={allocationItems} total={summary.marketValue} currency={currency} masked={masked} />
+        <AllocationChart items={allocationItems} sectorItems={sectorAllocationItems} total={summary.marketValue} currency={currency} masked={masked} />
       )}
 
       <DividendCalendar entries={dividendCalendarEntries} currency={currency} masked={masked} />

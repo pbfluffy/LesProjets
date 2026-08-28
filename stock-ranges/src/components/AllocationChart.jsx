@@ -27,14 +27,25 @@ function describeSlice(startAngle, endAngle) {
 
 // Per-holding allocation, by market value — each slice/legend dot reuses
 // the same symbol-hash hue as everywhere else in the wallet, so a ticker's
-// color stays consistent between its card, the pie, and the legend.
-export default function AllocationChart({ items, total, currency, masked }) {
+// color stays consistent between its card, the pie, and the legend. A
+// second grouping (by business line/sector, from wallet.js's
+// groupAllocationBySector) is precomputed by the caller and just switched
+// to here — sector slices hash color by the sector key instead of a
+// symbol, so they get their own stable, distinct palette rather than
+// coincidentally reusing one constituent ticker's color.
+export default function AllocationChart({ items, sectorItems, total, currency, masked }) {
   const { s } = useLang()
   const [expanded, setExpanded] = useState(false)
+  const [groupBy, setGroupBy] = useState('symbol')
   if (!items.length || total <= 0) return null
 
+  const bySymbol = groupBy === 'symbol'
+  const rawItems = bySymbol
+    ? items.map((item) => ({ key: item.symbol, label: item.symbol, value: item.value }))
+    : sectorItems.map((item) => ({ key: item.key, label: s[`sector${item.key}`] || item.key, value: item.value }))
+
   let cursor = 0
-  const slices = items.map((item) => {
+  const slices = rawItems.map((item) => {
     const pct = (item.value / total) * 100
     const startAngle = cursor
     const endAngle = cursor + (item.value / total) * 360
@@ -46,17 +57,37 @@ export default function AllocationChart({ items, total, currency, masked }) {
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.title}>{s.allocationTitle}</div>
+      <div className={styles.titleRow}>
+        <div className={styles.title}>{s.allocationTitle}</div>
+        <div className={styles.groupToggle} role="group" aria-label={s.allocationGroupBy}>
+          <button
+            type="button"
+            className={styles.groupToggleBtn}
+            data-active={bySymbol}
+            onClick={() => { setGroupBy('symbol'); setExpanded(false) }}
+          >
+            {s.allocationByTicker}
+          </button>
+          <button
+            type="button"
+            className={styles.groupToggleBtn}
+            data-active={!bySymbol}
+            onClick={() => { setGroupBy('sector'); setExpanded(false) }}
+          >
+            {s.allocationBySector}
+          </button>
+        </div>
+      </div>
       <div className={styles.body}>
         <svg viewBox="0 0 200 200" className={styles.chart} role="img" aria-label={s.allocationTitle}>
           {slices.length === 1 ? (
-            <circle cx={CX} cy={CY} r={R} fill={`hsl(${tagHue(slices[0].symbol)} 60% 60%)`} />
+            <circle cx={CX} cy={CY} r={R} fill={`hsl(${tagHue(slices[0].key)} 60% 60%)`} />
           ) : (
             slices.map((slice) => (
               <path
-                key={slice.symbol}
+                key={slice.key}
                 d={describeSlice(slice.startAngle, slice.endAngle)}
-                fill={`hsl(${tagHue(slice.symbol)} 60% 60%)`}
+                fill={`hsl(${tagHue(slice.key)} 60% 60%)`}
                 stroke="var(--color-surface)"
                 strokeWidth="2"
               />
@@ -66,9 +97,9 @@ export default function AllocationChart({ items, total, currency, masked }) {
         <div className={styles.legendCol}>
           <ul className={styles.legend}>
             {visibleSlices.map((slice) => (
-              <li key={slice.symbol}>
-                <span className={styles.dot} style={{ background: `hsl(${tagHue(slice.symbol)} 60% 60%)` }} aria-hidden="true" />
-                <span className={styles.legendSymbol}>{slice.symbol}</span>
+              <li key={slice.key}>
+                <span className={styles.dot} style={{ background: `hsl(${tagHue(slice.key)} 60% 60%)` }} aria-hidden="true" />
+                <span className={styles.legendSymbol}>{slice.label}</span>
                 <span className={styles.legendPct}>{slice.pct.toFixed(1)}%</span>
                 <span className={styles.legendValue}>{masked ? maskPrice(currency) : formatPrice(slice.value, currency)}</span>
               </li>
