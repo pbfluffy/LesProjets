@@ -908,6 +908,7 @@ let auth, firestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp;
 let currentUser = null;
 let cloudSyncBroken = false;
 let lastSyncErrorCode = null;
+let lastSignInErrorCode = null;
 let cloudDocRef;
 
 function markSyncUnavailable(){
@@ -1381,7 +1382,12 @@ function updateSyncUI(){
     }
   }else{
     btn.textContent = 'Sign in to sync';
-    status.textContent = '';
+    if(lastSignInErrorCode){
+      status.textContent = `Sign-in failed (${lastSignInErrorCode}) — try again`;
+      status.classList.add('status-error');
+    }else{
+      status.textContent = '';
+    }
     if(retryBtn) retryBtn.style.display = 'none';
   }
 }
@@ -1404,11 +1410,14 @@ document.getElementById('travel-signin-btn').addEventListener('click', attemptSi
 document.getElementById('packing-signin-btn').addEventListener('click', attemptSignIn);
 async function attemptSignIn(){
   const status = document.getElementById('sync-status');
+  lastSignInErrorCode = null;
   if(status) status.textContent = 'Signing in…';
   try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
   catch(e){
-    console.warn('Sign-in failed:', e.message);
-    if(status) status.textContent = '';
+    console.warn('Sign-in failed:', e.code || e.message);
+    if(e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request'){
+      lastSignInErrorCode = e.code || e.message || 'unknown-error';
+    }
     updateSyncUI();
   }
 }
@@ -1510,6 +1519,7 @@ async function loadTravelContent(){
 onAuthStateChanged(auth, (user)=>{
   currentUser = user;
   cloudSyncBroken = false;
+  if(user) lastSignInErrorCode = null;
   updateSyncUI();
   loadTravelContent();
   initPackingTab();
