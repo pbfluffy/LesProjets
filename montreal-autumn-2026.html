@@ -1254,7 +1254,7 @@ function markSyncUnavailable(){
       import('https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js'),
     ]);
     const { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } = authMod;
-    const { getFirestore } = fsMod;
+    const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } = fsMod;
     ({ doc, getDoc, setDoc, onSnapshot, serverTimestamp } = fsMod);
 
     const firebaseConfig = {
@@ -1267,7 +1267,20 @@ function markSyncUnavailable(){
     };
     const fbApp = initializeApp(firebaseConfig);
     auth = getAuth(fbApp);
-    firestore = getFirestore(fbApp);
+    // Persistent (IndexedDB) local cache: repeat visits read from disk first
+    // instead of re-fetching everything over the network, and reconnects only
+    // pull the delta — meaningfully less data used checking the page
+    // repeatedly over 2 weeks on mobile data. Falls back to the plain
+    // in-memory client if persistence isn't available (private browsing,
+    // unsupported browser, etc.) so the page still works either way.
+    try{
+      firestore = initializeFirestore(fbApp, {
+        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+      });
+    }catch(e){
+      console.warn('Firestore persistent cache unavailable, using in-memory cache:', e.code || e.message);
+      firestore = getFirestore(fbApp);
+    }
     cloudDocRef = (uid) => doc(firestore, 'montrealChecklist', uid);
     const tripTasksRef = doc(firestore, 'tripTasks', 'montreal2026');
     const tripContentRef = doc(firestore, 'tripContent', 'montreal2026');
