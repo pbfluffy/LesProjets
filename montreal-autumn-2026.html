@@ -379,6 +379,7 @@
   }
   .food-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
   .food-item{
+    position:relative;
     background:var(--cream); border:1px solid var(--line); border-radius:10px;
     padding:14px 16px;
     transition:transform .15s ease, box-shadow .15s ease;
@@ -390,6 +391,41 @@
   }
   .food-item .name{ font-weight:600; font-size:0.95rem; }
   .food-item .note{ font-size:0.8rem; color:var(--ink-soft); margin-top:3px; }
+
+  /* ---------- IN-PAGE EDITING ---------- */
+  .edit-affordance{ display:none; }
+  body.can-edit .edit-affordance{ display:inline-flex; }
+  .card-edit-btn{
+    position:absolute; right:10px; top:10px; z-index:1;
+    display:none; align-items:center; justify-content:center;
+    width:26px; height:26px; padding:0;
+    background:rgba(87,101,74,0.12); border:1px solid var(--line); border-radius:8px;
+    color:var(--moss); font-size:0.82rem; cursor:pointer;
+    transition:background .15s ease;
+  }
+  .card-edit-btn:hover{ background:rgba(87,101,74,0.22); }
+  .day-card .card-edit-btn{ right:44px; top:16px; }
+  .add-item-btn{
+    display:none;
+    width:100%; border:1px dashed var(--line); background:transparent; border-radius:var(--radius);
+    padding:16px; color:var(--ink-soft); font-family:inherit; font-size:0.88rem; font-weight:600;
+    cursor:pointer; text-align:center;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .add-item-btn:hover{ border-color:var(--maple-deep); color:var(--maple-deep); }
+  .edit-form{ padding:2px 0; }
+  .edit-field{ display:block; margin-bottom:10px; }
+  .edit-field-label{
+    display:block; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em;
+    color:var(--ink-soft); margin-bottom:4px; font-weight:600;
+  }
+  .edit-field input, .edit-field textarea{
+    width:100%; box-sizing:border-box; padding:8px 10px;
+    border:1px solid var(--line); border-radius:8px;
+    font-family:inherit; font-size:0.88rem; background:var(--parchment); color:var(--ink);
+  }
+  .edit-field textarea{ resize:vertical; }
+  .edit-form-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
 
   /* ---------- PACKING / CHECKLIST ---------- */
   .checklist-progress{
@@ -703,19 +739,19 @@
 // This script has zero external dependencies. It must always run,
 // even if the Firebase sync script below fails to load (offline, ad blocker, etc).
 // ---------------- DATA ----------------
-const itinerary = [
-  {date:"Fri · Oct 2", time:"Morning", title:"Bagel &amp; Morning Coffee", desc:"Land at Montréal-Trudeau (YUL), then kick off with a fresh bagel and local coffee at St-Viateur before a shopping stroll downtown.", loc:"St-Viateur Bagel", map:"https://www.google.com/maps/search/?api=1&query=St-Viateur+Bagel+Montreal"},
+let itinerary = [
+  {date:"Fri · Oct 2", time:"Morning", title:"Bagel & Morning Coffee", desc:"Land at Montréal-Trudeau (YUL), then kick off with a fresh bagel and local coffee at St-Viateur before a shopping stroll downtown.", loc:"St-Viateur Bagel", map:"https://www.google.com/maps/search/?api=1&query=St-Viateur+Bagel+Montreal"},
   {date:"Fri · Oct 2", time:"Morning", title:"UNIQLO Centre Eaton de Montréal", desc:"Quick stop for any last layering pieces at the Eaton Centre.", loc:"UNIQLO Centre Eaton de Montréal", map:"https://www.google.com/maps/search/?api=1&query=UNIQLO+Centre+Eaton+de+Montreal"},
-  {date:"Fri · Oct 2", time:"Afternoon", title:"Lululemon Sainte-Catherine Walk &amp; Shop", desc:"Browse the Lululemon flagship and walk along Rue Sainte-Catherine.", loc:"Rue Sainte-Catherine", map:"https://www.google.com/maps/search/?api=1&query=Lululemon+Sainte-Catherine+Montreal"},
-  {date:"Fri · Oct 2", time:"Afternoon", title:"Check-in &amp; Rest", desc:"Check in to the apartment in Griffintown (235 Rue Young) and rest up before an early departure to Québec City tomorrow.", loc:"235 Rue Young, Griffintown", map:"https://www.google.com/maps/search/?api=1&query=235+Rue+Young+Montreal"},
+  {date:"Fri · Oct 2", time:"Afternoon", title:"Lululemon Sainte-Catherine Walk & Shop", desc:"Browse the Lululemon flagship and walk along Rue Sainte-Catherine.", loc:"Rue Sainte-Catherine", map:"https://www.google.com/maps/search/?api=1&query=Lululemon+Sainte-Catherine+Montreal"},
+  {date:"Fri · Oct 2", time:"Afternoon", title:"Check-in & Rest", desc:"Check in to the apartment in Griffintown (235 Rue Young) and rest up before an early departure to Québec City tomorrow.", loc:"235 Rue Young, Griffintown", map:"https://www.google.com/maps/search/?api=1&query=235+Rue+Young+Montreal"},
   {date:"Sat · Oct 3", time:"Full Day", title:"Day Trip to Old Québec", desc:"Full-day trip to Québec City: Fairmont Le Château Frontenac, La Boutique de Noël de Québec, Escalier Casse-Cou, Rue du Petit-Champlain, and Parc du Bastion-de-la-Reine.", loc:"Old Québec", map:"https://www.google.com/maps/search/?api=1&query=Old+Quebec"},
   {date:"Sun · Oct 4", time:"Morning", title:"Morning Run — Lachine Canal", desc:"Early flat run or walk along the Lachine Canal path right behind the apartment.", loc:"Lachine Canal", map:"https://www.google.com/maps/search/?api=1&query=Lachine+Canal+Montreal"},
-  {date:"Sun · Oct 4", time:"Morning", title:"Crew Collective &amp; Café", desc:"Coffee inside the historic Royal Bank building — one of the city's most striking café interiors.", loc:"Old Montréal", map:"https://www.google.com/maps/search/?api=1&query=Crew+Collective+and+Cafe+Montreal"},
-  {date:"Sun · Oct 4", time:"Morning", title:"Old Montréal Exploration", desc:"Walk down cobblestone streets, see French colonial architecture, visit Notre-Dame Basilica.", loc:"Old Montréal &amp; Notre-Dame Basilica", map:"https://www.google.com/maps/search/?api=1&query=Notre-Dame+Basilica+Montreal"},
-  {date:"Sun · Oct 4", time:"Afternoon", title:"Pointe-à-Callière Museum &amp; Souvenirs", desc:"Archaeology and history museum built over the city's original foundations, plus a stop for souvenirs.", loc:"Pointe-à-Callière", map:"https://www.google.com/maps/search/?api=1&query=Pointe-a-Calliere+Montreal"},
-  {date:"Sun · Oct 4", time:"Evening", title:"Old Port Sunset &amp; Ferris Wheel", desc:"Ride La Grande Roue de Montréal for a panoramic view of the St. Lawrence River at golden hour.", loc:"Old Port of Montréal", map:"https://www.google.com/maps/search/?api=1&query=Old+Port+of+Montreal"},
+  {date:"Sun · Oct 4", time:"Morning", title:"Crew Collective & Café", desc:"Coffee inside the historic Royal Bank building — one of the city's most striking café interiors.", loc:"Old Montréal", map:"https://www.google.com/maps/search/?api=1&query=Crew+Collective+and+Cafe+Montreal"},
+  {date:"Sun · Oct 4", time:"Morning", title:"Old Montréal Exploration", desc:"Walk down cobblestone streets, see French colonial architecture, visit Notre-Dame Basilica.", loc:"Old Montréal & Notre-Dame Basilica", map:"https://www.google.com/maps/search/?api=1&query=Notre-Dame+Basilica+Montreal"},
+  {date:"Sun · Oct 4", time:"Afternoon", title:"Pointe-à-Callière Museum & Souvenirs", desc:"Archaeology and history museum built over the city's original foundations, plus a stop for souvenirs.", loc:"Pointe-à-Callière", map:"https://www.google.com/maps/search/?api=1&query=Pointe-a-Calliere+Montreal"},
+  {date:"Sun · Oct 4", time:"Evening", title:"Old Port Sunset & Ferris Wheel", desc:"Ride La Grande Roue de Montréal for a panoramic view of the St. Lawrence River at golden hour.", loc:"Old Port of Montréal", map:"https://www.google.com/maps/search/?api=1&query=Old+Port+of+Montreal"},
   {date:"Mon · Oct 5", time:"Morning", title:"Jean-Talon Market", desc:"Explore one of the largest open-air markets in North America and grab a specialty coffee.", loc:"Jean-Talon Market", map:"https://www.google.com/maps/search/?api=1&query=Jean-Talon+Market+Montreal"},
-  {date:"Mon · Oct 5", time:"Afternoon", title:"Mile End &amp; Bagel Taste-Off", desc:"Stroll the artistic Mile End and settle the Fairmount vs. St-Viateur bagel debate.", loc:"Mile End", map:"https://www.google.com/maps/search/?api=1&query=Mile+End+Montreal"},
+  {date:"Mon · Oct 5", time:"Afternoon", title:"Mile End & Bagel Taste-Off", desc:"Stroll the artistic Mile End and settle the Fairmount vs. St-Viateur bagel debate.", loc:"Mile End", map:"https://www.google.com/maps/search/?api=1&query=Mile+End+Montreal"},
   {date:"Mon · Oct 5", time:"Afternoon", title:"Café Olympico", desc:"Historic Italian espresso bar in Mile End, open since the 1970s.", loc:"Mile End", map:"https://www.google.com/maps/search/?api=1&query=Cafe+Olimpico+Montreal"},
   {date:"Mon · Oct 5", time:"Afternoon", title:"Montréal Botanical Garden", desc:"Explore greenhouse collections and beautifully landscaped outdoor gardens before the winter chill.", loc:"Jardin botanique de Montréal", map:"https://www.google.com/maps/search/?api=1&query=Montreal+Botanical+Garden"},
   {date:"Mon · Oct 5", time:"Evening", title:"Gardens of Light Festival", desc:"Iconic annual autumn lantern festival illuminated inside the Chinese and Japanese gardens.", loc:"Jardin botanique de Montréal", map:"https://www.google.com/maps/search/?api=1&query=Montreal+Botanical+Garden", flag:"Must-see"},
@@ -724,17 +760,17 @@ const itinerary = [
   {date:"Wed · Oct 7", time:"Morning", title:"Saint Joseph's Oratory", desc:"Visit Canada's largest church, featuring one of the largest domed structures in the world.", loc:"Saint Joseph's Oratory", map:"https://www.google.com/maps/search/?api=1&query=Saint+Joseph+Oratory+Montreal"},
   {date:"Wed · Oct 7", time:"Morning", title:"Montréal Museum of Fine Arts", desc:"Canada's oldest museum, spanning several connected pavilions of art and design.", loc:"Montréal Museum of Fine Arts", map:"https://www.google.com/maps/search/?api=1&query=Montreal+Museum+of+Fine+Arts"},
   {date:"Wed · Oct 7", time:"Afternoon", title:"Westmount Architecture Walk", desc:"Walk past stunning Victorian-style luxury homes framed by vibrant changing trees.", loc:"Westmount Neighborhood", map:"https://www.google.com/maps/search/?api=1&query=Westmount+Montreal"},
-  {date:"Thu · Oct 8", time:"Full Day", title:"Downtown &amp; Underground City (RÉSO)", desc:"Shop along Rue Sainte-Catherine. Explore the 32km subterranean network if the weather turns cold or rainy.", loc:"Downtown Montréal / RÉSO", map:"https://www.google.com/maps/search/?api=1&query=Rue+Sainte-Catherine+Montreal"},
-  {date:"Fri · Oct 9", time:"Full Day", title:"Leisure Day: Coffee Hopping &amp; City Walk", desc:"An open day to wander, revisit a favourite spot, or just relax — hop between specialty coffee shops around the city centre.", loc:"Montréal City Centre", map:"https://www.google.com/maps/search/?api=1&query=Downtown+Montreal"},
+  {date:"Thu · Oct 8", time:"Full Day", title:"Downtown & Underground City (RÉSO)", desc:"Shop along Rue Sainte-Catherine. Explore the 32km subterranean network if the weather turns cold or rainy.", loc:"Downtown Montréal / RÉSO", map:"https://www.google.com/maps/search/?api=1&query=Rue+Sainte-Catherine+Montreal"},
+  {date:"Fri · Oct 9", time:"Full Day", title:"Leisure Day: Coffee Hopping & City Walk", desc:"An open day to wander, revisit a favourite spot, or just relax — hop between specialty coffee shops around the city centre.", loc:"Montréal City Centre", map:"https://www.google.com/maps/search/?api=1&query=Downtown+Montreal"},
   {date:"Sat · Oct 10", time:"Full Day", title:"Day Trip to Parc Oméga", desc:"Drive out to Montebello for a car safari through Parc Oméga — bison, wolves, deer, and more roaming in their natural habitat.", loc:"Parc Oméga, Montebello", map:"https://www.google.com/maps/search/?api=1&query=Parc+Omega+Montebello"},
   {date:"Sun · Oct 11", time:"Morning", title:"Authentic Poutine Lunch", desc:"Try Québec's signature dish: crispy fries, squeaky fresh cheese curds, and rich hot gravy at La Banquise.", loc:"La Banquise", map:"https://www.google.com/maps/search/?api=1&query=La+Banquise+Montreal"},
-  {date:"Mon · Oct 12", time:"Full Day", title:"Parc Jean-Drapeau &amp; Biosphère", desc:"Visit the island park in the St. Lawrence River. Check out the environmental museum inside the geodesic sphere.", loc:"Parc Jean-Drapeau", map:"https://www.google.com/maps/search/?api=1&query=Parc+Jean-Drapeau+Montreal", flag:"Thanksgiving (CA)"},
-  {date:"Tue · Oct 13", time:"Full Day", title:"Lachine Canal Cycling &amp; Atwater Market", desc:"Rent a bike, ride along the canal, and pick up local picnic goods at Marché Atwater.", loc:"Marché Atwater", map:"https://www.google.com/maps/search/?api=1&query=Atwater+Market+Montreal"},
+  {date:"Mon · Oct 12", time:"Full Day", title:"Parc Jean-Drapeau & Biosphère", desc:"Visit the island park in the St. Lawrence River. Check out the environmental museum inside the geodesic sphere.", loc:"Parc Jean-Drapeau", map:"https://www.google.com/maps/search/?api=1&query=Parc+Jean-Drapeau+Montreal", flag:"Thanksgiving (CA)"},
+  {date:"Tue · Oct 13", time:"Full Day", title:"Lachine Canal Cycling & Atwater Market", desc:"Rent a bike, ride along the canal, and pick up local picnic goods at Marché Atwater.", loc:"Marché Atwater", map:"https://www.google.com/maps/search/?api=1&query=Atwater+Market+Montreal"},
   {date:"Wed · Oct 14", time:"Full Day", title:"Le Plateau-Mont-Royal Leisurely Walk", desc:"Photograph the famous spiral outdoor staircases, vibrant murals, and browse boutique cafés for last-minute finds.", loc:"Le Plateau-Mont-Royal", map:"https://www.google.com/maps/search/?api=1&query=Le+Plateau-Mont-Royal+Montreal"},
-  {date:"Thu · Oct 15", time:"Morning", title:"Pack &amp; Check-out", desc:"Enjoy a final morning coffee near Griffintown, check out of the apartment, and head to YUL airport.", loc:"235 Rue Young, Griffintown", map:"https://www.google.com/maps/search/?api=1&query=235+Rue+Young+Montreal"}
+  {date:"Thu · Oct 15", time:"Morning", title:"Pack & Check-out", desc:"Enjoy a final morning coffee near Griffintown, check out of the apartment, and head to YUL airport.", loc:"235 Rue Young, Griffintown", map:"https://www.google.com/maps/search/?api=1&query=235+Rue+Young+Montreal"}
 ];
 
-const foodItems = [
+let foodItems = [
   {cat:"Cafés", name:"Alfred Café Buvette par Le Petit Dep"},
   {cat:"Cafés", name:"Spanel Crêpes et Gourmets"},
   {cat:"Cafés", name:"Café BRUT"},
@@ -746,7 +782,7 @@ const foodItems = [
   {cat:"Restaurants", name:"Ma Poule Mouillée", note:"Portuguese grilled chicken near Parc La Fontaine — chicken poutine w/ chorizo, shareable, ~$12–20 CAD", map:"https://maps.app.goo.gl/UwFZdn3XKTt6ED6s5"},
   {cat:"Restaurants", name:"Drogheria Fine", note:"Tiny takeaway pasta counter in Mile End — gnocchi in Nonna's sauce, ~$6–8 CAD", map:"https://maps.app.goo.gl/8HDTkEDzTSxrnHaZ7"},
   {cat:"Restaurants", name:"Wilensky's Light Lunch", note:"Vintage sandwich counter & soda fountain since 1932 — the Wilensky Special, ~$4–8 CAD", map:"https://maps.app.goo.gl/MSnJtx6abfpgieFG9"},
-  {cat:"Restaurants", name:"Restaurant Dobe &amp; Andy", note:"Hong Kong-style BBQ in Chinatown — roast pork & duck rice, generous portions, ~$12–18 CAD", map:"https://maps.app.goo.gl/uFTqghLy24ws65t66"},
+  {cat:"Restaurants", name:"Restaurant Dobe & Andy", note:"Hong Kong-style BBQ in Chinatown — roast pork & duck rice, generous portions, ~$12–18 CAD", map:"https://maps.app.goo.gl/uFTqghLy24ws65t66"},
   {cat:"Local Legends", name:"La Banquise", note:"Plateau area"},
   {cat:"Local Legends", name:"St-Viateur Bagel or Fairmount Bagel", note:"Mile End, open 24hrs — fresh wood-fired sesame bagels, ~$1.50–3 CAD", map:"https://maps.app.goo.gl/4wcXxZ6B28rPGdZ16"},
   {cat:"Local Legends", name:"Schwartz's Deli", note:"Legendary smoked meat since 1928, Saint-Laurent — order takeout from the side counter to skip the line, ~$15–20 CAD", map:"https://maps.app.goo.gl/b53rD1cCPBPzRMwu8"},
@@ -763,7 +799,7 @@ const foodItems = [
   {cat:"Convenience", name:"Pharmaprix", note:"Branches near Metro stations / city centre"}
 ];
 
-const runItems = [
+let runItems = [
   {cat:"Hill & Trail", name:"Mount Royal Park", note:"4.8★ · Opens 6:00 AM · The Olmsted Trail loop (~6–7km) for runners wanting elevation, with forest air and Kondiaronk Belvedere views along the way.", map:"https://maps.app.goo.gl/Rn1PzbkWStzsxWEZ7"},
   {cat:"Flat & Waterfront", name:"Lachine Canal", note:"4.7★ · Flat path stretching ~14km one-way past Old Port toward Lachine — good for long, fast runs; easy to combine with Atwater Market.", map:"https://maps.app.goo.gl/pxrkGh8RjCu4GTxz5"},
   {cat:"Flat & Waterfront", name:"Old Port of Montréal", note:"Waterfront path with river views — flat, easy footing, lively atmosphere for a relaxed pace.", map:"https://maps.app.goo.gl/tkrmfFHnRzdEf7eM9"},
@@ -772,6 +808,58 @@ const runItems = [
   {cat:"Nature & Waterfront", name:"Visitation Island Nature Park", note:"4.6★ · Opens 7:00 AM · Quiet nature trail along Rivière des Prairies — good for an easy recovery run."},
   {cat:"Nature & Waterfront", name:"Verdun Beach", note:"4.2★ · Opens 10:00 AM · Flat waterside path along the St. Lawrence with views of Nuns' Island."}
 ];
+
+// ---------------- EDIT-MODE HELPERS ----------------
+// Edit affordances (pencil/add/delete buttons) only ever become visible via the
+// body.can-edit class, toggled by the Firebase script for the two allowed trip
+// owners. Everything here still works read-only with no Firebase at all.
+function esc(s){
+  if(s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function buildEditForm(fieldSpec, record, handlers){
+  const wrap = document.createElement('div');
+  wrap.className = 'edit-form';
+  const inputs = {};
+  fieldSpec.forEach(f=>{
+    const row = document.createElement('label');
+    row.className = 'edit-field';
+    const span = document.createElement('span');
+    span.className = 'edit-field-label';
+    span.textContent = f.label;
+    row.appendChild(span);
+    const input = document.createElement(f.type === 'textarea' ? 'textarea' : 'input');
+    if(f.type === 'textarea') input.rows = 3;
+    else input.type = 'text';
+    input.value = (record && record[f.key]) || '';
+    row.appendChild(input);
+    inputs[f.key] = input;
+    wrap.appendChild(row);
+  });
+  const btnRow = document.createElement('div');
+  btnRow.className = 'edit-form-actions';
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'button'; saveBtn.className = 'sync-btn'; saveBtn.textContent = 'Save';
+  saveBtn.addEventListener('click', ()=>{
+    const vals = {};
+    fieldSpec.forEach(f=>{ vals[f.key] = inputs[f.key].value.trim() || undefined; });
+    handlers.onSave(vals);
+  });
+  btnRow.appendChild(saveBtn);
+  if(handlers.onDelete){
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button'; delBtn.className = 'reset-btn danger'; delBtn.textContent = 'Delete';
+    delBtn.addEventListener('click', ()=>{ if(confirm('Delete this item?')) handlers.onDelete(); });
+    btnRow.appendChild(delBtn);
+  }
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button'; cancelBtn.className = 'reset-btn'; cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', handlers.onCancel);
+  btnRow.appendChild(cancelBtn);
+  wrap.appendChild(btnRow);
+  wrap.addEventListener('click', (e)=> e.stopPropagation());
+  return wrap;
+}
 
 // ---------------- RENDER: TIMELINE ----------------
 function lerpColor(a, b, t){
@@ -783,54 +871,210 @@ function lerpColor(a, b, t){
 function nodeColor(t){
   return t < 0.5 ? lerpColor("57654a","c1892a", t/0.5) : lerpColor("c1892a","a8342a",(t-0.5)/0.5);
 }
+const MONTH_KEYS = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+function itineraryDateKey(dateStr){
+  const m = /([A-Za-z]{3})\s+(\d{1,2})/.exec(dateStr || '');
+  if(!m) return 9999;
+  return (MONTH_KEYS[m[1]] ?? 0) * 100 + parseInt(m[2], 10);
+}
+function itineraryCompare(a, b){ return itineraryDateKey(a.date) - itineraryDateKey(b.date); }
+const itineraryFieldSpec = [
+  {key:'date', label:'Date (e.g. "Fri · Oct 2")'},
+  {key:'time', label:'Time (e.g. "Morning", "Full Day")'},
+  {key:'title', label:'Title'},
+  {key:'desc', label:'Description', type:'textarea'},
+  {key:'loc', label:'Location label'},
+  {key:'map', label:'Map link (optional, https://…)'},
+  {key:'flag', label:'Flag (optional, e.g. "Must-see")'}
+];
 
 const mount = document.getElementById('timeline-mount');
-let weekOpened = null;
-const weeks = [
-  {label:"Week One · Oct 2 – Oct 8", range:[0,20]},
-  {label:"Week Two · Oct 9 – Oct 15", range:[21,27]}
-];
-weeks.forEach(wk=>{
-  const label = document.createElement('div');
-  label.className = 'week-label';
-  label.textContent = wk.label;
-  mount.appendChild(label);
-  const tl = document.createElement('div');
-  tl.className = 'timeline';
-  for(let i=wk.range[0]; i<=wk.range[1]; i++){
-    const item = itinerary[i];
-    const t = i/(itinerary.length-1);
-    const card = document.createElement('div');
-    card.className = 'day-card';
-    card.innerHTML = `
-      <div class="leaf-node" style="color:${nodeColor(t)}; background:${nodeColor(t)}"></div>
-      <span class="collapse-hint">▼</span>
-      <div class="top-row">
-        <span class="date-badge">${item.date}</span>
-        <span class="time-pill">${item.time}</span>
-        ${item.flag ? `<span class="flag">${item.flag}</span>` : ''}
-      </div>
-      <h3>${item.title}</h3>
-      <div class="day-body"><div class="day-body-inner">
-        <p>${item.desc}</p>
-        <div class="loc-row">📍 <a href="${item.map}" target="_blank" rel="noopener">${item.loc}</a></div>
-      </div></div>
-    `;
-    card.addEventListener('click', (e)=>{
-      if(e.target.closest('a')) return;
-      card.classList.toggle('collapsed');
-    });
-    tl.appendChild(card);
-  }
-  mount.appendChild(tl);
-});
 const collapseAllBtn = document.getElementById('collapse-all-btn');
 let allCollapsed = false;
+let editingItineraryKey = null; // null | array index | 'new'
+
+function renderItinerary(){
+  mount.innerHTML = '';
+  const uniqueDates = [];
+  itinerary.forEach(it=>{ if(!uniqueDates.includes(it.date)) uniqueDates.push(it.date); });
+  const weekNames = ['Week One','Week Two','Week Three','Week Four','Week Five','Week Six','Week Seven','Week Eight'];
+  for(let w = 0; w * 7 < Math.max(uniqueDates.length, 1); w++){
+    const datesInWeek = uniqueDates.slice(w * 7, w * 7 + 7);
+    if(datesInWeek.length === 0) break;
+    const label = document.createElement('div');
+    label.className = 'week-label';
+    const shortDate = (s)=> (s || '').split('·').pop().trim();
+    label.textContent = `${weekNames[w] || 'Week ' + (w + 1)} · ${shortDate(datesInWeek[0])} – ${shortDate(datesInWeek[datesInWeek.length - 1])}`;
+    mount.appendChild(label);
+    const tl = document.createElement('div');
+    tl.className = 'timeline';
+    itinerary.forEach((item, idx)=>{
+      if(!datesInWeek.includes(item.date)) return;
+      const t = itinerary.length > 1 ? idx / (itinerary.length - 1) : 0;
+      const card = document.createElement('div');
+      card.className = 'day-card';
+      if(editingItineraryKey === idx){
+        card.appendChild(buildEditForm(itineraryFieldSpec, item, {
+          onSave:(vals)=>{
+            Object.assign(item, vals);
+            itinerary.sort(itineraryCompare);
+            editingItineraryKey = null;
+            persistTrip(renderItinerary);
+          },
+          onDelete:()=>{
+            const i = itinerary.indexOf(item);
+            if(i >= 0) itinerary.splice(i, 1);
+            editingItineraryKey = null;
+            persistTrip(renderItinerary);
+          },
+          onCancel:()=>{ editingItineraryKey = null; renderItinerary(); }
+        }));
+      }else{
+        card.innerHTML = `
+          <div class="leaf-node" style="color:${nodeColor(t)}; background:${nodeColor(t)}"></div>
+          <span class="collapse-hint">▼</span>
+          <button class="edit-affordance card-edit-btn" type="button" title="Edit this stop">✎</button>
+          <div class="top-row">
+            <span class="date-badge">${esc(item.date)}</span>
+            <span class="time-pill">${esc(item.time)}</span>
+            ${item.flag ? `<span class="flag">${esc(item.flag)}</span>` : ''}
+          </div>
+          <h3>${esc(item.title)}</h3>
+          <div class="day-body"><div class="day-body-inner">
+            <p>${esc(item.desc)}</p>
+            ${item.loc ? `<div class="loc-row">📍 ${item.map && /^https?:\/\//i.test(item.map) ? `<a href="${esc(item.map)}" target="_blank" rel="noopener">${esc(item.loc)}</a>` : esc(item.loc)}</div>` : ''}
+          </div></div>
+        `;
+        card.addEventListener('click', (e)=>{
+          if(e.target.closest('a') || e.target.closest('.card-edit-btn')) return;
+          card.classList.toggle('collapsed');
+        });
+        card.querySelector('.card-edit-btn').addEventListener('click', (e)=>{
+          e.stopPropagation();
+          editingItineraryKey = idx;
+          renderItinerary();
+        });
+      }
+      tl.appendChild(card);
+    });
+    mount.appendChild(tl);
+  }
+  if(editingItineraryKey === 'new'){
+    const card = document.createElement('div');
+    card.className = 'day-card';
+    card.style.marginTop = '16px';
+    card.appendChild(buildEditForm(itineraryFieldSpec, {}, {
+      onSave:(vals)=>{
+        itinerary.push(vals);
+        itinerary.sort(itineraryCompare);
+        editingItineraryKey = null;
+        persistTrip(renderItinerary);
+      },
+      onCancel:()=>{ editingItineraryKey = null; renderItinerary(); }
+    }));
+    mount.appendChild(card);
+  }
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'edit-affordance add-item-btn';
+  addBtn.style.marginTop = '16px';
+  addBtn.textContent = '+ Add a day stop';
+  addBtn.addEventListener('click', ()=>{ editingItineraryKey = 'new'; renderItinerary(); });
+  mount.appendChild(addBtn);
+  document.querySelectorAll('.day-card').forEach(c => c.classList.toggle('collapsed', allCollapsed));
+}
 collapseAllBtn.addEventListener('click', ()=>{
   allCollapsed = !allCollapsed;
   document.querySelectorAll('.day-card').forEach(c => c.classList.toggle('collapsed', allCollapsed));
   collapseAllBtn.textContent = allCollapsed ? 'Expand all days' : 'Collapse all days';
 });
+
+// ---------------- REUSABLE FILTERABLE / EDITABLE CARD GRID ----------------
+// Powers both the Food & Local Tips grid and the Running grid — same chips +
+// cards + edit/add/delete behaviour, just different data and colours.
+function createFilterableGrid({ chipsEl, gridEl, getItems, categoryColors, fieldSpec, addLabel }){
+  let currentFilter = 'All';
+  let editingKey = null; // null | array index | 'new'
+
+  function categoriesList(){
+    return ['All', ...new Set(getItems().map(f => f.cat).filter(Boolean))];
+  }
+  function rebuildChips(){
+    if(!categoriesList().includes(currentFilter)) currentFilter = 'All';
+    chipsEl.innerHTML = '';
+    categoriesList().forEach(c=>{
+      const b = document.createElement('button');
+      b.className = 'chip';
+      b.textContent = c;
+      b.setAttribute('aria-pressed', c === currentFilter ? 'true' : 'false');
+      const color = categoryColors[c];
+      if(color) b.style.setProperty('--chip-color', color);
+      b.addEventListener('click', ()=>{
+        currentFilter = c;
+        chipsEl.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
+        b.setAttribute('aria-pressed', 'true');
+        render();
+      });
+      chipsEl.appendChild(b);
+    });
+  }
+  function render(){
+    const items = getItems();
+    gridEl.innerHTML = '';
+    items.forEach((f, idx)=>{
+      if(editingKey !== idx && currentFilter !== 'All' && f.cat !== currentFilter) return;
+      const el = document.createElement('div');
+      el.className = 'food-item';
+      if(editingKey === idx){
+        el.style.borderLeft = '4px solid var(--slate)';
+        el.appendChild(buildEditForm(fieldSpec, f, {
+          onSave:(vals)=>{
+            Object.assign(f, vals);
+            editingKey = null;
+            persistTrip(()=>{ rebuildChips(); render(); });
+          },
+          onDelete:()=>{
+            const arr = getItems();
+            const i = arr.indexOf(f);
+            if(i >= 0) arr.splice(i, 1);
+            editingKey = null;
+            persistTrip(()=>{ rebuildChips(); render(); });
+          },
+          onCancel:()=>{ editingKey = null; render(); }
+        }));
+      }else{
+        const color = categoryColors[f.cat] || 'var(--ink-soft)';
+        el.style.borderLeft = `4px solid ${color}`;
+        el.innerHTML = `<button class="edit-affordance card-edit-btn" type="button" title="Edit">✎</button><span class="cat" style="color:${color}">${esc(f.cat)}</span><div class="name">${esc(f.name)}</div>${f.note ? `<div class="note">${esc(f.note)}</div>` : ''}${f.map && /^https?:\/\//i.test(f.map) ? `<div class="loc-row" style="margin-top:6px;">📍 <a href="${esc(f.map)}" target="_blank" rel="noopener">View map</a></div>` : ''}`;
+        el.querySelector('.card-edit-btn').addEventListener('click', ()=>{ editingKey = idx; render(); });
+      }
+      gridEl.appendChild(el);
+    });
+    if(editingKey === 'new'){
+      const el = document.createElement('div');
+      el.className = 'food-item';
+      el.style.borderLeft = '4px solid var(--slate)';
+      el.appendChild(buildEditForm(fieldSpec, {}, {
+        onSave:(vals)=>{
+          getItems().push(vals);
+          editingKey = null;
+          persistTrip(()=>{ rebuildChips(); render(); });
+        },
+        onCancel:()=>{ editingKey = null; render(); }
+      }));
+      gridEl.appendChild(el);
+    }
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'edit-affordance add-item-btn';
+    addBtn.textContent = addLabel;
+    addBtn.addEventListener('click', ()=>{ editingKey = 'new'; render(); });
+    gridEl.appendChild(addBtn);
+  }
+  rebuildChips();
+  render();
+  return { reload(){ rebuildChips(); render(); } };
+}
 
 // ---------------- RENDER: FOOD ----------------
 const categoryColors = {
@@ -840,37 +1084,20 @@ const categoryColors = {
   "Zoo": "var(--moss)",
   "Convenience": "var(--slate)"
 };
-const categories = ["All", ...new Set(foodItems.map(f=>f.cat))];
-const chipsEl = document.getElementById('food-chips');
-const gridEl = document.getElementById('food-grid');
-categories.forEach((c,idx)=>{
-  const b = document.createElement('button');
-  b.className = 'chip';
-  b.textContent = c;
-  b.setAttribute('aria-pressed', idx===0 ? 'true':'false');
-  const color = categoryColors[c];
-  if(color){
-    b.style.setProperty('--chip-color', color);
-  }
-  b.addEventListener('click', ()=>{
-    document.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed','false'));
-    b.setAttribute('aria-pressed','true');
-    renderFood(c);
-  });
-  chipsEl.appendChild(b);
+const foodFieldSpec = [
+  {key:'cat', label:'Category (e.g. "Cafés", "Restaurants")'},
+  {key:'name', label:'Name'},
+  {key:'note', label:'Note (optional)', type:'textarea'},
+  {key:'map', label:'Map link (optional, https://…)'}
+];
+const foodGridApi = createFilterableGrid({
+  chipsEl: document.getElementById('food-chips'),
+  gridEl: document.getElementById('food-grid'),
+  getItems: () => foodItems,
+  categoryColors,
+  fieldSpec: foodFieldSpec,
+  addLabel: '+ Add a food & local tip'
 });
-function renderFood(filter){
-  gridEl.innerHTML = '';
-  foodItems.filter(f=> filter==='All' || f.cat===filter).forEach(f=>{
-    const el = document.createElement('div');
-    const color = categoryColors[f.cat] || 'var(--ink-soft)';
-    el.className = 'food-item';
-    el.style.borderLeft = `4px solid ${color}`;
-    el.innerHTML = `<span class="cat" style="color:${color}">${f.cat}</span><div class="name">${f.name}</div>${f.note ? `<div class="note">${f.note}</div>`:''}${f.map ? `<div class="loc-row" style="margin-top:6px;">📍 <a href="${f.map}" target="_blank" rel="noopener">View map</a></div>`:''}`;
-    gridEl.appendChild(el);
-  });
-}
-renderFood('All');
 
 // ---------------- RENDER: RUNNING ----------------
 const runCategoryColors = {
@@ -879,37 +1106,45 @@ const runCategoryColors = {
   "City Park Loops": "var(--moss)",
   "Nature & Waterfront": "var(--slate)"
 };
-const runCategories = ["All", ...new Set(runItems.map(f=>f.cat))];
-const runChipsEl = document.getElementById('run-chips');
-const runGridEl = document.getElementById('run-grid');
-runCategories.forEach((c,idx)=>{
-  const b = document.createElement('button');
-  b.className = 'chip';
-  b.textContent = c;
-  b.setAttribute('aria-pressed', idx===0 ? 'true':'false');
-  const color = runCategoryColors[c];
-  if(color){
-    b.style.setProperty('--chip-color', color);
-  }
-  b.addEventListener('click', ()=>{
-    runChipsEl.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed','false'));
-    b.setAttribute('aria-pressed','true');
-    renderRun(c);
-  });
-  runChipsEl.appendChild(b);
+const runFieldSpec = [
+  {key:'cat', label:'Category (e.g. "Hill & Trail")'},
+  {key:'name', label:'Name'},
+  {key:'note', label:'Note (optional)', type:'textarea'},
+  {key:'map', label:'Map link (optional, https://…)'}
+];
+const runGridApi = createFilterableGrid({
+  chipsEl: document.getElementById('run-chips'),
+  gridEl: document.getElementById('run-grid'),
+  getItems: () => runItems,
+  categoryColors: runCategoryColors,
+  fieldSpec: runFieldSpec,
+  addLabel: '+ Add a running route'
 });
-function renderRun(filter){
-  runGridEl.innerHTML = '';
-  runItems.filter(f=> filter==='All' || f.cat===filter).forEach(f=>{
-    const el = document.createElement('div');
-    const color = runCategoryColors[f.cat] || 'var(--ink-soft)';
-    el.className = 'food-item';
-    el.style.borderLeft = `4px solid ${color}`;
-    el.innerHTML = `<span class="cat" style="color:${color}">${f.cat}</span><div class="name">${f.name}</div>${f.note ? `<div class="note">${f.note}</div>`:''}${f.map ? `<div class="loc-row" style="margin-top:6px;">📍 <a href="${f.map}" target="_blank" rel="noopener">View map</a></div>`:''}`;
-    runGridEl.appendChild(el);
-  });
+
+renderItinerary();
+
+// ---------------- BRIDGE FOR THE FIREBASE SCRIPT BELOW ----------------
+// The two <script type="module"> blocks are separate module scopes, so this is
+// the handoff surface: the Firebase script reads/writes trip data through it
+// and calls persistTrip() to save. When Firebase never loads, persistTrip's
+// window.saveTripContent check below is simply undefined and edits stay local
+// to the tab (edit controls are gated behind Firebase auth anyway, so that
+// path never gets exercised without Firebase).
+function persistTrip(afterRender){
+  if(afterRender) afterRender();
+  if(window.saveTripContent) window.saveTripContent();
 }
-renderRun('All');
+window.getTripArrays = () => ({ itinerary, foodItems, runItems });
+window.setTripArrays = (data)=>{
+  if(data.itinerary) itinerary = data.itinerary;
+  if(data.foodItems) foodItems = data.foodItems;
+  if(data.runItems) runItems = data.runItems;
+};
+window.reloadTripUI = ()=>{
+  renderItinerary();
+  foodGridApi.reload();
+  runGridApi.reload();
+};
 
 // ---------------- TRIP STATUS DASHBOARD ----------------
 function renderTripStatus(){
@@ -1030,9 +1265,56 @@ function markSyncUnavailable(){
     firestore = getFirestore(fbApp);
     cloudDocRef = (uid) => doc(firestore, 'montrealChecklist', uid);
     const tripTasksRef = doc(firestore, 'tripTasks', 'montreal2026');
+    const tripContentRef = doc(firestore, 'tripContent', 'montreal2026');
 
     // ---------------- TWO-PERSON PACKING CHECKLIST ----------------
     const ALLOWED_UIDS = ['ATNWbAURUwcuGPERNJFAvBNtRZc2', 'D17HauhxK5fSb8zkhvbzWzSIIQk2'];
+
+    // ---------------- EDITABLE PAGE CONTENT (itinerary / food / running) ----
+    // Read is public (anyone can see the latest plan); writes are restricted
+    // to the two trip owners by firestore.rules. This syncs regardless of
+    // sign-in state, and re-renders through the bridge the other script
+    // exposed on window. See that script's "BRIDGE FOR THE FIREBASE SCRIPT
+    // BELOW" section for getTripArrays/setTripArrays/reloadTripUI.
+    let tripContentUnsub = null;
+    let savingTripContent = false;
+    function initTripContent(){
+      if(tripContentUnsub) return;
+      tripContentUnsub = onSnapshot(tripContentRef, (snap)=>{
+        if(savingTripContent) return; // this tab is the source of the write; skip the echo
+        if(!snap.exists()) return;
+        const d = snap.data();
+        const next = {};
+        try{ if(d.itineraryJson) next.itinerary = JSON.parse(d.itineraryJson); }catch(e){ console.warn('itineraryJson parse failed:', e.message); }
+        try{ if(d.foodJson) next.foodItems = JSON.parse(d.foodJson); }catch(e){ console.warn('foodJson parse failed:', e.message); }
+        try{ if(d.runningJson) next.runItems = JSON.parse(d.runningJson); }catch(e){ console.warn('runningJson parse failed:', e.message); }
+        if(Object.keys(next).length){
+          window.setTripArrays(next);
+          window.reloadTripUI();
+        }
+      }, (err)=>{
+        console.warn('tripContent unavailable:', err.code || err.message);
+      });
+    }
+    window.saveTripContent = async function(){
+      if(!currentUser || !ALLOWED_UIDS.includes(currentUser.uid)) return;
+      const { itinerary, foodItems, runItems } = window.getTripArrays();
+      savingTripContent = true;
+      try{
+        await setDoc(tripContentRef, {
+          itineraryJson: JSON.stringify(itinerary),
+          foodJson: JSON.stringify(foodItems),
+          runningJson: JSON.stringify(runItems),
+          updatedAt: serverTimestamp(),
+          updatedBy: currentUser.displayName || currentUser.email
+        }, { merge: true });
+      }catch(e){
+        console.warn('Failed to save trip content:', e.code || e.message);
+        alert('Could not save your change to the cloud (you may be offline). It will stay on this device only until you retry.');
+      }finally{
+        savingTripContent = false;
+      }
+    };
 
 function visaDocsCategory(){
   return {title:"Visa & Docs", color:"var(--moss)", items:[
@@ -1624,9 +1906,11 @@ onAuthStateChanged(auth, (user)=>{
   currentUser = user;
   cloudSyncBroken = false;
   if(user) lastSignInErrorCode = null;
+  document.body.classList.toggle('can-edit', !!user && ALLOWED_UIDS.includes(user.uid));
   updateSyncUI();
   loadTravelContent();
   initPackingTab();
+  initTripContent();
 });
 
   }catch(e){

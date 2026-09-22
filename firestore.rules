@@ -362,6 +362,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ── Montreal 2026 — editable page content (itinerary/food/running) ────────
+    match /tripContent/{tripId} {
+      allow read:  if true;
+      allow write: if request.auth != null
+                   && request.auth.uid in ['ATNWbAURUwcuGPERNJFAvBNtRZc2', 'D17HauhxK5fSb8zkhvbzWzSIIQk2']
+                   && (!('itineraryJson' in request.resource.data) || (request.resource.data.itineraryJson is string && request.resource.data.itineraryJson.size() <= 50000))
+                   && (!('foodJson' in request.resource.data) || (request.resource.data.foodJson is string && request.resource.data.foodJson.size() <= 20000))
+                   && (!('runningJson' in request.resource.data) || (request.resource.data.runningJson is string && request.resource.data.runningJson.size() <= 20000));
+    }
+
 match /strayDogs/{dogId} {
   allow read: if true;
   allow create: if request.auth != null;
