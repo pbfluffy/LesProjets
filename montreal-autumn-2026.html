@@ -329,8 +329,8 @@
     display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
     gap:16px 22px; margin-bottom:18px;
   }
-  .vgrid .stat-label{ color:var(--ink-soft); }
-  .vgrid .stat-value{ color:var(--ink); font-family:'IBM Plex Mono',monospace; font-size:0.92rem; }
+  .vgrid .stat-label{ color:var(--ink-soft); display:block; }
+  .vgrid .stat-value{ color:var(--ink); font-family:'IBM Plex Mono',monospace; font-size:0.92rem; display:block; }
   .callout{
     background:rgba(87,101,74,0.10); border-left:3px solid var(--moss);
     padding:12px 16px; border-radius:6px; font-size:0.87rem; color:var(--ink);
@@ -662,9 +662,10 @@
             <div><span class="stat-label">Emergency</span><span class="stat-value">911 (police, fire, ambulance)</span></div>
             <div><span class="stat-label">Nearest Hospital</span><span class="stat-value">Montréal General Hospital (MUHC), downtown*</span></div>
             <div><span class="stat-label">Thai Embassy</span><span class="stat-value">Ottawa · +1 (613) 722-4444</span></div>
+            <div><span class="stat-label">Travel Insurance Assist (24/7)</span><span class="stat-value">MSIG Assist · +66 (0)2 039 5704</span></div>
             <div><span class="stat-label">Hotel Contact</span><span class="stat-value">See Flights &amp; Hotel tab (sign in)</span></div>
           </div>
-          <p style="font-size:0.76rem; color:var(--ink-soft); margin:10px 0 0;">*The Thai Embassy is in Ottawa, not Montréal — it's the right first call for lost passports or serious legal trouble. Hospital distance is approximate; ask your hotel for the closest walk-in clinic for anything non-urgent.</p>
+          <p style="font-size:0.76rem; color:var(--ink-soft); margin:10px 0 0;">*The Thai Embassy is in Ottawa, not Montréal — it's the right first call for lost passports or serious legal trouble. Hospital distance is approximate; ask your hotel for the closest walk-in clinic for anything non-urgent. MSIG Assist can arrange hospital admission, medical evacuation, and lost document/luggage help — call collect from abroad if needed. Policy numbers and full coverage details are on the Flights &amp; Hotel tab (sign in).</p>
         </div>
       </div>
     </section>
@@ -1838,6 +1839,27 @@ function renderTicket(dir){
       <div class="ticket-foot"><span>Total travel time</span><span class="mono">${dir.totalTime}</span></div>
     </div>`;
 }
+function renderInsurance(ins){
+  const travelersHtml = (ins.travelers || []).map(t =>
+    `<div><span class="stat-label">${t.name || ''}</span><span class="stat-value mono">${t.certificateNo || '—'}</span></div>`
+  ).join('');
+  const coverageHtml = (ins.coverage || []).map(c =>
+    `<div><span class="stat-label">${c.label || ''}</span><span class="stat-value">${c.value || ''}</span></div>`
+  ).join('');
+  return `
+    <div class="voucher" style="margin-top:26px;">
+      <h3>Travel Insurance</h3>
+      <p class="addr">${ins.provider || ''}${ins.policyNo ? ` · Policy No. ${ins.policyNo}` : ''}</p>
+      <div class="vgrid">
+        <div><span class="stat-label">Coverage period</span><span class="stat-value">${ins.period || '—'}</span></div>
+        ${travelersHtml}
+      </div>
+      ${coverageHtml ? `<div class="vgrid" style="margin-top:14px;">${coverageHtml}</div>` : ''}
+      ${ins.assistPhone ? `<div class="callout" style="margin-top:14px;"><b>${ins.assistPhone}</b> — ${ins.assistNote || 'MSIG Assist 24/7 Worldwide Helpline'}</div>` : ''}
+      ${ins.notes ? `<p style="font-size:0.76rem; color:var(--ink-soft); margin:10px 0 0;">${ins.notes}</p>` : ''}
+    </div>
+  `;
+}
 function renderTravelContent(data){
   const mount = document.getElementById('travel-content');
   const h = data.hotel || {};
@@ -1867,6 +1889,7 @@ function renderTravelContent(data){
       ${h.notes ? `<div class="callout">${h.notes}</div>` : ''}
       ${h.cancellationPolicy ? `<div class="callout warn"><b>Cancellation policy:</b> ${h.cancellationPolicy}</div>` : ''}
     </div>
+    ${data.insurance ? renderInsurance(data.insurance) : ''}
   `;
 }
 async function loadTravelContent(){
