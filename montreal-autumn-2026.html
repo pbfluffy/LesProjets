@@ -271,6 +271,17 @@
   }
   .day-card h3{ margin:2px 0 6px; font-size:1.12rem; }
   .day-card p{ margin:0 0 8px; color:var(--ink-soft); font-size:0.92rem; }
+  .done-check{
+    display:inline-flex; align-items:center; padding:4px;
+    pointer-events:none; /* toggling is only for the two signed-in trip owners */
+  }
+  body.can-edit .done-check{ pointer-events:auto; }
+  .done-check input[type="checkbox"]{
+    width:18px; height:18px; margin:0;
+    accent-color:var(--moss); cursor:pointer;
+  }
+  .day-card.done{ opacity:0.68; }
+  .day-card.done h3{ text-decoration:line-through; color:var(--ink-soft); }
   .loc-row{
     display:flex; align-items:center; gap:6px; font-size:0.83rem;
   }
@@ -541,6 +552,7 @@
     .edit-field input, .edit-field textarea{ font-size:16px; }
     .ppl-tab{ padding:12px 16px; min-height:44px; }
     .reassign-btn{ padding:11px 16px; min-height:44px; }
+    .done-check{ padding:8px; }
   }
   @media (max-width: 680px){
     .topbar-inner{ padding:10px 16px 8px; gap:8px; position:relative; }
@@ -932,7 +944,7 @@ function renderItinerary(){
       if(!datesInWeek.includes(item.date)) return;
       const t = itinerary.length > 1 ? idx / (itinerary.length - 1) : 0;
       const card = document.createElement('div');
-      card.className = 'day-card';
+      card.className = 'day-card' + (item.done ? ' done' : '');
       if(editingItineraryKey === idx){
         card.appendChild(buildEditForm(itineraryFieldSpec, item, {
           onSave:(vals)=>{
@@ -955,6 +967,9 @@ function renderItinerary(){
           <span class="collapse-hint">▼</span>
           <button class="edit-affordance card-edit-btn" type="button" title="Edit this stop">✎</button>
           <div class="top-row">
+            <label class="done-check" title="Mark as done">
+              <input type="checkbox" class="done-checkbox" ${item.done ? 'checked' : ''}>
+            </label>
             <span class="date-badge">${esc(item.date)}</span>
             <span class="time-pill">${esc(item.time)}</span>
             ${item.flag ? `<span class="flag">${esc(item.flag)}</span>` : ''}
@@ -966,13 +981,18 @@ function renderItinerary(){
           </div></div>
         `;
         card.addEventListener('click', (e)=>{
-          if(e.target.closest('a') || e.target.closest('.card-edit-btn')) return;
+          if(e.target.closest('a') || e.target.closest('.card-edit-btn') || e.target.closest('.done-check')) return;
           card.classList.toggle('collapsed');
         });
         card.querySelector('.card-edit-btn').addEventListener('click', (e)=>{
           e.stopPropagation();
           editingItineraryKey = idx;
           renderItinerary();
+        });
+        card.querySelector('.done-check').addEventListener('click', (e)=> e.stopPropagation());
+        card.querySelector('.done-checkbox').addEventListener('change', (e)=>{
+          item.done = e.target.checked;
+          persistTrip(renderItinerary);
         });
       }
       tl.appendChild(card);
@@ -1001,7 +1021,8 @@ function renderItinerary(){
   addBtn.textContent = '+ Add a day stop';
   addBtn.addEventListener('click', ()=>{ editingItineraryKey = 'new'; renderItinerary(); });
   mount.appendChild(addBtn);
-  document.querySelectorAll('.day-card').forEach(c => c.classList.toggle('collapsed', allCollapsed));
+  // Done stops auto-collapse by default; "Collapse all days" force-collapses everything.
+  document.querySelectorAll('.day-card').forEach(c => c.classList.toggle('collapsed', allCollapsed || c.classList.contains('done')));
 }
 collapseAllBtn.addEventListener('click', ()=>{
   allCollapsed = !allCollapsed;
