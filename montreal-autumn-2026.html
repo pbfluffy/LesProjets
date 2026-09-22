@@ -1909,6 +1909,12 @@ async function loadTravelContent(){
     const snap = await getDoc(doc(firestore, 'tripSecrets', 'montreal2026'));
     if(snap.exists() && snap.data().flightsHotel){
       const data = JSON.parse(snap.data().flightsHotel);
+      // Insurance can live either nested inside the flightsHotel JSON blob
+      // (data.insurance) or as its own top-level Firestore field on this
+      // document (added via the console's "Add field") — support both.
+      if(!data.insurance && snap.data().insurance){
+        data.insurance = snap.data().insurance;
+      }
       renderTravelContent(data);
       lockedEl.style.display = 'none';
       contentEl.style.display = 'block';
