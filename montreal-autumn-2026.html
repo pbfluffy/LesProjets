@@ -1600,13 +1600,14 @@ function renderSharedPanel(panelEl){
     const assigneePerson = packingState.people[t.assigneeUid];
     const assigneeName = (assigneePerson && assigneePerson.displayName) || 'Unassigned';
     const canEdit = currentUser && currentUser.uid === t.assigneeUid;
+    const canTake = currentUser && !canEdit;
     return `<li>
       <label class="pack-check${checked?' checked':''}" data-taskid="${tid}" style="${canEdit?'':'cursor:default;'}">
         <input type="checkbox" ${checked?'checked':''} ${canEdit?'':'disabled'}>
         <span>
           <div class="pack-item">${t.label}</div>
           <div class="pack-detail">${t.detail || ''}</div>
-          <div class="pack-detail" style="margin-top:4px;"><em>Assigned to ${assigneeName}</em></div>
+          <div class="pack-detail" style="margin-top:4px;"><em>Assigned to ${assigneeName}</em>${canTake ? ` · <button type="button" class="reassign-btn" data-taskid="${tid}" style="background:none; border:none; padding:0; color:var(--maple-deep); text-decoration:underline; cursor:pointer; font:inherit;">Assign to me</button>` : ''}</div>
         </span>
       </label>
     </li>`;
@@ -1624,6 +1625,30 @@ function renderSharedPanel(panelEl){
       }catch(err){
         console.warn('Failed to update shared task:', err.code || err.message);
         e.target.checked = !newVal;
+      }
+    });
+  });
+  panelEl.querySelectorAll('.reassign-btn').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      e.preventDefault();
+      const tid = btn.dataset.taskid;
+      if(!currentUser) return;
+      const updatedTasks = {
+        ...packingState.tasks,
+        [tid]: { ...packingState.tasks[tid], assigneeUid: currentUser.uid }
+      };
+      btn.disabled = true;
+      btn.textContent = 'Assigning…';
+      try{
+        await setDoc(tripTasksRef, {
+          tasksJson: JSON.stringify({ tasks: updatedTasks, checked: packingState.taskChecked })
+        }, { merge: true });
+        // packingState.tasks updates via the live onSnapshot listener and re-renders this panel.
+      }catch(err){
+        console.warn('Failed to reassign shared task:', err.code || err.message);
+        btn.disabled = false;
+        btn.textContent = 'Assign to me';
+        alert('Could not reassign this task — you may be offline. Try again.');
       }
     });
   });
