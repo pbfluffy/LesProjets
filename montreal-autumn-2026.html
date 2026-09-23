@@ -429,6 +429,9 @@
   .drag-handle:active{ cursor:grabbing; }
   .day-card.dragging{
     opacity:0.55; box-shadow:0 14px 26px rgba(60,40,20,0.25); z-index:5;
+    touch-action:none; /* belt-and-suspenders alongside the handle's own touch-action:none */
+    transition:none; /* card normally has a transform transition for hover-lift; disabling it while
+                         dragging keeps the live translateY tracking the finger 1:1 instead of lagging */
   }
   .add-item-btn{
     display:none;
@@ -955,30 +958,53 @@ function setupDragHandle(card){
     e.preventDefault();
     try{ handle.setPointerCapture(e.pointerId); }catch(err){ /* best-effort; drag still works via document-level listeners */ }
     card.classList.add('dragging');
+    let startY = e.clientY;
     const onMove = (ev)=>{
+      if(ev.cancelable) ev.preventDefault(); // belt-and-suspenders alongside touch-action:none
       const y = ev.clientY;
+      // Live feedback: the card visibly follows the finger immediately, not
+      // just once a full swap threshold is crossed further down — without
+      // this the drag can feel completely unresponsive until you've moved
+      // roughly half a card's height.
+      card.style.transform = `translateY(${y - startY}px)`;
       const prev = card.previousElementSibling;
       if(prev && prev.classList.contains('day-card') && prev.dataset.date === card.dataset.date){
         const r = prev.getBoundingClientRect();
-        if(y < r.top + r.height / 2){ prev.parentNode.insertBefore(card, prev); return; }
+        if(y < r.top + r.height / 2){
+          prev.parentNode.insertBefore(card, prev);
+          startY = y; card.style.transform = 'translateY(0px)';
+          return;
+        }
       }
       const next = card.nextElementSibling;
       if(next && next.classList.contains('day-card') && next.dataset.date === card.dataset.date){
         const r = next.getBoundingClientRect();
-        if(y > r.top + r.height / 2){ next.parentNode.insertBefore(next, card); return; }
+        if(y > r.top + r.height / 2){
+          next.parentNode.insertBefore(next, card);
+          startY = y; card.style.transform = 'translateY(0px)';
+          return;
+        }
       }
     };
-    const onUp = (ev)=>{
+    // Mobile browsers frequently fire pointercancel instead of pointerup when
+    // the gesture recognizer briefly hesitates between "drag" and "scroll"
+    // before touch-action:none fully takes hold — without handling it too,
+    // the drag can silently die mid-gesture with nothing committed and no
+    // listeners cleaned up.
+    const onEnd = (ev)=>{
       try{ handle.releasePointerCapture(ev.pointerId); }catch(err){ /* best-effort */ }
       card.classList.remove('dragging');
+      card.style.transform = '';
       document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointerup', onEnd);
+      document.removeEventListener('pointercancel', onEnd);
       const newOrder = Array.from(mount.querySelectorAll('.day-card')).map(c => cardToItem.get(c)).filter(Boolean);
       if(newOrder.length === itinerary.length){ itinerary = newOrder; }
       persistTrip(renderItinerary);
     };
     document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointerup', onEnd);
+    document.addEventListener('pointercancel', onEnd);
   });
 }
 
