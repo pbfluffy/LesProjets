@@ -269,6 +269,9 @@
     background:var(--maple); color:var(--cream);
     padding:3px 9px; border-radius:20px; font-weight:600;
   }
+  .cat-label{
+    font-size:0.68rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:600;
+  }
   .day-card h3{ margin:2px 0 6px; font-size:1.12rem; }
   .day-card p{ margin:0 0 8px; color:var(--ink-soft); font-size:0.92rem; }
   .done-check{
@@ -725,6 +728,7 @@
       </div>
       <button class="reset-btn" id="collapse-all-btn" type="button" style="margin-bottom:4px;">Collapse all days</button>
     </div>
+    <div class="chips" id="itinerary-chips"></div>
     <div id="timeline-mount"></div>
   </section>
 
@@ -790,34 +794,34 @@
 // even if the Firebase sync script below fails to load (offline, ad blocker, etc).
 // ---------------- DATA ----------------
 let itinerary = [
-  {date:"Fri · Oct 2", time:"Morning", title:"Bagel & Morning Coffee", desc:"Land at Montréal-Trudeau (YUL), then kick off with a fresh bagel and local coffee at St-Viateur before a shopping stroll downtown.", loc:"St-Viateur Bagel", map:"https://www.google.com/maps/search/?api=1&query=St-Viateur+Bagel+Montreal"},
-  {date:"Fri · Oct 2", time:"Morning", title:"UNIQLO Centre Eaton de Montréal", desc:"Quick stop for any last layering pieces at the Eaton Centre.", loc:"UNIQLO Centre Eaton de Montréal", map:"https://www.google.com/maps/search/?api=1&query=UNIQLO+Centre+Eaton+de+Montreal"},
-  {date:"Fri · Oct 2", time:"Afternoon", title:"Lululemon Sainte-Catherine Walk & Shop", desc:"Browse the Lululemon flagship and walk along Rue Sainte-Catherine.", loc:"Rue Sainte-Catherine", map:"https://www.google.com/maps/search/?api=1&query=Lululemon+Sainte-Catherine+Montreal"},
-  {date:"Fri · Oct 2", time:"Afternoon", title:"Check-in & Rest", desc:"Check in to the apartment in Griffintown (235 Rue Young) and rest up before an early departure to Québec City tomorrow.", loc:"235 Rue Young, Griffintown", map:"https://www.google.com/maps/search/?api=1&query=235+Rue+Young+Montreal"},
-  {date:"Sat · Oct 3", time:"Full Day", title:"Day Trip to Old Québec", desc:"Full-day trip to Québec City: Fairmont Le Château Frontenac, La Boutique de Noël de Québec, Escalier Casse-Cou, Rue du Petit-Champlain, and Parc du Bastion-de-la-Reine.", loc:"Old Québec", map:"https://www.google.com/maps/search/?api=1&query=Old+Quebec"},
-  {date:"Sun · Oct 4", time:"Morning", title:"Morning Run — Lachine Canal", desc:"Early flat run or walk along the Lachine Canal path right behind the apartment.", loc:"Lachine Canal", map:"https://www.google.com/maps/search/?api=1&query=Lachine+Canal+Montreal"},
-  {date:"Sun · Oct 4", time:"Morning", title:"Crew Collective & Café", desc:"Coffee inside the historic Royal Bank building — one of the city's most striking café interiors.", loc:"Old Montréal", map:"https://www.google.com/maps/search/?api=1&query=Crew+Collective+and+Cafe+Montreal"},
-  {date:"Sun · Oct 4", time:"Morning", title:"Old Montréal Exploration", desc:"Walk down cobblestone streets, see French colonial architecture, visit Notre-Dame Basilica.", loc:"Old Montréal & Notre-Dame Basilica", map:"https://www.google.com/maps/search/?api=1&query=Notre-Dame+Basilica+Montreal"},
-  {date:"Sun · Oct 4", time:"Afternoon", title:"Pointe-à-Callière Museum & Souvenirs", desc:"Archaeology and history museum built over the city's original foundations, plus a stop for souvenirs.", loc:"Pointe-à-Callière", map:"https://www.google.com/maps/search/?api=1&query=Pointe-a-Calliere+Montreal"},
-  {date:"Sun · Oct 4", time:"Evening", title:"Old Port Sunset & Ferris Wheel", desc:"Ride La Grande Roue de Montréal for a panoramic view of the St. Lawrence River at golden hour.", loc:"Old Port of Montréal", map:"https://www.google.com/maps/search/?api=1&query=Old+Port+of+Montreal"},
-  {date:"Mon · Oct 5", time:"Morning", title:"Jean-Talon Market", desc:"Explore one of the largest open-air markets in North America and grab a specialty coffee.", loc:"Jean-Talon Market", map:"https://www.google.com/maps/search/?api=1&query=Jean-Talon+Market+Montreal"},
-  {date:"Mon · Oct 5", time:"Afternoon", title:"Mile End & Bagel Taste-Off", desc:"Stroll the artistic Mile End and settle the Fairmount vs. St-Viateur bagel debate.", loc:"Mile End", map:"https://www.google.com/maps/search/?api=1&query=Mile+End+Montreal"},
-  {date:"Mon · Oct 5", time:"Afternoon", title:"Café Olympico", desc:"Historic Italian espresso bar in Mile End, open since the 1970s.", loc:"Mile End", map:"https://www.google.com/maps/search/?api=1&query=Cafe+Olimpico+Montreal"},
-  {date:"Mon · Oct 5", time:"Afternoon", title:"Montréal Botanical Garden", desc:"Explore greenhouse collections and beautifully landscaped outdoor gardens before the winter chill.", loc:"Jardin botanique de Montréal", map:"https://www.google.com/maps/search/?api=1&query=Montreal+Botanical+Garden"},
-  {date:"Mon · Oct 5", time:"Evening", title:"Gardens of Light Festival", desc:"Iconic annual autumn lantern festival illuminated inside the Chinese and Japanese gardens.", loc:"Jardin botanique de Montréal", map:"https://www.google.com/maps/search/?api=1&query=Montreal+Botanical+Garden", flag:"Must-see"},
-  {date:"Tue · Oct 6", time:"Morning", title:"Local Specialty Coffee", desc:"Coffee stop at Pikolo Espresso Bar or Café Myriade before heading up the mountain.", loc:"Downtown / Plateau", map:"https://www.google.com/maps/search/?api=1&query=Pikolo+Espresso+Bar+Montreal"},
-  {date:"Tue · Oct 6", time:"Full Day", title:"Mount Royal Park — Autumn Peak", desc:"Hike or walk up the mountain at peak autumn colour. Visit Kondiaronk Belvedere.", loc:"Mount Royal Park", map:"https://www.google.com/maps/search/?api=1&query=Mount+Royal+Park+Montreal"},
-  {date:"Wed · Oct 7", time:"Morning", title:"Saint Joseph's Oratory", desc:"Visit Canada's largest church, featuring one of the largest domed structures in the world.", loc:"Saint Joseph's Oratory", map:"https://www.google.com/maps/search/?api=1&query=Saint+Joseph+Oratory+Montreal"},
-  {date:"Wed · Oct 7", time:"Morning", title:"Montréal Museum of Fine Arts", desc:"Canada's oldest museum, spanning several connected pavilions of art and design.", loc:"Montréal Museum of Fine Arts", map:"https://www.google.com/maps/search/?api=1&query=Montreal+Museum+of+Fine+Arts"},
-  {date:"Wed · Oct 7", time:"Afternoon", title:"Westmount Architecture Walk", desc:"Walk past stunning Victorian-style luxury homes framed by vibrant changing trees.", loc:"Westmount Neighborhood", map:"https://www.google.com/maps/search/?api=1&query=Westmount+Montreal"},
-  {date:"Thu · Oct 8", time:"Full Day", title:"Downtown & Underground City (RÉSO)", desc:"Shop along Rue Sainte-Catherine. Explore the 32km subterranean network if the weather turns cold or rainy.", loc:"Downtown Montréal / RÉSO", map:"https://www.google.com/maps/search/?api=1&query=Rue+Sainte-Catherine+Montreal"},
-  {date:"Fri · Oct 9", time:"Full Day", title:"Leisure Day: Coffee Hopping & City Walk", desc:"An open day to wander, revisit a favourite spot, or just relax — hop between specialty coffee shops around the city centre.", loc:"Montréal City Centre", map:"https://www.google.com/maps/search/?api=1&query=Downtown+Montreal"},
-  {date:"Sat · Oct 10", time:"Full Day", title:"Day Trip to Parc Oméga", desc:"Drive out to Montebello for a car safari through Parc Oméga — bison, wolves, deer, and more roaming in their natural habitat.", loc:"Parc Oméga, Montebello", map:"https://www.google.com/maps/search/?api=1&query=Parc+Omega+Montebello"},
-  {date:"Sun · Oct 11", time:"Morning", title:"Authentic Poutine Lunch", desc:"Try Québec's signature dish: crispy fries, squeaky fresh cheese curds, and rich hot gravy at La Banquise.", loc:"La Banquise", map:"https://www.google.com/maps/search/?api=1&query=La+Banquise+Montreal"},
-  {date:"Mon · Oct 12", time:"Full Day", title:"Parc Jean-Drapeau & Biosphère", desc:"Visit the island park in the St. Lawrence River. Check out the environmental museum inside the geodesic sphere.", loc:"Parc Jean-Drapeau", map:"https://www.google.com/maps/search/?api=1&query=Parc+Jean-Drapeau+Montreal", flag:"Thanksgiving (CA)"},
-  {date:"Tue · Oct 13", time:"Full Day", title:"Lachine Canal Cycling & Atwater Market", desc:"Rent a bike, ride along the canal, and pick up local picnic goods at Marché Atwater.", loc:"Marché Atwater", map:"https://www.google.com/maps/search/?api=1&query=Atwater+Market+Montreal"},
-  {date:"Wed · Oct 14", time:"Full Day", title:"Le Plateau-Mont-Royal Leisurely Walk", desc:"Photograph the famous spiral outdoor staircases, vibrant murals, and browse boutique cafés for last-minute finds.", loc:"Le Plateau-Mont-Royal", map:"https://www.google.com/maps/search/?api=1&query=Le+Plateau-Mont-Royal+Montreal"},
-  {date:"Thu · Oct 15", time:"Morning", title:"Pack & Check-out", desc:"Enjoy a final morning coffee near Griffintown, check out of the apartment, and head to YUL airport.", loc:"235 Rue Young, Griffintown", map:"https://www.google.com/maps/search/?api=1&query=235+Rue+Young+Montreal"}
+  {date:"Fri · Oct 2", time:"Morning", cat:"Food & Drink", title:"Bagel & Morning Coffee", desc:"Land at Montréal-Trudeau (YUL), then kick off with a fresh bagel and local coffee at St-Viateur before a shopping stroll downtown.", loc:"St-Viateur Bagel", map:"https://www.google.com/maps/search/?api=1&query=St-Viateur+Bagel+Montreal"},
+  {date:"Fri · Oct 2", time:"Morning", cat:"Shopping", title:"UNIQLO Centre Eaton de Montréal", desc:"Quick stop for any last layering pieces at the Eaton Centre.", loc:"UNIQLO Centre Eaton de Montréal", map:"https://www.google.com/maps/search/?api=1&query=UNIQLO+Centre+Eaton+de+Montreal"},
+  {date:"Fri · Oct 2", time:"Afternoon", cat:"Shopping", title:"Lululemon Sainte-Catherine Walk & Shop", desc:"Browse the Lululemon flagship and walk along Rue Sainte-Catherine.", loc:"Rue Sainte-Catherine", map:"https://www.google.com/maps/search/?api=1&query=Lululemon+Sainte-Catherine+Montreal"},
+  {date:"Fri · Oct 2", time:"Afternoon", cat:"Arrival & Departure", title:"Check-in & Rest", desc:"Check in to the apartment in Griffintown (235 Rue Young) and rest up before an early departure to Québec City tomorrow.", loc:"235 Rue Young, Griffintown", map:"https://www.google.com/maps/search/?api=1&query=235+Rue+Young+Montreal"},
+  {date:"Sat · Oct 3", time:"Full Day", cat:"Day Trip", title:"Day Trip to Old Québec", desc:"Full-day trip to Québec City: Fairmont Le Château Frontenac, La Boutique de Noël de Québec, Escalier Casse-Cou, Rue du Petit-Champlain, and Parc du Bastion-de-la-Reine.", loc:"Old Québec", map:"https://www.google.com/maps/search/?api=1&query=Old+Quebec"},
+  {date:"Sun · Oct 4", time:"Morning", cat:"Nature & Outdoors", title:"Morning Run — Lachine Canal", desc:"Early flat run or walk along the Lachine Canal path right behind the apartment.", loc:"Lachine Canal", map:"https://www.google.com/maps/search/?api=1&query=Lachine+Canal+Montreal"},
+  {date:"Sun · Oct 4", time:"Morning", cat:"Food & Drink", title:"Crew Collective & Café", desc:"Coffee inside the historic Royal Bank building — one of the city's most striking café interiors.", loc:"Old Montréal", map:"https://www.google.com/maps/search/?api=1&query=Crew+Collective+and+Cafe+Montreal"},
+  {date:"Sun · Oct 4", time:"Morning", cat:"Sightseeing & Culture", title:"Old Montréal Exploration", desc:"Walk down cobblestone streets, see French colonial architecture, visit Notre-Dame Basilica.", loc:"Old Montréal & Notre-Dame Basilica", map:"https://www.google.com/maps/search/?api=1&query=Notre-Dame+Basilica+Montreal"},
+  {date:"Sun · Oct 4", time:"Afternoon", cat:"Sightseeing & Culture", title:"Pointe-à-Callière Museum & Souvenirs", desc:"Archaeology and history museum built over the city's original foundations, plus a stop for souvenirs.", loc:"Pointe-à-Callière", map:"https://www.google.com/maps/search/?api=1&query=Pointe-a-Calliere+Montreal"},
+  {date:"Sun · Oct 4", time:"Evening", cat:"Sightseeing & Culture", title:"Old Port Sunset & Ferris Wheel", desc:"Ride La Grande Roue de Montréal for a panoramic view of the St. Lawrence River at golden hour.", loc:"Old Port of Montréal", map:"https://www.google.com/maps/search/?api=1&query=Old+Port+of+Montreal"},
+  {date:"Mon · Oct 5", time:"Morning", cat:"Food & Drink", title:"Jean-Talon Market", desc:"Explore one of the largest open-air markets in North America and grab a specialty coffee.", loc:"Jean-Talon Market", map:"https://www.google.com/maps/search/?api=1&query=Jean-Talon+Market+Montreal"},
+  {date:"Mon · Oct 5", time:"Afternoon", cat:"Food & Drink", title:"Mile End & Bagel Taste-Off", desc:"Stroll the artistic Mile End and settle the Fairmount vs. St-Viateur bagel debate.", loc:"Mile End", map:"https://www.google.com/maps/search/?api=1&query=Mile+End+Montreal"},
+  {date:"Mon · Oct 5", time:"Afternoon", cat:"Food & Drink", title:"Café Olympico", desc:"Historic Italian espresso bar in Mile End, open since the 1970s.", loc:"Mile End", map:"https://www.google.com/maps/search/?api=1&query=Cafe+Olimpico+Montreal"},
+  {date:"Mon · Oct 5", time:"Afternoon", cat:"Nature & Outdoors", title:"Montréal Botanical Garden", desc:"Explore greenhouse collections and beautifully landscaped outdoor gardens before the winter chill.", loc:"Jardin botanique de Montréal", map:"https://www.google.com/maps/search/?api=1&query=Montreal+Botanical+Garden"},
+  {date:"Mon · Oct 5", time:"Evening", cat:"Sightseeing & Culture", title:"Gardens of Light Festival", desc:"Iconic annual autumn lantern festival illuminated inside the Chinese and Japanese gardens.", loc:"Jardin botanique de Montréal", map:"https://www.google.com/maps/search/?api=1&query=Montreal+Botanical+Garden", flag:"Must-see"},
+  {date:"Tue · Oct 6", time:"Morning", cat:"Food & Drink", title:"Local Specialty Coffee", desc:"Coffee stop at Pikolo Espresso Bar or Café Myriade before heading up the mountain.", loc:"Downtown / Plateau", map:"https://www.google.com/maps/search/?api=1&query=Pikolo+Espresso+Bar+Montreal"},
+  {date:"Tue · Oct 6", time:"Full Day", cat:"Nature & Outdoors", title:"Mount Royal Park — Autumn Peak", desc:"Hike or walk up the mountain at peak autumn colour. Visit Kondiaronk Belvedere.", loc:"Mount Royal Park", map:"https://www.google.com/maps/search/?api=1&query=Mount+Royal+Park+Montreal"},
+  {date:"Wed · Oct 7", time:"Morning", cat:"Sightseeing & Culture", title:"Saint Joseph's Oratory", desc:"Visit Canada's largest church, featuring one of the largest domed structures in the world.", loc:"Saint Joseph's Oratory", map:"https://www.google.com/maps/search/?api=1&query=Saint+Joseph+Oratory+Montreal"},
+  {date:"Wed · Oct 7", time:"Morning", cat:"Sightseeing & Culture", title:"Montréal Museum of Fine Arts", desc:"Canada's oldest museum, spanning several connected pavilions of art and design.", loc:"Montréal Museum of Fine Arts", map:"https://www.google.com/maps/search/?api=1&query=Montreal+Museum+of+Fine+Arts"},
+  {date:"Wed · Oct 7", time:"Afternoon", cat:"Sightseeing & Culture", title:"Westmount Architecture Walk", desc:"Walk past stunning Victorian-style luxury homes framed by vibrant changing trees.", loc:"Westmount Neighborhood", map:"https://www.google.com/maps/search/?api=1&query=Westmount+Montreal"},
+  {date:"Thu · Oct 8", time:"Full Day", cat:"Shopping", title:"Downtown & Underground City (RÉSO)", desc:"Shop along Rue Sainte-Catherine. Explore the 32km subterranean network if the weather turns cold or rainy.", loc:"Downtown Montréal / RÉSO", map:"https://www.google.com/maps/search/?api=1&query=Rue+Sainte-Catherine+Montreal"},
+  {date:"Fri · Oct 9", time:"Full Day", cat:"Food & Drink", title:"Leisure Day: Coffee Hopping & City Walk", desc:"An open day to wander, revisit a favourite spot, or just relax — hop between specialty coffee shops around the city centre.", loc:"Montréal City Centre", map:"https://www.google.com/maps/search/?api=1&query=Downtown+Montreal"},
+  {date:"Sat · Oct 10", time:"Full Day", cat:"Day Trip", title:"Day Trip to Parc Oméga", desc:"Drive out to Montebello for a car safari through Parc Oméga — bison, wolves, deer, and more roaming in their natural habitat.", loc:"Parc Oméga, Montebello", map:"https://www.google.com/maps/search/?api=1&query=Parc+Omega+Montebello"},
+  {date:"Sun · Oct 11", time:"Morning", cat:"Food & Drink", title:"Authentic Poutine Lunch", desc:"Try Québec's signature dish: crispy fries, squeaky fresh cheese curds, and rich hot gravy at La Banquise.", loc:"La Banquise", map:"https://www.google.com/maps/search/?api=1&query=La+Banquise+Montreal"},
+  {date:"Mon · Oct 12", time:"Full Day", cat:"Nature & Outdoors", title:"Parc Jean-Drapeau & Biosphère", desc:"Visit the island park in the St. Lawrence River. Check out the environmental museum inside the geodesic sphere.", loc:"Parc Jean-Drapeau", map:"https://www.google.com/maps/search/?api=1&query=Parc+Jean-Drapeau+Montreal", flag:"Thanksgiving (CA)"},
+  {date:"Tue · Oct 13", time:"Full Day", cat:"Nature & Outdoors", title:"Lachine Canal Cycling & Atwater Market", desc:"Rent a bike, ride along the canal, and pick up local picnic goods at Marché Atwater.", loc:"Marché Atwater", map:"https://www.google.com/maps/search/?api=1&query=Atwater+Market+Montreal"},
+  {date:"Wed · Oct 14", time:"Full Day", cat:"Sightseeing & Culture", title:"Le Plateau-Mont-Royal Leisurely Walk", desc:"Photograph the famous spiral outdoor staircases, vibrant murals, and browse boutique cafés for last-minute finds.", loc:"Le Plateau-Mont-Royal", map:"https://www.google.com/maps/search/?api=1&query=Le+Plateau-Mont-Royal+Montreal"},
+  {date:"Thu · Oct 15", time:"Morning", cat:"Arrival & Departure", title:"Pack & Check-out", desc:"Enjoy a final morning coffee near Griffintown, check out of the apartment, and head to YUL airport.", loc:"235 Rue Young, Griffintown", map:"https://www.google.com/maps/search/?api=1&query=235+Rue+Young+Montreal"}
 ];
 
 let foodItems = [
@@ -931,18 +935,29 @@ function itineraryCompare(a, b){ return itineraryDateKey(a.date) - itineraryDate
 const itineraryFieldSpec = [
   {key:'date', label:'Date (e.g. "Fri · Oct 2")'},
   {key:'time', label:'Time (e.g. "Morning", "Full Day")'},
+  {key:'cat', label:'Category (e.g. "Food & Drink", "Sightseeing & Culture")'},
   {key:'title', label:'Title'},
   {key:'desc', label:'Description', type:'textarea'},
   {key:'loc', label:'Location label'},
   {key:'map', label:'Map link (optional, https://…)'},
   {key:'flag', label:'Flag (optional, e.g. "Must-see")'}
 ];
+const itineraryCategoryColors = {
+  "Sightseeing & Culture": "var(--maple-deep)",
+  "Food & Drink": "var(--amber)",
+  "Nature & Outdoors": "var(--moss)",
+  "Shopping": "var(--maple)",
+  "Day Trip": "var(--slate)",
+  "Arrival & Departure": "var(--ink-soft)"
+};
 
 const mount = document.getElementById('timeline-mount');
+const itineraryChipsEl = document.getElementById('itinerary-chips');
 const collapseAllBtn = document.getElementById('collapse-all-btn');
 let allCollapsed = false;
 let editingItineraryKey = null; // null | array index | 'new'
 let cardToItem = new Map(); // rebuilt each render; maps a card's DOM node back to its item object for drag-commit
+let itineraryFilter = 'All';
 
 // Drag handle reorders a card freely against the full flat list of visible
 // day-cards (built fresh each move via a live querySelectorAll — cheap at
@@ -1029,7 +1044,27 @@ function setupDragHandle(card){
   });
 }
 
+function rebuildItineraryChips(){
+  const cats = ['All', ...new Set(itinerary.map(i => i.cat).filter(Boolean))];
+  if(!cats.includes(itineraryFilter)) itineraryFilter = 'All';
+  itineraryChipsEl.innerHTML = '';
+  cats.forEach(c=>{
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = c;
+    b.setAttribute('aria-pressed', c === itineraryFilter ? 'true' : 'false');
+    const color = itineraryCategoryColors[c];
+    if(color) b.style.setProperty('--chip-color', color);
+    b.addEventListener('click', ()=>{
+      itineraryFilter = c;
+      renderItinerary();
+    });
+    itineraryChipsEl.appendChild(b);
+  });
+}
+
 function renderItinerary(){
+  rebuildItineraryChips();
   mount.innerHTML = '';
   cardToItem = new Map();
   const uniqueDates = [];
@@ -1038,6 +1073,12 @@ function renderItinerary(){
   for(let w = 0; w * 7 < Math.max(uniqueDates.length, 1); w++){
     const datesInWeek = uniqueDates.slice(w * 7, w * 7 + 7);
     if(datesInWeek.length === 0) break;
+    // Drag reorders against the live DOM order and only commits when every
+    // visible card accounts for the full array (see setupDragHandle's onEnd)
+    // — with a filter active that guard would always fail, so skip weeks/
+    // items with no match entirely rather than leave a dead-end drag target.
+    const weekHasMatch = itinerary.some(it => datesInWeek.includes(it.date) && (itineraryFilter === 'All' || it.cat === itineraryFilter));
+    if(!weekHasMatch) continue;
     const label = document.createElement('div');
     label.className = 'week-label';
     const shortDate = (s)=> (s || '').split('·').pop().trim();
@@ -1047,6 +1088,7 @@ function renderItinerary(){
     tl.className = 'timeline';
     itinerary.forEach((item, idx)=>{
       if(!datesInWeek.includes(item.date)) return;
+      if(itineraryFilter !== 'All' && item.cat !== itineraryFilter && editingItineraryKey !== idx) return;
       const t = itinerary.length > 1 ? idx / (itinerary.length - 1) : 0;
       const card = document.createElement('div');
       card.className = 'day-card' + (item.done ? ' done' : '');
@@ -1073,7 +1115,7 @@ function renderItinerary(){
           <div class="leaf-node" style="color:${nodeColor(t)}; background:${nodeColor(t)}"></div>
           <span class="collapse-hint">▼</span>
           <button class="edit-affordance card-edit-btn" type="button" title="Edit this stop">✎</button>
-          <button class="edit-affordance drag-handle" type="button" title="Drag to reorder or move to a different day">⠿</button>
+          ${itineraryFilter === 'All' ? `<button class="edit-affordance drag-handle" type="button" title="Drag to reorder or move to a different day">⠿</button>` : ''}
           <div class="top-row">
             <label class="done-check" title="Mark as done">
               <input type="checkbox" class="done-checkbox" ${item.done ? 'checked' : ''}>
@@ -1081,6 +1123,7 @@ function renderItinerary(){
             <span class="date-badge">${esc(item.date)}</span>
             <span class="time-pill">${esc(item.time)}</span>
             ${item.flag ? `<span class="flag">${esc(item.flag)}</span>` : ''}
+            ${item.cat ? `<span class="cat-label" style="color:${itineraryCategoryColors[item.cat] || 'var(--ink-soft)'}">${esc(item.cat)}</span>` : ''}
           </div>
           <h3>${esc(item.title)}</h3>
           <div class="day-body"><div class="day-body-inner">
