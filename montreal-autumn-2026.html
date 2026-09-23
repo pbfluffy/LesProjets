@@ -944,12 +944,17 @@ let allCollapsed = false;
 let editingItineraryKey = null; // null | array index | 'new'
 let cardToItem = new Map(); // rebuilt each render; maps a card's DOM node back to its item object for drag-commit
 
-// Drag handle reorders a card only among siblings sharing the same date
-// (crossing into a different day would need a date change too, which is
-// what editing the item is for). Swaps DOM position live as the pointer
-// crosses a same-day sibling's midpoint; commits to the itinerary array
-// (and re-renders, to refresh every card's now-stale array-index closures)
-// only once the drag ends.
+// Drag handle reorders a card freely against the full flat list of visible
+// day-cards (built fresh each move via a live querySelectorAll — cheap at
+// this scale — rather than DOM previousElementSibling/nextElementSibling, so
+// it also works across week boundaries, which live in separate <div
+// class="timeline"> containers). Swaps DOM position live as the pointer
+// crosses a neighbor's midpoint. On drop, the dragged item adopts whichever
+// day it landed in/next to (its neighbors' date — previous neighbor wins if
+// both exist, matching "dropped after this stop joins its day"), then the
+// itinerary array is resynced to the final DOM order and everything
+// re-renders (needed regardless, to refresh every card's now-stale
+// array-index closures).
 function setupDragHandle(card){
   const handle = card.querySelector('.drag-handle');
   if(!handle) return;
@@ -967,8 +972,10 @@ function setupDragHandle(card){
       // this the drag can feel completely unresponsive until you've moved
       // roughly half a card's height.
       card.style.transform = `translateY(${y - startY}px)`;
-      const prev = card.previousElementSibling;
-      if(prev && prev.classList.contains('day-card') && prev.dataset.date === card.dataset.date){
+      const allCards = Array.from(mount.querySelectorAll('.day-card'));
+      const myIdx = allCards.indexOf(card);
+      const prev = allCards[myIdx - 1];
+      if(prev){
         const r = prev.getBoundingClientRect();
         if(y < r.top + r.height / 2){
           prev.parentNode.insertBefore(card, prev);
@@ -976,11 +983,16 @@ function setupDragHandle(card){
           return;
         }
       }
-      const next = card.nextElementSibling;
-      if(next && next.classList.contains('day-card') && next.dataset.date === card.dataset.date){
+      const next = allCards[myIdx + 1];
+      if(next){
         const r = next.getBoundingClientRect();
         if(y > r.top + r.height / 2){
-          next.parentNode.insertBefore(next, card);
+          // Move card itself (not next) — next.parentNode.insertBefore(next, card)
+          // requires card to already be next's sibling, which breaks (throws
+          // NotFoundError, silently stalling the drag right at the boundary)
+          // the moment card and next are in different <div class="timeline">
+          // week containers, i.e. exactly when crossing a week boundary.
+          next.parentNode.insertBefore(card, next.nextSibling);
           startY = y; card.style.transform = 'translateY(0px)';
           return;
         }
@@ -998,7 +1010,16 @@ function setupDragHandle(card){
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onEnd);
       document.removeEventListener('pointercancel', onEnd);
-      const newOrder = Array.from(mount.querySelectorAll('.day-card')).map(c => cardToItem.get(c)).filter(Boolean);
+      const finalCards = Array.from(mount.querySelectorAll('.day-card'));
+      const myFinalIdx = finalCards.indexOf(card);
+      const item = cardToItem.get(card);
+      if(item){
+        const prevItem = cardToItem.get(finalCards[myFinalIdx - 1]);
+        const nextItem = cardToItem.get(finalCards[myFinalIdx + 1]);
+        if(prevItem) item.date = prevItem.date;
+        else if(nextItem) item.date = nextItem.date;
+      }
+      const newOrder = finalCards.map(c => cardToItem.get(c)).filter(Boolean);
       if(newOrder.length === itinerary.length){ itinerary = newOrder; }
       persistTrip(renderItinerary);
     };
@@ -1052,7 +1073,7 @@ function renderItinerary(){
           <div class="leaf-node" style="color:${nodeColor(t)}; background:${nodeColor(t)}"></div>
           <span class="collapse-hint">▼</span>
           <button class="edit-affordance card-edit-btn" type="button" title="Edit this stop">✎</button>
-          <button class="edit-affordance drag-handle" type="button" title="Drag to reorder within this day">⠿</button>
+          <button class="edit-affordance drag-handle" type="button" title="Drag to reorder or move to a different day">⠿</button>
           <div class="top-row">
             <label class="done-check" title="Mark as done">
               <input type="checkbox" class="done-checkbox" ${item.done ? 'checked' : ''}>
