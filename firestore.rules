@@ -359,7 +359,9 @@ service cloud.firestore {
     match /tripSecrets/{tripId} {
       allow read:  if request.auth != null
                    && request.auth.uid in ['ATNWbAURUwcuGPERNJFAvBNtRZc2', 'D17HauhxK5fSb8zkhvbzWzSIIQk2'];
-      allow write: if false;
+      allow write: if request.auth != null
+                   && request.auth.uid in ['ATNWbAURUwcuGPERNJFAvBNtRZc2', 'D17HauhxK5fSb8zkhvbzWzSIIQk2']
+                   && (!('flightsHotel' in request.resource.data) || (request.resource.data.flightsHotel is string && request.resource.data.flightsHotel.size() <= 20000));
     }
 
     // ── Montreal 2026 — editable page content (itinerary/food/running) ────────
@@ -369,7 +371,8 @@ service cloud.firestore {
                    && request.auth.uid in ['ATNWbAURUwcuGPERNJFAvBNtRZc2', 'D17HauhxK5fSb8zkhvbzWzSIIQk2']
                    && (!('itineraryJson' in request.resource.data) || (request.resource.data.itineraryJson is string && request.resource.data.itineraryJson.size() <= 50000))
                    && (!('foodJson' in request.resource.data) || (request.resource.data.foodJson is string && request.resource.data.foodJson.size() <= 20000))
-                   && (!('runningJson' in request.resource.data) || (request.resource.data.runningJson is string && request.resource.data.runningJson.size() <= 20000));
+                   && (!('runningJson' in request.resource.data) || (request.resource.data.runningJson is string && request.resource.data.runningJson.size() <= 20000))
+                   && (!('packingJson' in request.resource.data) || (request.resource.data.packingJson is string && request.resource.data.packingJson.size() <= 50000));
     }
 
 match /strayDogs/{dogId} {

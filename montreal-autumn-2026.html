@@ -9,6 +9,13 @@
 <meta property="og:description" content="A 14-day autumn Montréal trip itinerary: day-by-day plan, flights, hotel, packing checklist, and local food guide.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2C7 6 3 10 3 15a9 9 0 0018 0c0-5-4-9-9-13z' fill='%23c1892a'/%3E%3Cpath d='M12 4v17' stroke='%23271812' stroke-width='1.1'/%3E%3C/svg%3E">
+<link rel="manifest" href="montreal-manifest.json">
+<meta name="theme-color" content="#271812">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MTL Trip">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -537,6 +544,14 @@
     flex-shrink:0;
   }
   .expand-toggle.open{ transform:rotate(90deg); }
+  .pack-edit-btn{
+    align-items:center; justify-content:center;
+    background:none; border:none; cursor:pointer;
+    color:var(--ink-soft); font-size:0.82rem;
+    padding:8px 6px; margin-top:2px; flex-shrink:0;
+    transition:color .15s ease;
+  }
+  .pack-edit-btn:hover{ color:var(--moss); }
   .sub-wrap{
     display:none; margin:0 0 8px 42px; padding:8px 0 4px 12px;
     border-left:2px solid var(--line);
@@ -565,6 +580,7 @@
     .sync-btn{ padding:12px 16px; min-height:44px; }
     .reset-btn{ padding:11px 14px; min-height:44px; }
     .expand-toggle{ padding:14px 10px; min-width:44px; }
+    .pack-edit-btn{ padding:14px 10px; min-width:44px; }
     .qcard{ padding:20px; }
     .food-item .card-edit-btn{ width:40px; height:40px; }
     .day-card .card-edit-btn{ width:34px; height:34px; right:40px; top:14px; }
@@ -898,7 +914,23 @@ function buildEditForm(fieldSpec, record, handlers){
       if(f.max) input.max = f.max;
     }
     const rawValue = (record && record[f.key]) || '';
-    input.value = (f.type === 'date' && f.toInput) ? f.toInput(rawValue) : rawValue;
+    input.value = f.toInput ? f.toInput(rawValue) : rawValue;
+    if(f.suggestions && f.suggestions.length){
+      // <input list="…"> keeps this a plain text field (any value can still
+      // be typed) while offering the common values as a native dropdown —
+      // easier to get right without losing the flexibility a rigid <select>
+      // would cost for one-off/custom entries.
+      const listId = `dl-${Math.random().toString(36).slice(2, 9)}`;
+      input.setAttribute('list', listId);
+      const datalist = document.createElement('datalist');
+      datalist.id = listId;
+      f.suggestions.forEach(s=>{
+        const opt = document.createElement('option');
+        opt.value = s;
+        datalist.appendChild(opt);
+      });
+      row.appendChild(datalist);
+    }
     row.appendChild(input);
     inputs[f.key] = input;
     wrap.appendChild(row);
@@ -911,8 +943,8 @@ function buildEditForm(fieldSpec, record, handlers){
     const vals = {};
     fieldSpec.forEach(f=>{
       const raw = inputs[f.key].value.trim();
-      const converted = (f.type === 'date' && f.fromInput && raw) ? f.fromInput(raw) : raw;
-      vals[f.key] = converted || undefined;
+      const converted = (f.fromInput && raw) ? f.fromInput(raw) : raw;
+      vals[f.key] = (converted && converted.length) ? converted : undefined;
     });
     handlers.onSave(vals);
   });
@@ -969,16 +1001,6 @@ function itineraryIsoToDate(iso){
   const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
   return `${WEEKDAY_ABBR[dt.getDay()]} · ${MONTH_ABBR[Number(m[2]) - 1]} ${Number(m[3])}`;
 }
-const itineraryFieldSpec = [
-  {key:'date', label:'Date', type:'date', min:`${TRIP_YEAR}-09-25`, max:`${TRIP_YEAR}-10-20`, toInput: itineraryDateToIso, fromInput: itineraryIsoToDate},
-  {key:'time', label:'Time (e.g. "Morning", "Full Day")'},
-  {key:'cat', label:'Category (e.g. "Food & Drink", "Sightseeing & Culture")'},
-  {key:'title', label:'Title'},
-  {key:'desc', label:'Description', type:'textarea'},
-  {key:'loc', label:'Location label'},
-  {key:'map', label:'Map link (optional, https://…)'},
-  {key:'flag', label:'Flag (optional, e.g. "Must-see")'}
-];
 const itineraryCategoryColors = {
   "Sightseeing & Culture": "var(--maple-deep)",
   "Food & Drink": "var(--amber)",
@@ -987,6 +1009,16 @@ const itineraryCategoryColors = {
   "Day Trip": "var(--slate)",
   "Arrival & Departure": "var(--ink-soft)"
 };
+const itineraryFieldSpec = [
+  {key:'date', label:'Date', type:'date', min:`${TRIP_YEAR}-09-25`, max:`${TRIP_YEAR}-10-20`, toInput: itineraryDateToIso, fromInput: itineraryIsoToDate},
+  {key:'time', label:'Time', suggestions:['Morning','Afternoon','Evening','Full Day']},
+  {key:'cat', label:'Category', suggestions:Object.keys(itineraryCategoryColors)},
+  {key:'title', label:'Title'},
+  {key:'desc', label:'Description', type:'textarea'},
+  {key:'loc', label:'Location label'},
+  {key:'map', label:'Map link (optional, https://…)'},
+  {key:'flag', label:'Flag (optional, e.g. "Must-see")'}
+];
 
 const mount = document.getElementById('timeline-mount');
 const itineraryChipsEl = document.getElementById('itinerary-chips');
@@ -1315,7 +1347,7 @@ const categoryColors = {
   "Convenience": "var(--slate)"
 };
 const foodFieldSpec = [
-  {key:'cat', label:'Category (e.g. "Cafés", "Restaurants")'},
+  {key:'cat', label:'Category', suggestions:Object.keys(categoryColors)},
   {key:'name', label:'Name'},
   {key:'note', label:'Note (optional)', type:'textarea'},
   {key:'map', label:'Map link (optional, https://…)'}
@@ -1337,7 +1369,7 @@ const runCategoryColors = {
   "Nature & Waterfront": "var(--slate)"
 };
 const runFieldSpec = [
-  {key:'cat', label:'Category (e.g. "Hill & Trail")'},
+  {key:'cat', label:'Category', suggestions:Object.keys(runCategoryColors)},
   {key:'name', label:'Name'},
   {key:'note', label:'Note (optional)', type:'textarea'},
   {key:'map', label:'Map link (optional, https://…)'}
@@ -1364,6 +1396,8 @@ function persistTrip(afterRender){
   if(afterRender) afterRender();
   if(window.saveTripContent) window.saveTripContent();
 }
+window.esc = esc;
+window.buildEditForm = buildEditForm;
 window.getTripArrays = () => ({ itinerary, foodItems, runItems });
 window.setTripArrays = (data)=>{
   if(data.itinerary){
@@ -1543,6 +1577,10 @@ function markSyncUnavailable(){
           window.setTripArrays(next);
           window.reloadTripUI();
         }
+        if(d.packingJson){
+          try{ packingCategories = JSON.parse(d.packingJson); renderPackingUI(); }
+          catch(e){ console.warn('packingJson parse failed:', e.message); }
+        }
       }, (err)=>{
         console.warn('tripContent unavailable:', err.code || err.message);
       });
@@ -1567,38 +1605,43 @@ function markSyncUnavailable(){
       }
     };
 
-function visaDocsCategory(){
-  return {title:"Visa & Docs", color:"var(--moss)", items:[
-    {n:"Check Passport Validity", d:"Do this first — a short-validity passport can delay everything else.", sub:[
+// Packing checklist content. `conditional` gates a category to whichever
+// traveller is assigned that shared task (see buildTemplateFor). Item `id`s
+// are explicit and stable — they're also used as keys in each traveller's
+// saved checked-items list, so changing an id here would silently "unchecked"
+// that item for both travellers.
+let packingCategories = [
+  {catId:"visa-docs", title:"Visa & Docs", color:"var(--moss)", conditional:null, items:[
+    {id:"visa-docs-0", n:"Check Passport Validity", d:"Do this first — a short-validity passport can delay everything else.", sub:[
       "Check passport has 6+ months validity beyond your return date",
       "If it needs renewing, do that before starting anything else below",
       "Make 2–3 photocopies of the passport's photo page for later steps"
     ]},
-    {n:"Passport-Style Photos", d:"Two recent, identical photos to IRCC spec — needed for the application form.", sub:[
+    {id:"visa-docs-1", n:"Passport-Style Photos", d:"Two recent, identical photos to IRCC spec — needed for the application form.", sub:[
       "Take 2 recent, identical photos (35×45mm, plain light background)",
       "Confirm no glasses or headwear, unless worn for religious reasons",
       "Write name and date of birth lightly in pencil on the back if your VAC requires it",
       "Keep spare copies in case a form needs an extra photo"
     ]},
-    {n:"Bank Statement (6 Months) & Bank Certificate (CAD)", d:"Proof of financial sufficiency — prepare before filling the forms.", sub:[
+    {id:"visa-docs-2", n:"Bank Statement (6 Months) & Bank Certificate (CAD)", d:"Proof of financial sufficiency — prepare before filling the forms.", sub:[
       "Visit your home branch (not just any branch) with your passbook and ID",
       "Request a 6-month statement + official bank certificate (หนังสือรับรองฐานะการเงิน) in English — a routine visa service at any teller, no special desk needed",
       "Ask about a week ahead, since the certificate takes a few days to issue",
       "Photocopy everything — keep one set separate from the originals"
     ]},
-    {n:"Proof of Ties to Thailand (Return Intent)", d:"Shows the officer you plan to return home — a common reason for refusal if missing.", sub:[
+    {id:"visa-docs-3", n:"Proof of Ties to Thailand (Return Intent)", d:"Shows the officer you plan to return home — a common reason for refusal if missing.", sub:[
       "Get an approved leave letter or employment letter from your employer",
       "Gather property, lease, or family documents showing ties at home",
       "Write a short cover letter explaining the trip purpose and planned return date",
       "Include copies of ongoing commitments in Thailand (work, study, family)"
     ]},
-    {n:"Detailed Trip Itinerary + Hotel Booking Confirmation", d:"Prepare this to attach to the application, then keep it for border control too.", sub:[
+    {id:"visa-docs-4", n:"Detailed Trip Itinerary + Hotel Booking Confirmation", d:"Prepare this to attach to the application, then keep it for border control too.", sub:[
       "Print this itinerary page (or export it to PDF)",
       "Print the apartment booking confirmation",
       "Save PDF copies on your phone and in cloud storage",
       "Pack printed copies in your carry-on, not checked luggage"
     ]},
-    {n:"Complete & Submit Visa Application (IMM 5257 + IMM 5645)", d:"The final step — do this only once everything above is ready to attach.", sub:[
+    {id:"visa-docs-5", n:"Complete & Submit Visa Application (IMM 5257 + IMM 5645)", d:"The final step — do this only once everything above is ready to attach.", sub:[
       "Complete IMM 5257 (Application for Visitor Visa) online, one per traveller",
       "Complete IMM 5645 (Family Information Form) and sign/date it",
       "Double-check names, dates, and passport numbers match your passport exactly",
@@ -1606,120 +1649,126 @@ function visaDocsCategory(){
       "Pay the visa application fee and book a biometrics appointment",
       "Wait for processing (8–12 weeks), then download the approval letter"
     ]}
-  ]};
-}
-function flightPrepCategory(){
-  return {title:"Flight Prep", color:"var(--slate)", items:[
-    {n:"Save Booking Confirmation", d:"Keep your Emirates PNR / e-ticket accessible offline.", sub:[
+  ]},
+  {catId:"flight-prep", title:"Flight Prep", color:"var(--slate)", conditional:"flights", items:[
+    {id:"flight-prep-0", n:"Save Booking Confirmation", d:"Keep your Emirates PNR / e-ticket accessible offline.", sub:[
       "Save the Emirates booking reference (PNR) and e-ticket number",
       "Add the booking to the Emirates app for offline access",
       "Email yourself a copy of the full itinerary as backup"
     ]},
-    {n:"Online Check-in", d:"Emirates opens check-in 48 hours before each departure.", sub:[
+    {id:"flight-prep-1", n:"Online Check-in", d:"Emirates opens check-in 48 hours before each departure.", sub:[
       "Check in online 48h before each flight, via app or website",
       "Select seats for both the outbound and return legs",
       "Download or print both boarding passes"
     ]},
-    {n:"Airport Arrival Timing", d:"Arrive with enough buffer for an international departure.", sub:[
+    {id:"flight-prep-2", n:"Airport Arrival Timing", d:"Arrive with enough buffer for an international departure.", sub:[
       "Arrive at Suvarnabhumi (BKK) at least 3 hours before the Oct 1 flight",
       "Arrive at Montréal-Trudeau (YUL) at least 3 hours before the Oct 15 return",
       "Have printed and digital copies of passport, visa, and boarding pass ready"
     ]},
-    {n:"Dubai Layover — No Transit Visa Needed", d:"Both legs connect through Terminal 3 on one Emirates booking, staying airside.", sub:[
+    {id:"flight-prep-3", n:"Dubai Layover — No Transit Visa Needed", d:"Both legs connect through Terminal 3 on one Emirates booking, staying airside.", sub:[
       "Confirm you're not leaving the airport during either layover",
       "Head straight to the transfer/security desk after landing",
       "Keep your connecting boarding pass ready at transfer security",
       "Be back at the gate 30–45 min before the next departure"
     ]}
-  ]};
-}
-function hotelPrepCategory(){
-  return {title:"Hotel Prep", color:"var(--slate)", items:[
-    {n:"Save Hotel Confirmation", d:"Keep the apartment booking confirmation accessible offline.", sub:[
+  ]},
+  {catId:"hotel-prep", title:"Hotel Prep", color:"var(--slate)", conditional:"hotel", items:[
+    {id:"hotel-prep-0", n:"Save Hotel Confirmation", d:"Keep the apartment booking confirmation accessible offline.", sub:[
       "Save the booking reference and confirmation email",
       "Add the confirmation to your phone's offline storage",
       "Email yourself a copy as backup"
     ]},
-    {n:"Check-in / Check-out Logistics", d:"Know the property's process before arrival day.", sub:[
+    {id:"hotel-prep-1", n:"Check-in / Check-out Logistics", d:"Know the property's process before arrival day.", sub:[
       "Confirm check-in time and any early check-in options for Oct 2",
       "Confirm check-out time and late check-out options for Oct 15",
       "Save the property's contact number for arrival-day questions"
     ]},
-    {n:"Room & Stay Preferences", d:"Anything you want confirmed or requested ahead of time.", sub:[
+    {id:"hotel-prep-2", n:"Room & Stay Preferences", d:"Anything you want confirmed or requested ahead of time.", sub:[
       "Confirm room type and bed configuration",
       "Note any special requests (non-smoking, high floor, etc.)",
       "Re-check the cancellation policy dates before the trip"
     ]}
-  ]};
-}
-function clothingCategory(){
-  return {title:"Clothing", color:"var(--amber)", items:[
-    {n:"Layered Apparel (The Layering Rule)", d:"Base layer (thermal), mid-layer (sweater/fleece), outer layer (wind/waterproof jacket)."},
-    {n:"Comfortable Walking Shoes / Waterproof Boots", d:"Crucial for cobblestones in Old Montréal and mountain trails."},
-    {n:"Autumn Accessories", d:"Scarves, light beanies, and gloves for breezy evenings."}
-  ]};
-}
-function transportationCategory(){
-  return {title:"Transportation", color:"var(--maple)", items:[
-    {n:"OPUS Card (Transit Pass)", d:"Purchase at metro stations. Best value is the Weekly or Multi-Day pass."},
-    {n:"Contactless Payment Also Works", d:"A tap-to-pay Visa/Mastercard or phone wallet works directly on STM buses and metro turnstiles — handy as a backup to the OPUS card."}
-  ]};
-}
-function localTipsCategory(){
-  return {title:"Local Tips", color:"var(--maple-deep)", items:[
-    {n:"Language Focus", d:"Montréal is predominantly French-speaking, but English is widely understood in tourism."},
-    {n:"Currency & Cards", d:"Visa and Mastercard are accepted almost everywhere, including small cafés. Carry only a small amount of cash for exceptions."},
-    {n:"Thanksgiving Holiday (Oct 12)", d:"Banks, offices, and some shops will be closed on this Monday."},
-    {n:"Travel Insurance (Recommended)", d:"Not mandatory for a TRV, but strongly advised — Canadian medical care is expensive without it."},
-    {n:"Québec City Day Trip (Oct 3)", d:"Full-day trip on the second day of the trip — confirm transport (train or rental car) and book ahead since fares/rates rise closer to the date.", sub:[
+  ]},
+  {catId:"clothing", title:"Clothing", color:"var(--amber)", conditional:null, items:[
+    {id:"clothing-0", n:"Layered Apparel (The Layering Rule)", d:"Base layer (thermal), mid-layer (sweater/fleece), outer layer (wind/waterproof jacket)."},
+    {id:"clothing-1", n:"Comfortable Walking Shoes / Waterproof Boots", d:"Crucial for cobblestones in Old Montréal and mountain trails."},
+    {id:"clothing-2", n:"Autumn Accessories", d:"Scarves, light beanies, and gloves for breezy evenings."}
+  ]},
+  {catId:"transportation", title:"Transportation", color:"var(--maple)", conditional:null, items:[
+    {id:"transportation-0", n:"OPUS Card (Transit Pass)", d:"Purchase at metro stations. Best value is the Weekly or Multi-Day pass."},
+    {id:"transportation-1", n:"Contactless Payment Also Works", d:"A tap-to-pay Visa/Mastercard or phone wallet works directly on STM buses and metro turnstiles — handy as a backup to the OPUS card."}
+  ]},
+  {catId:"local-tips", title:"Local Tips", color:"var(--maple-deep)", conditional:null, items:[
+    {id:"local-tips-0", n:"Language Focus", d:"Montréal is predominantly French-speaking, but English is widely understood in tourism."},
+    {id:"local-tips-1", n:"Currency & Cards", d:"Visa and Mastercard are accepted almost everywhere, including small cafés. Carry only a small amount of cash for exceptions."},
+    {id:"local-tips-2", n:"Thanksgiving Holiday (Oct 12)", d:"Banks, offices, and some shops will be closed on this Monday."},
+    {id:"local-tips-3", n:"Travel Insurance (Recommended)", d:"Not mandatory for a TRV, but strongly advised — Canadian medical care is expensive without it."},
+    {id:"local-tips-4", n:"Québec City Day Trip (Oct 3)", d:"Full-day trip on the second day of the trip — confirm transport (train or rental car) and book ahead since fares/rates rise closer to the date.", sub:[
       "Book transport to Québec City for the 6:00 AM departure on Oct 3 (round trip)",
       "Bring passport or photo ID for the trip",
       "Confirm the return time so you're back by evening"
     ]}
-  ]};
-}
-function extrasToBringCategory(){
-  return {title:"Extras to Bring", color:"var(--slate)", items:[
-    {n:"Toiletries", d:"Most North American stays don't provide a toothbrush/toothpaste — bring your own.", sub:[
+  ]},
+  {catId:"extras-to-bring", title:"Extras to Bring", color:"var(--slate)", conditional:null, items:[
+    {id:"extras-to-bring-0", n:"Toiletries", d:"Most North American stays don't provide a toothbrush/toothpaste — bring your own.", sub:[
       "Toothbrush & toothpaste",
       "Indoor slippers — floors can be cold, especially late in the trip",
       "Heavy moisturizer & lip balm — autumn air is quite dry",
       "Razor, comb, cotton swabs — small items the apartment won't stock"
     ]},
-    {n:"Laundry & Kitchen", d:"The apartment has a washer/dryer and basic oil/salt/pepper, but not much else.", sub:[
+    {id:"extras-to-bring-1", n:"Laundry & Kitchen", d:"The apartment has a washer/dryer and basic oil/salt/pepper, but not much else.", sub:[
       "Laundry detergent / dryer sheets — not usually provided",
       "Favourite sauces or seasoning if you plan to cook — or pick some up at Jean-Talon Market",
       "Dishwasher pods, if the unit has a dishwasher"
     ]},
-    {n:"Electronics", d:"Canada uses Type A/B outlets at 120V — same shape as Thai plugs, just double-check voltage support.", sub:[
+    {id:"extras-to-bring-2", n:"Electronics", d:"Canada uses Type A/B outlets at 120V — same shape as Thai plugs, just double-check voltage support.", sub:[
       "Power strip or multi-port charger for charging several devices at once",
       "Confirm any electronics you bring support 100–240V"
     ]},
-    {n:"Personal Essentials", d:"Bring a small home pharmacy — some medicines need a prescription in Canada.", sub:[
+    {id:"extras-to-bring-3", n:"Personal Essentials", d:"Bring a small home pharmacy — some medicines need a prescription in Canada.", sub:[
       "Pain/fever reducer, allergy medicine, anti-diarrheal, and any personal prescriptions",
       "Reusable shopping bags — Canadian stores don't give out free plastic bags"
     ]},
-    {n:"Souvenirs to Bring From Home", d:"Small Thai gifts worth packing if you're bringing something for someone in Montréal.", sub:[
+    {id:"extras-to-bring-4", n:"Souvenirs to Bring From Home", d:"Small Thai gifts worth packing if you're bringing something for someone in Montréal.", sub:[
       "Ya dom (Thai herbal inhaler)",
       "Dried fruit (e.g. strawberries)",
       "A small toy/doll for a kid",
       "Thai tea"
     ]}
-  ]};
-}
-function assignIds(categories){
-  categories.forEach(group=>{
-    const slug = group.title.toLowerCase().replace(/[^a-z0-9]+/g,'-');
-    group.items.forEach((it,i)=>{ it.id = `${slug}-${i}`; });
-  });
-  return categories;
-}
+  ]}
+];
 function buildTemplateFor(uid, assignees){
-  const cats = [visaDocsCategory()];
-  if(assignees.flightsUid === uid) cats.push(flightPrepCategory());
-  if(assignees.hotelUid === uid) cats.push(hotelPrepCategory());
-  cats.push(clothingCategory(), transportationCategory(), localTipsCategory(), extrasToBringCategory());
-  return assignIds(cats);
+  return packingCategories.filter(cat=>{
+    if(cat.conditional === 'flights') return assignees.flightsUid === uid;
+    if(cat.conditional === 'hotel') return assignees.hotelUid === uid;
+    return true;
+  });
+}
+const packItemFieldSpec = [
+  {key:'n', label:'Item name'},
+  {key:'d', label:'Detail (optional)', type:'textarea'},
+  {key:'sub', label:'Prep steps, one per line (optional)', type:'textarea',
+    toInput: v => Array.isArray(v) ? v.join('\n') : '',
+    fromInput: v => v.split('\n').map(s=>s.trim()).filter(Boolean)}
+];
+let packingEditState = null; // { catId, itemId } | { catId, itemId:'new' } | null
+async function persistPacking(){
+  renderPackingUI();
+  if(!currentUser || !ALLOWED_UIDS.includes(currentUser.uid)) return;
+  savingTripContent = true;
+  try{
+    await setDoc(tripContentRef, {
+      packingJson: JSON.stringify(packingCategories),
+      updatedAt: serverTimestamp(),
+      updatedBy: currentUser.displayName || currentUser.email
+    }, { merge: true });
+  }catch(e){
+    console.warn('Failed to save packing checklist:', e.code || e.message);
+    alert('Could not save your change to the cloud (you may be offline). It will stay on this device only until you retry.');
+  }finally{
+    savingTripContent = false;
+  }
 }
 
 const packingState = {
@@ -1908,44 +1957,110 @@ function renderPersonPanel(panelEl, uid){
   const totalItems = template.reduce((sum,g)=> sum + g.items.length, 0);
   const done = [...checkedItems].filter(id => template.some(g=>g.items.some(it=>it.id===id))).length;
 
-  const progressHtml = `<div class="checklist-progress">
+  panelEl.innerHTML = '';
+
+  const progressWrap = document.createElement('div');
+  progressWrap.innerHTML = `<div class="checklist-progress">
       <span class="count">${done} / ${totalItems} ready</span>
       <div class="bar-track"><div class="bar-fill" style="width:${totalItems ? (done/totalItems)*100 : 0}%"></div></div>
       ${isOwnPanel ? `<button class="reset-btn danger" id="ppl-reset-btn" type="button">Reset</button>` : ''}
     </div>
     ${!isOwnPanel ? `<p style="font-size:0.8rem; color:var(--ink-soft); margin:6px 0 18px 4px;">Read-only — this is their checklist, not yours.</p>` : '<div style="margin-bottom:18px;"></div>'}`;
+  panelEl.appendChild(progressWrap);
 
-  const gridHtml = template.map(group=>{
-    const itemsHtml = group.items.map(it=>{
-      const isChecked = checkedItems.has(it.id);
-      const hasSub = Array.isArray(it.sub) && it.sub.length;
-      const subDone = hasSub ? it.sub.filter((_,si)=> checkedItems.has(`${it.id}-s${si}`)).length : 0;
-      const rowHtml = `<div class="pack-row">
-          <label class="pack-check${isChecked ? ' checked':''}" data-id="${it.id}" style="${isOwnPanel?'':'cursor:default;'}">
-            <input type="checkbox" ${isChecked ? 'checked':''} ${isOwnPanel?'':'disabled'} aria-label="Mark '${it.n.replace(/'/g,"&#39;")}' as ready">
-            <span>
-              <div class="pack-item">${it.n}</div>
-              <div class="pack-detail">${it.d}</div>
-            </span>
-          </label>
-          ${hasSub ? `<button class="expand-toggle" type="button" data-target="sub-${uid}-${it.id}" aria-expanded="false" title="Show preparation steps">▶</button>` : ''}
-        </div>
-        ${hasSub ? `<div class="sub-wrap" id="sub-${uid}-${it.id}">
-            <div class="sub-progress">${subDone} / ${it.sub.length} steps done</div>
-            ${it.sub.map((s,si)=>{
-              const sid = `${it.id}-s${si}`;
-              const sChecked = checkedItems.has(sid);
-              return `<label class="sub-item${sChecked?' checked':''}" data-subid="${sid}" data-parent="${it.id}" style="${isOwnPanel?'':'cursor:default;'}">
-                <input type="checkbox" ${sChecked?'checked':''} ${isOwnPanel?'':'disabled'}><span>${s}</span>
-              </label>`;
-            }).join('')}
-          </div>` : ''}`;
-      return `<li>${rowHtml}</li>`;
-    }).join('');
-    return `<div class="pack-card"><h3><span class="pack-dot" style="background:${group.color}"></span>${group.title}</h3><ul>${itemsHtml}</ul></div>`;
-  }).join('');
+  const gridWrap = document.createElement('div');
+  gridWrap.className = 'pack-grid';
 
-  panelEl.innerHTML = progressHtml + `<div class="pack-grid">${gridHtml}</div>`;
+  template.forEach(group=>{
+    const card = document.createElement('div');
+    card.className = 'pack-card';
+    const h3 = document.createElement('h3');
+    h3.innerHTML = `<span class="pack-dot" style="background:${group.color}"></span>${esc(group.title)}`;
+    card.appendChild(h3);
+
+    const ul = document.createElement('ul');
+    const isEditingThis = (id)=> packingEditState && packingEditState.catId === group.catId && packingEditState.itemId === id;
+
+    group.items.forEach(it=>{
+      const li = document.createElement('li');
+      if(isEditingThis(it.id)){
+        li.appendChild(buildEditForm(packItemFieldSpec, it, {
+          onSave:(vals)=>{
+            Object.assign(it, vals);
+            packingEditState = null;
+            persistPacking();
+          },
+          onDelete:()=>{
+            const cat = packingCategories.find(c=>c.catId===group.catId);
+            const i = cat.items.indexOf(it);
+            if(i >= 0) cat.items.splice(i, 1);
+            packingEditState = null;
+            persistPacking();
+          },
+          onCancel:()=>{ packingEditState = null; renderPersonPanel(panelEl, uid); }
+        }));
+      }else{
+        const isChecked = checkedItems.has(it.id);
+        const hasSub = Array.isArray(it.sub) && it.sub.length;
+        const subDone = hasSub ? it.sub.filter((_,si)=> checkedItems.has(`${it.id}-s${si}`)).length : 0;
+        li.innerHTML = `<div class="pack-row">
+            <label class="pack-check${isChecked ? ' checked':''}" data-id="${it.id}" style="${isOwnPanel?'':'cursor:default;'}">
+              <input type="checkbox" ${isChecked ? 'checked':''} ${isOwnPanel?'':'disabled'} aria-label="Mark ${esc(it.n)} as ready">
+              <span>
+                <div class="pack-item">${esc(it.n)}</div>
+                <div class="pack-detail">${esc(it.d)}</div>
+              </span>
+            </label>
+            <button class="edit-affordance pack-edit-btn" type="button" title="Edit this item">✎</button>
+            ${hasSub ? `<button class="expand-toggle" type="button" data-target="sub-${uid}-${it.id}" aria-expanded="false" title="Show preparation steps">▶</button>` : ''}
+          </div>
+          ${hasSub ? `<div class="sub-wrap" id="sub-${uid}-${it.id}">
+              <div class="sub-progress">${subDone} / ${it.sub.length} steps done</div>
+              ${it.sub.map((s,si)=>{
+                const sid = `${it.id}-s${si}`;
+                const sChecked = checkedItems.has(sid);
+                return `<label class="sub-item${sChecked?' checked':''}" data-subid="${sid}" data-parent="${it.id}" style="${isOwnPanel?'':'cursor:default;'}">
+                  <input type="checkbox" ${sChecked?'checked':''} ${isOwnPanel?'':'disabled'}><span>${esc(s)}</span>
+                </label>`;
+              }).join('')}
+            </div>` : ''}`;
+        li.querySelector('.pack-edit-btn').addEventListener('click', (e)=>{
+          e.stopPropagation();
+          packingEditState = { catId: group.catId, itemId: it.id };
+          renderPersonPanel(panelEl, uid);
+        });
+      }
+      ul.appendChild(li);
+    });
+
+    if(packingEditState && packingEditState.catId === group.catId && packingEditState.itemId === 'new'){
+      const li = document.createElement('li');
+      li.appendChild(buildEditForm(packItemFieldSpec, {}, {
+        onSave:(vals)=>{
+          const cat = packingCategories.find(c=>c.catId===group.catId);
+          cat.items.push({ id: `${group.catId}-x${Date.now().toString(36)}`, ...vals });
+          packingEditState = null;
+          persistPacking();
+        },
+        onCancel:()=>{ packingEditState = null; renderPersonPanel(panelEl, uid); }
+      }));
+      ul.appendChild(li);
+    }
+
+    card.appendChild(ul);
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'edit-affordance add-item-btn';
+    addBtn.style.marginTop = '10px';
+    addBtn.textContent = '+ Add item';
+    addBtn.addEventListener('click', ()=>{ packingEditState = { catId: group.catId, itemId: 'new' }; renderPersonPanel(panelEl, uid); });
+    card.appendChild(addBtn);
+
+    gridWrap.appendChild(card);
+  });
+
+  panelEl.appendChild(gridWrap);
 
   panelEl.querySelectorAll('.expand-toggle').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -2131,10 +2246,13 @@ function renderInsurance(ins){
     </div>
   `;
 }
+let currentTravelData = null;
 function renderTravelContent(data){
+  currentTravelData = data;
   const mount = document.getElementById('travel-content');
   const h = data.hotel || {};
   mount.innerHTML = `
+    <button class="edit-affordance sync-btn" type="button" id="travel-edit-btn" title="Edit flight/hotel/insurance data" style="background:var(--slate); border-color:var(--slate); color:var(--cream); margin-bottom:14px;">✎ Edit trip data</button>
     <div class="flight-grid">
       ${renderTicket(data.outbound)}
       ${renderTicket(data.return)}
@@ -2162,6 +2280,63 @@ function renderTravelContent(data){
     </div>
     ${data.insurance ? renderInsurance(data.insurance) : ''}
   `;
+  const editBtn = document.getElementById('travel-edit-btn');
+  if(editBtn) editBtn.addEventListener('click', ()=> renderTravelEditor(data));
+}
+// Flights/hotel/insurance is a small, deeply-nested, low-churn structure
+// (a handful of edits a year, not a running list like the itinerary) — a
+// raw-JSON textarea is far simpler and safer to get right than building a
+// dedicated form for every nested field, and it's the same trusted-pair
+// gating as everywhere else. Consolidates a separately-stored top-level
+// `insurance` field (an old data shape from before that was supported) back
+// into the nested position going forward.
+function renderTravelEditor(data){
+  const mount = document.getElementById('travel-content');
+  const json = JSON.stringify(data, null, 2);
+  mount.innerHTML = `
+    <div class="voucher">
+      <h3>Edit flight / hotel / insurance data</h3>
+      <p class="addr">Raw JSON — same shape you'd paste into the Firestore console. Must stay valid JSON to save.</p>
+      <textarea id="travel-json-editor" style="width:100%; box-sizing:border-box; min-height:420px; padding:12px; border:1px solid var(--line); border-radius:8px; font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--parchment); color:var(--ink); resize:vertical;"></textarea>
+      <div id="travel-json-error" style="display:none; color:var(--maple-deep); font-size:0.85rem; margin-top:8px;"></div>
+      <div class="edit-form-actions" style="margin-top:14px;">
+        <button class="sync-btn" id="travel-json-save" type="button">Save</button>
+        <button class="reset-btn" id="travel-json-cancel" type="button">Cancel</button>
+      </div>
+    </div>
+  `;
+  // Set as a property, not interpolated into the HTML string above — a
+  // textarea's .value needs no HTML-escaping (unlike innerHTML), and the
+  // JSON can contain characters (the layoverNote field has literal <b> tags)
+  // that would otherwise need careful escaping to round-trip correctly.
+  document.getElementById('travel-json-editor').value = json;
+  document.getElementById('travel-json-cancel').addEventListener('click', ()=> renderTravelContent(data));
+  document.getElementById('travel-json-save').addEventListener('click', async ()=>{
+    const errEl = document.getElementById('travel-json-error');
+    const textEl = document.getElementById('travel-json-editor');
+    let parsed;
+    try{
+      parsed = JSON.parse(textEl.value);
+    }catch(e){
+      errEl.textContent = `Not valid JSON: ${e.message}`;
+      errEl.style.display = 'block';
+      return;
+    }
+    const saveBtn = document.getElementById('travel-json-save');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+    try{
+      await setDoc(doc(firestore, 'tripSecrets', 'montreal2026'), {
+        flightsHotel: JSON.stringify(parsed)
+      }, { merge: true });
+      renderTravelContent(parsed);
+    }catch(e){
+      errEl.textContent = `Could not save: ${e.code || e.message}`;
+      errEl.style.display = 'block';
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+    }
+  });
 }
 async function loadTravelContent(){
   const lockedEl = document.getElementById('travel-locked');
