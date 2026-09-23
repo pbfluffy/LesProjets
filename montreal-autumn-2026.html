@@ -416,6 +416,20 @@
   }
   .card-edit-btn:hover{ background:rgba(87,101,74,0.22); }
   .day-card .card-edit-btn{ right:44px; top:16px; }
+  .drag-handle{
+    position:absolute; left:-44px; top:52px; z-index:1;
+    display:none; align-items:center; justify-content:center;
+    width:26px; height:26px; padding:0;
+    background:rgba(87,101,74,0.12); border:1px solid var(--line); border-radius:8px;
+    color:var(--moss); font-size:0.9rem; cursor:grab;
+    touch-action:none; user-select:none;
+    transition:background .15s ease;
+  }
+  .drag-handle:hover{ background:rgba(87,101,74,0.22); }
+  .drag-handle:active{ cursor:grabbing; }
+  .day-card.dragging{
+    opacity:0.55; box-shadow:0 14px 26px rgba(60,40,20,0.25); z-index:5;
+  }
   .add-item-btn{
     display:none;
     width:100%; border:1px dashed var(--line); background:transparent; border-radius:var(--radius);
@@ -548,6 +562,7 @@
     .qcard{ padding:20px; }
     .food-item .card-edit-btn{ width:40px; height:40px; }
     .day-card .card-edit-btn{ width:34px; height:34px; right:40px; top:14px; }
+    .drag-handle{ width:34px; height:34px; left:-40px; top:50px; }
     /* 16px prevents iOS Safari from auto-zooming the page on focus */
     .edit-field input, .edit-field textarea{ font-size:16px; }
     .ppl-tab{ padding:12px 16px; min-height:44px; }
@@ -924,9 +939,52 @@ const mount = document.getElementById('timeline-mount');
 const collapseAllBtn = document.getElementById('collapse-all-btn');
 let allCollapsed = false;
 let editingItineraryKey = null; // null | array index | 'new'
+let cardToItem = new Map(); // rebuilt each render; maps a card's DOM node back to its item object for drag-commit
+
+// Drag handle reorders a card only among siblings sharing the same date
+// (crossing into a different day would need a date change too, which is
+// what editing the item is for). Swaps DOM position live as the pointer
+// crosses a same-day sibling's midpoint; commits to the itinerary array
+// (and re-renders, to refresh every card's now-stale array-index closures)
+// only once the drag ends.
+function setupDragHandle(card){
+  const handle = card.querySelector('.drag-handle');
+  if(!handle) return;
+  handle.addEventListener('pointerdown', (e)=>{
+    if(!document.body.classList.contains('can-edit')) return;
+    e.preventDefault();
+    try{ handle.setPointerCapture(e.pointerId); }catch(err){ /* best-effort; drag still works via document-level listeners */ }
+    card.classList.add('dragging');
+    const onMove = (ev)=>{
+      const y = ev.clientY;
+      const prev = card.previousElementSibling;
+      if(prev && prev.classList.contains('day-card') && prev.dataset.date === card.dataset.date){
+        const r = prev.getBoundingClientRect();
+        if(y < r.top + r.height / 2){ prev.parentNode.insertBefore(card, prev); return; }
+      }
+      const next = card.nextElementSibling;
+      if(next && next.classList.contains('day-card') && next.dataset.date === card.dataset.date){
+        const r = next.getBoundingClientRect();
+        if(y > r.top + r.height / 2){ next.parentNode.insertBefore(next, card); return; }
+      }
+    };
+    const onUp = (ev)=>{
+      try{ handle.releasePointerCapture(ev.pointerId); }catch(err){ /* best-effort */ }
+      card.classList.remove('dragging');
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      const newOrder = Array.from(mount.querySelectorAll('.day-card')).map(c => cardToItem.get(c)).filter(Boolean);
+      if(newOrder.length === itinerary.length){ itinerary = newOrder; }
+      persistTrip(renderItinerary);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  });
+}
 
 function renderItinerary(){
   mount.innerHTML = '';
+  cardToItem = new Map();
   const uniqueDates = [];
   itinerary.forEach(it=>{ if(!uniqueDates.includes(it.date)) uniqueDates.push(it.date); });
   const weekNames = ['Week One','Week Two','Week Three','Week Four','Week Five','Week Six','Week Seven','Week Eight'];
@@ -945,6 +1003,8 @@ function renderItinerary(){
       const t = itinerary.length > 1 ? idx / (itinerary.length - 1) : 0;
       const card = document.createElement('div');
       card.className = 'day-card' + (item.done ? ' done' : '');
+      card.dataset.date = item.date || '';
+      cardToItem.set(card, item);
       if(editingItineraryKey === idx){
         card.appendChild(buildEditForm(itineraryFieldSpec, item, {
           onSave:(vals)=>{
@@ -966,6 +1026,7 @@ function renderItinerary(){
           <div class="leaf-node" style="color:${nodeColor(t)}; background:${nodeColor(t)}"></div>
           <span class="collapse-hint">▼</span>
           <button class="edit-affordance card-edit-btn" type="button" title="Edit this stop">✎</button>
+          <button class="edit-affordance drag-handle" type="button" title="Drag to reorder within this day">⠿</button>
           <div class="top-row">
             <label class="done-check" title="Mark as done">
               <input type="checkbox" class="done-checkbox" ${item.done ? 'checked' : ''}>
@@ -981,7 +1042,7 @@ function renderItinerary(){
           </div></div>
         `;
         card.addEventListener('click', (e)=>{
-          if(e.target.closest('a') || e.target.closest('.card-edit-btn') || e.target.closest('.done-check')) return;
+          if(e.target.closest('a') || e.target.closest('.card-edit-btn') || e.target.closest('.done-check') || e.target.closest('.drag-handle')) return;
           card.classList.toggle('collapsed');
         });
         card.querySelector('.card-edit-btn').addEventListener('click', (e)=>{
@@ -994,6 +1055,7 @@ function renderItinerary(){
           item.done = e.target.checked;
           persistTrip(renderItinerary);
         });
+        setupDragHandle(card);
       }
       tl.appendChild(card);
     });
