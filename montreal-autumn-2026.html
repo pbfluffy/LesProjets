@@ -823,6 +823,14 @@ let itinerary = [
   {date:"Wed · Oct 14", time:"Full Day", cat:"Sightseeing & Culture", title:"Le Plateau-Mont-Royal Leisurely Walk", desc:"Photograph the famous spiral outdoor staircases, vibrant murals, and browse boutique cafés for last-minute finds.", loc:"Le Plateau-Mont-Royal", map:"https://www.google.com/maps/search/?api=1&query=Le+Plateau-Mont-Royal+Montreal"},
   {date:"Thu · Oct 15", time:"Morning", cat:"Arrival & Departure", title:"Pack & Check-out", desc:"Enjoy a final morning coffee near Griffintown, check out of the apartment, and head to YUL airport.", loc:"235 Rue Young, Griffintown", map:"https://www.google.com/maps/search/?api=1&query=235+Rue+Young+Montreal"}
 ];
+// Snapshot of the default itinerary's title -> category, captured before any
+// Firestore data can overwrite `itinerary` above. Cloud-synced trips saved
+// before the cat field existed won't have it in their stored data, and
+// Firestore always wins over these defaults on load — without backfilling,
+// anyone with previously-saved itinerary edits (from marking stops done,
+// reordering, etc.) would never see the new filter categories at all, on
+// any device, since their saved data permanently shadows the defaults.
+const defaultItineraryCatByTitle = new Map(itinerary.map(it => [it.title, it.cat]));
 
 let foodItems = [
   {cat:"Cafés", name:"Alfred Café Buvette par Le Petit Dep"},
@@ -1329,7 +1337,15 @@ function persistTrip(afterRender){
 }
 window.getTripArrays = () => ({ itinerary, foodItems, runItems });
 window.setTripArrays = (data)=>{
-  if(data.itinerary) itinerary = data.itinerary;
+  if(data.itinerary){
+    data.itinerary.forEach(it=>{
+      if(!it.cat){
+        const fallbackCat = defaultItineraryCatByTitle.get(it.title);
+        if(fallbackCat) it.cat = fallbackCat;
+      }
+    });
+    itinerary = data.itinerary;
+  }
   if(data.foodItems) foodItems = data.foodItems;
   if(data.runItems) runItems = data.runItems;
 };
