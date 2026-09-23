@@ -892,8 +892,13 @@ function buildEditForm(fieldSpec, record, handlers){
     row.appendChild(span);
     const input = document.createElement(f.type === 'textarea' ? 'textarea' : 'input');
     if(f.type === 'textarea') input.rows = 3;
-    else input.type = 'text';
-    input.value = (record && record[f.key]) || '';
+    else input.type = f.type === 'date' ? 'date' : 'text';
+    if(f.type === 'date'){
+      if(f.min) input.min = f.min;
+      if(f.max) input.max = f.max;
+    }
+    const rawValue = (record && record[f.key]) || '';
+    input.value = (f.type === 'date' && f.toInput) ? f.toInput(rawValue) : rawValue;
     row.appendChild(input);
     inputs[f.key] = input;
     wrap.appendChild(row);
@@ -904,7 +909,11 @@ function buildEditForm(fieldSpec, record, handlers){
   saveBtn.type = 'button'; saveBtn.className = 'sync-btn'; saveBtn.textContent = 'Save';
   saveBtn.addEventListener('click', ()=>{
     const vals = {};
-    fieldSpec.forEach(f=>{ vals[f.key] = inputs[f.key].value.trim() || undefined; });
+    fieldSpec.forEach(f=>{
+      const raw = inputs[f.key].value.trim();
+      const converted = (f.type === 'date' && f.fromInput && raw) ? f.fromInput(raw) : raw;
+      vals[f.key] = converted || undefined;
+    });
     handlers.onSave(vals);
   });
   btnRow.appendChild(saveBtn);
@@ -934,14 +943,34 @@ function nodeColor(t){
   return t < 0.5 ? lerpColor("57654a","c1892a", t/0.5) : lerpColor("c1892a","a8342a",(t-0.5)/0.5);
 }
 const MONTH_KEYS = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WEEKDAY_ABBR = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const TRIP_YEAR = 2026; // the display format ("Fri · Oct 2") never stores a year, so pin one for the date picker
 function itineraryDateKey(dateStr){
   const m = /([A-Za-z]{3})\s+(\d{1,2})/.exec(dateStr || '');
   if(!m) return 9999;
   return (MONTH_KEYS[m[1]] ?? 0) * 100 + parseInt(m[2], 10);
 }
 function itineraryCompare(a, b){ return itineraryDateKey(a.date) - itineraryDateKey(b.date); }
+// "Fri · Oct 2" -> "2026-10-02", for populating the <input type="date"> picker
+function itineraryDateToIso(dateStr){
+  const m = /([A-Za-z]{3})\s+(\d{1,2})/.exec(dateStr || '');
+  if(!m || !(m[1] in MONTH_KEYS)) return '';
+  const mon = String(MONTH_KEYS[m[1]] + 1).padStart(2, '0');
+  const day = String(parseInt(m[2], 10)).padStart(2, '0');
+  return `${TRIP_YEAR}-${mon}-${day}`;
+}
+// "2026-10-02" -> "Fri · Oct 2" — the weekday is derived from the real
+// calendar (via Date), not typed by hand, so it can no longer end up
+// mismatched with the actual date the way free-text entry could.
+function itineraryIsoToDate(iso){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  if(!m) return '';
+  const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return `${WEEKDAY_ABBR[dt.getDay()]} · ${MONTH_ABBR[Number(m[2]) - 1]} ${Number(m[3])}`;
+}
 const itineraryFieldSpec = [
-  {key:'date', label:'Date (e.g. "Fri · Oct 2")'},
+  {key:'date', label:'Date', type:'date', min:`${TRIP_YEAR}-09-25`, max:`${TRIP_YEAR}-10-20`, toInput: itineraryDateToIso, fromInput: itineraryIsoToDate},
   {key:'time', label:'Time (e.g. "Morning", "Full Day")'},
   {key:'cat', label:'Category (e.g. "Food & Drink", "Sightseeing & Culture")'},
   {key:'title', label:'Title'},
