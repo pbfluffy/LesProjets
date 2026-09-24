@@ -12,6 +12,11 @@
 const ALLOW = ['https://pbfluffy.github.io', 'https://pumbafluffycorgi.com'];
 const PROJECT_ID = 'pumgoda';
 const OWNER_UID  = 'HfksT06CgFUkZ9s4vrzEGs85O562';
+// The montreal-autumn-2026 trip page (same Firebase project) reuses this
+// lookup for its own Maps-link autofill. Scoped to exactly these two uids —
+// deliberately NOT added to /admins or /pumgodaAdmins, since that would also
+// grant them unrelated pumgoda admin powers this trip page has no use for.
+const MONTREAL_TRIP_UIDS = ['ATNWbAURUwcuGPERNJFAvBNtRZc2', 'D17HauhxK5fSb8zkhvbzWzSIIQk2'];
 const JWKS_URL   = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 // SSRF guard — the only hosts this Worker is ever allowed to fetch.
 const ALLOWED_HOSTS = ['google.com', 'www.google.com', 'maps.google.com', 'maps.app.goo.gl', 'goo.gl', 'g.co'];
@@ -73,6 +78,7 @@ async function verifyIdToken(token) {
 
 async function isAdmin(uid, idToken) {
   if (uid === OWNER_UID) return true;
+  if (MONTREAL_TRIP_UIDS.includes(uid)) return true;
   const docUrl = (col) => `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}`
                          + `/databases/(default)/documents/${col}/${encodeURIComponent(uid)}`;
   const auth = { headers: { Authorization: 'Bearer ' + idToken } };

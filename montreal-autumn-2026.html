@@ -457,12 +457,16 @@
     display:block; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em;
     color:var(--ink-soft); margin-bottom:4px; font-weight:600;
   }
-  .edit-field input, .edit-field textarea{
+  .edit-field input, .edit-field textarea, .edit-field select{
     width:100%; box-sizing:border-box; padding:8px 10px;
     border:1px solid var(--line); border-radius:8px;
     font-family:inherit; font-size:0.88rem; background:var(--parchment); color:var(--ink);
   }
   .edit-field textarea{ resize:vertical; }
+  .edit-field select{ cursor:pointer; }
+  .autofill-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:-2px; }
+  .autofill-row .reset-btn{ flex-shrink:0; }
+  .autofill-msg{ font-size:0.8rem; color:var(--ink-soft); }
   .edit-form-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
 
   /* ---------- PACKING / CHECKLIST ---------- */
@@ -586,7 +590,7 @@
     .day-card .card-edit-btn{ width:34px; height:34px; right:40px; top:14px; }
     .drag-handle{ width:34px; height:34px; left:-40px; top:50px; }
     /* 16px prevents iOS Safari from auto-zooming the page on focus */
-    .edit-field input, .edit-field textarea{ font-size:16px; }
+    .edit-field input, .edit-field textarea, .edit-field select{ font-size:16px; }
     .ppl-tab{ padding:12px 16px; min-height:44px; }
     .reassign-btn{ padding:11px 16px; min-height:44px; }
     .done-check{ padding:8px; }
@@ -899,6 +903,7 @@ function buildEditForm(fieldSpec, record, handlers){
   const wrap = document.createElement('div');
   wrap.className = 'edit-form';
   const inputs = {};
+  let mapRow = null;
   fieldSpec.forEach(f=>{
     const row = document.createElement('label');
     row.className = 'edit-field';
@@ -906,16 +911,34 @@ function buildEditForm(fieldSpec, record, handlers){
     span.className = 'edit-field-label';
     span.textContent = f.label;
     row.appendChild(span);
-    const input = document.createElement(f.type === 'textarea' ? 'textarea' : 'input');
+    const input = document.createElement(f.type === 'textarea' ? 'textarea' : f.type === 'select' ? 'select' : 'input');
     if(f.type === 'textarea') input.rows = 3;
-    else input.type = f.type === 'date' ? 'date' : 'text';
+    else if(f.type !== 'select') input.type = f.type === 'date' ? 'date' : 'text';
     if(f.type === 'date'){
       if(f.min) input.min = f.min;
       if(f.max) input.max = f.max;
     }
     const rawValue = (record && record[f.key]) || '';
-    input.value = f.toInput ? f.toInput(rawValue) : rawValue;
-    if(f.suggestions && f.suggestions.length){
+    const currentValue = f.toInput ? f.toInput(rawValue) : rawValue;
+    if(f.type === 'select'){
+      // A fixed dropdown keeps entries consistent (no more "Café" vs "Cafés"
+      // typos splitting a category in two) while still showing whatever
+      // value existing data already has, even if it's since fallen off the
+      // suggested list, so opening the form never silently drops it.
+      const options = f.suggestions && f.suggestions.includes(currentValue)
+        ? f.suggestions
+        : [currentValue, ...(f.suggestions || [])].filter(Boolean);
+      options.forEach(s=>{
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = s;
+        input.appendChild(opt);
+      });
+      input.value = currentValue;
+    }else{
+      input.value = currentValue;
+    }
+    if(f.type !== 'select' && f.suggestions && f.suggestions.length){
       // <input list="…"> keeps this a plain text field (any value can still
       // be typed) while offering the common values as a native dropdown —
       // easier to get right without losing the flexibility a rigid <select>
@@ -934,7 +957,57 @@ function buildEditForm(fieldSpec, record, handlers){
     row.appendChild(input);
     inputs[f.key] = input;
     wrap.appendChild(row);
+    if(f.key === 'map') mapRow = row;
   });
+  // Google Maps link autofill — only offered when this form has a map field
+  // and the Firebase script has loaded (window.lookupMapsPlace bridges to it,
+  // since the lookup needs a signed-in id token). Resolves short
+  // maps.app.goo.gl share links too, via the pumgoda-places-lookup Worker.
+  if(inputs.map && window.lookupMapsPlace){
+    const autofillRow = document.createElement('div');
+    autofillRow.className = 'edit-field autofill-row';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'reset-btn';
+    btn.textContent = '📍 Auto-fill from this link';
+    const msg = document.createElement('span');
+    msg.className = 'autofill-msg';
+    btn.addEventListener('click', async ()=>{
+      const url = inputs.map.value.trim();
+      if(!url){ msg.textContent = 'Paste a Google Maps link above first.'; return; }
+      btn.disabled = true;
+      msg.textContent = 'Looking up…';
+      const data = await window.lookupMapsPlace(url);
+      btn.disabled = false;
+      if(!data.ok){
+        const errMsgs = {
+          bad_url: "That doesn't look like a valid Google Maps link.",
+          resolve_failed: "Couldn't read that link — try opening it once and pasting the full URL.",
+          unauthorized: 'Sign-in expired — reload the page and try again.',
+          places_error: 'Lookup service error — try again.'
+        };
+        msg.textContent = errMsgs[data.error] || ('Lookup failed: ' + (data.error || 'unknown error'));
+        return;
+      }
+      const p = data.place || {};
+      const nameKey = inputs.title ? 'title' : (inputs.name ? 'name' : null);
+      if(nameKey && !inputs[nameKey].value.trim() && p.name){
+        inputs[nameKey].value = p.name.en || p.name.th || '';
+      }
+      if(inputs.loc && !inputs.loc.value.trim()){
+        inputs.loc.value = p.neighborhood || p.province || (p.address && p.address.en) || '';
+      }
+      if(p.googleMapsUrl) inputs.map.value = p.googleMapsUrl;
+      const partial = !data.meta || data.meta.placeId == null;
+      msg.textContent = partial
+        ? 'Got a location, but no confident place match — check the name.'
+        : 'Filled in — double-check before saving.';
+    });
+    autofillRow.appendChild(btn);
+    autofillRow.appendChild(msg);
+    if(mapRow) wrap.insertBefore(autofillRow, mapRow.nextSibling);
+    else wrap.appendChild(autofillRow);
+  }
   const btnRow = document.createElement('div');
   btnRow.className = 'edit-form-actions';
   const saveBtn = document.createElement('button');
@@ -1012,7 +1085,7 @@ const itineraryCategoryColors = {
 const itineraryFieldSpec = [
   {key:'date', label:'Date', type:'date', min:`${TRIP_YEAR}-09-25`, max:`${TRIP_YEAR}-10-20`, toInput: itineraryDateToIso, fromInput: itineraryIsoToDate},
   {key:'time', label:'Time', suggestions:['Morning','Afternoon','Evening','Full Day']},
-  {key:'cat', label:'Category', suggestions:Object.keys(itineraryCategoryColors)},
+  {key:'cat', label:'Category', type:'select', suggestions:Object.keys(itineraryCategoryColors)},
   {key:'title', label:'Title'},
   {key:'desc', label:'Description', type:'textarea'},
   {key:'loc', label:'Location label'},
@@ -1347,7 +1420,7 @@ const categoryColors = {
   "Convenience": "var(--slate)"
 };
 const foodFieldSpec = [
-  {key:'cat', label:'Category', suggestions:Object.keys(categoryColors)},
+  {key:'cat', label:'Category', type:'select', suggestions:Object.keys(categoryColors)},
   {key:'name', label:'Name'},
   {key:'note', label:'Note (optional)', type:'textarea'},
   {key:'map', label:'Map link (optional, https://…)'}
@@ -1369,7 +1442,7 @@ const runCategoryColors = {
   "Nature & Waterfront": "var(--slate)"
 };
 const runFieldSpec = [
-  {key:'cat', label:'Category', suggestions:Object.keys(runCategoryColors)},
+  {key:'cat', label:'Category', type:'select', suggestions:Object.keys(runCategoryColors)},
   {key:'name', label:'Name'},
   {key:'note', label:'Note (optional)', type:'textarea'},
   {key:'map', label:'Map link (optional, https://…)'}
@@ -1554,6 +1627,29 @@ function markSyncUnavailable(){
 
     // ---------------- TWO-PERSON PACKING CHECKLIST ----------------
     const ALLOWED_UIDS = ['ATNWbAURUwcuGPERNJFAvBNtRZc2', 'D17HauhxK5fSb8zkhvbzWzSIIQk2'];
+
+    // ---------------- GOOGLE MAPS LINK AUTOFILL ----------------
+    // Reuses the pumgoda-places-lookup Worker (already deployed for the
+    // pumgoda admin console) to resolve a pasted Google Maps link — including
+    // short maps.app.goo.gl share links, which carry no place info in the URL
+    // itself — into a name/address/coords. The Worker's admin gate has a
+    // small allowlist for exactly these two trip uids (its
+    // MONTREAL_TRIP_UIDS), so it grants nothing beyond this one lookup.
+    const MAPS_LOOKUP_WORKER = 'https://pumgoda-places-lookup.pbfluffygaming.workers.dev';
+    window.lookupMapsPlace = async function(url){
+      if(!currentUser) return { ok:false, error:'unauthorized' };
+      try{
+        const token = await currentUser.getIdToken();
+        const r = await fetch(MAPS_LOOKUP_WORKER, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token },
+          body: JSON.stringify({ url })
+        });
+        return await r.json();
+      }catch(e){
+        return { ok:false, error:'network_error' };
+      }
+    };
 
     // ---------------- EDITABLE PAGE CONTENT (itinerary / food / running) ----
     // Read is public (anyone can see the latest plan); writes are restricted
