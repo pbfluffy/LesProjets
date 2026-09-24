@@ -1136,6 +1136,28 @@ function renderItinerary(){
   rebuildItineraryChips();
   mount.innerHTML = '';
   cardToItem = new Map();
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'edit-affordance add-item-btn';
+  addBtn.style.marginBottom = '16px';
+  addBtn.textContent = '+ Add a day stop';
+  addBtn.addEventListener('click', ()=>{ editingItineraryKey = 'new'; renderItinerary(); });
+  mount.appendChild(addBtn);
+  if(editingItineraryKey === 'new'){
+    const newCard = document.createElement('div');
+    newCard.className = 'day-card';
+    newCard.style.marginBottom = '16px';
+    newCard.appendChild(buildEditForm(itineraryFieldSpec, {}, {
+      onSave:(vals)=>{
+        itinerary.push(vals);
+        itinerary.sort(itineraryCompare);
+        editingItineraryKey = null;
+        persistTrip(renderItinerary);
+      },
+      onCancel:()=>{ editingItineraryKey = null; renderItinerary(); }
+    }));
+    mount.appendChild(newCard);
+  }
   const uniqueDates = [];
   itinerary.forEach(it=>{ if(!uniqueDates.includes(it.date)) uniqueDates.push(it.date); });
   const weekNames = ['Week One','Week Two','Week Three','Week Four','Week Five','Week Six','Week Seven','Week Eight'];
@@ -1220,28 +1242,6 @@ function renderItinerary(){
     });
     mount.appendChild(tl);
   }
-  if(editingItineraryKey === 'new'){
-    const card = document.createElement('div');
-    card.className = 'day-card';
-    card.style.marginTop = '16px';
-    card.appendChild(buildEditForm(itineraryFieldSpec, {}, {
-      onSave:(vals)=>{
-        itinerary.push(vals);
-        itinerary.sort(itineraryCompare);
-        editingItineraryKey = null;
-        persistTrip(renderItinerary);
-      },
-      onCancel:()=>{ editingItineraryKey = null; renderItinerary(); }
-    }));
-    mount.appendChild(card);
-  }
-  const addBtn = document.createElement('button');
-  addBtn.type = 'button';
-  addBtn.className = 'edit-affordance add-item-btn';
-  addBtn.style.marginTop = '16px';
-  addBtn.textContent = '+ Add a day stop';
-  addBtn.addEventListener('click', ()=>{ editingItineraryKey = 'new'; renderItinerary(); });
-  mount.appendChild(addBtn);
   // Done stops auto-collapse by default; "Collapse all days" force-collapses everything.
   document.querySelectorAll('.day-card').forEach(c => c.classList.toggle('collapsed', allCollapsed || c.classList.contains('done')));
 }
