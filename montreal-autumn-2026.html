@@ -1283,6 +1283,26 @@ function createFilterableGrid({ chipsEl, gridEl, getItems, categoryColors, field
   function render(){
     const items = getItems();
     gridEl.innerHTML = '';
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'edit-affordance add-item-btn';
+    addBtn.textContent = addLabel;
+    addBtn.addEventListener('click', ()=>{ editingKey = 'new'; render(); });
+    gridEl.appendChild(addBtn);
+    if(editingKey === 'new'){
+      const el = document.createElement('div');
+      el.className = 'food-item';
+      el.style.borderLeft = '4px solid var(--slate)';
+      el.appendChild(buildEditForm(fieldSpec, {}, {
+        onSave:(vals)=>{
+          getItems().push(vals);
+          editingKey = null;
+          persistTrip(()=>{ rebuildChips(); render(); });
+        },
+        onCancel:()=>{ editingKey = null; render(); }
+      }));
+      gridEl.appendChild(el);
+    }
     items.forEach((f, idx)=>{
       if(editingKey !== idx && currentFilter !== 'All' && f.cat !== currentFilter) return;
       const el = document.createElement('div');
@@ -1312,26 +1332,6 @@ function createFilterableGrid({ chipsEl, gridEl, getItems, categoryColors, field
       }
       gridEl.appendChild(el);
     });
-    if(editingKey === 'new'){
-      const el = document.createElement('div');
-      el.className = 'food-item';
-      el.style.borderLeft = '4px solid var(--slate)';
-      el.appendChild(buildEditForm(fieldSpec, {}, {
-        onSave:(vals)=>{
-          getItems().push(vals);
-          editingKey = null;
-          persistTrip(()=>{ rebuildChips(); render(); });
-        },
-        onCancel:()=>{ editingKey = null; render(); }
-      }));
-      gridEl.appendChild(el);
-    }
-    const addBtn = document.createElement('button');
-    addBtn.type = 'button';
-    addBtn.className = 'edit-affordance add-item-btn';
-    addBtn.textContent = addLabel;
-    addBtn.addEventListener('click', ()=>{ editingKey = 'new'; render(); });
-    gridEl.appendChild(addBtn);
   }
   rebuildChips();
   render();
