@@ -124,15 +124,30 @@ export default {
         return json({ ok: false, error: 'bad_url' }, 400, cors);
 
       // a. resolve short links (maps.app.goo.gl / goo.gl/maps) -> final long URL
+      // A browser-like User-Agent/Accept-Language noticeably cuts how often
+      // Google serves its automated-traffic interstitial (google.com/sorry/…)
+      // instead of following the redirect through to the real place page.
       let finalUrl;
       try {
-        finalUrl = (await fetch(url, { redirect: 'follow' })).url;
+        const resp = await fetch(url, {
+          redirect: 'follow',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+        });
+        finalUrl = resp.url;
       } catch {
         return json({ ok: false, error: 'resolve_failed' }, 422, cors);
       }
       // SSRF guard — the redirect target must also be a Google Maps host
       if (!isAllowedMapsUrl(finalUrl))
         return json({ ok: false, error: 'bad_url' }, 400, cors);
+      // Google's bot-check interstitial (google.com/sorry/…) passes the host
+      // check above but isn't a real place page — fail cleanly instead of
+      // parsing garbage out of it.
+      if (/\/sorry(\/|$)/.test(new URL(finalUrl).pathname))
+        return json({ ok: false, error: 'resolve_failed' }, 422, cors);
 
       // b. parse name + pin coords from the long URL
       const { name, coords } = parseMapsUrl(finalUrl);
