@@ -469,6 +469,28 @@
   .autofill-msg{ font-size:0.8rem; color:var(--ink-soft); }
   .edit-form-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
 
+  /* ---------- SHEET SYNC ---------- */
+  .sync-panel{
+    background:var(--parchment-2); border:1px solid var(--line); border-radius:var(--radius);
+    padding:18px 20px; margin-bottom:18px;
+  }
+  .sync-panel h3{ margin:0 0 4px; font-size:1.05rem; }
+  .sync-panel .sync-sub{ font-size:0.82rem; color:var(--ink-soft); margin:0 0 14px; }
+  .sync-group{ margin-bottom:14px; }
+  .sync-group-title{
+    font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em;
+    color:var(--ink-soft); font-weight:600; margin-bottom:6px;
+  }
+  .sync-row{
+    display:flex; align-items:flex-start; gap:10px; padding:7px 4px;
+    border-bottom:1px solid var(--line); font-size:0.86rem;
+  }
+  .sync-row:last-child{ border-bottom:none; }
+  .sync-row input[type="checkbox"]{ margin-top:3px; width:16px; height:16px; accent-color:var(--moss); flex-shrink:0; }
+  .sync-row .sync-row-main{ font-weight:600; }
+  .sync-row .sync-row-sub{ font-size:0.78rem; color:var(--ink-soft); margin-top:2px; }
+  .sync-empty{ font-size:0.86rem; color:var(--ink-soft); }
+
   /* ---------- PACKING / CHECKLIST ---------- */
   .checklist-progress{
     display:flex; align-items:center; gap:14px;
@@ -678,6 +700,9 @@
     </div>
 
     <div class="trip-status" id="trip-status"></div>
+
+    <button class="edit-affordance sync-btn" type="button" id="sheet-sync-btn" style="background:var(--slate); border-color:var(--slate); color:var(--cream); margin:0 0 18px;">🔄 Sync from planning sheet</button>
+    <div id="sheet-sync-panel" style="display:none;"></div>
 
     <section class="block">
       <div class="block-head">
@@ -1471,6 +1496,7 @@ function persistTrip(afterRender){
 }
 window.esc = esc;
 window.buildEditForm = buildEditForm;
+window.itineraryCompare = itineraryCompare;
 window.getTripArrays = () => ({ itinerary, foodItems, runItems });
 window.setTripArrays = (data)=>{
   if(data.itinerary){
@@ -1848,6 +1874,262 @@ const packItemFieldSpec = [
     toInput: v => Array.isArray(v) ? v.join('\n') : '',
     fromInput: v => v.split('\n').map(s=>s.trim()).filter(Boolean)}
 ];
+// ---------------- SYNC FROM PLANNING SHEET ----------------
+// Pulls new rows from the two tabs of the trip's Google Sheet that are
+// actually structured tables (Detailed Itinerary, Packing & Travel Tips —
+// published to the web as CSV, publicly readable, same privacy level as
+// tripContent already is). Food/Running/Stuff tabs are free-text paragraphs
+// in the sheet, not real columns, so they're deliberately left out here —
+// a blind parse of prose would produce broken entries, not saved time.
+// This only ever ADDS rows the app doesn't already have (matched by a loose
+// normalized-name comparison, same idea as findPossibleDuplicate in
+// admindepum.html) — it never overwrites or deletes existing items, so it
+// can't clobber anything either traveller has already edited in-app.
+const SHEET_PUB_KEY = '2PACX-1vTe80GE66O6LXOQxKg_JnIHm229Nj4_UWmTyf33NBvFrHei2in6a-dQ-ZCc5LbkLQ';
+const SHEET_GIDS = { itinerary: '1907682049', packing: '145618852' };
+function sheetCsvUrl(gid){
+  return `https://docs.google.com/spreadsheets/d/e/${SHEET_PUB_KEY}/pub?single=true&output=csv&gid=${gid}`;
+}
+// Minimal CSV parser: handles quoted fields with embedded commas/newlines/escaped quotes.
+function parseCsv(text){
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i=0; i<text.length; i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++; }
+        else inQuotes = false;
+      }else field += c;
+    }else{
+      if(c === '"') inQuotes = true;
+      else if(c === ','){ row.push(field); field = ''; }
+      else if(c === '\r'){ /* skip */ }
+      else if(c === '\n'){ row.push(field); rows.push(row); row = []; field = ''; }
+      else field += c;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+const SHEET_MONTHS = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+const SHEET_WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const SHEET_MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function parseSheetDate(s){
+  // "2 Oct 2026" -> "Fri · Oct 2" (matches the app's display/sort format)
+  const m = /(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})/.exec((s || '').trim());
+  if(!m) return null;
+  const day = parseInt(m[1], 10);
+  const mon = SHEET_MONTHS[m[2].slice(0, 3).toLowerCase()];
+  if(mon == null) return null;
+  const year = parseInt(m[3], 10);
+  const dt = new Date(year, mon, day);
+  return `${SHEET_WD[dt.getDay()]} · ${SHEET_MO[mon]} ${day}`;
+}
+function parseSheetTime(dayPeriod){
+  const parts = (dayPeriod || '').split('/');
+  return parts.length > 1 ? parts[parts.length - 1].trim() : '';
+}
+function normalizeForMatch(s){
+  return (s || '').toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+}
+function looksLikeUrl(s){
+  return /^https?:\/\//i.test((s || '').trim());
+}
+async function fetchSheetItineraryRows(){
+  const r = await fetch(sheetCsvUrl(SHEET_GIDS.itinerary));
+  if(!r.ok) throw new Error('fetch failed: ' + r.status);
+  const rows = parseCsv(await r.text());
+  if(!rows.length) return [];
+  const header = rows[0].map(h => h.trim().toLowerCase());
+  const dateI = header.indexOf('date');
+  const periodI = header.indexOf('day / period');
+  const actI = header.indexOf('activity / attraction');
+  const locI = header.indexOf('location');
+  const mapI = header.indexOf('google maps link');
+  const remarkI = header.indexOf('remark');
+  const remarks2I = header.lastIndexOf('remarks / notes');
+  const out = [];
+  for(let i = 1; i < rows.length; i++){
+    const r2 = rows[i];
+    if(!r2 || r2.every(c => !c || !c.trim())) continue;
+    const date = parseSheetDate(r2[dateI]);
+    const title = (r2[actI] || '').trim();
+    if(!date || !title) continue;
+    const time = parseSheetTime(r2[periodI]);
+    const loc = (r2[locI] || '').trim();
+    const mapRaw = (r2[mapI] || '').trim();
+    const map = looksLikeUrl(mapRaw) ? mapRaw : '';
+    const remark = (r2[remarkI] || '').trim();
+    const remark2 = (r2[remarks2I] || '').trim();
+    const desc = [...new Set([remark, remark2].filter(Boolean))].join(' — ');
+    out.push({ date, time, title, loc, map, desc });
+  }
+  return out;
+}
+async function fetchSheetPackingRows(){
+  const r = await fetch(sheetCsvUrl(SHEET_GIDS.packing));
+  if(!r.ok) throw new Error('fetch failed: ' + r.status);
+  const rows = parseCsv(await r.text());
+  const headerIdx = rows.findIndex(row =>
+    row.some(c => c.trim().toLowerCase() === 'category') &&
+    row.some(c => c.trim().toLowerCase().startsWith('item'))
+  );
+  if(headerIdx === -1) return [];
+  const header = rows[headerIdx].map(h => h.trim().toLowerCase());
+  const catI = header.indexOf('category');
+  const itemI = header.findIndex(h => h.startsWith('item'));
+  const detailI = header.findIndex(h => h.startsWith('importance') || h.startsWith('detail'));
+  const out = [];
+  for(let i = headerIdx + 1; i < rows.length; i++){
+    const r2 = rows[i];
+    if(!r2 || r2.every(c => !c || !c.trim())) continue;
+    const cat = (r2[catI] || '').trim();
+    const name = (r2[itemI] || '').trim();
+    const detail = (r2[detailI] || '').trim();
+    if(!cat || !name) continue;
+    out.push({ cat, name, detail });
+  }
+  return out;
+}
+function fuzzyNameMatch(a, b){
+  return a === b || (a.length > 2 && b.includes(a)) || (b.length > 2 && a.includes(b));
+}
+function diffItineraryAgainstSheet(sheetRows){
+  const { itinerary } = window.getTripArrays();
+  const existingNorm = itinerary.map(it => normalizeForMatch(it.title));
+  return sheetRows.filter(row => {
+    const n = normalizeForMatch(row.title);
+    return n && !existingNorm.some(en => fuzzyNameMatch(en, n));
+  });
+}
+function findPackingCategory(catName){
+  const n = normalizeForMatch(catName);
+  // Fuzzy, not exact — the sheet's category labels don't always match the
+  // app's exactly (e.g. sheet's "Local Tip" vs the app's "Local Tips"),
+  // and an exact-only match would wrongly treat those as a brand-new
+  // category and miss items the app already has under it.
+  return packingCategories.find(c => fuzzyNameMatch(normalizeForMatch(c.title), n));
+}
+function diffPackingAgainstSheet(sheetRows){
+  return sheetRows.filter(row => {
+    const cat = findPackingCategory(row.cat);
+    const n = normalizeForMatch(row.name);
+    if(!n) return false;
+    if(!cat) return true; // unrecognized category — still surface it, don't silently drop
+    return !cat.items.some(it => fuzzyNameMatch(normalizeForMatch(it.n), n));
+  });
+}
+async function applySheetImport(newItineraryRows, newPackingRows){
+  if(newItineraryRows.length){
+    const { itinerary } = window.getTripArrays();
+    const additions = newItineraryRows.map(row => ({
+      date: row.date,
+      time: row.time || undefined,
+      title: row.title,
+      desc: row.desc || undefined,
+      loc: row.loc || undefined,
+      map: row.map || undefined
+    }));
+    const merged = [...itinerary, ...additions];
+    if(window.itineraryCompare) merged.sort(window.itineraryCompare);
+    window.setTripArrays({ itinerary: merged });
+    window.reloadTripUI();
+    if(window.saveTripContent) await window.saveTripContent();
+  }
+  if(newPackingRows.length){
+    newPackingRows.forEach(row => {
+      let cat = findPackingCategory(row.cat);
+      if(!cat){
+        cat = {
+          catId: normalizeForMatch(row.cat).replace(/\s+/g, '-') || 'other',
+          title: row.cat, color: 'var(--slate)', conditional: null, items: []
+        };
+        packingCategories.push(cat);
+      }
+      const id = `${cat.catId}-x${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+      cat.items.push({ id, n: row.name, d: row.detail || undefined });
+    });
+    await persistPacking();
+  }
+}
+function renderSheetSyncPanel(newItineraryRows, newPackingRows){
+  const panel = document.getElementById('sheet-sync-panel');
+  panel.className = 'sync-panel';
+  panel.style.display = 'block';
+  if(!newItineraryRows.length && !newPackingRows.length){
+    panel.innerHTML = `<h3>Sync from planning sheet</h3><p class="sync-empty">Nothing new — the app already has everything from the Itinerary and Packing tabs.</p>
+      <div class="edit-form-actions"><button class="reset-btn" id="sync-close-btn" type="button">Close</button></div>`;
+    document.getElementById('sync-close-btn').addEventListener('click', ()=>{ panel.style.display = 'none'; });
+    return;
+  }
+  const itinRowsHtml = newItineraryRows.map((row, i) => `
+    <label class="sync-row">
+      <input type="checkbox" checked data-kind="itin" data-idx="${i}">
+      <span><div class="sync-row-main">${esc(row.date)}${row.time ? ' · ' + esc(row.time) : ''} — ${esc(row.title)}</div>
+        ${row.loc || row.desc ? `<div class="sync-row-sub">${esc([row.loc, row.desc].filter(Boolean).join(' · '))}</div>` : ''}</span>
+    </label>`).join('');
+  const packRowsHtml = newPackingRows.map((row, i) => `
+    <label class="sync-row">
+      <input type="checkbox" checked data-kind="pack" data-idx="${i}">
+      <span><div class="sync-row-main">${esc(row.cat)} — ${esc(row.name)}</div>
+        ${row.detail ? `<div class="sync-row-sub">${esc(row.detail)}</div>` : ''}</span>
+    </label>`).join('');
+  panel.innerHTML = `
+    <h3>Sync from planning sheet</h3>
+    <p class="sync-sub">New rows found in the sheet that aren't in the app yet. Uncheck anything you don't want, then import.</p>
+    ${newItineraryRows.length ? `<div class="sync-group"><div class="sync-group-title">Itinerary (${newItineraryRows.length} new)</div>${itinRowsHtml}</div>` : ''}
+    ${newPackingRows.length ? `<div class="sync-group"><div class="sync-group-title">Packing (${newPackingRows.length} new)</div>${packRowsHtml}</div>` : ''}
+    <div class="edit-form-actions">
+      <button class="sync-btn" id="sync-import-btn" type="button">Import selected</button>
+      <button class="reset-btn" id="sync-close-btn" type="button">Cancel</button>
+    </div>
+    <div class="autofill-msg" id="sync-status-msg" style="margin-top:8px;"></div>
+  `;
+  document.getElementById('sync-close-btn').addEventListener('click', ()=>{ panel.style.display = 'none'; });
+  document.getElementById('sync-import-btn').addEventListener('click', async (e)=>{
+    const btn = e.target;
+    btn.disabled = true;
+    btn.textContent = 'Importing…';
+    const checked = [...panel.querySelectorAll('input[type="checkbox"]:checked')];
+    const selItin = checked.filter(c => c.dataset.kind === 'itin').map(c => newItineraryRows[+c.dataset.idx]);
+    const selPack = checked.filter(c => c.dataset.kind === 'pack').map(c => newPackingRows[+c.dataset.idx]);
+    try{
+      await applySheetImport(selItin, selPack);
+      panel.innerHTML = `<h3>Sync from planning sheet</h3><p class="sync-empty">Imported ${selItin.length + selPack.length} item(s).</p>
+        <div class="edit-form-actions"><button class="reset-btn" id="sync-close-btn2" type="button">Close</button></div>`;
+      document.getElementById('sync-close-btn2').addEventListener('click', ()=>{ panel.style.display = 'none'; });
+    }catch(err){
+      document.getElementById('sync-status-msg').textContent = 'Import failed: ' + (err.message || 'unknown error');
+      btn.disabled = false;
+      btn.textContent = 'Import selected';
+    }
+  });
+}
+async function runSheetSync(){
+  const btn = document.getElementById('sheet-sync-btn');
+  const panel = document.getElementById('sheet-sync-panel');
+  btn.disabled = true;
+  btn.textContent = 'Checking sheet…';
+  panel.className = 'sync-panel';
+  panel.style.display = 'block';
+  panel.innerHTML = `<p class="sync-empty">Fetching the latest sheet…</p>`;
+  try{
+    const [itinRows, packRows] = await Promise.all([fetchSheetItineraryRows(), fetchSheetPackingRows()]);
+    const newItin = diffItineraryAgainstSheet(itinRows);
+    const newPack = diffPackingAgainstSheet(packRows);
+    renderSheetSyncPanel(newItin, newPack);
+  }catch(err){
+    panel.innerHTML = `<p class="sync-empty">Couldn't read the sheet — it may need to be re-published to the web, or you're offline. (${esc(err.message || 'unknown error')})</p>
+      <div class="edit-form-actions"><button class="reset-btn" id="sync-close-btn" type="button">Close</button></div>`;
+    document.getElementById('sync-close-btn').addEventListener('click', ()=>{ panel.style.display = 'none'; });
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '🔄 Sync from planning sheet';
+  }
+}
+document.getElementById('sheet-sync-btn').addEventListener('click', runSheetSync);
+
 let packingEditState = null; // { catId, itemId } | { catId, itemId:'new' } | null
 async function persistPacking(){
   renderPackingUI();
