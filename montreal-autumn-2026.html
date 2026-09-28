@@ -124,6 +124,7 @@
   @media (prefers-reduced-motion: reduce){
     .panel{ animation:none; }
     html{ scroll-behavior:auto; }
+    .sheet-sync-btn.loading .sheet-sync-icon{ animation:none; }
   }
 
   /* ---------- HERO ---------- */
@@ -470,6 +471,26 @@
   .edit-form-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
 
   /* ---------- SHEET SYNC ---------- */
+  .sheet-sync-btn{
+    display:flex; align-items:center; gap:14px;
+    width:100%; box-sizing:border-box; text-align:left;
+    background:var(--cream); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 20px; margin:0 0 18px; cursor:pointer;
+    font-family:inherit; color:var(--ink);
+    transition:box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+  }
+  .sheet-sync-btn:hover{ box-shadow:0 8px 18px rgba(60,40,20,0.1); border-color:var(--moss); transform:translateY(-1px); }
+  .sheet-sync-btn:disabled{ opacity:0.65; cursor:default; transform:none; box-shadow:none; }
+  .sheet-sync-icon{
+    flex-shrink:0; width:40px; height:40px; border-radius:50%;
+    background:rgba(87,101,74,0.12); color:var(--moss);
+    display:flex; align-items:center; justify-content:center; font-size:1.2rem;
+  }
+  .sheet-sync-btn.loading .sheet-sync-icon{ animation:sheet-sync-spin 1s linear infinite; }
+  @keyframes sheet-sync-spin{ to{ transform:rotate(360deg); } }
+  .sheet-sync-text{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .sheet-sync-text strong{ font-size:0.95rem; font-weight:700; }
+  .sheet-sync-text small{ font-size:0.78rem; color:var(--ink-soft); font-weight:400; }
   .sync-panel{
     background:var(--parchment-2); border:1px solid var(--line); border-radius:var(--radius);
     padding:18px 20px; margin-bottom:18px;
@@ -510,10 +531,15 @@
     font-family:'IBM Plex Mono',monospace; font-size:0.85rem; color:var(--ink-soft);
     white-space:nowrap;
   }
-  .checklist-progress .reset-btn{
-    background:none; border:1px solid var(--line); border-radius:8px;
-    padding:5px 10px; font-size:0.76rem; color:var(--ink-soft);
+  .reset-btn{
+    background:var(--cream); border:1px solid var(--line); border-radius:8px;
+    padding:8px 14px; font-size:0.85rem; color:var(--ink);
     cursor:pointer; font-family:inherit; white-space:nowrap;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .reset-btn:hover{ border-color:var(--moss); color:var(--moss); }
+  .checklist-progress .reset-btn{
+    background:none; padding:5px 10px; font-size:0.76rem; color:var(--ink-soft);
   }
   .reset-btn.danger{
     border-color:rgba(168,52,42,0.35); color:var(--maple-deep);
@@ -701,7 +727,13 @@
 
     <div class="trip-status" id="trip-status"></div>
 
-    <button class="edit-affordance sync-btn" type="button" id="sheet-sync-btn" style="background:var(--slate); border-color:var(--slate); color:var(--cream); margin:0 0 18px;">🔄 Sync from planning sheet</button>
+    <button class="edit-affordance sheet-sync-btn" type="button" id="sheet-sync-btn">
+      <span class="sheet-sync-icon">🔄</span>
+      <span class="sheet-sync-text">
+        <strong id="sheet-sync-title">Sync from planning sheet</strong>
+        <small id="sheet-sync-sub">Check for new itinerary stops &amp; packing items</small>
+      </span>
+    </button>
     <div id="sheet-sync-panel" style="display:none;"></div>
 
     <section class="block">
@@ -2108,9 +2140,12 @@ function renderSheetSyncPanel(newItineraryRows, newPackingRows){
 }
 async function runSheetSync(){
   const btn = document.getElementById('sheet-sync-btn');
+  const sub = document.getElementById('sheet-sync-sub');
   const panel = document.getElementById('sheet-sync-panel');
+  const subDefault = sub.textContent;
   btn.disabled = true;
-  btn.textContent = 'Checking sheet…';
+  btn.classList.add('loading');
+  sub.textContent = 'Checking the sheet for new rows…';
   panel.className = 'sync-panel';
   panel.style.display = 'block';
   panel.innerHTML = `<p class="sync-empty">Fetching the latest sheet…</p>`;
@@ -2125,7 +2160,8 @@ async function runSheetSync(){
     document.getElementById('sync-close-btn').addEventListener('click', ()=>{ panel.style.display = 'none'; });
   }finally{
     btn.disabled = false;
-    btn.textContent = '🔄 Sync from planning sheet';
+    btn.classList.remove('loading');
+    sub.textContent = subDefault;
   }
 }
 document.getElementById('sheet-sync-btn').addEventListener('click', runSheetSync);
