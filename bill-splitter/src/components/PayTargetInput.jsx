@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLang } from '../LangContext'
-import { THAI_BANKS, parseBankTarget, encodeBankTarget } from '../promptpay'
+import { parseBankTarget, encodeBankTarget } from '../promptpay'
+import BankPicker from './BankPicker'
 import styles from './ExtrasSection.module.css'
 
 /**
@@ -10,7 +11,7 @@ import styles from './ExtrasSection.module.css'
  * hideNote skips the per-field "scan to check" note, for lists that show it once.
  */
 export default function PayTargetInput({ value, onChange, hideNote = false }) {
-  const { t, lang } = useLang()
+  const { t } = useLang()
   const bank = parseBankTarget(value)
   // Local mode so an empty field can still sit in "bank" mode; follows the
   // value when it changes from outside (e.g. picking a saved payee).
@@ -47,17 +48,10 @@ export default function PayTargetInput({ value, onChange, hideNote = false }) {
       ) : (
         <>
           <div className={styles.bankRow}>
-            <select
-              className={styles.bankSelect}
+            <BankPicker
               value={bank?.code ?? ''}
-              onChange={e => onChange(encodeBankTarget(e.target.value, bank?.account))}
-              aria-label={t.bankSelect}
-            >
-              <option value="">{t.bankSelect}</option>
-              {THAI_BANKS.map(b => (
-                <option key={b.code} value={b.code}>{lang === 'th' ? b.th : b.en}</option>
-              ))}
-            </select>
+              onChange={code => onChange(encodeBankTarget(code, bank?.account))}
+            />
             <input
               type="text"
               inputMode="numeric"

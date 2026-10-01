@@ -13,23 +13,24 @@
 // marked "reserved" in some references — support varies by banking app.
 
 // Bank of Thailand bank codes for retail banks people actually transfer to.
+// color = approximate brand (CI) colour, used for the swatch in the bank picker.
 export const THAI_BANKS = [
-  { code: '002', en: 'Bangkok Bank', th: 'กรุงเทพ' },
-  { code: '004', en: 'KBank', th: 'กสิกรไทย' },
-  { code: '006', en: 'Krungthai', th: 'กรุงไทย' },
-  { code: '011', en: 'ttb', th: 'ทีทีบี' },
-  { code: '014', en: 'SCB', th: 'ไทยพาณิชย์' },
-  { code: '022', en: 'CIMB Thai', th: 'ซีไอเอ็มบี' },
-  { code: '024', en: 'UOB', th: 'ยูโอบี' },
-  { code: '025', en: 'Krungsri', th: 'กรุงศรี' },
-  { code: '030', en: 'GSB', th: 'ออมสิน' },
-  { code: '033', en: 'GH Bank', th: 'ธอส.' },
-  { code: '034', en: 'BAAC', th: 'ธ.ก.ส.' },
-  { code: '066', en: 'Islamic Bank', th: 'อิสลาม' },
-  { code: '067', en: 'Tisco', th: 'ทิสโก้' },
-  { code: '069', en: 'KKP', th: 'เกียรตินาคินภัทร' },
-  { code: '071', en: 'Thai Credit', th: 'ไทยเครดิต' },
-  { code: '073', en: 'LH Bank', th: 'แลนด์ แอนด์ เฮ้าส์' },
+  { code: '002', en: 'Bangkok Bank', th: 'กรุงเทพ', color: '#1E4598' },
+  { code: '004', en: 'KBank', th: 'กสิกรไทย', color: '#138F2D' },
+  { code: '006', en: 'Krungthai', th: 'กรุงไทย', color: '#1BA5E1' },
+  { code: '011', en: 'ttb', th: 'ทีทีบี', color: '#0050F0' },
+  { code: '014', en: 'SCB', th: 'ไทยพาณิชย์', color: '#4E2E7F' },
+  { code: '022', en: 'CIMB Thai', th: 'ซีไอเอ็มบี', color: '#EC1C24' },
+  { code: '024', en: 'UOB', th: 'ยูโอบี', color: '#0B3B8C' },
+  { code: '025', en: 'Krungsri', th: 'กรุงศรี', color: '#FEC43B' },
+  { code: '030', en: 'GSB', th: 'ออมสิน', color: '#EB198D' },
+  { code: '033', en: 'GH Bank', th: 'ธอส.', color: '#F57D23' },
+  { code: '034', en: 'BAAC', th: 'ธ.ก.ส.', color: '#4B9B2E' },
+  { code: '066', en: 'Islamic Bank', th: 'อิสลาม', color: '#1A6B3C' },
+  { code: '067', en: 'Tisco', th: 'ทิสโก้', color: '#12549F' },
+  { code: '069', en: 'KKP', th: 'เกียรตินาคินภัทร', color: '#5F4F87' },
+  { code: '071', en: 'Thai Credit', th: 'ไทยเครดิต', color: '#F7941D' },
+  { code: '073', en: 'LH Bank', th: 'แลนด์ แอนด์ เฮ้าส์', color: '#6D6E71' },
 ]
 
 const BANK_PREFIX = 'bank:'
