@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import QRCode from 'react-qr-code'
-import { buildPromptPayPayload } from '../promptpay'
+import { buildPromptPayPayload, parseBankTarget } from '../promptpay'
 import styles from './PromptPayQR.module.css'
 
 /**
@@ -21,6 +21,9 @@ import styles from './PromptPayQR.module.css'
  */
 export default function PromptPayQR({ promptPay, amount, size = 132, name, reference }) {
   const payload = buildPromptPayPayload(promptPay, amount)
+  // Bank-account QRs show the generic Thai QR Payment mark instead of the
+  // PromptPay logo, since the payee isn't a PromptPay id.
+  const isBank = !!parseBankTarget(promptPay)
   const boxRef = useRef(null)
   const [saving, setSaving] = useState(false)
   if (!payload) return null
@@ -89,9 +92,13 @@ export default function PromptPayQR({ promptPay, amount, size = 132, name, refer
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0 4px' }}>
       <img
-        src="https://pumbafluffycorgi.com/promptpay-logo.png"
-        alt="PromptPay"
-        style={{ height: 28, objectFit: 'contain', opacity: 0.9, marginBottom: 8 }}
+        src={isBank ? "https://pumbafluffycorgi.com/thai-qr-logo.svg" : "https://pumbafluffycorgi.com/promptpay-logo.png"}
+        alt={isBank ? "Thai QR Payment" : "PromptPay"}
+        style={isBank
+          // The SVG is transparent with navy text — give it a white backing
+          // like the PromptPay PNG has, so it stays legible in dark mode.
+          ? { height: 28, objectFit: 'contain', marginBottom: 8, background: '#ffffff', padding: '3px 6px', borderRadius: 4, boxSizing: 'content-box' }
+          : { height: 28, objectFit: 'contain', opacity: 0.9, marginBottom: 8 }}
       />
       <div className={styles.qrBox} style={{ width: size + 16, height: size + 16 }} ref={boxRef}>
         <QRCode

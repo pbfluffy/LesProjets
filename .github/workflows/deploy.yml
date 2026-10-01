@@ -81,6 +81,7 @@ jobs:
           cp manifest.json _site/manifest.json
           cp montreal-manifest.json _site/montreal-manifest.json
           cp promptpay-logo.png _site/promptpay-logo.png
+          cp thai-qr-logo.svg _site/thai-qr-logo.svg
 
       - uses: actions/upload-pages-artifact@v4
         with:
