@@ -255,14 +255,17 @@ export default function ExtrasSection({
         {t.bankLabel} <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: showBank ? 'rotate(90deg)' : 'rotate(0deg)' }}>›</span>
       </button>
       {showBank && (
-        <textarea
-          className={styles.textarea}
-          rows={3}
-          placeholder={t.bankPlaceholder}
-          value={bankInfo}
-          onChange={e => onBankInfoChange(e.target.value)}
-          style={{ marginTop: 6 }}
-        />
+        <>
+          <textarea
+            className={styles.textarea}
+            rows={3}
+            placeholder={t.bankPlaceholder}
+            value={bankInfo}
+            onChange={e => onBankInfoChange(e.target.value)}
+            style={{ marginTop: 6 }}
+          />
+          {ppDesc.isBank && <p className={styles.bankNote}>{t.bankInfoQrHint}</p>}
+        </>
       )}
       <label className={styles.fieldLabel} style={{ marginTop: 10 }}>{t.notesLabel}</label>
       <textarea

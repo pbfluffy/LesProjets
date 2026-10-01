@@ -325,6 +325,7 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
             <div className={extras.divider} />
             <label className={extras.fieldLabel}>{t.bankLabel}</label>
             <textarea className={extras.textarea} rows={3} placeholder={t.bankPlaceholder} value={store.bankInfo} onChange={e => store.setBankInfo(e.target.value)} />
+            {ppDesc.isBank && <p className={extras.bankNote}>{t.bankInfoQrHint}</p>}
             <label className={extras.fieldLabel} style={{ marginTop: 10 }}>{t.notesLabel}</label>
             <textarea className={extras.textarea} rows={2} placeholder={t.notesPlaceholder} value={store.notes} onChange={e => store.setNotes(e.target.value)} />
           </section>
