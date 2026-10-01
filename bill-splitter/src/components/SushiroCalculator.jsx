@@ -6,7 +6,8 @@ import { auth, onAuthStateChanged } from '../firebase'
 import styles from './SushiroCalculator.module.css'
 import { CopyIcon, ShareIcon, QrIcon, SmartphoneIcon, WarnIcon, BankIcon, NoteIcon } from './icons'
 import Avatar from './Avatar'
-import { isValidPromptPayId } from '../promptpay'
+import { isValidPromptPayId, describePayTarget } from '../promptpay'
+import PayTargetInput from './PayTargetInput'
 import PromptPayQR from './PromptPayQR'
 import extras from './ExtrasSection.module.css'
 
@@ -72,6 +73,7 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
   }
   const cancelSavePayee = () => { setPayeeName(''); setPayeeSaving(false) }
   const ppValid = isValidPromptPayId(store.promptPay)
+  const ppDesc = describePayTarget(store.promptPay, lang)
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
 
@@ -116,7 +118,7 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
     })
     lines.push('')
     lines.push(`${t.shareTotal} ฿${fmt(result.grandTotal)}`)
-    if (store.promptPay) lines.push(`PromptPay: ${store.promptPay}`)
+    if (store.promptPay) lines.push(`${ppDesc.label}: ${ppDesc.text}`)
     if (store.bankInfo) lines.push(store.bankInfo)
     if (store.notes) lines.push(store.notes)
     return lines.join('\n')
@@ -278,7 +280,7 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
             </div>
             <div className={extras.divider} />
             <div className={extras.ppHeader}>
-              <span className={extras.ppLabel}>PromptPay</span>
+              <span className={extras.ppLabel}>{t.payTargetLabel}</span>
               <button type="button" className={extras.toggleBtn} onClick={() => setPpOpen(o => !o)}>{ppOpen ? t.close : t.edit}</button>
             </div>
             {payeesOn && savedPayees.length > 0 && (
@@ -290,7 +292,7 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
                 <div className={extras.payeeChips}>
                   {savedPayees.map(p => (
                     <span key={p.id} className={extras.payeeChipWrap}>
-                      <button type="button" className={`${extras.payeeChip} ${p.promptPay === ppTrim ? extras.payeeChipActive : ''}`} onClick={() => store.setPromptPay(p.promptPay)} title={p.promptPay}>{p.name}</button>
+                      <button type="button" className={`${extras.payeeChip} ${p.promptPay === ppTrim ? extras.payeeChipActive : ''}`} onClick={() => store.setPromptPay(p.promptPay)} title={(d => `${d.label} ${d.text}`)(describePayTarget(p.promptPay, lang))}>{p.name}</button>
                       {payeeManaging && (
                         <button type="button" className={extras.payeeRemove} onClick={() => onRemovePayee?.(p.id)} aria-label={t.removePayee}>×</button>
                       )}
@@ -300,12 +302,12 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
               </div>
             )}
             {ppOpen && (
-              <input type="text" placeholder={t.ppPlaceholder} value={store.promptPay} onChange={e => store.setPromptPay(e.target.value)} className={extras.ppInput} />
+              <PayTargetInput value={store.promptPay} onChange={store.setPromptPay} />
             )}
             {store.promptPay && !ppOpen && (
               <div className={extras.ppDisplay}>
-                <span className={extras.ppNumber}>{store.promptPay}</span>
-                <button type="button" className={extras.copyBtn} onClick={() => { navigator.clipboard?.writeText(store.promptPay); setPpCopied(true); setTimeout(() => setPpCopied(false), 1500) }}>{ppCopied ? t.copied : t.copy}</button>
+                <span className={extras.ppNumber}><span className={extras.ppKind}>{ppDesc.label}</span>{ppDesc.text}</span>
+                <button type="button" className={extras.copyBtn} onClick={() => { navigator.clipboard?.writeText(ppDesc.text); setPpCopied(true); setTimeout(() => setPpCopied(false), 1500) }}>{ppCopied ? t.copied : t.copy}</button>
               </div>
             )}
             {!store.promptPay && !ppOpen && <p className={extras.ppEmpty}>{t.notSet}</p>}
@@ -393,7 +395,7 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
           </div>
           {(store.promptPay || store.bankInfo) && (
             <div className={styles.payInfo}>
-              {store.promptPay && <p className={styles.payLine}><span className={styles.payIcon}><SmartphoneIcon width={16} height={16} /></span>PromptPay: <strong>{store.promptPay}</strong>{!ppValid && <span className={styles.payWarn}><WarnIcon width={14} height={14} /> {t.promptPayInvalid}</span>}</p>}
+              {store.promptPay && <p className={styles.payLine}><span className={styles.payIcon}>{ppDesc.isBank ? <BankIcon width={16} height={16} /> : <SmartphoneIcon width={16} height={16} />}</span>{ppDesc.label}: <strong>{ppDesc.text}</strong>{!ppValid && <span className={styles.payWarn}><WarnIcon width={14} height={14} /> {ppDesc.isBank ? t.bankAccountInvalid : t.promptPayInvalid}</span>}</p>}
               {store.bankInfo && <p className={styles.payLine} style={{ whiteSpace: 'pre-line' }}><span className={styles.payIcon}><BankIcon width={16} height={16} /></span>{store.bankInfo}</p>}
             </div>
           )}

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useLang } from '../LangContext'
+import { describePayTarget } from '../promptpay'
+import PayTargetInput from './PayTargetInput'
 import styles from './ExtrasSection.module.css'
 
 export default function ExtrasSection({
@@ -13,7 +15,7 @@ export default function ExtrasSection({
   billDiscounts = [], onAddBillDiscount, onUpdateBillDiscount, onRemoveBillDiscount,
   members = [],
 }) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [ppOpen, setPpOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   // #96 saved payees
@@ -24,6 +26,7 @@ export default function ExtrasSection({
   const [payeeName, setPayeeName] = useState('')
 
   const ppTrim = (promptPay || '').trim()
+  const ppDesc = describePayTarget(promptPay, lang)
   const alreadySaved = savedPayees.some(p => p.promptPay === ppTrim)
   const totalDiscount = billDiscounts.reduce((sum, d) => sum + (Math.max(0, parseFloat(d.amount)) || 0), 0)
 
@@ -38,7 +41,7 @@ export default function ExtrasSection({
 
   const handleCopy = () => {
     if (!promptPay) return
-    navigator.clipboard?.writeText(promptPay)
+    navigator.clipboard?.writeText(ppDesc.text)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
@@ -163,7 +166,7 @@ export default function ExtrasSection({
       )}
       <div className={styles.divider} />
       <div className={styles.ppHeader}>
-        <span className={styles.ppLabel}>PromptPay</span>
+        <span className={styles.ppLabel}>{t.payTargetLabel}</span>
         <button className={styles.toggleBtn} onClick={() => setPpOpen(o => !o)}>
           {ppOpen ? t.close : t.edit}
         </button>
@@ -183,7 +186,7 @@ export default function ExtrasSection({
                   type="button"
                   className={`${styles.payeeChip} ${p.promptPay === ppTrim ? styles.payeeChipActive : ''}`}
                   onClick={() => onPromptPayChange(p.promptPay)}
-                  title={p.promptPay}
+                  title={(d => `${d.label} ${d.text}`)(describePayTarget(p.promptPay, lang))}
                 >
                   {p.name}
                 </button>
@@ -203,17 +206,11 @@ export default function ExtrasSection({
         </div>
       )}
       {ppOpen && (
-        <input
-          type="text"
-          placeholder={t.ppPlaceholder}
-          value={promptPay}
-          onChange={e => onPromptPayChange(e.target.value)}
-          className={styles.ppInput}
-        />
+        <PayTargetInput value={promptPay} onChange={onPromptPayChange} />
       )}
       {promptPay && !ppOpen && (
         <div className={styles.ppDisplay}>
-          <span className={styles.ppNumber}>{promptPay}</span>
+          <span className={styles.ppNumber}><span className={styles.ppKind}>{ppDesc.label}</span>{ppDesc.text}</span>
           <button className={styles.copyBtn} onClick={handleCopy}>
             {copied ? t.copied : t.copy}
           </button>

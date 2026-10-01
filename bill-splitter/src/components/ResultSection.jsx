@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLang } from '../LangContext'
 import { buildShareUrl, createShortLink } from '../share'
 import { auth, onAuthStateChanged } from '../firebase'
-import { isValidPromptPayId } from '../promptpay'
+import { isValidPromptPayId, describePayTarget } from '../promptpay'
 import PromptPayQR from './PromptPayQR'
 import Avatar from './Avatar'
 import { CopyIcon, ShareIcon, QrIcon, SmartphoneIcon, WarnIcon, BankIcon, NoteIcon } from './icons'
@@ -75,6 +75,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
   const sectionRef = useRef(null)
   const hasData = (result.rawSubtotal ?? result.subtotal) > 0
   const ppValid = isValidPromptPayId(promptPay)
+  const ppDesc = describePayTarget(promptPay, lang)
   const ownerName = user?.displayName?.trim().toLowerCase()
   const rawGrand = result.subtotal * result.multiplier
   const showRoundedFrom = roundTotalEnabled && rawGrand.toFixed(2) !== Number(result.grandTotal).toFixed(2)
@@ -104,7 +105,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
       lines.push('')
     }
     lines.push(`${t.shareTotal} ${sym}${fmtC(result.grandTotal)}`)
-    if (promptPay) lines.push(`PromptPay: ${promptPay}`)
+    if (promptPay) lines.push(`${ppDesc.label}: ${ppDesc.text}`)
     if (bankInfo) lines.push(bankInfo)
     if (notes) lines.push(notes)
     return lines.join('\n')
@@ -404,7 +405,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
               )
             })}
           </div>
-          {(promptPay||bankInfo) && <div className={styles.payInfo}>{promptPay && <p className={styles.payLine}><span className={styles.payIcon}><SmartphoneIcon width={16} height={16} /></span>PromptPay: <strong>{promptPay}</strong>{!ppValid && <span className={styles.payWarn}><WarnIcon width={14} height={14} /> {t.promptPayInvalid}</span>}</p>}{bankInfo && <p className={styles.payLine} style={{whiteSpace:'pre-line'}}><span className={styles.payIcon}><BankIcon width={16} height={16} /></span>{bankInfo}</p>}</div>}
+          {(promptPay||bankInfo) && <div className={styles.payInfo}>{promptPay && <p className={styles.payLine}><span className={styles.payIcon}>{ppDesc.isBank ? <BankIcon width={16} height={16} /> : <SmartphoneIcon width={16} height={16} />}</span>{ppDesc.label}: <strong>{ppDesc.text}</strong>{!ppValid && <span className={styles.payWarn}><WarnIcon width={14} height={14} /> {ppDesc.isBank ? t.bankAccountInvalid : t.promptPayInvalid}</span>}</p>}{bankInfo && <p className={styles.payLine} style={{whiteSpace:'pre-line'}}><span className={styles.payIcon}><BankIcon width={16} height={16} /></span>{bankInfo}</p>}</div>}
           {notes && <div className={styles.notes}><span className={styles.notesIcon}><NoteIcon width={16} height={16} /></span><span>{notes}</span></div>}
         </>
       )}

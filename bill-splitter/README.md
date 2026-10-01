@@ -10,7 +10,7 @@ Mobile-first Thai bill-splitting app with a Sushiro plate-counter tab. Part of [
 - Add food items, assign each item to a subset of members (or everyone)
 - Optional VAT 7% and Service Charge 10%
 - Per-person breakdown with proportion bars
-- **Per-person PromptPay QR** — each person gets their own scan-to-pay QR for their exact share, built from a configurable PromptPay payload (`react-qr-code`)
+- **Per-person PromptPay QR** — each person gets their own scan-to-pay QR for their exact share, built from a configurable PromptPay payload (`react-qr-code`). The payee can be a PromptPay phone / national ID, or a bank account (Thai QR sub-tag 04, stored as `bank:<code>:<account>` in the same `promptPay` field)
 - **Bill history** — save a bill, browse and reload past bills (`useBillHistory` hook, `BillHistory` panel)
 - **Share-as-image** — snapshot the result with `html2canvas` and share via the Web Share API
 - Bank account and notes fields, plain-text share to Line

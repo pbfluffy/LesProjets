@@ -22,6 +22,17 @@
 .ppNumber { font-family: var(--font-mono); font-size: 14px; }
 .copyBtn { background: none; border: none; font-size: 12px; color: var(--color-blue); }
 .ppEmpty { font-size: 13px; color: var(--color-text-faint); }
+.ppKind { font-size: 12px; color: var(--color-text-muted); margin-right: 6px; font-family: var(--font-body); }
+
+/* Payment target editor — PromptPay id or bank account */
+.payTarget { display: flex; flex-direction: column; gap: 8px; }
+.payModeSeg { display: inline-flex; align-self: flex-start; border: 0.5px solid var(--color-border-strong); border-radius: var(--radius-pill); padding: 2px; gap: 2px; }
+.payModeSeg button { background: none; border: none; border-radius: var(--radius-pill); font-size: 12px; padding: 6px 12px; min-height: 32px; color: var(--color-text-muted); transition: all 0.15s; }
+.payModeSeg button.payModeActive { background: var(--color-blue-bg); color: var(--color-blue); font-weight: 600; }
+.bankRow { display: flex; gap: 8px; }
+.bankSelect { flex: 0 0 42%; min-width: 0; }
+.bankAccountInput { flex: 1; min-width: 0; font-family: var(--font-mono); }
+.bankNote { font-size: 11px; color: var(--color-text-faint); line-height: 1.5; }
 .fieldLabel { display: block; font-size: 12px; color: var(--color-text-muted); margin-bottom: 4px; }
 .textarea { resize: vertical; font-size: 13px; line-height: 1.6; }
 
