@@ -7,8 +7,9 @@ import styles from './ExtrasSection.module.css'
  * Editor for the payment target behind the per-person QR: either a PromptPay
  * id (phone / national ID) or a bank account. Both write to the same string
  * field — bank accounts as `bank:<code>:<account>` (see promptpay.js).
+ * hideNote skips the per-field "scan to check" note, for lists that show it once.
  */
-export default function PayTargetInput({ value, onChange }) {
+export default function PayTargetInput({ value, onChange, hideNote = false }) {
   const { t, lang } = useLang()
   const bank = parseBankTarget(value)
   // Local mode so an empty field can still sit in "bank" mode; follows the
@@ -66,7 +67,7 @@ export default function PayTargetInput({ value, onChange }) {
               className={styles.bankAccountInput}
             />
           </div>
-          <p className={styles.bankNote}>{t.bankQrNote}</p>
+          {!hideNote && <p className={styles.bankNote}>{t.bankQrNote}</p>}
         </>
       )}
     </div>

@@ -18,6 +18,8 @@ import { buildShareUrl, createShortLink, shareLink } from '../share'
 import { normaliseCurrency } from '../currencies'
 import { shareToLine, isInLine } from '../liff.js'
 import PromptPayQR from './PromptPayQR'
+import PayTargetInput from './PayTargetInput'
+import { isValidPromptPayId, parseBankTarget } from '../promptpay'
 import { getThbRates } from '../fx.js'
 
 function fmtDate(ts) {
@@ -485,28 +487,37 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
             style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--color-text-muted)', cursor: 'pointer', padding: '2px 0', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 4, userSelect: 'none' }}
           >
             <img src="https://pumbafluffycorgi.com/promptpay-logo.png" alt="PromptPay" style={{ height: 14, objectFit: 'contain', opacity: 0.7 }} />
-            {lang === 'th' ? 'ตั้งค่า PromptPay สมาชิก' : 'Member PromptPay'} <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: showPPSettings ? 'rotate(90deg)' : 'rotate(0deg)' }}>›</span>
+            {lang === 'th' ? 'ตั้งค่า QR รับเงินสมาชิก' : 'Member payment QR'} <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: showPPSettings ? 'rotate(90deg)' : 'rotate(0deg)' }}>›</span>
           </button>
           {showPPSettings && (
-            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {trip.members.map(m => (
-                <div key={m} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Avatar name={m} size={20} />
-                  <span style={{ fontSize: 13, minWidth: 80 }}>{m}</span>
-                  <input
-                    type="tel"
-                    placeholder="PromptPay"
-                    value={trip.memberPromptPay?.[m] ?? ''}
-                    onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 13)
-                      onUpdateTrip(trip.id, {
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {trip.members.map(m => {
+                const v = trip.memberPromptPay?.[m] ?? ''
+                const invalid = v.trim() !== '' && !isValidPromptPayId(v)
+                return (
+                  <div key={m} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Avatar name={m} size={20} />
+                      <span style={{ fontSize: 13 }}>{m}</span>
+                    </div>
+                    <PayTargetInput
+                      value={v}
+                      onChange={val => onUpdateTrip(trip.id, {
                         memberPromptPay: { ...(trip.memberPromptPay ?? {}), [m]: val }
-                      })
-                    }}
-                    style={{ flex: 1, padding: '4px 8px', borderRadius: 6, border: `1px solid ${(() => { const v = trip.memberPromptPay?.[m] ?? ''; return v.length > 0 && (v.length < 10 || v.length > 13) ? '#e53e3e' : 'var(--color-border)' })()}`, fontSize: 13, fontFamily: 'var(--font-body)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
-                  />
-                </div>
-              ))}
+                      })}
+                      hideNote
+                    />
+                    {invalid && (
+                      <span style={{ fontSize: 11, color: '#e53e3e' }}>
+                        {parseBankTarget(v) ? t.bankAccountInvalid : t.promptPayInvalid}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+              {Object.values(trip.memberPromptPay ?? {}).some(v => parseBankTarget(v)) && (
+                <p style={{ fontSize: 11, color: 'var(--color-text-faint)', lineHeight: 1.5 }}>{t.bankQrNote}</p>
+              )}
             </div>
           )}
         </div>
