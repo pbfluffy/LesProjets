@@ -47,3 +47,18 @@ export const db = getDatabase(app)
 export const auth = getAuth(app)
 export const firestore = getFirestore(app)
 export { ref, push, set, remove, onValue, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, doc, getDoc, setDoc, serverTimestamp, onSnapshot, collection, deleteDoc, arrayUnion }
+
+// Save the signed-in user's name / email to userProfiles so the admin console
+// shows who they are. Previously only the landing page wrote this, so users
+// who only ever signed in to an app showed up as a bare uid. name / email are
+// '' (not null) when missing: the userProfiles rule requires strings.
+onAuthStateChanged(auth, (user) => {
+  if (!user) return
+  setDoc(doc(firestore, 'userProfiles', user.uid), {
+    name: user.displayName || '',
+    email: user.email || '',
+    photoURL: user.photoURL || null,
+    lastSeen: serverTimestamp(),
+    lastApp: 'Pumgoda',
+  }, { merge: true }).catch((e) => console.warn('[profile] write failed:', e?.code))
+})

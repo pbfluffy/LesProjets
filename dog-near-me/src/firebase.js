@@ -14,6 +14,7 @@ import {
   doc,
   collection,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   getDocs,
@@ -44,3 +45,18 @@ export {
   doc, collection, addDoc, updateDoc, deleteDoc, getDocs, query, orderBy,
   serverTimestamp, onSnapshot, writeBatch, arrayUnion, arrayRemove,
 };
+
+// Save the signed-in user's name / email to userProfiles so the admin console
+// shows who they are. Previously only the landing page wrote this, so users
+// who only ever signed in to an app showed up as a bare uid. name / email are
+// '' (not null) when missing: the userProfiles rule requires strings.
+onAuthStateChanged(auth, (user) => {
+  if (!user) return;
+  setDoc(doc(db, 'userProfiles', user.uid), {
+    name: user.displayName || '',
+    email: user.email || '',
+    photoURL: user.photoURL || null,
+    lastSeen: serverTimestamp(),
+    lastApp: 'Dog Near Me',
+  }, { merge: true }).catch((e) => console.warn('[profile] write failed:', e?.code));
+});

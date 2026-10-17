@@ -771,7 +771,7 @@
         { el: document.getElementById("acct-status-stock"), col: 'userStockRanges' },
       ];
       if (user) {
-        setDoc(doc(db, 'userProfiles', user.uid), { name: user.displayName || null, email: user.email || null, photoURL: user.photoURL || null, lastSeen: serverTimestamp() }, { merge: true }).catch(function (e) { console.warn('[profile] write failed:', e); });
+        setDoc(doc(db, 'userProfiles', user.uid), { name: user.displayName || '', email: user.email || '', photoURL: user.photoURL || null, lastSeen: serverTimestamp(), lastApp: 'Home' }, { merge: true }).catch(function (e) { console.warn('[profile] write failed:', e); });
         rows.forEach(function (r) {
           if (!r.el) return;
           getDoc(doc(db, r.col, user.uid))
