@@ -5,12 +5,14 @@
 //   - Mobile number (10 digits, leading 0) → sub-tag 01, formatted as 0066XXXXXXXXX
 //   - National ID / Tax ID (13 digits)     → sub-tag 02
 //   - e-Wallet ID (15 digits)              → sub-tag 03
-//   - Bank account                         → sub-tag 04, bank code (3) + account no.
 //
-// Bank accounts are stored in the same string field as PromptPay ids, encoded
-// as `bank:<code>:<account>` (e.g. `bank:004:1234567890`), so bills, share
-// links and saved payees carry them without any schema change. Sub-tag 04 is
-// marked "reserved" in some references — support varies by banking app.
+// The payee can also be a plain bank account, stored in the same string field
+// as PromptPay ids, encoded as `bank:<code>:<account>` (e.g.
+// `bank:004:1234567890`), so bills, share links and saved payees carry it
+// without any schema change. Bank accounts never get a QR: the Thai QR
+// sub-tag for them (29.04) is reserved, and banking apps scan it as a blank
+// PromptPay recipient (tested with a real app, Oct 2026). The UI shows a
+// copyable transfer card (BankTransferCard) for them instead.
 
 // Bank of Thailand bank codes for retail banks people actually transfer to.
 // color = approximate brand (CI) colour, used for the swatch in the bank picker.
@@ -85,13 +87,9 @@ function crc16(payload) {
 }
 
 function formatPromptPayId(raw) {
-  const bank = parseBankTarget(raw)
-  if (bank) {
-    // Most banks use 10-digit accounts; GSB / BAAC / GHB use 12.
-    if (!THAI_BANKS.some(b => b.code === bank.code)) return null
-    if (bank.account.length < 10 || bank.account.length > 12) return null
-    return { value: bank.code + bank.account, subTag: '04' }
-  }
+  // Must reject bank targets explicitly: their digits ("004" + a 10-digit
+  // account) would otherwise read as a 13-digit national ID.
+  if (parseBankTarget(raw)) return null
   const digits = (raw || '').replace(/\D/g, '')
   if (digits.length === 10 && digits.startsWith('0')) {
     return { value: '0066' + digits.substring(1), subTag: '01' }
@@ -105,14 +103,22 @@ function formatPromptPayId(raw) {
   return null
 }
 
-export function isValidPromptPayId(raw) {
-  return formatPromptPayId(raw) !== null
+/** A complete bank target: a known bank and a 10–12 digit account (GSB / BAAC / GHB use 12). */
+export function isValidBankTarget(raw) {
+  const bank = parseBankTarget(raw)
+  if (!bank || !THAI_BANKS.some(b => b.code === bank.code)) return false
+  return bank.account.length >= 10 && bank.account.length <= 12
+}
+
+/** Whether the payee can be paid: a valid PromptPay id (QR) or a valid bank account (transfer card). */
+export function isValidPayTarget(raw) {
+  return parseBankTarget(raw) ? isValidBankTarget(raw) : formatPromptPayId(raw) !== null
 }
 
 /**
  * Build a PromptPay QR payload string.
- * @param {string} rawId - mobile/NID/eWallet (digits, dashes, spaces all OK),
- *   or an encoded bank account (see encodeBankTarget)
+ * @param {string} rawId - mobile/NID/eWallet (digits, dashes, spaces all OK).
+ *   Bank targets return null — they can't be paid by QR (see top of file).
  * @param {number} [amount] - optional THB amount; omit/0 for "any amount" QR
  * @returns {string|null} payload string, or null if id invalid
  */

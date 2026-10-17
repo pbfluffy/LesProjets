@@ -6,9 +6,10 @@ import { auth, onAuthStateChanged } from '../firebase'
 import styles from './SushiroCalculator.module.css'
 import { CopyIcon, ShareIcon, QrIcon, SmartphoneIcon, WarnIcon, BankIcon, NoteIcon } from './icons'
 import Avatar from './Avatar'
-import { isValidPromptPayId, describePayTarget } from '../promptpay'
+import { isValidPayTarget, describePayTarget } from '../promptpay'
 import PayTargetInput from './PayTargetInput'
 import PromptPayQR from './PromptPayQR'
+import BankTransferCard from './BankTransferCard'
 import extras from './ExtrasSection.module.css'
 
 const fmt = n => n.toFixed(2)
@@ -72,7 +73,7 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
     setPayeeSaving(false)
   }
   const cancelSavePayee = () => { setPayeeName(''); setPayeeSaving(false) }
-  const ppValid = isValidPromptPayId(store.promptPay)
+  const ppValid = isValidPayTarget(store.promptPay)
   const ppDesc = describePayTarget(store.promptPay, lang)
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
@@ -355,7 +356,7 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
           {toast && <div className={styles.toast}>{toast}</div>}
           {ppValid && (
             <div className={styles.qrToggleRow} data-snapshot-hide>
-              <button type="button" className={styles.qrToggleBtn} onClick={() => setShowQR(v => !v)} aria-pressed={showQR}><QrIcon width={15} height={15} /> {showQR ? t.hideQR : t.showQR}</button>
+              <button type="button" className={styles.qrToggleBtn} onClick={() => setShowQR(v => !v)} aria-pressed={showQR}>{ppDesc.isBank ? <><BankIcon width={15} height={15} /> {showQR ? t.hideTransfer : t.showTransfer}</> : <><QrIcon width={15} height={15} /> {showQR ? t.hideQR : t.showQR}</>}</button>
             </div>
           )}
           <div className={styles.personSummaryList}>
@@ -381,8 +382,9 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
                     <span className={styles.personSummaryAmt}>฿{fmt(total)}</span>
                   </div>
                   <div className={styles.bar}><div className={styles.barFill} style={{ width: `${pct}%` }} /></div>
-                  {showQR && ppValid && total > 0 && (
-                    <PromptPayQR promptPay={store.promptPay} amount={total} name={name} reference={store.billName} />
+                  {showQR && ppValid && total > 0 && (ppDesc.isBank
+                    ? <BankTransferCard target={store.promptPay} amount={total} />
+                    : <PromptPayQR promptPay={store.promptPay} amount={total} name={name} reference={store.billName} />
                   )}
                 </div>
               )

@@ -5,12 +5,11 @@ import BankPicker from './BankPicker'
 import styles from './ExtrasSection.module.css'
 
 /**
- * Editor for the payment target behind the per-person QR: either a PromptPay
- * id (phone / national ID) or a bank account. Both write to the same string
+ * Editor for the payee: either a PromptPay id (phone / national ID → QR) or a
+ * bank account (→ copyable transfer card). Both write to the same string
  * field — bank accounts as `bank:<code>:<account>` (see promptpay.js).
- * hideNote skips the per-field "scan to check" note, for lists that show it once.
  */
-export default function PayTargetInput({ value, onChange, hideNote = false }) {
+export default function PayTargetInput({ value, onChange }) {
   const { t } = useLang()
   const bank = parseBankTarget(value)
   // Local mode so an empty field can still sit in "bank" mode; follows the
@@ -61,7 +60,6 @@ export default function PayTargetInput({ value, onChange, hideNote = false }) {
               className={styles.bankAccountInput}
             />
           </div>
-          {!hideNote && <p className={styles.bankNote}>{t.bankQrNote}</p>}
         </>
       )}
     </div>

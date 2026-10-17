@@ -19,7 +19,8 @@ import { normaliseCurrency } from '../currencies'
 import { shareToLine, isInLine } from '../liff.js'
 import PromptPayQR from './PromptPayQR'
 import PayTargetInput from './PayTargetInput'
-import { isValidPromptPayId, parseBankTarget } from '../promptpay'
+import BankTransferCard from './BankTransferCard'
+import { isValidPayTarget, parseBankTarget } from '../promptpay'
 import { getThbRates } from '../fx.js'
 
 function fmtDate(ts) {
@@ -203,6 +204,15 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
                 if (!promptPayId) return null
                 if (displayCurrency !== 'THB') return null
                 if (!s.amount || s.amount < 1) return null
+                if (parseBankTarget(promptPayId)) {
+                  // Bank accounts can't be paid by QR — show copyable transfer details instead.
+                  if (!isValidPayTarget(promptPayId)) return null
+                  return (
+                    <div style={{ marginTop: 8, paddingTop: 2, borderTop: '0.5px solid var(--color-border)' }}>
+                      <BankTransferCard target={promptPayId} amount={s.amount} />
+                    </div>
+                  )
+                }
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: 8, paddingTop: 8, borderTop: '0.5px solid var(--color-border)' }}>
                     <PromptPayQR promptPay={promptPayId} amount={Math.round(s.amount)} size={100} name={s.to} reference={trip.name} />
@@ -487,13 +497,13 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
             style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--color-text-muted)', cursor: 'pointer', padding: '2px 0', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 4, userSelect: 'none' }}
           >
             <img src="https://pumbafluffycorgi.com/promptpay-logo.png" alt="PromptPay" style={{ height: 14, objectFit: 'contain', opacity: 0.7 }} />
-            {lang === 'th' ? 'ตั้งค่า QR รับเงินสมาชิก' : 'Member payment QR'} <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: showPPSettings ? 'rotate(90deg)' : 'rotate(0deg)' }}>›</span>
+            {lang === 'th' ? 'ตั้งค่าช่องทางรับเงินสมาชิก' : 'Member payment details'} <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: showPPSettings ? 'rotate(90deg)' : 'rotate(0deg)' }}>›</span>
           </button>
           {showPPSettings && (
             <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 14 }}>
               {trip.members.map(m => {
                 const v = trip.memberPromptPay?.[m] ?? ''
-                const invalid = v.trim() !== '' && !isValidPromptPayId(v)
+                const invalid = v.trim() !== '' && !isValidPayTarget(v)
                 return (
                   <div key={m} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -505,7 +515,6 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                       onChange={val => onUpdateTrip(trip.id, {
                         memberPromptPay: { ...(trip.memberPromptPay ?? {}), [m]: val }
                       })}
-                      hideNote
                     />
                     {invalid && (
                       <span style={{ fontSize: 11, color: '#e53e3e' }}>
@@ -515,9 +524,6 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   </div>
                 )
               })}
-              {Object.values(trip.memberPromptPay ?? {}).some(v => parseBankTarget(v)) && (
-                <p style={{ fontSize: 11, color: 'var(--color-text-faint)', lineHeight: 1.5 }}>{t.bankQrNote}</p>
-              )}
             </div>
           )}
         </div>
