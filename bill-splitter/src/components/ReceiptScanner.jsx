@@ -4,7 +4,7 @@ import { normaliseCurrency } from '../currencies'
 import styles from './ReceiptScanner.module.css'
 import {
   CURRENCY_FLAGS, SCAN_CAP, SCAN_KEY,
-  getScanCount, bumpScanCount, localizeError, compressImage, scanReceipt,
+  getScanCount, bumpScanCount, resetScanCount, localizeError, compressImage, scanReceipt,
 } from './receiptScanUtils'
 
 
@@ -204,7 +204,14 @@ export default function ReceiptScanner({
       >
         {t.receiptScan}
       </button>
-      {capReached && <div className={styles.capWarn}>{t.receiptCapReached}</div>}
+      {capReached && (
+        <div className={styles.capWarn}>
+          <span>{t.receiptCapReached}</span>
+          <button type="button" className={styles.capResetBtn} onClick={() => { resetScanCount(); setCapReached(false) }}>
+            {t.receiptCapReset}
+          </button>
+        </div>
+      )}
       {open && (
         <div
           className={styles.modalBackdrop}

@@ -12,7 +12,7 @@ import { useLang } from '../LangContext'
 import { useTripsStore, calcBillResult } from '../hooks/useTripsStore'
 import Avatar from './Avatar'
 import styles from './TripsTab.module.css'
-import { compressImage, scanReceipt, localizeError, getScanCount, bumpScanCount, SCAN_CAP, CURRENCY_FLAGS } from './receiptScanUtils'
+import { compressImage, scanReceipt, localizeError, getScanCount, bumpScanCount, resetScanCount, SCAN_CAP, CURRENCY_FLAGS } from './receiptScanUtils'
 import { ShareIcon } from './icons'
 import { buildShareUrl, createShortLink, shareLink } from '../share'
 import { normaliseCurrency } from '../currencies'
@@ -246,13 +246,14 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip })
   const fileRef = useRef(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [capReached, setCapReached] = useState(false)
   const [preview, setPreview] = useState(null) // { items, billName, currency, vatIncluded, scIncluded, scRate }
 
   async function onFile(e) {
     const f = e.target.files?.[0]
     if (!f) return
-    if (getScanCount() >= SCAN_CAP) { setError(t.receiptCapReached ?? 'Scan limit reached'); return }
-    setLoading(true); setError(null)
+    if (getScanCount() >= SCAN_CAP) { setError(t.receiptCapReached ?? 'Scan limit reached'); setCapReached(true); return }
+    setLoading(true); setError(null); setCapReached(false)
     try {
       const base64 = await compressImage(f)
       const r = await scanReceipt(base64)
@@ -316,7 +317,20 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip })
       >
         <span>{loading ? (t.receiptScanning ?? 'Scanning…') : (t.tripScanNew ?? 'Scan receipt → add to trip')}</span>
       </button>
-      {error && <div style={{ fontSize: 12, color: 'var(--color-error,#c00)', marginTop: 6, padding: '0 4px' }}>{error}</div>}
+      {error && (
+        <div style={{ fontSize: 12, color: 'var(--color-error,#c00)', marginTop: 6, padding: '0 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <span>{error}</span>
+          {capReached && (
+            <button
+              type="button"
+              onClick={() => { resetScanCount(); setCapReached(false); setError(null) }}
+              style={{ flex: '0 0 auto', minHeight: 32, padding: '4px 14px', border: '0.5px solid currentColor', borderRadius: 999, background: 'none', color: 'inherit', fontSize: 12, fontWeight: 600 }}
+            >
+              {t.receiptCapReset}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Preview modal */}
       {preview && (

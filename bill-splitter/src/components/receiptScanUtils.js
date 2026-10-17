@@ -14,6 +14,12 @@ export function getScanCount() {
 export function bumpScanCount() {
   try { sessionStorage.setItem(SCAN_KEY, String(getScanCount() + 1)) } catch {}
 }
+// The cap is a soft per-session reminder, not a hard limit: mobile browsers
+// keep a "session" alive for days, so users can reset it themselves. Real
+// cost protection is the receipt Worker's per-IP rate limit.
+export function resetScanCount() {
+  try { sessionStorage.removeItem(SCAN_KEY) } catch {}
+}
 
 export function localizeError(msg, t) {
   if (typeof msg !== 'string') return String(msg)
