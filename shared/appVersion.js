@@ -1,17 +1,13 @@
 // Browser side of the build stamp from shared/viteBuildInfo.js. Shows a small
-// "v <commit> · <date>" line under each app so it's easy to tell whether a
-// phone is running the latest deploy (compare with the latest commit on
-// GitHub). Plain DOM, not React, so it still shows when the app has crashed.
+// "v1.0042"-style line under each app so it's easy to tell whether a phone is
+// running the latest deploy (every app shows the same version for the same
+// deploy). Plain DOM, not React, so it still shows when the app has crashed.
 
 /* global __APP_BUILD__ */
-export const BUILD = typeof __APP_BUILD__ !== 'undefined' ? __APP_BUILD__ : { sha: 'dev', time: null }
+export const BUILD = typeof __APP_BUILD__ !== 'undefined' ? __APP_BUILD__ : { version: 'dev' }
 
 export function buildLabel() {
-  const d = BUILD.time ? new Date(BUILD.time) : null
-  const when = d && !isNaN(d)
-    ? d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-    : ''
-  return `v ${BUILD.sha}${when ? ` · ${when}` : ''}`
+  return `v${BUILD.version}`
 }
 
 export function mountVersionLabel() {
@@ -19,7 +15,7 @@ export function mountVersionLabel() {
   const el = document.createElement('div')
   el.id = 'app-build-label'
   el.textContent = buildLabel()
-  el.title = 'App build (git commit · commit time)'
+  el.title = 'App version'
   Object.assign(el.style, {
     textAlign: 'center',
     font: '11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace',
@@ -29,7 +25,7 @@ export function mountVersionLabel() {
   })
   const root = document.getElementById('root')
   ;(root?.parentNode || document.body).insertBefore(el, root ? root.nextSibling : null)
-  console.info(`[build] ${buildLabel()} (${BUILD.time || 'unknown time'})`)
+  console.info(`[build] ${buildLabel()}`)
 
   // Apps with a fixed bottom tab bar (e.g. Pumgoda) would cover the label at
   // the end of the page, so leave room for whatever is fixed along the bottom
