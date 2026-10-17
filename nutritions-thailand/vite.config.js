@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { buildInfoDefine } from '../shared/viteBuildInfo.js';
 
 // Custom domain pumbafluffycorgi.com serves the site at root, so /nutritions-thailand/.
 // (The github.io URL auto-redirects to the custom domain, so the LesProjets prefix is never
@@ -8,6 +9,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 const base = process.env.VITE_BASE ?? '/nutritions-thailand/';
 
 export default defineConfig({
+  define: buildInfoDefine(),
   base,
   plugins: [
     react(),

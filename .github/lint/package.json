@@ -1,0 +1,12 @@
+{
+  "name": "lesprojets-deploy-lint",
+  "private": true,
+  "description": "Pre-deploy check for undefined variables in the PWA apps (run by .github/workflows/deploy.yml)",
+  "type": "module",
+  "devDependencies": {
+    "eslint": "9.39.5",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "5.2.0",
+    "globals": "15.15.0"
+  }
+}

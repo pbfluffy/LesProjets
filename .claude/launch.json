@@ -16,6 +16,13 @@
       "port": 5174
     },
     {
+      "name": "bill-splitter-prod-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "preview", "--port", "5183", "--strictPort"],
+      "cwd": "bill-splitter",
+      "port": 5183
+    },
+    {
       "name": "pumgoda",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--port", "5176"],

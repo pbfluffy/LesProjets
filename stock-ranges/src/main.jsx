@@ -4,6 +4,9 @@ import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import './index.css'
 import './registerPwaUpdate.js'
+import { mountVersionLabel } from '../../shared/appVersion.js'
+
+mountVersionLabel()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

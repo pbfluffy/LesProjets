@@ -2,6 +2,7 @@ import { Component } from 'react'
 import { STRINGS } from '../LangContext.jsx'
 import Icon from './Icon.jsx'
 import styles from './ErrorBoundary.module.css'
+import { hardReload } from '../../../shared/appRecovery.js'
 
 const LANG_KEY = 'stockranges_lang'
 
@@ -57,7 +58,7 @@ export default class ErrorBoundary extends Component {
         <Icon name="alertTriangle" size={36} className={styles.pageIcon} />
         <h2 className={styles.pageTitle}>{s.errorBoundaryTitle}</h2>
         <p className={styles.pageBody}>{s.errorBoundaryBody}</p>
-        <button type="button" className={styles.reloadBtn} onClick={() => window.location.reload()}>{s.reloadPage}</button>
+        <button type="button" className={styles.reloadBtn} onClick={hardReload}>{s.reloadPage}</button>
       </div>
     )
   }

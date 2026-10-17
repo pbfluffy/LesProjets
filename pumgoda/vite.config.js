@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { buildInfoDefine } from '../shared/viteBuildInfo.js'
 
 // The deployed path is pumbafluffycorgi.com/pumgoda/, served by the LesProjets
 // repo's deploy workflow which copies pumgoda/dist into _site/pumgoda.
 export default defineConfig({
+  define: buildInfoDefine(),
   plugins: [
     react(),
     VitePWA({

@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import './registerPwaUpdate.js'
+import { mountVersionLabel } from '../../shared/appVersion.js'
+import { hardReload } from '../../shared/appRecovery.js'
+
+mountVersionLabel()
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -15,7 +19,7 @@ class ErrorBoundary extends React.Component {
           <div style={{ fontSize:40, marginBottom:12 }}>😵</div>
           <h2 style={{ fontSize:18, fontWeight:600, marginBottom:8 }}>Something went wrong</h2>
           <p style={{ fontSize:14, opacity:0.6, marginBottom:24 }}>{String(this.state.error?.message || this.state.error)}</p>
-          <button onClick={() => window.location.reload()} style={{ padding:'10px 24px', borderRadius:999, border:'none', background:'#1a1916', color:'#fff', fontSize:14, cursor:'pointer' }}>Reload</button>
+          <button onClick={hardReload} style={{ padding:'10px 24px', borderRadius:999, border:'none', background:'#1a1916', color:'#fff', fontSize:14, cursor:'pointer' }}>Reload</button>
         </div>
       )
     }

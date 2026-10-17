@@ -24,6 +24,14 @@ jobs:
         with:
           node-version: 20
 
+      # Fails the deploy on undefined variables — `vite build` doesn't catch
+      # them, they crash the app at runtime. Config: .github/lint/.
+      - name: Check apps for undefined variables
+        run: |
+          npm ci --prefix .github/lint
+          npx --prefix .github/lint eslint -c .github/lint/eslint.config.mjs \
+            bill-splitter/src nutritions-thailand/src pumgoda/src stock-ranges/src dog-near-me/src shared
+
       - name: Build bill-splitter
         working-directory: bill-splitter
         run: |
