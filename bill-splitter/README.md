@@ -106,3 +106,36 @@ since they carry the payload in the URL itself.
 ## PWA
 
 Installs as a standalone app on iOS / Android via the manifest + apple-touch-icon meta tags in `index.html`.
+
+### Don't let Cloudflare cache `sw.js`
+
+Installed copies only learn about a new deploy by fetching `sw.js` (then they
+show the "New version available · Reload" bar). Cloudflare's edge caches it for
+up to 4 hours by default, so after a deploy phones keep getting the old
+`sw.js` — and the old app — until that copy expires. This applies to every
+app on the domain with a service worker (bill-splitter, nutritions-thailand,
+pumgoda, stock-ranges, dog-near-me). One Cache Rule fixes all of them:
+
+1. Cloudflare dashboard → **pumbafluffycorgi.com** → **Caching → Cache Rules**
+   → **Create rule**.
+2. **Rule name:** `Bypass cache for service workers`.
+3. **When incoming requests match…** → **Custom filter expression**:
+   - Field **URI Path**, operator **ends with**, value `/sw.js`.
+   - If **ends with** isn't offered on the plan, use operator **contains**
+     with value `/sw.js` instead (no other files on the site match).
+   - Expression-editor equivalent:
+     `(ends_with(http.request.uri.path, "/sw.js"))`
+4. **Then → Cache eligibility:** **Bypass cache**.
+5. **Place at:** First, then **Deploy**.
+6. One-time cleanup of copies already cached: **Caching → Configuration →
+   Purge Cache → Custom Purge**, purge each app's `sw.js` URL, e.g.
+   `https://pumbafluffycorgi.com/bill-splitter/sw.js`.
+
+Check it worked — `cf-cache-status` should read `BYPASS` or `DYNAMIC`, not `HIT`:
+
+```bash
+curl -sI https://pumbafluffycorgi.com/bill-splitter/sw.js | grep -i cf-cache-status
+```
+
+`sw.js` is ~1 KB and browsers only fetch it on load and once a minute while
+the app is open, so bypassing the edge cache costs nothing noticeable.
