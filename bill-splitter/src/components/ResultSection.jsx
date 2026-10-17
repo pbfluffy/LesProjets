@@ -363,6 +363,15 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
               </button>
             </div>
           )}
+          {/* Thai QR is baht-only: per-person QRs stay hidden until the bill is converted. */}
+          {ppValid && showQR && !isTHB && convertRate === null && (
+            <div className={styles.qrThbHint} data-snapshot-hide>
+              <span>{t.qrNeedsThb}</span>
+              <button type="button" className={styles.qrThbBtn} onClick={handleConvert} disabled={converting}>
+                {converting ? '…' : t.qrConvertBtn}
+              </button>
+            </div>
+          )}
 
           <div className={styles.perPersonList}>
             {members.map(m => {

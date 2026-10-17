@@ -44,7 +44,7 @@ function SnackAdder({ person, onAdd }) {
 export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled = false }) {
   const store = useSushiroStore(sharedState)
   const result = store.calculate()
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [nameInput, setNameInput] = useState('')
   const [nameError, setNameError] = useState('')
   const [toast, setToast] = useState('')
