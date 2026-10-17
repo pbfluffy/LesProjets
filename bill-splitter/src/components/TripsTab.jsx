@@ -241,7 +241,7 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
 
 
 // ── Inline receipt scanner for trip tab ────────────────────────────────────
-function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip }) {
+function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip }) {
   const { t } = useLang()
   const fileRef = useRef(null)
   const [loading, setLoading] = useState(false)
@@ -295,8 +295,9 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip, onUpdateTrip })
     }
     const entry = onSaveBill('split', state)
     if (entry) {
-      onAddBillToTrip(trip.id, entry.id, entries)
+      // TripDetail's onAddBillToTrip supplies the bill-history entries itself;
       // members are auto-derived from bills in useTripsStore
+      onAddBillToTrip(trip.id, entry.id)
     }
     setPreview(null)
   }
@@ -842,7 +843,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
       <button className={styles.addBillBtn} style={{ marginTop: 16 }} onClick={onAddBill}>
         + {t.tripAddBill ?? 'Add bill to trip'}
       </button>
-      <TripReceiptScanner trip={trip} onSaveBill={onSaveBill} onAddBillToTrip={onAddBillToTrip} onUpdateTrip={(id, patch) => updateTrip(id, patch)} />
+      <TripReceiptScanner trip={trip} onSaveBill={onSaveBill} onAddBillToTrip={onAddBillToTrip} />
     </div>
   )
 }

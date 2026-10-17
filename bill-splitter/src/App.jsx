@@ -425,7 +425,11 @@ function AppInner() {
             entries={history.entries}
             onLoadBill={(entry) => { handleLoadEntry(entry); setActiveTab(entry.tab) }}
             onNewBillForTrip={() => setActiveTab('split')}
-            onSaveBill={handleSaveBill}
+            // Trips only saves brand-new bills (receipt scans), so bypass
+            // handleSaveBill, which updates the loaded bill. Switching tabs
+            // already clears loadedEntryId; this keeps scans safe even if a
+            // future path reaches Trips without going through the tab bar.
+            onSaveBill={history.save}
             user={user}
             sharedTrip={shared?.t === 'trips' ? shared.s : null}
             onExitShared={() => { setShared(null); clearShareHash() }}
