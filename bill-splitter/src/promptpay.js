@@ -140,3 +140,40 @@ export function buildPromptPayPayload(rawId, amount) {
   payload += crc16(payload)
   return payload
 }
+
+function parseTlv(str) {
+  const out = {}
+  let i = 0
+  while (i + 4 <= str.length) {
+    const tag = str.slice(i, i + 2)
+    const len = Number(str.slice(i + 2, i + 4))
+    if (!Number.isInteger(len) || i + 4 + len > str.length) return null
+    out[tag] = str.slice(i + 4, i + 4 + len)
+    i += 4 + len
+  }
+  return i === str.length ? out : null
+}
+
+/**
+ * Read the PromptPay id out of a scanned PromptPay QR — e.g. the "receive
+ * money" QR a banking app makes for an account. Those don't contain the
+ * account number: the bank registers a PromptPay id for the account (K PLUS
+ * uses a 15-digit e-Wallet-style "reference number" like 004999003141560)
+ * and puts that in the QR, so it can be reused as-is for our own QRs.
+ * @returns {{ id: string } | { error: 'not-qr-payment' | 'not-promptpay' }}
+ */
+export function parsePromptPayQr(payload) {
+  const s = (payload || '').trim()
+  const crcAt = s.lastIndexOf('6304')
+  if (crcAt < 0 || crcAt !== s.length - 8 || crc16(s.slice(0, crcAt + 4)) !== s.slice(-4).toUpperCase()) {
+    return { error: 'not-qr-payment' }
+  }
+  const top = parseTlv(s)
+  if (!top) return { error: 'not-qr-payment' }
+  const merchant = top['29'] && parseTlv(top['29'])
+  if (!merchant || merchant['00'] !== 'A000000677010111') return { error: 'not-promptpay' }
+  if (merchant['01']) return { id: '0' + merchant['01'].slice(-9) }  // 0066XXXXXXXXX → 0XXXXXXXXX
+  if (merchant['02']) return { id: merchant['02'] }
+  if (merchant['03']) return { id: merchant['03'] }
+  return { error: 'not-promptpay' }
+}

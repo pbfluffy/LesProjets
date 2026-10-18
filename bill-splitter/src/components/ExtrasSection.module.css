@@ -45,6 +45,10 @@
 .bankOptionCheck { font-size: 13px; color: var(--color-text); }
 .bankAccountInput { flex: 1; min-width: 0; font-family: var(--font-mono); }
 .bankNote { font-size: 11px; color: var(--color-text-faint); line-height: 1.5; }
+.qrReadBtn { align-self: flex-start; min-height: 32px; padding: 4px 12px; background: none; border: 0.5px solid var(--color-border-strong); border-radius: var(--radius-pill); font-size: 12px; color: var(--color-blue); }
+.qrReadBtn:disabled { opacity: 0.6; }
+.qrReadOk { font-size: 12px; line-height: 1.5; color: var(--color-green); }
+.qrReadErr { font-size: 12px; line-height: 1.5; color: var(--color-red, #c62828); }
 .fieldLabel { display: block; font-size: 12px; color: var(--color-text-muted); margin-bottom: 4px; }
 .textarea { resize: vertical; font-size: 13px; line-height: 1.6; }
 
