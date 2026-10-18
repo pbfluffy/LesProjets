@@ -1,19 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLang } from '../LangContext'
-import { parseBankTarget, encodeBankTarget, parsePromptPayQr } from '../promptpay'
+import { THAI_BANKS, parseBankTarget, encodeBankTarget, parsePromptPayQr } from '../promptpay'
 import { readQrImage } from '../readQrImage'
 import BankPicker from './BankPicker'
 import styles from './ExtrasSection.module.css'
 
 /**
- * Editor for the payee: either a PromptPay id (phone / national ID → QR) or a
- * bank account (→ copyable transfer card). Both write to the same string
- * field — bank accounts as `bank:<code>:<account>` (see promptpay.js).
- *
- * "Read from my bank QR" fills the PromptPay id from a screenshot of a bank
- * app's receive-money QR: those carry a bank-registered PromptPay id (e.g.
- * K PLUS's 15-digit reference number), which gives friends a scan-to-pay QR
- * where a plain account number can't.
+ * Editor for the payee. Two modes, both writing the same string field:
+ *   - PromptPay: a phone / national ID → friends get a scan-to-pay QR.
+ *   - Bank account: bank + account number (→ copyable transfer card), plus an
+ *     optional QR read from a screenshot of the bank app's receive-money QR.
+ *     That QR carries a bank-registered PromptPay id (e.g. K PLUS's 15-digit
+ *     reference number), so with it friends get a scan-to-pay QR as well.
+ *     Stored as `bank:<code>:<account>[:<qr id>]` (see promptpay.js).
  */
 export default function PayTargetInput({ value, onChange }) {
   const { t } = useLang()
@@ -28,40 +27,33 @@ export default function PayTargetInput({ value, onChange }) {
 
   const fileRef = useRef(null)
   const [reading, setReading] = useState(false)
-  const [qrMsg, setQrMsg] = useState(null) // { ok: boolean, text: string }
+  const [qrError, setQrError] = useState(null)
 
   const switchMode = (next) => {
     if (next === mode) return
     setMode(next)
-    setQrMsg(null)
+    setQrError(null)
     onChange('')
   }
+
+  const setBank = (code, account, qrId) => onChange(encodeBankTarget(code, account, qrId))
 
   const onQrFile = async (e) => {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
     setReading(true)
-    setQrMsg(null)
+    setQrError(null)
     const text = await readQrImage(file)
     setReading(false)
-    if (!text) { setQrMsg({ ok: false, text: t.qrReadNotFound }); return }
+    if (!text) { setQrError(t.qrReadNotFound); return }
     const r = parsePromptPayQr(text)
-    if (!r.id) { setQrMsg({ ok: false, text: t.qrReadNotPromptPay }); return }
-    setMode('pp')
-    onChange(r.id)
-    setQrMsg({ ok: true, text: t.qrReadDone })
+    if (!r.id) { setQrError(t.qrReadNotPromptPay); return }
+    // Bank-issued reference numbers start with the bank's code (K PLUS: 004…);
+    // use it to pre-pick the bank if none is chosen yet.
+    const guessed = r.id.length === 15 && THAI_BANKS.some(b => b.code === r.id.slice(0, 3)) ? r.id.slice(0, 3) : ''
+    setBank(bank?.code || guessed, bank?.account, r.id)
   }
-
-  const qrReader = (
-    <>
-      <input ref={fileRef} type="file" accept="image/*" onChange={onQrFile} hidden />
-      <button type="button" className={styles.qrReadBtn} onClick={() => fileRef.current?.click()} disabled={reading}>
-        {reading ? t.qrReading : `📷 ${t.qrReadBtn}`}
-      </button>
-      {qrMsg && <p className={qrMsg.ok ? styles.qrReadOk : styles.qrReadErr} role="status">{qrMsg.text}</p>}
-    </>
-  )
 
   return (
     <div className={styles.payTarget}>
@@ -74,34 +66,45 @@ export default function PayTargetInput({ value, onChange }) {
         </button>
       </div>
       {mode === 'pp' ? (
-        <>
-          <input
-            type="text"
-            placeholder={t.ppPlaceholder}
-            value={value}
-            onChange={e => { setQrMsg(null); onChange(e.target.value) }}
-            className={styles.ppInput}
-          />
-          {qrReader}
-        </>
+        <input
+          type="text"
+          placeholder={t.ppPlaceholder}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className={styles.ppInput}
+        />
       ) : (
         <>
           <div className={styles.bankRow}>
             <BankPicker
               value={bank?.code ?? ''}
-              onChange={code => onChange(encodeBankTarget(code, bank?.account))}
+              onChange={code => setBank(code, bank?.account, bank?.qrId)}
             />
             <input
               type="text"
               inputMode="numeric"
               placeholder={t.bankAccountPh}
               value={bank?.account ?? ''}
-              onChange={e => onChange(encodeBankTarget(bank?.code, e.target.value.replace(/\D/g, '').slice(0, 12)))}
+              onChange={e => setBank(bank?.code, e.target.value.replace(/\D/g, '').slice(0, 12), bank?.qrId)}
               className={styles.bankAccountInput}
             />
           </div>
-          <p className={styles.bankNote}>{t.bankScanTip}</p>
-          {qrReader}
+          <div className={styles.qrRow}>
+            <span className={styles.qrRowLabel}>{t.qrOptional}</span>
+            {bank?.qrId ? (
+              <>
+                <span className={styles.qrAdded}>✅ {t.qrAdded} <span className={styles.qrRef}>{bank.qrId}</span></span>
+                <button type="button" className={styles.qrRemoveBtn} onClick={() => setBank(bank.code, bank.account, '')}>{t.qrRemove}</button>
+              </>
+            ) : (
+              <button type="button" className={styles.qrReadBtn} onClick={() => fileRef.current?.click()} disabled={reading}>
+                {reading ? t.qrReading : `📷 ${t.qrAddBtn}`}
+              </button>
+            )}
+            <input ref={fileRef} type="file" accept="image/*" onChange={onQrFile} hidden />
+          </div>
+          {qrError && <p className={styles.qrReadErr} role="status">{qrError}</p>}
+          {!bank?.qrId && <p className={styles.bankNote}>{t.bankScanTip}</p>}
         </>
       )}
     </div>

@@ -4,8 +4,7 @@ import { useLang } from '../LangContext'
 import { buildShareUrl, createShortLink } from '../share'
 import { auth, onAuthStateChanged } from '../firebase'
 import { isValidPayTarget, describePayTarget } from '../promptpay'
-import PromptPayQR from './PromptPayQR'
-import BankTransferCard from './BankTransferCard'
+import PayTargetDetails from './PayTargetDetails'
 import Avatar from './Avatar'
 import { CopyIcon, ShareIcon, QrIcon, SmartphoneIcon, WarnIcon, BankIcon, NoteIcon } from './icons'
 import styles from './ResultSection.module.css'
@@ -77,6 +76,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
   const hasData = (result.rawSubtotal ?? result.subtotal) > 0
   const ppValid = isValidPayTarget(promptPay)
   const ppDesc = describePayTarget(promptPay, lang)
+  const transferOnly = ppDesc.isBank && !ppDesc.hasQr // bank account without a QR → transfer card
   const ownerName = user?.displayName?.trim().toLowerCase()
   const rawGrand = result.subtotal * result.multiplier
   const showRoundedFrom = roundTotalEnabled && rawGrand.toFixed(2) !== Number(result.grandTotal).toFixed(2)
@@ -360,7 +360,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
                 onClick={() => setShowQR(v => !v)}
                 aria-pressed={showQR}
               >
-                {ppDesc.isBank
+                {transferOnly
                   ? <><BankIcon width={15} height={15} /> {showQR ? t.hideTransfer : t.showTransfer}</>
                   : <><QrIcon width={15} height={15} /> {showQR ? t.hideQR : t.showQR}</>}
               </button>
@@ -369,7 +369,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
           {/* QR / bank transfer are baht-only: per-person details stay hidden until the bill is converted. */}
           {ppValid && showQR && !isTHB && convertRate === null && (
             <div className={styles.qrThbHint} data-snapshot-hide>
-              <span>{ppDesc.isBank ? t.transferNeedsThb : t.qrNeedsThb}</span>
+              <span>{transferOnly ? t.transferNeedsThb : t.qrNeedsThb}</span>
               <button type="button" className={styles.qrThbBtn} onClick={handleConvert} disabled={converting}>
                 {converting ? '…' : t.qrConvertBtn}
               </button>
@@ -410,9 +410,8 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
                       ))}
                     </div>
                   )}
-                  {showQR && ppValid && qrAmount > 0 && !isOwner && (ppDesc.isBank
-                    ? <BankTransferCard target={promptPay} amount={qrAmount} />
-                    : <PromptPayQR promptPay={promptPay} amount={qrAmount} name={m} reference={billName} />
+                  {showQR && ppValid && qrAmount > 0 && !isOwner && (
+                    <PayTargetDetails target={promptPay} amount={qrAmount} name={m} reference={billName} />
                   )}
                 </div>
               )

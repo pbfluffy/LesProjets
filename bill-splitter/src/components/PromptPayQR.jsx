@@ -18,8 +18,9 @@ import styles from './PromptPayQR.module.css'
  * @param {number} [size]     - QR pixel size; default 132
  * @param {string} [name]     - person's name, used for the saved filename
  * @param {string} [reference] - optional short label (e.g. bill name), shown as a caption
+ * @param {ReactNode} [caption] - optional extra line under the QR, above Save QR (e.g. the bank account)
  */
-export default function PromptPayQR({ promptPay, amount, size = 132, name, reference }) {
+export default function PromptPayQR({ promptPay, amount, size = 132, name, reference, caption }) {
   const payload = buildPromptPayPayload(promptPay, amount)
   const boxRef = useRef(null)
   const [saving, setSaving] = useState(false)
@@ -103,6 +104,7 @@ export default function PromptPayQR({ promptPay, amount, size = 132, name, refer
         />
       </div>
       {reference && <div className={styles.reference}>{reference}</div>}
+      {caption}
       <button
         type="button"
         onClick={handleSave}

@@ -17,9 +17,8 @@ import { ShareIcon } from './icons'
 import { buildShareUrl, createShortLink, shareLink } from '../share'
 import { normaliseCurrency } from '../currencies'
 import { shareToLine, isInLine } from '../liff.js'
-import PromptPayQR from './PromptPayQR'
+import PayTargetDetails from './PayTargetDetails'
 import PayTargetInput from './PayTargetInput'
-import BankTransferCard from './BankTransferCard'
 import { isValidPayTarget, parseBankTarget } from '../promptpay'
 import { getThbRates } from '../fx.js'
 
@@ -204,18 +203,12 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
                 if (!promptPayId) return null
                 if (displayCurrency !== 'THB') return null
                 if (!s.amount || s.amount < 1) return null
-                if (parseBankTarget(promptPayId)) {
-                  // Bank accounts can't be paid by QR — show copyable transfer details instead.
-                  if (!isValidPayTarget(promptPayId)) return null
-                  return (
-                    <div style={{ marginTop: 8, paddingTop: 2, borderTop: '0.5px solid var(--color-border)' }}>
-                      <BankTransferCard target={promptPayId} amount={s.amount} />
-                    </div>
-                  )
-                }
+                if (!isValidPayTarget(promptPayId)) return null
+                // QR for PromptPay ids and bank accounts with an attached QR;
+                // copyable transfer card for bank accounts without one.
                 return (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: 8, paddingTop: 8, borderTop: '0.5px solid var(--color-border)' }}>
-                    <PromptPayQR promptPay={promptPayId} amount={Math.round(s.amount)} size={100} name={s.to} reference={trip.name} />
+                  <div style={{ marginTop: 8, paddingTop: 2, borderTop: '0.5px solid var(--color-border)' }}>
+                    <PayTargetDetails target={promptPayId} amount={s.amount} qrAmount={Math.round(s.amount)} size={100} name={s.to} reference={trip.name} />
                   </div>
                 )
               })()}

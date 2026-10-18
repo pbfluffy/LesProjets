@@ -38,18 +38,22 @@ export const THAI_BANKS = [
 const BANK_PREFIX = 'bank:'
 
 /** Parse a stored value. Returns { code, account } for bank values, else null. */
+// Optional 4th part: the PromptPay id read from the bank app's receive-money
+// QR (`bank:004:1234567890:004999003141560`), so a bank payee can also get a
+// scan-to-pay QR. Older 3-part values still parse (qrId '').
 export function parseBankTarget(raw) {
   const s = (raw || '').trim()
   if (!s.startsWith(BANK_PREFIX)) return null
-  const [code = '', account = ''] = s.slice(BANK_PREFIX.length).split(':')
-  return { code, account: account.replace(/\D/g, '') }
+  const [code = '', account = '', qrId = ''] = s.slice(BANK_PREFIX.length).split(':')
+  return { code, account: account.replace(/\D/g, ''), qrId: qrId.replace(/\D/g, '') }
 }
 
 /** Encode a bank account into the shared promptPay string field. */
-export function encodeBankTarget(code, account) {
+export function encodeBankTarget(code, account, qrId) {
   const acc = (account || '').replace(/\D/g, '')
-  if (!code && !acc) return ''
-  return `${BANK_PREFIX}${code || ''}:${acc}`
+  const qr = (qrId || '').replace(/\D/g, '')
+  if (!code && !acc && !qr) return ''
+  return `${BANK_PREFIX}${code || ''}:${acc}${qr ? `:${qr}` : ''}`
 }
 
 export function bankName(code, lang = 'en') {
@@ -65,7 +69,7 @@ export function describePayTarget(raw, lang = 'en') {
   const bank = parseBankTarget(raw)
   if (!bank) return { label: 'PromptPay', text: (raw || '').trim(), isBank: false }
   const label = bankName(bank.code, lang) || (lang === 'th' ? 'ธนาคาร' : 'Bank')
-  return { label, text: bank.account, isBank: true }
+  return { label, text: bank.account || 'QR', isBank: true, hasQr: !!bank.qrId }
 }
 
 function tlv(tag, value) {
@@ -107,7 +111,21 @@ function formatPromptPayId(raw) {
 export function isValidBankTarget(raw) {
   const bank = parseBankTarget(raw)
   if (!bank || !THAI_BANKS.some(b => b.code === bank.code)) return false
-  return bank.account.length >= 10 && bank.account.length <= 12
+  const accountOk = bank.account.length >= 10 && bank.account.length <= 12
+  const qrOk = formatPromptPayId(bank.qrId) !== null
+  if (bank.account && !accountOk) return false
+  if (bank.qrId && !qrOk) return false
+  return accountOk || qrOk // a QR alone is enough to get paid
+}
+
+/**
+ * The PromptPay id to build a scan-to-pay QR from: the id itself for a
+ * PromptPay payee, the attached QR id for a bank payee, else null.
+ */
+export function qrIdOf(raw) {
+  const bank = parseBankTarget(raw)
+  const id = bank ? bank.qrId : (raw || '').trim()
+  return id && formatPromptPayId(id) ? id : null
 }
 
 /** Whether the payee can be paid: a valid PromptPay id (QR) or a valid bank account (transfer card). */
