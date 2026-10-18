@@ -50,6 +50,8 @@ jobs:
 
       - name: Build pumgoda
         working-directory: pumgoda
+        env:
+          VITE_CARTO_KEY: ${{ secrets.VITE_CARTO_KEY }}
         run: |
           npm install
           npm run build
@@ -58,6 +60,7 @@ jobs:
         working-directory: dog-near-me
         env:
           VITE_MAJON_WORKER_URL: ${{ secrets.VITE_MAJON_WORKER_URL }}
+          VITE_CARTO_KEY: ${{ secrets.VITE_CARTO_KEY }}
         run: |
           npm install
           npm run build

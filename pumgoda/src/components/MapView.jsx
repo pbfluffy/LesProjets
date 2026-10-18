@@ -6,15 +6,20 @@ import 'leaflet.markercluster'
 import styles from './MapView.module.css'
 import { computeTier } from '../data/computeTier'
 
-// Tile providers (CARTO — free for non-commercial, no API key)
+// Tile providers (CARTO — free for non-commercial). CARTO needs an API key
+// since Sept 2026 (without one every tile is an "API key required"
+// watermark); it's injected at build time from the VITE_CARTO_KEY GitHub
+// Actions secret — see deploy.yml.
+const CARTO_KEY = import.meta.env.VITE_CARTO_KEY
+const withCartoKey = (url) => (CARTO_KEY ? `${url}?key=${encodeURIComponent(CARTO_KEY)}` : url)
 const TILES = {
   light: {
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    url: withCartoKey('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'),
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   },
   dark: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    url: withCartoKey('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'),
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   },

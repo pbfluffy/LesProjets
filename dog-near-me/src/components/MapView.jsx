@@ -17,7 +17,12 @@ import styles from './MapView.module.css'
 // labels are dark-on-light with strong native contrast, so inverting it
 // (see the .leaflet-tile filter in MapView.module.css) keeps that same
 // contrast ratio while flipping the polarity to a dark background.
-const VOYAGER_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+// CARTO basemaps need an API key since Sept 2026 (without one every tile is an
+// "API key required" watermark). Free non-commercial key, injected at build
+// time from the VITE_CARTO_KEY GitHub Actions secret — see deploy.yml.
+const CARTO_KEY = import.meta.env.VITE_CARTO_KEY
+const VOYAGER_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png' +
+  (CARTO_KEY ? `?key=${encodeURIComponent(CARTO_KEY)}` : '')
 const TILES = {
   light: {
     url: VOYAGER_URL,
