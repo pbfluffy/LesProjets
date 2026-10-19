@@ -64,10 +64,10 @@
       "port": 5182
     },
     {
-      "name": "village",
+      "name": "village-77",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--port", "5184"],
-      "cwd": "village",
+      "cwd": "village-77",
       "port": 5184
     }
   ]

@@ -34,7 +34,7 @@ jobs:
         run: |
           npm ci --prefix .github/lint
           npx --prefix .github/lint eslint -c .github/lint/eslint.config.mjs \
-            bill-splitter/src nutritions-thailand/src pumgoda/src stock-ranges/src dog-near-me/src village/src shared
+            bill-splitter/src nutritions-thailand/src pumgoda/src stock-ranges/src dog-near-me/src village-77/src shared
 
       - name: Build bill-splitter
         working-directory: bill-splitter
@@ -74,15 +74,15 @@ jobs:
           npm install
           npm run build
 
-      - name: Build village
-        working-directory: village
+      - name: Build village-77
+        working-directory: village-77
         run: |
           npm install
           npm run build
 
       - name: Assemble site
         run: |
-          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/dog-near-me _site/stock-ranges _site/village
+          mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/dog-near-me _site/stock-ranges _site/village-77
           cp index.html _site/index.html
           cp admindepum.html _site/admindepum.html
           cp temp.html _site/temp.html
@@ -94,7 +94,7 @@ jobs:
           cp -r pumgoda/dist/. _site/pumgoda/
           cp -r dog-near-me/dist/. _site/dog-near-me/
           cp -r stock-ranges/dist/. _site/stock-ranges/
-          cp -r village/dist/. _site/village/
+          cp -r village-77/dist/. _site/village-77/
           cp pumba.png _site/pumba.png
           cp apple-touch-icon.png _site/apple-touch-icon.png
           cp icon-192.png _site/icon-192.png

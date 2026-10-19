@@ -18,7 +18,7 @@ export default defineConfig({
             urlPattern: ({ request }) => request.mode === 'navigate',
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'village-pages',
+              cacheName: 'village-77-pages',
               expiration: { maxEntries: 10, maxAgeSeconds: 7 * 24 * 60 * 60 },
             },
           },
@@ -29,5 +29,5 @@ export default defineConfig({
       devOptions: { enabled: false },
     }),
   ],
-  base: process.env.VITE_BASE_PATH || '/village/',
+  base: process.env.VITE_BASE_PATH || '/village-77/',
 })

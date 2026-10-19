@@ -378,10 +378,10 @@ service cloud.firestore {
     // ── Village — marketplace listings & handymen ───────────────────────────
     // No sign-in for now: anyone may read, post, edit and delete. The app
     // only shows Edit / Delete on the device that made the post
-    // (village/src/hooks/useMyPosts.js), but these rules can't enforce that —
+    // (village-77/src/hooks/useMyPosts.js), but these rules can't enforce that —
     // add auth back before the app sees abuse. What IS enforced is the shape
     // and size of every write, and createdAt being the server's clock.
-    // photos are small JPEG data URLs stored inline (village/src/photo.js
+    // photos are small JPEG data URLs stored inline (village-77/src/photo.js
     // keeps each under 200 KB); the 1 MB doc limit bounds the total.
     function validVillagePost(d) {
       return d.isResident is bool
