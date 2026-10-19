@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
   db, collection, query, orderBy, limit, onSnapshot,
-  addDoc, updateDoc, deleteDoc, doc, serverTimestamp,
+  addDoc, setDoc, updateDoc, deleteDoc, doc, serverTimestamp,
 } from '../firebase'
 
-// Live list of one collection (villageListings | villageProviders), newest
+// Live list of one collection (villageShops | villageProviders), newest
 // first. Public read, so this subscribes whether or not anyone is signed in.
 export function usePosts(collectionName) {
   const [posts, setPosts] = useState([])
@@ -41,4 +41,21 @@ export function updatePost(collectionName, id, data) {
 
 export function deletePost(collectionName, id) {
   return deleteDoc(doc(db, collectionName, id))
+}
+
+// House number / soi lives in villagePrivate/{postId}, not on the public
+// post: firestore.rules lets only admins read it (they see it in the
+// Firebase console), so other villagers never see where someone lives.
+const PRIVATE = 'villagePrivate'
+
+export function savePrivateAddress(postId, collectionName, address) {
+  return setDoc(doc(db, PRIVATE, postId), {
+    address,
+    collection: collectionName,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export function deletePrivateAddress(postId) {
+  return deleteDoc(doc(db, PRIVATE, postId))
 }

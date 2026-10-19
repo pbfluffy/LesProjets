@@ -24,7 +24,7 @@ export default function Board({
       if (category && p[categoryField] !== category) return false
       if (q) {
         const itemNames = (p.items || []).map((it) => it.name)
-        const hay = [p.name, p.description, p.address, ...itemNames].filter(Boolean).join(' ').toLowerCase()
+        const hay = [p.name, p.description, ...itemNames].filter(Boolean).join(' ').toLowerCase()
         if (!hay.includes(q)) return false
       }
       return true

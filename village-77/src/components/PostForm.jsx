@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLangContext, interp, MARKET_CATEGORIES, TRADES } from '../LangContext'
-import { createPost, updatePost } from '../hooks/usePosts'
+import { createPost, updatePost, savePrivateAddress, deletePrivateAddress } from '../hooks/usePosts'
 import { photoToDataUrl, PHOTO_BIG, PHOTO_SHOP, PHOTO_ITEM, MAX_DOC_CHARS } from '../photo'
 import styles from './ui.module.css'
 
@@ -21,7 +21,7 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
     description: post?.description || '',
     phone: post?.phone || '',
     line: post?.line || '',
-    address: post?.address || '',
+    address: '',
     photos: post?.photos || [],
     items: post?.items?.length
       ? post.items.map((it) => ({ ...it, price: it.price ?? '' }))
@@ -89,7 +89,6 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
       description: f.description.trim(),
       phone: f.phone.trim(),
       line: f.line.trim(),
-      address: f.address.trim(),
       photos: f.photos,
       isResident: f.isResident,
     }
@@ -119,8 +118,15 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
     setSaving(true)
     setError('')
     try {
-      if (post) await updatePost(collectionName, post.id, data)
-      else onCreated((await createPost(collectionName, data)).id)
+      let id = post?.id
+      if (post) await updatePost(collectionName, id, data)
+      else {
+        id = (await createPost(collectionName, data)).id
+        onCreated(id)
+      }
+      const address = f.address.trim()
+      if (f.isResident && address) await savePrivateAddress(id, collectionName, address)
+      else if (!f.isResident && post) await deletePrivateAddress(id)
       onClose()
     } catch (err) {
       console.error('[village] save failed:', err?.code, err)
@@ -206,6 +212,18 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
           </span>
         </label>
 
+        {/* Villagers only. Saved to the admin-only villagePrivate collection,
+            never on the public post — so it can't be read back here when
+            editing; left blank, the saved one is kept. */}
+        {f.isResident && (
+          <label className={styles.field}>
+            <span>{t.fAddress}</span>
+            <input maxLength={120} value={f.address} onChange={set('address')}
+              placeholder={post ? t.fAddressKeepPh : t.fAddressPh} />
+            <small className={styles.privateNote}>🔒 {t.fAddressPrivate}</small>
+          </label>
+        )}
+
         <div className={styles.fieldRow}>
           <label className={styles.field}>
             <span>{t.fPhone}</span>
@@ -216,11 +234,6 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
             <input maxLength={50} value={f.line} onChange={set('line')} />
           </label>
         </div>
-
-        <label className={styles.field}>
-          <span>{t.fAddress}</span>
-          <input maxLength={120} value={f.address} onChange={set('address')} placeholder={t.fAddressPh} />
-        </label>
 
         <div className={styles.field}>
           <span>{interp(isShop ? t.fShopPhotos : t.fPhotos, { n: f.photos.length, max: maxPhotos })}</span>

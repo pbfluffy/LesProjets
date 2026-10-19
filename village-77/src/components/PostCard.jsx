@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
-import { updatePost, deletePost } from '../hooks/usePosts'
+import { updatePost, deletePost, deletePrivateAddress } from '../hooks/usePosts'
 import styles from './ui.module.css'
 
 export function ResidencyBadge({ isResident }) {
@@ -44,7 +44,10 @@ export default function PostCard({ kind, collectionName, post, my, onEdit }) {
 
   function handleDelete() {
     if (!window.confirm(t.deleteConfirm)) return
-    deletePost(collectionName, post.id).then(() => my.removeMine(post.id)).catch((e) => {
+    deletePost(collectionName, post.id).then(() => {
+      my.removeMine(post.id)
+      deletePrivateAddress(post.id).catch(() => {}) // none saved for outsiders
+    }).catch((e) => {
       console.error('[village] delete failed:', e?.code)
       alert(t.saveFailed)
     })
@@ -112,11 +115,6 @@ export default function PostCard({ kind, collectionName, post, my, onEdit }) {
           </ul>
         )}
 
-        {post.address && (
-          <div className={styles.meta}>
-            <span>📍 {post.address}</span>
-          </div>
-        )}
 
         <div className={styles.actions}>
           {post.phone && (

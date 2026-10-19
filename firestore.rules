@@ -390,7 +390,7 @@ service cloud.firestore {
           && d.description is string && d.description.size() <= 1000
           && d.phone       is string && d.phone.size()       <= 30
           && d.line        is string && d.line.size()        <= 50
-          && d.address     is string && d.address.size()     <= 120
+          && !('address' in d) // private — lives in villagePrivate below
           && (d.phone.size() > 0 || d.line.size() > 0)
           && d.photos is list && d.photos.size() <= 4;
     }
@@ -420,6 +420,18 @@ service cloud.firestore {
                     && request.resource.data.createdAt == request.time;
       allow update: if validVillageProvider(request.resource.data)
                     && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if true;
+    }
+    // A villager's house no. / soi, keyed by the post's id. Supporting info
+    // for the random "do you really live here" checks: only admins read it
+    // (Firebase console); the app writes it but can never read it back.
+    match /villagePrivate/{postId} {
+      allow read:   if isAdmin();
+      allow create, update: if request.resource.data.keys().hasOnly(['address', 'collection', 'updatedAt'])
+                            && request.resource.data.address is string
+                            && request.resource.data.address.size() > 0
+                            && request.resource.data.address.size() <= 120
+                            && request.resource.data.collection in ['villageShops', 'villageProviders'];
       allow delete: if true;
     }
 
