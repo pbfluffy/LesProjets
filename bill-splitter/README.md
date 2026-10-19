@@ -10,7 +10,7 @@ Mobile-first Thai bill-splitting app with a Sushiro plate-counter tab. Part of [
 - Add food items, assign each item to a subset of members (or everyone)
 - Optional VAT 7% and Service Charge 10%
 - Per-person breakdown with proportion bars
-- **Per-person PromptPay QR** — each person gets their own scan-to-pay QR for their exact share, built from a configurable PromptPay payload (`react-qr-code`). The payee can also be a bank account (stored as `bank:<code>:<account>` in the same `promptPay` field). Bank accounts get a copyable transfer card (bank, account no., amount) instead of a QR — Thai banking apps scan the bank-account QR sub-tag (29.04) as a blank PromptPay recipient
+- **Per-person PromptPay QR** — each person gets their own scan-to-pay QR for their exact share, built from a configurable PromptPay payload (`qrcode-generator`). The payee can also be a bank account (stored as `bank:<code>:<account>[:<qr id>]` in the same `promptPay` field). A bank account gets a copyable transfer card (bank, account no., amount) — Thai banking apps scan the bank-account QR sub-tag (29.04) as a blank PromptPay recipient — unless a QR is attached: "Add QR from bank app" reads the PromptPay id from a screenshot of the bank app's receive-money QR (K PLUS uses a 15-digit reference number, sub-tag 03), and friends then get a scan-to-pay QR with the account shown under it
 - **Bill history** — save a bill, browse and reload past bills (`useBillHistory` hook, `BillHistory` panel)
 - **Share-as-image** — snapshot the result with `html2canvas` and share via the Web Share API
 - Bank account and notes fields, plain-text share to Line
@@ -38,7 +38,7 @@ Plate counter for the actual Sushiro Thailand colour tiers:
 - CSS Modules
 - `LangContext` for EN/TH (default: EN) — toggle from the header
 - `uuid` for stable list keys
-- `react-qr-code` for PromptPay QRs
+- `qrcode-generator` for PromptPay QRs (alphanumeric mode + quiet zone, `src/components/QrSvg.jsx`)
 - `html2canvas` for share-as-image
 - `localStorage` for theme, language, and bill history — no backend
 

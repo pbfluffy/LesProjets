@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import QRCode from 'react-qr-code'
+import QrSvg from './QrSvg'
 import { buildPromptPayPayload } from '../promptpay'
 import styles from './PromptPayQR.module.css'
 
@@ -15,12 +15,12 @@ import styles from './PromptPayQR.module.css'
  *
  * @param {string} promptPay  - the PromptPay number
  * @param {number} amount     - the amount in THB (0/undefined → static QR)
- * @param {number} [size]     - QR pixel size; default 132
+ * @param {number} [size]     - QR pixel size incl. its white border; default 184
  * @param {string} [name]     - person's name, used for the saved filename
  * @param {string} [reference] - optional short label (e.g. bill name), shown as a caption
  * @param {ReactNode} [caption] - optional extra line under the QR, above Save QR (e.g. the bank account)
  */
-export default function PromptPayQR({ promptPay, amount, size = 132, name, reference, caption }) {
+export default function PromptPayQR({ promptPay, amount, size = 184, name, reference, caption }) {
   const payload = buildPromptPayPayload(promptPay, amount)
   const boxRef = useRef(null)
   const [saving, setSaving] = useState(false)
@@ -94,14 +94,8 @@ export default function PromptPayQR({ promptPay, amount, size = 132, name, refer
         alt="PromptPay"
         style={{ height: 28, objectFit: 'contain', opacity: 0.9, marginBottom: 8 }}
       />
-      <div className={styles.qrBox} style={{ width: size + 16, height: size + 16 }} ref={boxRef}>
-        <QRCode
-          value={payload}
-          size={size}
-          bgColor="#ffffff"
-          fgColor="#000000"
-          level="M"
-        />
+      <div className={styles.qrBox} style={{ width: size, height: size }} ref={boxRef}>
+        <QrSvg value={payload} size={size} />
       </div>
       {reference && <div className={styles.reference}>{reference}</div>}
       {caption}

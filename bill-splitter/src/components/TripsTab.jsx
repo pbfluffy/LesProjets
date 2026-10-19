@@ -208,7 +208,7 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
                 // copyable transfer card for bank accounts without one.
                 return (
                   <div style={{ marginTop: 8, paddingTop: 2, borderTop: '0.5px solid var(--color-border)' }}>
-                    <PayTargetDetails target={promptPayId} amount={s.amount} qrAmount={Math.round(s.amount)} size={100} name={s.to} reference={trip.name} />
+                    <PayTargetDetails target={promptPayId} amount={s.amount} qrAmount={Math.round(s.amount)} size={150} name={s.to} reference={trip.name} />
                   </div>
                 )
               })()}
