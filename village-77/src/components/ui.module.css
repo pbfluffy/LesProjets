@@ -109,7 +109,6 @@
   display: flex;
   flex-direction: column;
 }
-.cardSold .cardBody > :not(.ownerActions) { opacity: 0.55; }
 
 .photoWrap { position: relative; aspect-ratio: 4 / 3; background: var(--color-surface-alt); }
 .photoStrip {
@@ -144,17 +143,47 @@
   cursor: zoom-out;
 }
 .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--radius-sm); }
-.soldStamp {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: var(--color-red);
-  color: #fff;
-  font-weight: 600;
-  font-size: 13px;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
+
+/* Items inside a shop card */
+.items { list-style: none; display: flex; flex-direction: column; border-top: 0.5px solid var(--color-border); }
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 0.5px solid var(--color-border);
 }
+.itemPhoto {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  cursor: zoom-in;
+}
+.itemPhotoEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-alt);
+  font-size: 20px;
+  cursor: default;
+}
+.itemName { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.itemPrice { flex: 0 0 auto; font-family: var(--font-mono); font-size: 14px; font-weight: 500; }
+.itemSold .itemName { text-decoration: line-through; color: var(--color-text-faint); }
+.itemSold .itemPrice { color: var(--color-red); font-family: var(--font-body); font-size: 12px; }
+.itemSold .itemPhoto { opacity: 0.5; }
+.itemToggle {
+  flex: 0 0 auto;
+  border: 0.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
 
 .cardBody { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .cardTags { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -236,6 +265,55 @@
 .residentBox span { display: flex; flex-direction: column; }
 .residentBox strong { font-weight: 600; font-size: 14px; }
 .residentBox small { font-size: 12px; opacity: 0.8; }
+.residentBox .residentCheck { opacity: 1; margin-top: 4px; }
+
+/* Item editor rows in the shop form */
+.itemRows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+.itemRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+}
+.itemRowPhoto {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--color-border-strong);
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  font-size: 20px;
+}
+.itemRowPhoto img { width: 100%; height: 100%; object-fit: cover; }
+.itemRowFields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.itemRowLine { display: flex; gap: 8px; align-items: center; }
+.itemRowSold {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.itemRowSold input { width: 16px; height: 16px; }
+.itemRowRemove {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 18px;
+}
 
 .thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .thumb {

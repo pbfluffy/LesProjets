@@ -23,14 +23,17 @@ function lineUrl(id) {
   return 'https://line.me/ti/p/~' + encodeURIComponent(id.replace(/^@?/, ''))
 }
 
-// One card for both kinds: `kind` is 'listing' (marketplace) or 'provider'
-// (handyman). Owners get edit / delete (and sold toggle for listings).
+// One card for both kinds: `kind` is 'shop' (a marketplace seller, with the
+// items they sell listed inside the card) or 'provider' (a handyman).
+// The device that created the post gets Edit / Delete, plus a per-item
+// sold toggle on shops.
 export default function PostCard({ kind, collectionName, post, my, onEdit }) {
   const { t, lang } = useLangContext()
   const isOwner = my.isMine(post.id)
-  const isListing = kind === 'listing'
-  const tag = isListing ? t['cat_' + post.category] : t['trade_' + post.trade]
+  const isShop = kind === 'shop'
+  const tag = isShop ? t['cat_' + post.category] : t['trade_' + post.trade]
   const photos = post.photos || []
+  const items = post.items || []
   const [shown, setShown] = useState(0) // index of the photo scrolled into view
   const [zoomed, setZoomed] = useState(null)
 
@@ -47,15 +50,16 @@ export default function PostCard({ kind, collectionName, post, my, onEdit }) {
     })
   }
 
-  function toggleSold() {
-    updatePost(collectionName, post.id, { sold: !post.sold }).catch((e) => {
+  function toggleSold(i) {
+    const next = items.map((it, j) => (j === i ? { ...it, sold: !it.sold } : it))
+    updatePost(collectionName, post.id, { items: next }).catch((e) => {
       console.error('[village] sold toggle failed:', e?.code)
       alert(t.saveFailed)
     })
   }
 
   return (
-    <article className={`${styles.card} ${post.sold ? styles.cardSold : ''}`}>
+    <article className={styles.card}>
       {photos.length > 0 && (
         <div className={styles.photoWrap}>
           <div className={styles.photoStrip} onScroll={onStripScroll}>
@@ -70,7 +74,6 @@ export default function PostCard({ kind, collectionName, post, my, onEdit }) {
               />
             ))}
           </div>
-          {post.sold && <span className={styles.soldStamp}>{t.sold}</span>}
           {photos.length > 1 && <span className={styles.photoCount}>{shown + 1}/{photos.length}</span>}
         </div>
       )}
@@ -83,17 +86,37 @@ export default function PostCard({ kind, collectionName, post, my, onEdit }) {
         <div className={styles.cardTags}>
           <ResidencyBadge isResident={post.isResident} />
           {tag && <span className={styles.tag}>{tag}</span>}
-          {post.sold && !photos.length && <span className={styles.tag}>{t.sold}</span>}
         </div>
 
-        <h3 className={styles.cardTitle}>{isListing ? post.title : post.name}</h3>
-        {isListing && <div className={styles.price}>{formatPrice(post.price, t, lang)}</div>}
+        <h3 className={styles.cardTitle}>{post.name}</h3>
         {post.description && <p className={styles.desc}>{post.description}</p>}
 
-        <div className={styles.meta}>
-          {isListing && post.name && <span>{interp(t.postedBy, { name: post.name })}</span>}
-          {post.address && <span>📍 {post.address}</span>}
-        </div>
+        {isShop && items.length > 0 && (
+          <ul className={styles.items}>
+            {items.map((it, i) => (
+              <li key={i} className={`${styles.item} ${it.sold ? styles.itemSold : ''}`}>
+                {it.photo ? (
+                  <img className={styles.itemPhoto} src={it.photo} alt="" loading="lazy" onClick={() => setZoomed(it.photo)} />
+                ) : (
+                  <span className={`${styles.itemPhoto} ${styles.itemPhotoEmpty}`}>🛍️</span>
+                )}
+                <span className={styles.itemName}>{it.name}</span>
+                <span className={styles.itemPrice}>{it.sold ? t.sold : formatPrice(it.price, t, lang)}</span>
+                {isOwner && (
+                  <button type="button" className={styles.itemToggle} onClick={() => toggleSold(i)}>
+                    {it.sold ? t.markAvailable : t.markSold}
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {post.address && (
+          <div className={styles.meta}>
+            <span>📍 {post.address}</span>
+          </div>
+        )}
 
         <div className={styles.actions}>
           {post.phone && (
@@ -111,11 +134,6 @@ export default function PostCard({ kind, collectionName, post, my, onEdit }) {
         {isOwner && (
           <div className={styles.ownerActions}>
             <button type="button" className={styles.linkBtn} onClick={() => onEdit(post)}>{t.edit}</button>
-            {isListing && (
-              <button type="button" className={styles.linkBtn} onClick={toggleSold}>
-                {post.sold ? t.markAvailable : t.markSold}
-              </button>
-            )}
             <button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={handleDelete}>{t.delete}</button>
           </div>
         )}

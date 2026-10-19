@@ -8,7 +8,7 @@ import Board from './components/Board'
 import PostForm from './components/PostForm'
 import styles from './App.module.css'
 
-const LISTINGS = 'villageListings'
+const SHOPS = 'villageShops'
 const PROVIDERS = 'villageProviders'
 
 export default function App() {
@@ -16,17 +16,17 @@ export default function App() {
   const [lang, setLang] = useLang()
   const my = useMyPosts()
   const [tab, setTab] = useState('home') // 'home' | 'market' | 'services'
-  // { kind: 'listing' | 'provider', post: existing post or null } while the form is open
+  // { kind: 'shop' | 'provider', post: existing post or null } while the form is open
   const [editing, setEditing] = useState(null)
 
-  const listings = usePosts(LISTINGS)
+  const shops = usePosts(SHOPS)
   const providers = usePosts(PROVIDERS)
   const t = STRINGS[lang] || STRINGS.th
 
   useEffect(() => { window.scrollTo(0, 0) }, [tab])
 
   const openForm = (kind, post) => setEditing({ kind, post })
-  const editListing = (post) => openForm('listing', post)
+  const editShop = (post) => openForm('shop', post)
   const editProvider = (post) => openForm('provider', post)
 
   return (
@@ -83,28 +83,28 @@ export default function App() {
       <main className={styles.main}>
         {tab === 'home' && (
           <Home
-            listings={listings.posts}
+            shops={shops.posts}
             providers={providers.posts}
             my={my}
             onGo={setTab}
-            onEditListing={editListing}
+            onEditShop={editShop}
             onEditProvider={editProvider}
           />
         )}
         {tab === 'market' && (
           <Board
-            kind="listing"
-            collectionName={LISTINGS}
-            posts={listings.posts}
-            loading={listings.loading}
+            kind="shop"
+            collectionName={SHOPS}
+            posts={shops.posts}
+            loading={shops.loading}
             my={my}
             categories={MARKET_CATEGORIES}
             categoryField="category"
             categoryPrefix="cat_"
             emptyText={t.emptyMarket}
-            addLabel={t.addListing}
-            onAdd={() => editListing(null)}
-            onEdit={editListing}
+            addLabel={t.addShop}
+            onAdd={() => editShop(null)}
+            onEdit={editShop}
           />
         )}
         {tab === 'services' && (
@@ -128,7 +128,7 @@ export default function App() {
       {editing && (
         <PostForm
           kind={editing.kind}
-          collectionName={editing.kind === 'listing' ? LISTINGS : PROVIDERS}
+          collectionName={editing.kind === 'shop' ? SHOPS : PROVIDERS}
           post={editing.post}
           onCreated={my.addMine}
           onClose={() => setEditing(null)}
