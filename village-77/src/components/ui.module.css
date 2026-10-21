@@ -229,8 +229,10 @@
 .rowRating { color: var(--color-text); font-weight: 600; }
 .rowRating::first-letter { color: #f5a623; }
 .rowRating small { color: var(--color-text-muted); font-weight: 400; }
-.rowActions { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 2px; }
+.rowActions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: auto; padding-top: 2px; }
 .rowBtn {
+  flex: 0 0 auto;
+  white-space: nowrap; /* narrow cards (3 per row on a PC) used to wrap the icon and label */
   display: inline-flex;
   align-items: center;
   gap: 3px;
