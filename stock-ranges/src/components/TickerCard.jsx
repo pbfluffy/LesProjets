@@ -95,7 +95,7 @@ export default function TickerCard({
             const code = shown === null ? state.data.currency : currency
             return (
               <div className={styles.priceBlock}>
-                {marketOpen === false && <div className={styles.lastCloseLabel}>{s.lastCloseLabel}</div>}
+                {marketOpen === false && state.data?.instrumentType !== 'CRYPTOCURRENCY' && <div className={styles.lastCloseLabel}>{s.lastCloseLabel}</div>}
                 <div className={styles.price}>{formatPrice(shown === null ? state.data.current : shown, code)}</div>
                 {change && (
                   <div className={styles.change} data-direction={change.direction}>
@@ -112,13 +112,16 @@ export default function TickerCard({
       </div>
 
       <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} />
-      <KnownFor
-        symbol={symbol}
-        instrumentType={state.data?.instrumentType}
-        customBrands={customBrands}
-        onAddBrand={onAddBrand}
-        onRemoveBrand={onRemoveBrand}
-      />
+      {/* Crypto trades 24/7 (no 'last close') and has no consumer brands. */}
+      {state.data?.instrumentType !== 'CRYPTOCURRENCY' && (
+        <KnownFor
+          symbol={symbol}
+          instrumentType={state.data?.instrumentType}
+          customBrands={customBrands}
+          onAddBrand={onAddBrand}
+          onRemoveBrand={onRemoveBrand}
+        />
+      )}
 
       {state.status === 'loading' && (
         <div className={styles.body}>

@@ -18,22 +18,25 @@ const FUND_TYPES = new Set(['ETF', 'MUTUALFUND'])
 // as the colored-initial avatar — a visual cue distinguishing them from
 // curated entries without needing a separate style.
 function BrandChip({ name, domain, removable, onRemove, s }) {
-  const [failed, setFailed] = useState(false)
+  // 'loading' shows the coloured initial until the favicon arrives, so the
+  // logo slot is never an empty white circle (same as TickerLogo.jsx).
+  const [status, setStatus] = useState(domain ? 'loading' : 'failed')
   const hue = tagHue(name)
   return (
     <span className={styles.chip} style={{ '--brand-hue': hue }}>
-      {domain && !failed ? (
+      {status !== 'loaded' && <span className={styles.initial} aria-hidden="true">{name.charAt(0)}</span>}
+      {domain && status !== 'failed' && (
         <img
           className={styles.logo}
+          data-loaded={status === 'loaded'}
           src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`}
           alt=""
           width={18}
           height={18}
           loading="lazy"
-          onError={() => setFailed(true)}
+          onLoad={() => setStatus('loaded')}
+          onError={() => setStatus('failed')}
         />
-      ) : (
-        <span className={styles.initial} aria-hidden="true">{name.charAt(0)}</span>
       )}
       {name}
       {removable && (

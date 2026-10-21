@@ -107,6 +107,9 @@
   font-family: var(--font-mono);
 }
 .sortRow select { width: auto; }
+/* Filter box (SearchBox, first child) on its own line above "Sort", same as
+   the watchlist — sharing the line, its placeholder got cut off on phones. */
+.sortRow > :first-child { flex-basis: 100%; }
 
 .list {
   display: flex;

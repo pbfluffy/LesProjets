@@ -70,6 +70,9 @@
   color: hsl(var(--brand-hue) 65% 80%);
 }
 
+/* Takes no space until loaded — the initial shows in its place meanwhile.
+   (Not display:none, which would stop a lazy image from ever loading.) */
+.logo[data-loaded='false'] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .logo {
   width: 18px;
   height: 18px;

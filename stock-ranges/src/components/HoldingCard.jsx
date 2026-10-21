@@ -11,6 +11,10 @@ import { tagHue } from '../tagColor.js'
 import Icon from './Icon.jsx'
 import styles from './HoldingCard.module.css'
 
+function interp(str, vars) {
+  return str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '')
+}
+
 export default function HoldingCard({
   symbol, holding, name, currentPrice, currentCurrency, instrumentType, dividendEvents, loading, quoteError, displayCurrency, rates,
   onEdit, onRemove, masked, watched, onWatchedClick, highlighted, tags = [], onAddTag, onRemoveTag,
@@ -18,6 +22,8 @@ export default function HoldingCard({
 }) {
   const { s } = useLang()
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [dividendsOpen, setDividendsOpen] = useState(false)
+  const isCrypto = instrumentType === 'CRYPTOCURRENCY'
   const mp = (value, currency) => (masked ? maskPrice(currency) : formatPrice(value, currency))
 
   const convertedAvgCost = convert(holding.avgCost, holding.costCurrency, displayCurrency, rates)
@@ -36,7 +42,7 @@ export default function HoldingCard({
     : null
 
   return (
-    <div id={`holding-${symbol}`} className={styles.card} data-highlighted={highlighted} style={{ '--tag-hue': tagHue(symbol) }}>
+    <div id={`holding-${symbol}`} className={styles.card} data-highlighted={highlighted} data-crypto={isCrypto} style={{ '--tag-hue': tagHue(symbol) }}>
       <div className={styles.head}>
         <div className={styles.identity}>
           <TickerLogo symbol={symbol} size={36} />
@@ -56,31 +62,40 @@ export default function HoldingCard({
               )}
             </div>
             {name && <div className={styles.name}>{name}</div>}
-            <div className={styles.qtyLine}>{formatQty(holding.qty)} @ {mp(holding.avgCost, holding.costCurrency)}</div>
           </div>
         </div>
         <div className={styles.headRight}>
-          {pl && (
-            <div className={styles.plBlock} data-direction={pl.pl >= 0 ? 'up' : 'down'}>
-              <div className={styles.plValue}>{masked ? maskPrice(displayCurrency) : `${pl.pl >= 0 ? '+' : ''}${formatPrice(pl.pl, displayCurrency)}`}</div>
-              {pl.plPercent !== null && (
-                <div className={styles.plPercent}>{pl.pl >= 0 ? '+' : ''}{pl.plPercent.toFixed(2)}%</div>
-              )}
-            </div>
-          )}
           <button className={styles.iconBtn} onClick={() => onEdit(symbol)} aria-label={s.editHoldingLabel} title={s.editHoldingLabel}><Icon name="edit" size={13} /></button>
           <button className={styles.iconBtn} onClick={() => onRemove(symbol)} aria-label={s.removeHoldingLabel} title={s.removeHoldingLabel}><Icon name="x" size={14} /></button>
         </div>
       </div>
+      {/* Second line, full card width: quantity @ cost on the left, P/L on
+          the right — on a phone these used to share the first line with the
+          symbol and wrap across three lines. */}
+      <div className={styles.subLine}>
+        <div className={styles.qtyLine}>{formatQty(holding.qty)} @ {mp(holding.avgCost, holding.costCurrency)}</div>
+        {pl && (
+          <div className={styles.plBlock} data-direction={pl.pl >= 0 ? 'up' : 'down'}>
+            <span className={styles.plValue}>{masked ? maskPrice(displayCurrency) : `${pl.pl >= 0 ? '+' : ''}${formatPrice(pl.pl, displayCurrency)}`}</span>
+            {pl.plPercent !== null && (
+              <span className={styles.plPercent}>{pl.pl >= 0 ? '+' : ''}{pl.plPercent.toFixed(2)}%</span>
+            )}
+          </div>
+        )}
+      </div>
 
       <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} />
-      <KnownFor
-        symbol={symbol}
-        instrumentType={instrumentType}
-        customBrands={customBrands}
-        onAddBrand={onAddBrand}
-        onRemoveBrand={onRemoveBrand}
-      />
+      {/* Crypto has no consumer brands (and the empty-state note says
+          "this stock"), so it skips the "known for" box altogether. */}
+      {!isCrypto && (
+        <KnownFor
+          symbol={symbol}
+          instrumentType={instrumentType}
+          customBrands={customBrands}
+          onAddBrand={onAddBrand}
+          onRemoveBrand={onRemoveBrand}
+        />
+      )}
 
       {loading ? (
         <div className={styles.statsRow}>
@@ -93,7 +108,7 @@ export default function HoldingCard({
         <div className={styles.fxNote}>{s[QUOTE_ERROR_LABEL_KEY[quoteError]] || quoteError}</div>
       ) : fxOk ? (
         <div className={styles.statsRow}>
-          <div className={styles.stat}><span>{marketOpen === false ? s.lastCloseLabel : s.currentPriceLabel}</span><strong>{formatPrice(convertedCurrent, displayCurrency)}</strong></div>
+          <div className={styles.stat}><span>{marketOpen === false && !isCrypto ? s.lastCloseLabel : s.currentPriceLabel}</span><strong>{formatPrice(convertedCurrent, displayCurrency)}</strong></div>
           <div className={styles.stat}><span>{s.summaryCostBasis}</span><strong>{mp(pl.costBasis, displayCurrency)}</strong></div>
           <div className={styles.stat}><span>{s.summaryMarketValue}</span><strong>{mp(pl.marketValue, displayCurrency)}</strong></div>
         </div>
@@ -101,17 +116,36 @@ export default function HoldingCard({
         <div className={styles.fxNote}>{s.fxUnavailable}</div>
       )}
 
+      {!isCrypto && (
       <div className={styles.section}>
-        <div className={styles.sectionHead}>
-          <span>{s.dividendSectionTitle}</span>
-        </div>
+        {/* Collapsed by default to one summary line (≈ per month · yield);
+            tap to expand the full breakdown + history. Keeps each card to
+            roughly half a phone screen instead of a whole one. */}
+        {projectedOk && !loading ? (
+          <button
+            type="button"
+            className={styles.dividendSummary}
+            onClick={() => setDividendsOpen((v) => !v)}
+            aria-expanded={dividendsOpen}
+          >
+            <span>
+              {interp(s.dividendSummary, { amount: mp(cv(projected.perMonth), displayCurrency) })}
+              {yieldPercent !== null && ` · ${yieldPercent.toFixed(2)}%`}
+            </span>
+            <span className={styles.historyChevron} data-open={dividendsOpen}><Icon name="chevronDown" size={12} strokeWidth={2.5} /></span>
+          </button>
+        ) : (
+          <div className={styles.sectionHead}>
+            <span>{s.dividendSectionTitle}</span>
+          </div>
+        )}
         {loading ? (
           <div className={styles.statsRow}>
             <div className={styles.skeletonStat} aria-hidden="true" />
             <div className={styles.skeletonStat} aria-hidden="true" />
             <div className={styles.skeletonStat} aria-hidden="true" />
           </div>
-        ) : projectedOk ? (
+        ) : projectedOk ? (dividendsOpen && (
           <>
             <div className={styles.statsRow} data-direction="up">
               <div className={styles.stat}><span>{s.estPerMonth}</span><strong>{mp(cv(projected.perMonth), displayCurrency)}</strong></div>
@@ -141,10 +175,11 @@ export default function HoldingCard({
               </ul>
             )}
           </>
-        ) : (
+        )) : (
           <div className={styles.emptyNote}>{s.noDividendHistory}</div>
         )}
       </div>
+      )}
     </div>
   )
 }
