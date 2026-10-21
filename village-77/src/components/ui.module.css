@@ -582,3 +582,6 @@
 
 .sheetActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 .itemsHead { font-size: 13px; font-weight: 600; color: var(--color-text-muted); margin-top: 4px; }
+.addressEdit { display: flex; align-items: center; gap: 6px; }
+.addressEdit input { flex: 1; min-width: 0; padding: 6px 10px; }
+.addressEdit .primaryBtn { padding: 6px 12px; }

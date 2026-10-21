@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLangContext } from '../LangContext'
 import { db, collection, onSnapshot } from '../firebase'
-import { updatePost, deletePost, deletePrivateAddress } from '../hooks/usePosts'
+import { updatePost, deletePost, savePrivateAddress, deletePrivateAddress } from '../hooks/usePosts'
+import { useAuthContext } from '../hooks/useAuth'
 import { ResidencyBadge } from './PostCard'
 import AdminMembers from './AdminMembers'
 import styles from './ui.module.css'
@@ -10,6 +11,54 @@ import styles from './ui.module.css'
 // admins read villagePrivate or set `verified`). Lists every post with the
 // private house no. / soi so an admin can do the random "do you really live
 // here" checks, mark villagers as verified, and remove bad posts.
+// House no. / soi with an Edit link, so an admin can correct one a villager
+// typed wrong. Saved with the admin's uid (updatedBy); clearing it removes it.
+function AddressEditor({ post, address }) {
+  const { t } = useLangContext()
+  const { user } = useAuthContext()
+  const [draft, setDraft] = useState(null) // null = not editing
+  const [saving, setSaving] = useState(false)
+
+  async function save() {
+    const value = draft.trim()
+    setSaving(true)
+    try {
+      if (value) await savePrivateAddress(post.id, post.collection, value, user.uid)
+      else await deletePrivateAddress(post.id)
+      setDraft(null)
+    } catch (e) {
+      console.error('[village] address fix failed:', e?.code)
+      alert(t.saveFailed)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (draft === null) {
+    return (
+      <span className={styles.adminAddress}>
+        🏠 {address || t.adminNoAddress}{' '}
+        <button type="button" className={styles.linkBtn} onClick={() => setDraft(address || '')}>{t.edit}</button>
+      </span>
+    )
+  }
+  return (
+    <span className={styles.addressEdit}>
+      <input
+        autoFocus
+        maxLength={120}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setDraft(null) }}
+        placeholder={t.fAddressPh}
+        disabled={saving}
+      />
+      <button type="button" className={styles.primaryBtn} onClick={save} disabled={saving}>{saving ? '…' : t.save}</button>
+      <button type="button" className={styles.linkBtn} onClick={() => setDraft(null)} disabled={saving}>{t.cancel}</button>
+    </span>
+  )
+}
+
 export default function AdminPanel({ shops, providers, ratings, isOwner }) {
   const { t } = useLangContext()
   const [addresses, setAddresses] = useState({})
@@ -87,9 +136,9 @@ export default function AdminPanel({ shops, providers, ratings, isOwner }) {
                   <span className={styles.tag}>{p.kindLabel}</span>
                 </div>
                 <strong>{p.name}</strong>
-                <span className={styles.adminAddress}>
-                  🏠 {p.isResident ? (addresses[p.id] || t.adminNoAddress) : '—'}
-                </span>
+                {p.isResident
+                  ? <AddressEditor post={p} address={addresses[p.id]} />
+                  : <span className={styles.adminAddress}>🏠 —</span>}
                 <span className={styles.meta}>📞 {[p.phone, p.line && 'LINE ' + p.line].filter(Boolean).join(' · ')}</span>
               </div>
               <div className={styles.adminActions}>

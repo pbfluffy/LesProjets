@@ -533,13 +533,17 @@ service cloud.firestore {
     // (the app's admin tab); the poster writes it but can never read it back.
     match /villagePrivate/{postId} {
       allow read:   if isVillageAdmin();
+      // The poster sets it from the post form; an admin can correct it from
+      // the admin tab (their uid goes in updatedBy).
       allow create, update: if signedIn()
-                            && request.resource.data.keys().hasOnly(['address', 'collection', 'updatedAt'])
+                            && request.resource.data.keys().hasOnly(['address', 'collection', 'updatedAt', 'updatedBy'])
                             && request.resource.data.address is string
                             && request.resource.data.address.size() > 0
                             && request.resource.data.address.size() <= 120
                             && request.resource.data.collection in ['villageShops', 'villageProviders']
-                            && get(/databases/$(database)/documents/$(request.resource.data.collection)/$(postId)).data.ownerUid == request.auth.uid;
+                            && exists(/databases/$(database)/documents/$(request.resource.data.collection)/$(postId))
+                            && (get(/databases/$(database)/documents/$(request.resource.data.collection)/$(postId)).data.ownerUid == request.auth.uid
+                                || (isVillageAdmin() && request.resource.data.updatedBy == request.auth.uid));
       allow delete: if isVillageAdmin()
                     || (signedIn() && get(/databases/$(database)/documents/$(resource.data.collection)/$(postId)).data.ownerUid == request.auth.uid)
                     || !exists(/databases/$(database)/documents/$(resource.data.collection)/$(postId));

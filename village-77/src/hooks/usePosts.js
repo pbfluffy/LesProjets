@@ -51,11 +51,13 @@ export function deletePost(collectionName, id) {
 // Firebase console), so other villagers never see where someone lives.
 const PRIVATE = 'villagePrivate'
 
-export function savePrivateAddress(postId, collectionName, address) {
+// updatedBy: set when an admin corrects it (firestore.rules requires their uid).
+export function savePrivateAddress(postId, collectionName, address, updatedBy) {
   return setDoc(doc(db, PRIVATE, postId), {
     address,
     collection: collectionName,
     updatedAt: serverTimestamp(),
+    ...(updatedBy ? { updatedBy } : {}),
   })
 }
 
