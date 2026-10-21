@@ -35,7 +35,7 @@ export default function FoodList({ foods, members, onAdd, onUpdate, onToggleMemb
       {foods.map(food => (
         <FoodItem key={food.id} food={food} members={members} onUpdate={onUpdate} onToggleMember={onToggleMember} onRemove={handleRemove} onDuplicate={onDuplicate} onSelectAll={onSelectAll} currencySymbol={currencySymbol} />
       ))}
-      <button className={styles.addBtn} onClick={onAdd}>{t.addFood}</button>
+      <button className={styles.addBtn} onClick={onAdd} data-tour="food">{t.addFood}</button>
       {undoItem && (
         <div className={styles.undoToast}>
           <span>{t.itemRemoved ?? 'Item removed'}</span>

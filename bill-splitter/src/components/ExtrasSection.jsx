@@ -49,7 +49,7 @@ export default function ExtrasSection({
   return (
     <section className={styles.section}>
       <h2 className={styles.title}>{t.extrasTitle}</h2>
-      <div className={styles.toggles}>
+      <div className={styles.toggles} data-tour="extras">
         <label className={styles.toggle}>
           <input type="checkbox" checked={vatEnabled} onChange={e => onVatChange(e.target.checked)} />
           <span>{t.vat}</span>

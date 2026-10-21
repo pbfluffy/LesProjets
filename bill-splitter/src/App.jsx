@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { HistoryIcon, HomeIcon, MoonIcon, SunIcon } from './components/icons'
 import { auth, db, doc, setDoc, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from './firebase.js'
 import BillSplitter from './components/BillSplitter'
+import Tour, { TOUR_KEY } from './components/Tour'
 import SushiroCalculator from './components/SushiroCalculator'
 import TripsTab from './components/TripsTab'
 
@@ -113,6 +114,14 @@ function AppInner() {
     const tabParam = new URLSearchParams(window.location.search).get('tab')
     if (tabParam === 'sushi' || tabParam === 'split' || (TRIPS_ENABLED && tabParam === 'trips')) return tabParam
     return 'split'
+  })
+  // Guided tour for new users (replaces the old "How to split a bill" card;
+  // anyone who dismissed that card already knows the app). Not on shared links.
+  const [showTour, setShowTour] = useState(() => {
+    if (initialShare || initialShortId) return false
+    try {
+      return !localStorage.getItem(TOUR_KEY) && localStorage.getItem('billSplitter_guideDismissed') !== '1'
+    } catch { return false }
   })
   const [dark, setDark] = useState(() => {
     const saved = localStorage.getItem('theme')
@@ -261,6 +270,7 @@ function AppInner() {
             <button
               className={styles.iconBtn}
               onClick={() => setHistoryOpen(true)}
+              data-tour="history"
               title={t.historyTitle}
               aria-label={t.historyTitle}
             >
@@ -277,6 +287,15 @@ function AppInner() {
             </button>
             {/* Phase E — group divider: nav actions | preferences + account */}
             <span className={styles.headerDivider} aria-hidden="true" />
+            {/* Guided tour (components/Tour.jsx) */}
+            <button
+              className={styles.iconBtn}
+              onClick={() => { setActiveTab('split'); setShowTour(true) }}
+              title={t.tourHelp}
+              aria-label={t.tourHelp}
+            >
+              ?
+            </button>
             {/* Language toggle */}
             <button
               className={styles.iconBtn}
@@ -381,7 +400,7 @@ function AppInner() {
       )}
 
       {!shared && (
-        <div className={styles.tabBar}>
+        <div className={styles.tabBar} data-tour="tabs">
           {TABS.map(tab => (
             <button
               key={tab.id}
@@ -406,6 +425,7 @@ function AppInner() {
             onSavePayee={savedPayees.addPayee}
             onRemovePayee={savedPayees.removePayee}
             payeesEnabled={!!user}
+            onShowTour={() => setShowTour(true)}
           />
         )}
         {activeTab === 'sushi' && (
@@ -438,6 +458,7 @@ function AppInner() {
         )}
       </main>
 
+      {showTour && !shared && <Tour onTab={setActiveTab} onClose={() => setShowTour(false)} />}
       {historyOpen && (
         <BillHistory
           entries={history.entries}

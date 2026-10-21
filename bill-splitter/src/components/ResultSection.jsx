@@ -296,7 +296,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
         </div>
       )}
       <div className={styles.header}>
-        <h2 className={styles.title}>{t.result}</h2>
+        <h2 className={styles.title} data-tour="result">{t.result}</h2>
       </div>
       {billName && billName.trim() && <div className={styles.billNameDisplay}>{billName.trim()}</div>}
       {toast && <div className={styles.toast}>{toast}</div>}

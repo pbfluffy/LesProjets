@@ -4,7 +4,7 @@ import ReceiptScanner from './ReceiptScanner'
 import ExtrasSection from './ExtrasSection'
 import ResultSection from './ResultSection'
 import StickyBottomBar from './StickyBottomBar'
-import { useWelcomeGuide } from './WelcomeGuide'
+import HowToUseLink from './WelcomeGuide'
 import { useBillStore } from '../hooks/useBillStore'
 import { useLang } from '../LangContext'
 import { symbolFor } from '../currencies'
@@ -12,11 +12,10 @@ import appStyles from '../App.module.css'
 
 const fieldsetReset = { border: 0, padding: 0, margin: 0, minInlineSize: 'auto' }
 
-export default function BillSplitter({ sharedState, readOnly, onSaveBill, onNewBill, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled }) {
+export default function BillSplitter({ sharedState, readOnly, onSaveBill, onNewBill, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled, onShowTour }) {
   const { t } = useLang()
   const store = useBillStore(sharedState)
   const result = store.calculate()
-  const guide = useWelcomeGuide()
   const snapshot = {
     billName: store.billName,
     members: store.members,
@@ -38,7 +37,6 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill, onNewB
   const handleSave = (onSaveBill && !readOnly) ? () => onSaveBill('split', snapshot) : undefined
   return (
     <div style={{ paddingBottom: 80 }}>
-      {!readOnly && guide.card}
       <fieldset disabled={readOnly} style={fieldsetReset}>
         <ReceiptScanner onAddItems={store.addFoods} onSetBillName={(name) => { if (!store.billName.trim()) store.setBillName(name) }} onSetVat={store.setVatEnabled} onSetServiceCharge={store.setServiceChargeEnabled} onSetServiceChargeRate={store.setServiceChargeRate} onSetCurrency={store.setCurrency} onSetBillDiscounts={store.addBillDiscounts} />
         <input
@@ -55,7 +53,7 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill, onNewB
         <ExtrasSection vatEnabled={store.vatEnabled} onVatChange={store.setVatEnabled} serviceChargeEnabled={store.serviceChargeEnabled} onServiceChargeChange={store.setServiceChargeEnabled} serviceChargeRate={store.serviceChargeRate} onServiceChargeRateChange={store.setServiceChargeRate} promptPay={store.promptPay} onPromptPayChange={store.setPromptPay} bankInfo={store.bankInfo} onBankInfoChange={store.setBankInfo} notes={store.notes} onNotesChange={store.setNotes} savedPayees={savedPayees} onSavePayee={onSavePayee} onRemovePayee={onRemovePayee} payeesEnabled={payeesEnabled && !readOnly} billDiscounts={store.billDiscounts} onAddBillDiscount={store.addBillDiscount} onUpdateBillDiscount={store.updateBillDiscount} onRemoveBillDiscount={store.removeBillDiscount} members={store.members} />
       </fieldset>
       <ResultSection result={result} members={store.members} foods={store.foods} promptPay={store.promptPay} bankInfo={store.bankInfo} notes={store.notes} billName={store.billName} snapshot={snapshot} tab="split" onSave={handleSave} onNewBill={!readOnly ? onNewBill : undefined} paid={store.paid} onTogglePaid={store.togglePaid} billOwner={store.billOwner} onBillOwnerChange={store.setBillOwner} roundTotalEnabled={store.roundTotalEnabled} onRoundTotalChange={store.setRoundTotalEnabled} readOnly={readOnly} currency={store.currency} currencySymbol={currencySymbol} />
-      {!readOnly && guide.reopenLink}
+      {!readOnly && onShowTour && <HowToUseLink onClick={onShowTour} />}
       <StickyBottomBar memberCount={store.members.length} grandTotal={result.grandTotal} rawSubtotal={result.rawSubtotal} currencySymbol={currencySymbol} />
     </div>
   )

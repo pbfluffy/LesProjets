@@ -31,7 +31,7 @@ export default function MemberSection({ members, onAdd, onRemove }) {
   return (
     <section className={styles.section}>
       <h2 className={styles.title}>{t.members}</h2>
-      <div className={styles.inputRow}>
+      <div className={styles.inputRow} data-tour="members">
         <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} placeholder={t.memberPlaceholder} className={error ? styles.inputError : ''} />
         <button className={styles.addBtn} onClick={handleAdd}>{t.addMember}</button>
       </div>

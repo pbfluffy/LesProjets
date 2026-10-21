@@ -199,6 +199,7 @@ export default function ReceiptScanner({
       <button
         type="button"
         className={styles.scanBtn}
+        data-tour="scan"
         onClick={() => fileRef.current?.click()}
         disabled={loading}
       >
