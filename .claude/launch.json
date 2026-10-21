@@ -50,6 +50,13 @@
       "port": 5180
     },
     {
+      "name": "stock-ranges-worker",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["wrangler", "dev", "--port", "8787"],
+      "cwd": "stock-ranges/worker",
+      "port": 8787
+    },
+    {
       "name": "stock-ranges-prod-preview",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["vite", "preview", "--port", "5181"],

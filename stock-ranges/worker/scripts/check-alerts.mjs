@@ -215,6 +215,7 @@ const NOTIFICATION_COPY = {
     entered: (name, zone) => `${name} entered the ${zone}`,
     near: (word) => `near its ${word} low`,
     nearSell: (word) => `near its ${word} high`,
+    band: (n, strongest) => `band ${n}/10${strongest ? ' (strongest)' : ''}`,
     tapToView: 'tap to view',
   },
   th: {
@@ -222,14 +223,15 @@ const NOTIFICATION_COPY = {
     entered: (name, zone) => `${name} เข้าสู่${zone}แล้ว`,
     near: (word) => `ใกล้จุดต่ำสุด${word}`,
     nearSell: (word) => `ใกล้จุดสูงสุด${word}`,
+    band: (n, strongest) => `ระดับ ${n}/10${strongest ? ' (แรงสุด)' : ''}`,
     tapToView: 'แตะเพื่อดู',
   },
 }
 
-// The "band" number this used to show (e.g. "Band 3/10") was confusing
-// without the in-app popover for context, but the underlying fact — where
-// today's price sits in its own recent range — is worth keeping, just in
-// plain language instead of a raw fraction. "near its 1-year low/high" is
+// The body says where today's price sits in its own recent range two ways:
+// the band (e.g. "band 1/10 (strongest)" — 1 is the strongest buy, 10 the
+// strongest sell, the same numbers as the in-app badge) and in plain
+// language. "near its 1-year low/high" is
 // the same well-known phrasing as a stock's real "52-week low/high", tied
 // to whichever lookback range the user actually picked for this alert.
 // Thai's "ในรอบ {duration}" doesn't fit YTD (it isn't a fixed duration —
@@ -252,7 +254,7 @@ const RANGE_QUALIFIER = {
 // `entry.currency`) — a conversion failure (rates unavailable, or an
 // exotic quote currency open.er-api.com doesn't track) just falls back to
 // the quote's native currency, same degrade as the in-app card.
-function notificationCopy(symbol, direction, range, quote, targetCurrency, rates, targetLang) {
+function notificationCopy(symbol, direction, range, band, quote, targetCurrency, rates, targetLang) {
   const copy = NOTIFICATION_COPY[targetLang] || NOTIFICATION_COPY.en
   const qualifiers = RANGE_QUALIFIER[targetLang] || RANGE_QUALIFIER.en
   const zone = direction === 'buy' ? copy.buy : copy.sell
@@ -265,9 +267,11 @@ function notificationCopy(symbol, direction, range, quote, targetCurrency, rates
     : formatPrice(quote?.current, quote?.currency)
   const rangeWord = qualifiers[range]
   const position = rangeWord ? (direction === 'buy' ? copy.near(rangeWord) : copy.nearSell(rangeWord)) : null
+  // How strong the signal is: band 1 is the strongest buy, band 10 the strongest sell.
+  const strength = typeof band === 'number' ? copy.band(band, band === (direction === 'buy' ? 1 : 10)) : null
   return {
     title: copy.entered(name, zone),
-    body: position ? `${price} · ${position} · ${copy.tapToView}` : `${price} · ${copy.tapToView}`,
+    body: [price, strength, position, copy.tapToView].filter(Boolean).join(' · '),
     icon: `https://financialmodelingprep.com/image-stock/${encodeURIComponent(symbol)}.png`,
     tag: symbol,
     symbol,
@@ -327,15 +331,15 @@ async function main() {
     if (signal !== 'buy' && signal !== 'sell') return
 
     for (const sub of subscribers) {
-      if (sub[signal]) toNotify.push({ uid: sub.uid, symbol, range, direction: signal, quote })
+      if (sub[signal]) toNotify.push({ uid: sub.uid, symbol, range, band: deciles.band, direction: signal, quote })
     }
   })
 
   console.log(`${toNotify.length} notification(s) to send.`)
   const historyByUid = new Map() // uid -> [history items], written once per uid below
-  await inBatches(toNotify, BATCH_SIZE, async ({ uid, symbol, range, direction, quote }) => {
+  await inBatches(toNotify, BATCH_SIZE, async ({ uid, symbol, range, band, direction, quote }) => {
     const subscriptions = subsByUid.get(uid) || []
-    const payload = notificationCopy(symbol, direction, range, quote, currencyByUid.get(uid), rates, langByUid.get(uid))
+    const payload = notificationCopy(symbol, direction, range, band, quote, currencyByUid.get(uid), rates, langByUid.get(uid))
     let delivered = 0
     await Promise.all(subscriptions.map(async (subscription) => {
       const result = await sendPush(subscription, payload)
@@ -343,7 +347,7 @@ async function main() {
       if (result === 'gone') await pruneSubscription(uid, subscription.endpoint)
     }))
     if (!historyByUid.has(uid)) historyByUid.set(uid, [])
-    historyByUid.get(uid).push({ ts: Date.now(), symbol, direction, range, title: payload.title, body: payload.body, delivered, devices: subscriptions.length })
+    historyByUid.get(uid).push({ ts: Date.now(), symbol, direction, range, band, title: payload.title, body: payload.body, delivered, devices: subscriptions.length })
   })
   for (const [uid, items] of historyByUid) await addHistory(uid, items)
 }

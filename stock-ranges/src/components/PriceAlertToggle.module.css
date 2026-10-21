@@ -10,24 +10,30 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  padding: 0;
+  gap: 3px;
+  height: 20px;
+  padding: 0 7px 0 5px;
   border: 0.5px solid var(--color-border);
-  border-radius: 50%;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
   background: transparent;
   color: var(--color-text-faint);
   flex-shrink: 0;
 }
 .toggle:hover { background: var(--color-surface-alt); color: var(--color-text-muted); }
 .toggle:disabled { opacity: 0.5; cursor: default; }
+/* Text label (Buy / Sell): the two bells are otherwise identical icons. */
+.label { white-space: nowrap; }
 
-/* Grows the tappable area to ~34px without growing the visible 18px
-   circle — same technique used on the other small icon buttons. */
+/* Grows the tappable area to ~36px tall without growing the visible
+   20px pill — same technique used on the other small icon buttons. */
 .toggle::before {
   content: '';
   position: absolute;
-  inset: -8px;
+  /* vertical only — side by side, wider areas would overlap each other */
+  inset: -8px -2px;
 }
 
 /* At rest (not yet toggled on) the two bells were previously identical

@@ -27,3 +27,20 @@ export function computeDeciles({ prices, current }) {
 
   return { low, high, band, signal }
 }
+
+// Largest single-step move in the series, as a fraction (0.5 = 50%). A huge
+// one-step jump inside the lookback (a crash, a spike, or a split the data
+// didn't adjust for) stretches the low–high range, so the band / signal
+// can be misleading — TickerCard warns above this threshold.
+export const ABNORMAL_MOVE = 0.5
+
+export function maxStepMove(prices) {
+  if (!Array.isArray(prices)) return 0
+  let max = 0
+  for (let i = 1; i < prices.length; i++) {
+    const a = prices[i - 1]
+    const b = prices[i]
+    if (a > 0 && b > 0) max = Math.max(max, Math.abs(b / a - 1))
+  }
+  return max
+}

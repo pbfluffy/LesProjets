@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchQuote, QUOTE_ERROR_LABEL_KEY } from '../stockApi.js'
-import { computeDeciles } from '../deciles.js'
+import { computeDeciles, maxStepMove, ABNORMAL_MOVE } from '../deciles.js'
 import { convert } from '../fx.js'
 import { formatPrice, formatQty, dayChange } from '../format.js'
 import BandInfo from './BandInfo.jsx'
@@ -157,6 +157,12 @@ export default function TickerCard({
                 />
               )}
             </div>
+            {maxStepMove(state.data.prices) > ABNORMAL_MOVE && (
+              <div className={styles.abnormalNote} role="note">
+                <Icon name="alertTriangle" size={12} />
+                <span>{s.abnormalMove}</span>
+              </div>
+            )}
             <DecileGauge
               prices={state.data.prices}
               ohlc={state.data.ohlc}

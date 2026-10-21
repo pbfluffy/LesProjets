@@ -47,6 +47,7 @@ export default function PriceAlertToggle({ config, onToggle }) {
         title={s.alertBuyLabel}
       >
         <Icon name="bell" size={12} strokeWidth={2.25} />
+        <span className={styles.label}>{s.alertBuyShort}</span>
       </button>
       <button
         type="button"
@@ -60,6 +61,7 @@ export default function PriceAlertToggle({ config, onToggle }) {
         title={s.alertSellLabel}
       >
         <Icon name="bell" size={12} strokeWidth={2.25} />
+        <span className={styles.label}>{s.alertSellShort}</span>
       </button>
       {error && <span className={styles.error}>{error}</span>}
     </span>

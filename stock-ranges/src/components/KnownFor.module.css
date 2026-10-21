@@ -6,8 +6,8 @@
   background: var(--color-surface-alt);
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 8px 10px;
-  margin: 4px 0 12px;
+  padding: 6px 10px;
+  margin: 6px 0 8px;
   /* This box's own background is already --color-surface-alt, so the
      shared ChipAdder's default addBtn background (also surface-alt)
      would have no contrast here — override it to plain surface. */
