@@ -11,7 +11,7 @@ bucket_name = "village-77-photos"
 [vars]
 # LINE Login channel id — public (it appears in the login URL anyway).
 # Must match LINE_CHANNEL_ID in ../src/config.js.
-LINE_CHANNEL_ID = ""
+LINE_CHANNEL_ID = "2012133281"
 
 # Secrets (never commit — set with `npx wrangler secret put <NAME>`):
 #   LINE_CHANNEL_SECRET        LINE Login channel secret
