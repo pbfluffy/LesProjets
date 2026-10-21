@@ -74,7 +74,7 @@ function OwnerLine({ member }) {
   )
 }
 
-export default function AdminPanel({ shops, providers, ratings, isOwner }) {
+export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenPost }) {
   const { t } = useLangContext()
   const [addresses, setAddresses] = useState({})
   // Who posted what (owner only — the members list is owner-only too).
@@ -150,7 +150,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner }) {
       {show === 'categories' ? (
         <AdminCategories shops={shops} providers={providers} />
       ) : show === 'members' && isOwner ? (
-        <AdminMembers shops={shops} providers={providers} />
+        <AdminMembers shops={shops} providers={providers} onOpenPost={onOpenPost} />
       ) : rows.length === 0 ? (
         <p className={styles.empty}>{show === 'pending' ? t.adminNothingPending : t.noMatches}</p>
       ) : (

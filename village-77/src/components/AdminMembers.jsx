@@ -8,7 +8,7 @@ import styles from './ui.module.css'
 // sign-in), whether or not they've posted yet. Owner only (firestore.rules):
 // this is also where the owner makes someone a village admin or removes
 // them (villageAdmins).
-export default function AdminMembers({ shops, providers }) {
+export default function AdminMembers({ shops, providers, onOpenPost }) {
   const { t, lang } = useLangContext()
   const [members, setMembers] = useState(null)
   const [admins, setAdmins] = useState(new Set()) // uids in villageAdmins
@@ -43,8 +43,8 @@ export default function AdminMembers({ shops, providers }) {
   // uid -> their posts, by name (shops 🛒, handymen 🔧)
   const postsByOwner = useMemo(() => {
     const n = {}
-    for (const p of shops) (n[p.ownerUid] ||= []).push('🛒 ' + p.name)
-    for (const p of providers) (n[p.ownerUid] ||= []).push('🔧 ' + p.name)
+    for (const p of shops) (n[p.ownerUid] ||= []).push({ id: p.id, label: '🛒 ' + p.name })
+    for (const p of providers) (n[p.ownerUid] ||= []).push({ id: p.id, label: '🔧 ' + p.name })
     return n
   }, [shops, providers])
 
@@ -83,7 +83,16 @@ export default function AdminMembers({ shops, providers }) {
               <span className={styles.meta}>
                 {t.adminFirstSeen} {when(m.firstSeen)} · {t.adminLastSeen} {when(m.lastSeen)}
               </span>
-              {postsByOwner[m.uid] && <span className={styles.memberPosts}>{postsByOwner[m.uid].join(' · ')}</span>}
+              {postsByOwner[m.uid] && (
+                <span className={styles.memberPosts}>
+                  {postsByOwner[m.uid].map((p, i) => (
+                    <span key={p.id}>
+                      {i > 0 && ' · '}
+                      <button type="button" className={styles.linkBtn} onClick={() => onOpenPost(p.id)}>{p.label}</button>
+                    </span>
+                  ))}
+                </span>
+              )}
             </div>
             {m.uid !== OWNER_UID && (
               <button

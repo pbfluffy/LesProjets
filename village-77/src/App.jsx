@@ -84,8 +84,10 @@ export default function App() {
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
-  const shownShop = openPostId && liveShops.find((p) => p.id === openPostId)
-  const shownPost = shownShop || (openPostId && liveProviders.find((p) => p.id === openPostId))
+  // Admins can also open posts that are hidden for being 60+ days old.
+  const findPost = (live, all) => openPostId && (live.find((p) => p.id === openPostId) || (isAdmin && all.find((p) => p.id === openPostId)))
+  const shownShop = findPost(liveShops, shops.posts)
+  const shownPost = shownShop || findPost(liveProviders, providers.posts)
   // Deleted (or hidden) while open: close the page.
   useEffect(() => {
     if (openPostId && !shops.loading && !providers.loading && !shownPost) closePost()
@@ -283,7 +285,7 @@ export default function App() {
             <NewsBoard posts={liveNews} loading={news.loading} onAdd={() => editNews(null)} onEdit={editNews} />
           )}
           {tab === 'admin' && isAdmin && (
-            <AdminPanel shops={shops.posts} providers={providers.posts} ratings={ratings} isOwner={isOwner} />
+            <AdminPanel shops={shops.posts} providers={providers.posts} ratings={ratings} isOwner={isOwner} onOpenPost={openPost} />
           )}
         </main>
 
