@@ -112,6 +112,7 @@ export const STRINGS = {
     adminNoName: '(ไม่มีชื่อ)',
     adminPosts: 'ลงประกาศ {n} รายการ',
     adminNoPosts: 'ยังไม่ได้ลงประกาศ',
+    adminUnknownOwner: 'ไม่ทราบบัญชี (ยังไม่เคยเปิดแอปหลังอัปเดต)',
     adminFirstSeen: 'เข้าครั้งแรก',
     adminLastSeen: 'ล่าสุด',
 
@@ -318,6 +319,7 @@ export const STRINGS = {
     adminNoName: '(no name)',
     adminPosts: '{n} posts',
     adminNoPosts: 'No posts yet',
+    adminUnknownOwner: "Unknown account (hasn't opened the app since the update)",
     adminFirstSeen: 'First',
     adminLastSeen: 'last',
 

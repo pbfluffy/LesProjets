@@ -59,9 +59,33 @@ function AddressEditor({ post, address }) {
   )
 }
 
+// The account that posted it: name, photo and LINE / Google.
+function OwnerLine({ member }) {
+  const { t } = useLangContext()
+  if (!member) return <span className={styles.meta}>👤 {t.adminUnknownOwner}</span>
+  return (
+    <span className={styles.ownerLine}>
+      {member.photoURL
+        ? <img src={member.photoURL} alt="" referrerPolicy="no-referrer" loading="lazy" />
+        : <span aria-hidden="true">👤</span>}
+      {member.name || t.adminNoName} · {member.provider === 'line' ? 'LINE' : 'Google'}
+    </span>
+  )
+}
+
 export default function AdminPanel({ shops, providers, ratings, isOwner }) {
   const { t } = useLangContext()
   const [addresses, setAddresses] = useState({})
+  // Who posted what (owner only — the members list is owner-only too).
+  const [members, setMembers] = useState({})
+  useEffect(() => {
+    if (!isOwner) return
+    return onSnapshot(
+      collection(db, 'villageMembers'),
+      (snap) => setMembers(Object.fromEntries(snap.docs.map((d) => [d.id, d.data()]))),
+      (e) => console.error('[village] members failed:', e?.code),
+    )
+  }, [isOwner])
   const [show, setShow] = useState('pending') // 'pending' | 'all' | 'members'
 
   useEffect(() => onSnapshot(
@@ -136,6 +160,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner }) {
                   <span className={styles.tag}>{p.kindLabel}</span>
                 </div>
                 <strong>{p.name}</strong>
+                {isOwner && <OwnerLine member={members[p.ownerUid]} />}
                 {p.isResident
                   ? <AddressEditor post={p} address={addresses[p.id]} />
                   : <span className={styles.adminAddress}>🏠 —</span>}

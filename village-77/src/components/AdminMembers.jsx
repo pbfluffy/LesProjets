@@ -40,10 +40,11 @@ export default function AdminMembers({ shops, providers }) {
       })
   }
 
-  // uid -> number of shops / handymen they posted
-  const postCounts = useMemo(() => {
+  // uid -> their posts, by name (shops 🛒, handymen 🔧)
+  const postsByOwner = useMemo(() => {
     const n = {}
-    for (const p of [...shops, ...providers]) n[p.ownerUid] = (n[p.ownerUid] || 0) + 1
+    for (const p of shops) (n[p.ownerUid] ||= []).push('🛒 ' + p.name)
+    for (const p of providers) (n[p.ownerUid] ||= []).push('🔧 ' + p.name)
     return n
   }, [shops, providers])
 
@@ -77,11 +78,12 @@ export default function AdminMembers({ shops, providers }) {
               <span className={styles.meta}>
                 {m.provider === 'line' ? '💬 LINE' : 'Google'}
                 {' · '}
-                {postCounts[m.uid] ? interp(t.adminPosts, { n: postCounts[m.uid] }) : t.adminNoPosts}
+                {postsByOwner[m.uid] ? interp(t.adminPosts, { n: postsByOwner[m.uid].length }) : t.adminNoPosts}
               </span>
               <span className={styles.meta}>
                 {t.adminFirstSeen} {when(m.firstSeen)} · {t.adminLastSeen} {when(m.lastSeen)}
               </span>
+              {postsByOwner[m.uid] && <span className={styles.memberPosts}>{postsByOwner[m.uid].join(' · ')}</span>}
             </div>
             {m.uid !== OWNER_UID && (
               <button
