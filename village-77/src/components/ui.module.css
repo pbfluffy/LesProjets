@@ -585,3 +585,6 @@
 .addressEdit { display: flex; align-items: center; gap: 6px; }
 .addressEdit input { flex: 1; min-width: 0; padding: 6px 10px; }
 .addressEdit .primaryBtn { padding: 6px 12px; }
+.addItemBox { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 0 4px; }
+.ownerNote { font-size: 12px; color: var(--color-text-muted); }
+.ownerNote .linkBtn { font-size: 12px; color: var(--color-green); font-weight: 600; }

@@ -249,6 +249,12 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
             <span className={styles.seeAll}>{isShop ? t.shopSeeAll : t.seeDetails} ›</span>
           </div>
           {isOwner && isStale(post) && <span className={styles.staleBadge}>{t.staleShort}</span>}
+          {isShop && isOwner && (
+            <span className={styles.ownerNote}>
+              {t.yourShop} ·{' '}
+              <button type="button" className={styles.linkBtn} onClick={() => onEdit(post, { addItem: true })}>{t.fAddItem}</button>
+            </span>
+          )}
         </div>
       </article>
     )
@@ -311,6 +317,13 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
             ))}
           </ul>
           </>
+        )}
+        {/* Owners often don't find Edit → + Add item, so offer it right here. */}
+        {isShop && isOwner && (
+          <div className={styles.addItemBox}>
+            {items.length < 3 && <p className={styles.hint}>{t.addItemNudge}</p>}
+            <button type="button" className={styles.primaryBtn} onClick={() => onEdit(post, { addItem: true })}>{t.fAddItem}</button>
+          </div>
         )}
 
         <div className={styles.actions}>

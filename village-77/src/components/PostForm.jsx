@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLangContext, interp, MARKET_CATEGORIES, TRADES } from '../LangContext'
 import { createPost, updatePost, savePrivateAddress, deletePrivateAddress } from '../hooks/usePosts'
 import { uploadPhoto, PHOTO_ITEM, photosOf, deletePhotos } from '../photo'
@@ -10,7 +10,7 @@ const emptyItem = () => ({ name: '', price: '', photo: null, sold: false })
 // Add / edit form for a marketplace shop (one seller + the items they sell)
 // or a handyman. `post` is null when adding. Field names mirror
 // firestore.rules (villageShops / villageProviders) — keep them in sync.
-export default function PostForm({ kind, collectionName, post, user, onClose }) {
+export default function PostForm({ kind, collectionName, post, user, onClose, startWithNewItem = false }) {
   const { t } = useLangContext()
   const isShop = kind === 'shop'
   const maxPhotos = 4
@@ -23,7 +23,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose }) 
     address: '',
     photos: post?.photos || [],
     items: post?.items?.length
-      ? post.items.map((it) => ({ ...it, price: it.price ?? '' }))
+      ? [...post.items.map((it) => ({ ...it, price: it.price ?? '' })), ...(startWithNewItem ? [emptyItem()] : [])]
       : [emptyItem()],
     isResident: post ? !!post.isResident : true,
   }))
@@ -34,6 +34,13 @@ export default function PostForm({ kind, collectionName, post, user, onClose }) 
   // saved (removed again, or the form cancelled) can be deleted.
   const uploaded = useRef([])
   const createdId = useRef(null)
+  // Opened from "+ Add item": jump straight to the new, empty item.
+  const lastItemName = useRef(null)
+  useEffect(() => {
+    if (!startWithNewItem || !lastItemName.current) return
+    lastItemName.current.scrollIntoView({ block: 'center' })
+    lastItemName.current.focus({ preventScroll: true })
+  }, [startWithNewItem])
   const savedPhotos = useRef([]) // photos of the last successful write
 
   const set = (key) => (e) => {
@@ -208,7 +215,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose }) 
                     <input type="file" accept="image/*" hidden disabled={processing} onChange={(e) => handleItemPhoto(i, e)} />
                   </label>
                   <div className={styles.itemRowFields}>
-                    <input maxLength={80} value={it.name} onChange={(e) => setItem(i, { name: e.target.value })} placeholder={t.fItemNamePh} />
+                    <input ref={i === f.items.length - 1 ? lastItemName : null} maxLength={80} value={it.name} onChange={(e) => setItem(i, { name: e.target.value })} placeholder={t.fItemNamePh} />
                     <div className={styles.itemRowLine}>
                       <input type="number" inputMode="numeric" min="0" max="100000000" value={it.price}
                         onChange={(e) => setItem(i, { price: e.target.value })} placeholder={t.fPricePh} />

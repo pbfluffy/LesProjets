@@ -123,8 +123,9 @@ export default function App() {
     return false
   }
 
-  const openForm = (kind, post) => requireSignIn() && setEditing({ kind, post })
-  const editShop = (post) => openForm('shop', post)
+  // addItem: open the shop form on a new, empty item (from "+ Add item").
+  const openForm = (kind, post, { addItem = false } = {}) => requireSignIn() && setEditing({ kind, post, addItem })
+  const editShop = (post, opts) => openForm('shop', post, opts)
   const editProvider = (post) => openForm('provider', post)
   const editNews = (post) => requireSignIn() && setEditingNews({ post })
 
@@ -305,6 +306,7 @@ export default function App() {
             kind={editing.kind}
             collectionName={editing.kind === 'shop' ? SHOPS : PROVIDERS}
             post={editing.post}
+            startWithNewItem={editing.addItem}
             user={user}
             onClose={() => setEditing(null)}
           />
