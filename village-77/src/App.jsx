@@ -25,7 +25,7 @@ export default function App() {
   const [theme, setTheme] = useTheme()
   const [lang, setLang] = useLang()
   const auth = useAuth()
-  const { user, isAdmin } = auth
+  const { user, isAdmin, isOwner } = auth
   const ratings = useRatings(user)
   const [tab, setTab] = useState('home') // 'home' | 'market' | 'services' | 'admin'
   // { kind: 'shop' | 'provider', post: existing post or null } while the form is open
@@ -97,7 +97,7 @@ export default function App() {
 
   return (
     <LangContext.Provider value={{ t, lang }}>
-      <AuthContext.Provider value={{ user, isAdmin, requireSignIn }}>
+      <AuthContext.Provider value={{ user, isAdmin, isOwner, requireSignIn }}>
         <header className={styles.header}>
           <div className={styles.headerRow}>
             <div className={styles.brand}>
@@ -220,7 +220,7 @@ export default function App() {
             <NewsBoard posts={liveNews} loading={news.loading} onAdd={() => editNews(null)} onEdit={editNews} />
           )}
           {tab === 'admin' && isAdmin && (
-            <AdminPanel shops={shops.posts} providers={providers.posts} ratings={ratings} />
+            <AdminPanel shops={shops.posts} providers={providers.posts} ratings={ratings} isOwner={isOwner} />
           )}
         </main>
 

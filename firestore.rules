@@ -383,6 +383,28 @@ service cloud.firestore {
     // here) can only be changed by an admin.
     // A shop is one seller with up to 30 items inside it. photos are URLs of
     // images stored in R2 by the village-77 Worker (village-77/worker/).
+    //
+    // Two admin levels, separate from the shared `admins` list (which would
+    // make someone an admin of every app on the site):
+    //   owner (isOwner)          — everything below, plus the members list
+    //                              and granting / removing village admins.
+    //   village admin            — listed in villageAdmins/{uid}: sees house
+    //   (isVillageAdmin)           numbers, verifies villagers, deletes posts.
+    function isVillageAdmin() {
+      return signedIn()
+          && (isOwner() || exists(/databases/$(database)/documents/villageAdmins/$(request.auth.uid)));
+    }
+    match /villageAdmins/{uid} {
+      allow get:    if isUser(uid) || isOwner(); // the app checks its own role
+      allow list:   if isOwner();
+      allow create, update: if isOwner()
+                            && request.resource.data.keys().hasOnly(['name', 'grantedAt'])
+                            && request.resource.data.name is string
+                            && request.resource.data.name.size() <= 200
+                            && request.resource.data.grantedAt == request.time;
+      allow delete: if isOwner();
+    }
+
     function validVillagePost(d) {
       return d.isResident is bool
           && d.name        is string && d.name.size()        <= 80
@@ -421,20 +443,20 @@ service cloud.firestore {
     }
     // Admin: only flips the verified mark.
     function villageAdminUpdate() {
-      return isAdmin()
+      return isVillageAdmin()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verified', 'updatedAt']);
     }
     match /villageShops/{postId} {
       allow read:   if true;
       allow create: if validVillageShop(request.resource.data) && villageCreate();
       allow update: if validVillageShop(request.resource.data) && (villageOwnerUpdate() || villageAdminUpdate());
-      allow delete: if isUser(resource.data.ownerUid) || isAdmin();
+      allow delete: if isUser(resource.data.ownerUid) || isVillageAdmin();
     }
     match /villageProviders/{postId} {
       allow read:   if true;
       allow create: if validVillageProvider(request.resource.data) && villageCreate();
       allow update: if validVillageProvider(request.resource.data) && (villageOwnerUpdate() || villageAdminUpdate());
-      allow delete: if isUser(resource.data.ownerUid) || isAdmin();
+      allow delete: if isUser(resource.data.ownerUid) || isVillageAdmin();
     }
 
     // 1–5 star handyman ratings, one per account per handyman: the doc id is
@@ -456,7 +478,7 @@ service cloud.firestore {
                             && request.resource.data.stars <= 5
                             && request.resource.data.updatedAt == request.time;
       // Admins, or anyone once the handyman is gone (cleanup after a delete).
-      allow delete: if isAdmin()
+      allow delete: if isVillageAdmin()
                     || !exists(/databases/$(database)/documents/villageProviders/$(resource.data.postId));
     }
 
@@ -481,28 +503,28 @@ service cloud.firestore {
                     && isUser(resource.data.ownerUid)
                     && request.resource.data.ownerUid  == resource.data.ownerUid
                     && request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if isUser(resource.data.ownerUid) || isAdmin();
+      allow delete: if isUser(resource.data.ownerUid) || isVillageAdmin();
     }
 
     // Everyone who has signed in to Village 77 (posted or not), for the
     // admin tab's member list. Each person writes only their own record.
     match /villageMembers/{uid} {
-      allow get:    if isUser(uid) || isAdmin();
-      allow list:   if isAdmin();
+      allow get:    if isUser(uid) || isOwner();
+      allow list:   if isOwner();
       allow create, update: if isUser(uid)
                             && request.resource.data.keys().hasOnly(['name', 'photoURL', 'provider', 'firstSeen', 'lastSeen'])
                             && request.resource.data.name is string
                             && request.resource.data.name.size() <= 200
                             && request.resource.data.provider in ['line', 'google']
                             && request.resource.data.lastSeen == request.time;
-      allow delete: if isAdmin();
+      allow delete: if isOwner();
     }
 
     // A villager's house no. / soi, keyed by the post's id. Supporting info
     // for the random "do you really live here" checks: only admins read it
     // (the app's admin tab); the poster writes it but can never read it back.
     match /villagePrivate/{postId} {
-      allow read:   if isAdmin();
+      allow read:   if isVillageAdmin();
       allow create, update: if signedIn()
                             && request.resource.data.keys().hasOnly(['address', 'collection', 'updatedAt'])
                             && request.resource.data.address is string
@@ -510,7 +532,7 @@ service cloud.firestore {
                             && request.resource.data.address.size() <= 120
                             && request.resource.data.collection in ['villageShops', 'villageProviders']
                             && get(/databases/$(database)/documents/$(request.resource.data.collection)/$(postId)).data.ownerUid == request.auth.uid;
-      allow delete: if isAdmin()
+      allow delete: if isVillageAdmin()
                     || (signedIn() && get(/databases/$(database)/documents/$(resource.data.collection)/$(postId)).data.ownerUid == request.auth.uid)
                     || !exists(/databases/$(database)/documents/$(resource.data.collection)/$(postId));
     }

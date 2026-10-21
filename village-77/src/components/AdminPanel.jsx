@@ -10,7 +10,7 @@ import styles from './ui.module.css'
 // admins read villagePrivate or set `verified`). Lists every post with the
 // private house no. / soi so an admin can do the random "do you really live
 // here" checks, mark villagers as verified, and remove bad posts.
-export default function AdminPanel({ shops, providers, ratings }) {
+export default function AdminPanel({ shops, providers, ratings, isOwner }) {
   const { t } = useLangContext()
   const [addresses, setAddresses] = useState({})
   const [show, setShow] = useState('pending') // 'pending' | 'all' | 'members'
@@ -50,7 +50,7 @@ export default function AdminPanel({ shops, providers, ratings }) {
   return (
     <section>
       <div className={styles.hero}>
-        <h2>🛡️ {t.navAdmin}</h2>
+        <h2>🛡️ {t.navAdmin} <small className={styles.roleTag}>{isOwner ? t.roleOwner : t.roleAdmin}</small></h2>
         <p>{t.adminBlurb}</p>
         <p style={{ marginTop: 8 }}>
           <a className={styles.secondaryBtn} href={import.meta.env.BASE_URL + '?poster'} target="_blank" rel="noopener">
@@ -60,7 +60,7 @@ export default function AdminPanel({ shops, providers, ratings }) {
       </div>
 
       <div className={styles.segment} role="group" style={{ marginBottom: 12 }}>
-        {[['pending', t.adminPending], ['all', t.adminAllPosts], ['members', t.adminMembers]].map(([key, label]) => (
+        {[['pending', t.adminPending], ['all', t.adminAllPosts], ...(isOwner ? [['members', t.adminMembers]] : [])].map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -73,7 +73,7 @@ export default function AdminPanel({ shops, providers, ratings }) {
         ))}
       </div>
 
-      {show === 'members' ? (
+      {show === 'members' && isOwner ? (
         <AdminMembers shops={shops} providers={providers} />
       ) : rows.length === 0 ? (
         <p className={styles.empty}>{show === 'pending' ? t.adminNothingPending : t.noMatches}</p>

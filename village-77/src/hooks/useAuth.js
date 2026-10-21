@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import {
-  auth, db, doc, getDoc, onAuthStateChanged, signInWithCustomToken, updateProfile,
+  auth, db, doc, onSnapshot, onAuthStateChanged, signInWithCustomToken, updateProfile,
   GoogleAuthProvider, signInWithPopup, signOut, saveProfile,
 } from '../firebase'
 import { WORKER_URL, LINE_CHANNEL_ID, OWNER_UID } from '../config'
@@ -71,23 +71,26 @@ async function finishLineLogin() {
 
 export function useAuth() {
   const [user, setUser] = useState(null)
-  const [isAdmin, setIsAdmin] = useState(false)
+  // 'owner' (OWNER_UID) | 'admin' (listed in villageAdmins) | null.
+  // Watched live, so a newly granted admin gets the tab without reloading.
+  const [role, setRole] = useState(null)
   const [loginError, setLoginError] = useState('')
   const [finishing, setFinishing] = useState(() => {
     const p = new URLSearchParams(window.location.search)
     return p.has('code') || p.has('error')
   })
 
-  useEffect(() => onAuthStateChanged(auth, async (u) => {
-    setUser(u)
-    if (!u) return setIsAdmin(false)
-    if (u.uid === OWNER_UID) return setIsAdmin(true)
-    try {
-      setIsAdmin((await getDoc(doc(db, 'admins', u.uid))).exists())
-    } catch {
-      setIsAdmin(false)
-    }
-  }), [])
+  useEffect(() => onAuthStateChanged(auth, setUser), [])
+
+  useEffect(() => {
+    if (!user) return setRole(null)
+    if (user.uid === OWNER_UID) return setRole('owner')
+    return onSnapshot(
+      doc(db, 'villageAdmins', user.uid),
+      (snap) => setRole(snap.exists() ? 'admin' : null),
+      () => setRole(null),
+    )
+  }, [user])
 
   useEffect(() => {
     finishLineLogin()
@@ -110,7 +113,9 @@ export function useAuth() {
 
   return {
     user,
-    isAdmin,
+    role,
+    isAdmin: !!role,
+    isOwner: role === 'owner',
     finishing,
     loginError,
     clearLoginError: () => setLoginError(''),
@@ -120,7 +125,7 @@ export function useAuth() {
   }
 }
 
-// { user, isAdmin, requireSignIn } for any component (cards, star picker).
+// { user, isAdmin, isOwner, requireSignIn } for any component.
 // requireSignIn() returns true when signed in, otherwise starts LINE sign-in.
 export const AuthContext = createContext(null)
 export const useAuthContext = () => useContext(AuthContext)

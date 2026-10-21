@@ -279,6 +279,17 @@
 .adminVerify { display: flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; cursor: pointer; }
 .adminVerify input { width: 18px; height: 18px; }
 .memberRow { justify-content: flex-start; align-items: center; }
+.memberAction { margin-left: auto; flex: 0 0 auto; white-space: nowrap; }
+.roleTag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-blue);
+  background: var(--color-blue-bg);
+  border-radius: var(--radius-pill);
+  padding: 1px 8px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
 .memberAvatar {
   flex: 0 0 auto;
   width: 40px;

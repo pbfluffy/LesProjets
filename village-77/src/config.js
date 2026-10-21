@@ -6,8 +6,9 @@ export const WORKER_URL = 'https://village-77.pbfluffygaming.workers.dev'
 // match LINE_CHANNEL_ID in worker/wrangler.toml.
 export const LINE_CHANNEL_ID = '2012133281'
 
-// Site owner — always an admin (same uid as the other apps' admin checks).
-// More admins: add a doc at admins/{uid} in Firestore.
+// Site owner — the top admin: can also see the members list and make or
+// remove village admins (villageAdmins in Firestore, managed in the app's
+// admin tab; separate from the shared `admins` list, which spans all apps).
 export const OWNER_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562'
 
 // Village news tab (ประกาศ) — built but switched off for now: the app is
