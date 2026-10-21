@@ -36,7 +36,7 @@ export default function App() {
   // First visit: the guided tour (not on links that do something else first).
   const [showTour, setShowTour] = useState(() => {
     const q = new URLSearchParams(window.location.search)
-    if (['admin', 'poster', 'code', 'error', 'p'].some((k) => q.has(k))) return false
+    if (['admin', 'poster', 'code', 'error', 'p', 'liff.state'].some((k) => q.has(k))) return false
     try { return !localStorage.getItem(TOUR_KEY) } catch { return false }
   })
   // Admin sign-in has no button in the app: open the page with ?admin.

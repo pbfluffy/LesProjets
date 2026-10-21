@@ -1,13 +1,23 @@
+import { LIFF_URL } from './liff'
+
 // Links to the app and to one post, and sharing a post into LINE.
 // A post link is the app URL with ?p=<post id>; App.jsx opens that post.
 export const APP_URL = 'https://pumbafluffycorgi.com' + import.meta.env.BASE_URL
+// Links people share or scan (post links, the poster QR) go through LIFF
+// once it's set up, so they open inside the LINE app — where sign-in is a
+// tap instead of LINE's web login page. LIFF forwards ?p= as liff.state.
+export const SHARE_URL = LIFF_URL || APP_URL
 
 export function postUrl(id) {
-  return APP_URL + '?p=' + encodeURIComponent(id)
+  return SHARE_URL + '?p=' + encodeURIComponent(id)
 }
 
 export function readPostParam() {
-  return new URLSearchParams(window.location.search).get('p')
+  const q = new URLSearchParams(window.location.search)
+  if (q.get('p')) return q.get('p')
+  // Arrived through liff.line.me/<id>?p=… : LIFF passes "?p=…" in liff.state.
+  const state = q.get('liff.state')
+  return state ? new URLSearchParams(state.replace(/^[^?]*\?/, '')).get('p') : null
 }
 
 export function clearPostParam() {

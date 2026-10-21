@@ -15,3 +15,9 @@ export const OWNER_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562'
 // about shops and handymen first. Set to true to bring the tab and the
 // home-page news section back (the code, Firestore rules and data stay).
 export const SHOW_NEWS = false
+
+// LIFF app on the LINE Login channel above (LINE Developers → the channel →
+// LIFF tab; endpoint https://pumbafluffycorgi.com/village-77/, scopes
+// openid + profile). Empty until created: then sign-in inside LINE skips
+// LINE's web login page, and share links / the poster QR open in LINE.
+export const LIFF_ID = ''

@@ -4,6 +4,7 @@ import {
   GoogleAuthProvider, signInWithPopup, signOut, saveProfile,
 } from '../firebase'
 import { WORKER_URL, LINE_CHANNEL_ID, OWNER_UID } from '../config'
+import { liffIdToken } from '../liff'
 
 // LINE Login: the app sends the visitor to LINE, LINE sends them back to
 // this page with ?code=…&state=…, and the Worker trades the code for a
@@ -16,7 +17,8 @@ const STATE_KEY = 'village_line_state'
 
 export const lineConfigured = !!LINE_CHANNEL_ID
 
-export function startLineLogin() {
+// Web sign-in: off to LINE's login page and back (finishLineLogin).
+function redirectToLine() {
   const state = crypto.randomUUID()
   try { localStorage.setItem(STATE_KEY, state) } catch { /* storage blocked — see finishLineLogin */ }
   const params = new URLSearchParams({
@@ -54,10 +56,16 @@ async function finishLineLogin() {
   // through: the Worker still checks the code with LINE.
   if (!state || (expected && state !== expected)) throw new Error('login link did not match — try again')
 
+  await signInViaWorker({ code, redirectUri: REDIRECT_URI })
+  return 'ok'
+}
+
+// Worker trades a LINE code or ID token for a Firebase custom token.
+async function signInViaWorker(body) {
   const res = await fetch(WORKER_URL + '/line-auth', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, redirectUri: REDIRECT_URI }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'LINE sign-in failed')
   const { customToken, name, picture } = await res.json()
@@ -100,6 +108,22 @@ export function useAuth() {
       })
       .finally(() => setFinishing(false))
   }, [])
+
+  // Inside the LINE app (LIFF), sign in with the ID token LINE already has;
+  // anywhere else, go through LINE's login page.
+  async function startLineLogin() {
+    const idToken = await liffIdToken()
+    if (!idToken) return redirectToLine()
+    setFinishing(true)
+    try {
+      await signInViaWorker({ idToken })
+    } catch (e) {
+      console.error('[village] LINE (LIFF) sign-in failed:', e)
+      setLoginError(e.message)
+    } finally {
+      setFinishing(false)
+    }
+  }
 
   async function adminSignIn() {
     try {

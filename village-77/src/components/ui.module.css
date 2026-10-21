@@ -247,6 +247,14 @@
 
 /* Sign-in sheet */
 .signInSheet { gap: 14px; }
+.signInTip {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-amber);
+  background: var(--color-amber-bg);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+}
 .lineSignIn {
   display: flex;
   align-items: center;

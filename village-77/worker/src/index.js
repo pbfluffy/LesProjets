@@ -1,6 +1,6 @@
 // village-77 Worker — two jobs for the village app:
 //
-//   POST /line-auth   { code, redirectUri }
+//   POST /line-auth   { code, redirectUri }  or  { idToken }  (from LIFF, inside LINE)
 //       Sign in with LINE. Trades the LINE Login authorization code for the
 //       user's LINE profile, then mints a Firebase custom token (uid
 //       "line:<LINE user id>") the app signs in with. Firebase has no LINE
@@ -121,24 +121,31 @@ async function handleLineAuth(request, env, origin) {
   } catch {
     return json({ error: 'expected JSON' }, 400, origin)
   }
-  const { code, redirectUri } = body || {}
-  if (typeof code !== 'string' || !code) return json({ error: 'missing code' }, 400, origin)
-  if (!ALLOWED_REDIRECTS.includes(redirectUri)) return json({ error: 'bad redirectUri' }, 400, origin)
+  const { code, redirectUri, idToken: liffIdToken } = body || {}
+  let idToken
+  if (typeof liffIdToken === 'string' && liffIdToken) {
+    // Opened inside the LINE app (LIFF): it hands us an ID token directly —
+    // no redirect to LINE's login page, which fails on some iPhones.
+    idToken = liffIdToken
+  } else {
+    if (typeof code !== 'string' || !code) return json({ error: 'missing code' }, 400, origin)
+    if (!ALLOWED_REDIRECTS.includes(redirectUri)) return json({ error: 'bad redirectUri' }, 400, origin)
 
-  // 1. Authorization code → LINE ID token
-  const tokenRes = await fetch('https://api.line.me/oauth2/v2.1/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: redirectUri,
-      client_id: env.LINE_CHANNEL_ID,
-      client_secret: env.LINE_CHANNEL_SECRET,
-    }),
-  })
-  if (!tokenRes.ok) return json({ error: 'LINE rejected the code' }, 401, origin)
-  const { id_token: idToken } = await tokenRes.json()
+    // 1. Authorization code → LINE ID token
+    const tokenRes = await fetch('https://api.line.me/oauth2/v2.1/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: redirectUri,
+        client_id: env.LINE_CHANNEL_ID,
+        client_secret: env.LINE_CHANNEL_SECRET,
+      }),
+    })
+    if (!tokenRes.ok) return json({ error: 'LINE rejected the code' }, 401, origin)
+    idToken = (await tokenRes.json()).id_token
+  }
 
   // 2. Let LINE verify its own ID token and hand back the profile
   const verifyRes = await fetch('https://api.line.me/oauth2/v2.1/verify', {

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import QrSvg from './QrSvg'
-import { APP_URL } from '../share'
+import { APP_URL, SHARE_URL } from '../share'
 import styles from './Poster.module.css'
 
 // Printable A4 poster for the village notice board / guard house: a big QR
@@ -28,7 +28,7 @@ export default function Poster() {
         <p className={styles.subtitle}>ตลาดซื้อขาย · สารพัดช่าง · ในหมู่บ้าน</p>
 
         <div className={styles.qr}>
-          <QrSvg value={APP_URL} size="100%" level="Q" />
+          <QrSvg value={SHARE_URL} size="100%" level="Q" />
         </div>
         <p className={styles.scan}>สแกนด้วยกล้องมือถือ หรือ LINE</p>
         <p className={styles.url}>{APP_URL.replace(/^https:\/\//, '')}</p>
