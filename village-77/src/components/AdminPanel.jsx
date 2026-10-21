@@ -5,6 +5,7 @@ import { updatePost, deletePost, savePrivateAddress, deletePrivateAddress } from
 import { useAuthContext } from '../hooks/useAuth'
 import { ResidencyBadge } from './PostCard'
 import AdminMembers from './AdminMembers'
+import AdminCategories from './AdminCategories'
 import styles from './ui.module.css'
 
 // Admins only (the tab is hidden otherwise, and firestore.rules only let
@@ -133,7 +134,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner }) {
       </div>
 
       <div className={styles.segment} role="group" style={{ marginBottom: 12 }}>
-        {[['pending', t.adminPending], ['all', t.adminAllPosts], ...(isOwner ? [['members', t.adminMembers]] : [])].map(([key, label]) => (
+        {[['pending', t.adminPending], ['all', t.adminAllPosts], ['categories', t.adminCategories], ...(isOwner ? [['members', t.adminMembers]] : [])].map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -146,7 +147,9 @@ export default function AdminPanel({ shops, providers, ratings, isOwner }) {
         ))}
       </div>
 
-      {show === 'members' && isOwner ? (
+      {show === 'categories' ? (
+        <AdminCategories shops={shops} providers={providers} />
+      ) : show === 'members' && isOwner ? (
         <AdminMembers shops={shops} providers={providers} />
       ) : rows.length === 0 ? (
         <p className={styles.empty}>{show === 'pending' ? t.adminNothingPending : t.noMatches}</p>

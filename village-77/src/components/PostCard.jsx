@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import { updatePost, deletePost, deletePrivateAddress } from '../hooks/usePosts'
 import { useAuthContext } from '../hooks/useAuth'
+import { useCategoriesContext } from '../hooks/useCategories'
 import { photosOf, deletePhotos } from '../photo'
 import { isStale, updatedLabel, STALE_DAYS } from '../freshness'
 import { postUrl, shareToLine } from '../share'
@@ -152,8 +153,10 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
   const { user, isAdmin } = useAuthContext()
   const isOwner = !!user && user.uid === post.ownerUid
   const isShop = kind === 'shop'
-  const tags = (isShop ? post.categories : post.trades) || []
-  const tagPrefix = isShop ? 'cat_' : 'trade_'
+  const cats = useCategoriesContext()
+  // Admins can remove categories; a post's removed ones just aren't shown.
+  const tags = ((isShop ? post.categories : post.trades) || []).filter((c) => cats.label(kind, c))
+  const tagLabel = (c) => cats.label(kind, c)
   const photos = post.photos || []
   const items = post.items || []
   const [shown, setShown] = useState(0) // index of the photo scrolled into view
@@ -178,7 +181,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
 
   // Name, tags and a link straight to this post, into a LINE chat or group.
   function handleShare() {
-    const tagText = tags.map((c) => t[tagPrefix + c]).join(', ')
+    const tagText = tags.map((c) => tagLabel(c)).join(', ')
     shareToLine(`🏘️ ${t.appName}\n${post.name}${tagText ? ' — ' + tagText : ''}\n${postUrl(post.id)}`)
   }
 
@@ -224,7 +227,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
           <div className={styles.rowBadges}>
             <ResidencyBadge isResident={post.isResident} />
             {post.isResident && post.verified && <span className={`${styles.badge} ${styles.badgeVerified}`}>✓</span>}
-            {tags.slice(0, 2).map((c) => <span key={c} className={styles.tag}>{t[tagPrefix + c]}</span>)}
+            {tags.slice(0, 2).map((c) => <span key={c} className={styles.tag}>{tagLabel(c)}</span>)}
             {tags.length > 2 && <span className={styles.tag}>+{tags.length - 2}</span>}
           </div>
           <div className={styles.rowMeta}>
@@ -288,7 +291,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
         <div className={styles.cardTags}>
           <ResidencyBadge isResident={post.isResident} />
           {post.isResident && post.verified && <span className={`${styles.badge} ${styles.badgeVerified}`}>✓ {t.verified}</span>}
-          {tags.map((c) => <span key={c} className={styles.tag}>{t[tagPrefix + c]}</span>)}
+          {tags.map((c) => <span key={c} className={styles.tag}>{tagLabel(c)}</span>)}
         </div>
 
         <h3 className={styles.cardTitle}>{post.name}</h3>

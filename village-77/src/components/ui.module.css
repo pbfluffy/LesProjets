@@ -603,3 +603,43 @@
   pointer-events: none;
 }
 .priceInput input { padding-left: 24px; }
+
+/* Admin tab → categories editor */
+.catSection { margin-bottom: 20px; }
+.catTitle { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.catList { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.catRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 8px 10px;
+}
+.catNames { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.catNames input { padding: 6px 8px; font-size: 13px; }
+.catUse { flex: 0 0 auto; font-size: 11px; color: var(--color-text-muted); white-space: nowrap; }
+.catBtns { flex: 0 0 auto; display: flex; gap: 2px; }
+.catBtns button {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 14px;
+}
+.catBtns button:disabled { opacity: 0.3; }
+.catBtns .catDel { color: var(--color-red); }
+.catSave {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 10px 0 calc(env(safe-area-inset-bottom, 0px) + 10px);
+  background: var(--color-bg);
+}
+.catSaved { font-size: 13px; color: var(--color-green); }

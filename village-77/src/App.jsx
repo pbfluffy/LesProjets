@@ -3,7 +3,8 @@ import { useTheme, useLang } from './hooks/useThemeLang'
 import { usePosts } from './hooks/usePosts'
 import { useAuth, AuthContext, lineConfigured } from './hooks/useAuth'
 import { useRatings } from './hooks/useRatings'
-import { LangContext, STRINGS, MARKET_CATEGORIES, TRADES } from './LangContext'
+import { LangContext, STRINGS } from './LangContext'
+import { useCategories, useCategoryHelpers, CategoriesContext } from './hooks/useCategories'
 import Home from './components/Home'
 import Board from './components/Board'
 import PostForm from './components/PostForm'
@@ -47,6 +48,8 @@ export default function App() {
   const providers = usePosts(PROVIDERS)
   const news = usePosts(SHOW_NEWS ? NEWS : null)
   const t = STRINGS[lang] || STRINGS.th
+  // Marketplace categories / handyman types — admin-editable (useCategories).
+  const cats = useCategoryHelpers(useCategories(), lang)
   // Posts untouched for 60 days are hidden, except from their owner (freshness.js).
   const visible = (posts) => posts.filter((p) => !isStale(p) || p.ownerUid === user?.uid)
   const liveShops = visible(shops.posts)
@@ -136,6 +139,7 @@ export default function App() {
   return (
     <LangContext.Provider value={{ t, lang }}>
       <AuthContext.Provider value={{ user, isAdmin, isOwner, requireSignIn }}>
+      <CategoriesContext.Provider value={cats}>
         <header className={styles.header}>
           <div className={styles.headerRow}>
             <div className={styles.brand}>
@@ -252,9 +256,7 @@ export default function App() {
               posts={liveShops}
               loading={shops.loading}
               ratings={ratings}
-              tags={MARKET_CATEGORIES}
               tagField="categories"
-              tagPrefix="cat_"
               emptyText={t.emptyMarket}
               addLabel={t.addShop}
               onAdd={() => editShop(null)}
@@ -269,9 +271,7 @@ export default function App() {
               posts={liveProviders}
               loading={providers.loading}
               ratings={ratings}
-              tags={TRADES}
               tagField="trades"
-              tagPrefix="trade_"
               emptyText={t.emptyServices}
               addLabel={t.addProvider}
               onAdd={() => editProvider(null)}
@@ -330,6 +330,7 @@ export default function App() {
             onClose={() => setAskSignIn(false)}
           />
         )}
+      </CategoriesContext.Provider>
       </AuthContext.Provider>
     </LangContext.Provider>
   )

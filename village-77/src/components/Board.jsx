@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLangContext } from '../LangContext'
 import PostCard from './PostCard'
+import { useCategoriesContext } from '../hooks/useCategories'
 import styles from './ui.module.css'
 
 // The marketplace and handyman pages share this: residency filter (the
@@ -9,10 +10,12 @@ import styles from './ui.module.css'
 // plants), but the filter picks one tag at a time and shows every post that has it.
 export default function Board({
   kind, collectionName, posts, loading, ratings,
-  tags, tagField, tagPrefix,
+  tagField,
   emptyText, addLabel, onAdd, onEdit, onOpenPost,
 }) {
   const { t } = useLangContext()
+  const cats = useCategoriesContext()
+  const tags = cats.listFor(kind).map((c) => c.key) // admin-editable list
   const [residency, setResidency] = useState('all') // 'all' | 'resident' | 'outsider'
   const [picked, setPicked] = useState('') // one tag; '' = all
   const [search, setSearch] = useState('')
@@ -108,7 +111,7 @@ export default function Board({
               className={`${styles.chip} ${picked === c ? styles.chipActive : ''}`}
               onClick={() => setPicked(picked === c ? '' : c)}
             >
-              {t[tagPrefix + c]}
+              {cats.label(kind, c)}
             </button>
           ))}
         </div>

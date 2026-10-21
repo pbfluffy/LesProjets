@@ -514,6 +514,19 @@ service cloud.firestore {
       allow delete: if isUser(resource.data.ownerUid) || isVillageAdmin();
     }
 
+    // Category lists (marketplace categories, handyman types), edited by
+    // admins in the admin tab: { market: [{key, th, en}], trades: [...] }.
+    // Posts store the keys, so renaming keeps them; the app falls back to
+    // its built-in lists while this doc doesn't exist.
+    match /villageConfig/categories {
+      allow read: if true;
+      allow write: if isVillageAdmin()
+                   && request.resource.data.keys().hasOnly(['market', 'trades', 'updatedAt', 'updatedBy'])
+                   && request.resource.data.market is list && request.resource.data.market.size() <= 30
+                   && request.resource.data.trades is list && request.resource.data.trades.size() <= 30
+                   && request.resource.data.updatedBy == request.auth.uid;
+    }
+
     // Everyone who has signed in to Village 77 (posted or not), for the
     // admin tab's member list. Each person writes only their own record.
     match /villageMembers/{uid} {

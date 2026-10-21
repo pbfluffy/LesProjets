@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLangContext, interp, MARKET_CATEGORIES, TRADES } from '../LangContext'
+import { useLangContext, interp } from '../LangContext'
+import { useCategoriesContext } from '../hooks/useCategories'
 import { createPost, updatePost, savePrivateAddress, deletePrivateAddress, loadPrivateAddress } from '../hooks/usePosts'
 import { uploadPhoto, PHOTO_ITEM, photosOf, deletePhotos } from '../photo'
 import styles from './ui.module.css'
 
 const MAX_ITEMS = 30
+const MAX_TAGS = 10
 const emptyItem = () => ({ name: '', price: '', photo: null, sold: false })
 
 // Add / edit form for a marketplace shop (one seller + the items they sell)
@@ -12,6 +14,7 @@ const emptyItem = () => ({ name: '', price: '', photo: null, sold: false })
 // firestore.rules (villageShops / villageProviders) — keep them in sync.
 export default function PostForm({ kind, collectionName, post, user, onClose, startWithNewItem = false }) {
   const { t } = useLangContext()
+  const cats = useCategoriesContext()
   const isShop = kind === 'shop'
   const maxPhotos = 4
   const [f, setF] = useState(() => ({
@@ -63,7 +66,9 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
 
   const toggleTag = (c) => setF((prev) => ({
     ...prev,
-    tags: prev.tags.includes(c) ? prev.tags.filter((x) => x !== c) : [...prev.tags, c],
+    tags: prev.tags.includes(c) ? prev.tags.filter((x) => x !== c)
+      : prev.tags.length >= MAX_TAGS ? prev.tags // firestore.rules allows 10 per post
+      : [...prev.tags, c],
   }))
 
   async function handlePhotos(e) {
@@ -120,7 +125,9 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!f.tags.length) {
+    // Drop categories an admin has removed since this post was made.
+    const knownTags = f.tags.filter((c) => cats.label(kind, c))
+    if (!knownTags.length) {
       setError(t.fTagsRequired)
       return
     }
@@ -154,10 +161,10 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
         setError(t.fItemsRequired)
         return
       }
-      data.categories = f.tags
+      data.categories = knownTags
       data.items = items
     } else {
-      data.trades = f.tags
+      data.trades = knownTags
     }
 
     setSaving(true)
@@ -202,7 +209,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
         <div className={styles.field}>
           <span>{isShop ? t.fCategories : t.fTrades} *</span>
           <div className={styles.chipsWrap}>
-            {(isShop ? MARKET_CATEGORIES : TRADES).map((c) => (
+            {cats.listFor(kind).map(({ key: c }) => (
               <button
                 key={c}
                 type="button"
@@ -210,7 +217,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
                 className={`${styles.chip} ${f.tags.includes(c) ? styles.chipActive : ''}`}
                 onClick={() => toggleTag(c)}
               >
-                {t[(isShop ? 'cat_' : 'trade_') + c]}
+                {cats.label(kind, c)}
               </button>
             ))}
           </div>
