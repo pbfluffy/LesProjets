@@ -1,0 +1,214 @@
+// village-77 Worker — two jobs for the village app:
+//
+//   POST /line-auth   { code, redirectUri }
+//       Sign in with LINE. Trades the LINE Login authorization code for the
+//       user's LINE profile, then mints a Firebase custom token (uid
+//       "line:<LINE user id>") the app signs in with. Firebase has no LINE
+//       provider, so this is the bridge.
+//
+//   POST /upload      multipart "file"  (Authorization: Bearer <Firebase ID token>)
+//       Stores a post photo in R2 and returns its URL. Photos used to live
+//       inside the Firestore post as data URLs, which made every visitor
+//       download every photo on open; now cards lazy-load real image URLs.
+//
+//   GET  /p/<key>
+//       Serves a stored photo (immutable, cached by the browser / CDN).
+//
+// Config (wrangler.toml / secrets — see README.md):
+//   BUCKET                     R2 bucket "village-77-photos"
+//   LINE_CHANNEL_ID            var  — LINE Login channel id (public)
+//   LINE_CHANNEL_SECRET        secret
+//   FIREBASE_SERVICE_ACCOUNT   secret — the pumgoda service-account JSON key
+
+const PROJECT_ID = 'pumgoda'
+const ALLOWED_ORIGINS = ['https://pumbafluffycorgi.com', 'http://localhost:5184']
+// LINE only redirects back to callback URLs registered on the channel; this
+// list must match that setting.
+const ALLOWED_REDIRECTS = ['https://pumbafluffycorgi.com/village-77/', 'http://localhost:5184/village-77/']
+const MAX_BYTES = 3 * 1024 * 1024 // app shrinks photos well below this first
+const EXT = { 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/png': 'png' }
+const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'
+const CUSTOM_TOKEN_AUD = 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit'
+
+function cors(origin) {
+  return {
+    'Access-Control-Allow-Origin': ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+    'Access-Control-Max-Age': '86400',
+    Vary: 'Origin',
+  }
+}
+function json(obj, status, origin) {
+  return new Response(JSON.stringify(obj), {
+    status: status || 200,
+    headers: { 'Content-Type': 'application/json', ...cors(origin) },
+  })
+}
+
+// ── base64url helpers ──
+function b64urlToBytes(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/')
+  while (s.length % 4) s += '='
+  const bin = atob(s)
+  const out = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
+const b64urlToString = (s) => new TextDecoder().decode(b64urlToBytes(s))
+function bytesToB64url(bytes) {
+  let bin = ''
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+const strToB64url = (s) => bytesToB64url(new TextEncoder().encode(s))
+
+// ── Verify a Firebase ID token (same as dog-near-me / pumgoda workers) ──
+async function verifyIdToken(token) {
+  const parts = token.split('.')
+  if (parts.length !== 3) throw new Error('malformed token')
+  const header = JSON.parse(b64urlToString(parts[0]))
+  const payload = JSON.parse(b64urlToString(parts[1]))
+
+  const jwks = await (await fetch(JWKS_URL)).json()
+  const jwk = (jwks.keys || []).find((k) => k.kid === header.kid)
+  if (!jwk) throw new Error('signing key not found')
+  const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify'])
+  const data = new TextEncoder().encode(parts[0] + '.' + parts[1])
+  if (!(await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, b64urlToBytes(parts[2]), data))) throw new Error('bad signature')
+
+  const now = Math.floor(Date.now() / 1000)
+  if (payload.aud !== PROJECT_ID) throw new Error('bad aud')
+  if (payload.iss !== 'https://securetoken.google.com/' + PROJECT_ID) throw new Error('bad iss')
+  if (payload.exp <= now) throw new Error('expired')
+  if (payload.iat > now + 300) throw new Error('iat in future')
+  if (!payload.sub) throw new Error('no sub')
+  return payload
+}
+
+// ── Mint a Firebase custom token, signed with the service-account key ──
+async function mintCustomToken(env, uid, claims) {
+  const sa = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT)
+  const pem = sa.private_key.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '')
+  const der = Uint8Array.from(atob(pem), (c) => c.charCodeAt(0))
+  const key = await crypto.subtle.importKey('pkcs8', der, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign'])
+
+  const now = Math.floor(Date.now() / 1000)
+  const header = strToB64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
+  const payload = strToB64url(JSON.stringify({
+    iss: sa.client_email,
+    sub: sa.client_email,
+    aud: CUSTOM_TOKEN_AUD,
+    iat: now,
+    exp: now + 3600,
+    uid,
+    claims,
+  }))
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(header + '.' + payload))
+  return header + '.' + payload + '.' + bytesToB64url(new Uint8Array(sig))
+}
+
+async function handleLineAuth(request, env, origin) {
+  if (!env.LINE_CHANNEL_ID || !env.LINE_CHANNEL_SECRET || !env.FIREBASE_SERVICE_ACCOUNT) {
+    return json({ error: 'LINE sign-in is not configured yet' }, 503, origin)
+  }
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return json({ error: 'expected JSON' }, 400, origin)
+  }
+  const { code, redirectUri } = body || {}
+  if (typeof code !== 'string' || !code) return json({ error: 'missing code' }, 400, origin)
+  if (!ALLOWED_REDIRECTS.includes(redirectUri)) return json({ error: 'bad redirectUri' }, 400, origin)
+
+  // 1. Authorization code → LINE ID token
+  const tokenRes = await fetch('https://api.line.me/oauth2/v2.1/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+      client_id: env.LINE_CHANNEL_ID,
+      client_secret: env.LINE_CHANNEL_SECRET,
+    }),
+  })
+  if (!tokenRes.ok) return json({ error: 'LINE rejected the code' }, 401, origin)
+  const { id_token: idToken } = await tokenRes.json()
+
+  // 2. Let LINE verify its own ID token and hand back the profile
+  const verifyRes = await fetch('https://api.line.me/oauth2/v2.1/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ id_token: idToken, client_id: env.LINE_CHANNEL_ID }),
+  })
+  if (!verifyRes.ok) return json({ error: 'LINE token did not verify' }, 401, origin)
+  const profile = await verifyRes.json() // { sub, name, picture, ... }
+  if (!profile.sub) return json({ error: 'no LINE user id' }, 401, origin)
+
+  // 3. Firebase custom token for uid "line:<sub>"
+  const name = String(profile.name || '').slice(0, 80)
+  const picture = String(profile.picture || '')
+  const customToken = await mintCustomToken(env, 'line:' + profile.sub, { provider: 'line' })
+  return json({ customToken, name, picture }, 200, origin)
+}
+
+async function handleUpload(request, env, origin) {
+  const m = (request.headers.get('Authorization') || '').match(/^Bearer\s+(.+)$/i)
+  let user
+  try {
+    if (!m) throw new Error('missing token')
+    user = await verifyIdToken(m[1])
+  } catch (e) {
+    return json({ error: 'unauthorized: ' + e.message }, 401, origin)
+  }
+
+  let form
+  try {
+    form = await request.formData()
+  } catch {
+    return json({ error: 'expected multipart form-data' }, 400, origin)
+  }
+  const file = form.get('file')
+  if (!file || typeof file === 'string') return json({ error: 'no file field' }, 400, origin)
+  if (!EXT[file.type]) return json({ error: 'unsupported type: ' + file.type }, 415, origin)
+  if (file.size > MAX_BYTES) return json({ error: 'too large' }, 413, origin)
+
+  // Uploader's uid in the key, so an admin can trace a bad photo back.
+  const key = `${user.sub.replace(/[^A-Za-z0-9:_-]/g, '')}/${crypto.randomUUID()}.${EXT[file.type]}`
+  await env.BUCKET.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } })
+  return json({ url: new URL('/p/' + key, request.url).toString() }, 200, origin)
+}
+
+async function handlePhoto(key, env) {
+  const obj = await env.BUCKET.get(key)
+  if (!obj) return new Response('not found', { status: 404 })
+  return new Response(obj.body, {
+    headers: {
+      'Content-Type': obj.httpMetadata?.contentType || 'image/jpeg',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Access-Control-Allow-Origin': '*',
+    },
+  })
+}
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url)
+    const origin = request.headers.get('Origin') || ''
+
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) })
+    if (request.method === 'GET' && url.pathname.startsWith('/p/')) {
+      return handlePhoto(decodeURIComponent(url.pathname.slice(3)), env)
+    }
+    try {
+      if (request.method === 'POST' && url.pathname === '/line-auth') return await handleLineAuth(request, env, origin)
+      if (request.method === 'POST' && url.pathname === '/upload') return await handleUpload(request, env, origin)
+    } catch (e) {
+      console.error('[village-77 worker]', e)
+      return json({ error: 'server error' }, 500, origin)
+    }
+    return json({ error: 'not found' }, 404, origin)
+  },
+}

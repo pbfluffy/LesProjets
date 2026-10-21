@@ -1,32 +1,40 @@
-// Shrinks a picked photo to a small JPEG data URL so it can live inside the
-// Firestore doc itself (no Storage bucket / upload step). A Firestore doc is
-// capped at 1 MB, so each kind of photo gets a size budget:
-//   handyman: up to 4 photos × 200 KB
-//   shop:     up to 2 shop photos × 150 KB + up to 15 item photos × 40 KB
-// Steps quality, then size, down until the photo fits its budget.
-export const PHOTO_BIG = { maxChars: 200000, sides: [1000, 800, 600] }
-export const PHOTO_SHOP = { maxChars: 150000, sides: [1000, 800, 600] }
-export const PHOTO_ITEM = { maxChars: 40000, sides: [480, 360, 280] }
+import { auth } from './firebase'
+import { WORKER_URL } from './config'
 
-// Firestore's per-doc limit is 1,048,576 bytes; leave room for field names.
-export const MAX_DOC_CHARS = 1000000
+// Photos are shrunk on the phone, uploaded to the village-77 Worker (R2) and
+// stored on the post as plain URLs. Cards lazy-load them, so opening the app
+// no longer downloads every photo of every post (they used to be data URLs
+// inside the Firestore docs).
+export const PHOTO_BIG = { maxSide: 1280, quality: 0.8 }
+export const PHOTO_ITEM = { maxSide: 800, quality: 0.8 }
 
-export async function photoToDataUrl(file, { maxChars, sides } = PHOTO_BIG) {
+async function shrink(file, { maxSide, quality }) {
   const bitmap = await createImageBitmap(file)
-  const canvas = document.createElement('canvas')
   try {
-    for (const side of sides) {
-      const scale = Math.min(1, side / Math.max(bitmap.width, bitmap.height))
-      canvas.width = Math.round(bitmap.width * scale)
-      canvas.height = Math.round(bitmap.height * scale)
-      canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-      for (const quality of [0.75, 0.6, 0.45]) {
-        const url = canvas.toDataURL('image/jpeg', quality)
-        if (url.length <= maxChars) return url
-      }
-    }
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(bitmap.width * scale)
+    canvas.height = Math.round(bitmap.height * scale)
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    return await new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/jpeg', quality),
+    )
   } finally {
     bitmap.close?.()
   }
-  throw new Error('photo too large')
+}
+
+// Returns the photo's public URL. Needs a signed-in user (the Worker checks
+// the Firebase ID token).
+export async function uploadPhoto(file, size = PHOTO_BIG) {
+  const blob = await shrink(file, size)
+  const form = new FormData()
+  form.append('file', blob, 'photo.jpg')
+  const res = await fetch(WORKER_URL + '/upload', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + (await auth.currentUser.getIdToken()) },
+    body: form,
+  })
+  if (!res.ok) throw new Error('upload failed (' + res.status + ')')
+  return (await res.json()).url
 }

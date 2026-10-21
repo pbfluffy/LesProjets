@@ -1,0 +1,6 @@
+.wrangler
+node_modules
+.dev.vars
+# Never commit the Firebase service-account key
+*service-account*.json
+*firebase-adminsdk*.json

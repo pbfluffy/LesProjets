@@ -376,14 +376,13 @@ service cloud.firestore {
     }
 
     // ── Village 77 — marketplace shops & handymen ───────────────────────────
-    // No sign-in for now: anyone may read, post, edit and delete. The app
-    // only shows Edit / Delete on the device that made the post
-    // (village-77/src/hooks/useMyPosts.js), but these rules can't enforce that —
-    // add auth back before the app sees abuse. What IS enforced is the shape
-    // and size of every write, and createdAt being the server's clock.
-    // A shop is one seller with up to 15 items inside it (each item has an
-    // optional photo). photos are small JPEG data URLs stored inline
-    // (village-77/src/photo.js keeps every post under the 1 MB doc limit).
+    // Anyone may read. Posting and rating need a signed-in account: villagers
+    // use LINE (Firebase custom token from the village-77 Worker), admins use
+    // Google. Only the poster edits their post; the poster or an admin
+    // deletes it. `verified` (an admin checked this villager really lives
+    // here) can only be changed by an admin.
+    // A shop is one seller with up to 30 items inside it. photos are URLs of
+    // images stored in R2 by the village-77 Worker (village-77/worker/).
     function validVillagePost(d) {
       return d.isResident is bool
           && d.name        is string && d.name.size()        <= 80
@@ -392,66 +391,86 @@ service cloud.firestore {
           && d.line        is string && d.line.size()        <= 50
           && !('address' in d) // private — lives in villagePrivate below
           && (d.phone.size() > 0 || d.line.size() > 0)
-          && d.photos is list && d.photos.size() <= 4;
+          && d.photos is list && d.photos.size() <= 4
+          && d.verified is bool
+          && d.ownerUid is string;
     }
     function validVillageShop(d) {
       return validVillagePost(d)
           && d.name.size() > 0
           && d.categories is list && d.categories.size() > 0 && d.categories.size() <= 10
-          && d.photos.size() <= 2
-          && d.items is list && d.items.size() > 0 && d.items.size() <= 15;
+          && d.items is list && d.items.size() > 0 && d.items.size() <= 30;
     }
     function validVillageProvider(d) {
       return validVillagePost(d)
           && d.name.size() > 0
           && d.trades is list && d.trades.size() > 0 && d.trades.size() <= 10;
     }
+    function villageCreate() {
+      return signedIn()
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.verified == false
+          && request.resource.data.createdAt == request.time;
+    }
+    // Poster: anything but who owns it, when it was made, or the verified mark.
+    function villageOwnerUpdate() {
+      return isUser(resource.data.ownerUid)
+          && request.resource.data.ownerUid  == resource.data.ownerUid
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.verified  == resource.data.verified;
+    }
+    // Admin: only flips the verified mark.
+    function villageAdminUpdate() {
+      return isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verified', 'updatedAt']);
+    }
     match /villageShops/{postId} {
       allow read:   if true;
-      allow create: if validVillageShop(request.resource.data)
-                    && request.resource.data.createdAt == request.time;
-      allow update: if validVillageShop(request.resource.data)
-                    && request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if true;
+      allow create: if validVillageShop(request.resource.data) && villageCreate();
+      allow update: if validVillageShop(request.resource.data) && (villageOwnerUpdate() || villageAdminUpdate());
+      allow delete: if isUser(resource.data.ownerUid) || isAdmin();
     }
     match /villageProviders/{postId} {
       allow read:   if true;
-      allow create: if validVillageProvider(request.resource.data)
-                    && request.resource.data.createdAt == request.time;
-      allow update: if validVillageProvider(request.resource.data)
-                    && request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if true;
+      allow create: if validVillageProvider(request.resource.data) && villageCreate();
+      allow update: if validVillageProvider(request.resource.data) && (villageOwnerUpdate() || villageAdminUpdate());
+      allow delete: if isUser(resource.data.ownerUid) || isAdmin();
     }
-    // 1–5 star handyman ratings, one per device per handyman: the doc id is
-    // {postId}_{random device id} (village-77/src/hooks/useRatings.js), so
-    // re-rating overwrites. No sign-in, so a determined person can still
-    // vote twice from a fresh browser — fine for a village board.
+
+    // 1–5 star handyman ratings, one per account per handyman: the doc id is
+    // {postId}_{rater's uid} (village-77/src/hooks/useRatings.js), so
+    // re-rating overwrites. Posters can't rate themselves.
     match /villageRatings/{ratingId} {
       allow read: if true;
-      allow create, update: if request.resource.data.keys().hasOnly(['postId', 'stars', 'updatedAt'])
+      allow create, update: if signedIn()
+                            && request.resource.data.keys().hasOnly(['postId', 'stars', 'updatedAt'])
                             && request.resource.data.postId is string
-                            && ratingId.matches(request.resource.data.postId + '_[0-9a-f]{32}')
-                            && exists(/databases/$(database)/documents/villageProviders/$(request.resource.data.postId))
+                            && ratingId == request.resource.data.postId + '_' + request.auth.uid
+                            && get(/databases/$(database)/documents/villageProviders/$(request.resource.data.postId)).data.ownerUid != request.auth.uid
                             && request.resource.data.stars is int
                             && request.resource.data.stars >= 1
                             && request.resource.data.stars <= 5
                             && request.resource.data.updatedAt == request.time;
-      // Orphans (handyman deleted) can be cleaned up by anyone.
+      // Admins, or anyone once the handyman is gone (cleanup after a delete).
       allow delete: if isAdmin()
                     || !exists(/databases/$(database)/documents/villageProviders/$(resource.data.postId));
     }
 
     // A villager's house no. / soi, keyed by the post's id. Supporting info
     // for the random "do you really live here" checks: only admins read it
-    // (Firebase console); the app writes it but can never read it back.
+    // (the app's admin tab); the poster writes it but can never read it back.
     match /villagePrivate/{postId} {
       allow read:   if isAdmin();
-      allow create, update: if request.resource.data.keys().hasOnly(['address', 'collection', 'updatedAt'])
+      allow create, update: if signedIn()
+                            && request.resource.data.keys().hasOnly(['address', 'collection', 'updatedAt'])
                             && request.resource.data.address is string
                             && request.resource.data.address.size() > 0
                             && request.resource.data.address.size() <= 120
-                            && request.resource.data.collection in ['villageShops', 'villageProviders'];
-      allow delete: if true;
+                            && request.resource.data.collection in ['villageShops', 'villageProviders']
+                            && get(/databases/$(database)/documents/$(request.resource.data.collection)/$(postId)).data.ownerUid == request.auth.uid;
+      allow delete: if isAdmin()
+                    || (signedIn() && get(/databases/$(database)/documents/$(resource.data.collection)/$(postId)).data.ownerUid == request.auth.uid)
+                    || !exists(/databases/$(database)/documents/$(resource.data.collection)/$(postId));
     }
 
 match /strayDogs/{dogId} {

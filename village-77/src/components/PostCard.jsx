@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import { updatePost, deletePost, deletePrivateAddress } from '../hooks/usePosts'
+import { useAuthContext } from '../hooks/useAuth'
 import styles from './ui.module.css'
 
 export function ResidencyBadge({ isResident }) {
@@ -22,11 +23,13 @@ function formatPrice(price, t, lang) {
 // shows this phone's own rating and can change it.
 function Stars({ postId, ratings, canPick }) {
   const { t } = useLangContext()
+  const { requireSignIn } = useAuthContext()
   const { avg, count, mine } = ratings.get(postId)
   const [hover, setHover] = useState(0)
   const [thanks, setThanks] = useState(false)
 
   function pick(n) {
+    if (!requireSignIn()) return // rating needs a LINE account (one vote each)
     ratings.rate(postId, n).then(() => {
       setThanks(true)
       setTimeout(() => setThanks(false), 2000)
@@ -49,7 +52,7 @@ function Stars({ postId, ratings, canPick }) {
           <span>{t.ratingNone}</span>
         )}
       </div>
-      {canPick && ratings.canRate && (
+      {canPick && (
         <div className={styles.ratingPick} onMouseLeave={() => setHover(0)}>
           <span>{thanks ? t.ratingThanks : mine ? t.ratingYours : t.ratingAsk}</span>
           {[1, 2, 3, 4, 5].map((n) => (
@@ -80,9 +83,10 @@ function lineUrl(id) {
 // items they sell listed inside the card) or 'provider' (a handyman).
 // The device that created the post gets Edit / Delete, plus a per-item
 // sold toggle on shops.
-export default function PostCard({ kind, collectionName, post, my, ratings, onEdit }) {
+export default function PostCard({ kind, collectionName, post, ratings, onEdit }) {
   const { t, lang } = useLangContext()
-  const isOwner = my.isMine(post.id)
+  const { user, isAdmin } = useAuthContext()
+  const isOwner = !!user && user.uid === post.ownerUid
   const isShop = kind === 'shop'
   const tags = (isShop ? post.categories : post.trades) || []
   const tagPrefix = isShop ? 'cat_' : 'trade_'
@@ -99,7 +103,6 @@ export default function PostCard({ kind, collectionName, post, my, ratings, onEd
   function handleDelete() {
     if (!window.confirm(t.deleteConfirm)) return
     deletePost(collectionName, post.id).then(() => {
-      my.removeMine(post.id)
       deletePrivateAddress(post.id).catch(() => {}) // none saved for outsiders
       if (!isShop) ratings.removeAll(post.id).catch(() => {})
     }).catch((e) => {
@@ -143,6 +146,7 @@ export default function PostCard({ kind, collectionName, post, my, ratings, onEd
       <div className={styles.cardBody}>
         <div className={styles.cardTags}>
           <ResidencyBadge isResident={post.isResident} />
+          {post.isResident && post.verified && <span className={`${styles.badge} ${styles.badgeVerified}`}>✓ {t.verified}</span>}
           {tags.map((c) => <span key={c} className={styles.tag}>{t[tagPrefix + c]}</span>)}
         </div>
 
@@ -185,10 +189,12 @@ export default function PostCard({ kind, collectionName, post, my, ratings, onEd
           )}
         </div>
 
-        {isOwner && (
+        {(isOwner || isAdmin) && (
           <div className={styles.ownerActions}>
-            <button type="button" className={styles.linkBtn} onClick={() => onEdit(post)}>{t.edit}</button>
-            <button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={handleDelete}>{t.delete}</button>
+            {isOwner && <button type="button" className={styles.linkBtn} onClick={() => onEdit(post)}>{t.edit}</button>}
+            <button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={handleDelete}>
+              {isOwner ? t.delete : '🛡️ ' + t.delete}
+            </button>
           </div>
         )}
       </div>

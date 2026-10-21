@@ -1,12 +1,24 @@
-// Firestore only — no sign-in for now (anyone can post; see firestore.rules
-// and hooks/useMyPosts.js). Same project as the landing page (pumgoda).
+// Firebase Auth + Firestore. Same project as the landing page (pumgoda).
+// Villagers sign in with LINE (custom token from the village-77 Worker);
+// admins sign in with Google. authDomain uses the custom subdomain so iOS
+// Safari's storage partitioning doesn't break sign-in flows.
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithCustomToken,
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+} from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
 import {
   getFirestore,
   doc,
   collection,
   addDoc,
   setDoc,
+  getDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -27,8 +39,25 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
 export const db = getFirestore(app);
 export {
-  doc, collection, addDoc, setDoc, updateDoc, deleteDoc, query, orderBy, limit,
+  onAuthStateChanged, signInWithCustomToken, updateProfile, GoogleAuthProvider, signInWithPopup, signOut,
+  doc, collection, addDoc, setDoc, getDoc, updateDoc, deleteDoc, query, orderBy, limit,
   serverTimestamp, onSnapshot,
 };
+
+// Save the signed-in user's name to userProfiles so the admin console shows
+// who they are (same as every other app). LINE users have no email: ''.
+// Also called right after a LINE sign-in sets the display name, since that
+// lands after onAuthStateChanged has already fired.
+export function saveProfile(user) {
+  return setDoc(doc(db, 'userProfiles', user.uid), {
+    name: user.displayName || '',
+    email: user.email || '',
+    photoURL: user.photoURL || null,
+    lastSeen: serverTimestamp(),
+    lastApp: 'Village 77',
+  }, { merge: true }).catch((e) => console.warn('[profile] write failed:', e?.code));
+}
+onAuthStateChanged(auth, (user) => { if (user) saveProfile(user); });

@@ -1,0 +1,18 @@
+name = "village-77"
+main = "src/index.js"
+compatibility_date = "2026-07-15"
+workers_dev = true
+
+# Create with: npx wrangler r2 bucket create village-77-photos
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "village-77-photos"
+
+[vars]
+# LINE Login channel id — public (it appears in the login URL anyway).
+# Must match LINE_CHANNEL_ID in ../src/config.js.
+LINE_CHANNEL_ID = ""
+
+# Secrets (never commit — set with `npx wrangler secret put <NAME>`):
+#   LINE_CHANNEL_SECRET        LINE Login channel secret
+#   FIREBASE_SERVICE_ACCOUNT   pumgoda service-account key (whole JSON file)

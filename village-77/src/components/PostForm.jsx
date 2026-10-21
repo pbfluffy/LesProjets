@@ -1,19 +1,19 @@
 import { useState } from 'react'
 import { useLangContext, interp, MARKET_CATEGORIES, TRADES } from '../LangContext'
 import { createPost, updatePost, savePrivateAddress, deletePrivateAddress } from '../hooks/usePosts'
-import { photoToDataUrl, PHOTO_BIG, PHOTO_SHOP, PHOTO_ITEM, MAX_DOC_CHARS } from '../photo'
+import { uploadPhoto, PHOTO_ITEM } from '../photo'
 import styles from './ui.module.css'
 
-const MAX_ITEMS = 15
+const MAX_ITEMS = 30
 const emptyItem = () => ({ name: '', price: '', photo: null, sold: false })
 
 // Add / edit form for a marketplace shop (one seller + the items they sell)
 // or a handyman. `post` is null when adding. Field names mirror
 // firestore.rules (villageShops / villageProviders) — keep them in sync.
-export default function PostForm({ kind, collectionName, post, onCreated, onClose }) {
+export default function PostForm({ kind, collectionName, post, user, onClose }) {
   const { t } = useLangContext()
   const isShop = kind === 'shop'
-  const maxPhotos = isShop ? 2 : 4
+  const maxPhotos = 4
   const [f, setF] = useState(() => ({
     name: post?.name || '',
     tags: (isShop ? post?.categories : post?.trades) || [],
@@ -50,7 +50,7 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
     let failed = false
     for (const file of files) {
       try {
-        const url = await photoToDataUrl(file, isShop ? PHOTO_SHOP : PHOTO_BIG)
+        const url = await uploadPhoto(file)
         setF((prev) => prev.photos.length < maxPhotos ? { ...prev, photos: [...prev.photos, url] } : prev)
       } catch {
         failed = true
@@ -75,7 +75,7 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
     setProcessing(true)
     setError('')
     try {
-      setItem(i, { photo: await photoToDataUrl(file, PHOTO_ITEM) })
+      setItem(i, { photo: await uploadPhoto(file, PHOTO_ITEM) })
     } catch {
       setError(t.photoFailed)
     }
@@ -118,20 +118,13 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
     } else {
       data.trades = f.tags
     }
-    if (JSON.stringify(data).length > MAX_DOC_CHARS) {
-      setError(t.tooManyPhotos)
-      return
-    }
 
     setSaving(true)
     setError('')
     try {
       let id = post?.id
       if (post) await updatePost(collectionName, id, data)
-      else {
-        id = (await createPost(collectionName, data)).id
-        onCreated(id)
-      }
+      else id = (await createPost(collectionName, user, data)).id
       const address = f.address.trim()
       if (f.isResident && address) await savePrivateAddress(id, collectionName, address)
       else if (!f.isResident && post) await deletePrivateAddress(id)
@@ -263,7 +256,6 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
           </div>
         </div>
 
-        {!post && <p className={styles.hint}>{t.ownerHint}</p>}
         {error && <p className={styles.error}>{error}</p>}
 
         <div className={styles.sheetActions}>

@@ -28,9 +28,11 @@ export function usePosts(collectionName) {
   return { posts, loading }
 }
 
-export function createPost(collectionName, data) {
+export function createPost(collectionName, user, data) {
   return addDoc(collection(db, collectionName), {
     ...data,
+    ownerUid: user.uid,
+    verified: false, // only an admin can set this (firestore.rules)
     createdAt: serverTimestamp(),
   })
 }

@@ -8,7 +8,7 @@ import styles from './ui.module.css'
 // list of posts. A post can carry several tags (a shop may sell food and
 // plants), but the filter picks one tag at a time and shows every post that has it.
 export default function Board({
-  kind, collectionName, posts, loading, my, ratings,
+  kind, collectionName, posts, loading, ratings,
   tags, tagField, tagPrefix,
   emptyText, addLabel, onAdd, onEdit,
 }) {
@@ -96,7 +96,7 @@ export default function Board({
       ) : (
         <div className={styles.grid}>
           {filtered.map((p) => (
-            <PostCard key={p.id} kind={kind} collectionName={collectionName} post={p} my={my} ratings={ratings} onEdit={onEdit} />
+            <PostCard key={p.id} kind={kind} collectionName={collectionName} post={p} ratings={ratings} onEdit={onEdit} />
           ))}
         </div>
       )}
