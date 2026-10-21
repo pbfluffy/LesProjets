@@ -9,3 +9,8 @@ export const LINE_CHANNEL_ID = '2012133281'
 // Site owner — always an admin (same uid as the other apps' admin checks).
 // More admins: add a doc at admins/{uid} in Firestore.
 export const OWNER_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562'
+
+// Village news tab (ประกาศ) — built but switched off for now: the app is
+// about shops and handymen first. Set to true to bring the tab and the
+// home-page news section back (the code, Firestore rules and data stay).
+export const SHOW_NEWS = false

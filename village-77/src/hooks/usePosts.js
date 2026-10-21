@@ -8,9 +8,10 @@ import {
 // first. Public read, so this subscribes whether or not anyone is signed in.
 export function usePosts(collectionName) {
   const [posts, setPosts] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!!collectionName)
 
   useEffect(() => {
+    if (!collectionName) return // switched-off feature (e.g. news): load nothing
     const q = query(collection(db, collectionName), orderBy('createdAt', 'desc'), limit(300))
     return onSnapshot(
       q,

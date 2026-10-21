@@ -13,6 +13,7 @@ import AdminEntrySheet from './components/AdminEntrySheet'
 import NewsBoard from './components/NewsBoard'
 import NewsForm from './components/NewsForm'
 import { readPostParam, clearPostParam } from './share'
+import { SHOW_NEWS } from './config'
 import { isStale } from './freshness'
 import styles from './App.module.css'
 
@@ -36,7 +37,7 @@ export default function App() {
 
   const shops = usePosts(SHOPS)
   const providers = usePosts(PROVIDERS)
-  const news = usePosts(NEWS)
+  const news = usePosts(SHOW_NEWS ? NEWS : null)
   const t = STRINGS[lang] || STRINGS.th
   // Posts untouched for 60 days are hidden, except from their owner (freshness.js).
   const visible = (posts) => posts.filter((p) => !isStale(p) || p.ownerUid === user?.uid)
@@ -59,7 +60,7 @@ export default function App() {
     if (!focusId || shops.loading || providers.loading || news.loading) return
     const target = liveShops.some((p) => p.id === focusId) ? 'market'
       : liveProviders.some((p) => p.id === focusId) ? 'services'
-      : liveNews.some((p) => p.id === focusId) ? 'news' : null
+      : SHOW_NEWS && liveNews.some((p) => p.id === focusId) ? 'news' : null
     setFocusId(null)
     clearPostParam()
     if (!target) return // deleted since it was shared
@@ -141,7 +142,7 @@ export default function App() {
           <nav className={styles.tabs}>
             {[
               ['home', '🏠 ' + t.navHome],
-              ['news', '📢 ' + t.navNews],
+              ...(SHOW_NEWS ? [['news', '📢 ' + t.navNews]] : []),
               ['market', '🛒 ' + t.navMarket],
               ['services', '🔧 ' + t.navServices],
               ...(isAdmin ? [['admin', '🛡️ ' + t.navAdmin]] : []),
@@ -215,7 +216,7 @@ export default function App() {
               onEdit={editProvider}
             />
           )}
-          {tab === 'news' && (
+          {tab === 'news' && SHOW_NEWS && (
             <NewsBoard posts={liveNews} loading={news.loading} onAdd={() => editNews(null)} onEdit={editNews} />
           )}
           {tab === 'admin' && isAdmin && (
