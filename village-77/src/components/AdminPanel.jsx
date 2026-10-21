@@ -40,7 +40,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner }) {
     if (!window.confirm(t.deleteConfirm)) return
     deletePost(p.collection, p.id).then(() => {
       deletePrivateAddress(p.id).catch(() => {})
-      if (p.collection === 'villageProviders') ratings.removeAll(p.id).catch(() => {})
+      ratings.removeAll(p.id).catch(() => {})
     }).catch((e) => {
       console.error('[village] admin delete failed:', e?.code)
       alert(t.saveFailed)

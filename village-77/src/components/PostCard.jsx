@@ -25,7 +25,7 @@ function formatPrice(price, t, lang) {
 // Average (read-only), the latest written reviews, and — for anyone but the
 // poster — a 1–5 picker showing their own rating, plus an optional short
 // comment once they've picked stars.
-function Stars({ postId, ratings, canPick }) {
+function Stars({ postId, ratings, canPick, askLabel }) {
   const { t } = useLangContext()
   const { requireSignIn } = useAuthContext()
   const { avg, count, mine, myComment, reviews } = ratings.get(postId)
@@ -95,7 +95,7 @@ function Stars({ postId, ratings, canPick }) {
 
       {canPick && (
         <div className={styles.ratingPick} onMouseLeave={() => setHover(0)}>
-          <span>{thanks ? t.ratingThanks : mine ? t.ratingYours : t.ratingAsk}</span>
+          <span>{thanks ? t.ratingThanks : mine ? t.ratingYours : askLabel}</span>
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
@@ -169,7 +169,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
     deletePost(collectionName, post.id).then(() => {
       deletePrivateAddress(post.id).catch(() => {}) // none saved for outsiders
       if (isOwner) deletePhotos(photosOf(post)) // the Worker only deletes the uploader's own
-      if (!isShop) ratings.removeAll(post.id).catch(() => {})
+      ratings.removeAll(post.id).catch(() => {})
     }).catch((e) => {
       console.error('[village] delete failed:', e?.code)
       alert(t.saveFailed)
@@ -201,6 +201,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
   // Board / home view of a shop: a short summary with a peek at its items;
   // tapping anywhere but a button opens the shop page with every item.
   if (compact) {
+    const shopRating = ratings.get(post.id)
     const cover = photos[0] || items.find((it) => it.photo)?.photo
     const forSale = items.filter((it) => !it.sold).length
     const open = (e) => { if (!e.target.closest('a, button')) onOpen(post) }
@@ -229,6 +230,13 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
             {tags.map((c) => <span key={c} className={styles.tag}>{t[tagPrefix + c]}</span>)}
           </div>
           <h3 className={styles.cardTitle}>{post.name}</h3>
+          {shopRating.count > 0 && (
+            <div className={styles.ratingSummary}>
+              <span className={styles.starsStatic} style={{ '--fill': `${(shopRating.avg / 5) * 100}%` }} aria-hidden="true">★★★★★</span>
+              <strong>{shopRating.avg.toFixed(1)}</strong>
+              <span>{interp(t.ratingCount, { n: shopRating.count })}</span>
+            </div>
+          )}
           {post.description && <p className={`${styles.desc} ${styles.clamp2}`}>{post.description}</p>}
 
           <div className={styles.itemPreview}>
@@ -297,7 +305,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
         </div>
 
         <h3 className={styles.cardTitle}>{post.name}</h3>
-        {!isShop && <Stars postId={post.id} ratings={ratings} canPick={!isOwner} />}
+        <Stars postId={post.id} ratings={ratings} canPick={!isOwner} askLabel={isShop ? t.ratingAskShop : t.ratingAsk} />
         {post.description && <p className={styles.desc}>{post.description}</p>}
 
         {isShop && items.length > 0 && (

@@ -17,9 +17,9 @@ export default function Board({
   const [picked, setPicked] = useState('') // one tag; '' = all
   const [search, setSearch] = useState('')
 
-  // Handymen can be sorted by rating (best first; unrated ones last).
+  // Sort by rating (best first; unrated ones last).
   const [sort, setSort] = useState('newest') // 'newest' | 'rating'
-  const canSortByRating = kind === 'provider'
+  const canSortByRating = true // shops and handymen both have ratings
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()

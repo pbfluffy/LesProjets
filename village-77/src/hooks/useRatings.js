@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { db, collection, query, limit, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from '../firebase'
 
-// 1–5 star ratings for handymen, with an optional short comment: one per
-// signed-in account per handyman, at villageRatings/{postId}_{uid}, so
+// 1–5 star ratings for handymen and shops, with an optional comment: one per
+// signed-in account per post, at villageRatings/{postId}_{uid}, so
 // re-rating overwrites. Anyone can read them; firestore.rules checks the id
 // is the rater's own.
 const RATINGS = 'villageRatings'
@@ -50,7 +50,7 @@ export function useRatings(user) {
     get: (postId) => byPost[postId] || { avg: 0, count: 0, mine: 0, myComment: '', reviews: [] },
     rate: (postId, stars) => write(postId, { stars }),
     comment: (postId, text) => write(postId, { comment: text.trim().slice(0, 200) }),
-    // When a handyman is deleted their ratings go too (owner or admin).
+    // When a post is deleted its ratings go too (owner or admin).
     removeAll: (postId) =>
       Promise.all(docs.filter((r) => r.postId === postId).map((r) => deleteDoc(doc(db, RATINGS, r.id)))),
   }

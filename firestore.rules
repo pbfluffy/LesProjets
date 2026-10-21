@@ -459,9 +459,16 @@ service cloud.firestore {
       allow delete: if isUser(resource.data.ownerUid) || isVillageAdmin();
     }
 
-    // 1–5 star handyman ratings, one per account per handyman: the doc id is
-    // {postId}_{rater's uid} (village-77/src/hooks/useRatings.js), so
-    // re-rating overwrites. Posters can't rate themselves.
+    // 1–5 star ratings for handymen and shops, one per account per post: the
+    // doc id is {postId}_{rater's uid} (village-77/src/hooks/useRatings.js),
+    // so re-rating overwrites. The post must exist, and posters can't rate
+    // themselves.
+    function ratablePostNotMine(postId) {
+      return (exists(/databases/$(database)/documents/villageProviders/$(postId))
+              && get(/databases/$(database)/documents/villageProviders/$(postId)).data.ownerUid != request.auth.uid)
+          || (exists(/databases/$(database)/documents/villageShops/$(postId))
+              && get(/databases/$(database)/documents/villageShops/$(postId)).data.ownerUid != request.auth.uid);
+    }
     match /villageRatings/{ratingId} {
       allow read: if true;
       allow create, update: if signedIn()
@@ -472,14 +479,15 @@ service cloud.firestore {
                                 || (request.resource.data.name is string && request.resource.data.name.size() <= 80))
                             && request.resource.data.postId is string
                             && ratingId == request.resource.data.postId + '_' + request.auth.uid
-                            && get(/databases/$(database)/documents/villageProviders/$(request.resource.data.postId)).data.ownerUid != request.auth.uid
+                            && ratablePostNotMine(request.resource.data.postId)
                             && request.resource.data.stars is int
                             && request.resource.data.stars >= 1
                             && request.resource.data.stars <= 5
                             && request.resource.data.updatedAt == request.time;
-      // Admins, or anyone once the handyman is gone (cleanup after a delete).
+      // Admins, or anyone once the post is gone (cleanup after a delete).
       allow delete: if isVillageAdmin()
-                    || !exists(/databases/$(database)/documents/villageProviders/$(resource.data.postId));
+                    || (!exists(/databases/$(database)/documents/villageProviders/$(resource.data.postId))
+                        && !exists(/databases/$(database)/documents/villageShops/$(resource.data.postId)));
     }
 
     // Village news (ประกาศหมู่บ้าน): lost & found, events, outages… Same
