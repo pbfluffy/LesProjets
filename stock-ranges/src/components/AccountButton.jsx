@@ -6,7 +6,7 @@ import styles from './AccountButton.module.css'
 
 const STATUS_LABEL_KEY = { syncing: 'acctSyncing', synced: 'acctSynced', error: 'acctSyncError' }
 
-export default function AccountButton({ user, syncStatus, onOpenNotifications }) {
+export default function AccountButton({ user, syncStatus }) {
   const { s } = useLang()
   const [open, setOpen] = useState(false)
   const [signingIn, setSigningIn] = useState(false)
@@ -73,11 +73,6 @@ export default function AccountButton({ user, syncStatus, onOpenNotifications })
                   <span className={styles.statusDot} data-status={syncStatus} />
                   {s[STATUS_LABEL_KEY[syncStatus]]}
                 </div>
-              )}
-              {onOpenNotifications && (
-                <button className={styles.menuBtn} onClick={() => { setOpen(false); onOpenNotifications() }}>
-                  <Icon name="bell" size={14} /> {s.notifMenu}
-                </button>
               )}
               <button className={styles.signOutBtn} onClick={handleSignOut}>{s.acctSignOut}</button>
             </>

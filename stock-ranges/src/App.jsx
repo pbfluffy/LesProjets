@@ -610,8 +610,13 @@ function Dashboard() {
             <button className={styles.ctrlBtn} onClick={handleRefresh} disabled={refreshing} data-loading={refreshing} title={s.refreshBtn} aria-label={s.refreshBtn}>
               <Icon name="refresh" size={15} />
             </button>
+            {cloudSync.user && (
+              <button className={styles.ctrlBtn} onClick={() => setNotificationsOpen(true)} title={s.notifMenu} aria-label={s.notifMenu}>
+                <Icon name="bell" size={16} />
+              </button>
+            )}
           </div>
-          <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} onOpenNotifications={() => setNotificationsOpen(true)} />
+          <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} />
         </div>
       </div>
 

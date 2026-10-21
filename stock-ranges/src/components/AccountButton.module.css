@@ -136,23 +136,6 @@
 .statusDot[data-status='error'],
 .statusDot[data-status='awaiting-decision'] { background: var(--color-red); }
 
-.menuBtn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 36px;
-  margin-bottom: 8px;
-  padding: 6px 10px;
-  background: transparent;
-  border: 0.5px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  color: var(--color-text);
-  text-align: left;
-}
-.menuBtn:hover { background: var(--color-surface-alt); }
-
 .signOutBtn {
   display: block;
   margin-left: auto;
