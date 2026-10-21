@@ -3,7 +3,7 @@ import PostCard from './PostCard'
 import { NewsCard } from './NewsBoard'
 import styles from './ui.module.css'
 
-export default function Home({ shops, providers, news, ratings, onGo, onEditShop, onEditProvider, onEditNews }) {
+export default function Home({ shops, providers, news, ratings, onGo, onEditShop, onEditProvider, onEditNews, onOpenShop }) {
   const { t } = useLangContext()
   const itemsForSale = shops.reduce((n, s) => n + (s.items || []).filter((it) => !it.sold).length, 0)
 
@@ -47,7 +47,8 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
           </div>
           <div className={styles.grid}>
             {shops.slice(0, 4).map((p) => (
-              <PostCard key={p.id} kind="shop" collectionName="villageShops" post={p} ratings={ratings} onEdit={onEditShop} />
+              <PostCard key={p.id} kind="shop" collectionName="villageShops" post={p} ratings={ratings} onEdit={onEditShop}
+                compact onOpen={(post) => onOpenShop(post.id)} />
             ))}
           </div>
         </>

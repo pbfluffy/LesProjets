@@ -10,6 +10,7 @@ import PostForm from './components/PostForm'
 import AdminPanel from './components/AdminPanel'
 import SignInSheet from './components/SignInSheet'
 import AdminEntrySheet from './components/AdminEntrySheet'
+import ShopPage from './components/ShopPage'
 import Tour, { TOUR_KEY } from './components/Tour'
 import NewsBoard from './components/NewsBoard'
 import NewsForm from './components/NewsForm'
@@ -62,6 +63,31 @@ export default function App() {
 
   // A shared post link (?p=<id>, see share.js): once posts have loaded, open
   // the right tab, scroll to that card and flash it.
+  // The open shop page (ShopPage). It's pushed into the address bar as
+  // ?p=<id>, so the phone's back button closes it and the link can be shared.
+  const [openShopId, setOpenShopId] = useState(null)
+  function openShop(id) {
+    setOpenShopId(id)
+    window.history.pushState({ shop: id }, '', '?p=' + encodeURIComponent(id))
+  }
+  function closeShop() {
+    if (window.history.state?.shop) window.history.back() // popstate below clears it
+    else {
+      setOpenShopId(null)
+      clearPostParam()
+    }
+  }
+  useEffect(() => {
+    const onPop = () => setOpenShopId(window.history.state?.shop || null)
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+  const shownShop = openShopId && liveShops.find((p) => p.id === openShopId)
+  // Deleted (or hidden) while open: close the page.
+  useEffect(() => {
+    if (openShopId && !shops.loading && !shownShop) closeShop()
+  }, [openShopId, shops.loading, shownShop])
+
   const [focusId, setFocusId] = useState(readPostParam)
   useEffect(() => {
     if (!focusId || shops.loading || providers.loading || news.loading) return
@@ -72,6 +98,8 @@ export default function App() {
     clearPostParam()
     if (!target) return // deleted since it was shared
     setTab(target)
+    // A shop link opens the shop page itself (on top of the marketplace).
+    if (target === 'market') return openShop(focusId)
     setTimeout(() => {
       const el = document.getElementById('post-' + focusId)
       if (!el) return
@@ -198,6 +226,7 @@ export default function App() {
               ratings={ratings}
               onGo={setTab}
               onEditShop={editShop}
+              onOpenShop={openShop}
               onEditProvider={editProvider}
               onEditNews={editNews}
             />
@@ -216,6 +245,7 @@ export default function App() {
               addLabel={t.addShop}
               onAdd={() => editShop(null)}
               onEdit={editShop}
+              onOpenShop={openShop}
             />
           )}
           {tab === 'services' && (
@@ -241,6 +271,10 @@ export default function App() {
             <AdminPanel shops={shops.posts} providers={providers.posts} ratings={ratings} isOwner={isOwner} />
           )}
         </main>
+
+        {shownShop && (
+          <ShopPage post={shownShop} ratings={ratings} onEdit={editShop} onClose={closeShop} />
+        )}
 
         {editingNews && user && (
           <NewsForm post={editingNews.post} user={user} onClose={() => setEditingNews(null)} />

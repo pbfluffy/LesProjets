@@ -135,7 +135,7 @@
 .lightbox {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 250; /* photo zoom: above forms and the shop page */
   background: rgba(0, 0, 0, 0.88);
   display: flex;
   align-items: center;
@@ -185,6 +185,81 @@
   padding: 3px 8px;
 }
 
+
+/* Compact shop card on the boards (tap to open the shop) */
+.shopCard { cursor: pointer; transition: transform 0.1s, box-shadow 0.15s; }
+.shopCard:active { transform: scale(0.99); }
+.shopCard .photoWrap { aspect-ratio: 16 / 9; overflow: hidden; } /* shorter cover than on the shop page; overflow keeps the photo from stretching it */
+.shopCard:focus-visible { outline: 2px solid var(--color-green); outline-offset: 2px; }
+.clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.itemPreview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+}
+.previewThumbs { display: flex; flex: 0 0 auto; }
+.previewThumbs img, .previewEmpty {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid var(--color-surface-alt);
+  margin-left: -8px;
+  background: var(--color-surface);
+}
+.previewThumbs > :first-child { margin-left: 0; }
+.previewEmpty { display: flex; align-items: center; justify-content: center; font-size: 15px; }
+.previewSold { opacity: 0.45; }
+.previewText { flex: 1; min-width: 0; font-size: 13px; font-weight: 500; }
+.previewText small { color: var(--color-text-muted); font-weight: 400; }
+.seeAll { flex: 0 0 auto; font-size: 13px; color: var(--color-green); font-weight: 600; }
+.staleBadge { font-size: 12px; color: var(--color-amber); }
+
+/* Shop page (opened from a compact card) */
+.shopPage {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  animation: shopIn 0.18s ease-out;
+}
+@keyframes shopIn { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+.shopPageBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px;
+  border-bottom: 0.5px solid var(--color-border);
+  background: var(--color-bg);
+}
+.shopBack {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 20px;
+}
+.shopPageTitle { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shopPageBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+/* Bigger item rows on the shop page */
+.shopPageBody .item { padding: 10px 0; }
+.shopPageBody .itemPhoto { width: 72px; height: 72px; border-radius: var(--radius-md); }
+.shopPageBody .itemName { font-size: 15px; }
+.shopPageBody .itemPrice { font-size: 15px; }
 
 /* Handyman star rating */
 .rating { display: flex; flex-direction: column; gap: 4px; }
@@ -350,7 +425,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 200; /* forms and sheets: above the shop page (150) */
   background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: flex-end;
@@ -479,3 +554,4 @@
 .error { color: var(--color-red); font-size: 13px; }
 
 .sheetActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.itemsHead { font-size: 13px; font-weight: 600; color: var(--color-text-muted); margin-top: 4px; }

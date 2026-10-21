@@ -147,7 +147,7 @@ function lineUrl(id) {
 // items they sell listed inside the card) or 'provider' (a handyman).
 // The poster gets Edit / Delete, plus a per-item sold toggle on shops;
 // admins get Delete.
-export default function PostCard({ kind, collectionName, post, ratings, onEdit }) {
+export default function PostCard({ kind, collectionName, post, ratings, onEdit, compact = false, onOpen }) {
   const { t, lang } = useLangContext()
   const { user, isAdmin } = useAuthContext()
   const isOwner = !!user && user.uid === post.ownerUid
@@ -198,6 +198,73 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit }
     })
   }
 
+  // Board / home view of a shop: a short summary with a peek at its items;
+  // tapping anywhere but a button opens the shop page with every item.
+  if (compact) {
+    const cover = photos[0] || items.find((it) => it.photo)?.photo
+    const forSale = items.filter((it) => !it.sold).length
+    const open = (e) => { if (!e.target.closest('a, button')) onOpen(post) }
+    return (
+      <article
+        className={`${styles.card} ${styles.shopCard}`}
+        id={'post-' + post.id}
+        onClick={open}
+        onKeyDown={(e) => e.key === 'Enter' && e.target === e.currentTarget && onOpen(post)}
+        role="link"
+        tabIndex={0}
+        aria-label={interp(t.shopOpen, { name: post.name })}
+      >
+        {cover && (
+          <div className={styles.photoWrap}>
+            <img className={styles.photo} src={cover} alt="" loading="lazy" />
+            {photos.length + items.filter((it) => it.photo).length > 1 && (
+              <span className={styles.photoCount}>📷 {photos.length + items.filter((it) => it.photo).length}</span>
+            )}
+          </div>
+        )}
+        <div className={styles.cardBody}>
+          <div className={styles.cardTags}>
+            <ResidencyBadge isResident={post.isResident} />
+            {post.isResident && post.verified && <span className={`${styles.badge} ${styles.badgeVerified}`}>✓ {t.verified}</span>}
+            {tags.map((c) => <span key={c} className={styles.tag}>{t[tagPrefix + c]}</span>)}
+          </div>
+          <h3 className={styles.cardTitle}>{post.name}</h3>
+          {post.description && <p className={`${styles.desc} ${styles.clamp2}`}>{post.description}</p>}
+
+          <div className={styles.itemPreview}>
+            <div className={styles.previewThumbs}>
+              {items.slice(0, 4).map((it, i) => (
+                it.photo
+                  ? <img key={i} src={it.photo} alt="" loading="lazy" className={it.sold ? styles.previewSold : ''} />
+                  : <span key={i} className={styles.previewEmpty}>🛍️</span>
+              ))}
+            </div>
+            <span className={styles.previewText}>
+              {interp(t.shopItemCount, { n: items.length })}
+              {forSale < items.length && <small> · {interp(t.shopForSale, { n: forSale })}</small>}
+            </span>
+            <span className={styles.seeAll}>{t.shopSeeAll} ›</span>
+          </div>
+
+          <div className={styles.actions}>
+            {post.phone && (
+              <a className={styles.contactBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')}>
+                📞 {t.call}
+              </a>
+            )}
+            {post.line && (
+              <a className={`${styles.contactBtn} ${styles.lineBtn}`} href={lineUrl(post.line)} target="_blank" rel="noopener noreferrer">
+                💬 {t.line}
+              </a>
+            )}
+          </div>
+          <span className={styles.meta}>🕒 {updatedLabel(post, t, lang)}</span>
+          {isOwner && isStale(post) && <span className={styles.staleBadge}>{t.staleShort}</span>}
+        </div>
+      </article>
+    )
+  }
+
   return (
     <article className={styles.card} id={'post-' + post.id}>
       {photos.length > 0 && (
@@ -234,6 +301,8 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit }
         {post.description && <p className={styles.desc}>{post.description}</p>}
 
         {isShop && items.length > 0 && (
+          <>
+          <h4 className={styles.itemsHead}>{interp(t.shopItemsHead, { n: items.length })}</h4>
           <ul className={styles.items}>
             {items.map((it, i) => (
               <li key={i} className={`${styles.item} ${it.sold ? styles.itemSold : ''}`}>
@@ -252,6 +321,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit }
               </li>
             ))}
           </ul>
+          </>
         )}
 
         <div className={styles.actions}>
