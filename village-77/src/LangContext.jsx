@@ -4,7 +4,7 @@ export const LangContext = createContext(null)
 
 // Categories are stored by key in Firestore so a post reads in either
 // language; only the labels live here.
-export const MARKET_CATEGORIES = ['food', 'home', 'clothes', 'electronics', 'plants', 'vehicles', 'other']
+export const MARKET_CATEGORIES = ['food', 'home', 'clothes', 'electronics', 'plants', 'pets', 'vehicles', 'other']
 export const TRADES = ['electrician', 'plumber', 'aircon', 'builder', 'painter', 'gardener', 'cleaning', 'mechanic', 'other']
 export const NEWS_KINDS = ['general', 'lost', 'event', 'outage', 'safety']
 
@@ -205,6 +205,7 @@ export const STRINGS = {
     cat_clothes: 'เสื้อผ้า',
     cat_electronics: 'เครื่องใช้ไฟฟ้า',
     cat_plants: 'ต้นไม้',
+    cat_pets: 'สัตว์เลี้ยง',
     cat_vehicles: 'ยานพาหนะ',
     cat_other: 'อื่นๆ',
 
@@ -414,6 +415,7 @@ export const STRINGS = {
     cat_clothes: 'Clothes',
     cat_electronics: 'Electronics',
     cat_plants: 'Plants',
+    cat_pets: 'Pets',
     cat_vehicles: 'Vehicles',
     cat_other: 'Other',
 
