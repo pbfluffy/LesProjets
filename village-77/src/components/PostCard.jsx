@@ -84,7 +84,8 @@ export default function PostCard({ kind, collectionName, post, my, ratings, onEd
   const { t, lang } = useLangContext()
   const isOwner = my.isMine(post.id)
   const isShop = kind === 'shop'
-  const tag = isShop ? t['cat_' + post.category] : t['trade_' + post.trade]
+  const tags = (isShop ? post.categories : post.trades) || []
+  const tagPrefix = isShop ? 'cat_' : 'trade_'
   const photos = post.photos || []
   const items = post.items || []
   const [shown, setShown] = useState(0) // index of the photo scrolled into view
@@ -142,7 +143,7 @@ export default function PostCard({ kind, collectionName, post, my, ratings, onEd
       <div className={styles.cardBody}>
         <div className={styles.cardTags}>
           <ResidencyBadge isResident={post.isResident} />
-          {tag && <span className={styles.tag}>{tag}</span>}
+          {tags.map((c) => <span key={c} className={styles.tag}>{t[tagPrefix + c]}</span>)}
         </div>
 
         <h3 className={styles.cardTitle}>{post.name}</h3>

@@ -397,14 +397,14 @@ service cloud.firestore {
     function validVillageShop(d) {
       return validVillagePost(d)
           && d.name.size() > 0
-          && d.category is string && d.category.size() <= 30
+          && d.categories is list && d.categories.size() > 0 && d.categories.size() <= 10
           && d.photos.size() <= 2
           && d.items is list && d.items.size() > 0 && d.items.size() <= 15;
     }
     function validVillageProvider(d) {
       return validVillagePost(d)
           && d.name.size() > 0
-          && d.trade is string && d.trade.size() <= 30;
+          && d.trades is list && d.trades.size() > 0 && d.trades.size() <= 10;
     }
     match /villageShops/{postId} {
       allow read:   if true;

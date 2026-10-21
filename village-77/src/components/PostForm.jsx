@@ -16,8 +16,7 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
   const maxPhotos = isShop ? 2 : 4
   const [f, setF] = useState(() => ({
     name: post?.name || '',
-    category: post?.category || MARKET_CATEGORIES[0],
-    trade: post?.trade || TRADES[0],
+    tags: (isShop ? post?.categories : post?.trades) || [],
     description: post?.description || '',
     phone: post?.phone || '',
     line: post?.line || '',
@@ -36,6 +35,11 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
     const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value
     setF((prev) => ({ ...prev, [key]: v }))
   }
+
+  const toggleTag = (c) => setF((prev) => ({
+    ...prev,
+    tags: prev.tags.includes(c) ? prev.tags.filter((x) => x !== c) : [...prev.tags, c],
+  }))
 
   async function handlePhotos(e) {
     const files = Array.from(e.target.files || []).slice(0, maxPhotos - f.photos.length)
@@ -80,6 +84,10 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (!f.tags.length) {
+      setError(t.fTagsRequired)
+      return
+    }
     if (!f.phone.trim() && !f.line.trim()) {
       setError(t.fContactRequired)
       return
@@ -105,10 +113,10 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
         setError(t.fItemsRequired)
         return
       }
-      data.category = f.category
+      data.categories = f.tags
       data.items = items
     } else {
-      data.trade = f.trade
+      data.trades = f.tags
     }
     if (JSON.stringify(data).length > MAX_DOC_CHARS) {
       setError(t.tooManyPhotos)
@@ -149,21 +157,23 @@ export default function PostForm({ kind, collectionName, post, onCreated, onClos
           <input required maxLength={80} value={f.name} onChange={set('name')} placeholder={isShop ? t.fShopNamePh : t.fNamePh} />
         </label>
 
-        {isShop ? (
-          <label className={styles.field}>
-            <span>{t.fCategory}</span>
-            <select value={f.category} onChange={set('category')}>
-              {MARKET_CATEGORIES.map((c) => <option key={c} value={c}>{t['cat_' + c]}</option>)}
-            </select>
-          </label>
-        ) : (
-          <label className={styles.field}>
-            <span>{t.fTrade}</span>
-            <select value={f.trade} onChange={set('trade')}>
-              {TRADES.map((c) => <option key={c} value={c}>{t['trade_' + c]}</option>)}
-            </select>
-          </label>
-        )}
+        {/* Tags: a shop can sell in several categories, a handyman can do several trades */}
+        <div className={styles.field}>
+          <span>{isShop ? t.fCategories : t.fTrades} *</span>
+          <div className={styles.chipsWrap}>
+            {(isShop ? MARKET_CATEGORIES : TRADES).map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-pressed={f.tags.includes(c)}
+                className={`${styles.chip} ${f.tags.includes(c) ? styles.chipActive : ''}`}
+                onClick={() => toggleTag(c)}
+              >
+                {t[(isShop ? 'cat_' : 'trade_') + c]}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <label className={styles.field}>
           <span>{t.fDescription}</span>

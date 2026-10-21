@@ -102,9 +102,9 @@ export default function App() {
             loading={shops.loading}
             my={my}
             ratings={ratings}
-            categories={MARKET_CATEGORIES}
-            categoryField="category"
-            categoryPrefix="cat_"
+            tags={MARKET_CATEGORIES}
+            tagField="categories"
+            tagPrefix="cat_"
             emptyText={t.emptyMarket}
             addLabel={t.addShop}
             onAdd={() => editShop(null)}
@@ -119,9 +119,9 @@ export default function App() {
             loading={providers.loading}
             my={my}
             ratings={ratings}
-            categories={TRADES}
-            categoryField="trade"
-            categoryPrefix="trade_"
+            tags={TRADES}
+            tagField="trades"
+            tagPrefix="trade_"
             emptyText={t.emptyServices}
             addLabel={t.addProvider}
             onAdd={() => editProvider(null)}

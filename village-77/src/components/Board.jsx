@@ -4,16 +4,17 @@ import PostCard from './PostCard'
 import styles from './ui.module.css'
 
 // The marketplace and handyman pages share this: residency filter (the
-// villager / outsider split), category chips and a text search over a live
-// list of posts.
+// villager / outsider split), tag chips and a text search over a live
+// list of posts. Tags work like tagging, not one-of: pick several and a post
+// matches if it has any of them (a shop can sell food and plants).
 export default function Board({
   kind, collectionName, posts, loading, my, ratings,
-  categories, categoryField, categoryPrefix,
+  tags, tagField, tagPrefix,
   emptyText, addLabel, onAdd, onEdit,
 }) {
   const { t } = useLangContext()
   const [residency, setResidency] = useState('all') // 'all' | 'resident' | 'outsider'
-  const [category, setCategory] = useState('')
+  const [picked, setPicked] = useState([]) // selected tags; empty = all
   const [search, setSearch] = useState('')
 
   const filtered = useMemo(() => {
@@ -21,7 +22,7 @@ export default function Board({
     return posts.filter((p) => {
       if (residency === 'resident' && !p.isResident) return false
       if (residency === 'outsider' && p.isResident) return false
-      if (category && p[categoryField] !== category) return false
+      if (picked.length && !(p[tagField] || []).some((c) => picked.includes(c))) return false
       if (q) {
         const itemNames = (p.items || []).map((it) => it.name)
         const hay = [p.name, p.description, ...itemNames].filter(Boolean).join(' ').toLowerCase()
@@ -29,7 +30,9 @@ export default function Board({
       }
       return true
     })
-  }, [posts, residency, category, search, categoryField])
+  }, [posts, residency, picked, search, tagField])
+
+  const toggle = (c) => setPicked((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))
 
   return (
     <section>
@@ -64,22 +67,23 @@ export default function Board({
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        <div className={styles.chips}>
+        <div className={styles.chipsWrap}>
           <button
             type="button"
-            className={`${styles.chip} ${category === '' ? styles.chipActive : ''}`}
-            onClick={() => setCategory('')}
+            className={`${styles.chip} ${picked.length === 0 ? styles.chipActive : ''}`}
+            onClick={() => setPicked([])}
           >
             {t.allCategories}
           </button>
-          {categories.map((c) => (
+          {tags.map((c) => (
             <button
               key={c}
               type="button"
-              className={`${styles.chip} ${category === c ? styles.chipActive : ''}`}
-              onClick={() => setCategory(category === c ? '' : c)}
+              aria-pressed={picked.includes(c)}
+              className={`${styles.chip} ${picked.includes(c) ? styles.chipActive : ''}`}
+              onClick={() => toggle(c)}
             >
-              {t[categoryPrefix + c]}
+              {t[tagPrefix + c]}
             </button>
           ))}
         </div>
