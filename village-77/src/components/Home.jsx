@@ -2,7 +2,7 @@ import { useLangContext, interp } from '../LangContext'
 import PostCard from './PostCard'
 import styles from './ui.module.css'
 
-export default function Home({ shops, providers, ratings, onGo, onEditShop, onEditProvider, onAdminSignIn }) {
+export default function Home({ shops, providers, ratings, onGo, onEditShop, onEditProvider }) {
   const { t } = useLangContext()
   const itemsForSale = shops.reduce((n, s) => n + (s.items || []).filter((it) => !it.sold).length, 0)
 
@@ -52,12 +52,6 @@ export default function Home({ shops, providers, ratings, onGo, onEditShop, onEd
             ))}
           </div>
         </>
-      )}
-      {/* Admins sign in with Google; villagers use LINE from the header. */}
-      {onAdminSignIn && (
-        <p className={styles.adminLink}>
-          <button type="button" className={styles.linkBtn} onClick={onAdminSignIn}>{t.adminSignIn}</button>
-        </p>
       )}
     </section>
   )

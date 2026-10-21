@@ -9,6 +9,7 @@ import Board from './components/Board'
 import PostForm from './components/PostForm'
 import AdminPanel from './components/AdminPanel'
 import SignInSheet from './components/SignInSheet'
+import AdminEntrySheet from './components/AdminEntrySheet'
 import styles from './App.module.css'
 
 const SHOPS = 'villageShops'
@@ -24,6 +25,8 @@ export default function App() {
   // { kind: 'shop' | 'provider', post: existing post or null } while the form is open
   const [editing, setEditing] = useState(null)
   const [askSignIn, setAskSignIn] = useState(false)
+  // Admin sign-in has no button in the app: open the page with ?admin.
+  const [adminEntry, setAdminEntry] = useState(() => new URLSearchParams(window.location.search).has('admin'))
 
   const shops = usePosts(SHOPS)
   const providers = usePosts(PROVIDERS)
@@ -31,6 +34,16 @@ export default function App() {
 
   useEffect(() => { window.scrollTo(0, 0) }, [tab])
   useEffect(() => { if (tab === 'admin' && !isAdmin) setTab('home') }, [tab, isAdmin])
+  useEffect(() => {
+    if (!adminEntry || !isAdmin) return
+    setTab('admin')
+    closeAdminEntry()
+  }, [adminEntry, isAdmin])
+
+  function closeAdminEntry() {
+    setAdminEntry(false)
+    window.history.replaceState(null, '', window.location.pathname)
+  }
 
   // Posting and rating need an account; browsing doesn't.
   function requireSignIn() {
@@ -127,7 +140,6 @@ export default function App() {
               onGo={setTab}
               onEditShop={editShop}
               onEditProvider={editProvider}
-              onAdminSignIn={user ? null : auth.adminSignIn}
             />
           )}
           {tab === 'market' && (
@@ -174,6 +186,15 @@ export default function App() {
             post={editing.post}
             user={user}
             onClose={() => setEditing(null)}
+          />
+        )}
+
+        {adminEntry && !isAdmin && (
+          <AdminEntrySheet
+            user={user}
+            onGoogle={auth.adminSignIn}
+            onSignOut={auth.signOut}
+            onClose={closeAdminEntry}
           />
         )}
 
