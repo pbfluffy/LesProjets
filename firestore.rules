@@ -532,7 +532,10 @@ service cloud.firestore {
     // for the random "do you really live here" checks: only admins read it
     // (the app's admin tab); the poster writes it but can never read it back.
     match /villagePrivate/{postId} {
-      allow read:   if isVillageAdmin();
+      allow list:   if isVillageAdmin();
+      // Admins, and the poster for their own post (so the edit form can show it).
+      allow get:    if isVillageAdmin()
+                    || (signedIn() && get(/databases/$(database)/documents/$(resource.data.collection)/$(postId)).data.ownerUid == request.auth.uid);
       // The poster sets it from the post form; an admin can correct it from
       // the admin tab (their uid goes in updatedBy).
       allow create, update: if signedIn()

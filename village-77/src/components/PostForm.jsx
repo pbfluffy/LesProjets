@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLangContext, interp, MARKET_CATEGORIES, TRADES } from '../LangContext'
-import { createPost, updatePost, savePrivateAddress, deletePrivateAddress } from '../hooks/usePosts'
+import { createPost, updatePost, savePrivateAddress, deletePrivateAddress, loadPrivateAddress } from '../hooks/usePosts'
 import { uploadPhoto, PHOTO_ITEM, photosOf, deletePhotos } from '../photo'
 import styles from './ui.module.css'
 
@@ -34,6 +34,19 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
   // saved (removed again, or the form cancelled) can be deleted.
   const uploaded = useRef([])
   const createdId = useRef(null)
+  // Editing a villager's post: load their saved house no. into the form.
+  const [addressLoading, setAddressLoading] = useState(() => !!post?.isResident)
+  useEffect(() => {
+    if (!post?.isResident) return
+    let cancelled = false
+    loadPrivateAddress(post.id).then((address) => {
+      if (cancelled) return
+      setF((prev) => (prev.address ? prev : { ...prev, address }))
+      setAddressLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [post])
+
   // Opened from "+ Add item": jump straight to the new, empty item.
   const lastItemName = useRef(null)
   useEffect(() => {
@@ -109,6 +122,11 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
     e.preventDefault()
     if (!f.tags.length) {
       setError(t.fTagsRequired)
+      return
+    }
+    // Villagers must give a house no. — it's what admins check them against.
+    if (f.isResident && !f.address.trim()) {
+      setError(t.fAddressRequired)
       return
     }
     if (!f.phone.trim() && !f.line.trim()) {
@@ -245,14 +263,14 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
           </span>
         </label>
 
-        {/* Villagers only. Saved to the admin-only villagePrivate collection,
-            never on the public post — so it can't be read back here when
-            editing; left blank, the saved one is kept. */}
+        {/* Villagers only, and required: admins check villagers against it.
+            Saved to villagePrivate (admins + this poster only), never on the
+            public post; when editing, the saved one is loaded back in. */}
         {f.isResident && (
           <label className={styles.field}>
-            <span>{t.fAddress}</span>
-            <input maxLength={120} value={f.address} onChange={set('address')}
-              placeholder={post ? t.fAddressKeepPh : t.fAddressPh} />
+            <span>{t.fAddress} *</span>
+            <input required maxLength={120} value={f.address} onChange={set('address')}
+              placeholder={addressLoading ? t.loading : t.fAddressPh} disabled={addressLoading} />
             <small className={styles.privateNote}>🔒 {t.fAddressPrivate}</small>
           </label>
         )}

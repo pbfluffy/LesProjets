@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   db, collection, query, orderBy, limit, onSnapshot,
-  addDoc, setDoc, updateDoc, deleteDoc, doc, serverTimestamp,
+  addDoc, setDoc, getDoc, updateDoc, deleteDoc, doc, serverTimestamp,
 } from '../firebase'
 
 // Live list of one collection (villageShops | villageProviders), newest
@@ -63,4 +63,14 @@ export function savePrivateAddress(postId, collectionName, address, updatedBy) {
 
 export function deletePrivateAddress(postId) {
   return deleteDoc(doc(db, PRIVATE, postId))
+}
+
+// The poster's own saved house no. ('' if none, or not readable).
+export async function loadPrivateAddress(postId) {
+  try {
+    const snap = await getDoc(doc(db, PRIVATE, postId))
+    return snap.exists() ? snap.data().address || '' : ''
+  } catch {
+    return ''
+  }
 }
