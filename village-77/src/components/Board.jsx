@@ -7,7 +7,7 @@ import styles from './ui.module.css'
 // villager / outsider split), category chips and a text search over a live
 // list of posts.
 export default function Board({
-  kind, collectionName, posts, loading, my,
+  kind, collectionName, posts, loading, my, ratings,
   categories, categoryField, categoryPrefix,
   emptyText, addLabel, onAdd, onEdit,
 }) {
@@ -94,7 +94,7 @@ export default function Board({
       ) : (
         <div className={styles.grid}>
           {filtered.map((p) => (
-            <PostCard key={p.id} kind={kind} collectionName={collectionName} post={p} my={my} onEdit={onEdit} />
+            <PostCard key={p.id} kind={kind} collectionName={collectionName} post={p} my={my} ratings={ratings} onEdit={onEdit} />
           ))}
         </div>
       )}

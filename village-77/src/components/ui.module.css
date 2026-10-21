@@ -185,6 +185,33 @@
 }
 
 
+/* Handyman star rating */
+.rating { display: flex; flex-direction: column; gap: 4px; }
+.ratingSummary { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-muted); }
+.ratingSummary strong { color: var(--color-text); font-weight: 600; }
+/* Partial fill: gold up to --fill, grey after */
+.starsStatic {
+  font-size: 15px;
+  letter-spacing: 1px;
+  background: linear-gradient(90deg, #f5a623 var(--fill), var(--color-border-strong) var(--fill));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ratingPick { display: flex; align-items: center; gap: 2px; font-size: 12px; color: var(--color-text-muted); }
+.ratingPick > span { margin-right: 6px; }
+.starBtn {
+  border: none;
+  background: none;
+  padding: 2px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--color-border-strong);
+  transition: color 0.1s, transform 0.1s;
+}
+.starBtn:active { transform: scale(1.2); }
+.starOn { color: #f5a623; }
+
 .cardBody { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .cardTags { display: flex; flex-wrap: wrap; gap: 6px; }
 .badge, .tag {

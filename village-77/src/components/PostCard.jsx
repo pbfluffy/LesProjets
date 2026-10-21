@@ -18,6 +18,59 @@ function formatPrice(price, t, lang) {
   return '฿' + price.toLocaleString(lang === 'th' ? 'th-TH' : 'en-US')
 }
 
+// Average (read-only) and, for anyone but the poster, a 1–5 picker that
+// shows this phone's own rating and can change it.
+function Stars({ postId, ratings, canPick }) {
+  const { t } = useLangContext()
+  const { avg, count, mine } = ratings.get(postId)
+  const [hover, setHover] = useState(0)
+  const [thanks, setThanks] = useState(false)
+
+  function pick(n) {
+    ratings.rate(postId, n).then(() => {
+      setThanks(true)
+      setTimeout(() => setThanks(false), 2000)
+    }).catch((e) => {
+      console.error('[village] rating failed:', e?.code)
+      alert(t.saveFailed)
+    })
+  }
+
+  return (
+    <div className={styles.rating}>
+      <div className={styles.ratingSummary}>
+        {count > 0 ? (
+          <>
+            <span className={styles.starsStatic} style={{ '--fill': `${(avg / 5) * 100}%` }} aria-hidden="true">★★★★★</span>
+            <strong>{avg.toFixed(1)}</strong>
+            <span>{interp(t.ratingCount, { n: count })}</span>
+          </>
+        ) : (
+          <span>{t.ratingNone}</span>
+        )}
+      </div>
+      {canPick && ratings.canRate && (
+        <div className={styles.ratingPick} onMouseLeave={() => setHover(0)}>
+          <span>{thanks ? t.ratingThanks : mine ? t.ratingYours : t.ratingAsk}</span>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={`${styles.starBtn} ${n <= (hover || mine) ? styles.starOn : ''}`}
+              onMouseEnter={() => setHover(n)}
+              onClick={() => pick(n)}
+              aria-label={interp(t.ratingStars, { n })}
+              aria-pressed={mine === n}
+            >
+              ★
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // LINE accepts a plain ID via the ~ profile link (opens the app on phones).
 function lineUrl(id) {
   return 'https://line.me/ti/p/~' + encodeURIComponent(id.replace(/^@?/, ''))
@@ -27,7 +80,7 @@ function lineUrl(id) {
 // items they sell listed inside the card) or 'provider' (a handyman).
 // The device that created the post gets Edit / Delete, plus a per-item
 // sold toggle on shops.
-export default function PostCard({ kind, collectionName, post, my, onEdit }) {
+export default function PostCard({ kind, collectionName, post, my, ratings, onEdit }) {
   const { t, lang } = useLangContext()
   const isOwner = my.isMine(post.id)
   const isShop = kind === 'shop'
@@ -47,6 +100,7 @@ export default function PostCard({ kind, collectionName, post, my, onEdit }) {
     deletePost(collectionName, post.id).then(() => {
       my.removeMine(post.id)
       deletePrivateAddress(post.id).catch(() => {}) // none saved for outsiders
+      if (!isShop) ratings.removeAll(post.id).catch(() => {})
     }).catch((e) => {
       console.error('[village] delete failed:', e?.code)
       alert(t.saveFailed)
@@ -92,6 +146,7 @@ export default function PostCard({ kind, collectionName, post, my, onEdit }) {
         </div>
 
         <h3 className={styles.cardTitle}>{post.name}</h3>
+        {!isShop && <Stars postId={post.id} ratings={ratings} canPick={!isOwner} />}
         {post.description && <p className={styles.desc}>{post.description}</p>}
 
         {isShop && items.length > 0 && (

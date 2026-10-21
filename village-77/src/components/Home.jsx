@@ -2,7 +2,7 @@ import { useLangContext, interp } from '../LangContext'
 import PostCard from './PostCard'
 import styles from './ui.module.css'
 
-export default function Home({ shops, providers, my, onGo, onEditShop, onEditProvider }) {
+export default function Home({ shops, providers, my, ratings, onGo, onEditShop, onEditProvider }) {
   const { t } = useLangContext()
   const itemsForSale = shops.reduce((n, s) => n + (s.items || []).filter((it) => !it.sold).length, 0)
 
@@ -34,7 +34,7 @@ export default function Home({ shops, providers, my, onGo, onEditShop, onEditPro
           </div>
           <div className={styles.grid}>
             {shops.slice(0, 4).map((p) => (
-              <PostCard key={p.id} kind="shop" collectionName="villageShops" post={p} my={my} onEdit={onEditShop} />
+              <PostCard key={p.id} kind="shop" collectionName="villageShops" post={p} my={my} ratings={ratings} onEdit={onEditShop} />
             ))}
           </div>
         </>
@@ -48,7 +48,7 @@ export default function Home({ shops, providers, my, onGo, onEditShop, onEditPro
           </div>
           <div className={styles.grid}>
             {providers.slice(0, 4).map((p) => (
-              <PostCard key={p.id} kind="provider" collectionName="villageProviders" post={p} my={my} onEdit={onEditProvider} />
+              <PostCard key={p.id} kind="provider" collectionName="villageProviders" post={p} my={my} ratings={ratings} onEdit={onEditProvider} />
             ))}
           </div>
         </>

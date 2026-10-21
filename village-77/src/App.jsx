@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTheme, useLang } from './hooks/useThemeLang'
 import { usePosts } from './hooks/usePosts'
 import { useMyPosts } from './hooks/useMyPosts'
+import { useRatings } from './hooks/useRatings'
 import { LangContext, STRINGS, MARKET_CATEGORIES, TRADES } from './LangContext'
 import Home from './components/Home'
 import Board from './components/Board'
@@ -15,6 +16,7 @@ export default function App() {
   const [theme, setTheme] = useTheme()
   const [lang, setLang] = useLang()
   const my = useMyPosts()
+  const ratings = useRatings()
   const [tab, setTab] = useState('home') // 'home' | 'market' | 'services'
   // { kind: 'shop' | 'provider', post: existing post or null } while the form is open
   const [editing, setEditing] = useState(null)
@@ -86,6 +88,7 @@ export default function App() {
             shops={shops.posts}
             providers={providers.posts}
             my={my}
+            ratings={ratings}
             onGo={setTab}
             onEditShop={editShop}
             onEditProvider={editProvider}
@@ -98,6 +101,7 @@ export default function App() {
             posts={shops.posts}
             loading={shops.loading}
             my={my}
+            ratings={ratings}
             categories={MARKET_CATEGORIES}
             categoryField="category"
             categoryPrefix="cat_"
@@ -114,6 +118,7 @@ export default function App() {
             posts={providers.posts}
             loading={providers.loading}
             my={my}
+            ratings={ratings}
             categories={TRADES}
             categoryField="trade"
             categoryPrefix="trade_"
