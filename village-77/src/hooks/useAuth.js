@@ -49,7 +49,16 @@ async function finishLineLogin() {
   // Pressing "cancel" on LINE's page isn't an error worth showing.
   const lineError = params.get('error')
   if (lineError === 'access_denied') return 'cancelled'
-  if (lineError) throw new Error('LINE: ' + (params.get('error_description') || lineError))
+  if (lineError) {
+    const reason = 'LINE: ' + (params.get('error_description') || lineError)
+    // Log it on the Worker too, so failed sign-ins can be traced later.
+    fetch(WORKER_URL + '/line-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lineError: reason }),
+    }).catch(() => {})
+    throw new Error(reason)
+  }
   // A different state means this code came from someone else's login link
   // (login CSRF) — refuse it. No stored state at all (LINE returned into a
   // browser that never started the login, or storage is blocked) is let

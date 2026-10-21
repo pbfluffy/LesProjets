@@ -121,7 +121,12 @@ async function handleLineAuth(request, env, origin) {
   } catch {
     return json({ error: 'expected JSON' }, 400, origin)
   }
-  const { code, redirectUri, idToken: liffIdToken } = body || {}
+  const { code, redirectUri, idToken: liffIdToken, lineError } = body || {}
+  // The app reports errors LINE sent back instead of a code, just for the log.
+  if (lineError) {
+    console.warn('[line-auth] LINE returned an error', String(lineError).slice(0, 300))
+    return json({ ok: true }, 200, origin)
+  }
   let idToken
   if (typeof liffIdToken === 'string' && liffIdToken) {
     // Opened inside the LINE app (LIFF): it hands us an ID token directly —
@@ -143,7 +148,10 @@ async function handleLineAuth(request, env, origin) {
         client_secret: env.LINE_CHANNEL_SECRET,
       }),
     })
-    if (!tokenRes.ok) return json({ error: 'LINE rejected the code' }, 401, origin)
+    if (!tokenRes.ok) {
+      console.warn('[line-auth] code rejected', tokenRes.status, (await tokenRes.text()).slice(0, 300))
+      return json({ error: 'LINE rejected the code' }, 401, origin)
+    }
     idToken = (await tokenRes.json()).id_token
   }
 
@@ -153,9 +161,14 @@ async function handleLineAuth(request, env, origin) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ id_token: idToken, client_id: env.LINE_CHANNEL_ID }),
   })
-  if (!verifyRes.ok) return json({ error: 'LINE token did not verify' }, 401, origin)
+  if (!verifyRes.ok) {
+    console.warn('[line-auth] token did not verify', liffIdToken ? 'liff' : 'web', verifyRes.status, (await verifyRes.text()).slice(0, 300))
+    return json({ error: 'LINE token did not verify' }, 401, origin)
+  }
   const profile = await verifyRes.json() // { sub, name, picture, ... }
   if (!profile.sub) return json({ error: 'no LINE user id' }, 401, origin)
+
+  console.log('[line-auth] ok via', liffIdToken ? 'liff' : 'web') // no names in logs
 
   // 3. Firebase custom token for uid "line:<sub>"
   const name = String(profile.name || '').slice(0, 80)

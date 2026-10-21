@@ -16,3 +16,8 @@ LINE_CHANNEL_ID = "2012133281"
 # Secrets (never commit — set with `npx wrangler secret put <NAME>`):
 #   LINE_CHANNEL_SECRET        LINE Login channel secret
 #   FIREBASE_SERVICE_ACCOUNT   pumgoda service-account key (whole JSON file)
+
+# Keep Worker logs (Cloudflare dashboard → Workers → village-77 → Logs), so
+# failed LINE sign-ins can be traced after the fact.
+[observability]
+enabled = true
