@@ -212,6 +212,17 @@ export default function App() {
             <span>{t.signingIn}</span>
           </div>
         )}
+        {auth.handedOff && (
+          <div className={`${styles.banner} ${styles.bannerInfo}`} role="status">
+            <span>{t.handedOff}</span>
+          </div>
+        )}
+        {auth.waitingHandoff && !user && (
+          <div className={`${styles.banner} ${styles.bannerInfo}`} role="status">
+            <span>{t.waitingHandoff}</span>
+            <button type="button" onClick={auth.cancelHandoff} aria-label={t.cancel}>×</button>
+          </div>
+        )}
         {auth.loginError && (
           <div className={styles.banner} role="alert">
             <span>{t.signInFailed} <small>({auth.loginError})</small></span>

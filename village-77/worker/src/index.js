@@ -1,6 +1,8 @@
 // village-77 Worker — two jobs for the village app:
 //
 //   POST /line-auth   { code, redirectUri }  or  { idToken }  (from LIFF, inside LINE)
+//       With { handoff } (iPhone home-screen app) the sign-in is parked for
+//   POST /line-handoff { handoff }  — the app collects it after LINE ends in Safari.
 //       Sign in with LINE. Trades the LINE Login authorization code for the
 //       user's LINE profile, then mints a Firebase custom token (uid
 //       "line:<LINE user id>") the app signs in with. Firebase has no LINE
@@ -121,7 +123,7 @@ async function handleLineAuth(request, env, origin) {
   } catch {
     return json({ error: 'expected JSON' }, 400, origin)
   }
-  const { code, redirectUri, idToken: liffIdToken, lineError } = body || {}
+  const { code, redirectUri, idToken: liffIdToken, lineError, handoff } = body || {}
   // The app reports errors LINE sent back instead of a code, just for the log.
   if (lineError) {
     console.warn('[line-auth] LINE returned an error', String(lineError).slice(0, 300))
@@ -174,6 +176,35 @@ async function handleLineAuth(request, env, origin) {
   const name = String(profile.name || '').slice(0, 80)
   const picture = String(profile.picture || '')
   const customToken = await mintCustomToken(env, 'line:' + profile.sub, { provider: 'line' })
+  // Started from the iPhone home-screen app: LINE sent the user back to
+  // Safari, not to the app. Park the sign-in under the app's one-time
+  // hand-off id; the app collects it with /line-handoff when it's reopened.
+  if (isHandoffId(handoff)) {
+    await env.BUCKET.put(HANDOFF_PREFIX + handoff, JSON.stringify({
+      customToken, name, picture, expires: Date.now() + HANDOFF_TTL_MS,
+    }))
+    return json({ handedOff: true }, 200, origin)
+  }
+  return json({ customToken, name, picture }, 200, origin)
+}
+
+// Home-screen app sign-in hand-off (see handleLineAuth). The id is 32 random
+// hex characters made by the app; a parked sign-in can be collected once,
+// within 10 minutes.
+const HANDOFF_PREFIX = '_handoff/'
+const HANDOFF_TTL_MS = 10 * 60 * 1000
+const isHandoffId = (id) => typeof id === 'string' && /^[0-9a-f]{32}$/.test(id)
+
+async function handleHandoff(request, env, origin) {
+  const { handoff } = await request.json().catch(() => ({}))
+  if (!isHandoffId(handoff)) return json({ error: 'bad handoff id' }, 400, origin)
+  const obj = await env.BUCKET.get(HANDOFF_PREFIX + handoff)
+  if (!obj) return json({ pending: true }, 404, origin)
+  await env.BUCKET.delete(HANDOFF_PREFIX + handoff) // one use only
+  const parked = JSON.parse(await obj.text())
+  if (parked.expires < Date.now()) return json({ error: 'expired' }, 410, origin)
+  const { customToken, name, picture } = parked
+  console.log('[line-auth] ok via home-screen hand-off')
   return json({ customToken, name, picture }, 200, origin)
 }
 
@@ -276,6 +307,7 @@ export default {
       if (request.method === 'POST' && url.pathname === '/line-auth') return await handleLineAuth(request, env, origin)
       if (request.method === 'POST' && url.pathname === '/upload') return await handleUpload(request, env, origin)
       if (request.method === 'POST' && url.pathname === '/delete') return await handleDelete(request, env, origin)
+      if (request.method === 'POST' && url.pathname === '/line-handoff') return await handleHandoff(request, env, origin)
     } catch (e) {
       console.error('[village-77 worker]', e)
       return json({ error: 'server error' }, 500, origin)

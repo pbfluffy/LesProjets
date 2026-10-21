@@ -14,12 +14,43 @@ const REDIRECT_URI = window.location.origin + import.meta.env.BASE_URL
 // in a new browser tab, which starts with an empty sessionStorage — the
 // state check then failed and the sign-in was silently dropped.
 const STATE_KEY = 'village_line_state'
+// Set when the user signs out, so the automatic sign-in inside LINE leaves
+// them signed out for the rest of the visit.
+const SIGNED_OUT_KEY = 'village_signed_out'
 
 export const lineConfigured = !!LINE_CHANNEL_ID
 
+// Installed to the home screen (PWA). On an iPhone, LINE's login page opens
+// in Safari and LINE sends the user back to Safari, not to the installed
+// app — which has its own, separate sign-in. So from the installed app the
+// sign-in is handed off: the app makes a one-time id and puts it in the
+// LINE `state` ("h" + id); Safari finishes the login and parks it on the
+// Worker under that id; the app collects it when the user switches back.
+const isHomeScreenApp = window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true
+const HANDOFF_KEY = 'village_line_handoff' // { id, started } while waiting
+const HANDOFF_MAX_MS = 10 * 60 * 1000 // the Worker drops parked sign-ins after this
+const randomHex = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('')
+
+function readHandoff() {
+  try {
+    const h = JSON.parse(localStorage.getItem(HANDOFF_KEY))
+    return h && Date.now() - h.started < HANDOFF_MAX_MS ? h : null
+  } catch {
+    return null
+  }
+}
+function clearHandoff() {
+  try { localStorage.removeItem(HANDOFF_KEY) } catch { /* storage blocked */ }
+}
+
 // Web sign-in: off to LINE's login page and back (finishLineLogin).
 function redirectToLine() {
-  const state = crypto.randomUUID()
+  let state = crypto.randomUUID()
+  if (isHomeScreenApp) {
+    const id = randomHex()
+    state = 'h' + id
+    try { localStorage.setItem(HANDOFF_KEY, JSON.stringify({ id, started: Date.now() })) } catch { /* storage blocked */ }
+  }
   try { localStorage.setItem(STATE_KEY, state) } catch { /* storage blocked — see finishLineLogin */ }
   const params = new URLSearchParams({
     response_type: 'code',
@@ -65,19 +96,32 @@ async function finishLineLogin() {
   // through: the Worker still checks the code with LINE.
   if (!state || (expected && state !== expected)) throw new Error('login link did not match — try again')
 
+  // Started from the home-screen app: park the sign-in for it (see above).
+  const handoff = /^h[0-9a-f]{32}$/.test(state) ? state.slice(1) : null
+  if (handoff) {
+    await postWorker('/line-auth', { code, redirectUri: REDIRECT_URI, handoff })
+    return 'handedOff'
+  }
   await signInViaWorker({ code, redirectUri: REDIRECT_URI })
   return 'ok'
 }
 
-// Worker trades a LINE code or ID token for a Firebase custom token.
-async function signInViaWorker(body) {
-  const res = await fetch(WORKER_URL + '/line-auth', {
+async function postWorker(path, body) {
+  const res = await fetch(WORKER_URL + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'LINE sign-in failed')
-  const { customToken, name, picture } = await res.json()
+  return res.json()
+}
+
+// Worker trades a LINE code or ID token for a Firebase custom token.
+async function signInViaWorker(body) {
+  return completeSignIn(await postWorker('/line-auth', body))
+}
+
+async function completeSignIn({ customToken, name, picture }) {
   const { user } = await signInWithCustomToken(auth, customToken)
   if (user.displayName !== name || user.photoURL !== (picture || null)) {
     await updateProfile(user, { displayName: name, photoURL: picture || null })
@@ -97,7 +141,25 @@ export function useAuth() {
     return p.has('code') || p.has('error')
   })
 
-  useEffect(() => onAuthStateChanged(auth, setUser), [])
+  const [authReady, setAuthReady] = useState(false)
+  useEffect(() => onAuthStateChanged(auth, (u) => {
+    setUser(u)
+    setAuthReady(true)
+  }), [])
+
+  // Opened inside the LINE app (LIFF): sign in silently with the LINE
+  // account already there, so nobody has to tap "sign in" in LINE — unless
+  // they signed out on purpose this session.
+  useEffect(() => {
+    if (!authReady || user) return
+    try { if (sessionStorage.getItem(SIGNED_OUT_KEY)) return } catch { /* storage blocked */ }
+    let cancelled = false
+    liffIdToken().then((idToken) => {
+      if (!idToken || cancelled || auth.currentUser) return
+      return signInViaWorker({ idToken })
+    }).catch((e) => console.warn('[village] automatic LINE sign-in failed:', e))
+    return () => { cancelled = true }
+  }, [authReady, user])
 
   useEffect(() => {
     if (!user) return setRole(null)
@@ -109,8 +171,55 @@ export function useAuth() {
     )
   }, [user])
 
+  // In Safari after a sign-in started from the home-screen app: "go back".
+  const [handedOff, setHandedOff] = useState(false)
+  // In the home-screen app while Safari finishes the LINE sign-in.
+  const [waitingHandoff, setWaitingHandoff] = useState(() => isHomeScreenApp && !!readHandoff())
+
+  // Collect a parked sign-in: now, every few seconds, and whenever the app
+  // comes back to the front (the user switching back from Safari).
+  useEffect(() => {
+    if (!waitingHandoff) return
+    let busy = false
+    const check = async () => {
+      if (busy) return
+      const h = readHandoff()
+      if (!h) {
+        clearHandoff()
+        return setWaitingHandoff(false)
+      }
+      busy = true
+      try {
+        const res = await fetch(WORKER_URL + '/line-handoff', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ handoff: h.id }),
+        })
+        if (res.status === 404) return // Safari hasn't finished yet
+        clearHandoff()
+        setWaitingHandoff(false)
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'LINE sign-in failed')
+        await completeSignIn(await res.json())
+      } catch (e) {
+        console.error('[village] home-screen sign-in failed:', e)
+        setLoginError(e.message)
+      } finally {
+        busy = false
+      }
+    }
+    check()
+    const timer = setInterval(check, 2500)
+    const onVisible = () => document.visibilityState === 'visible' && check()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [waitingHandoff])
+
   useEffect(() => {
     finishLineLogin()
+      .then((result) => result === 'handedOff' && setHandedOff(true))
       .catch((e) => {
         console.error('[village] LINE sign-in failed:', e)
         setLoginError(e.message)
@@ -122,7 +231,10 @@ export function useAuth() {
   // anywhere else, go through LINE's login page.
   async function startLineLogin() {
     const idToken = await liffIdToken()
-    if (!idToken) return redirectToLine()
+    if (!idToken) {
+      if (isHomeScreenApp) setWaitingHandoff(true)
+      return redirectToLine()
+    }
     setFinishing(true)
     try {
       await signInViaWorker({ idToken })
@@ -150,11 +262,17 @@ export function useAuth() {
     isAdmin: !!role,
     isOwner: role === 'owner',
     finishing,
+    handedOff,
+    waitingHandoff,
+    cancelHandoff: () => { clearHandoff(); setWaitingHandoff(false) },
     loginError,
     clearLoginError: () => setLoginError(''),
     startLineLogin,
     adminSignIn,
-    signOut: () => signOut(auth),
+    signOut: () => {
+      try { sessionStorage.setItem(SIGNED_OUT_KEY, '1') } catch { /* storage blocked */ }
+      return signOut(auth)
+    },
   }
 }
 
