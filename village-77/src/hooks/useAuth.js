@@ -9,13 +9,16 @@ import { WORKER_URL, LINE_CHANNEL_ID, OWNER_UID } from '../config'
 // this page with ?code=…&state=…, and the Worker trades the code for a
 // Firebase custom token (see worker/src/index.js).
 const REDIRECT_URI = window.location.origin + import.meta.env.BASE_URL
+// localStorage, not sessionStorage: on phones LINE often hands the login back
+// in a new browser tab, which starts with an empty sessionStorage — the
+// state check then failed and the sign-in was silently dropped.
 const STATE_KEY = 'village_line_state'
 
 export const lineConfigured = !!LINE_CHANNEL_ID
 
 export function startLineLogin() {
   const state = crypto.randomUUID()
-  sessionStorage.setItem(STATE_KEY, state)
+  try { localStorage.setItem(STATE_KEY, state) } catch { /* storage blocked — see finishLineLogin */ }
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: LINE_CHANNEL_ID,
@@ -35,9 +38,21 @@ async function finishLineLogin() {
 
   // Clean the URL either way so a reload doesn't replay the code.
   window.history.replaceState(null, '', window.location.pathname + window.location.hash)
-  const expected = sessionStorage.getItem(STATE_KEY)
-  sessionStorage.removeItem(STATE_KEY)
-  if (!code || !state || state !== expected) return 'cancelled'
+  let expected = null
+  try {
+    expected = localStorage.getItem(STATE_KEY)
+    localStorage.removeItem(STATE_KEY)
+  } catch { /* storage blocked */ }
+
+  // Pressing "cancel" on LINE's page isn't an error worth showing.
+  const lineError = params.get('error')
+  if (lineError === 'access_denied') return 'cancelled'
+  if (lineError) throw new Error('LINE: ' + (params.get('error_description') || lineError))
+  // A different state means this code came from someone else's login link
+  // (login CSRF) — refuse it. No stored state at all (LINE returned into a
+  // browser that never started the login, or storage is blocked) is let
+  // through: the Worker still checks the code with LINE.
+  if (!state || (expected && state !== expected)) throw new Error('login link did not match — try again')
 
   const res = await fetch(WORKER_URL + '/line-auth', {
     method: 'POST',
@@ -58,7 +73,10 @@ export function useAuth() {
   const [user, setUser] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [loginError, setLoginError] = useState('')
-  const [finishing, setFinishing] = useState(() => new URLSearchParams(window.location.search).has('code'))
+  const [finishing, setFinishing] = useState(() => {
+    const p = new URLSearchParams(window.location.search)
+    return p.has('code') || p.has('error')
+  })
 
   useEffect(() => onAuthStateChanged(auth, async (u) => {
     setUser(u)

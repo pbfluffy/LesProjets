@@ -124,9 +124,14 @@ export default function App() {
           </nav>
         </header>
 
+        {auth.finishing && (
+          <div className={`${styles.banner} ${styles.bannerInfo}`} role="status">
+            <span>{t.signingIn}</span>
+          </div>
+        )}
         {auth.loginError && (
           <div className={styles.banner} role="alert">
-            <span>{t.signInFailed}</span>
+            <span>{t.signInFailed} <small>({auth.loginError})</small></span>
             <button type="button" onClick={auth.clearLoginError} aria-label={t.close}>×</button>
           </div>
         )}

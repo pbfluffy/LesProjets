@@ -90,6 +90,7 @@
   font-size: 14px;
 }
 .banner button { border: none; background: none; color: inherit; font-size: 18px; }
+.bannerInfo { background: var(--color-green-bg); color: var(--color-green); }
 @media (max-width: 992px) { .banner { margin: 12px 16px 0; } }
 
 .tabs {
