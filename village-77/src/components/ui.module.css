@@ -213,6 +213,25 @@
 .starBtn:active { transform: scale(1.2); }
 .starOn { color: #f5a623; }
 
+.reviews { list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--color-text-muted); }
+.reviewStars { color: #f5a623; letter-spacing: 1px; }
+.reviewName { color: var(--color-text-faint); }
+.reviewBox { display: flex; gap: 8px; align-items: center; }
+.reviewBox input { flex: 1; min-width: 0; }
+.reviewBox .primaryBtn { padding: 7px 14px; }
+
+/* Village news */
+.newsList { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
+.sectionHead + .newsList { margin-bottom: 24px; }
+.newsPhotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+.newsPhotos img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--radius-sm); cursor: zoom-in; }
+.news_lost { background: var(--color-blue-bg); color: var(--color-blue); }
+.news_event { background: var(--color-green-bg); color: var(--color-green); }
+.news_outage { background: var(--color-amber-bg); color: var(--color-amber); }
+.news_safety { background: var(--color-red-bg); color: var(--color-red); }
+
+.sortRow { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-muted); }
+
 .cardBody { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .cardTags { display: flex; flex-wrap: wrap; gap: 6px; }
 .badge, .tag {
@@ -293,6 +312,18 @@
   border: none; /* also used on the share <button> */
 }
 .lineBtn { background: #06c755; color: #fff; }
+
+.staleNote {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-amber);
+  background: var(--color-amber-bg);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
 
 .ownerActions { display: flex; gap: 14px; border-top: 0.5px solid var(--color-border); padding-top: 8px; margin-top: 4px; }
 

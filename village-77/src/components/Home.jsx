@@ -1,8 +1,9 @@
 import { useLangContext, interp } from '../LangContext'
 import PostCard from './PostCard'
+import { NewsCard } from './NewsBoard'
 import styles from './ui.module.css'
 
-export default function Home({ shops, providers, ratings, onGo, onEditShop, onEditProvider }) {
+export default function Home({ shops, providers, news, ratings, onGo, onEditShop, onEditProvider, onEditNews }) {
   const { t } = useLangContext()
   const itemsForSale = shops.reduce((n, s) => n + (s.items || []).filter((it) => !it.sold).length, 0)
 
@@ -25,6 +26,18 @@ export default function Home({ shops, providers, ratings, onGo, onEditShop, onEd
           <small>{interp(t.homeServicesCard, { n: providers.length })}</small>
         </button>
       </div>
+
+      {news.length > 0 && (
+        <>
+          <div className={styles.sectionHead}>
+            <h3>{t.homeLatestNews}</h3>
+            <button type="button" className={styles.linkBtn} onClick={() => onGo('news')}>{t.seeAll}</button>
+          </div>
+          <div className={styles.newsList}>
+            {news.slice(0, 2).map((p) => <NewsCard key={p.id} post={p} onEdit={onEditNews} />)}
+          </div>
+        </>
+      )}
 
       {shops.length > 0 && (
         <>

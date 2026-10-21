@@ -11,6 +11,9 @@
 //       inside the Firestore post as data URLs, which made every visitor
 //       download every photo on open; now cards lazy-load real image URLs.
 //
+//   POST /delete      { urls }  (Authorization: Bearer <Firebase ID token>)
+//       Deletes the caller's own photos that a post no longer uses.
+//
 //   GET  /p/<key>
 //       Serves a stored photo (immutable, cached by the browser / CDN).
 //
@@ -163,6 +166,9 @@ async function handleUpload(request, env, origin) {
   } catch (e) {
     return json({ error: 'unauthorized: ' + e.message }, 401, origin)
   }
+  if (!(await countUpload(env, user.sub))) {
+    return json({ error: 'daily upload limit reached' }, 429, origin)
+  }
 
   let form
   try {
@@ -175,13 +181,57 @@ async function handleUpload(request, env, origin) {
   if (!EXT[file.type]) return json({ error: 'unsupported type: ' + file.type }, 415, origin)
   if (file.size > MAX_BYTES) return json({ error: 'too large' }, 413, origin)
 
-  // Uploader's uid in the key, so an admin can trace a bad photo back.
-  const key = `${user.sub.replace(/[^A-Za-z0-9:_-]/g, '')}/${crypto.randomUUID()}.${EXT[file.type]}`
+  // Uploader's uid in the key, so an admin can trace a bad photo back and
+  // /delete can check the photo is the caller's own.
+  const key = `${uidFolder(user.sub)}/${crypto.randomUUID()}.${EXT[file.type]}`
   await env.BUCKET.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } })
   return json({ url: new URL('/p/' + key, request.url).toString() }, 200, origin)
 }
 
+const uidFolder = (uid) => uid.replace(/[^A-Za-z0-9:_-]/g, '')
+
+// Daily cap per person, so one account can't fill the bucket. The count is
+// a tiny object in the same R2 bucket under _limits/ (never served by /p/).
+const UPLOADS_PER_DAY = 60
+async function countUpload(env, uid) {
+  const key = `_limits/${new Date().toISOString().slice(0, 10)}/${uidFolder(uid)}`
+  const obj = await env.BUCKET.get(key)
+  const count = obj ? Number(await obj.text()) || 0 : 0
+  if (count >= UPLOADS_PER_DAY) return false
+  await env.BUCKET.put(key, String(count + 1))
+  return true
+}
+
+// POST /delete { urls: [...] } — removes photos a post no longer uses (the
+// app calls this when a photo is removed or a post is deleted). Only the
+// uploader's own photos are deleted; anything else is skipped.
+async function handleDelete(request, env, origin) {
+  const m = (request.headers.get('Authorization') || '').match(/^Bearer\s+(.+)$/i)
+  let user
+  try {
+    if (!m) throw new Error('missing token')
+    user = await verifyIdToken(m[1])
+  } catch (e) {
+    return json({ error: 'unauthorized: ' + e.message }, 401, origin)
+  }
+  const { urls } = await request.json().catch(() => ({}))
+  if (!Array.isArray(urls)) return json({ error: 'expected { urls: [] }' }, 400, origin)
+
+  const mine = uidFolder(user.sub) + '/'
+  const keys = urls.slice(0, 50).map((u) => {
+    try {
+      const p = new URL(u)
+      return p.host === new URL(request.url).host && p.pathname.startsWith('/p/') ? decodeURIComponent(p.pathname.slice(3)) : null
+    } catch {
+      return null
+    }
+  }).filter((k) => k && k.startsWith(mine))
+  if (keys.length) await env.BUCKET.delete(keys)
+  return json({ deleted: keys.length }, 200, origin)
+}
+
 async function handlePhoto(key, env) {
+  if (key.startsWith('_')) return new Response('not found', { status: 404 })
   const obj = await env.BUCKET.get(key)
   if (!obj) return new Response('not found', { status: 404 })
   return new Response(obj.body, {
@@ -205,6 +255,7 @@ export default {
     try {
       if (request.method === 'POST' && url.pathname === '/line-auth') return await handleLineAuth(request, env, origin)
       if (request.method === 'POST' && url.pathname === '/upload') return await handleUpload(request, env, origin)
+      if (request.method === 'POST' && url.pathname === '/delete') return await handleDelete(request, env, origin)
     } catch (e) {
       console.error('[village-77 worker]', e)
       return json({ error: 'server error' }, 500, origin)

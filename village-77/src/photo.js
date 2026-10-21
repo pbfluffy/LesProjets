@@ -38,3 +38,27 @@ export async function uploadPhoto(file, size = PHOTO_BIG) {
   if (!res.ok) throw new Error('upload failed (' + res.status + ')')
   return (await res.json()).url
 }
+
+// Every photo URL a post uses (post photos + item photos).
+export function photosOf(post) {
+  return [...(post?.photos || []), ...(post?.items || []).map((it) => it.photo)].filter(Boolean)
+}
+
+// Asks the Worker to delete photos nothing uses any more. Best effort: the
+// Worker only deletes the caller's own uploads, and a failure just leaves a
+// stray file in storage.
+export async function deletePhotos(urls) {
+  if (!urls.length || !auth.currentUser) return
+  try {
+    await fetch(WORKER_URL + '/delete', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + (await auth.currentUser.getIdToken()),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ urls }),
+    })
+  } catch (e) {
+    console.warn('[village] photo cleanup failed:', e)
+  }
+}

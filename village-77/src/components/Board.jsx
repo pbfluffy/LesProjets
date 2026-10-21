@@ -17,9 +17,13 @@ export default function Board({
   const [picked, setPicked] = useState('') // one tag; '' = all
   const [search, setSearch] = useState('')
 
+  // Handymen can be sorted by rating (best first; unrated ones last).
+  const [sort, setSort] = useState('newest') // 'newest' | 'rating'
+  const canSortByRating = kind === 'provider'
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return posts.filter((p) => {
+    const list = posts.filter((p) => {
       if (residency === 'resident' && !p.isResident) return false
       if (residency === 'outsider' && p.isResident) return false
       if (picked && !(p[tagField] || []).includes(picked)) return false
@@ -30,7 +34,13 @@ export default function Board({
       }
       return true
     })
-  }, [posts, residency, picked, search, tagField])
+    if (!canSortByRating || sort !== 'rating') return list
+    return list.slice().sort((a, b) => {
+      const ra = ratings.get(a.id)
+      const rb = ratings.get(b.id)
+      return (rb.avg - ra.avg) || (rb.count - ra.count)
+    })
+  }, [posts, residency, picked, search, tagField, sort, canSortByRating, ratings])
 
   return (
     <section>
@@ -64,6 +74,23 @@ export default function Board({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+
+        {canSortByRating && (
+          <div className={styles.sortRow}>
+            <span>{t.sortBy}</span>
+            {[['newest', t.sortNewest], ['rating', '★ ' + t.sortRating]].map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={sort === key}
+                className={`${styles.chip} ${sort === key ? styles.chipActive : ''}`}
+                onClick={() => setSort(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className={styles.chipsWrap}>
           <button

@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLangContext, interp, MARKET_CATEGORIES, TRADES } from '../LangContext'
 import { createPost, updatePost, savePrivateAddress, deletePrivateAddress } from '../hooks/usePosts'
-import { uploadPhoto, PHOTO_ITEM } from '../photo'
+import { uploadPhoto, PHOTO_ITEM, photosOf, deletePhotos } from '../photo'
 import styles from './ui.module.css'
 
 const MAX_ITEMS = 30
@@ -30,6 +30,9 @@ export default function PostForm({ kind, collectionName, post, user, onClose }) 
   const [saving, setSaving] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
+  // Photos uploaded while this form is open, so the ones that never get
+  // saved (removed again, or the form cancelled) can be deleted.
+  const uploaded = useRef([])
 
   const set = (key) => (e) => {
     const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value
@@ -51,6 +54,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose }) 
     for (const file of files) {
       try {
         const url = await uploadPhoto(file)
+        uploaded.current.push(url)
         setF((prev) => prev.photos.length < maxPhotos ? { ...prev, photos: [...prev.photos, url] } : prev)
       } catch {
         failed = true
@@ -75,11 +79,20 @@ export default function PostForm({ kind, collectionName, post, user, onClose }) 
     setProcessing(true)
     setError('')
     try {
-      setItem(i, { photo: await uploadPhoto(file, PHOTO_ITEM) })
+      const url = await uploadPhoto(file, PHOTO_ITEM)
+      uploaded.current.push(url)
+      setItem(i, { photo: url })
     } catch {
       setError(t.photoFailed)
     }
     setProcessing(false)
+  }
+
+  // Closing without saving: drop only the photos uploaded just now.
+  function cancel() {
+    const kept = photosOf(post)
+    deletePhotos(uploaded.current.filter((u) => !kept.includes(u)))
+    onClose()
   }
 
   async function handleSubmit(e) {
@@ -128,6 +141,10 @@ export default function PostForm({ kind, collectionName, post, user, onClose }) 
       const address = f.address.trim()
       if (f.isResident && address) await savePrivateAddress(id, collectionName, address)
       else if (!f.isResident && post) await deletePrivateAddress(id)
+      // Photos the saved post no longer uses (replaced, removed, or uploaded
+      // and then removed again before saving).
+      const used = photosOf(data)
+      deletePhotos([...photosOf(post), ...uploaded.current].filter((u) => !used.includes(u)))
       onClose()
     } catch (err) {
       console.error('[village] save failed:', err?.code, err)
@@ -141,7 +158,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose }) 
     : (post ? t.editProvider : t.addProvider.replace(/^\+\s*/, ''))
 
   return (
-    <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && !saving && onClose()}>
+    <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && !saving && cancel()}>
       <form className={styles.sheet} onSubmit={handleSubmit}>
         <h2 className={styles.sheetTitle}>{heading}</h2>
 
@@ -259,7 +276,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose }) 
         {error && <p className={styles.error}>{error}</p>}
 
         <div className={styles.sheetActions}>
-          <button type="button" className={styles.secondaryBtn} onClick={onClose} disabled={saving}>{t.cancel}</button>
+          <button type="button" className={styles.secondaryBtn} onClick={cancel} disabled={saving}>{t.cancel}</button>
           <button type="submit" className={styles.primaryBtn} disabled={saving || processing}>{saving ? t.saving : t.save}</button>
         </div>
       </form>

@@ -10,11 +10,15 @@ import PostForm from './components/PostForm'
 import AdminPanel from './components/AdminPanel'
 import SignInSheet from './components/SignInSheet'
 import AdminEntrySheet from './components/AdminEntrySheet'
+import NewsBoard from './components/NewsBoard'
+import NewsForm from './components/NewsForm'
 import { readPostParam, clearPostParam } from './share'
+import { isStale } from './freshness'
 import styles from './App.module.css'
 
 const SHOPS = 'villageShops'
 const PROVIDERS = 'villageProviders'
+const NEWS = 'villageNews'
 
 export default function App() {
   const [theme, setTheme] = useTheme()
@@ -25,13 +29,20 @@ export default function App() {
   const [tab, setTab] = useState('home') // 'home' | 'market' | 'services' | 'admin'
   // { kind: 'shop' | 'provider', post: existing post or null } while the form is open
   const [editing, setEditing] = useState(null)
+  const [editingNews, setEditingNews] = useState(null) // { post } while the news form is open
   const [askSignIn, setAskSignIn] = useState(false)
   // Admin sign-in has no button in the app: open the page with ?admin.
   const [adminEntry, setAdminEntry] = useState(() => new URLSearchParams(window.location.search).has('admin'))
 
   const shops = usePosts(SHOPS)
   const providers = usePosts(PROVIDERS)
+  const news = usePosts(NEWS)
   const t = STRINGS[lang] || STRINGS.th
+  // Posts untouched for 60 days are hidden, except from their owner (freshness.js).
+  const visible = (posts) => posts.filter((p) => !isStale(p) || p.ownerUid === user?.uid)
+  const liveShops = visible(shops.posts)
+  const liveProviders = visible(providers.posts)
+  const liveNews = visible(news.posts)
 
   useEffect(() => { window.scrollTo(0, 0) }, [tab])
   useEffect(() => { if (tab === 'admin' && !isAdmin) setTab('home') }, [tab, isAdmin])
@@ -45,9 +56,10 @@ export default function App() {
   // the right tab, scroll to that card and flash it.
   const [focusId, setFocusId] = useState(readPostParam)
   useEffect(() => {
-    if (!focusId || shops.loading || providers.loading) return
-    const target = shops.posts.some((p) => p.id === focusId) ? 'market'
-      : providers.posts.some((p) => p.id === focusId) ? 'services' : null
+    if (!focusId || shops.loading || providers.loading || news.loading) return
+    const target = liveShops.some((p) => p.id === focusId) ? 'market'
+      : liveProviders.some((p) => p.id === focusId) ? 'services'
+      : liveNews.some((p) => p.id === focusId) ? 'news' : null
     setFocusId(null)
     clearPostParam()
     if (!target) return // deleted since it was shared
@@ -59,7 +71,7 @@ export default function App() {
       el.classList.add('post-focus')
       setTimeout(() => el.classList.remove('post-focus'), 2500)
     }, 150) // after the tab's own scroll-to-top
-  }, [focusId, shops.loading, providers.loading, shops.posts, providers.posts])
+  }, [focusId, shops.loading, providers.loading, news.loading, liveShops, liveProviders, liveNews])
 
   function closeAdminEntry() {
     setAdminEntry(false)
@@ -76,6 +88,7 @@ export default function App() {
   const openForm = (kind, post) => requireSignIn() && setEditing({ kind, post })
   const editShop = (post) => openForm('shop', post)
   const editProvider = (post) => openForm('provider', post)
+  const editNews = (post) => requireSignIn() && setEditingNews({ post })
 
   function handleSignOut() {
     if (window.confirm(t.signOutConfirm)) auth.signOut()
@@ -128,6 +141,7 @@ export default function App() {
           <nav className={styles.tabs}>
             {[
               ['home', '🏠 ' + t.navHome],
+              ['news', '📢 ' + t.navNews],
               ['market', '🛒 ' + t.navMarket],
               ['services', '🔧 ' + t.navServices],
               ...(isAdmin ? [['admin', '🛡️ ' + t.navAdmin]] : []),
@@ -159,19 +173,21 @@ export default function App() {
         <main className={styles.main}>
           {tab === 'home' && (
             <Home
-              shops={shops.posts}
-              providers={providers.posts}
+              shops={liveShops}
+              providers={liveProviders}
+              news={liveNews}
               ratings={ratings}
               onGo={setTab}
               onEditShop={editShop}
               onEditProvider={editProvider}
+              onEditNews={editNews}
             />
           )}
           {tab === 'market' && (
             <Board
               kind="shop"
               collectionName={SHOPS}
-              posts={shops.posts}
+              posts={liveShops}
               loading={shops.loading}
               ratings={ratings}
               tags={MARKET_CATEGORIES}
@@ -187,7 +203,7 @@ export default function App() {
             <Board
               kind="provider"
               collectionName={PROVIDERS}
-              posts={providers.posts}
+              posts={liveProviders}
               loading={providers.loading}
               ratings={ratings}
               tags={TRADES}
@@ -199,10 +215,17 @@ export default function App() {
               onEdit={editProvider}
             />
           )}
+          {tab === 'news' && (
+            <NewsBoard posts={liveNews} loading={news.loading} onAdd={() => editNews(null)} onEdit={editNews} />
+          )}
           {tab === 'admin' && isAdmin && (
             <AdminPanel shops={shops.posts} providers={providers.posts} ratings={ratings} />
           )}
         </main>
+
+        {editingNews && user && (
+          <NewsForm post={editingNews.post} user={user} onClose={() => setEditingNews(null)} />
+        )}
 
         {editing && user && (
           <PostForm

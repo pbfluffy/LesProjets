@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import { updatePost, deletePost, deletePrivateAddress } from '../hooks/usePosts'
 import { useAuthContext } from '../hooks/useAuth'
+import { photosOf, deletePhotos } from '../photo'
+import { isStale, updatedLabel, STALE_DAYS } from '../freshness'
 import { postUrl, shareToLine } from '../share'
 import styles from './ui.module.css'
 
@@ -20,25 +22,43 @@ function formatPrice(price, t, lang) {
   return '฿' + price.toLocaleString(lang === 'th' ? 'th-TH' : 'en-US')
 }
 
-// Average (read-only) and, for anyone but the poster, a 1–5 picker that
-// shows this phone's own rating and can change it.
+// Average (read-only), the latest written reviews, and — for anyone but the
+// poster — a 1–5 picker showing their own rating, plus an optional short
+// comment once they've picked stars.
 function Stars({ postId, ratings, canPick }) {
   const { t } = useLangContext()
   const { requireSignIn } = useAuthContext()
-  const { avg, count, mine } = ratings.get(postId)
+  const { avg, count, mine, myComment, reviews } = ratings.get(postId)
   const [hover, setHover] = useState(0)
   const [thanks, setThanks] = useState(false)
+  const [draft, setDraft] = useState(null) // comment being written; null = closed
+  const [allReviews, setAllReviews] = useState(false)
+
+  function done() {
+    setThanks(true)
+    setTimeout(() => setThanks(false), 2000)
+  }
+  function failed(e) {
+    console.error('[village] rating failed:', e?.code)
+    alert(t.saveFailed)
+  }
 
   function pick(n) {
     if (!requireSignIn()) return // rating needs a LINE account (one vote each)
     ratings.rate(postId, n).then(() => {
-      setThanks(true)
-      setTimeout(() => setThanks(false), 2000)
-    }).catch((e) => {
-      console.error('[village] rating failed:', e?.code)
-      alert(t.saveFailed)
-    })
+      done()
+      if (!myComment) setDraft('') // invite a short comment after first stars
+    }).catch(failed)
   }
+
+  function sendComment() {
+    ratings.comment(postId, draft || '').then(() => {
+      setDraft(null)
+      done()
+    }).catch(failed)
+  }
+
+  const shownReviews = allReviews ? reviews : reviews.slice(0, 2)
 
   return (
     <div className={styles.rating}>
@@ -53,6 +73,26 @@ function Stars({ postId, ratings, canPick }) {
           <span>{t.ratingNone}</span>
         )}
       </div>
+
+      {shownReviews.length > 0 && (
+        <ul className={styles.reviews}>
+          {shownReviews.map((r) => (
+            <li key={r.id}>
+              <span className={styles.reviewStars}>{'★'.repeat(r.stars)}</span>{' '}
+              <span>“{r.comment}”</span>
+              {r.name && <span className={styles.reviewName}> — {r.name}</span>}
+            </li>
+          ))}
+          {reviews.length > 2 && (
+            <li>
+              <button type="button" className={styles.linkBtn} onClick={() => setAllReviews(!allReviews)}>
+                {allReviews ? t.reviewsLess : interp(t.reviewsAll, { n: reviews.length })}
+              </button>
+            </li>
+          )}
+        </ul>
+      )}
+
       {canPick && (
         <div className={styles.ratingPick} onMouseLeave={() => setHover(0)}>
           <span>{thanks ? t.ratingThanks : mine ? t.ratingYours : t.ratingAsk}</span>
@@ -69,6 +109,24 @@ function Stars({ postId, ratings, canPick }) {
               ★
             </button>
           ))}
+        </div>
+      )}
+
+      {canPick && mine > 0 && draft === null && (
+        <button type="button" className={styles.linkBtn} onClick={() => setDraft(myComment)}>
+          {myComment ? t.reviewEdit : t.reviewWrite}
+        </button>
+      )}
+      {canPick && draft !== null && (
+        <div className={styles.reviewBox}>
+          <input
+            maxLength={200}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={t.reviewPh}
+          />
+          <button type="button" className={styles.primaryBtn} onClick={sendComment}>{t.reviewSend}</button>
+          <button type="button" className={styles.linkBtn} onClick={() => setDraft(null)}>{t.cancel}</button>
         </div>
       )}
     </div>
@@ -105,6 +163,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit }
     if (!window.confirm(t.deleteConfirm)) return
     deletePost(collectionName, post.id).then(() => {
       deletePrivateAddress(post.id).catch(() => {}) // none saved for outsiders
+      if (isOwner) deletePhotos(photosOf(post)) // the Worker only deletes the uploader's own
       if (!isShop) ratings.removeAll(post.id).catch(() => {})
     }).catch((e) => {
       console.error('[village] delete failed:', e?.code)
@@ -116,6 +175,14 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit }
   function handleShare() {
     const tagText = tags.map((c) => t[tagPrefix + c]).join(', ')
     shareToLine(`🏘️ ${t.appName}\n${post.name}${tagText ? ' — ' + tagText : ''}\n${postUrl(post.id)}`)
+  }
+
+  // "Still open": an empty update just sets updatedAt (usePosts.updatePost).
+  function bump() {
+    updatePost(collectionName, post.id, {}).catch((e) => {
+      console.error('[village] bump failed:', e?.code)
+      alert(t.saveFailed)
+    })
   }
 
   function toggleSold(i) {
@@ -196,6 +263,15 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit }
           )}
           <button type="button" className={styles.contactBtn} onClick={handleShare}>↗ {t.shareLine}</button>
         </div>
+
+        <span className={styles.meta}>🕒 {updatedLabel(post, t, lang)}</span>
+
+        {isOwner && isStale(post) && (
+          <div className={styles.staleNote}>
+            <span>{interp(t.staleNote, { n: STALE_DAYS })}</span>
+            <button type="button" className={styles.secondaryBtn} onClick={bump}>✓ {t.stillOpen}</button>
+          </div>
+        )}
 
         {(isOwner || isAdmin) && (
           <div className={styles.ownerActions}>
