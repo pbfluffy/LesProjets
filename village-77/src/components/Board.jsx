@@ -10,7 +10,7 @@ import styles from './ui.module.css'
 export default function Board({
   kind, collectionName, posts, loading, ratings,
   tags, tagField, tagPrefix,
-  emptyText, addLabel, onAdd, onEdit, onOpenShop,
+  emptyText, addLabel, onAdd, onEdit, onOpenPost,
 }) {
   const { t } = useLangContext()
   const [residency, setResidency] = useState('all') // 'all' | 'resident' | 'outsider'
@@ -92,7 +92,7 @@ export default function Board({
           </div>
         )}
 
-        <div className={styles.chipsWrap}>
+        <div className={styles.chipsRow}>
           <button
             type="button"
             className={`${styles.chip} ${picked === '' ? styles.chipActive : ''}`}
@@ -124,7 +124,7 @@ export default function Board({
         <div className={styles.grid}>
           {filtered.map((p) => (
             <PostCard key={p.id} kind={kind} collectionName={collectionName} post={p} ratings={ratings} onEdit={onEdit}
-              compact={kind === 'shop'} onOpen={(post) => onOpenShop(post.id)} />
+              compact onOpen={(post) => onOpenPost(post.id)} />
           ))}
         </div>
       )}

@@ -3,11 +3,12 @@ import { useLangContext } from '../LangContext'
 import PostCard from './PostCard'
 import styles from './ui.module.css'
 
-// One shop, opened from its card: shop photos, every item, contacts, share,
+// One shop or handyman, opened from its card: photos, every item (shops) or
+// stars and reviews (handymen), contacts, share,
 // and edit / delete for the poster (or delete for admins). Full screen on a
 // phone. App.jsx keeps it in the address bar (?p=<id>), so the phone's back
 // button closes it and a shared shop link opens it directly.
-export default function ShopPage({ post, ratings, onEdit, onClose }) {
+export default function PostPage({ kind, post, ratings, onEdit, onClose }) {
   const { t } = useLangContext()
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export default function ShopPage({ post, ratings, onEdit, onClose }) {
         <strong className={styles.shopPageTitle}>{post.name}</strong>
       </div>
       <div className={styles.shopPageBody}>
-        <PostCard kind="shop" collectionName="villageShops" post={post} ratings={ratings} onEdit={onEdit} />
+        <PostCard kind={kind} collectionName={kind === 'shop' ? 'villageShops' : 'villageProviders'} post={post} ratings={ratings} onEdit={onEdit} />
       </div>
     </div>
   )

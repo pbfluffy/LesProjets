@@ -198,16 +198,17 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
     })
   }
 
-  // Board / home view of a shop: a short summary with a peek at its items;
-  // tapping anywhere but a button opens the shop page with every item.
+  // Board / home view: a short list row — square photo on the left, the key
+  // facts on the right — so several posts fit on a phone screen. Tapping
+  // anywhere but a button opens the full page (shop items, handyman reviews).
   if (compact) {
-    const shopRating = ratings.get(post.id)
+    const rating = ratings.get(post.id)
     const cover = photos[0] || items.find((it) => it.photo)?.photo
     const forSale = items.filter((it) => !it.sold).length
     const open = (e) => { if (!e.target.closest('a, button')) onOpen(post) }
     return (
       <article
-        className={`${styles.card} ${styles.shopCard}`}
+        className={`${styles.card} ${styles.rowCard}`}
         id={'post-' + post.id}
         onClick={open}
         onKeyDown={(e) => e.key === 'Enter' && e.target === e.currentTarget && onOpen(post)}
@@ -215,58 +216,38 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
         tabIndex={0}
         aria-label={interp(t.shopOpen, { name: post.name })}
       >
-        {cover && (
-          <div className={styles.photoWrap}>
-            <img className={styles.photo} src={cover} alt="" loading="lazy" />
-            {photos.length + items.filter((it) => it.photo).length > 1 && (
-              <span className={styles.photoCount}>📷 {photos.length + items.filter((it) => it.photo).length}</span>
-            )}
-          </div>
-        )}
-        <div className={styles.cardBody}>
-          <div className={styles.cardTags}>
+        <div className={styles.rowThumb}>
+          {cover ? <img src={cover} alt="" loading="lazy" /> : <span>{isShop ? '🛍️' : '🔧'}</span>}
+        </div>
+        <div className={styles.rowBody}>
+          <h3 className={styles.rowTitle}>{post.name}</h3>
+          <div className={styles.rowBadges}>
             <ResidencyBadge isResident={post.isResident} />
-            {post.isResident && post.verified && <span className={`${styles.badge} ${styles.badgeVerified}`}>✓ {t.verified}</span>}
-            {tags.map((c) => <span key={c} className={styles.tag}>{t[tagPrefix + c]}</span>)}
+            {post.isResident && post.verified && <span className={`${styles.badge} ${styles.badgeVerified}`}>✓</span>}
+            {tags.slice(0, 2).map((c) => <span key={c} className={styles.tag}>{t[tagPrefix + c]}</span>)}
+            {tags.length > 2 && <span className={styles.tag}>+{tags.length - 2}</span>}
           </div>
-          <h3 className={styles.cardTitle}>{post.name}</h3>
-          {shopRating.count > 0 && (
-            <div className={styles.ratingSummary}>
-              <span className={styles.starsStatic} style={{ '--fill': `${(shopRating.avg / 5) * 100}%` }} aria-hidden="true">★★★★★</span>
-              <strong>{shopRating.avg.toFixed(1)}</strong>
-              <span>{interp(t.ratingCount, { n: shopRating.count })}</span>
-            </div>
-          )}
-          {post.description && <p className={`${styles.desc} ${styles.clamp2}`}>{post.description}</p>}
-
-          <div className={styles.itemPreview}>
-            <div className={styles.previewThumbs}>
-              {items.slice(0, 4).map((it, i) => (
-                it.photo
-                  ? <img key={i} src={it.photo} alt="" loading="lazy" className={it.sold ? styles.previewSold : ''} />
-                  : <span key={i} className={styles.previewEmpty}>🛍️</span>
-              ))}
-            </div>
-            <span className={styles.previewText}>
-              {interp(t.shopItemCount, { n: items.length })}
-              {forSale < items.length && <small> · {interp(t.shopForSale, { n: forSale })}</small>}
-            </span>
-            <span className={styles.seeAll}>{t.shopSeeAll} ›</span>
+          <div className={styles.rowMeta}>
+            {rating.count > 0 && (
+              <span className={styles.rowRating}>★ {rating.avg.toFixed(1)} <small>({rating.count})</small></span>
+            )}
+            {isShop && (
+              <span>
+                {interp(t.shopItemCount, { n: items.length })}
+                {forSale < items.length && <> · {interp(t.shopForSale, { n: forSale })}</>}
+              </span>
+            )}
+            {!isShop && rating.count === 0 && <span>{t.ratingNone}</span>}
           </div>
-
-          <div className={styles.actions}>
+          <div className={styles.rowActions}>
             {post.phone && (
-              <a className={styles.contactBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')}>
-                📞 {t.call}
-              </a>
+              <a className={styles.rowBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')} aria-label={t.call + ' ' + post.phone}>📞 {t.call}</a>
             )}
             {post.line && (
-              <a className={`${styles.contactBtn} ${styles.lineBtn}`} href={lineUrl(post.line)} target="_blank" rel="noopener noreferrer">
-                💬 {t.line}
-              </a>
+              <a className={`${styles.rowBtn} ${styles.lineBtn}`} href={lineUrl(post.line)} target="_blank" rel="noopener noreferrer">💬 {t.line}</a>
             )}
+            <span className={styles.seeAll}>{isShop ? t.shopSeeAll : t.seeDetails} ›</span>
           </div>
-          <span className={styles.meta}>🕒 {updatedLabel(post, t, lang)}</span>
           {isOwner && isStale(post) && <span className={styles.staleBadge}>{t.staleShort}</span>}
         </div>
       </article>

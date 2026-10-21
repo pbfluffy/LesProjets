@@ -10,7 +10,7 @@ import PostForm from './components/PostForm'
 import AdminPanel from './components/AdminPanel'
 import SignInSheet from './components/SignInSheet'
 import AdminEntrySheet from './components/AdminEntrySheet'
-import ShopPage from './components/ShopPage'
+import PostPage from './components/PostPage'
 import Tour, { TOUR_KEY } from './components/Tour'
 import NewsBoard from './components/NewsBoard'
 import NewsForm from './components/NewsForm'
@@ -61,33 +61,35 @@ export default function App() {
     closeAdminEntry()
   }, [adminEntry, isAdmin])
 
-  // A shared post link (?p=<id>, see share.js): once posts have loaded, open
-  // the right tab, scroll to that card and flash it.
-  // The open shop page (ShopPage). It's pushed into the address bar as
-  // ?p=<id>, so the phone's back button closes it and the link can be shared.
-  const [openShopId, setOpenShopId] = useState(null)
-  function openShop(id) {
-    setOpenShopId(id)
-    window.history.pushState({ shop: id }, '', '?p=' + encodeURIComponent(id))
+  // The open post page (PostPage): a shop with its items, or a handyman with
+  // their reviews. It's pushed into the address bar as ?p=<id>, so the
+  // phone's back button closes it and the link can be shared.
+  const [openPostId, setOpenPostId] = useState(null)
+  function openPost(id) {
+    setOpenPostId(id)
+    window.history.pushState({ post: id }, '', '?p=' + encodeURIComponent(id))
   }
-  function closeShop() {
-    if (window.history.state?.shop) window.history.back() // popstate below clears it
+  function closePost() {
+    if (window.history.state?.post) window.history.back() // popstate below clears it
     else {
-      setOpenShopId(null)
+      setOpenPostId(null)
       clearPostParam()
     }
   }
   useEffect(() => {
-    const onPop = () => setOpenShopId(window.history.state?.shop || null)
+    const onPop = () => setOpenPostId(window.history.state?.post || null)
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
-  const shownShop = openShopId && liveShops.find((p) => p.id === openShopId)
+  const shownShop = openPostId && liveShops.find((p) => p.id === openPostId)
+  const shownPost = shownShop || (openPostId && liveProviders.find((p) => p.id === openPostId))
   // Deleted (or hidden) while open: close the page.
   useEffect(() => {
-    if (openShopId && !shops.loading && !shownShop) closeShop()
-  }, [openShopId, shops.loading, shownShop])
+    if (openPostId && !shops.loading && !providers.loading && !shownPost) closePost()
+  }, [openPostId, shops.loading, providers.loading, shownPost])
 
+  // A shared post link (?p=<id>, see share.js): once posts have loaded, open
+  // that post's page on top of its tab.
   const [focusId, setFocusId] = useState(readPostParam)
   useEffect(() => {
     if (!focusId || shops.loading || providers.loading || news.loading) return
@@ -98,8 +100,8 @@ export default function App() {
     clearPostParam()
     if (!target) return // deleted since it was shared
     setTab(target)
-    // A shop link opens the shop page itself (on top of the marketplace).
-    if (target === 'market') return openShop(focusId)
+    // Shops and handymen open their own page; news (when on) is scrolled to.
+    if (target !== 'news') return openPost(focusId)
     setTimeout(() => {
       const el = document.getElementById('post-' + focusId)
       if (!el) return
@@ -226,7 +228,7 @@ export default function App() {
               ratings={ratings}
               onGo={setTab}
               onEditShop={editShop}
-              onOpenShop={openShop}
+              onOpenPost={openPost}
               onEditProvider={editProvider}
               onEditNews={editNews}
             />
@@ -245,7 +247,7 @@ export default function App() {
               addLabel={t.addShop}
               onAdd={() => editShop(null)}
               onEdit={editShop}
-              onOpenShop={openShop}
+              onOpenPost={openPost}
             />
           )}
           {tab === 'services' && (
@@ -262,6 +264,7 @@ export default function App() {
               addLabel={t.addProvider}
               onAdd={() => editProvider(null)}
               onEdit={editProvider}
+              onOpenPost={openPost}
             />
           )}
           {tab === 'news' && SHOW_NEWS && (
@@ -272,8 +275,14 @@ export default function App() {
           )}
         </main>
 
-        {shownShop && (
-          <ShopPage post={shownShop} ratings={ratings} onEdit={editShop} onClose={closeShop} />
+        {shownPost && (
+          <PostPage
+            kind={shownShop ? 'shop' : 'provider'}
+            post={shownPost}
+            ratings={ratings}
+            onEdit={shownShop ? editShop : editProvider}
+            onClose={closePost}
+          />
         )}
 
         {editingNews && user && (
