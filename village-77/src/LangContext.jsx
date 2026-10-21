@@ -42,7 +42,6 @@ export const STRINGS = {
     adminNoPosts: 'ยังไม่ได้ลงประกาศ',
     adminFirstSeen: 'เข้าครั้งแรก',
     adminLastSeen: 'ล่าสุด',
-    backToHome: 'กลับหน้าพอร์ตโฟลิโอ',
 
 
     homeWelcome: 'ยินดีต้อนรับสู่ชุมชนของเรา',
@@ -175,7 +174,6 @@ export const STRINGS = {
     adminNoPosts: 'No posts yet',
     adminFirstSeen: 'First',
     adminLastSeen: 'last',
-    backToHome: 'Back to portfolio',
 
 
     homeWelcome: 'Welcome to our community',

@@ -66,7 +66,6 @@ export default function App() {
         <header className={styles.header}>
           <div className={styles.headerRow}>
             <div className={styles.brand}>
-              <a href="/" className={styles.back} title={t.backToHome} aria-label={t.backToHome}>←</a>
               <div>
                 <h1 className={styles.title}>🏘️ {t.appName}</h1>
                 <p className={styles.tagline}>{t.tagline}</p>
