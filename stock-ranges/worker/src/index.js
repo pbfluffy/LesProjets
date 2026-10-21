@@ -37,6 +37,12 @@
 //     -> registers/refreshes one device's push subscription
 //   body { type: 'setAlert', symbol, buy, sell, range }
 //     -> sets (or clears, if both buy/sell are false) that symbol's alert
+//   body { type: 'testPush' }
+//     -> sends a test notification to every registered device
+//        -> { sent, gone, failed, devices }; 429 if repeated within a minute
+//   body { type: 'history' }
+//     -> { items: [{ ts, title, body, symbol?, direction?, test?, ... }] },
+//        newest first (written by the test sender and check-alerts.mjs)
 //   -> 401 { error } if the token is missing/invalid
 //   -> 400 { error } if the body fails validation
 //
@@ -52,7 +58,8 @@
 import { SYMBOL_RE, RANGE_CONFIG } from './constants.js'
 import { getQuote } from './quotes.js'
 import { verifyFirebaseToken } from './auth.js'
-import { upsertSubscription, setAlert } from './alerts.js'
+import { upsertSubscription, setAlert, getAlerts, pruneSubscription, getHistory, addHistory } from './alerts.js'
+import { sendPush } from './push.js'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -250,7 +257,42 @@ async function handleAlerts(request, env) {
     const ok = await setAlert(env, uid, body)
     return ok ? json({ ok: true }) : json({ error: 'invalid alert' }, 400)
   }
+  if (body?.type === 'testPush') {
+    return handleTestPush(env, uid)
+  }
+  if (body?.type === 'history') {
+    return json({ items: await getHistory(env, uid) })
+  }
   return json({ error: 'unknown type' }, 400)
+}
+
+const TEST_COPY = {
+  en: { title: 'Stock Ranges test notification', body: 'Notifications are working on this device.' },
+  th: { title: 'ทดสอบการแจ้งเตือน Stock Ranges', body: 'อุปกรณ์นี้รับการแจ้งเตือนได้ปกติ' },
+}
+
+// Sends a test push to every device the user has registered, so they can
+// confirm delivery end to end without waiting for a real buy/sell signal.
+// One per minute per user (KV TTL key) — each send is real push-service
+// traffic. Dead subscriptions (404/410) are pruned like the cron does.
+async function handleTestPush(env, uid) {
+  const cooldownKey = `testcooldown:${uid}`
+  if (await env.ALERTS.get(cooldownKey)) return json({ error: 'too soon' }, 429)
+  await env.ALERTS.put(cooldownKey, '1', { expirationTtl: 60 })
+
+  const entry = await getAlerts(env, uid)
+  const subscriptions = entry.subscriptions || []
+  if (!subscriptions.length) return json({ sent: 0, gone: 0, failed: 0, devices: 0 })
+
+  const copy = TEST_COPY[entry.lang === 'th' ? 'th' : 'en']
+  const payload = { title: copy.title, body: copy.body, tag: 'stock-ranges-test' }
+  const results = await Promise.all(subscriptions.map((s) => sendPush(env, s, payload)))
+  const gone = subscriptions.filter((_, i) => results[i] === 'gone')
+  for (const s of gone) await pruneSubscription(env, uid, s.endpoint)
+
+  const sent = results.filter((r) => r === 'ok').length
+  await addHistory(env, uid, { ts: Date.now(), test: true, title: copy.title, body: copy.body, delivered: sent, devices: subscriptions.length })
+  return json({ sent, gone: gone.length, failed: results.filter((r) => r === 'error').length, devices: subscriptions.length })
 }
 
 export default {

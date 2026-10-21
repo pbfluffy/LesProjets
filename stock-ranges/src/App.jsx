@@ -12,6 +12,7 @@ import ConflictModal from './components/ConflictModal.jsx'
 import Icon from './components/Icon.jsx'
 import { TAG_DATALIST_ID } from './components/TagChips.jsx'
 import TagManagerModal from './components/TagManagerModal.jsx'
+import NotificationsModal from './components/NotificationsModal.jsx'
 import UndoToast from './components/UndoToast.jsx'
 import WalletView from './components/WalletView.jsx'
 import WalletLocked from './components/WalletLocked.jsx'
@@ -179,6 +180,7 @@ function Dashboard() {
   const [highlightSymbol, setHighlightSymbol] = useState(null)
   const [undoInfo, setUndoInfo] = useState(null)
   const [tagManagerOpen, setTagManagerOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   useEffect(() => {
     localStorage.setItem(WATCHLIST_KEY, JSON.stringify(watchlist))
@@ -609,7 +611,7 @@ function Dashboard() {
               <Icon name="refresh" size={15} />
             </button>
           </div>
-          <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} />
+          <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} onOpenNotifications={() => setNotificationsOpen(true)} />
         </div>
       </div>
 
@@ -683,6 +685,15 @@ function Dashboard() {
           onRename={renameTag}
           onDelete={deleteTagEverywhere}
           onClose={() => setTagManagerOpen(false)}
+        />
+      )}
+
+      {notificationsOpen && cloudSync.user && (
+        <NotificationsModal
+          user={cloudSync.user}
+          loadHistory={priceAlerts.loadHistory}
+          sendTest={priceAlerts.sendTest}
+          onClose={() => setNotificationsOpen(false)}
         />
       )}
 

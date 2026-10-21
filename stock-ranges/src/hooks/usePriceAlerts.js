@@ -23,6 +23,20 @@ async function postAlerts(user, body) {
   return !!res?.ok
 }
 
+// Same call, but returns { ok, status, data } for routes that answer with JSON.
+async function postAlertsJson(user, body) {
+  if (!WORKER_URL || !user) return null
+  const idToken = await user.getIdToken()
+  const res = await fetch(`${WORKER_URL}/alerts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+    body: JSON.stringify(body),
+  }).catch(() => null)
+  if (!res) return null
+  const data = await res.json().catch(() => null)
+  return { ok: res.ok, status: res.status, data }
+}
+
 // Narrowly scoped to the browser-permission/push-subscription mechanics
 // and the Worker calls themselves — mirrors useInstallPrompt.js's shape.
 // The actual alert *state* (which symbols, which directions) is owned by
@@ -66,5 +80,27 @@ export function usePriceAlerts() {
     return postAlerts(user, { type: 'setAlert', symbol, buy, sell, range, currency, lang })
   }
 
-  return { permission, ensureSubscribed, setAlert }
+  // Sends a test push to every registered device. Registers this device
+  // first (asking for permission if needed) so the test reaches the one in
+  // the user's hand. Returns { status: 'ok', sent, devices } |
+  // { status: 'denied' | 'tooSoon' | 'error' }.
+  async function sendTest(user) {
+    const subscribed = await ensureSubscribed(user)
+    if (!subscribed && typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+      return { status: 'denied' }
+    }
+    const res = await postAlertsJson(user, { type: 'testPush' })
+    if (res?.status === 429) return { status: 'tooSoon' }
+    if (!res?.ok) return { status: 'error' }
+    return { status: 'ok', sent: res.data.sent ?? 0, devices: res.data.devices ?? 0 }
+  }
+
+  // Newest-first notification history (real buy/sell alerts + tests), or
+  // null if it couldn't be loaded.
+  async function loadHistory(user) {
+    const res = await postAlertsJson(user, { type: 'history' })
+    return res?.ok && Array.isArray(res.data?.items) ? res.data.items : null
+  }
+
+  return { permission, ensureSubscribed, setAlert, sendTest, loadHistory }
 }

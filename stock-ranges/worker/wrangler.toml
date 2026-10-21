@@ -1,6 +1,9 @@
 name = "stock-ranges-quotes"
 main = "src/index.js"
 compatibility_date = "2026-07-15"
+# nodejs_compat: @block65/webcrypto-web-push (test pushes, src/push.js) has a
+# node:crypto fallback import; at runtime it uses globalThis.crypto.
+compatibility_flags = ["nodejs_compat"]
 
 # The app's own JS calls this worker directly via
 # stock-ranges-quotes.pbfluffygaming.workers.dev — no zone route needed,

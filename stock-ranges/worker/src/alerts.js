@@ -114,3 +114,24 @@ export async function listAllAlerts(env) {
   } while (cursor)
   return all
 }
+
+// ---- notification history (shown in the app's Notifications panel) ----
+// One KV entry per user, newest first, capped. Written here for test pushes
+// and by scripts/check-alerts.mjs (via the KV REST API) for real buy/sell
+// alerts — keep the item shape in sync with that script.
+const HISTORY_LIMIT = 50
+
+function historyKey(uid) {
+  return `history:${uid}`
+}
+
+export async function getHistory(env, uid) {
+  const raw = await env.ALERTS.get(historyKey(uid), 'json')
+  return Array.isArray(raw) ? raw : []
+}
+
+export async function addHistory(env, uid, item) {
+  const list = await getHistory(env, uid)
+  list.unshift(item)
+  await env.ALERTS.put(historyKey(uid), JSON.stringify(list.slice(0, HISTORY_LIMIT)))
+}

@@ -332,14 +332,34 @@ async function main() {
   })
 
   console.log(`${toNotify.length} notification(s) to send.`)
+  const historyByUid = new Map() // uid -> [history items], written once per uid below
   await inBatches(toNotify, BATCH_SIZE, async ({ uid, symbol, range, direction, quote }) => {
     const subscriptions = subsByUid.get(uid) || []
     const payload = notificationCopy(symbol, direction, range, quote, currencyByUid.get(uid), rates, langByUid.get(uid))
+    let delivered = 0
     await Promise.all(subscriptions.map(async (subscription) => {
       const result = await sendPush(subscription, payload)
+      if (result === 'ok') delivered++
       if (result === 'gone') await pruneSubscription(uid, subscription.endpoint)
     }))
+    if (!historyByUid.has(uid)) historyByUid.set(uid, [])
+    historyByUid.get(uid).push({ ts: Date.now(), symbol, direction, range, title: payload.title, body: payload.body, delivered, devices: subscriptions.length })
   })
+  for (const [uid, items] of historyByUid) await addHistory(uid, items)
+}
+
+// Notification history for the app's Notifications panel — same KV entry
+// and item shape the Worker writes for test pushes (worker/src/alerts.js's
+// addHistory): `history:{uid}`, newest first, capped at 50.
+const HISTORY_LIMIT = 50
+async function addHistory(uid, items) {
+  try {
+    const key = `history:${uid}`
+    const list = (await kvGet(key)) || []
+    await kvPut(key, [...items.reverse(), ...(Array.isArray(list) ? list : [])].slice(0, HISTORY_LIMIT))
+  } catch (err) {
+    console.error('[history] write failed', err) // never let history break alert delivery
+  }
 }
 
 main().catch((err) => {
