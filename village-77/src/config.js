@@ -20,4 +20,4 @@ export const SHOW_NEWS = false
 // LIFF tab; endpoint https://pumbafluffycorgi.com/village-77/, scopes
 // openid + profile). Empty until created: then sign-in inside LINE skips
 // LINE's web login page, and share links / the poster QR open in LINE.
-export const LIFF_ID = ''
+export const LIFF_ID = '2012133281-TffzWAQ2'
