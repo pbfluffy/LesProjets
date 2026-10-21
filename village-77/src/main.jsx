@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
+import Poster from './components/Poster.jsx'
 import './index.css'
 import './registerPwaUpdate.js'
 import { mountVersionLabel } from '../../shared/appVersion.js'
@@ -30,7 +31,8 @@ class ErrorBoundary extends React.Component {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      {/* ?poster: the printable QR poster (opened from the admin tab) */}
+      {new URLSearchParams(window.location.search).has('poster') ? <Poster /> : <App />}
     </ErrorBoundary>
   </React.StrictMode>,
 )

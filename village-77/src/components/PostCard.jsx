@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import { updatePost, deletePost, deletePrivateAddress } from '../hooks/usePosts'
 import { useAuthContext } from '../hooks/useAuth'
+import { postUrl, shareToLine } from '../share'
 import styles from './ui.module.css'
 
 export function ResidencyBadge({ isResident }) {
@@ -111,6 +112,12 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit }
     })
   }
 
+  // Name, tags and a link straight to this post, into a LINE chat or group.
+  function handleShare() {
+    const tagText = tags.map((c) => t[tagPrefix + c]).join(', ')
+    shareToLine(`🏘️ ${t.appName}\n${post.name}${tagText ? ' — ' + tagText : ''}\n${postUrl(post.id)}`)
+  }
+
   function toggleSold(i) {
     const next = items.map((it, j) => (j === i ? { ...it, sold: !it.sold } : it))
     updatePost(collectionName, post.id, { items: next }).catch((e) => {
@@ -120,7 +127,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit }
   }
 
   return (
-    <article className={styles.card}>
+    <article className={styles.card} id={'post-' + post.id}>
       {photos.length > 0 && (
         <div className={styles.photoWrap}>
           <div className={styles.photoStrip} onScroll={onStripScroll}>
@@ -187,6 +194,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit }
               💬 {t.line}
             </a>
           )}
+          <button type="button" className={styles.contactBtn} onClick={handleShare}>↗ {t.shareLine}</button>
         </div>
 
         {(isOwner || isAdmin) && (

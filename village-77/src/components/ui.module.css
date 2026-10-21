@@ -9,6 +9,7 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  text-decoration: none; /* also used on links */
 }
 .primaryBtn { background: var(--color-accent); color: var(--color-accent-text); border: none; }
 .secondaryBtn { background: var(--color-surface); color: var(--color-text); border: 0.5px solid var(--color-border-strong); }
@@ -289,6 +290,7 @@
   background: var(--color-surface-alt);
   border-radius: var(--radius-pill);
   padding: 6px 12px;
+  border: none; /* also used on the share <button> */
 }
 .lineBtn { background: #06c755; color: #fff; }
 

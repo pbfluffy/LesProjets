@@ -10,6 +10,7 @@ import PostForm from './components/PostForm'
 import AdminPanel from './components/AdminPanel'
 import SignInSheet from './components/SignInSheet'
 import AdminEntrySheet from './components/AdminEntrySheet'
+import { readPostParam, clearPostParam } from './share'
 import styles from './App.module.css'
 
 const SHOPS = 'villageShops'
@@ -39,6 +40,26 @@ export default function App() {
     setTab('admin')
     closeAdminEntry()
   }, [adminEntry, isAdmin])
+
+  // A shared post link (?p=<id>, see share.js): once posts have loaded, open
+  // the right tab, scroll to that card and flash it.
+  const [focusId, setFocusId] = useState(readPostParam)
+  useEffect(() => {
+    if (!focusId || shops.loading || providers.loading) return
+    const target = shops.posts.some((p) => p.id === focusId) ? 'market'
+      : providers.posts.some((p) => p.id === focusId) ? 'services' : null
+    setFocusId(null)
+    clearPostParam()
+    if (!target) return // deleted since it was shared
+    setTab(target)
+    setTimeout(() => {
+      const el = document.getElementById('post-' + focusId)
+      if (!el) return
+      el.scrollIntoView({ block: 'center' })
+      el.classList.add('post-focus')
+      setTimeout(() => el.classList.remove('post-focus'), 2500)
+    }, 150) // after the tab's own scroll-to-top
+  }, [focusId, shops.loading, providers.loading, shops.posts, providers.posts])
 
   function closeAdminEntry() {
     setAdminEntry(false)

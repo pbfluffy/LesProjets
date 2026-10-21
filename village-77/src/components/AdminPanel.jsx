@@ -52,6 +52,11 @@ export default function AdminPanel({ shops, providers, ratings }) {
       <div className={styles.hero}>
         <h2>🛡️ {t.navAdmin}</h2>
         <p>{t.adminBlurb}</p>
+        <p style={{ marginTop: 8 }}>
+          <a className={styles.secondaryBtn} href={import.meta.env.BASE_URL + '?poster'} target="_blank" rel="noopener">
+            🖨️ {t.adminPoster}
+          </a>
+        </p>
       </div>
 
       <div className={styles.segment} role="group" style={{ marginBottom: 12 }}>

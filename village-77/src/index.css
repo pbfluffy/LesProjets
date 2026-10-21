@@ -43,3 +43,10 @@ button { cursor: pointer; font-family: var(--font-body); }
   clip: rect(0,0,0,0); white-space: nowrap; border: 0;
 }
 select { cursor: pointer; }
+
+/* Flash a card opened from a shared link (App.jsx, ?p=) */
+.post-focus { animation: post-focus 2.5s ease-out; }
+@keyframes post-focus {
+  0%, 40% { box-shadow: 0 0 0 3px #06c755, var(--shadow-card); }
+  100% { box-shadow: var(--shadow-card); }
+}
