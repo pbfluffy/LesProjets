@@ -39,11 +39,13 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
   const createdId = useRef(null)
   // Editing a villager's post: load their saved house no. into the form.
   const [addressLoading, setAddressLoading] = useState(() => !!post?.isResident)
+  const savedAddress = useRef('') // as loaded, to spot a change on save
   useEffect(() => {
     if (!post?.isResident) return
     let cancelled = false
     loadPrivateAddress(post.id).then((address) => {
       if (cancelled) return
+      savedAddress.current = address
       setF((prev) => (prev.address ? prev : { ...prev, address }))
       setAddressLoading(false)
     })
@@ -172,6 +174,11 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
     try {
       // createdId: if a new post was created but a later step failed, a
       // retry updates that post instead of creating a duplicate.
+      // A verified villager changing their house no. (or becoming a villager)
+      // needs checking again: drop the badge, back to the admins' to-check list.
+      if (post?.verified && f.isResident && (!post.isResident || f.address.trim() !== savedAddress.current)) {
+        data.verified = false
+      }
       let id = post?.id || createdId.current
       if (id) await updatePost(collectionName, id, data)
       else id = createdId.current = (await createPost(collectionName, user, data)).id

@@ -434,12 +434,14 @@ service cloud.firestore {
           && request.resource.data.verified == false
           && request.resource.data.createdAt == request.time;
     }
-    // Poster: anything but who owns it, when it was made, or the verified mark.
+    // Poster: anything but who owns it or when it was made. They can't mark
+    // themselves verified, but can drop it (changing a verified house no.
+    // sends the post back to the admins' "to check" list).
     function villageOwnerUpdate() {
       return isUser(resource.data.ownerUid)
           && request.resource.data.ownerUid  == resource.data.ownerUid
           && request.resource.data.createdAt == resource.data.createdAt
-          && request.resource.data.verified  == resource.data.verified;
+          && (request.resource.data.verified == resource.data.verified || request.resource.data.verified == false);
     }
     // Admin: only flips the verified mark.
     function villageAdminUpdate() {
