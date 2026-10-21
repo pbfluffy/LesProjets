@@ -10,6 +10,7 @@ import PostForm from './components/PostForm'
 import AdminPanel from './components/AdminPanel'
 import SignInSheet from './components/SignInSheet'
 import AdminEntrySheet from './components/AdminEntrySheet'
+import Tour, { TOUR_KEY } from './components/Tour'
 import NewsBoard from './components/NewsBoard'
 import NewsForm from './components/NewsForm'
 import { readPostParam, clearPostParam } from './share'
@@ -32,6 +33,12 @@ export default function App() {
   const [editing, setEditing] = useState(null)
   const [editingNews, setEditingNews] = useState(null) // { post } while the news form is open
   const [askSignIn, setAskSignIn] = useState(false)
+  // First visit: the guided tour (not on links that do something else first).
+  const [showTour, setShowTour] = useState(() => {
+    const q = new URLSearchParams(window.location.search)
+    if (['admin', 'poster', 'code', 'error', 'p'].some((k) => q.has(k))) return false
+    try { return !localStorage.getItem(TOUR_KEY) } catch { return false }
+  })
   // Admin sign-in has no button in the app: open the page with ?admin.
   const [adminEntry, setAdminEntry] = useState(() => new URLSearchParams(window.location.search).has('admin'))
 
@@ -110,6 +117,7 @@ export default function App() {
               <button
                 type="button"
                 className={styles.langBtn}
+                data-tour="lang"
                 onClick={() => setLang(lang === 'th' ? 'en' : 'th')}
                 aria-label="Switch language"
               >
@@ -125,6 +133,15 @@ export default function App() {
               >
                 {theme === 'dark' ? '☀️' : '🌙'}
               </button>
+              <button
+                type="button"
+                className={styles.iconBtn}
+                onClick={() => setShowTour(true)}
+                aria-label={t.tourHelp}
+                title={t.tourHelp}
+              >
+                ?
+              </button>
               {user ? (
                 <button type="button" className={styles.avatarBtn} onClick={handleSignOut} title={user.displayName || t.signOut}>
                   {user.photoURL
@@ -132,7 +149,7 @@ export default function App() {
                     : (user.displayName || '?').slice(0, 1)}
                 </button>
               ) : (
-                <button type="button" className={styles.lineBtn} onClick={() => setAskSignIn(true)} disabled={auth.finishing}>
+                <button type="button" data-tour="signin" className={styles.lineBtn} onClick={() => setAskSignIn(true)} disabled={auth.finishing}>
                   {auth.finishing ? '…' : t.signIn}
                 </button>
               )}
@@ -150,6 +167,7 @@ export default function App() {
               <button
                 key={key}
                 type="button"
+                data-tour={'tab-' + key}
                 className={`${styles.tabBtn} ${tab === key ? styles.tabBtnActive : ''}`}
                 onClick={() => setTab(key)}
               >
@@ -246,6 +264,8 @@ export default function App() {
             onClose={closeAdminEntry}
           />
         )}
+
+        {showTour && <Tour onTab={setTab} onClose={() => setShowTour(false)} />}
 
         {askSignIn && !user && (
           <SignInSheet

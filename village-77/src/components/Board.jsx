@@ -45,11 +45,11 @@ export default function Board({
   return (
     <section>
       <div className={styles.boardTop}>
-        <button type="button" className={styles.primaryBtn} onClick={onAdd}>{addLabel}</button>
+        <button type="button" data-tour="add" className={styles.primaryBtn} onClick={onAdd}>{addLabel}</button>
       </div>
 
       <div className={styles.filters}>
-        <div className={styles.segment} role="group">
+        <div className={styles.segment} role="group" data-tour="residency">
           {[
             ['all', t.filterAll],
             ['resident', '🏡 ' + t.resident],
