@@ -258,6 +258,19 @@
 .adminActions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex: 0 0 auto; }
 .adminVerify { display: flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; cursor: pointer; }
 .adminVerify input { width: 18px; height: 18px; }
+.memberRow { justify-content: flex-start; align-items: center; }
+.memberAvatar {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-surface-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
 
 .cardTitle { font-size: 16px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
 .price { font-family: var(--font-mono); font-size: 15px; font-weight: 500; }

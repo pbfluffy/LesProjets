@@ -33,6 +33,15 @@ export const STRINGS = {
     adminPending: 'รอตรวจสอบ',
     adminNothingPending: 'ไม่มีคนในหมู่บ้านที่รอตรวจสอบ',
     adminNoAddress: 'ไม่ได้ใส่บ้านเลขที่',
+    adminAllPosts: 'ประกาศทั้งหมด',
+    adminMembers: 'สมาชิก',
+    adminMemberCount: 'ผู้ที่เคยเข้าสู่ระบบ {n} คน',
+    adminNoMembers: 'ยังไม่มีใครเข้าสู่ระบบ',
+    adminNoName: '(ไม่มีชื่อ)',
+    adminPosts: 'ลงประกาศ {n} รายการ',
+    adminNoPosts: 'ยังไม่ได้ลงประกาศ',
+    adminFirstSeen: 'เข้าครั้งแรก',
+    adminLastSeen: 'ล่าสุด',
     backToHome: 'กลับหน้าพอร์ตโฟลิโอ',
 
 
@@ -157,6 +166,15 @@ export const STRINGS = {
     adminPending: 'To check',
     adminNothingPending: 'No villagers waiting to be checked',
     adminNoAddress: 'No house number given',
+    adminAllPosts: 'All posts',
+    adminMembers: 'Members',
+    adminMemberCount: '{n} people have signed in',
+    adminNoMembers: 'Nobody has signed in yet',
+    adminNoName: '(no name)',
+    adminPosts: '{n} posts',
+    adminNoPosts: 'No posts yet',
+    adminFirstSeen: 'First',
+    adminLastSeen: 'last',
     backToHome: 'Back to portfolio',
 
 

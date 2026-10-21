@@ -52,12 +52,32 @@ export {
 // Also called right after a LINE sign-in sets the display name, since that
 // lands after onAuthStateChanged has already fired.
 export function saveProfile(user) {
-  return setDoc(doc(db, 'userProfiles', user.uid), {
+  setDoc(doc(db, 'userProfiles', user.uid), {
     name: user.displayName || '',
     email: user.email || '',
     photoURL: user.photoURL || null,
     lastSeen: serverTimestamp(),
     lastApp: 'Village 77',
   }, { merge: true }).catch((e) => console.warn('[profile] write failed:', e?.code));
+  return saveMember(user)
+}
+
+// villageMembers/{uid}: everyone who has signed in to this app, posted or
+// not, for the admin tab. userProfiles is shared by every app (lastApp gets
+// overwritten), so it can't say who belongs to the village.
+async function saveMember(user) {
+  const ref = doc(db, 'villageMembers', user.uid)
+  try {
+    const data = {
+      name: user.displayName || '',
+      photoURL: user.photoURL || null,
+      provider: user.uid.startsWith('line:') ? 'line' : 'google',
+      lastSeen: serverTimestamp(),
+    }
+    if (!(await getDoc(ref)).exists()) data.firstSeen = serverTimestamp()
+    await setDoc(ref, data, { merge: true })
+  } catch (e) {
+    console.warn('[member] write failed:', e?.code)
+  }
 }
 onAuthStateChanged(auth, (user) => { if (user) saveProfile(user); });

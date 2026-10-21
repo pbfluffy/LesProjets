@@ -3,6 +3,7 @@ import { useLangContext } from '../LangContext'
 import { db, collection, onSnapshot } from '../firebase'
 import { updatePost, deletePost, deletePrivateAddress } from '../hooks/usePosts'
 import { ResidencyBadge } from './PostCard'
+import AdminMembers from './AdminMembers'
 import styles from './ui.module.css'
 
 // Admins only (the tab is hidden otherwise, and firestore.rules only let
@@ -12,7 +13,7 @@ import styles from './ui.module.css'
 export default function AdminPanel({ shops, providers, ratings }) {
   const { t } = useLangContext()
   const [addresses, setAddresses] = useState({})
-  const [show, setShow] = useState('pending') // 'pending' | 'all'
+  const [show, setShow] = useState('pending') // 'pending' | 'all' | 'members'
 
   useEffect(() => onSnapshot(
     collection(db, 'villagePrivate'),
@@ -54,7 +55,7 @@ export default function AdminPanel({ shops, providers, ratings }) {
       </div>
 
       <div className={styles.segment} role="group" style={{ marginBottom: 12 }}>
-        {[['pending', t.adminPending], ['all', t.filterAll]].map(([key, label]) => (
+        {[['pending', t.adminPending], ['all', t.adminAllPosts], ['members', t.adminMembers]].map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -67,7 +68,9 @@ export default function AdminPanel({ shops, providers, ratings }) {
         ))}
       </div>
 
-      {rows.length === 0 ? (
+      {show === 'members' ? (
+        <AdminMembers shops={shops} providers={providers} />
+      ) : rows.length === 0 ? (
         <p className={styles.empty}>{show === 'pending' ? t.adminNothingPending : t.noMatches}</p>
       ) : (
         <ul className={styles.adminList}>
