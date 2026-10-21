@@ -133,15 +133,20 @@ function Stars({ postId, ratings, canPick }) {
   )
 }
 
-// LINE accepts a plain ID via the ~ profile link (opens the app on phones).
+// Opens a LINE chat with the poster (the LINE app on phones). Personal LINE
+// IDs use the ~ profile link; LINE Official Account IDs start with "@" and
+// need it kept, on a different link.
 function lineUrl(id) {
-  return 'https://line.me/ti/p/~' + encodeURIComponent(id.replace(/^@?/, ''))
+  const v = id.trim()
+  return v.startsWith('@')
+    ? 'https://line.me/R/ti/p/' + encodeURIComponent(v)
+    : 'https://line.me/ti/p/~' + encodeURIComponent(v)
 }
 
 // One card for both kinds: `kind` is 'shop' (a marketplace seller, with the
 // items they sell listed inside the card) or 'provider' (a handyman).
-// The device that created the post gets Edit / Delete, plus a per-item
-// sold toggle on shops.
+// The poster gets Edit / Delete, plus a per-item sold toggle on shops;
+// admins get Delete.
 export default function PostCard({ kind, collectionName, post, ratings, onEdit }) {
   const { t, lang } = useLangContext()
   const { user, isAdmin } = useAuthContext()
@@ -248,7 +253,6 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit }
             ))}
           </ul>
         )}
-
 
         <div className={styles.actions}>
           {post.phone && (

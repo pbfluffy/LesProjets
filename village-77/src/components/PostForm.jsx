@@ -33,6 +33,8 @@ export default function PostForm({ kind, collectionName, post, user, onClose }) 
   // Photos uploaded while this form is open, so the ones that never get
   // saved (removed again, or the form cancelled) can be deleted.
   const uploaded = useRef([])
+  const createdId = useRef(null)
+  const savedPhotos = useRef([]) // photos of the last successful write
 
   const set = (key) => (e) => {
     const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value
@@ -90,7 +92,8 @@ export default function PostForm({ kind, collectionName, post, user, onClose }) 
 
   // Closing without saving: drop only the photos uploaded just now.
   function cancel() {
-    const kept = photosOf(post)
+    // A post already created by a half-failed save keeps the photos it saved.
+    const kept = [...photosOf(post), ...savedPhotos.current]
     deletePhotos(uploaded.current.filter((u) => !kept.includes(u)))
     onClose()
   }
@@ -135,9 +138,12 @@ export default function PostForm({ kind, collectionName, post, user, onClose }) 
     setSaving(true)
     setError('')
     try {
-      let id = post?.id
-      if (post) await updatePost(collectionName, id, data)
-      else id = (await createPost(collectionName, user, data)).id
+      // createdId: if a new post was created but a later step failed, a
+      // retry updates that post instead of creating a duplicate.
+      let id = post?.id || createdId.current
+      if (id) await updatePost(collectionName, id, data)
+      else id = createdId.current = (await createPost(collectionName, user, data)).id
+      savedPhotos.current = photosOf(data)
       const address = f.address.trim()
       if (f.isResident && address) await savePrivateAddress(id, collectionName, address)
       else if (!f.isResident && post) await deletePrivateAddress(id)
