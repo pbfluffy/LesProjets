@@ -235,8 +235,11 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
                   <div className={styles.itemRowFields}>
                     <input ref={i === f.items.length - 1 ? lastItemName : null} maxLength={80} value={it.name} onChange={(e) => setItem(i, { name: e.target.value })} placeholder={t.fItemNamePh} />
                     <div className={styles.itemRowLine}>
-                      <input type="number" inputMode="numeric" min="0" max="100000000" value={it.price}
-                        onChange={(e) => setItem(i, { price: e.target.value })} placeholder={t.fPricePh} />
+                      <span className={styles.priceInput}>
+                        <span aria-hidden="true">฿</span>
+                        <input type="number" inputMode="numeric" min="0" max="100000000" value={it.price} aria-label={t.fPrice}
+                          onChange={(e) => setItem(i, { price: e.target.value })} placeholder={t.fPricePh} />
+                      </span>
                       <label className={styles.itemRowSold}>
                         <input type="checkbox" checked={!!it.sold} onChange={(e) => setItem(i, { sold: e.target.checked })} />
                         {t.sold}
@@ -247,6 +250,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
                 </div>
               ))}
             </div>
+            <small className={styles.hint}>💡 {t.fPriceHint}</small>
             {f.items.length < MAX_ITEMS && (
               <button type="button" className={styles.secondaryBtn} onClick={addItem}>{t.fAddItem}</button>
             )}
