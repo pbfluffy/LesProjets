@@ -1,7 +1,8 @@
 // Browser side of the build stamp from shared/viteBuildInfo.js. Shows a small
 // "v1.0042"-style line under each app so it's easy to tell whether a phone is
-// running the latest deploy (every app shows the same version for the same
-// deploy). Plain DOM, not React, so it still shows when the app has crashed.
+// running the latest deploy. Each app counts only its own commits (see
+// viteBuildInfo.js), so versions differ between apps. Plain DOM, not React,
+// so it still shows when the app has crashed.
 
 /* global __APP_BUILD__ */
 export const BUILD = typeof __APP_BUILD__ !== 'undefined' ? __APP_BUILD__ : { version: 'dev' }
