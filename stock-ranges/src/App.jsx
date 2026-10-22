@@ -29,6 +29,7 @@ const WATCHLIST_KEY = 'stockranges_watchlist'
 const RANGE_KEY = 'stockranges_range'
 const CURRENCY_KEY = 'stockranges_currency'
 const CHART_TYPE_KEY = 'stockranges_charttype'
+const WATCHLIST_VIEW_KEY = 'stockranges_watchlist_view' // 'cards' | 'compact'
 const TAGS_KEY = 'stockranges_tags'
 const KNOWN_FOR_KEY = 'stockranges_knownfor'
 const ALERTS_KEY = 'stockranges_alerts'
@@ -171,6 +172,7 @@ function Dashboard() {
   const [range, setRange] = useState(() => localStorage.getItem(RANGE_KEY) || '1y')
   const [currency, setCurrency] = useState(() => localStorage.getItem(CURRENCY_KEY) || 'USD')
   const [chartType, setChartType] = useState(() => localStorage.getItem(CHART_TYPE_KEY) || 'line')
+  const [watchlistView, setWatchlistView] = useState(() => localStorage.getItem(WATCHLIST_VIEW_KEY) || 'cards')
   const [tags, setTags] = useState(loadTags)
   const [customKnownFor, setCustomKnownFor] = useState(loadKnownFor)
   const [alerts, setAlerts] = useState(loadAlerts)
@@ -210,6 +212,10 @@ function Dashboard() {
   useEffect(() => {
     localStorage.setItem(CHART_TYPE_KEY, chartType)
   }, [chartType])
+
+  useEffect(() => {
+    localStorage.setItem(WATCHLIST_VIEW_KEY, watchlistView)
+  }, [watchlistView])
 
   useEffect(() => {
     localStorage.setItem(WATCHLIST_SORT_KEY, watchlistSort)
@@ -855,6 +861,14 @@ function Dashboard() {
           >
             <Icon name={chartType === 'line' ? 'trendingUp' : 'candlestick'} size={15} />
           </button>
+          <button
+            className={styles.chartTypeBtn}
+            onClick={() => setWatchlistView((v) => (v === 'compact' ? 'cards' : 'compact'))}
+            title={watchlistView === 'compact' ? s.viewCards : s.viewCompact}
+            aria-label={watchlistView === 'compact' ? s.viewCards : s.viewCompact}
+          >
+            <Icon name={watchlistView === 'compact' ? 'cards' : 'list'} size={15} />
+          </button>
           {lastUpdated && (
             <span className={styles.updated}>
               <span className={styles.updatedDot} aria-hidden="true" />
@@ -885,7 +899,7 @@ function Dashboard() {
       ) : filteredWatchlist.length === 0 ? (
         <div className={styles.empty}>{watchlistSearch.trim() ? s.noSearchMatches : s.noFilterMatches}</div>
       ) : (
-        <div className={styles.list}>
+        <div className={styles.list} data-view={watchlistView}>
           {filteredWatchlist.map((symbol) => (
             <ErrorBoundary key={symbol} compact label={symbol}>
             <TickerCard
@@ -909,6 +923,7 @@ function Dashboard() {
               marketOpen={marketStatus.open}
               alertConfig={alerts[symbol]}
               onToggleAlert={cloudSync.user ? handleToggleAlert : undefined}
+              compact={watchlistView === 'compact'}
             />
             </ErrorBoundary>
           ))}

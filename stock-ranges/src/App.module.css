@@ -279,11 +279,11 @@
   flex-shrink: 0;
 }
 .chartTypeBtn:hover { background: var(--color-border); }
-/* No adjacent button, so this can grow to a full ~44px tappable area. */
+/* Grows to a ~44px tappable area; the 10px gap keeps neighbours apart. */
 .chartTypeBtn::before {
   content: '';
   position: absolute;
-  inset: -7px;
+  inset: -7px -5px;
 }
 
 .updated {
@@ -380,6 +380,7 @@
   flex-direction: column;
   gap: 12px;
 }
+.list[data-view='compact'] { gap: 6px; }
 
 .empty {
   text-align: center;

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { tagHue } from '../tagColor.js'
 import styles from './TickerLogo.module.css'
 
@@ -9,6 +9,12 @@ import styles from './TickerLogo.module.css'
 export default function TickerLogo({ symbol, size = 32 }) {
   const [status, setStatus] = useState('loading') // 'loading' | 'loaded' | 'failed'
   const hue = tagHue(symbol)
+  // An image already in the browser cache can finish loading before React
+  // hears about it, so onLoad never fires and the logo stays hidden behind
+  // the letter — check on mount too.
+  const imgRef = useCallback((img) => {
+    if (img?.complete) setStatus(img.naturalWidth > 0 ? 'loaded' : 'failed')
+  }, [])
   const style = { '--logo-hue': hue, width: size, height: size, fontSize: Math.round(size * 0.42) }
 
   return (
@@ -16,6 +22,7 @@ export default function TickerLogo({ symbol, size = 32 }) {
       {status !== 'loaded' && <div className={styles.fallback}>{symbol.charAt(0)}</div>}
       {status !== 'failed' && (
         <img
+          ref={imgRef}
           className={styles.logo}
           data-loaded={status === 'loaded'}
           src={`https://financialmodelingprep.com/image-stock/${encodeURIComponent(symbol)}.png`}

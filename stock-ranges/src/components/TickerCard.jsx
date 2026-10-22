@@ -27,9 +27,15 @@ function interp(str, vars) {
 
 export default function TickerCard({
   symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, customBrands = [], onAddBrand, onRemoveBrand,
-  onRemove, onStatus, refreshKey, ownedQty, onOwnedClick, highlighted, marketOpen, alertConfig, onToggleAlert,
+  onRemove, onStatus, refreshKey, ownedQty, onOwnedClick, highlighted, marketOpen, alertConfig, onToggleAlert, compact,
 }) {
   const { s, lang } = useLang()
+  // Compact view: one row per stock until tapped open. Jumping here from
+  // the wallet (highlighted) opens it.
+  const [expanded, setExpanded] = useState(false)
+  useEffect(() => { if (highlighted) setExpanded(true) }, [highlighted])
+  useEffect(() => { if (!compact) setExpanded(false) }, [compact])
+  const showRow = compact && !expanded
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
   const [retryNonce, setRetryNonce] = useState(0)
   const prevRefreshKey = useRef(refreshKey)
@@ -54,12 +60,13 @@ export default function TickerCard({
   useEffect(() => {
     let cancelled = false
     setConfirm(null)
+    if (showRow) return undefined // only needed once the full card is open
     const r2 = confirmRangeFor(range)
     fetchQuote(symbol, r2)
       .then((data) => { if (!cancelled) setConfirm({ range: r2, deciles: computeDeciles({ prices: data.prices, current: data.current }) }) })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [symbol, range, refreshKey])
+  }, [symbol, range, refreshKey, showRow])
 
   const deciles = state.status === 'ready'
     ? computeDeciles({ prices: state.data.prices, current: state.data.current })
@@ -87,10 +94,59 @@ export default function TickerCard({
     }
   }, [state.status, deciles?.band, deciles?.signal, change?.percent]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  if (showRow) {
+    const zone = deciles?.signal || 'flat'
+    return (
+      <button
+        type="button"
+        id={`ticker-${symbol}`}
+        className={styles.row}
+        data-highlighted={highlighted}
+        style={{ '--tag-hue': tagHue(symbol) }}
+        onClick={() => setExpanded(true)}
+        aria-expanded="false"
+      >
+        <TickerLogo symbol={symbol} size={28} />
+        <span className={styles.rowIdentity}>
+          <span className={styles.rowSymbol}>
+            {symbol}
+            {ownedQty != null && <Icon name="briefcase" size={10} strokeWidth={2.25} className={styles.rowOwned} />}
+          </span>
+          <span className={styles.rowName}>
+            {state.status === 'error' ? state.error : state.data?.name ?? ''}
+          </span>
+        </span>
+        {state.status === 'loading' && <span className={styles.rowSkeleton} aria-hidden="true" />}
+        {state.data && (
+          <span className={styles.rowPrice}>
+            <strong>{formatPrice(state.data.current, state.data.currency)}</strong>
+            {change && (
+              <span className={styles.change} data-direction={change.direction}>
+                {CHANGE_ARROW[change.direction]} {Math.abs(change.percent).toFixed(2)}%
+              </span>
+            )}
+          </span>
+        )}
+        {deciles && (
+          <span className={styles.rowBadge} data-zone={zone}>
+            <strong>{deciles.band}/10</strong>
+            <span>{deciles.signal ? s[SIGNAL_LABEL_KEY[deciles.signal]] : s.signalFlat}</span>
+          </span>
+        )}
+      </button>
+    )
+  }
+
   return (
     <div id={`ticker-${symbol}`} className={styles.card} data-highlighted={highlighted} style={{ '--tag-hue': tagHue(symbol) }}>
       <div className={styles.head}>
-        <div className={styles.identity}>
+        {/* In the compact view, tapping the name area folds the card back
+            into its row. */}
+        <div
+          className={styles.identity}
+          data-collapsible={compact || undefined}
+          onClick={compact ? () => setExpanded(false) : undefined}
+        >
           <TickerLogo symbol={symbol} size={36} />
           <div className={styles.titleBlock}>
             <div className={styles.symbol}>
@@ -235,6 +291,12 @@ export default function TickerCard({
           onAddBrand={onAddBrand}
           onRemoveBrand={onRemoveBrand}
         />
+      )}
+      {compact && (
+        <button type="button" className={styles.collapseBar} onClick={() => setExpanded(false)} aria-expanded="true">
+          <Icon name="chevronDown" size={12} strokeWidth={2.5} className={styles.collapseIcon} />
+          {s.collapseCard}
+        </button>
       )}
     </div>
   )

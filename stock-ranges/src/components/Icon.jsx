@@ -54,6 +54,22 @@ const PATHS = {
   ),
   edit: <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />,
   chevronDown: <polyline points="6 9 12 15 18 9" />,
+  list: (
+    <>
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </>
+  ),
+  cards: (
+    <>
+      <rect x="3" y="3" width="18" height="8" rx="2" />
+      <rect x="3" y="14" width="18" height="7" rx="2" />
+    </>
+  ),
   bars: (
     <>
       <line x1="5" y1="19" x2="5" y2="13" />
