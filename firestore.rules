@@ -433,7 +433,30 @@ service cloud.firestore {
       return signedIn()
           && request.resource.data.ownerUid == request.auth.uid
           && request.resource.data.verified == false
-          && request.resource.data.createdAt == request.time;
+          && request.resource.data.createdAt == request.time
+          && (isVillageAdmin() || villageQuotaUsed());
+    }
+    // Daily post limit: up to 5 new shops / handymen per account per (UTC)
+    // day. Each new post must bump villageQuota/{uid} in the same write
+    // (getAfter = state after this write); the quota rule caps it at 5.
+    function villageToday() {
+      return request.time.year() * 10000 + request.time.month() * 100 + request.time.day();
+    }
+    function villageQuotaUsed() {
+      let q = /databases/$(database)/documents/villageQuota/$(request.auth.uid);
+      return getAfter(q).data.day == villageToday()
+          && ((exists(q) && get(q).data.day == villageToday() && getAfter(q).data.count == get(q).data.count + 1)
+              || ((!exists(q) || get(q).data.day != villageToday()) && getAfter(q).data.count == 1));
+    }
+    match /villageQuota/{uid} {
+      allow get: if isUser(uid);
+      allow create, update: if isUser(uid)
+                            && request.resource.data.keys().hasOnly(['day', 'count'])
+                            && request.resource.data.day == villageToday()
+                            && request.resource.data.count is int
+                            && request.resource.data.count <= 5
+                            && ((resource != null && resource.data.day == villageToday() && request.resource.data.count == resource.data.count + 1)
+                                || ((resource == null || resource.data.day != villageToday()) && request.resource.data.count == 1));
     }
     // Poster: anything but who owns it or when it was made. They can't mark
     // themselves verified, but can drop it (changing a verified house no.
@@ -515,6 +538,21 @@ service cloud.firestore {
                     && request.resource.data.ownerUid  == resource.data.ownerUid
                     && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isUser(resource.data.ownerUid) || isVillageAdmin();
+    }
+
+    // "Report this post": signed-in villagers flag a shop / handyman; admins
+    // read them in the admin tab and dismiss (delete) them.
+    match /villageReports/{reportId} {
+      allow create: if signedIn()
+                    && request.resource.data.keys().hasOnly(['postId', 'collection', 'reason', 'note', 'reporterUid', 'reporterName', 'createdAt'])
+                    && request.resource.data.reporterUid == request.auth.uid
+                    && request.resource.data.reason in ['wrong', 'notResident', 'scam', 'inappropriate', 'other']
+                    && request.resource.data.note is string && request.resource.data.note.size() <= 300
+                    && request.resource.data.reporterName is string && request.resource.data.reporterName.size() <= 80
+                    && request.resource.data.collection in ['villageShops', 'villageProviders']
+                    && exists(/databases/$(database)/documents/$(request.resource.data.collection)/$(request.resource.data.postId))
+                    && request.resource.data.createdAt == request.time;
+      allow read, delete: if isVillageAdmin();
     }
 
     // Category lists (marketplace categories, handyman types), edited by
