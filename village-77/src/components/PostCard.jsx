@@ -7,6 +7,7 @@ import { useFavoritesContext } from '../hooks/useFavorites'
 import ReportSheet from './ReportSheet'
 import Icon from './Icon'
 import { logAdmin } from '../adminLog'
+import { toast, canCall } from '../toast'
 import { photosOf, deletePhotos, thumbUrl } from '../photo'
 import { isStale, updatedLabel, STALE_DAYS } from '../freshness'
 import { postUrl, shareToLine, igUrl } from '../share'
@@ -322,6 +323,17 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
 
   // Call / LINE / IG taps count toward the owner's weekly stats.
   const tap = (field) => track(post.id, field, user, post.ownerUid)
+  // On a phone the tel: link dials. A computer has nothing to dial with (it
+  // asks "pick an app"), so copy the number and say so instead.
+  function call(e) {
+    tap('call')
+    if (canCall()) return
+    e.preventDefault()
+    navigator.clipboard?.writeText(post.phone).then(
+      () => toast(interp(t.phoneCopied, { phone: post.phone })),
+      () => toast(interp(t.phoneShow, { phone: post.phone })),
+    ) ?? toast(interp(t.phoneShow, { phone: post.phone }))
+  }
   const week = useWeekStats(post.id, isOwner)
   const weekLine = week && interp(t.statsWeek, { open: week.open, taps: week.call + week.line + week.ig })
 
@@ -408,7 +420,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
           </div>
           <div className={styles.rowActions}>
             {post.phone && (
-              <a className={styles.rowBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')} onClick={() => tap('call')} aria-label={t.call + ' ' + post.phone}><Icon name="phone" />{t.call}</a>
+              <a className={styles.rowBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')} onClick={call} aria-label={t.call + ' ' + post.phone}><Icon name="phone" />{t.call}</a>
             )}
             {post.line && (
               <a className={`${styles.rowBtn} ${styles.lineBtn}`} href={lineUrl(post.line)} onClick={() => tap('line')} target="_blank" rel="noopener noreferrer"><Icon name="chat" filled />{t.line}</a>
@@ -515,7 +527,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
 
         <div className={styles.actions}>
           {post.phone && (
-            <a className={styles.contactBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')} onClick={() => tap('call')}>
+            <a className={styles.contactBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')} onClick={call}>
               <Icon name="phone" size={16} />{t.call} {post.phone}
             </a>
           )}

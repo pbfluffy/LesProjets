@@ -50,3 +50,22 @@ select { cursor: pointer; }
   0%, 40% { box-shadow: 0 0 0 3px #06c755, var(--shadow-card); }
   100% { box-shadow: var(--shadow-card); }
 }
+
+/* toast.js: a short message at the bottom of the screen */
+.village-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  transform: translateX(-50%);
+  z-index: 400;
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  animation: village-toast-in 0.2s ease-out;
+}
+.village-toast-out { opacity: 0; transition: opacity 0.3s; }
+@keyframes village-toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
