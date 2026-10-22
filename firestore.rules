@@ -437,8 +437,20 @@ service cloud.firestore {
           && !('address' in d) // private — lives in villagePrivate below
           && (d.phone.size() > 0 || d.line.size() > 0 || ('instagram' in d && d.instagram.size() > 0))
           && d.photos is list && d.photos.size() <= 4
+          && villagePhotosOk(d.photos)
           && d.verified is bool
           && d.ownerUid is string;
+    }
+    // Post photos must be ones uploaded through the village-77 Worker (which
+    // checks the account, bans and the daily limit) — not images from anywhere.
+    function villagePhotoOk(p) {
+      return p is string && p.matches('https://village-77[.]pbfluffygaming[.]workers[.]dev/p/[^ ]{1,200}');
+    }
+    function villagePhotosOk(ps) {
+      return (ps.size() < 1 || villagePhotoOk(ps[0]))
+          && (ps.size() < 2 || villagePhotoOk(ps[1]))
+          && (ps.size() < 3 || villagePhotoOk(ps[2]))
+          && (ps.size() < 4 || villagePhotoOk(ps[3]));
     }
     function validVillageShop(d) {
       return validVillagePost(d)
@@ -492,6 +504,11 @@ service cloud.firestore {
       return isUser(resource.data.ownerUid) && !villageBanned()
           && request.resource.data.ownerUid  == resource.data.ownerUid
           && request.resource.data.createdAt == resource.data.createdAt
+          // "last updated" is the real time of this edit (or left alone), so a
+          // post can't be dated into the future to dodge the 60-day hiding
+          && (!('updatedAt' in request.resource.data)
+              || request.resource.data.updatedAt == request.time
+              || request.resource.data.updatedAt == resource.data.get('updatedAt', null))
           && (request.resource.data.verified == resource.data.verified || request.resource.data.verified == false);
     }
     // Admin: only flips the verified mark.
@@ -729,7 +746,12 @@ service cloud.firestore {
                             && request.resource.data.address.size() <= 120
                             && request.resource.data.collection in ['villageShops', 'villageProviders']
                             && exists(/databases/$(database)/documents/$(request.resource.data.collection)/$(postId))
-                            && (get(/databases/$(database)/documents/$(request.resource.data.collection)/$(postId)).data.ownerUid == request.auth.uid
+                            // The poster only while the post isn't verified — so a verified
+                            // villager can't quietly change their house no. and keep the ✓
+                            // (the app un-verifies the post first, then saves the address).
+                            && ((get(/databases/$(database)/documents/$(request.resource.data.collection)/$(postId)).data.ownerUid == request.auth.uid
+                                 && get(/databases/$(database)/documents/$(request.resource.data.collection)/$(postId)).data.verified == false
+                                 && !('updatedBy' in request.resource.data))
                                 || (isVillageAdmin() && request.resource.data.updatedBy == request.auth.uid));
       allow delete: if isVillageAdmin()
                     || (signedIn() && get(/databases/$(database)/documents/$(resource.data.collection)/$(postId)).data.ownerUid == request.auth.uid)
