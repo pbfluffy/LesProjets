@@ -227,7 +227,9 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
       else id = createdId.current = (await createPost(collectionName, user, data, { quota: !isAdmin })).id
       savedPhotos.current = photosOf(data)
       const address = f.address.trim()
-      if (f.isResident && address) await savePrivateAddress(id, collectionName, address)
+      // Only when new or changed: a verified post's house no. can't be rewritten
+      // (firestore.rules), and a changed one has just been un-verified above.
+      if (f.isResident && address && address !== savedAddress.current) await savePrivateAddress(id, collectionName, address)
       else if (!f.isResident && post) await deletePrivateAddress(id)
       // Photos the saved post no longer uses (replaced, removed, or uploaded
       // and then removed again before saving).
