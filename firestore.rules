@@ -394,6 +394,28 @@ service cloud.firestore {
       return signedIn()
           && (isOwner() || exists(/databases/$(database)/documents/villageAdmins/$(request.auth.uid)));
     }
+    // Banned accounts: villageBans/{uid}. A banned person can still sign in
+    // and browse, but can't post, edit, rate, report or save a house no.
+    // (deleting their own posts still works). Any admin can ban or unban;
+    // nobody can ban the owner, and only the owner can ban a village admin.
+    function villageBanned() {
+      return signedIn() && exists(/databases/$(database)/documents/villageBans/$(request.auth.uid));
+    }
+    match /villageBans/{uid} {
+      allow get:  if isUser(uid) || isVillageAdmin(); // the app shows a "suspended" notice
+      allow list: if isVillageAdmin();
+      allow create, update: if isVillageAdmin()
+                            && uid != 'HfksT06CgFUkZ9s4vrzEGs85O562'
+                            && (isOwner() || !exists(/databases/$(database)/documents/villageAdmins/$(uid)))
+                            && request.resource.data.keys().hasOnly(['name', 'reason', 'by', 'byName', 'at'])
+                            && request.resource.data.name is string && request.resource.data.name.size() <= 200
+                            && request.resource.data.reason is string && request.resource.data.reason.size() <= 300
+                            && request.resource.data.byName is string && request.resource.data.byName.size() <= 200
+                            && request.resource.data.by == request.auth.uid
+                            && request.resource.data.at == request.time;
+      allow delete: if isVillageAdmin();
+    }
+
     match /villageAdmins/{uid} {
       allow get:    if isUser(uid) || isOwner(); // the app checks its own role
       allow list:   if isOwner();
@@ -435,7 +457,7 @@ service cloud.firestore {
           && (!('available' in d) || d.available is bool);
     }
     function villageCreate() {
-      return signedIn()
+      return signedIn() && !villageBanned()
           && request.resource.data.ownerUid == request.auth.uid
           && request.resource.data.verified == false
           && request.resource.data.createdAt == request.time
@@ -467,7 +489,7 @@ service cloud.firestore {
     // themselves verified, but can drop it (changing a verified house no.
     // sends the post back to the admins' "to check" list).
     function villageOwnerUpdate() {
-      return isUser(resource.data.ownerUid)
+      return isUser(resource.data.ownerUid) && !villageBanned()
           && request.resource.data.ownerUid  == resource.data.ownerUid
           && request.resource.data.createdAt == resource.data.createdAt
           && (request.resource.data.verified == resource.data.verified || request.resource.data.verified == false);
@@ -502,7 +524,7 @@ service cloud.firestore {
     }
     match /villageRatings/{ratingId} {
       allow read: if true;
-      allow create, update: if signedIn()
+      allow create, update: if signedIn() && !villageBanned()
                             && request.resource.data.keys().hasOnly(['postId', 'stars', 'comment', 'name', 'updatedAt'])
                             && (!('comment' in request.resource.data)
                                 || (request.resource.data.comment is string && request.resource.data.comment.size() <= 200))
@@ -535,7 +557,7 @@ service cloud.firestore {
     match /villageNews/{postId} {
       allow read:   if true;
       allow create: if validVillageNews(request.resource.data)
-                    && signedIn()
+                    && signedIn() && !villageBanned()
                     && request.resource.data.ownerUid == request.auth.uid
                     && request.resource.data.createdAt == request.time;
       allow update: if validVillageNews(request.resource.data)
@@ -586,7 +608,7 @@ service cloud.firestore {
     // "Report this post": signed-in villagers flag a shop / handyman; admins
     // read them in the admin tab and dismiss (delete) them.
     match /villageReports/{reportId} {
-      allow create: if signedIn()
+      allow create: if signedIn() && !villageBanned()
                     && request.resource.data.keys().hasOnly(['postId', 'collection', 'reason', 'note', 'reporterUid', 'reporterName', 'createdAt'])
                     && request.resource.data.reporterUid == request.auth.uid
                     && request.resource.data.reason in ['wrong', 'notResident', 'scam', 'inappropriate', 'other']
@@ -635,7 +657,7 @@ service cloud.firestore {
                     || (signedIn() && get(/databases/$(database)/documents/$(resource.data.collection)/$(postId)).data.ownerUid == request.auth.uid);
       // The poster sets it from the post form; an admin can correct it from
       // the admin tab (their uid goes in updatedBy).
-      allow create, update: if signedIn()
+      allow create, update: if signedIn() && !villageBanned()
                             && request.resource.data.keys().hasOnly(['address', 'collection', 'updatedAt', 'updatedBy'])
                             && request.resource.data.address is string
                             && request.resource.data.address.size() > 0

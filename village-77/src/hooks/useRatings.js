@@ -57,5 +57,8 @@ export function useRatings(user) {
     // When a post is deleted its ratings go too (owner or admin).
     removeAll: (postId) =>
       Promise.all(docs.filter((r) => r.postId === postId).map((r) => deleteDoc(doc(db, RATINGS, r.id)))),
+    // Every rating / review someone wrote (admin, when removing a banned user).
+    removeBy: (raterUid) =>
+      Promise.all(docs.filter((r) => r.id.endsWith('_' + raterUid)).map((r) => deleteDoc(doc(db, RATINGS, r.id)))),
   }
 }

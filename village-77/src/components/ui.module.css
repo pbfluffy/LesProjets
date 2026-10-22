@@ -25,6 +25,10 @@
   text-underline-offset: 2px;
 }
 .dangerLink { color: var(--color-red); }
+.dangerBtn { background: var(--color-red); border-color: var(--color-red); }
+.checkRow { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; margin: 4px 0 8px; }
+.checkRow input { margin-top: 3px; }
+.bannedTag { color: var(--color-red); font-size: 12px; font-weight: 600; }
 
 /* ─── Home ────────────────────────────────── */
 .hero { margin-bottom: 16px; }

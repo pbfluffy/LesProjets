@@ -2,11 +2,12 @@ import { useMemo } from 'react'
 import { useLangContext } from '../LangContext'
 import { db, doc, deleteDoc } from '../firebase'
 import { deletePost, deletePrivateAddress } from '../hooks/usePosts'
+import { OWNER_UID } from '../config'
 import styles from './ui.module.css'
 
 // Admin tab → รายงาน: posts villagers flagged with "Report this post".
 // Dismiss a report, or delete the post (its other reports go with it).
-export default function AdminReports({ reports, shops, providers, ratings, onOpenPost }) {
+export default function AdminReports({ reports, shops, providers, ratings, onOpenPost, bans = {}, onBan }) {
   const { t, lang } = useLangContext()
   const posts = useMemo(() => new Map([...shops, ...providers].map((p) => [p.id, p])), [shops, providers])
   const sorted = useMemo(
@@ -61,6 +62,9 @@ export default function AdminReports({ reports, shops, providers, ratings, onOpe
               <button type="button" className={styles.linkBtn} onClick={() => dismiss(r)}>{t.reportDismiss}</button>
               {post && (
                 <button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={() => deleteReported(r)}>{t.delete}</button>
+              )}
+              {post && onBan && post.ownerUid !== OWNER_UID && !bans[post.ownerUid] && (
+                <button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={() => onBan({ uid: post.ownerUid, name: post.name })}>⛔ {t.banUser}</button>
               )}
             </div>
           </li>

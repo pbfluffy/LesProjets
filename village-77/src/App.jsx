@@ -149,6 +149,10 @@ export default function App() {
 
   // Posting and rating need an account; browsing doesn't.
   function requireSignIn() {
+    if (user && auth.ban) {
+      alert(t.bannedNotice) // firestore.rules refuse their writes anyway
+      return false
+    }
     if (user) return true
     setAskSignIn(true)
     return false
@@ -261,6 +265,11 @@ export default function App() {
           <div className={styles.banner} role="alert">
             <span>{t.signInFailed} <small>({auth.loginError})</small></span>
             <button type="button" onClick={auth.clearLoginError} aria-label={t.close}>×</button>
+          </div>
+        )}
+        {auth.ban && (
+          <div className={styles.banner} role="alert">
+            <span>⛔ {t.bannedNotice}{auth.ban.reason && <> <small>({auth.ban.reason})</small></>}</span>
           </div>
         )}
 

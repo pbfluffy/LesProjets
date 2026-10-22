@@ -220,6 +220,7 @@ async function handleUpload(request, env, origin) {
   } catch (e) {
     return json({ error: 'unauthorized: ' + e.message }, 401, origin)
   }
+  if (await isBanned(user.sub, m[1])) return json({ error: 'account suspended' }, 403, origin)
   if (!(await countUpload(env, user.sub))) {
     return json({ error: 'daily upload limit reached' }, 429, origin)
   }
@@ -243,6 +244,16 @@ async function handleUpload(request, env, origin) {
 }
 
 const uidFolder = (uid) => uid.replace(/[^A-Za-z0-9:_-]/g, '')
+
+// Banned by a village admin (villageBans/{uid})? Read with the caller's own
+// ID token — firestore.rules let a person get their own ban doc. 404 = not
+// banned. Any other failure lets the upload through rather than breaking it.
+async function isBanned(uid, idToken) {
+  const res = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/villageBans/${encodeURIComponent(uid)}`, {
+    headers: { Authorization: 'Bearer ' + idToken },
+  }).catch(() => null)
+  return !!res && res.status === 200
+}
 
 // Daily cap per person, so one account can't fill the bucket. The count is
 // a tiny object in the same R2 bucket under _limits/ (never served by /p/).

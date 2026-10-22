@@ -7,6 +7,9 @@ import { ResidencyBadge } from './PostCard'
 import AdminMembers from './AdminMembers'
 import AdminCategories from './AdminCategories'
 import AdminReports from './AdminReports'
+import BanSheet from './BanSheet'
+import { useBans, unbanUser } from '../hooks/useBans'
+import { OWNER_UID } from '../config'
 import { isStale, updatedLabel } from '../freshness'
 import styles from './ui.module.css'
 
@@ -80,6 +83,41 @@ function OwnerLine({ member }) {
   )
 }
 
+// Banned accounts, newest first, each with an Unban link.
+function BanList({ bans }) {
+  const { t, lang } = useLangContext()
+  const list = Object.entries(bans).sort(([, a], [, b]) => (b.at?.seconds || 0) - (a.at?.seconds || 0))
+  if (!list.length) return <p className={styles.empty}>{t.adminNoBans}</p>
+
+  function unban(uid, name) {
+    if (!window.confirm(interp(t.unbanConfirm, { name: name || t.adminNoName }))) return
+    unbanUser(uid).catch((e) => {
+      console.error('[village] unban failed:', e?.code)
+      alert(t.saveFailed)
+    })
+  }
+
+  return (
+    <ul className={styles.adminList}>
+      {list.map(([uid, b]) => (
+        <li key={uid} className={styles.adminRow}>
+          <div className={styles.adminMain}>
+            <strong>⛔ {b.name || t.adminNoName}</strong>
+            {b.reason && <span className={styles.meta}>{b.reason}</span>}
+            <span className={styles.meta}>
+              {interp(t.bannedBy, { name: b.byName || '—' })}
+              {b.at?.toDate && ' · ' + b.at.toDate().toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+          </div>
+          <div className={styles.adminActions}>
+            <button type="button" className={styles.linkBtn} onClick={() => unban(uid, b.name)}>{t.unban}</button>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenPost }) {
   const { t, lang } = useLangContext()
   const [addresses, setAddresses] = useState({})
@@ -100,7 +138,9 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
       (e) => console.error('[village] members failed:', e?.code),
     )
   }, [isOwner])
-  const [show, setShow] = useState('pending') // 'pending' | 'all' | 'members'
+  const [show, setShow] = useState('pending') // 'pending' | 'all' | 'new' | 'stale' | 'reports' | 'categories' | 'bans' | 'members'
+  const bans = useBans() // uid -> ban
+  const [banTarget, setBanTarget] = useState(null) // { uid, name } while the ban sheet is open
 
   useEffect(() => onSnapshot(
     collection(db, 'villagePrivate'),
@@ -174,7 +214,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
       </div>
 
       <div className={`${styles.segment} ${styles.adminTabs}`} role="group" style={{ marginBottom: 12 }}>
-        {[['pending', t.adminPending], ['all', t.adminAllPosts], ['reports', reports.length ? t.adminReports + ' (' + reports.length + ')' : t.adminReports], ['categories', t.adminCategories], ...(isOwner ? [['members', t.adminMembers]] : [])].map(([key, label]) => (
+        {[['pending', t.adminPending], ['all', t.adminAllPosts], ['reports', reports.length ? t.adminReports + ' (' + reports.length + ')' : t.adminReports], ['categories', t.adminCategories], ['bans', Object.keys(bans).length ? t.adminBans + ' (' + Object.keys(bans).length + ')' : t.adminBans], ...(isOwner ? [['members', t.adminMembers]] : [])].map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -195,11 +235,13 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
       )}
 
       {show === 'reports' ? (
-        <AdminReports reports={reports} shops={shops} providers={providers} ratings={ratings} onOpenPost={onOpenPost} />
+        <AdminReports reports={reports} shops={shops} providers={providers} ratings={ratings} onOpenPost={onOpenPost} bans={bans} onBan={setBanTarget} />
       ) : show === 'categories' ? (
         <AdminCategories shops={shops} providers={providers} />
+      ) : show === 'bans' ? (
+        <BanList bans={bans} />
       ) : show === 'members' && isOwner ? (
-        <AdminMembers shops={shops} providers={providers} onOpenPost={onOpenPost} />
+        <AdminMembers shops={shops} providers={providers} onOpenPost={onOpenPost} bans={bans} onBan={setBanTarget} />
       ) : rows.length === 0 ? (
         <p className={styles.empty}>{show === 'pending' ? t.adminNothingPending : t.noMatches}</p>
       ) : (
@@ -213,6 +255,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
                 </div>
                 <strong>{p.name}</strong>
                 {isOwner && <OwnerLine member={members[p.ownerUid]} />}
+                {bans[p.ownerUid] && <span className={styles.bannedTag}>⛔ {t.bannedTag}</span>}
                 {p.isResident
                   ? <AddressEditor post={p} address={addresses[p.id]} />
                   : <span className={styles.adminAddress}>🏠 —</span>}
@@ -227,10 +270,18 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
                   </label>
                 )}
                 <button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={() => remove(p)}>{t.delete}</button>
+                {p.ownerUid !== OWNER_UID && !bans[p.ownerUid] && (
+                  <button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={() => setBanTarget({ uid: p.ownerUid, name: members[p.ownerUid]?.name || p.name })}>⛔ {t.banUser}</button>
+                )}
               </div>
             </li>
           ))}
         </ul>
+      )}
+
+      {banTarget && (
+        <BanSheet uid={banTarget.uid} name={banTarget.name} shops={shops} providers={providers} ratings={ratings}
+          onClose={() => setBanTarget(null)} />
       )}
     </section>
   )

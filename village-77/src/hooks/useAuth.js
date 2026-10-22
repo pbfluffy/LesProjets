@@ -171,6 +171,18 @@ export function useAuth() {
     )
   }, [user])
 
+  // Banned by an admin (villageBans/{uid}): the reason, or null. Live, so
+  // a ban or unban shows without reloading.
+  const [ban, setBan] = useState(null)
+  useEffect(() => {
+    if (!user) return setBan(null)
+    return onSnapshot(
+      doc(db, 'villageBans', user.uid),
+      (snap) => setBan(snap.exists() ? { reason: snap.data().reason || '' } : null),
+      () => setBan(null),
+    )
+  }, [user])
+
   // In Safari after a sign-in started from the home-screen app: "go back".
   const [handedOff, setHandedOff] = useState(false)
   // In the home-screen app while Safari finishes the LINE sign-in.
@@ -261,6 +273,7 @@ export function useAuth() {
     role,
     isAdmin: !!role,
     isOwner: role === 'owner',
+    ban,
     finishing,
     handedOff,
     waitingHandoff,

@@ -8,7 +8,7 @@ import styles from './ui.module.css'
 // sign-in), whether or not they've posted yet. Owner only (firestore.rules):
 // this is also where the owner makes someone a village admin or removes
 // them (villageAdmins).
-export default function AdminMembers({ shops, providers, onOpenPost }) {
+export default function AdminMembers({ shops, providers, onOpenPost, bans = {}, onBan }) {
   const { t, lang } = useLangContext()
   const [members, setMembers] = useState(null)
   const [admins, setAdmins] = useState(new Set()) // uids in villageAdmins
@@ -74,6 +74,7 @@ export default function AdminMembers({ shops, providers, onOpenPost }) {
                 {m.name || t.adminNoName}
                 {m.uid === OWNER_UID && <span className={styles.roleTag}> {t.roleOwner}</span>}
                 {admins.has(m.uid) && <span className={styles.roleTag}> {t.roleAdmin}</span>}
+                {bans[m.uid] && <span className={styles.bannedTag}> ⛔ {t.bannedTag}</span>}
               </strong>
               <span className={styles.meta}>
                 {m.provider === 'line' ? '💬 LINE' : 'Google'}
@@ -101,6 +102,15 @@ export default function AdminMembers({ shops, providers, onOpenPost }) {
                 onClick={() => toggleAdmin(m)}
               >
                 {admins.has(m.uid) ? t.adminRevoke : t.adminGrant}
+              </button>
+            )}
+            {m.uid !== OWNER_UID && !bans[m.uid] && onBan && (
+              <button
+                type="button"
+                className={`${styles.linkBtn} ${styles.dangerLink} ${styles.memberAction}`}
+                onClick={() => onBan({ uid: m.uid, name: m.name })}
+              >
+                ⛔ {t.banUser}
               </button>
             )}
           </li>
