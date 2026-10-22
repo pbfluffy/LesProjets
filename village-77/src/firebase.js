@@ -59,18 +59,12 @@ export {
   serverTimestamp, onSnapshot, writeBatch, increment, where, getDocs,
 };
 
-// Save the signed-in user's name to userProfiles so the admin console shows
-// who they are (same as every other app). LINE users have no email: ''.
-// Also called right after a LINE sign-in sets the display name, since that
-// lands after onAuthStateChanged has already fired.
+// Record the signed-in user for the village admin tab (villageMembers only).
+// The village is its own system: it doesn't write to the site-wide
+// userProfiles that admindepum lists (firestore.rules keep LINE accounts out
+// of it). Also called right after a LINE sign-in sets the display name,
+// since that lands after onAuthStateChanged has already fired.
 export function saveProfile(user) {
-  setDoc(doc(db, 'userProfiles', user.uid), {
-    name: user.displayName || '',
-    email: user.email || '',
-    photoURL: user.photoURL || null,
-    lastSeen: serverTimestamp(),
-    lastApp: 'Village 77',
-  }, { merge: true }).catch((e) => console.warn('[profile] write failed:', e?.code));
   return saveMember(user)
 }
 
