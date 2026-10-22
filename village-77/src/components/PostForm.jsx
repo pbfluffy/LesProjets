@@ -5,6 +5,7 @@ import { createPost, updatePost, savePrivateAddress, deletePrivateAddress, loadP
 import { useAuthContext } from '../hooks/useAuth'
 import { uploadPhoto, PHOTO_ITEM, photosOf, deletePhotos } from '../photo'
 import { igHandle } from '../share'
+import Icon from './Icon'
 import styles from './ui.module.css'
 
 const MAX_ITEMS = 30
@@ -269,7 +270,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
               {f.items.map((it, i) => (
                 <div key={i} className={styles.itemRow}>
                   <label className={styles.itemRowPhoto} aria-label={t.fItemPhoto}>
-                    {it.photo ? <img src={it.photo} alt="" /> : '📷'}
+                    {it.photo ? <img src={it.photo} alt="" /> : <Icon name="camera" size={18} />}
                     <input type="file" accept="image/*" hidden disabled={processing} onChange={(e) => handleItemPhoto(i, e)} />
                   </label>
                   <div className={styles.itemRowFields}>
@@ -286,7 +287,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
                       </label>
                       <label className={styles.itemRowSold}>
                         <input type="checkbox" checked={!!it.promo} onChange={(e) => setItem(i, { promo: e.target.checked })} />
-                        🏷️ {t.fOnSale}
+                        <Icon name="tag" size={13} inline />{t.fOnSale}
                       </label>
                     </div>
                     {it.promo && (
@@ -303,7 +304,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
                 </div>
               ))}
             </div>
-            <small className={styles.hint}>💡 {t.fPriceHint}</small>
+            <small className={styles.hint}><Icon name="bulb" size={13} inline />{t.fPriceHint}</small>
             {f.items.length < MAX_ITEMS && (
               <button type="button" className={styles.secondaryBtn} onClick={addItem}>{t.fAddItem}</button>
             )}
@@ -339,9 +340,9 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
         <label className={styles.residentBox}>
           <input type="checkbox" checked={f.isResident} onChange={set('isResident')} />
           <span>
-            <strong>🏡 {isShop ? t.fResidentSeller : t.fResidentProvider}</strong>
+            <strong><Icon name="home" size={15} inline />{isShop ? t.fResidentSeller : t.fResidentProvider}</strong>
             <small>{t.fResidentHint}</small>
-            <small className={styles.residentCheck}>🔎 {t.residentCheckNotice}</small>
+            <small className={styles.residentCheck}><Icon name="search" size={13} inline />{t.residentCheckNotice}</small>
           </span>
         </label>
 
@@ -353,7 +354,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
             <span>{t.fAddress} *</span>
             <input required maxLength={120} value={f.address} onChange={set('address')}
               placeholder={addressLoading ? t.loading : t.fAddressPh} disabled={addressLoading} />
-            <small className={styles.privateNote}>🔒 {t.fAddressPrivate}</small>
+            <small className={styles.privateNote}><Icon name="lock" size={13} inline />{t.fAddressPrivate}</small>
           </label>
         )}
 
@@ -387,11 +388,11 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
             {f.photos.length < maxPhotos && (
               <>
                 <label className={`${styles.thumb} ${styles.thumbAdd}`}>
-                  {processing ? '…' : <>🖼️<small>{t.fFromGallery}</small></>}
+                  {processing ? '…' : <><Icon name="image" size={20} /><small>{t.fFromGallery}</small></>}
                   <input type="file" accept="image/*" hidden disabled={processing} onChange={handlePhotos} />
                 </label>
                 <label className={`${styles.thumb} ${styles.thumbAdd}`}>
-                  {processing ? '…' : <>📷<small>{t.fTakePhoto}</small></>}
+                  {processing ? '…' : <><Icon name="camera" size={20} /><small>{t.fTakePhoto}</small></>}
                   <input type="file" accept="image/*" capture="environment" hidden disabled={processing} onChange={handlePhotos} />
                 </label>
               </>

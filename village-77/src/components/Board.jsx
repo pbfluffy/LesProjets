@@ -90,7 +90,7 @@ export default function Board({
         {canSortByRating && (
           <div className={styles.sortRow}>
             <span>{t.sortBy}</span>
-            {[['newest', t.sortNewest], ['rating', '★ ' + t.sortRating]].map(([key, label]) => (
+            {[['newest', t.sortNewest], ['rating', <><Icon name="star" size={12} filled />{t.sortRating}</>]].map(([key, label]) => (
               <button
                 key={key}
                 type="button"
@@ -108,7 +108,7 @@ export default function Board({
                 className={`${styles.chip} ${showSaved ? styles.chipActive : ''}`}
                 onClick={() => setSavedOnly(!showSaved)}
               >
-                ♥ {t.savedPosts}
+                <Icon name="heart" size={12} filled />{t.savedPosts}
               </button>
             )}
           </div>

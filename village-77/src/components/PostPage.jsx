@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useLangContext } from '../LangContext'
 import PostCard from './PostCard'
+import Icon from './Icon'
 import { useAuthContext } from '../hooks/useAuth'
 import { track } from '../hooks/useStats'
 import styles from './ui.module.css'
@@ -32,7 +33,7 @@ export default function PostPage({ kind, post, ratings, onEdit, onClose }) {
   return (
     <div className={styles.shopPage} role="dialog" aria-modal="true" aria-label={post.name}>
       <div className={styles.shopPageBar}>
-        <button type="button" className={styles.shopBack} onClick={onClose} aria-label={t.back}>←</button>
+        <button type="button" className={styles.shopBack} onClick={onClose} aria-label={t.back}><Icon name="back" size={20} strokeWidth={2.2} /></button>
         <strong className={styles.shopPageTitle}>{post.name}</strong>
       </div>
       <div className={styles.shopPageBody}>

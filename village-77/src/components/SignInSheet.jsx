@@ -1,5 +1,6 @@
 import { useLangContext } from '../LangContext'
 import { inLineApp, LIFF_URL } from '../liff'
+import Icon from './Icon'
 import styles from './ui.module.css'
 
 // On an iPhone outside LINE (Safari, Chrome), LINE's web login page can show
@@ -19,16 +20,16 @@ export default function SignInSheet({ ready, onLine, onClose }) {
         <p className={styles.hint}>{t.signInWhy}</p>
         {ready ? (
           <button type="button" className={styles.lineSignIn} onClick={onLine}>
-            <span aria-hidden="true">💬</span> {t.signInWithLine}
+            <Icon name="chat" size={18} filled />{t.signInWithLine}
           </button>
         ) : (
           <p className={styles.error}>{t.lineNotReady}</p>
         )}
         {ready && !inLineApp && isPhone && LIFF_URL && (
-          <a className={styles.secondaryBtn} href={LIFF_URL}>📱 {t.openInLineApp}</a>
+          <a className={styles.secondaryBtn} href={LIFF_URL}><Icon name="mobile" size={15} inline />{t.openInLineApp}</a>
         )}
         {ready && !inLineApp && isIphone && (
-          <p className={styles.signInTip}>💡 {t.lineLoginTip}</p>
+          <p className={styles.signInTip}><Icon name="bulb" size={13} inline />{t.lineLoginTip}</p>
         )}
         <div className={styles.sheetActions}>
           <button type="button" className={styles.secondaryBtn} onClick={onClose}>{t.cancel}</button>

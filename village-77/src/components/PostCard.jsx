@@ -127,7 +127,7 @@ function Stars({ postId, ratings, canPick, askLabel }) {
               <span>“{r.comment}”</span>
               {r.name && <span className={styles.reviewName}> — {r.name}</span>}
               {isAdmin && (
-                <>{' '}<button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={() => removeReview(r)}>🛡️ {t.delete}</button></>
+                <>{' '}<button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={() => removeReview(r)}><Icon name="shield" size={12} inline />{t.delete}</button></>
               )}
             </li>
           ))}
@@ -299,7 +299,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
         aria-label={interp(t.shopOpen, { name: post.name })}
       >
         <div className={styles.rowThumb}>
-          {cover ? <img src={cover} alt="" loading="lazy" /> : <span>{isShop ? '🛍️' : '🔧'}</span>}
+          {cover ? <img src={cover} alt="" loading="lazy" /> : <Icon name={isShop ? 'bag' : 'wrench'} size={28} strokeWidth={1.6} />}
         </div>
         <div className={styles.rowBody}>
           <h3 className={styles.rowTitle}>{post.name}</h3>
@@ -312,7 +312,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
           </div>
           <div className={styles.rowMeta}>
             {badge && <span className={styles.newBadge}>{badge}</span>}
-            {isShop && items.some(isOnSale) && <span className={styles.saleTag}>🏷️ {t.onSale}</span>}
+            {isShop && items.some(isOnSale) && <span className={styles.saleTag}><Icon name="tag" size={11} strokeWidth={2.4} inline />{t.onSale}</span>}
             {isShop && !items.some(isOnSale) && items.some(isNewItem) && <span className={styles.newTag}>🆕 {t.itemNew}</span>}
             {rating.count > 0 && (
               <span className={styles.rowRating}><Icon name="star" size={13} filled className={styles.starIcon} />{rating.avg.toFixed(1)} <small>({rating.count})</small></span>
@@ -324,7 +324,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
               </span>
             )}
             {!isShop && rating.count === 0 && <span>{t.ratingNone}</span>}
-            {isShop && (post.delivery || []).includes('deliver') && <span>🚚 {t.deliveryShort}</span>}
+            {isShop && (post.delivery || []).includes('deliver') && <span className={styles.metaIcon}><Icon name="truck" size={13} />{t.deliveryShort}</span>}
           </div>
           <div className={styles.rowActions}>
             {post.phone && (
@@ -340,7 +340,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
             <span className={styles.seeAll}>{isShop ? t.shopSeeAll : t.seeDetails}<Icon name="chevron" size={14} strokeWidth={2.4} /></span>
           </div>
           {isOwner && isStale(post) && <span className={styles.staleBadge}>{t.staleShort}</span>}
-          {weekLine && <span className={styles.ownerStats}>📊 {weekLine}</span>}
+          {weekLine && <span className={styles.ownerStats}><Icon name="chart" size={12} inline />{weekLine}</span>}
           {isShop && isOwner && (
             <span className={styles.ownerNote}>
               {t.yourShop} ·{' '}
@@ -388,7 +388,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
         {isShop && (post.delivery?.length > 0 || post.hours) && (
           <div className={styles.shopInfo}>
             {(post.delivery || []).map((d) => <span key={d} className={styles.tag}>{t['delivery_' + d]}</span>)}
-            {post.hours && <span className={styles.hoursText}>⏰ {post.hours}</span>}
+            {post.hours && <span className={`${styles.hoursText} ${styles.metaIcon}`}><Icon name="clock" size={13} />{post.hours}</span>}
           </div>
         )}
         <Stars postId={post.id} ratings={ratings} canPick={!isOwner} askLabel={isShop ? t.ratingAskShop : t.ratingAsk} />
@@ -403,7 +403,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
                 {it.photo ? (
                   <img className={styles.itemPhoto} src={it.photo} alt="" loading="lazy" onClick={() => setZoomed(it.photo)} />
                 ) : (
-                  <span className={`${styles.itemPhoto} ${styles.itemPhotoEmpty}`}>🛍️</span>
+                  <span className={`${styles.itemPhoto} ${styles.itemPhotoEmpty}`}><Icon name="bag" size={20} strokeWidth={1.6} /></span>
                 )}
                 <span className={styles.itemName}>
                   {it.name}
@@ -453,19 +453,19 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
           {!isOwner && heartBtn(`${styles.contactBtn} ${styles.iconBtn}`)}
         </div>
 
-        <span className={styles.meta}>🕒 {updatedLabel(post, t, lang)}</span>
-        {week && <span className={styles.meta}>📊 {interp(t.statsWeekFull, week)}</span>}
+        <span className={`${styles.meta} ${styles.metaIcon}`}><Icon name="clock" size={13} />{updatedLabel(post, t, lang)}</span>
+        {week && <span className={`${styles.meta} ${styles.metaIcon}`}><Icon name="chart" size={13} />{interp(t.statsWeekFull, week)}</span>}
 
         {isOwner && isStale(post) && (
           <div className={styles.staleNote}>
             <span>{interp(t.staleNote, { n: STALE_DAYS })}</span>
-            <button type="button" className={styles.secondaryBtn} onClick={bump}>✓ {t.stillOpen}</button>
+            <button type="button" className={styles.secondaryBtn} onClick={bump}><Icon name="check" size={14} inline />{t.stillOpen}</button>
           </div>
         )}
 
         {!isOwner && (
           <button type="button" className={`${styles.linkBtn} ${styles.reportLink}`} onClick={() => requireSignIn() && setReporting(true)}>
-            🚩 {t.reportPost}
+            <Icon name="flag" size={12} inline />{t.reportPost}
           </button>
         )}
         {reporting && user && (
@@ -481,7 +481,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
               </button>
             )}
             <button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={handleDelete}>
-              {isOwner ? t.delete : '🛡️ ' + t.delete}
+              {!isOwner && <Icon name="shield" size={13} inline />}{t.delete}
             </button>
           </div>
         )}

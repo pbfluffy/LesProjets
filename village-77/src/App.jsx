@@ -7,6 +7,7 @@ import { LangContext, STRINGS } from './LangContext'
 import { useCategories, useCategoryHelpers, CategoriesContext } from './hooks/useCategories'
 import { useFavorites, FavoritesContext } from './hooks/useFavorites'
 import Home from './components/Home'
+import Icon from './components/Icon'
 import Board from './components/Board'
 import PostForm from './components/PostForm'
 import AdminPanel from './components/AdminPanel'
@@ -177,7 +178,10 @@ export default function App() {
           <div className={styles.headerRow}>
             <div className={styles.brand}>
               <div>
-                <h1 className={styles.title}>🏘️ {t.appName}</h1>
+                <h1 className={styles.title}>
+                  <span className={styles.logo} aria-hidden="true"><Icon name="home" size={16} strokeWidth={2.4} /></span>
+                  <span className={styles.titleText}>{t.appName}</span>
+                </h1>
                 <p className={styles.tagline}>{t.tagline}</p>
               </div>
             </div>
@@ -199,7 +203,7 @@ export default function App() {
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 aria-label="Toggle theme"
               >
-                {theme === 'dark' ? '☀️' : '🌙'}
+                <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
               </button>
               <button
                 type="button"
@@ -226,12 +230,12 @@ export default function App() {
 
           <nav className={styles.tabs}>
             {[
-              ['home', '🏠 ' + t.navHome],
-              ...(SHOW_NEWS ? [['news', '📢 ' + t.navNews]] : []),
-              ['market', '🛒 ' + t.navMarket],
-              ['services', '🔧 ' + t.navServices],
-              ...(isAdmin ? [['admin', '🛡️ ' + t.navAdmin]] : []),
-            ].map(([key, label]) => (
+              ['home', 'home', t.navHome],
+              ...(SHOW_NEWS ? [['news', 'megaphone', t.navNews]] : []),
+              ['market', 'bag', t.navMarket],
+              ['services', 'wrench', t.navServices],
+              ...(isAdmin ? [['admin', 'shield', t.navAdmin]] : []),
+            ].map(([key, icon, label]) => (
               <button
                 key={key}
                 type="button"
@@ -239,6 +243,7 @@ export default function App() {
                 className={`${styles.tabBtn} ${tab === key ? styles.tabBtnActive : ''}`}
                 onClick={() => setTab(key)}
               >
+                <Icon name={icon} size={16} />
                 {label}
               </button>
             ))}
@@ -269,7 +274,7 @@ export default function App() {
         )}
         {auth.ban && (
           <div className={styles.banner} role="alert">
-            <span>⛔ {t.bannedNotice}{auth.ban.reason && <> <small>({auth.ban.reason})</small></>}</span>
+            <span className={styles.bannerText}><Icon name="ban" size={16} />{t.bannedNotice}{auth.ban.reason && <> <small>({auth.ban.reason})</small></>}</span>
           </div>
         )}
 

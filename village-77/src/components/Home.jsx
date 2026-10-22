@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import PostCard from './PostCard'
+import Icon from './Icon'
 import { shopsWithDeals } from '../deals'
 import { useCategoriesContext } from '../hooks/useCategories'
 import { NewsCard } from './NewsBoard'
@@ -35,14 +36,16 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
         <h2>{t.homeWelcome}</h2>
         <p>{t.homeBlurb}</p>
       </div>
-      <input
-        type="search"
-        className={styles.search}
-        style={{ width: '100%', marginBottom: 16 }}
-        placeholder={t.homeSearchPh}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <label className={styles.searchWrap}>
+        <Icon name="search" size={16} className={styles.searchIcon} />
+        <input
+          type="search"
+          className={styles.search}
+          placeholder={t.homeSearchPh}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </label>
     </>
   )
 
@@ -74,12 +77,12 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
 
       <div className={styles.homeCards}>
         <button type="button" className={styles.homeCard} onClick={() => onGo('market')}>
-          <span className={styles.homeIcon}>🛒</span>
+          <span className={styles.homeIcon}><Icon name="bag" size={22} /></span>
           <strong>{t.navMarket}</strong>
           <small>{interp(t.homeMarketCard, { shops: shops.length, items: itemsForSale })}</small>
         </button>
         <button type="button" className={styles.homeCard} onClick={() => onGo('services')}>
-          <span className={styles.homeIcon}>🔧</span>
+          <span className={`${styles.homeIcon} ${styles.homeIconAlt}`}><Icon name="wrench" size={22} /></span>
           <strong>{t.navServices}</strong>
           <small>{interp(t.homeServicesCard, { n: providers.length })}</small>
         </button>
@@ -107,7 +110,7 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
       {savedPosts.length > 0 && (
         <>
           <div className={styles.sectionHead}>
-            <h3>♥ {t.savedPosts} ({savedPosts.length})</h3>
+            <h3 className={styles.headIcon}><Icon name="heart" size={16} filled className={styles.headHeart} />{t.savedPosts} ({savedPosts.length})</h3>
             {savedPosts.length > SAVED_PREVIEW && (
               <button type="button" className={styles.linkBtn} onClick={() => setAllSaved(!allSaved)}>{allSaved ? t.showLess : t.seeAll}</button>
             )}
@@ -125,7 +128,7 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
         <>
           <div className={styles.sectionHead}>
             <h3>{t.homeLatestNews}</h3>
-            <button type="button" className={styles.linkBtn} onClick={() => onGo('news')}>{t.seeAll}</button>
+            <button type="button" className={`${styles.linkBtn} ${styles.headLink}`} onClick={() => onGo('news')}>{t.seeAll}<Icon name="chevron" size={14} strokeWidth={2.4} /></button>
           </div>
           <div className={styles.newsList}>
             {news.slice(0, 2).map((p) => <NewsCard key={p.id} post={p} onEdit={onEditNews} />)}
@@ -136,7 +139,7 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
       {deals.length > 0 && (
         <>
           <div className={styles.sectionHead}>
-            <h3>🏷️ {t.homeDeals}</h3>
+            <h3 className={styles.headIcon}><Icon name="tag" size={16} className={styles.headTag} />{t.homeDeals}</h3>
           </div>
           <div className={styles.grid} style={{ marginBottom: 24 }}>
             {deals.slice(0, 4).map((p) => (
@@ -151,7 +154,7 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
         <>
           <div className={styles.sectionHead}>
             <h3>{t.homeLatestMarket}</h3>
-            <button type="button" className={styles.linkBtn} onClick={() => onGo('market')}>{t.seeAll}</button>
+            <button type="button" className={`${styles.linkBtn} ${styles.headLink}`} onClick={() => onGo('market')}>{t.seeAll}<Icon name="chevron" size={14} strokeWidth={2.4} /></button>
           </div>
           <div className={styles.grid}>
             {shops.slice(0, 4).map((p) => (
@@ -166,7 +169,7 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
         <>
           <div className={styles.sectionHead}>
             <h3>{t.homeLatestServices}</h3>
-            <button type="button" className={styles.linkBtn} onClick={() => onGo('services')}>{t.seeAll}</button>
+            <button type="button" className={`${styles.linkBtn} ${styles.headLink}`} onClick={() => onGo('services')}>{t.seeAll}<Icon name="chevron" size={14} strokeWidth={2.4} /></button>
           </div>
           <div className={styles.grid}>
             {providers.slice(0, 4).map((p) => (
