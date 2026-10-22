@@ -6,6 +6,16 @@ import { RANGE_CONFIG } from './constants.js'
 
 const CACHE_TTL_SECONDS = 5 * 60
 
+// Yahoo's shortName for Thai (SET) stocks is "TICKER_NAME" — "PTT_PTT",
+// "KBANK_KASIKORNBANK" — so those use the long name instead, minus the
+// "Public Company Limited" suffix every SET company carries.
+function displayName(meta, symbol) {
+  const short = meta.shortName
+  if (short && !/^[A-Z0-9.&-]+_/.test(short)) return short
+  const long = meta.longName?.replace(/\s+Public Company Limited$/i, '').trim()
+  return long || short || meta.symbol || symbol
+}
+
 // Fetches + parses one symbol's chart data, or returns null on any failure
 // (network error, 404, no usable price series) so the caller can decide
 // whether to retry with a different symbol spelling.
@@ -80,7 +90,7 @@ async function resolveQuote(symbol, rangeConfig, params) {
 
   return {
     symbol: meta.symbol || symbol,
-    name: meta.shortName || meta.longName || meta.symbol || symbol,
+    name: displayName(meta, symbol),
     currency: meta.currency || 'USD',
     // e.g. EQUITY, ETF, CRYPTOCURRENCY, FUTURE, INDEX, MUTUALFUND — used by
     // the wallet to group holdings into Common Stock / ETF / Other.

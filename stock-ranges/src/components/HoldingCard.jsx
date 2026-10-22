@@ -89,17 +89,16 @@ export default function HoldingCard({
 
       {/* Where today's price sits in its range — same band/zone as the
           watchlist card (WalletView computes it from the 2y series). */}
-      {(signal || onToggleCostAlert) && (
-        <div className={styles.signalRow}>
+      {/* Tags share this row and only wrap when there's no room left. */}
+      <div className={styles.signalRow}>
           {signal && (
             <span className={styles.signalLine} data-zone={signal.signal}>
               {s.band} {signal.band}/10 · {s[SIGNAL_LABEL_KEY[signal.signal]]}
             </span>
           )}
           {onToggleCostAlert && <CostAlertToggle config={costAlert} onToggle={onToggleCostAlert} />}
-        </div>
-      )}
-      <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} />
+        <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} inline />
+      </div>
       {/* Crypto has no consumer brands (and the empty-state note says
           "this stock"), so it skips the "known for" box altogether. */}
       {!isCrypto && (
@@ -122,8 +121,10 @@ export default function HoldingCard({
       ) : quoteError ? (
         <div className={styles.fxNote}>{s[QUOTE_ERROR_LABEL_KEY[quoteError]] || quoteError}</div>
       ) : fxOk ? (
-        <div className={styles.statsRow}>
-          <div className={styles.stat}><span>{marketOpen === false && !isCrypto ? s.lastCloseLabel : s.currentPriceLabel}</span><strong>{formatPrice(convertedCurrent, displayCurrency)}</strong></div>
+        // Price in the stock's own currency (what the broker shows); totals
+        // stay in the display currency like the rest of the wallet.
+        <div className={styles.statsRow} data-layout="main">
+          <div className={styles.stat}><span>{marketOpen === false && !isCrypto ? s.lastCloseLabel : s.currentPriceLabel}</span><strong>{formatPrice(currentPrice, currentCurrency)}</strong></div>
           <div className={styles.stat}><span>{s.summaryCostBasis}</span><strong>{mp(pl.costBasis, displayCurrency)}</strong></div>
           <div className={styles.stat}><span>{s.summaryMarketValue}</span><strong>{mp(pl.marketValue, displayCurrency)}</strong></div>
         </div>

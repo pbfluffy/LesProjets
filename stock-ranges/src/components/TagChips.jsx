@@ -13,10 +13,10 @@ export const TAG_DATALIST_ID = 'stockranges-tag-options'
 // elsewhere — cheaper than building a custom dropdown like TickerSearch's,
 // and this is a much lower-stakes input (no network call, no wrong-symbol
 // risk) so the native browser affordance is enough.
-export default function TagChips({ tags, onAdd, onRemove }) {
+export default function TagChips({ tags, onAdd, onRemove, inline }) {
   const { s } = useLang()
   return (
-    <div className={styles.row}>
+    <div className={inline ? styles.inline : styles.row}>
       {tags.map((tag) => (
         <span key={tag} className={styles.chip} style={{ '--tag-hue': tagHue(tag) }}>
           {tag}

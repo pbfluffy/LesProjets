@@ -49,3 +49,6 @@
   inset: -8px;
 }
 .chipRemove:hover { background: hsl(var(--tag-hue) 45% 78% / 0.4); opacity: 1; }
+
+/* Chips flow as siblings inside a parent flex row (HoldingCard's signal row). */
+.inline { display: contents; }

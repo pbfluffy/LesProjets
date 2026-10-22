@@ -70,3 +70,7 @@
   color: var(--color-green);
   flex-shrink: 0;
 }
+
+/* Ex-dates already behind us — kept for context, faded so the upcoming
+   ones stand out. */
+.row[data-past='true'] { opacity: 0.55; }

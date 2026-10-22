@@ -280,3 +280,10 @@
    row some air below the tags, and no divider with nothing under it. */
 .card[data-crypto='true'] .statsRow { margin-top: 10px; }
 .statsRow:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+/* On a phone the three main numbers broke 2 + 1 once amounts got long
+   (THB, crypto) — label-left / value-right rows keep every card the same. */
+@media (max-width: 560px) {
+  .statsRow[data-layout='main'] { flex-direction: column; gap: 4px; }
+  .statsRow[data-layout='main'] .stat { flex-direction: row; justify-content: space-between; align-items: baseline; gap: 12px; }
+}

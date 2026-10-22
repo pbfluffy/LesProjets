@@ -24,7 +24,7 @@ import styles from './WalletView.module.css'
 
 const DIVIDEND_CALENDAR_PAST_DAYS = 45
 
-const GROUP_LABEL_KEY = { EQUITY: 'groupCommonStock', ETF: 'groupETF', OTHER: 'groupOther' }
+const GROUP_LABEL_KEY = { EQUITY: 'groupCommonStock', ETF: 'groupETF', CRYPTO: 'groupCrypto', OTHER: 'groupOther' }
 const MASK_KEY = 'stockranges_mask_amounts'
 const SORT_KEY = 'stockranges_wallet_sort'
 const SORT_LABEL_KEY = { value: 'sortValue', pl: 'sortPL', alpha: 'sortAlpha', yield: 'sortYield' }
@@ -347,19 +347,22 @@ export default function WalletView({
           <div className={styles.summaryStat} data-direction={summary.unrealizedPL >= 0 ? 'up' : 'down'}>
             <span>{s.summaryUnrealizedPL}</span>
             <strong>{masked ? maskPrice(currency) : `${summary.unrealizedPL >= 0 ? '+' : ''}${formatPrice(summary.unrealizedPL, currency)}`}</strong>
+            {summary.costBasis > 0 && (
+              <em data-pct>{summary.unrealizedPL >= 0 ? '+' : ''}{((summary.unrealizedPL / summary.costBasis) * 100).toFixed(2)}%</em>
+            )}
           </div>
+          {/* One stat for income: per month, with the per-quarter figure
+              (just ×3) underneath instead of a box of its own. */}
           <div className={styles.summaryStat} data-direction="up">
-            <span>{s.estPerMonth}</span>
-            <strong>{masked ? maskPrice(currency) : formatPrice(summary.perMonth, currency)}</strong>
+            <span>{s.summaryDividends}</span>
+            <strong>{masked ? maskPrice(currency) : formatPrice(summary.perMonth, currency)}<small>{s.perMonthShort}</small></strong>
+            {!masked && <em>≈ {formatPrice(summary.perQuarter, currency)}{s.perQuarterShort}</em>}
           </div>
-          <div className={styles.summaryStat} data-direction="up">
-            <span>{s.estPerQuarter}</span>
-            <strong>{masked ? maskPrice(currency) : formatPrice(summary.perQuarter, currency)}</strong>
-          </div>
-          {(signalCounts.buy > 0 || signalCounts.sell > 0) && (
+          {(signalCounts.buy > 0 || signalCounts.hold > 0 || signalCounts.sell > 0) && (
             <div className={styles.summarySignals}>
               <span>{s.walletSignalsLabel} ({s[RANGE_LABEL_KEY[signalRange]]})</span>
               {signalCounts.buy > 0 && <strong data-zone="buy">{signalCounts.buy} {s.signalBuy}</strong>}
+              {signalCounts.hold > 0 && <strong data-zone="hold">{signalCounts.hold} {s.signalHold}</strong>}
               {signalCounts.sell > 0 && <strong data-zone="sell">{signalCounts.sell} {s.signalSell}</strong>}
             </div>
           )}

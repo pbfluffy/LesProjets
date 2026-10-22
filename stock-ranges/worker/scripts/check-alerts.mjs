@@ -136,7 +136,9 @@ async function resolveQuote(symbol, rangeConfig, params) {
   return {
     current: typeof meta.regularMarketPrice === 'number' ? meta.regularMarketPrice : prices[prices.length - 1],
     prices,
-    name: meta.shortName || meta.longName || meta.symbol || symbol,
+    // Same as worker/src/quotes.js displayName: SET short names are "TICKER_NAME".
+    name: (meta.shortName && !/^[A-Z0-9.&-]+_/.test(meta.shortName) ? meta.shortName : null)
+      || meta.longName?.replace(/\s+Public Company Limited$/i, '').trim() || meta.shortName || meta.symbol || symbol,
     currency: meta.currency || 'USD',
     // e.g. EQUITY, ETF, CRYPTOCURRENCY, FUTURE, INDEX — same field
     // wallet.js already uses to tell crypto apart from stocks/ETFs.

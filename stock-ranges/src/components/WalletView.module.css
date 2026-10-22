@@ -19,6 +19,7 @@
 .summarySignals span { color: var(--color-text-faint); }
 .summarySignals strong[data-zone='buy'] { color: var(--color-green); }
 .summarySignals strong[data-zone='sell'] { color: var(--color-red); }
+.summarySignals strong[data-zone='hold'] { color: var(--color-text-muted); }
 
 .summaryStrip {
   display: flex;
@@ -70,6 +71,10 @@
 .summaryStat strong { font-size: 15px; font-family: var(--font-mono); }
 .summaryStat[data-direction='up'] strong { color: var(--color-green); }
 .summaryStat[data-direction='down'] strong { color: var(--color-red); }
+.summaryStat strong small { font-size: 11px; font-weight: 600; margin-left: 2px; }
+.summaryStat em { font-style: normal; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--color-text-muted); }
+.summaryStat[data-direction='up'] em[data-pct] { color: var(--color-green); }
+.summaryStat[data-direction='down'] em[data-pct] { color: var(--color-red); }
 
 .empty {
   text-align: center;

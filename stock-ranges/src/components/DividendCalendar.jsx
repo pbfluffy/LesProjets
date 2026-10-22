@@ -35,12 +35,13 @@ export default function DividendCalendar({ entries, currency, masked }) {
             <div className={styles.groupLabel}>{label}</div>
             <ul className={styles.list}>
               {items.map((e, i) => (
-                <li key={`${e.symbol}-${e.date}-${i}`} className={styles.row}>
+                <li key={`${e.symbol}-${e.date}-${i}`} className={styles.row} data-past={e.kind === 'past'}>
                   <span className={styles.date}>
                     {new Date(e.date * 1000).toLocaleDateString(locale, { day: 'numeric' })}
                   </span>
                   <span className={styles.symbol}>{e.symbol}</span>
                   {e.kind === 'estimated' && <span className={styles.estimatedTag}>{s.dividendEstimatedTag}</span>}
+                  {e.kind === 'past' && <span className={styles.estimatedTag}>{s.dividendPastTag}</span>}
                   <span className={styles.amount}>{masked ? maskPrice(currency) : formatPrice(e.amount, currency)}</span>
                 </li>
               ))}

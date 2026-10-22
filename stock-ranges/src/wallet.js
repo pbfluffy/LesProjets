@@ -99,15 +99,16 @@ export function groupDividendsByPeriod(dividendEvents, qty, granularity = 'quart
   return [...buckets.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([period, amount]) => ({ period, amount }))
 }
 
-const INSTRUMENT_GROUP_ORDER = ['EQUITY', 'ETF', 'OTHER']
+const INSTRUMENT_GROUP_ORDER = ['EQUITY', 'ETF', 'CRYPTO', 'OTHER']
 
 // Yahoo's instrumentType (EQUITY, ETF, CRYPTOCURRENCY, FUTURE, INDEX,
-// MUTUALFUND, ...) collapsed to the three groups the wallet actually
-// displays — anything that isn't a plain stock or ETF lands in "Other"
+// MUTUALFUND, ...) collapsed to the four groups the wallet actually
+// displays — anything that isn't a plain stock, ETF or crypto lands in "Other"
 // rather than growing a list of one-off categories.
 export function classifyInstrumentGroup(instrumentType) {
   if (instrumentType === 'EQUITY') return 'EQUITY'
   if (instrumentType === 'ETF') return 'ETF'
+  if (instrumentType === 'CRYPTOCURRENCY') return 'CRYPTO'
   return 'OTHER'
 }
 
@@ -117,7 +118,7 @@ export function classifyInstrumentGroup(instrumentType) {
 // reshuffle, same tradeoff the rest of the wallet already makes by
 // rendering progressively as each quote comes in.
 export function groupSymbolsByInstrumentType(symbols, quotes) {
-  const buckets = { EQUITY: [], ETF: [], OTHER: [] }
+  const buckets = { EQUITY: [], ETF: [], CRYPTO: [], OTHER: [] }
   symbols.forEach((symbol) => {
     buckets[classifyInstrumentGroup(quotes[symbol]?.instrumentType)].push(symbol)
   })
