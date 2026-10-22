@@ -7,6 +7,7 @@ import { db, collection, query, limit, onSnapshot, doc, setDoc, deleteDoc, serve
 // is the rater's own.
 const RATINGS = 'villageRatings'
 const ITEM_RATINGS = 'villageItemRatings'
+const REPLIES = 'villageReplies'
 
 export function useRatings(user) {
   const [docs, setDocs] = useState([])
@@ -63,6 +64,18 @@ export function useRatings(user) {
   const removeItemDocs = (match) =>
     Promise.all(itemDocs.filter(match).map((r) => deleteDoc(doc(db, ITEM_RATINGS, r.id))))
 
+  // The post owner's reply to a review: villageReplies/{ratingId} = { postId, text }.
+  const [replies, setReplies] = useState({})
+  useEffect(() => onSnapshot(
+    query(collection(db, REPLIES), limit(5000)),
+    (snap) => setReplies(Object.fromEntries(snap.docs.map((d) => [d.id, d.data()]))),
+    (e) => console.error('[village] replies subscribe failed:', e?.code),
+  ), [])
+  // A review goes with its reply — deleted after the review, so the rules
+  // already see the review gone (needed when the post was deleted first).
+  const removeRatingDoc = (coll, id) => deleteDoc(doc(db, coll, id)).then(() =>
+    (coll === RATINGS && replies[id] ? deleteDoc(doc(db, REPLIES, id)).catch(() => {}) : null))
+
   // merge: changing the stars keeps the comment, and vice versa.
   const write = (postId, fields) => setDoc(
     doc(db, RATINGS, `${postId}_${uid}`),
@@ -79,7 +92,11 @@ export function useRatings(user) {
       ...itemDocs.map((r) => ({ ...r, kind: 'item', raterUid: r.id.slice(r.postId.length + r.itemId.length + 2) })),
     ],
     // Delete one rating from the admin tab.
-    removeRating: (r) => deleteDoc(doc(db, r.kind === 'item' ? ITEM_RATINGS : RATINGS, r.id)),
+    removeRating: (r) => removeRatingDoc(r.kind === 'item' ? ITEM_RATINGS : RATINGS, r.id),
+    // Owner's reply to a review ({ text } or undefined), and saving / removing it.
+    reply: (ratingId) => replies[ratingId],
+    saveReply: (ratingId, postId, text) => setDoc(doc(db, REPLIES, ratingId), { postId, text: text.trim().slice(0, 300), updatedAt: serverTimestamp() }),
+    removeReply: (ratingId) => deleteDoc(doc(db, REPLIES, ratingId)),
     item: (postId, itemId) => byItem[postId + '_' + itemId] || { avg: 0, count: 0, mine: 0 },
     rateItem: (postId, itemId, stars) => setDoc(
       doc(db, ITEM_RATINGS, `${postId}_${itemId}_${uid}`),
@@ -93,11 +110,11 @@ export function useRatings(user) {
     comment: (postId, text) => write(postId, { comment: text.trim().slice(0, 200) }),
     // When a post is deleted its ratings go too (owner or admin).
     removeAll: (postId) => removeItemDocs((r) => r.postId === postId).then(() =>
-      Promise.all(docs.filter((r) => r.postId === postId).map((r) => deleteDoc(doc(db, RATINGS, r.id))))),
+      Promise.all(docs.filter((r) => r.postId === postId).map((r) => removeRatingDoc(RATINGS, r.id)))),
     // One rating / review by its doc id (admin).
-    remove: (ratingId) => deleteDoc(doc(db, RATINGS, ratingId)),
+    remove: (ratingId) => removeRatingDoc(RATINGS, ratingId),
     // Every rating / review someone wrote (admin, when removing a banned user).
     removeBy: (raterUid) => removeItemDocs((r) => r.id.endsWith('_' + raterUid)).then(() =>
-      Promise.all(docs.filter((r) => r.id.endsWith('_' + raterUid)).map((r) => deleteDoc(doc(db, RATINGS, r.id))))),
+      Promise.all(docs.filter((r) => r.id.endsWith('_' + raterUid)).map((r) => removeRatingDoc(RATINGS, r.id)))),
   }
 }

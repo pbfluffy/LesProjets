@@ -4,10 +4,12 @@ import { db, collection, onSnapshot } from '../firebase'
 import { updatePost, deletePost, savePrivateAddress, deletePrivateAddress, hasHouseNumber } from '../hooks/usePosts'
 import { useAuthContext } from '../hooks/useAuth'
 import { ResidencyBadge } from './PostCard'
+import { logAdmin } from '../adminLog'
 import AdminMembers from './AdminMembers'
 import AdminCategories from './AdminCategories'
 import AdminReports from './AdminReports'
 import AdminRatings from './AdminRatings'
+import AdminLog from './AdminLog'
 import BanSheet from './BanSheet'
 import { useBans, unbanUser } from '../hooks/useBans'
 import { OWNER_UID } from '../config'
@@ -37,6 +39,7 @@ function AddressEditor({ post, address }) {
     try {
       if (value) await savePrivateAddress(post.id, post.collection, value, user.uid)
       else await deletePrivateAddress(post.id)
+      logAdmin(user, 'editAddress', { detail: post.name + ': ' + (address || '—') + ' → ' + (value || '—'), postId: post.id, targetUid: post.ownerUid })
       setDraft(null)
     } catch (e) {
       console.error('[village] address fix failed:', e?.code)
@@ -88,13 +91,14 @@ function OwnerLine({ member }) {
 
 // Banned accounts, newest first, each with an Unban link.
 function BanList({ bans }) {
+  const { user } = useAuthContext()
   const { t, lang } = useLangContext()
   const list = Object.entries(bans).sort(([, a], [, b]) => (b.at?.seconds || 0) - (a.at?.seconds || 0))
   if (!list.length) return <p className={styles.empty}>{t.adminNoBans}</p>
 
   function unban(uid, name) {
     if (!window.confirm(interp(t.unbanConfirm, { name: name || t.adminNoName }))) return
-    unbanUser(uid).catch((e) => {
+    unbanUser(uid).then(() => logAdmin(user, 'unban', { detail: name || '', targetUid: uid }), (e) => {
       console.error('[village] unban failed:', e?.code)
       alert(t.saveFailed)
     })
@@ -123,6 +127,7 @@ function BanList({ bans }) {
 
 export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenPost }) {
   const { t, lang } = useLangContext()
+  const { user } = useAuthContext()
   const [addresses, setAddresses] = useState({})
   // Who posted what (owner only — the members list is owner-only too).
   const [members, setMembers] = useState({})
@@ -167,7 +172,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
   const activeMembers = memberList.filter((m) => sinceMs(m.lastSeen) < WEEK).length
 
   function toggleVerified(p) {
-    updatePost(p.collection, p.id, { verified: !p.verified }).catch((e) => {
+    updatePost(p.collection, p.id, { verified: !p.verified }).then(() => logAdmin(user, p.verified ? 'unverify' : 'verify', { detail: p.name, postId: p.id, targetUid: p.ownerUid }), (e) => {
       console.error('[village] verify failed:', e?.code)
       alert(t.saveFailed)
     })
@@ -176,6 +181,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
   function remove(p) {
     if (!window.confirm(t.deleteConfirm)) return
     deletePost(p.collection, p.id).then(() => {
+      logAdmin(user, 'deletePost', { detail: p.name, postId: p.id, targetUid: p.ownerUid })
       deletePrivateAddress(p.id).catch(() => {})
       ratings.removeAll(p.id).catch(() => {})
     }).catch((e) => {
@@ -217,7 +223,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
       </div>
 
       <div className={`${styles.segment} ${styles.adminTabs}`} role="group" style={{ marginBottom: 12 }}>
-        {[['pending', t.adminPending], ['all', t.adminAllPosts], ['reports', reports.length ? t.adminReports + ' (' + reports.length + ')' : t.adminReports], ['ratings', t.adminRatingsCount], ['categories', t.adminCategories], ['bans', Object.keys(bans).length ? t.adminBans + ' (' + Object.keys(bans).length + ')' : t.adminBans], ...(isOwner ? [['members', t.adminMembers]] : [])].map(([key, label]) => (
+        {[['pending', t.adminPending], ['all', t.adminAllPosts], ['reports', reports.length ? t.adminReports + ' (' + reports.length + ')' : t.adminReports], ['ratings', t.adminRatingsCount], ['categories', t.adminCategories], ['bans', Object.keys(bans).length ? t.adminBans + ' (' + Object.keys(bans).length + ')' : t.adminBans], ...(isOwner ? [['members', t.adminMembers], ['log', t.adminLog]] : [])].map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -245,6 +251,8 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
         <AdminRatings ratings={ratings} shops={shops} providers={providers} onOpenPost={onOpenPost} />
       ) : show === 'bans' ? (
         <BanList bans={bans} />
+      ) : show === 'log' && isOwner ? (
+        <AdminLog shops={shops} providers={providers} onOpenPost={onOpenPost} />
       ) : show === 'members' && isOwner ? (
         <AdminMembers shops={shops} providers={providers} onOpenPost={onOpenPost} bans={bans} onBan={setBanTarget} />
       ) : rows.length === 0 ? (

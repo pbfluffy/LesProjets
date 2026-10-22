@@ -3,6 +3,8 @@ import { useLangContext, interp } from '../LangContext'
 import { db, collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from '../firebase'
 import { OWNER_UID } from '../config'
 import { unbanUser } from '../hooks/useBans'
+import { useAuthContext } from '../hooks/useAuth'
+import { logAdmin } from '../adminLog'
 import styles from './ui.module.css'
 
 // Everyone who has signed in to the app (villageMembers, written on each
@@ -11,6 +13,7 @@ import styles from './ui.module.css'
 // them (villageAdmins).
 export default function AdminMembers({ shops, providers, onOpenPost, bans = {}, onBan }) {
   const { t, lang } = useLangContext()
+  const { user } = useAuthContext()
   const [members, setMembers] = useState(null)
   const [admins, setAdmins] = useState(new Set()) // uids in villageAdmins
 
@@ -35,6 +38,7 @@ export default function AdminMembers({ shops, providers, onOpenPost, bans = {}, 
     if (!window.confirm(msg)) return
     const ref = doc(db, 'villageAdmins', m.uid)
     ;(isAdm ? deleteDoc(ref) : setDoc(ref, { name: m.name || '', grantedAt: serverTimestamp() }))
+      .then(() => logAdmin(user, isAdm ? 'revokeAdmin' : 'grantAdmin', { detail: m.name || '', targetUid: m.uid }))
       .catch((e) => {
         console.error('[village] admin change failed:', e?.code)
         alert(t.saveFailed)
@@ -63,7 +67,7 @@ export default function AdminMembers({ shops, providers, onOpenPost, bans = {}, 
 
   function unban(m) {
     if (!window.confirm(interp(t.unbanConfirm, { name: m.name || t.adminNoName }))) return
-    unbanUser(m.uid).catch((e) => {
+    unbanUser(m.uid).then(() => logAdmin(user, 'unban', { detail: m.name || '', targetUid: m.uid }), (e) => {
       console.error('[village] unban failed:', e?.code)
       alert(t.saveFailed)
     })

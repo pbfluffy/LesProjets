@@ -6,6 +6,7 @@ import { useCategoriesContext } from '../hooks/useCategories'
 import { useFavoritesContext } from '../hooks/useFavorites'
 import ReportSheet from './ReportSheet'
 import Icon from './Icon'
+import { logAdmin } from '../adminLog'
 import { photosOf, deletePhotos } from '../photo'
 import { isStale, updatedLabel, STALE_DAYS } from '../freshness'
 import { postUrl, shareToLine, igUrl } from '../share'
@@ -61,12 +62,69 @@ function ItemStars({ postId, item, ratings, canPick }) {
   )
 }
 
+// The owner's reply under a review. The post's owner can write, edit or
+// remove it; everyone else just reads it.
+function ReviewReply({ review, postId, ratings, isPostOwner }) {
+  const { t } = useLangContext()
+  const reply = ratings.reply(review.id)
+  const [draft, setDraft] = useState(null) // null = not writing
+  const [saving, setSaving] = useState(false)
+
+  function failed(e) {
+    console.error('[village] reply failed:', e?.code)
+    alert(t.saveFailed)
+  }
+  function save() {
+    if (!draft.trim()) return
+    setSaving(true)
+    ratings.saveReply(review.id, postId, draft)
+      .then(() => setDraft(null), failed)
+      .finally(() => setSaving(false))
+  }
+  function remove() {
+    if (window.confirm(t.replyDeleteConfirm)) ratings.removeReply(review.id).catch(failed)
+  }
+
+  if (draft !== null) {
+    return (
+      <div className={styles.replyEdit}>
+        <textarea rows={2} maxLength={300} value={draft} onChange={(e) => setDraft(e.target.value)}
+          placeholder={t.replyPh} autoFocus disabled={saving} />
+        <div className={styles.replyActions}>
+          <button type="button" className={styles.linkBtn} onClick={() => setDraft(null)} disabled={saving}>{t.cancel}</button>
+          <button type="button" className={styles.primaryBtn} onClick={save} disabled={saving || !draft.trim()}>
+            {saving ? t.saving : t.replySend}
+          </button>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <>
+      {reply && (
+        <div className={styles.reply}>
+          <strong>{t.replyFromOwner}</strong> {reply.text}
+          {isPostOwner && (
+            <>
+              {' '}<button type="button" className={styles.linkBtn} onClick={() => setDraft(reply.text)}>{t.edit}</button>
+              {' · '}<button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={remove}>{t.delete}</button>
+            </>
+          )}
+        </div>
+      )}
+      {!reply && isPostOwner && (
+        <button type="button" className={`${styles.linkBtn} ${styles.replyBtn}`} onClick={() => setDraft('')}>{t.replyWrite}</button>
+      )}
+    </>
+  )
+}
+
 // Average (read-only), the latest written reviews, and — for anyone but the
 // poster — a 1–5 picker showing their own rating, plus an optional short
 // comment once they've picked stars.
-function Stars({ postId, ratings, canPick, askLabel }) {
+function Stars({ postId, ratings, canPick, askLabel, isPostOwner }) {
   const { t } = useLangContext()
-  const { requireSignIn, isAdmin } = useAuthContext()
+  const { requireSignIn, isAdmin, user } = useAuthContext()
   const { avg, count, mine, myComment, reviews } = ratings.get(postId)
   const [hover, setHover] = useState(0)
   const [thanks, setThanks] = useState(false)
@@ -100,7 +158,7 @@ function Stars({ postId, ratings, canPick, askLabel }) {
   // Admin: delete one review (its stars go too — a rating is one doc).
   function removeReview(r) {
     if (!window.confirm(interp(t.reviewDeleteConfirm, { name: r.name || t.adminNoName }))) return
-    ratings.remove(r.id).catch(failed)
+    ratings.remove(r.id).then(() => logAdmin(user, 'deleteRating', { detail: (r.name || '') + ' · ' + r.stars + '★ · “' + r.comment + '”', postId, targetUid: r.id.slice(postId.length + 1) }), failed)
   }
 
   const shownReviews = allReviews ? reviews : reviews.slice(0, 2)
@@ -129,6 +187,7 @@ function Stars({ postId, ratings, canPick, askLabel }) {
               {isAdmin && (
                 <>{' '}<button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={() => removeReview(r)}><Icon name="shield" size={12} inline />{t.delete}</button></>
               )}
+              <ReviewReply review={r} postId={postId} ratings={ratings} isPostOwner={isPostOwner} />
             </li>
           ))}
           {reviews.length > 2 && (
@@ -218,6 +277,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
   function handleDelete() {
     if (!window.confirm(t.deleteConfirm)) return
     deletePost(collectionName, post.id).then(() => {
+      if (!isOwner) logAdmin(user, 'deletePost', { detail: post.name, postId: post.id, targetUid: post.ownerUid })
       deletePrivateAddress(post.id).catch(() => {}) // none saved for outsiders
       if (isOwner) deletePhotos(photosOf(post)) // the Worker only deletes the uploader's own
       ratings.removeAll(post.id).catch(() => {})
@@ -391,7 +451,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
             {post.hours && <span className={`${styles.hoursText} ${styles.metaIcon}`}><Icon name="clock" size={13} />{post.hours}</span>}
           </div>
         )}
-        <Stars postId={post.id} ratings={ratings} canPick={!isOwner} askLabel={isShop ? t.ratingAskShop : t.ratingAsk} />
+        <Stars postId={post.id} ratings={ratings} canPick={!isOwner} isPostOwner={isOwner} askLabel={isShop ? t.ratingAskShop : t.ratingAsk} />
         {post.description && <p className={styles.desc}>{post.description}</p>}
 
         {isShop && items.length > 0 && (

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import { useAuthContext } from '../hooks/useAuth'
 import { useCategoriesContext, saveCategories, newCategoryKey } from '../hooks/useCategories'
+import { logAdmin } from '../adminLog'
 import styles from './ui.module.css'
 
 const MAX = 30 // firestore.rules: up to 30 per list
@@ -64,6 +65,7 @@ export default function AdminCategories({ shops, providers }) {
     setSaving(true)
     try {
       await saveCategories(next, user.uid)
+      logAdmin(user, 'editCategories', { detail: next.market.length + ' / ' + next.trades.length })
       setDraft(next)
       setDirty(false)
       setSaved(true)

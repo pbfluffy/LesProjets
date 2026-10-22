@@ -3,12 +3,15 @@ import { useLangContext } from '../LangContext'
 import { db, doc, deleteDoc } from '../firebase'
 import { deletePost, deletePrivateAddress } from '../hooks/usePosts'
 import { OWNER_UID } from '../config'
+import { useAuthContext } from '../hooks/useAuth'
+import { logAdmin } from '../adminLog'
 import styles from './ui.module.css'
 
 // Admin tab → รายงาน: posts villagers flagged with "Report this post".
 // Dismiss a report, or delete the post (its other reports go with it).
 export default function AdminReports({ reports, shops, providers, ratings, onOpenPost, bans = {}, onBan }) {
   const { t, lang } = useLangContext()
+  const { user } = useAuthContext()
   const posts = useMemo(() => new Map([...shops, ...providers].map((p) => [p.id, p])), [shops, providers])
   const sorted = useMemo(
     () => reports.slice().sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)),
@@ -19,7 +22,7 @@ export default function AdminReports({ reports, shops, providers, ratings, onOpe
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   }) || ''
 
-  const dismiss = (r) => deleteDoc(doc(db, 'villageReports', r.id)).catch((e) => {
+  const dismiss = (r) => deleteDoc(doc(db, 'villageReports', r.id)).then(() => logAdmin(user, 'dismissReport', { detail: (posts.get(r.postId)?.name || '') + ' · ' + r.reason, postId: r.postId }), (e) => {
     console.error('[village] dismiss report failed:', e?.code)
     alert(t.saveFailed)
   })
@@ -30,6 +33,7 @@ export default function AdminReports({ reports, shops, providers, ratings, onOpe
     try {
       if (post) {
         await deletePost(r.collection, r.postId)
+        logAdmin(user, 'deletePost', { detail: post.name + ' (' + t.adminReports + ')', postId: r.postId, targetUid: post.ownerUid })
         deletePrivateAddress(r.postId).catch(() => {})
         ratings.removeAll(r.postId).catch(() => {})
       }

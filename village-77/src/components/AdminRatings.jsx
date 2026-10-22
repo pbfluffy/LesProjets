@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import { itemKey } from '../hooks/usePosts'
 import Icon from './Icon'
+import { useAuthContext } from '../hooks/useAuth'
+import { logAdmin } from '../adminLog'
 import styles from './ui.module.css'
 
 const PAGE = 50 // rows shown before "show more"
@@ -12,6 +14,7 @@ const PAGE = 50 // rows shown before "show more"
 // fake burst of 1★ or 5★ without banning anyone.
 export default function AdminRatings({ ratings, shops, providers, onOpenPost }) {
   const { t, lang } = useLangContext()
+  const { user } = useAuthContext()
   const [kind, setKind] = useState('all') // 'all' | 'post' | 'item'
   const [stars, setStars] = useState(0) // 0 = any
   const [postId, setPostId] = useState('')
@@ -57,7 +60,10 @@ export default function AdminRatings({ ratings, shops, providers, onOpenPost }) 
 
   function remove(r) {
     if (!window.confirm(interp(t.ratingDeleteConfirm, { name: raterName(r) || t.adminNoName, n: r.stars }))) return
-    ratings.removeRating(r).catch((e) => {
+    ratings.removeRating(r).then(() => logAdmin(user, 'deleteRating', {
+      detail: raterName(r) + ' · ' + r.stars + '★ · ' + (posts[r.postId]?.name || '') + (r.comment ? ' · “' + r.comment + '”' : ''),
+      postId: r.postId, targetUid: r.raterUid,
+    }), (e) => {
       console.error('[village] delete rating failed:', e?.code)
       alert(t.saveFailed)
     })

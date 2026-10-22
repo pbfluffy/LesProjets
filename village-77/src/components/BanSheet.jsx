@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import { useAuthContext } from '../hooks/useAuth'
 import { banUser } from '../hooks/useBans'
+import { logAdmin } from '../adminLog'
 import styles from './ui.module.css'
 
 // Admin: ban an account, optionally removing everything they posted and
@@ -21,6 +22,7 @@ export default function BanSheet({ uid, name, shops, providers, ratings, onClose
     setSaving(true)
     try {
       await banUser({ uid, name, reason, admin: user, removeContent, shops, providers, ratings })
+      logAdmin(user, removeContent ? 'banRemove' : 'ban', { detail: (name || '') + (reason.trim() ? ' · ' + reason.trim() : ''), targetUid: uid })
       onClose()
     } catch (err) {
       console.error('[village] ban failed:', err?.code)

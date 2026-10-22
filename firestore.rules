@@ -546,6 +546,39 @@ service cloud.firestore {
     // Village news (ประกาศหมู่บ้าน): lost & found, events, outages… Same
     // ownership as shops: signed-in to post, only the poster edits, poster or
     // admin deletes.
+    // The owner's reply to a review: villageReplies/{ratingId} (same id as
+    // the review). Only the reviewed post's owner writes it; they or an admin
+    // delete it, and it may go once the review itself is gone.
+    match /villageReplies/{ratingId} {
+      allow read: if true;
+      allow create, update: if signedIn() && !villageBanned()
+                            && request.resource.data.keys().hasOnly(['postId', 'text', 'updatedAt'])
+                            && request.resource.data.text is string
+                            && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 300
+                            && request.resource.data.updatedAt == request.time
+                            && exists(/databases/$(database)/documents/villageRatings/$(ratingId))
+                            && get(/databases/$(database)/documents/villageRatings/$(ratingId)).data.postId == request.resource.data.postId
+                            && villagePostOwner(request.resource.data.postId) == request.auth.uid;
+      allow delete: if isVillageAdmin()
+                    || (signedIn() && villagePostOwner(resource.data.postId) == request.auth.uid)
+                    || !exists(/databases/$(database)/documents/villageRatings/$(ratingId));
+    }
+
+    // Admin activity log: every admin action adds an entry (village-77/src/
+    // adminLog.js). Only the owner reads it; nobody edits it; the owner can
+    // clear entries.
+    match /villageAdminLog/{entryId} {
+      allow read:   if isOwner();
+      allow create: if isVillageAdmin()
+                    && request.resource.data.keys().hasOnly(['action', 'detail', 'postId', 'targetUid', 'by', 'byName', 'at'])
+                    && request.resource.data.action is string && request.resource.data.action.size() <= 40
+                    && request.resource.data.detail is string && request.resource.data.detail.size() <= 300
+                    && request.resource.data.byName is string && request.resource.data.byName.size() <= 200
+                    && request.resource.data.by == request.auth.uid
+                    && request.resource.data.at == request.time;
+      allow delete: if isOwner();
+    }
+
     // Stars on one item of a shop: villageItemRatings/{postId}_{itemId}_{uid}
     // (village-77/src/hooks/useRatings.js). Same idea as the shop rating:
     // one per account per item, not on your own shop, not while banned.
