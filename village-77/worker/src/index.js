@@ -16,7 +16,7 @@
 //   POST /delete      { urls }  (Authorization: Bearer <Firebase ID token>)
 //       Deletes the caller's own photos that a post no longer uses.
 //
-//   GET  /s/<postId>
+//   GET  /s/<postId>  (also pumbafluffycorgi.com/village-77/s/<postId>)
 //       A shared post link: og: tags for LINE's preview, then on to the app.
 //
 //   GET  /p/<key>
@@ -364,8 +364,11 @@ export default {
     const origin = request.headers.get('Origin') || ''
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) })
-    if (request.method === 'GET' && url.pathname.startsWith('/s/')) {
-      return handleShareLink(decodeURIComponent(url.pathname.slice(3)))
+    // Share links: pumbafluffycorgi.com/village-77/s/<id> (route in
+    // wrangler.toml) and the older workers.dev /s/<id> ones already shared.
+    const share = url.pathname.match(/^(?:\/village-77)?\/s\/([^/]+)$/)
+    if (request.method === 'GET' && share) {
+      return handleShareLink(decodeURIComponent(share[1]))
     }
     if (request.method === 'GET' && url.pathname.startsWith('/p/')) {
       return handlePhoto(decodeURIComponent(url.pathname.slice(3)), env)

@@ -5,7 +5,7 @@ Cloudflare Worker for the village app (`../`):
 - `POST /line-auth` — Sign in with LINE. Trades a LINE Login code for a Firebase custom token (uid `line:<LINE user id>`).
 - `POST /upload` — stores a post photo in R2 (needs a Firebase ID token), returns its URL.
 - `GET /p/<key>` — serves a stored photo.
-- `GET /s/<postId>` — shared post link: og: tags for the LINE link preview, then forwards to the post in the app (LIFF).
+- `GET /s/<postId>` (also `pumbafluffycorgi.com/village-77/s/<postId>`, routed in wrangler.toml) — shared post link: og: tags for the LINE link preview, then forwards to the post in the app (LIFF).
 
 Live at https://village-77.pbfluffygaming.workers.dev. Deploy with `npx wrangler deploy` from this folder.
 

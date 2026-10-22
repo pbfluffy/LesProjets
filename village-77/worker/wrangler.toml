@@ -3,6 +3,13 @@ main = "src/index.js"
 compatibility_date = "2026-07-15"
 workers_dev = true
 
+# Shared post links on the site's own domain: pumbafluffycorgi.com/village-77/s/<id>.
+# Only this path goes to the Worker; the rest of the site (GitHub Pages behind
+# Cloudflare) is untouched. The app builds these links in ../src/share.js.
+routes = [
+  { pattern = "pumbafluffycorgi.com/village-77/s/*", zone_name = "pumbafluffycorgi.com" },
+]
+
 # Create with: npx wrangler r2 bucket create village-77-photos
 [[r2_buckets]]
 binding = "BUCKET"
