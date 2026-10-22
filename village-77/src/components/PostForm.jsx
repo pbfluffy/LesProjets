@@ -10,7 +10,7 @@ import styles from './ui.module.css'
 const MAX_ITEMS = 30
 const MAX_TAGS = 10
 export const DELIVERY = ['deliver', 'pickup'] // how buyers get things from a shop
-const emptyItem = () => ({ name: '', price: '', photo: null, sold: false })
+const emptyItem = () => ({ name: '', price: '', oldPrice: '', promo: false, photo: null, sold: false })
 
 // Add / edit form for a marketplace shop (one seller + the items they sell)
 // or a handyman. `post` is null when adding. Field names mirror
@@ -39,7 +39,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
     address: '',
     photos: post?.photos || [],
     items: post?.items?.length
-      ? [...post.items.map((it) => ({ ...it, price: it.price ?? '' })), ...(startWithNewItem ? [emptyItem()] : [])]
+      ? [...post.items.map((it) => ({ ...it, price: it.price ?? '', oldPrice: it.oldPrice ?? '', promo: it.oldPrice != null, addedAt: it.addedAt ?? 0 })), ...(startWithNewItem ? [emptyItem()] : [])]
       : [emptyItem()],
     isResident: post ? !!post.isResident : true,
   }))
@@ -167,12 +167,20 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
     if (isShop) {
       const items = f.items
         .filter((it) => it.name.trim())
-        .map((it) => ({
-          name: it.name.trim(),
-          price: it.price === '' ? null : Math.max(0, Math.round(Number(it.price))),
-          photo: it.photo || null,
-          sold: !!it.sold,
-        }))
+        .map((it) => {
+          const price = it.price === '' ? null : Math.max(0, Math.round(Number(it.price)))
+          const oldPrice = it.oldPrice === '' ? null : Math.round(Number(it.oldPrice))
+          return {
+            name: it.name.trim(),
+            price,
+            photo: it.photo || null,
+            sold: !!it.sold,
+            // On sale: the "was" price, only when it's above the price now.
+            ...(it.promo && price !== null && oldPrice > price ? { oldPrice } : {}),
+            // When the item was first added (ms), for the "new" tag.
+            addedAt: it.addedAt ?? Date.now(), // 0 = added before dates were kept
+          }
+        })
       if (!items.length) {
         setError(t.fItemsRequired)
         return
@@ -275,7 +283,20 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
                         <input type="checkbox" checked={!!it.sold} onChange={(e) => setItem(i, { sold: e.target.checked })} />
                         {t.sold}
                       </label>
+                      <label className={styles.itemRowSold}>
+                        <input type="checkbox" checked={!!it.promo} onChange={(e) => setItem(i, { promo: e.target.checked })} />
+                        🏷️ {t.fOnSale}
+                      </label>
                     </div>
+                    {it.promo && (
+                      <div className={styles.itemRowLine}>
+                        <span className={styles.priceInput}>
+                          <span aria-hidden="true">{t.fOldPrice} ฿</span>
+                          <input type="number" inputMode="numeric" min="0" max="100000000" value={it.oldPrice} aria-label={t.fOldPrice}
+                            onChange={(e) => setItem(i, { oldPrice: e.target.value })} placeholder={t.fOldPricePh} />
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <button type="button" className={styles.itemRowRemove} onClick={() => removeItem(i)} aria-label={t.fItemRemove}>×</button>
                 </div>

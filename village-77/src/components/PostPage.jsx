@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { useLangContext } from '../LangContext'
 import PostCard from './PostCard'
+import { useAuthContext } from '../hooks/useAuth'
+import { track } from '../hooks/useStats'
 import styles from './ui.module.css'
 
 // One shop or handyman, opened from its card: photos, every item (shops) or
@@ -10,6 +12,10 @@ import styles from './ui.module.css'
 // button closes it and a shared shop link opens it directly.
 export default function PostPage({ kind, post, ratings, onEdit, onClose }) {
   const { t } = useLangContext()
+  const { user } = useAuthContext()
+
+  // one "open" for the owner's weekly stats (not their own visits)
+  useEffect(() => { track(post.id, 'open', user, post.ownerUid) }, [post.id, post.ownerUid, user])
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()

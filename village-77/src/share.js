@@ -1,4 +1,5 @@
 import { LIFF_URL } from './liff'
+import { WORKER_URL } from './config'
 
 // Links to the app and to one post, and sharing a post into LINE.
 // A post link is the app URL with ?p=<post id>; App.jsx opens that post.
@@ -8,8 +9,10 @@ export const APP_URL = 'https://pumbafluffycorgi.com' + import.meta.env.BASE_URL
 // tap instead of LINE's web login page. LIFF forwards ?p= as liff.state.
 export const SHARE_URL = LIFF_URL || APP_URL
 
+// Shared post links go through the Worker's /s/<id>, which gives LINE a
+// preview (photo, name, description) and then forwards to SHARE_URL?p=<id>.
 export function postUrl(id) {
-  return SHARE_URL + '?p=' + encodeURIComponent(id)
+  return WORKER_URL + '/s/' + encodeURIComponent(id)
 }
 
 export function readPostParam() {

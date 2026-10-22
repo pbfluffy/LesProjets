@@ -183,6 +183,11 @@
 }
 .itemName { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
 .itemPrice { flex: 0 0 auto; font-family: var(--font-mono); font-size: 14px; font-weight: 500; }
+.oldPrice { color: var(--color-text-muted); font-weight: 400; font-size: 12px; }
+.saleTag, .newTag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 11px; font-weight: 600; font-family: var(--font-sans, inherit); white-space: nowrap; vertical-align: middle; }
+.saleTag { background: var(--color-red-bg); color: var(--color-red); }
+.newTag { background: var(--color-green-bg); color: var(--color-green); }
+.rowMeta .saleTag, .rowMeta .newTag { margin-left: 0; }
 .itemSold .itemName { text-decoration: line-through; color: var(--color-text-faint); }
 .itemSold .itemPrice { color: var(--color-red); font-family: var(--font-body); font-size: 12px; }
 .itemSold .itemPhoto { opacity: 0.5; }
@@ -594,6 +599,7 @@
 .addItemBox { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 0 4px; }
 .ownerNote { font-size: 12px; color: var(--color-text-muted); }
 .ownerNote .linkBtn { font-size: 12px; color: var(--color-green); font-weight: 600; }
+.ownerStats { font-size: 12px; color: var(--color-text-muted); }
 .ownerLine { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-muted); }
 .ownerLine img { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
 .memberPosts { font-size: 13px; color: var(--color-text); }

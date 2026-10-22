@@ -546,6 +546,35 @@ service cloud.firestore {
     }
 
     // ♥ saved shops / handymen, per account: { ids: [postId, …] }.
+    // Owner stats: villageStats/{postId}_{YYYYMMDD} counts page opens and
+    // Call / LINE / IG taps (village-77/src/hooks/useStats.js). Anyone, even
+    // signed out, may add exactly 1 to one counter on today's doc of a post
+    // that exists; only the post's owner and admins can read them. Post ids
+    // are Firestore auto-ids (no "_"), so the id splits cleanly.
+    function villagePostOwner(postId) {
+      let shop = /databases/$(database)/documents/villageShops/$(postId);
+      let pro = /databases/$(database)/documents/villageProviders/$(postId);
+      return exists(shop) ? get(shop).data.ownerUid : (exists(pro) ? get(pro).data.ownerUid : null);
+    }
+    match /villageStats/{statId} {
+      allow get: if isVillageAdmin()
+                 || (signedIn() && villagePostOwner(statId.split('_')[0]) == request.auth.uid);
+      allow create: if request.resource.data.keys().hasOnly(['postId', 'day', 'open', 'call', 'line', 'ig'])
+                    && request.resource.data.keys().size() == 3
+                    && request.resource.data.day == villageToday()
+                    && statId == request.resource.data.postId + '_' + string(request.resource.data.day)
+                    && villagePostOwner(request.resource.data.postId) != null
+                    && request.resource.data[request.resource.data.keys().removeAll(['postId', 'day'])[0]] == 1;
+      // one counter changed, and it went up by exactly 1
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().size() == 1
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['open', 'call', 'line', 'ig'])
+                    && (villageStatBumped('open') || villageStatBumped('call')
+                        || villageStatBumped('line') || villageStatBumped('ig'));
+    }
+    function villageStatBumped(f) {
+      return request.resource.data.get(f, 0) == resource.data.get(f, 0) + 1;
+    }
+
     match /villageFavorites/{uid} {
       allow read: if isUser(uid);
       allow write: if isUser(uid)

@@ -8,6 +8,8 @@ import ReportSheet from './ReportSheet'
 import { photosOf, deletePhotos } from '../photo'
 import { isStale, updatedLabel, STALE_DAYS } from '../freshness'
 import { postUrl, shareToLine, igUrl } from '../share'
+import { isOnSale, isNewItem, salePercent } from '../deals'
+import { track, useWeekStats } from '../hooks/useStats'
 import styles from './ui.module.css'
 
 export function ResidencyBadge({ isResident }) {
@@ -196,6 +198,11 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
     })
   }
 
+  // Call / LINE / IG taps count toward the owner's weekly stats.
+  const tap = (field) => track(post.id, field, user, post.ownerUid)
+  const week = useWeekStats(post.id, isOwner)
+  const weekLine = week && interp(t.statsWeek, { open: week.open, taps: week.call + week.line + week.ig })
+
   // ♥ save for later (needs an account, so it follows them across devices).
   const favs = useFavoritesContext()
   const saved = favs.has(post.id)
@@ -262,6 +269,8 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
           </div>
           <div className={styles.rowMeta}>
             {badge && <span className={styles.newBadge}>{badge}</span>}
+            {isShop && items.some(isOnSale) && <span className={styles.saleTag}>🏷️ {t.onSale}</span>}
+            {isShop && !items.some(isOnSale) && items.some(isNewItem) && <span className={styles.newTag}>🆕 {t.itemNew}</span>}
             {rating.count > 0 && (
               <span className={styles.rowRating}>★ {rating.avg.toFixed(1)} <small>({rating.count})</small></span>
             )}
@@ -276,18 +285,19 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
           </div>
           <div className={styles.rowActions}>
             {post.phone && (
-              <a className={styles.rowBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')} aria-label={t.call + ' ' + post.phone}>📞 {t.call}</a>
+              <a className={styles.rowBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')} onClick={() => tap('call')} aria-label={t.call + ' ' + post.phone}>📞 {t.call}</a>
             )}
             {post.line && (
-              <a className={`${styles.rowBtn} ${styles.lineBtn}`} href={lineUrl(post.line)} target="_blank" rel="noopener noreferrer">💬 {t.line}</a>
+              <a className={`${styles.rowBtn} ${styles.lineBtn}`} href={lineUrl(post.line)} onClick={() => tap('line')} target="_blank" rel="noopener noreferrer">💬 {t.line}</a>
             )}
             {post.instagram && (
-              <a className={`${styles.rowBtn} ${styles.igBtn}`} href={igUrl(post.instagram)} target="_blank" rel="noopener noreferrer">📷 IG</a>
+              <a className={`${styles.rowBtn} ${styles.igBtn}`} href={igUrl(post.instagram)} onClick={() => tap('ig')} target="_blank" rel="noopener noreferrer">📷 IG</a>
             )}
             {!isOwner && heartBtn(styles.rowBtn)}
             <span className={styles.seeAll}>{isShop ? t.shopSeeAll : t.seeDetails} ›</span>
           </div>
           {isOwner && isStale(post) && <span className={styles.staleBadge}>{t.staleShort}</span>}
+          {weekLine && <span className={styles.ownerStats}>📊 {weekLine}</span>}
           {isShop && isOwner && (
             <span className={styles.ownerNote}>
               {t.yourShop} ·{' '}
@@ -352,8 +362,15 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
                 ) : (
                   <span className={`${styles.itemPhoto} ${styles.itemPhotoEmpty}`}>🛍️</span>
                 )}
-                <span className={styles.itemName}>{it.name}</span>
-                <span className={styles.itemPrice}>{it.sold ? t.sold : formatPrice(it.price, t, lang)}</span>
+                <span className={styles.itemName}>
+                  {it.name}
+                  {isNewItem(it) && <span className={styles.newTag}>🆕 {t.itemNew}</span>}
+                </span>
+                <span className={styles.itemPrice}>
+                  {!it.sold && isOnSale(it) && <><s className={styles.oldPrice}>{formatPrice(it.oldPrice, t, lang)}</s>{' '}</>}
+                  {it.sold ? t.sold : formatPrice(it.price, t, lang)}
+                  {!it.sold && isOnSale(it) && <span className={styles.saleTag}>-{salePercent(it)}%</span>}
+                </span>
                 {isOwner && (
                   <button type="button" className={styles.itemToggle} onClick={() => toggleSold(i)}>
                     {it.sold ? t.markAvailable : t.markSold}
@@ -374,17 +391,17 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
 
         <div className={styles.actions}>
           {post.phone && (
-            <a className={styles.contactBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')}>
+            <a className={styles.contactBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')} onClick={() => tap('call')}>
               📞 {t.call} {post.phone}
             </a>
           )}
           {post.line && (
-            <a className={`${styles.contactBtn} ${styles.lineBtn}`} href={lineUrl(post.line)} target="_blank" rel="noopener noreferrer">
+            <a className={`${styles.contactBtn} ${styles.lineBtn}`} href={lineUrl(post.line)} onClick={() => tap('line')} target="_blank" rel="noopener noreferrer">
               💬 {t.line}
             </a>
           )}
           {post.instagram && (
-            <a className={`${styles.contactBtn} ${styles.igBtn}`} href={igUrl(post.instagram)} target="_blank" rel="noopener noreferrer">
+            <a className={`${styles.contactBtn} ${styles.igBtn}`} href={igUrl(post.instagram)} onClick={() => tap('ig')} target="_blank" rel="noopener noreferrer">
               📷 @{post.instagram}
             </a>
           )}
@@ -393,6 +410,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
         </div>
 
         <span className={styles.meta}>🕒 {updatedLabel(post, t, lang)}</span>
+        {week && <span className={styles.meta}>📊 {interp(t.statsWeekFull, week)}</span>}
 
         {isOwner && isStale(post) && (
           <div className={styles.staleNote}>

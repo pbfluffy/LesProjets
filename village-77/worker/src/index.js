@@ -1,4 +1,4 @@
-// village-77 Worker — two jobs for the village app:
+// village-77 Worker for the village app:
 //
 //   POST /line-auth   { code, redirectUri }  or  { idToken }  (from LIFF, inside LINE)
 //       With { handoff } (iPhone home-screen app) the sign-in is parked for
@@ -15,6 +15,9 @@
 //
 //   POST /delete      { urls }  (Authorization: Bearer <Firebase ID token>)
 //       Deletes the caller's own photos that a post no longer uses.
+//
+//   GET  /s/<postId>
+//       A shared post link: og: tags for LINE's preview, then on to the app.
 //
 //   GET  /p/<key>
 //       Serves a stored photo (immutable, cached by the browser / CDN).
@@ -294,12 +297,65 @@ async function handlePhoto(key, env) {
   })
 }
 
+// GET /s/<postId>: the link people share into LINE. LINE's link preview
+// reads the og: tags (the shop's photo, name and description); a person who
+// taps it is sent straight on to the post inside the app (via LIFF, so it
+// opens in LINE). Posts are public in Firestore, so the REST read needs no auth.
+const OPEN_URL = 'https://liff.line.me/2012133281-TffzWAQ2' // LIFF_URL in ../src/liff.js
+const FALLBACK_IMAGE = 'https://pumbafluffycorgi.com/pumba.png'
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+const str = (f) => f?.stringValue || ''
+const strList = (f) => (f?.arrayValue?.values || []).map((v) => v.stringValue).filter(Boolean)
+
+async function readPost(id) {
+  for (const coll of ['villageShops', 'villageProviders']) {
+    const res = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${coll}/${encodeURIComponent(id)}`)
+    if (res.ok) return { coll, fields: (await res.json()).fields || {} }
+  }
+  return null
+}
+
+async function handleShareLink(id) {
+  const target = OPEN_URL + '?p=' + encodeURIComponent(id)
+  let title = 'หมู่บ้านของเรา · Our Village'
+  let desc = 'ตลาดซื้อขายและสารพัดช่างในหมู่บ้าน'
+  let image = FALLBACK_IMAGE
+  const post = /^[\w-]{1,64}$/.test(id) ? await readPost(id).catch(() => null) : null
+  if (post) {
+    const f = post.fields
+    const items = (f.items?.arrayValue?.values || []).map((v) => v.mapValue?.fields || {})
+    const isShop = post.coll === 'villageShops'
+    title = (isShop ? '🛒 ' : '🔧 ') + str(f.name)
+    const forSale = items.filter((it) => !it.sold?.booleanValue).map((it) => str(it.name)).filter(Boolean)
+    desc = str(f.description) || (forSale.length ? forSale.slice(0, 5).join(' · ') : desc)
+    image = strList(f.photos)[0] || items.map((it) => str(it.photo)).find(Boolean) || image
+  }
+  const html = `<!doctype html><html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="หมู่บ้านของเรา">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc.slice(0, 160))}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:url" content="${esc(target)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+</head><body><p><a href="${esc(target)}">${esc(title)}</a></p>
+<script>location.replace(${JSON.stringify(target)})</script></body></html>`
+  return new Response(html, {
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300' },
+  })
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
     const origin = request.headers.get('Origin') || ''
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) })
+    if (request.method === 'GET' && url.pathname.startsWith('/s/')) {
+      return handleShareLink(decodeURIComponent(url.pathname.slice(3)))
+    }
     if (request.method === 'GET' && url.pathname.startsWith('/p/')) {
       return handlePhoto(decodeURIComponent(url.pathname.slice(3)), env)
     }
