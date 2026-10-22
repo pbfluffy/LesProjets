@@ -10,6 +10,7 @@ import AdminCategories from './AdminCategories'
 import AdminReports from './AdminReports'
 import AdminRatings from './AdminRatings'
 import AdminLog from './AdminLog'
+import { useAllItemRatings } from '../hooks/useRatings'
 import BanSheet from './BanSheet'
 import { useBans, unbanUser } from '../hooks/useBans'
 import { OWNER_UID } from '../config'
@@ -148,6 +149,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
   }, [isOwner])
   const [show, setShow] = useState('pending') // 'pending' | 'all' | 'new' | 'stale' | 'reports' | 'categories' | 'bans' | 'members'
   const bans = useBans() // uid -> ban
+  const itemRatings = useAllItemRatings() // stars on shop items (admin tab only)
   const [banTarget, setBanTarget] = useState(null) // { uid, name } while the ban sheet is open
 
   useEffect(() => onSnapshot(
@@ -211,7 +213,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
           ['⏳', allPosts.filter((p) => p.isResident && !p.verified).length, t.adminPending, 'pending'],
           ['💤', allPosts.filter(isStale).length, t.adminStale, 'stale'],
           ['🚩', reports.length, t.adminReports, 'reports'],
-          ['★', ratings.total, t.adminRatingsCount, 'ratings'],
+          ['★', ratings.count + itemRatings.length, t.adminRatingsCount, 'ratings'],
           ...(isOwner ? [['👥', memberList.length, t.adminMembers, 'members', interp(t.adminActiveWeek, { n: activeMembers })]] : []),
         ].map(([icon, n, label, view, sub]) => (
           <button key={label} type="button" className={styles.adminStat} disabled={!view} onClick={() => view && setShow(view)}>
@@ -248,7 +250,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
       ) : show === 'categories' ? (
         <AdminCategories shops={shops} providers={providers} />
       ) : show === 'ratings' ? (
-        <AdminRatings ratings={ratings} shops={shops} providers={providers} onOpenPost={onOpenPost} />
+        <AdminRatings ratings={ratings} itemRatings={itemRatings} shops={shops} providers={providers} onOpenPost={onOpenPost} />
       ) : show === 'bans' ? (
         <BanList bans={bans} />
       ) : show === 'log' && isOwner ? (

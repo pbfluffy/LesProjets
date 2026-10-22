@@ -12,6 +12,7 @@ import { isStale, updatedLabel, STALE_DAYS } from '../freshness'
 import { postUrl, shareToLine, igUrl } from '../share'
 import { isOnSale, isNewItem, salePercent } from '../deals'
 import { track, useWeekStats } from '../hooks/useStats'
+import { usePostExtras } from '../hooks/useRatings'
 import styles from './ui.module.css'
 
 export function ResidencyBadge({ isResident }) {
@@ -32,16 +33,16 @@ function formatPrice(price, t, lang) {
 
 // One item's stars, under its name: the average, and (not for the shop
 // owner) five small stars to tap — the filled ones are your own rating.
-function ItemStars({ postId, item, ratings, canPick }) {
+function ItemStars({ item, extras, canPick }) {
   const { t } = useLangContext()
   const { requireSignIn } = useAuthContext()
   const itemId = itemKey(item) // older items: an id made from the name
-  const { avg, count, mine } = ratings.item(postId, itemId)
+  const { avg, count, mine } = extras.item(itemId)
   if (!canPick && !count) return null
 
   function pick(n) {
     if (!requireSignIn()) return
-    ratings.rateItem(postId, itemId, n).catch((e) => {
+    extras.rateItem(itemId, n).catch((e) => {
       console.error('[village] item rating failed:', e?.code)
       alert(t.saveFailed)
     })
@@ -64,9 +65,9 @@ function ItemStars({ postId, item, ratings, canPick }) {
 
 // The owner's reply under a review. The post's owner can write, edit or
 // remove it; everyone else just reads it.
-function ReviewReply({ review, postId, ratings, isPostOwner }) {
+function ReviewReply({ review, extras, isPostOwner }) {
   const { t } = useLangContext()
-  const reply = ratings.reply(review.id)
+  const reply = extras.reply(review.id)
   const [draft, setDraft] = useState(null) // null = not writing
   const [saving, setSaving] = useState(false)
 
@@ -77,12 +78,12 @@ function ReviewReply({ review, postId, ratings, isPostOwner }) {
   function save() {
     if (!draft.trim()) return
     setSaving(true)
-    ratings.saveReply(review.id, postId, draft)
+    extras.saveReply(review.id, draft)
       .then(() => setDraft(null), failed)
       .finally(() => setSaving(false))
   }
   function remove() {
-    if (window.confirm(t.replyDeleteConfirm)) ratings.removeReply(review.id).catch(failed)
+    if (window.confirm(t.replyDeleteConfirm)) extras.removeReply(review.id).catch(failed)
   }
 
   if (draft !== null) {
@@ -122,7 +123,7 @@ function ReviewReply({ review, postId, ratings, isPostOwner }) {
 // Average (read-only), the latest written reviews, and — for anyone but the
 // poster — a 1–5 picker showing their own rating, plus an optional short
 // comment once they've picked stars.
-function Stars({ postId, ratings, canPick, askLabel, isPostOwner }) {
+function Stars({ postId, ratings, extras, canPick, askLabel, isPostOwner, onReportReview }) {
   const { t } = useLangContext()
   const { requireSignIn, isAdmin, user } = useAuthContext()
   const { avg, count, mine, myComment, reviews } = ratings.get(postId)
@@ -187,7 +188,11 @@ function Stars({ postId, ratings, canPick, askLabel, isPostOwner }) {
               {isAdmin && (
                 <>{' '}<button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={() => removeReview(r)}><Icon name="shield" size={12} inline />{t.delete}</button></>
               )}
-              <ReviewReply review={r} postId={postId} ratings={ratings} isPostOwner={isPostOwner} />
+              {!isAdmin && r.id !== postId + '_' + user?.uid && (
+                <>{' '}<button type="button" className={`${styles.linkBtn} ${styles.reviewReport}`} onClick={() => onReportReview(r)}
+                  aria-label={t.reportReviewTitle} title={t.reportReviewTitle}><Icon name="flag" size={11} inline />{t.reportReviewShort}</button></>
+              )}
+              <ReviewReply review={r} extras={extras} isPostOwner={isPostOwner} />
             </li>
           ))}
           {reviews.length > 2 && (
@@ -254,7 +259,7 @@ function lineUrl(id) {
 // items they sell listed inside the card) or 'provider' (a handyman).
 // The poster gets Edit / Delete, plus a per-item sold toggle on shops;
 // admins get Delete.
-export default function PostCard({ kind, collectionName, post, ratings, onEdit, compact = false, onOpen, badge }) {
+export default function PostCard({ kind, collectionName, post, ratings, onEdit, compact = false, onOpen, badge, tourTarget }) {
   const { t, lang } = useLangContext()
   const { user, isAdmin, requireSignIn } = useAuthContext()
   const isOwner = !!user && user.uid === post.ownerUid
@@ -265,9 +270,12 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
   const tagLabel = (c) => cats.label(kind, c)
   const photos = post.photos || []
   const items = post.items || []
+  const keyedItems = withItemIds(items) // stable ids for item ratings
+  // Item stars and owner replies: only loaded on the full page, not list cards.
+  const extras = usePostExtras(post.id, ratings, !compact)
   const [shown, setShown] = useState(0) // index of the photo scrolled into view
   const [zoomed, setZoomed] = useState(null)
-  const [reporting, setReporting] = useState(false)
+  const [reporting, setReporting] = useState(false) // true = the post, or a review to report
 
   function onStripScroll(e) {
     const el = e.currentTarget
@@ -351,6 +359,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
     return (
       <article
         className={`${styles.card} ${styles.rowCard}`}
+        data-tour={tourTarget}
         id={'post-' + post.id}
         onClick={open}
         onKeyDown={(e) => e.key === 'Enter' && e.target === e.currentTarget && onOpen(post)}
@@ -451,7 +460,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
             {post.hours && <span className={`${styles.hoursText} ${styles.metaIcon}`}><Icon name="clock" size={13} />{post.hours}</span>}
           </div>
         )}
-        <Stars postId={post.id} ratings={ratings} canPick={!isOwner} isPostOwner={isOwner} askLabel={isShop ? t.ratingAskShop : t.ratingAsk} />
+        <Stars postId={post.id} ratings={ratings} extras={extras} canPick={!isOwner} isPostOwner={isOwner} onReportReview={(r) => requireSignIn() && setReporting(r)} askLabel={isShop ? t.ratingAskShop : t.ratingAsk} />
         {post.description && <p className={styles.desc}>{post.description}</p>}
 
         {isShop && items.length > 0 && (
@@ -468,7 +477,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
                 <span className={styles.itemName}>
                   {it.name}
                   {isNewItem(it) && <span className={styles.newTag}>🆕 {t.itemNew}</span>}
-                  <ItemStars postId={post.id} item={it} ratings={ratings} canPick={!isOwner && !it.sold} />
+                  <ItemStars item={keyedItems[i]} extras={extras} canPick={!isOwner && !it.sold} />
                 </span>
                 <span className={styles.itemPrice}>
                   {!it.sold && isOnSale(it) && <><s className={styles.oldPrice}>{formatPrice(it.oldPrice, t, lang)}</s>{' '}</>}
@@ -529,7 +538,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
           </button>
         )}
         {reporting && user && (
-          <ReportSheet post={post} collectionName={collectionName} user={user} onClose={() => setReporting(false)} />
+          <ReportSheet post={post} collectionName={collectionName} user={user} review={reporting === true ? null : reporting} onClose={() => setReporting(false)} />
         )}
 
         {(isOwner || isAdmin) && (

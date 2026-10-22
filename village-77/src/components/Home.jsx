@@ -36,7 +36,7 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
         <h2>{t.homeWelcome}</h2>
         <p>{t.homeBlurb}</p>
       </div>
-      <label className={styles.searchWrap}>
+      <label className={styles.searchWrap} data-tour="search">
         <Icon name="search" size={16} className={styles.searchIcon} />
         <input
           type="search"

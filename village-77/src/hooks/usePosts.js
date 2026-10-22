@@ -122,7 +122,17 @@ export function itemKey(it) {
   for (const ch of it.name || '') h = (Math.imul(h, 31) + ch.codePointAt(0)) | 0
   return 'n' + (h >>> 0).toString(36)
 }
-export const withItemIds = (items) => items.map((it) => (it.id ? it : { ...it, id: itemKey(it) }))
+// Gives every item an id; two id-less items with the same name get different
+// ones (the second gets a suffix), so their ratings don't merge.
+export function withItemIds(items) {
+  const seen = new Set()
+  return items.map((it, i) => {
+    let id = itemKey(it)
+    if (seen.has(id)) id = id.slice(0, 14) + 'x' + i
+    seen.add(id)
+    return id === it.id ? it : { ...it, id }
+  })
+}
 
 // A house no. has to contain a number (Arabic or Thai digits), e.g. "99/12"
 // or "๙๙/๑๒ ซ.3" — so "." or "-" don't count. firestore.rules check the same.

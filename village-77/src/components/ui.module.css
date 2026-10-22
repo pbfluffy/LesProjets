@@ -391,6 +391,8 @@
 .reviews { list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--color-text-muted); }
 .reviewStars { color: #f5a623; letter-spacing: 1px; }
 .reviewName { color: var(--color-text-faint); }
+.reviewReport { font-size: 11px; color: var(--color-text-faint); text-decoration: none; }
+.reportedReview { font-size: 13px; padding: 4px 8px; border-radius: var(--radius-sm); background: var(--color-surface-alt); }
 /* owner's reply under a review */
 .reply {
   margin: 4px 0 2px 14px;
@@ -633,6 +635,23 @@
   white-space: nowrap;
 }
 .itemRowSold input { width: 16px; height: 16px; }
+/* ↑ × ↓ beside each item in the shop form */
+.itemRowSide { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.itemRowMove {
+  width: 28px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.itemRowMove:disabled { opacity: 0.25; cursor: default; }
+.rotUp { transform: rotate(-90deg); }
+.rotDown { transform: rotate(90deg); }
 .itemRowRemove {
   flex: 0 0 auto;
   width: 28px;

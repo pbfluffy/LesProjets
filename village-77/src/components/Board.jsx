@@ -144,9 +144,9 @@ export default function Board({
         <p className={styles.empty}>{t.noMatches}</p>
       ) : (
         <div className={styles.grid}>
-          {filtered.map((p) => (
+          {filtered.map((p, i) => (
             <PostCard key={p.id} kind={kind} collectionName={collectionName} post={p} ratings={ratings} onEdit={onEdit}
-              compact onOpen={(post) => onOpenPost(post.id)} />
+              compact onOpen={(post) => onOpenPost(post.id)} tourTarget={i === 0 ? 'card' : undefined} />
           ))}
         </div>
       )}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
-import { itemKey } from '../hooks/usePosts'
+import { withItemIds } from '../hooks/usePosts'
 import Icon from './Icon'
 import { useAuthContext } from '../hooks/useAuth'
 import { logAdmin } from '../adminLog'
@@ -12,7 +12,7 @@ const PAGE = 50 // rows shown before "show more"
 // (with their comment, if any) and stars on single items — newest first,
 // filterable by type, stars and post, each with a Delete. For cleaning up a
 // fake burst of 1★ or 5★ without banning anyone.
-export default function AdminRatings({ ratings, shops, providers, onOpenPost }) {
+export default function AdminRatings({ ratings, itemRatings, shops, providers, onOpenPost }) {
   const { t, lang } = useLangContext()
   const { user } = useAuthContext()
   const [kind, setKind] = useState('all') // 'all' | 'post' | 'item'
@@ -25,13 +25,13 @@ export default function AdminRatings({ ratings, shops, providers, onOpenPost }) 
   const posts = useMemo(() => {
     const m = {}
     for (const p of shops) {
-      m[p.id] = { name: p.name, isShop: true, items: Object.fromEntries((p.items || []).map((it) => [itemKey(it), it.name])) }
+      m[p.id] = { name: p.name, isShop: true, items: Object.fromEntries(withItemIds(p.items || []).map((it) => [it.id, it.name])) }
     }
     for (const p of providers) m[p.id] = { name: p.name, isShop: false, items: {} }
     return m
   }, [shops, providers])
 
-  const all = ratings.all()
+  const all = useMemo(() => [...ratings.postRatings(), ...itemRatings], [ratings, itemRatings])
   // Item stars saved before names were kept: borrow the name from the same
   // person's shop / handyman rating, if they left one.
   const nameByUid = Object.fromEntries(all.filter((r) => r.name).map((r) => [r.raterUid, r.name]))

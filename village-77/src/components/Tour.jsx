@@ -7,13 +7,16 @@ import styles from './Tour.module.css'
 // tab first; a step whose element isn't on screen (e.g. the sign-in button
 // when already signed in) is skipped. Shown once, replayable from the ?
 // button in the header. TOUR_KEY marks it done for this browser.
-export const TOUR_KEY = 'village_tour_done'
+// v2: new steps (search, saved / reviews), so everyone sees it once more.
+export const TOUR_KEY = 'village_tour_done_v2'
 
 const STEPS = [
   { key: 'welcome' },
+  { key: 'search', target: 'search', tab: 'home' },
   { key: 'market', target: 'tab-market' },
   { key: 'services', target: 'tab-services' },
   { key: 'residency', target: 'residency', tab: 'market' },
+  { key: 'card', target: 'card', tab: 'market' },
   { key: 'add', target: 'add', tab: 'market' },
   { key: 'signin', target: 'signin', tab: 'home' },
   { key: 'lang', target: 'lang' },

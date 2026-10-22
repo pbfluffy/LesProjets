@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import { useCategoriesContext } from '../hooks/useCategories'
-import { createPost, updatePost, savePrivateAddress, deletePrivateAddress, loadPrivateAddress, postsLeftToday, DAILY_POST_LIMIT, newItemId, itemKey, hasHouseNumber } from '../hooks/usePosts'
+import { createPost, updatePost, savePrivateAddress, deletePrivateAddress, loadPrivateAddress, postsLeftToday, DAILY_POST_LIMIT, newItemId, withItemIds, hasHouseNumber } from '../hooks/usePosts'
 import { useAuthContext } from '../hooks/useAuth'
 import { uploadPhoto, PHOTO_ITEM, photosOf, deletePhotos } from '../photo'
 import { igHandle } from '../share'
@@ -11,7 +11,8 @@ import styles from './ui.module.css'
 const MAX_ITEMS = 30
 const MAX_TAGS = 10
 export const DELIVERY = ['deliver', 'pickup'] // how buyers get things from a shop
-const emptyItem = () => ({ name: '', price: '', oldPrice: '', promo: false, photo: null, sold: false })
+// _k: a key for React while editing (not saved), so rows keep their inputs when moved.
+const emptyItem = () => ({ _k: newItemId(), name: '', price: '', oldPrice: '', promo: false, photo: null, sold: false })
 
 // Add / edit form for a marketplace shop (one seller + the items they sell)
 // or a handyman. `post` is null when adding. Field names mirror
@@ -40,7 +41,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
     address: '',
     photos: post?.photos || [],
     items: post?.items?.length
-      ? [...post.items.map((it) => ({ ...it, price: it.price ?? '', oldPrice: it.oldPrice ?? '', promo: it.oldPrice != null, addedAt: it.addedAt ?? 0, id: itemKey(it) })), ...(startWithNewItem ? [emptyItem()] : [])]
+      ? [...withItemIds(post.items).map((it) => ({ ...it, _k: it.id, price: it.price ?? '', oldPrice: it.oldPrice ?? '', promo: it.oldPrice != null, addedAt: it.addedAt ?? 0 })), ...(startWithNewItem ? [emptyItem()] : [])]
       : [emptyItem()],
     isResident: post ? !!post.isResident : true,
   }))
@@ -114,6 +115,14 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
     setF((prev) => ({ ...prev, items: prev.items.map((it, j) => (j === i ? { ...it, ...patch } : it)) }))
   const addItem = () => setF((prev) => ({ ...prev, items: [...prev.items, emptyItem()] }))
   const removeItem = (i) => setF((prev) => ({ ...prev, items: prev.items.filter((_, j) => j !== i) }))
+  // Move an item up (-1) or down (+1), so owners can put their best ones first.
+  const moveItem = (i, dir) => setF((prev) => {
+    const items = prev.items.slice()
+    const j = i + dir
+    if (j < 0 || j >= items.length) return prev
+    ;[items[i], items[j]] = [items[j], items[i]]
+    return { ...prev, items }
+  })
 
   async function handleItemPhoto(i, e) {
     const file = e.target.files?.[0]
@@ -164,6 +173,13 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
       instagram: igHandle(f.instagram),
       photos: f.photos,
       isResident: f.isResident,
+    }
+    // "On sale" needs a price now and a higher "was" price, or it can't show.
+    const badSale = isShop && f.items.find((it) => it.name.trim() && it.promo
+      && (it.price === '' || it.oldPrice === '' || Number(it.oldPrice) <= Number(it.price)))
+    if (badSale) {
+      setError(interp(t.fOldPriceInvalid, { name: badSale.name.trim() }))
+      return
     }
     if (isShop) {
       const items = f.items
@@ -268,7 +284,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
             <span>{interp(t.fItems, { n: f.items.length, max: MAX_ITEMS })}</span>
             <div className={styles.itemRows}>
               {f.items.map((it, i) => (
-                <div key={i} className={styles.itemRow}>
+                <div key={it._k || i} className={styles.itemRow}>
                   <label className={styles.itemRowPhoto} aria-label={t.fItemPhoto}>
                     {it.photo ? <img src={it.photo} alt="" /> : <Icon name="camera" size={18} />}
                     <input type="file" accept="image/*" hidden disabled={processing} onChange={(e) => handleItemPhoto(i, e)} />
@@ -300,7 +316,15 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
                       </div>
                     )}
                   </div>
-                  <button type="button" className={styles.itemRowRemove} onClick={() => removeItem(i)} aria-label={t.fItemRemove}>×</button>
+                  <div className={styles.itemRowSide}>
+                    <button type="button" className={styles.itemRowMove} onClick={() => moveItem(i, -1)} disabled={i === 0} aria-label={t.fItemUp}>
+                      <Icon name="chevron" size={16} strokeWidth={2.4} className={styles.rotUp} />
+                    </button>
+                    <button type="button" className={styles.itemRowRemove} onClick={() => removeItem(i)} aria-label={t.fItemRemove}>×</button>
+                    <button type="button" className={styles.itemRowMove} onClick={() => moveItem(i, 1)} disabled={i === f.items.length - 1} aria-label={t.fItemDown}>
+                      <Icon name="chevron" size={16} strokeWidth={2.4} className={styles.rotDown} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -405,7 +429,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
 
         <div className={styles.sheetActions}>
           <button type="button" className={styles.secondaryBtn} onClick={cancel} disabled={saving}>{t.cancel}</button>
-          <button type="submit" className={styles.primaryBtn} disabled={saving || processing || limitReached}>{saving ? t.saving : t.save}</button>
+          <button type="submit" className={styles.primaryBtn} disabled={saving || processing || limitReached || addressLoading}>{saving ? t.saving : t.save}</button>
         </div>
       </form>
     </div>

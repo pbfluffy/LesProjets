@@ -4,10 +4,11 @@ import { db, collection, addDoc, serverTimestamp } from '../firebase'
 import styles from './ui.module.css'
 
 export const REPORT_REASONS = ['wrong', 'notResident', 'scam', 'inappropriate', 'other']
+export const REVIEW_REPORT_REASONS = ['fakeReview', 'rude', 'other']
 
-// "Report this post": a reason and an optional note, saved to
-// villageReports for the admins (admin tab → รายงาน).
-export default function ReportSheet({ post, collectionName, user, onClose }) {
+// "Report this post" — or, with `review`, one of its reviews — a reason and
+// an optional note, saved to villageReports for the admins (admin tab → รายงาน).
+export default function ReportSheet({ post, collectionName, user, review = null, onClose }) {
   const { t } = useLangContext()
   const [reason, setReason] = useState('')
   const [note, setNote] = useState('')
@@ -26,6 +27,7 @@ export default function ReportSheet({ post, collectionName, user, onClose }) {
         reporterUid: user.uid,
         reporterName: (user.displayName || '').slice(0, 80),
         createdAt: serverTimestamp(),
+        ...(review ? { ratingId: review.id } : {}),
       })
       setState('sent')
     } catch (err) {
@@ -38,7 +40,7 @@ export default function ReportSheet({ post, collectionName, user, onClose }) {
   return (
     <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <form className={styles.sheet} onSubmit={send}>
-        <h2 className={styles.sheetTitle}>🚩 {t.reportTitle}</h2>
+        <h2 className={styles.sheetTitle}>🚩 {review ? t.reportReviewTitle : t.reportTitle}</h2>
         {state === 'sent' ? (
           <>
             <p className={styles.hint}>{t.reportThanks}</p>
@@ -48,9 +50,9 @@ export default function ReportSheet({ post, collectionName, user, onClose }) {
           </>
         ) : (
           <>
-            <p className={styles.hint}>{post.name}</p>
+            <p className={styles.hint}>{post.name}{review && <> · “{review.comment}” — {review.name || t.adminNoName}</>}</p>
             <div className={styles.reportReasons}>
-              {REPORT_REASONS.map((r) => (
+              {(review ? REVIEW_REPORT_REASONS : REPORT_REASONS).map((r) => (
                 <label key={r} className={styles.reportReason}>
                   <input type="radio" name="reason" checked={reason === r} onChange={() => setReason(r)} />
                   {t['report_' + r]}

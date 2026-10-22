@@ -28,6 +28,8 @@ import {
   writeBatch,
   onSnapshot,
   increment,
+  where,
+  getDocs,
 } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -46,7 +48,7 @@ export const db = getFirestore(app);
 export {
   onAuthStateChanged, signInWithCustomToken, updateProfile, GoogleAuthProvider, signInWithPopup, signOut,
   doc, collection, addDoc, setDoc, getDoc, updateDoc, deleteDoc, query, orderBy, limit,
-  serverTimestamp, onSnapshot, writeBatch, increment,
+  serverTimestamp, onSnapshot, writeBatch, increment, where, getDocs,
 };
 
 // Save the signed-in user's name to userProfiles so the admin console shows
