@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLangContext } from '../LangContext'
+import { useLangContext, interp } from '../LangContext'
 import { db, collection, onSnapshot } from '../firebase'
 import { updatePost, deletePost, savePrivateAddress, deletePrivateAddress } from '../hooks/usePosts'
 import { useAuthContext } from '../hooks/useAuth'
@@ -7,7 +7,12 @@ import { ResidencyBadge } from './PostCard'
 import AdminMembers from './AdminMembers'
 import AdminCategories from './AdminCategories'
 import AdminReports from './AdminReports'
+import { isStale, updatedLabel } from '../freshness'
 import styles from './ui.module.css'
+
+const WEEK = 7 * 24 * 60 * 60 * 1000
+const sinceMs = (ts) => (ts?.toMillis ? Date.now() - ts.toMillis() : Infinity)
+const isNew = (p) => sinceMs(p.createdAt) < WEEK
 
 // Admins only (the tab is hidden otherwise, and firestore.rules only let
 // admins read villagePrivate or set `verified`). Lists every post with the
@@ -76,7 +81,7 @@ function OwnerLine({ member }) {
 }
 
 export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenPost }) {
-  const { t } = useLangContext()
+  const { t, lang } = useLangContext()
   const [addresses, setAddresses] = useState({})
   // Who posted what (owner only — the members list is owner-only too).
   const [members, setMembers] = useState({})
@@ -108,8 +113,15 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
       ...shops.map((p) => ({ ...p, collection: 'villageShops', kindLabel: '🛒 ' + t.navMarket })),
       ...providers.map((p) => ({ ...p, collection: 'villageProviders', kindLabel: '🔧 ' + t.navServices })),
     ].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
-    return show === 'pending' ? all.filter((p) => p.isResident && !p.verified) : all
+    if (show === 'pending') return all.filter((p) => p.isResident && !p.verified)
+    if (show === 'new') return all.filter(isNew)
+    if (show === 'stale') return all.filter(isStale)
+    return all
   }, [shops, providers, show, t])
+
+  const allPosts = shops.concat(providers)
+  const memberList = Object.values(members)
+  const activeMembers = memberList.filter((m) => sinceMs(m.lastSeen) < WEEK).length
 
   function toggleVerified(p) {
     updatePost(p.collection, p.id, { verified: !p.verified }).catch((e) => {
@@ -146,14 +158,17 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
         {[
           ['🛒', shops.length, t.navMarket, 'all'],
           ['🔧', providers.length, t.navServices, 'all'],
-          ['⏳', shops.concat(providers).filter((p) => p.isResident && !p.verified).length, t.adminPending, 'pending'],
+          ['🆕', allPosts.filter(isNew).length, t.adminNewWeek, 'new'],
+          ['⏳', allPosts.filter((p) => p.isResident && !p.verified).length, t.adminPending, 'pending'],
+          ['💤', allPosts.filter(isStale).length, t.adminStale, 'stale'],
           ['🚩', reports.length, t.adminReports, 'reports'],
           ['★', ratings.total, t.adminRatingsCount, null],
-          ...(isOwner ? [['👥', Object.keys(members).length, t.adminMembers, 'members']] : []),
-        ].map(([icon, n, label, view]) => (
+          ...(isOwner ? [['👥', memberList.length, t.adminMembers, 'members', interp(t.adminActiveWeek, { n: activeMembers })]] : []),
+        ].map(([icon, n, label, view, sub]) => (
           <button key={label} type="button" className={styles.adminStat} disabled={!view} onClick={() => view && setShow(view)}>
             <strong>{icon} {n}</strong>
             <small>{label}</small>
+            {sub && <small>{sub}</small>}
           </button>
         ))}
       </div>
@@ -171,6 +186,13 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
           </button>
         ))}
       </div>
+
+      {(show === 'new' || show === 'stale') && (
+        <p className={styles.meta} style={{ marginBottom: 8 }}>
+          {show === 'new' ? '🆕 ' + t.adminNewWeek : '💤 ' + t.adminStaleHint}{' '}
+          <button type="button" className={styles.linkBtn} onClick={() => setShow('all')}>{t.adminAllPosts}</button>
+        </p>
+      )}
 
       {show === 'reports' ? (
         <AdminReports reports={reports} shops={shops} providers={providers} ratings={ratings} onOpenPost={onOpenPost} />
@@ -195,6 +217,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
                   ? <AddressEditor post={p} address={addresses[p.id]} />
                   : <span className={styles.adminAddress}>🏠 —</span>}
                 <span className={styles.meta}>📞 {[p.phone, p.line && 'LINE ' + p.line].filter(Boolean).join(' · ')}</span>
+                <span className={styles.meta}>🕒 {updatedLabel(p, t, lang)}</span>
               </div>
               <div className={styles.adminActions}>
                 {p.isResident && (

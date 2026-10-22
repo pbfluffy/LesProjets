@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLangContext } from '../LangContext'
 import PostCard from './PostCard'
 import { useCategoriesContext } from '../hooks/useCategories'
+import { useFavoritesContext } from '../hooks/useFavorites'
 import styles from './ui.module.css'
 
 // The marketplace and handyman pages share this: residency filter (the
@@ -19,6 +20,10 @@ export default function Board({
   const [residency, setResidency] = useState('all') // 'all' | 'resident' | 'outsider'
   const [picked, setPicked] = useState('') // one tag; '' = all
   const [search, setSearch] = useState('')
+  // ♥ only the saved ones; the chip shows once something is saved.
+  const favs = useFavoritesContext()
+  const [savedOnly, setSavedOnly] = useState(false)
+  const showSaved = savedOnly && favs.ids.length > 0
 
   // Sort by rating (best first; unrated ones last).
   const [sort, setSort] = useState('newest') // 'newest' | 'rating'
@@ -30,6 +35,7 @@ export default function Board({
       if (residency === 'resident' && !p.isResident) return false
       if (residency === 'outsider' && p.isResident) return false
       if (picked && !(p[tagField] || []).includes(picked)) return false
+      if (showSaved && !favs.ids.includes(p.id)) return false
       if (q) {
         const itemNames = (p.items || []).map((it) => it.name)
         const hay = [p.name, p.description, ...itemNames].filter(Boolean).join(' ').toLowerCase()
@@ -45,7 +51,7 @@ export default function Board({
       const rb = ratings.get(b.id)
       return (busy(a) - busy(b)) || (rb.avg - ra.avg) || (rb.count - ra.count)
     })
-  }, [posts, residency, picked, search, tagField, sort, canSortByRating, ratings])
+  }, [posts, residency, picked, search, tagField, sort, canSortByRating, ratings, showSaved, favs.ids])
 
   return (
     <section>
@@ -94,6 +100,16 @@ export default function Board({
                 {label}
               </button>
             ))}
+            {favs.ids.length > 0 && (
+              <button
+                type="button"
+                aria-pressed={showSaved}
+                className={`${styles.chip} ${showSaved ? styles.chipActive : ''}`}
+                onClick={() => setSavedOnly(!showSaved)}
+              >
+                ♥ {t.savedPosts}
+              </button>
+            )}
           </div>
         )}
 

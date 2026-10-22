@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import PostCard from './PostCard'
 import { NewsCard } from './NewsBoard'
 import styles from './ui.module.css'
 
+const SAVED_PREVIEW = 4 // saved posts shown before "see all"
+
 export default function Home({ shops, providers, news, ratings, onGo, onEditShop, onEditProvider, onEditNews, onOpenPost, myPosts = [], newReviews, savedPosts = [] }) {
   const { t } = useLangContext()
+  const [allSaved, setAllSaved] = useState(false)
   const itemsForSale = shops.reduce((n, s) => n + (s.items || []).filter((it) => !it.sold).length, 0)
 
   return (
@@ -49,10 +53,13 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
       {savedPosts.length > 0 && (
         <>
           <div className={styles.sectionHead}>
-            <h3>♥ {t.savedPosts}</h3>
+            <h3>♥ {t.savedPosts} ({savedPosts.length})</h3>
+            {savedPosts.length > SAVED_PREVIEW && (
+              <button type="button" className={styles.linkBtn} onClick={() => setAllSaved(!allSaved)}>{allSaved ? t.showLess : t.seeAll}</button>
+            )}
           </div>
           <div className={styles.grid} style={{ marginBottom: 24 }}>
-            {savedPosts.map((p) => (
+            {(allSaved ? savedPosts : savedPosts.slice(0, SAVED_PREVIEW)).map((p) => (
               <PostCard key={p.id} kind={p.kind} collectionName={p.kind === 'shop' ? 'villageShops' : 'villageProviders'} post={p} ratings={ratings}
                 onEdit={p.kind === 'shop' ? onEditShop : onEditProvider} compact onOpen={(post) => onOpenPost(post.id)} />
             ))}
