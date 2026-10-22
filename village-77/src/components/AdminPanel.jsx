@@ -7,6 +7,7 @@ import { ResidencyBadge } from './PostCard'
 import AdminMembers from './AdminMembers'
 import AdminCategories from './AdminCategories'
 import AdminReports from './AdminReports'
+import AdminRatings from './AdminRatings'
 import BanSheet from './BanSheet'
 import { useBans, unbanUser } from '../hooks/useBans'
 import { OWNER_UID } from '../config'
@@ -204,7 +205,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
           ['⏳', allPosts.filter((p) => p.isResident && !p.verified).length, t.adminPending, 'pending'],
           ['💤', allPosts.filter(isStale).length, t.adminStale, 'stale'],
           ['🚩', reports.length, t.adminReports, 'reports'],
-          ['★', ratings.total, t.adminRatingsCount, null],
+          ['★', ratings.total, t.adminRatingsCount, 'ratings'],
           ...(isOwner ? [['👥', memberList.length, t.adminMembers, 'members', interp(t.adminActiveWeek, { n: activeMembers })]] : []),
         ].map(([icon, n, label, view, sub]) => (
           <button key={label} type="button" className={styles.adminStat} disabled={!view} onClick={() => view && setShow(view)}>
@@ -216,7 +217,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
       </div>
 
       <div className={`${styles.segment} ${styles.adminTabs}`} role="group" style={{ marginBottom: 12 }}>
-        {[['pending', t.adminPending], ['all', t.adminAllPosts], ['reports', reports.length ? t.adminReports + ' (' + reports.length + ')' : t.adminReports], ['categories', t.adminCategories], ['bans', Object.keys(bans).length ? t.adminBans + ' (' + Object.keys(bans).length + ')' : t.adminBans], ...(isOwner ? [['members', t.adminMembers]] : [])].map(([key, label]) => (
+        {[['pending', t.adminPending], ['all', t.adminAllPosts], ['reports', reports.length ? t.adminReports + ' (' + reports.length + ')' : t.adminReports], ['ratings', t.adminRatingsCount], ['categories', t.adminCategories], ['bans', Object.keys(bans).length ? t.adminBans + ' (' + Object.keys(bans).length + ')' : t.adminBans], ...(isOwner ? [['members', t.adminMembers]] : [])].map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -240,6 +241,8 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
         <AdminReports reports={reports} shops={shops} providers={providers} ratings={ratings} onOpenPost={onOpenPost} bans={bans} onBan={setBanTarget} />
       ) : show === 'categories' ? (
         <AdminCategories shops={shops} providers={providers} />
+      ) : show === 'ratings' ? (
+        <AdminRatings ratings={ratings} shops={shops} providers={providers} onOpenPost={onOpenPost} />
       ) : show === 'bans' ? (
         <BanList bans={bans} />
       ) : show === 'members' && isOwner ? (

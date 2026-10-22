@@ -71,11 +71,19 @@ export function useRatings(user) {
   )
 
   return {
-    total: docs.length,
+    total: docs.length + itemDocs.length,
+    // Every rating, for the admin tab: kind 'post' (shop / handyman, maybe
+    // with a comment) or 'item' (stars on one shop item).
+    all: () => [
+      ...docs.map((r) => ({ ...r, kind: 'post', raterUid: r.id.slice(r.postId.length + 1) })),
+      ...itemDocs.map((r) => ({ ...r, kind: 'item', raterUid: r.id.slice(r.postId.length + r.itemId.length + 2) })),
+    ],
+    // Delete one rating from the admin tab.
+    removeRating: (r) => deleteDoc(doc(db, r.kind === 'item' ? ITEM_RATINGS : RATINGS, r.id)),
     item: (postId, itemId) => byItem[postId + '_' + itemId] || { avg: 0, count: 0, mine: 0 },
     rateItem: (postId, itemId, stars) => setDoc(
       doc(db, ITEM_RATINGS, `${postId}_${itemId}_${uid}`),
-      { postId, itemId, stars, updatedAt: serverTimestamp() },
+      { postId, itemId, stars, name: (user?.displayName || '').slice(0, 80), updatedAt: serverTimestamp() },
     ),
     get: (postId) => byPost[postId] || { avg: 0, count: 0, mine: 0, myComment: '', reviews: [] },
     // Ratings or reviews for a post changed after `since` (ms) — the owner's
