@@ -681,7 +681,7 @@ service cloud.firestore {
       allow create, update: if signedIn() && !villageBanned()
                             && request.resource.data.keys().hasOnly(['address', 'collection', 'updatedAt', 'updatedBy'])
                             && request.resource.data.address is string
-                            && request.resource.data.address.size() > 0
+                            && request.resource.data.address.matches('.*[0-9๐-๙].*') // has a house no.
                             && request.resource.data.address.size() <= 120
                             && request.resource.data.collection in ['villageShops', 'villageProviders']
                             && exists(/databases/$(database)/documents/$(request.resource.data.collection)/$(postId))

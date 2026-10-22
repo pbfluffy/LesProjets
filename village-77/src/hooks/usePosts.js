@@ -123,3 +123,7 @@ export function itemKey(it) {
   return 'n' + (h >>> 0).toString(36)
 }
 export const withItemIds = (items) => items.map((it) => (it.id ? it : { ...it, id: itemKey(it) }))
+
+// A house no. has to contain a number (Arabic or Thai digits), e.g. "99/12"
+// or "๙๙/๑๒ ซ.3" — so "." or "-" don't count. firestore.rules check the same.
+export const hasHouseNumber = (address) => /[0-9๐-๙]/.test(address || '')

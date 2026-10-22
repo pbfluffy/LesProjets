@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import { useCategoriesContext } from '../hooks/useCategories'
-import { createPost, updatePost, savePrivateAddress, deletePrivateAddress, loadPrivateAddress, postsLeftToday, DAILY_POST_LIMIT, newItemId, itemKey } from '../hooks/usePosts'
+import { createPost, updatePost, savePrivateAddress, deletePrivateAddress, loadPrivateAddress, postsLeftToday, DAILY_POST_LIMIT, newItemId, itemKey, hasHouseNumber } from '../hooks/usePosts'
 import { useAuthContext } from '../hooks/useAuth'
 import { uploadPhoto, PHOTO_ITEM, photosOf, deletePhotos } from '../photo'
 import { igHandle } from '../share'
@@ -147,7 +147,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
       return
     }
     // Villagers must give a house no. — it's what admins check them against.
-    if (f.isResident && !f.address.trim()) {
+    if (f.isResident && !hasHouseNumber(f.address)) {
       setError(t.fAddressRequired)
       return
     }

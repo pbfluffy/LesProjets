@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import { db, collection, onSnapshot } from '../firebase'
-import { updatePost, deletePost, savePrivateAddress, deletePrivateAddress } from '../hooks/usePosts'
+import { updatePost, deletePost, savePrivateAddress, deletePrivateAddress, hasHouseNumber } from '../hooks/usePosts'
 import { useAuthContext } from '../hooks/useAuth'
 import { ResidencyBadge } from './PostCard'
 import AdminMembers from './AdminMembers'
@@ -31,6 +31,7 @@ function AddressEditor({ post, address }) {
 
   async function save() {
     const value = draft.trim()
+    if (value && !hasHouseNumber(value)) return alert(t.fAddressRequired)
     setSaving(true)
     try {
       if (value) await savePrivateAddress(post.id, post.collection, value, user.uid)
@@ -48,6 +49,7 @@ function AddressEditor({ post, address }) {
     return (
       <span className={styles.adminAddress}>
         🏠 {address || t.adminNoAddress}{' '}
+        {!hasHouseNumber(address) && <span className={styles.bannedTag}>⚠️ {t.adminNoHouseNo}{' '}</span>}
         <button type="button" className={styles.linkBtn} onClick={() => setDraft(address || '')}>{t.edit}</button>
       </span>
     )
