@@ -382,7 +382,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
           <div className={styles.rowMeta}>
             {badge && <span className={styles.newBadge}>{badge}</span>}
             {isShop && items.some(isOnSale) && <span className={styles.saleTag}><Icon name="tag" size={11} strokeWidth={2.4} inline />{t.onSale}</span>}
-            {isShop && !items.some(isOnSale) && items.some(isNewItem) && <span className={styles.newTag}>🆕 {t.itemNew}</span>}
+            {isShop && !items.some(isOnSale) && items.some(isNewItem) && <span className={styles.newTag}>{t.itemNew}</span>}
             {rating.count > 0 && (
               <span className={styles.rowRating}><Icon name="star" size={13} filled className={styles.starIcon} />{rating.avg.toFixed(1)} <small>({rating.count})</small></span>
             )}
@@ -476,7 +476,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
                 )}
                 <span className={styles.itemName}>
                   {it.name}
-                  {isNewItem(it) && <span className={styles.newTag}>🆕 {t.itemNew}</span>}
+                  {isNewItem(it) && <span className={styles.newTag}>{t.itemNew}</span>}
                   <ItemStars item={keyedItems[i]} extras={extras} canPick={!isOwner && !it.sold} />
                 </span>
                 <span className={styles.itemPrice}>

@@ -123,6 +123,7 @@ export default function App() {
   // A shared post link (?p=<id>, see share.js): once posts have loaded, open
   // that post's page on top of its tab.
   const [focusId, setFocusId] = useState(readPostParam)
+  const [linkGone, setLinkGone] = useState(false) // that post no longer exists / is listed
   useEffect(() => {
     if (!focusId || shops.loading || providers.loading || news.loading) return
     const target = liveShops.some((p) => p.id === focusId) ? 'market'
@@ -130,7 +131,7 @@ export default function App() {
       : SHOW_NEWS && liveNews.some((p) => p.id === focusId) ? 'news' : null
     setFocusId(null)
     clearPostParam()
-    if (!target) return // deleted since it was shared
+    if (!target) return setLinkGone(true) // deleted or expired since it was shared
     setTab(target)
     // Shops and handymen open their own page; news (when on) is scrolled to.
     if (target !== 'news') return openPost(focusId)
@@ -270,6 +271,12 @@ export default function App() {
           <div className={styles.banner} role="alert">
             <span>{t.signInFailed} <small>({auth.loginError})</small></span>
             <button type="button" onClick={auth.clearLoginError} aria-label={t.close}>×</button>
+          </div>
+        )}
+        {linkGone && (
+          <div className={`${styles.banner} ${styles.bannerInfo}`} role="status">
+            <span>{t.linkGone}</span>
+            <button type="button" onClick={() => setLinkGone(false)} aria-label={t.close}>×</button>
           </div>
         )}
         {auth.ban && (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { db, doc, setDoc, getDoc, increment } from '../firebase'
+import { auth, db, doc, setDoc, getDoc, increment } from '../firebase'
 
 // How often a post gets looked at: villageStats/{postId}_{YYYYMMDD} counts
 // opens of the full page and taps on Call / LINE / IG, one doc per post per
@@ -10,8 +10,14 @@ export const STAT_FIELDS = ['open', 'call', 'line', 'ig']
 
 const dayNum = (d) => d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate()
 
-export function track(postId, field, user, ownerUid) {
+export async function track(postId, field, user, ownerUid) {
   if (!STAT_FIELDS.includes(field) || (user && user.uid === ownerUid)) return
+  // Opened straight from a shared link, sign-in may not have finished yet
+  // (user still null): wait for it, so the owner's own visit isn't counted.
+  if (!user) {
+    await auth.authStateReady().catch(() => {})
+    if (auth.currentUser?.uid === ownerUid) return
+  }
   // a page open counts once per post per browser session
   if (field === 'open') {
     const key = 'village_seen_' + postId
