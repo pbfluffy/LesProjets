@@ -3,6 +3,7 @@ import { useLangContext, interp } from '../LangContext'
 import { updatePost, deletePost, deletePrivateAddress } from '../hooks/usePosts'
 import { useAuthContext } from '../hooks/useAuth'
 import { useCategoriesContext } from '../hooks/useCategories'
+import { useFavoritesContext } from '../hooks/useFavorites'
 import ReportSheet from './ReportSheet'
 import { photosOf, deletePhotos } from '../photo'
 import { isStale, updatedLabel, STALE_DAYS } from '../freshness'
@@ -195,6 +196,32 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
     })
   }
 
+  // ♥ save for later (needs an account, so it follows them across devices).
+  const favs = useFavoritesContext()
+  const saved = favs.has(post.id)
+  const heartBtn = (cls) => (
+    <button
+      type="button"
+      className={`${cls} ${saved ? styles.heartOn : ''}`}
+      aria-pressed={saved}
+      aria-label={saved ? t.favRemove : t.favAdd}
+      onClick={() => requireSignIn() && favs.toggle(post.id).catch((e) => {
+        console.error('[village] favourite failed:', e?.code)
+        alert(t.saveFailed)
+      })}
+    >
+      {saved ? '♥' : '♡'}
+    </button>
+  )
+
+  // Handyman "busy right now" switch; missing counts as available.
+  function toggleAvailable() {
+    updatePost(collectionName, post.id, { available: post.available === false }).catch((e) => {
+      console.error('[village] availability failed:', e?.code)
+      alert(t.saveFailed)
+    })
+  }
+
   function toggleSold(i) {
     const next = items.map((it, j) => (j === i ? { ...it, sold: !it.sold } : it))
     updatePost(collectionName, post.id, { items: next }).catch((e) => {
@@ -229,6 +256,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
           <div className={styles.rowBadges}>
             <ResidencyBadge isResident={post.isResident} />
             {post.isResident && post.verified && <span className={`${styles.badge} ${styles.badgeVerified}`}>✓</span>}
+            {!isShop && post.available === false && <span className={`${styles.badge} ${styles.badgeBusy}`}>⏸ {t.busy}</span>}
             {tags.slice(0, 2).map((c) => <span key={c} className={styles.tag}>{tagLabel(c)}</span>)}
             {tags.length > 2 && <span className={styles.tag}>+{tags.length - 2}</span>}
           </div>
@@ -244,6 +272,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
               </span>
             )}
             {!isShop && rating.count === 0 && <span>{t.ratingNone}</span>}
+            {isShop && (post.delivery || []).includes('deliver') && <span>🚚 {t.deliveryShort}</span>}
           </div>
           <div className={styles.rowActions}>
             {post.phone && (
@@ -255,6 +284,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
             {post.instagram && (
               <a className={`${styles.rowBtn} ${styles.igBtn}`} href={igUrl(post.instagram)} target="_blank" rel="noopener noreferrer">📷 IG</a>
             )}
+            {!isOwner && heartBtn(styles.rowBtn)}
             <span className={styles.seeAll}>{isShop ? t.shopSeeAll : t.seeDetails} ›</span>
           </div>
           {isOwner && isStale(post) && <span className={styles.staleBadge}>{t.staleShort}</span>}
@@ -297,10 +327,17 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
         <div className={styles.cardTags}>
           <ResidencyBadge isResident={post.isResident} />
           {post.isResident && post.verified && <span className={`${styles.badge} ${styles.badgeVerified}`}>✓ {t.verified}</span>}
+          {!isShop && post.available === false && <span className={`${styles.badge} ${styles.badgeBusy}`}>⏸ {t.busy}</span>}
           {tags.map((c) => <span key={c} className={styles.tag}>{tagLabel(c)}</span>)}
         </div>
 
         <h3 className={styles.cardTitle}>{post.name}</h3>
+        {isShop && (post.delivery?.length > 0 || post.hours) && (
+          <div className={styles.shopInfo}>
+            {(post.delivery || []).map((d) => <span key={d} className={styles.tag}>{t['delivery_' + d]}</span>)}
+            {post.hours && <span className={styles.hoursText}>⏰ {post.hours}</span>}
+          </div>
+        )}
         <Stars postId={post.id} ratings={ratings} canPick={!isOwner} askLabel={isShop ? t.ratingAskShop : t.ratingAsk} />
         {post.description && <p className={styles.desc}>{post.description}</p>}
 
@@ -352,6 +389,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
             </a>
           )}
           <button type="button" className={styles.contactBtn} onClick={handleShare}>↗ {t.shareLine}</button>
+          {!isOwner && heartBtn(styles.contactBtn)}
         </div>
 
         <span className={styles.meta}>🕒 {updatedLabel(post, t, lang)}</span>
@@ -375,6 +413,11 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
         {(isOwner || isAdmin) && (
           <div className={styles.ownerActions}>
             {isOwner && <button type="button" className={styles.linkBtn} onClick={() => onEdit(post)}>{t.edit}</button>}
+            {!isShop && isOwner && (
+              <button type="button" className={styles.linkBtn} onClick={toggleAvailable}>
+                {post.available === false ? t.setAvailable : t.setBusy}
+              </button>
+            )}
             <button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={handleDelete}>
               {isOwner ? t.delete : '🛡️ ' + t.delete}
             </button>

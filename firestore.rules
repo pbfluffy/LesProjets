@@ -422,12 +422,17 @@ service cloud.firestore {
       return validVillagePost(d)
           && d.name.size() > 0
           && d.categories is list && d.categories.size() > 0 && d.categories.size() <= 10
-          && d.items is list && d.items.size() > 0 && d.items.size() <= 30;
+          && d.items is list && d.items.size() > 0 && d.items.size() <= 30
+          // optional: how buyers get things, and opening hours (free text)
+          && (!('delivery' in d) || (d.delivery is list && d.delivery.size() <= 2))
+          && (!('hours' in d) || (d.hours is string && d.hours.size() <= 80));
     }
     function validVillageProvider(d) {
       return validVillagePost(d)
           && d.name.size() > 0
-          && d.trades is list && d.trades.size() > 0 && d.trades.size() <= 10;
+          && d.trades is list && d.trades.size() > 0 && d.trades.size() <= 10
+          // optional: taking jobs right now? (false = busy)
+          && (!('available' in d) || d.available is bool);
     }
     function villageCreate() {
       return signedIn()
@@ -538,6 +543,15 @@ service cloud.firestore {
                     && request.resource.data.ownerUid  == resource.data.ownerUid
                     && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isUser(resource.data.ownerUid) || isVillageAdmin();
+    }
+
+    // ♥ saved shops / handymen, per account: { ids: [postId, …] }.
+    match /villageFavorites/{uid} {
+      allow read: if isUser(uid);
+      allow write: if isUser(uid)
+                   && request.resource.data.keys().hasOnly(['ids'])
+                   && request.resource.data.ids is list
+                   && request.resource.data.ids.size() <= 200;
     }
 
     // "Report this post": signed-in villagers flag a shop / handyman; admins

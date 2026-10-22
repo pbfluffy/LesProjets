@@ -9,6 +9,7 @@ import styles from './ui.module.css'
 
 const MAX_ITEMS = 30
 const MAX_TAGS = 10
+export const DELIVERY = ['deliver', 'pickup'] // how buyers get things from a shop
 const emptyItem = () => ({ name: '', price: '', photo: null, sold: false })
 
 // Add / edit form for a marketplace shop (one seller + the items they sell)
@@ -33,6 +34,8 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
     phone: post?.phone || '',
     line: post?.line || '',
     instagram: post?.instagram || '',
+    delivery: post?.delivery || [],
+    hours: post?.hours || '',
     address: '',
     photos: post?.photos || [],
     items: post?.items?.length
@@ -175,9 +178,12 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
         return
       }
       data.categories = knownTags
+      data.delivery = f.delivery.filter((d) => DELIVERY.includes(d))
+      data.hours = f.hours.trim().slice(0, 80)
       data.items = items
     } else {
       data.trades = knownTags
+      data.available = post?.available ?? true // switched from the card, not here
     }
 
     setSaving(true)
@@ -280,6 +286,31 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
               <button type="button" className={styles.secondaryBtn} onClick={addItem}>{t.fAddItem}</button>
             )}
           </div>
+        )}
+
+        {isShop && (
+          <div className={styles.field}>
+            <span>{t.fDelivery}</span>
+            <div className={styles.chipsWrap}>
+              {DELIVERY.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  aria-pressed={f.delivery.includes(d)}
+                  className={`${styles.chip} ${f.delivery.includes(d) ? styles.chipActive : ''}`}
+                  onClick={() => setF((prev) => ({ ...prev, delivery: prev.delivery.includes(d) ? prev.delivery.filter((x) => x !== d) : [...prev.delivery, d] }))}
+                >
+                  {t['delivery_' + d]}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {isShop && (
+          <label className={styles.field}>
+            <span>{t.fHours}</span>
+            <input maxLength={80} value={f.hours} onChange={set('hours')} placeholder={t.fHoursPh} />
+          </label>
         )}
 
         {/* The point of the app: is this person one of us or from outside? */}

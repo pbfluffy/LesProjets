@@ -348,6 +348,10 @@
 .badgeOutsider { background: var(--color-amber-bg); color: var(--color-amber); }
 .tag { background: var(--color-surface-alt); color: var(--color-text-muted); }
 .badgeVerified { background: var(--color-blue-bg); color: var(--color-blue); }
+.badgeBusy { background: var(--color-surface-alt); color: var(--color-text-muted); }
+.shopInfo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 8px; }
+.hoursText { font-size: 13px; color: var(--color-text-muted); }
+.heartOn { color: var(--color-red); }
 
 /* Sign-in sheet */
 .signInSheet { gap: 14px; }
@@ -658,6 +662,11 @@
 .adminTabs { overflow-x: auto; scrollbar-width: none; }
 .adminTabs::-webkit-scrollbar { display: none; }
 .adminTabs .segmentBtn { flex: 1 0 auto; padding: 7px 12px; }
+.adminStats { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.adminStat { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); color: var(--color-text); text-align: left; cursor: pointer; }
+.adminStat:disabled { cursor: default; opacity: 1; }
+.adminStat strong { font-size: 18px; }
+.adminStat small { font-size: 12px; color: var(--color-text-muted); }
 
 /* Report a post */
 .reportLink { align-self: flex-start; font-size: 12px; color: var(--color-text-muted); margin-top: 4px; }

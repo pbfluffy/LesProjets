@@ -3,7 +3,7 @@ import PostCard from './PostCard'
 import { NewsCard } from './NewsBoard'
 import styles from './ui.module.css'
 
-export default function Home({ shops, providers, news, ratings, onGo, onEditShop, onEditProvider, onEditNews, onOpenPost, myPosts = [], newReviews }) {
+export default function Home({ shops, providers, news, ratings, onGo, onEditShop, onEditProvider, onEditNews, onOpenPost, myPosts = [], newReviews, savedPosts = [] }) {
   const { t } = useLangContext()
   const itemsForSale = shops.reduce((n, s) => n + (s.items || []).filter((it) => !it.sold).length, 0)
 
@@ -42,6 +42,20 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
                   badge={n > 0 ? interp(t.newReviews, { n }) : null} />
               )
             })}
+          </div>
+        </>
+      )}
+
+      {savedPosts.length > 0 && (
+        <>
+          <div className={styles.sectionHead}>
+            <h3>♥ {t.savedPosts}</h3>
+          </div>
+          <div className={styles.grid} style={{ marginBottom: 24 }}>
+            {savedPosts.map((p) => (
+              <PostCard key={p.id} kind={p.kind} collectionName={p.kind === 'shop' ? 'villageShops' : 'villageProviders'} post={p} ratings={ratings}
+                onEdit={p.kind === 'shop' ? onEditShop : onEditProvider} compact onOpen={(post) => onOpenPost(post.id)} />
+            ))}
           </div>
         </>
       )}

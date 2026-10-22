@@ -37,11 +37,13 @@ export default function Board({
       }
       return true
     })
-    if (!canSortByRating || sort !== 'rating') return list
+    // Handymen who switched themselves to "busy" go to the bottom.
+    const busy = (p) => (p.available === false ? 1 : 0)
+    if (!canSortByRating || sort !== 'rating') return list.slice().sort((a, b) => busy(a) - busy(b))
     return list.slice().sort((a, b) => {
       const ra = ratings.get(a.id)
       const rb = ratings.get(b.id)
-      return (rb.avg - ra.avg) || (rb.count - ra.count)
+      return (busy(a) - busy(b)) || (rb.avg - ra.avg) || (rb.count - ra.count)
     })
   }, [posts, residency, picked, search, tagField, sort, canSortByRating, ratings])
 

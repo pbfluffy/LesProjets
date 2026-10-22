@@ -47,6 +47,7 @@ export function useRatings(user) {
   )
 
   return {
+    total: docs.length,
     get: (postId) => byPost[postId] || { avg: 0, count: 0, mine: 0, myComment: '', reviews: [] },
     // Ratings or reviews for a post changed after `since` (ms) — the owner's
     // "new reviews" badge in My shops.

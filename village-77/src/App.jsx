@@ -5,6 +5,7 @@ import { useAuth, AuthContext, lineConfigured } from './hooks/useAuth'
 import { useRatings } from './hooks/useRatings'
 import { LangContext, STRINGS } from './LangContext'
 import { useCategories, useCategoryHelpers, CategoriesContext } from './hooks/useCategories'
+import { useFavorites, FavoritesContext } from './hooks/useFavorites'
 import Home from './components/Home'
 import Board from './components/Board'
 import PostForm from './components/PostForm'
@@ -79,6 +80,14 @@ export default function App() {
       .filter((p) => p.ownerUid === user.uid)
     : []
   const newReviews = (id) => ratings.newSince(id, reviewsSeen[id] || 0)
+  const favorites = useFavorites(user)
+  // ♥ saved posts, newest-saved first, for the home page.
+  const savedPosts = favorites.ids.map((id) => {
+    const shop = liveShops.find((p) => p.id === id)
+    if (shop) return { ...shop, kind: 'shop' }
+    const pro = liveProviders.find((p) => p.id === id)
+    return pro && { ...pro, kind: 'provider' }
+  }).filter(Boolean)
 
   function openPost(id) {
     if (myPosts.some((p) => p.id === id)) {
@@ -159,6 +168,7 @@ export default function App() {
     <LangContext.Provider value={{ t, lang }}>
       <AuthContext.Provider value={{ user, isAdmin, isOwner, requireSignIn }}>
       <CategoriesContext.Provider value={cats}>
+      <FavoritesContext.Provider value={favorites}>
         <header className={styles.header}>
           <div className={styles.headerRow}>
             <div className={styles.brand}>
@@ -267,6 +277,7 @@ export default function App() {
               onEditProvider={editProvider}
               onEditNews={editNews}
               myPosts={myPosts}
+              savedPosts={savedPosts}
               newReviews={newReviews}
             />
           )}
@@ -351,6 +362,7 @@ export default function App() {
             onClose={() => setAskSignIn(false)}
           />
         )}
+      </FavoritesContext.Provider>
       </CategoriesContext.Provider>
       </AuthContext.Provider>
     </LangContext.Provider>

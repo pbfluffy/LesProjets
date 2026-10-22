@@ -141,6 +141,23 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
         </p>
       </div>
 
+      {/* At-a-glance counts; tapping one opens the matching list. */}
+      <div className={styles.adminStats}>
+        {[
+          ['🛒', shops.length, t.navMarket, 'all'],
+          ['🔧', providers.length, t.navServices, 'all'],
+          ['⏳', shops.concat(providers).filter((p) => p.isResident && !p.verified).length, t.adminPending, 'pending'],
+          ['🚩', reports.length, t.adminReports, 'reports'],
+          ['★', ratings.total, t.adminRatingsCount, null],
+          ...(isOwner ? [['👥', Object.keys(members).length, t.adminMembers, 'members']] : []),
+        ].map(([icon, n, label, view]) => (
+          <button key={label} type="button" className={styles.adminStat} disabled={!view} onClick={() => view && setShow(view)}>
+            <strong>{icon} {n}</strong>
+            <small>{label}</small>
+          </button>
+        ))}
+      </div>
+
       <div className={`${styles.segment} ${styles.adminTabs}`} role="group" style={{ marginBottom: 12 }}>
         {[['pending', t.adminPending], ['all', t.adminAllPosts], ['reports', reports.length ? t.adminReports + ' (' + reports.length + ')' : t.adminReports], ['categories', t.adminCategories], ...(isOwner ? [['members', t.adminMembers]] : [])].map(([key, label]) => (
           <button
