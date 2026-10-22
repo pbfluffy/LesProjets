@@ -411,8 +411,9 @@ service cloud.firestore {
           && d.description is string && d.description.size() <= 1000
           && d.phone       is string && d.phone.size()       <= 30
           && d.line        is string && d.line.size()        <= 50
+          && (!('instagram' in d) || (d.instagram is string && d.instagram.size() <= 60))
           && !('address' in d) // private — lives in villagePrivate below
-          && (d.phone.size() > 0 || d.line.size() > 0)
+          && (d.phone.size() > 0 || d.line.size() > 0 || ('instagram' in d && d.instagram.size() > 0))
           && d.photos is list && d.photos.size() <= 4
           && d.verified is bool
           && d.ownerUid is string;

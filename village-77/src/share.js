@@ -29,3 +29,14 @@ export function clearPostParam() {
 export function shareToLine(text) {
   window.open('https://line.me/R/share?text=' + encodeURIComponent(text), '_blank', 'noopener')
 }
+
+// Instagram: accept "@shop", "shop" or a pasted profile link; store the
+// bare handle ("shop"), link to instagram.com/<handle>.
+export function igHandle(value) {
+  return (value || '').trim()
+    .replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i, '')
+    .replace(/^@/, '')
+    .split(/[/?#\s]/)[0]
+    .slice(0, 60)
+}
+export const igUrl = (handle) => 'https://www.instagram.com/' + encodeURIComponent(handle) + '/'

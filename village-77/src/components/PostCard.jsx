@@ -5,7 +5,7 @@ import { useAuthContext } from '../hooks/useAuth'
 import { useCategoriesContext } from '../hooks/useCategories'
 import { photosOf, deletePhotos } from '../photo'
 import { isStale, updatedLabel, STALE_DAYS } from '../freshness'
-import { postUrl, shareToLine } from '../share'
+import { postUrl, shareToLine, igUrl } from '../share'
 import styles from './ui.module.css'
 
 export function ResidencyBadge({ isResident }) {
@@ -249,6 +249,9 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
             {post.line && (
               <a className={`${styles.rowBtn} ${styles.lineBtn}`} href={lineUrl(post.line)} target="_blank" rel="noopener noreferrer">💬 {t.line}</a>
             )}
+            {post.instagram && (
+              <a className={`${styles.rowBtn} ${styles.igBtn}`} href={igUrl(post.instagram)} target="_blank" rel="noopener noreferrer">📷 IG</a>
+            )}
             <span className={styles.seeAll}>{isShop ? t.shopSeeAll : t.seeDetails} ›</span>
           </div>
           {isOwner && isStale(post) && <span className={styles.staleBadge}>{t.staleShort}</span>}
@@ -338,6 +341,11 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
           {post.line && (
             <a className={`${styles.contactBtn} ${styles.lineBtn}`} href={lineUrl(post.line)} target="_blank" rel="noopener noreferrer">
               💬 {t.line}
+            </a>
+          )}
+          {post.instagram && (
+            <a className={`${styles.contactBtn} ${styles.igBtn}`} href={igUrl(post.instagram)} target="_blank" rel="noopener noreferrer">
+              📷 @{post.instagram}
             </a>
           )}
           <button type="button" className={styles.contactBtn} onClick={handleShare}>↗ {t.shareLine}</button>

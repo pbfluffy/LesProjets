@@ -645,3 +645,4 @@
   background: var(--color-bg);
 }
 .catSaved { font-size: 13px; color: var(--color-green); }
+.igBtn { background: linear-gradient(45deg, #f09433, #dc2743 50%, #bc1888); color: #fff; }

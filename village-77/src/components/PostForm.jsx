@@ -3,6 +3,7 @@ import { useLangContext, interp } from '../LangContext'
 import { useCategoriesContext } from '../hooks/useCategories'
 import { createPost, updatePost, savePrivateAddress, deletePrivateAddress, loadPrivateAddress } from '../hooks/usePosts'
 import { uploadPhoto, PHOTO_ITEM, photosOf, deletePhotos } from '../photo'
+import { igHandle } from '../share'
 import styles from './ui.module.css'
 
 const MAX_ITEMS = 30
@@ -23,6 +24,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
     description: post?.description || '',
     phone: post?.phone || '',
     line: post?.line || '',
+    instagram: post?.instagram || '',
     address: '',
     photos: post?.photos || [],
     items: post?.items?.length
@@ -138,7 +140,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
       setError(t.fAddressRequired)
       return
     }
-    if (!f.phone.trim() && !f.line.trim()) {
+    if (!f.phone.trim() && !f.line.trim() && !igHandle(f.instagram)) {
       setError(t.fContactRequired)
       return
     }
@@ -147,6 +149,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
       description: f.description.trim(),
       phone: f.phone.trim(),
       line: f.line.trim(),
+      instagram: igHandle(f.instagram),
       photos: f.photos,
       isResident: f.isResident,
     }
@@ -303,6 +306,10 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
             <input maxLength={50} value={f.line} onChange={set('line')} />
           </label>
         </div>
+        <label className={styles.field}>
+          <span>{t.fInstagram}</span>
+          <input maxLength={60} value={f.instagram} onChange={set('instagram')} placeholder="@yourshop" autoCapitalize="none" autoCorrect="off" />
+        </label>
 
         <div className={styles.field}>
           <span>{interp(isShop ? t.fShopPhotos : t.fPhotos, { n: f.photos.length, max: maxPhotos })}</span>
