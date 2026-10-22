@@ -64,7 +64,7 @@ function ItemStars({ postId, item, ratings, canPick }) {
 // comment once they've picked stars.
 function Stars({ postId, ratings, canPick, askLabel }) {
   const { t } = useLangContext()
-  const { requireSignIn } = useAuthContext()
+  const { requireSignIn, isAdmin } = useAuthContext()
   const { avg, count, mine, myComment, reviews } = ratings.get(postId)
   const [hover, setHover] = useState(0)
   const [thanks, setThanks] = useState(false)
@@ -95,6 +95,12 @@ function Stars({ postId, ratings, canPick, askLabel }) {
     }).catch(failed)
   }
 
+  // Admin: delete one review (its stars go too — a rating is one doc).
+  function removeReview(r) {
+    if (!window.confirm(interp(t.reviewDeleteConfirm, { name: r.name || t.adminNoName }))) return
+    ratings.remove(r.id).catch(failed)
+  }
+
   const shownReviews = allReviews ? reviews : reviews.slice(0, 2)
 
   return (
@@ -118,6 +124,9 @@ function Stars({ postId, ratings, canPick, askLabel }) {
               <span className={styles.reviewStars}>{'★'.repeat(r.stars)}</span>{' '}
               <span>“{r.comment}”</span>
               {r.name && <span className={styles.reviewName}> — {r.name}</span>}
+              {isAdmin && (
+                <>{' '}<button type="button" className={`${styles.linkBtn} ${styles.dangerLink}`} onClick={() => removeReview(r)}>🛡️ {t.delete}</button></>
+              )}
             </li>
           ))}
           {reviews.length > 2 && (
