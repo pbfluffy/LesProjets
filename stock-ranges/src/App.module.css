@@ -245,10 +245,9 @@
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
-/* The filter box (SearchBox, first child) gets its own line above the
-   range / sort controls, so it reads as "filter my list", not a second
-   "add a ticker" box like the one above it. */
-.lookbackRow > :first-child { flex-basis: 100%; }
+/* Filter box, chart-type button and "updated" share the first line;
+   range and sort go on the next. */
+.filterLine { display: flex; align-items: center; gap: 10px; flex-basis: 100%; }
 .lookbackRow label {
   font-size: 12px;
   color: var(--color-text-muted);
@@ -280,8 +279,7 @@
   flex-shrink: 0;
 }
 .chartTypeBtn:hover { background: var(--color-border); }
-/* Isolated in the lookback row (no adjacent button), so this can grow
-   to a full ~44px tappable area. */
+/* No adjacent button, so this can grow to a full ~44px tappable area. */
 .chartTypeBtn::before {
   content: '';
   position: absolute;
@@ -289,7 +287,8 @@
 }
 
 .updated {
-  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   gap: 6px;

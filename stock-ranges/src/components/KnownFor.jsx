@@ -82,7 +82,10 @@ export default function KnownFor({ symbol, instrumentType, customBrands = [], on
   // the curated one has a real logo and is the better of the two.
   const visibleCustomBrands = customBrands.filter((name) => !curatedNames.has(name.toLowerCase()))
   const hasAny = curated.length > 0 || visibleCustomBrands.length > 0
-  const showEmptyNote = !hasAny && !!instrumentType
+  // Funds get a one-line explanation; a plain stock with no brands just
+  // shows the add button (the old "no well-known brands" sentence cost a
+  // line on every such card).
+  const showEmptyNote = !hasAny && FUND_TYPES.has(instrumentType)
 
   if (!hasAny && !instrumentType) return null
 
@@ -113,7 +116,7 @@ export default function KnownFor({ symbol, instrumentType, customBrands = [], on
         )}
       </div>
       {showEmptyNote && (
-        <span className={styles.emptyNote}>{FUND_TYPES.has(instrumentType) ? s.knownForFundNote : s.knownForNoneNote}</span>
+        <span className={styles.emptyNote}>{s.knownForFundNote}</span>
       )}
     </div>
   )

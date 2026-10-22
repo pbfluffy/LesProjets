@@ -33,3 +33,12 @@
   border-radius: var(--radius-sm);
 }
 .clearBtn:hover { color: var(--color-text); background: var(--color-surface-alt); }
+
+/* Quieter than the "add a stock" field above it: shorter, filled, no border. */
+.wrap input {
+  height: 34px;
+  font-size: 13px;
+  background: var(--color-surface-alt);
+  border-color: transparent;
+}
+.wrap input:focus { border-color: var(--color-border); }

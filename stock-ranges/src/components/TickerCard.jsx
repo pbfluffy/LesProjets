@@ -112,12 +112,15 @@ export default function TickerCard({
         </div>
         <div className={styles.headRight}>
           {state.data && (() => {
-            const shown = convert(state.data.current, state.data.currency, currency, rates)
-            const code = shown === null ? state.data.currency : currency
+            // Price in the stock's own currency (KBANK in baht, AAPL in
+            // dollars); the chosen display currency appears underneath as an
+            // approximate conversion when it differs.
+            const converted = state.data.currency !== currency ? convert(state.data.current, state.data.currency, currency, rates) : null
             return (
               <div className={styles.priceBlock}>
                 {marketOpen === false && state.data?.instrumentType !== 'CRYPTOCURRENCY' && <div className={styles.lastCloseLabel}>{s.lastCloseLabel}</div>}
-                <div className={styles.price}>{formatPrice(shown === null ? state.data.current : shown, code)}</div>
+                <div className={styles.price}>{formatPrice(state.data.current, state.data.currency)}</div>
+                {converted !== null && <div className={styles.converted}>≈ {formatPrice(converted, currency)}</div>}
                 {change && (
                   <div className={styles.change} data-direction={change.direction}>
                     {CHANGE_ARROW[change.direction]} {Math.abs(change.percent).toFixed(2)}%
@@ -131,18 +134,6 @@ export default function TickerCard({
           </button>
         </div>
       </div>
-
-      <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} />
-      {/* Crypto trades 24/7 (no 'last close') and has no consumer brands. */}
-      {state.data?.instrumentType !== 'CRYPTOCURRENCY' && (
-        <KnownFor
-          symbol={symbol}
-          instrumentType={state.data?.instrumentType}
-          customBrands={customBrands}
-          onAddBrand={onAddBrand}
-          onRemoveBrand={onRemoveBrand}
-        />
-      )}
 
       {state.status === 'loading' && (
         <div className={styles.body}>
@@ -164,9 +155,6 @@ export default function TickerCard({
         if (!deciles) return <div className={styles.state} data-error="true">{s.errorPrefix}—</div>
         const zone = deciles.signal || 'flat'
         const label = deciles.signal ? s[SIGNAL_LABEL_KEY[deciles.signal]] : s.signalFlat
-        const convertedLow = convert(deciles.low, state.data.currency, currency, rates)
-        const convertedHigh = convert(deciles.high, state.data.currency, currency, rates)
-        const fxOk = convertedLow !== null && convertedHigh !== null
         return (
           <div className={styles.body}>
             <div className={styles.badgeRow}>
@@ -186,7 +174,7 @@ export default function TickerCard({
               return (
                 <div className={styles.confirmLine} data-agree={agree} data-zone={confirm.deciles.signal}>
                   {s[RANGE_LABEL_KEY[confirm.range]]}: {s.band} {confirm.deciles.band}/10 · {s[SIGNAL_LABEL_KEY[confirm.deciles.signal]]}
-                  {deciles.signal !== 'hold' && <> — {agree ? s.signalConfirms : s.signalDiffers}</>}
+                  {' — '}{agree ? s.signalConfirms : s.signalDiffers}
                 </div>
               )
             })()}
@@ -227,17 +215,27 @@ export default function TickerCard({
               high={deciles.high}
               band={deciles.band}
               chartType={chartType}
-              labelHigh={formatPrice(fxOk ? convertedHigh : deciles.high, fxOk ? currency : state.data.currency)}
-              labelLow={formatPrice(fxOk ? convertedLow : deciles.low, fxOk ? currency : state.data.currency)}
+              labelHigh={formatPrice(deciles.high, state.data.currency)}
+              labelLow={formatPrice(deciles.low, state.data.currency)}
               s={s}
               lang={lang}
             />
-            {!fxOk && currency !== state.data.currency && (
-              <div className={styles.fxNote}>{s.fxUnavailable}</div>
-            )}
           </div>
         )
       })()}
+
+      {/* Tags and brands come after the band and chart — the band is what
+          the card is for. Crypto has no consumer brands. */}
+      <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} />
+      {state.data?.instrumentType !== 'CRYPTOCURRENCY' && (
+        <KnownFor
+          symbol={symbol}
+          instrumentType={state.data?.instrumentType}
+          customBrands={customBrands}
+          onAddBrand={onAddBrand}
+          onRemoveBrand={onRemoveBrand}
+        />
+      )}
     </div>
   )
 }

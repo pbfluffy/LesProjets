@@ -845,7 +845,23 @@ function Dashboard() {
       {watchlistShareError && <div className={styles.warning}>{watchlistShareError}</div>}
 
       <div className={styles.lookbackRow}>
-        <SearchBox value={watchlistSearch} onChange={setWatchlistSearch} />
+        <div className={styles.filterLine}>
+          <SearchBox value={watchlistSearch} onChange={setWatchlistSearch} />
+          <button
+            className={styles.chartTypeBtn}
+            onClick={() => setChartType((t) => (t === 'line' ? 'candle' : 'line'))}
+            title={chartType === 'line' ? s.chartTypeSwitchToCandle : s.chartTypeSwitchToLine}
+            aria-label={chartType === 'line' ? s.chartTypeSwitchToCandle : s.chartTypeSwitchToLine}
+          >
+            <Icon name={chartType === 'line' ? 'trendingUp' : 'candlestick'} size={15} />
+          </button>
+          {lastUpdated && (
+            <span className={styles.updated}>
+              <span className={styles.updatedDot} aria-hidden="true" />
+              {formatRelativeTime(lastUpdated, now, s)}
+            </span>
+          )}
+        </div>
         <span className={styles.controlPair}>
           <label htmlFor="lookback">{s.lookbackLabel}</label>
           <select id="lookback" value={range} onChange={(e) => setRange(e.target.value)}>
@@ -862,20 +878,6 @@ function Dashboard() {
             <option value="alpha">{s.sortAlpha}</option>
           </select>
         </span>
-        <button
-          className={styles.chartTypeBtn}
-          onClick={() => setChartType((t) => (t === 'line' ? 'candle' : 'line'))}
-          title={chartType === 'line' ? s.chartTypeSwitchToCandle : s.chartTypeSwitchToLine}
-          aria-label={chartType === 'line' ? s.chartTypeSwitchToCandle : s.chartTypeSwitchToLine}
-        >
-          <Icon name={chartType === 'line' ? 'trendingUp' : 'candlestick'} size={15} />
-        </button>
-        {lastUpdated && (
-          <span className={styles.updated}>
-            <span className={styles.updatedDot} aria-hidden="true" />
-            {formatRelativeTime(lastUpdated, now, s)}
-          </span>
-        )}
       </div>
 
       {watchlist.length === 0 ? (

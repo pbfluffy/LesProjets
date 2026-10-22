@@ -72,8 +72,10 @@
   color: var(--color-text-muted);
   margin-top: 2px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.35;
 }
 
 .headRight {
@@ -157,6 +159,8 @@
 }
 .confirmLine[data-agree='true'][data-zone='buy'] { color: var(--color-green); }
 .confirmLine[data-agree='true'][data-zone='sell'] { color: var(--color-red); }
+
+.converted { font-size: 11px; font-family: var(--font-mono); color: var(--color-text-faint); text-align: right; }
 .sinceMove { display: block; margin-top: 4px; font-weight: 600; color: var(--color-text); }
 
 .abnormalNote {

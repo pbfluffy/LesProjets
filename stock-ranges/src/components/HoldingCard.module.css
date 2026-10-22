@@ -74,8 +74,10 @@
   color: var(--color-text-muted);
   margin-top: 2px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.35;
 }
 
 /* Second line: qty @ cost (left) and P/L (right), full card width */
