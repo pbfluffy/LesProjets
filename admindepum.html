@@ -993,7 +993,15 @@ async function loadData(){
     });
   }catch(e){ errors.push('shareLinks: ' + (e.code||e.message)); }
 
-  DATA = [...map.values()];
+  // Village 77 is a separate system with its own member list (village admin
+  // tab), so its users don't belong here: LINE accounts only exist there, and
+  // a Google account whose only trace is a profile last seen in Village 77
+  // hasn't used any of these apps.
+  const villageOnly = (u) => u.uid.startsWith('line:') || (
+    PROFILE_MAP.get(u.uid)?.lastApp === 'Village 77'
+    && !u.nutr && !u.bills && !u.places && !u.stock && !u._holdingsCount && !u._shareCount
+  );
+  DATA = [...map.values()].filter(u => !villageOnly(u));
 
   if(errors.length){
     $('errbox').innerHTML = 'Firestore denied some reads — publish the admin rules, then Refresh.<br><code>'+errors.join('<br>')+'</code>';
