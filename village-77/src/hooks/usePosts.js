@@ -6,18 +6,24 @@ import {
 
 // Live list of one collection (villageShops | villageProviders), newest
 // first. Public read, so this subscribes whether or not anyone is signed in.
+// loading: nothing to show yet. The first list may come from the phone's
+// cache (firebase.js) and be out of date; synced turns true once the server
+// has answered — wait for it before deciding a post no longer exists.
 export function usePosts(collectionName) {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(!!collectionName)
+  const [synced, setSynced] = useState(!collectionName)
 
   useEffect(() => {
     if (!collectionName) return // switched-off feature (e.g. news): load nothing
     const q = query(collection(db, collectionName), orderBy('createdAt', 'desc'), limit(300))
     return onSnapshot(
       q,
+      { includeMetadataChanges: true },
       (snap) => {
         setPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
         setLoading(false)
+        if (!snap.metadata.fromCache) setSynced(true)
       },
       (e) => {
         console.error(`[village] ${collectionName} subscribe failed:`, e?.code)
@@ -26,7 +32,7 @@ export function usePosts(collectionName) {
     )
   }, [collectionName])
 
-  return { posts, loading }
+  return { posts, loading, synced }
 }
 
 // Daily limit on new shops / handymen (firestore.rules: villageQuota). The

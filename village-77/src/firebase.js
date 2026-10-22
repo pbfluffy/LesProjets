@@ -13,7 +13,9 @@ import {
   signOut,
 } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
 import {
-  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc,
   collection,
   addDoc,
@@ -44,7 +46,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Keep a copy of what's been read on the phone (IndexedDB), so a repeat visit
+// shows shops straight away and the app copes with a weak signal; live
+// updates follow. Several open tabs share it. Where IndexedDB isn't
+// available the SDK quietly falls back to memory only.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+});
 export {
   onAuthStateChanged, signInWithCustomToken, updateProfile, GoogleAuthProvider, signInWithPopup, signOut,
   doc, collection, addDoc, setDoc, getDoc, updateDoc, deleteDoc, query, orderBy, limit,

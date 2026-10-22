@@ -16,8 +16,12 @@
 //   POST /delete      { urls }  (Authorization: Bearer <Firebase ID token>)
 //       Deletes the caller's own photos that a post no longer uses.
 //
+//   POST /log         error reports from the app (src/errorReport.js), written to the log.
+//
 //   GET  /s/<postId>  (also pumbafluffycorgi.com/village-77/s/<postId>)
 //       A shared post link: og: tags for LINE's preview, then on to the app.
+//
+//   POST /upload may also carry "thumb": a small JPEG for list cards, stored as <name>-t.jpg.
 //
 //   GET  /p/<key>
 //       Serves a stored photo (immutable, cached by the browser / CDN).
@@ -240,10 +244,18 @@ async function handleUpload(request, env, origin) {
   // /delete can check the photo is the caller's own.
   const key = `${uidFolder(user.sub)}/${crypto.randomUUID()}.${EXT[file.type]}`
   await env.BUCKET.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } })
+  // Optional small copy for list cards, next to it as <name>-t.jpg (thumbKey).
+  const thumb = form.get('thumb')
+  if (thumb && typeof thumb !== 'string' && thumb.type === 'image/jpeg' && thumb.size <= MAX_THUMB_BYTES) {
+    await env.BUCKET.put(thumbKey(key), await thumb.arrayBuffer(), { httpMetadata: { contentType: 'image/jpeg' } })
+  }
   return json({ url: new URL('/p/' + key, request.url).toString() }, 200, origin)
 }
 
 const uidFolder = (uid) => uid.replace(/[^A-Za-z0-9:_-]/g, '')
+const MAX_THUMB_BYTES = 200 * 1024
+// Thumbnail key for a photo key: photo.jpg -> photo-t.jpg (the app uses the same rule).
+const thumbKey = (key) => key.replace(/\.[a-z]+$/, '') + '-t.jpg'
 
 // Banned by a village admin (villageBans/{uid})? Read with the caller's own
 // ID token — firestore.rules let a person get their own ban doc. 404 = not
@@ -291,8 +303,21 @@ async function handleDelete(request, env, origin) {
       return null
     }
   }).filter((k) => k && k.startsWith(mine))
-  if (keys.length) await env.BUCKET.delete(keys)
+  if (keys.length) await env.BUCKET.delete([...keys, ...keys.map(thumbKey)]) // and their thumbnails
   return json({ deleted: keys.length }, 200, origin)
+}
+
+// POST /log: an error report from the app (src/errorReport.js), written to
+// this Worker's log. Only from the app's own site; small and capped.
+async function handleClientLog(request, origin) {
+  if (!ALLOWED_ORIGINS.includes(origin)) return new Response(null, { status: 204 })
+  const raw = (await request.text().catch(() => '')).slice(0, 2000)
+  let r = {}
+  try { r = JSON.parse(raw) } catch { /* keep the raw text */ }
+  const s = (v, n) => String(v ?? '').slice(0, n)
+  console.warn('[client]', s(r.kind, 20), s(r.msg || raw, 500), '| page', s(r.page, 120),
+    '| v', s(r.version, 20), '| uid', s(r.uid, 60), '| ua', s(r.ua, 200))
+  return new Response(null, { status: 204, headers: cors(origin) })
 }
 
 async function handlePhoto(key, env) {
@@ -378,6 +403,7 @@ export default {
       if (request.method === 'POST' && url.pathname === '/upload') return await handleUpload(request, env, origin)
       if (request.method === 'POST' && url.pathname === '/delete') return await handleDelete(request, env, origin)
       if (request.method === 'POST' && url.pathname === '/line-handoff') return await handleHandoff(request, env, origin)
+      if (request.method === 'POST' && url.pathname === '/log') return await handleClientLog(request, origin)
     } catch (e) {
       console.error('[village-77 worker]', e)
       return json({ error: 'server error' }, 500, origin)

@@ -6,8 +6,10 @@ import './index.css'
 import './registerPwaUpdate.js'
 import { mountVersionLabel } from '../../shared/appVersion.js'
 import { hardReload } from '../../shared/appRecovery.js'
+import { startErrorReports } from './errorReport.js'
 
 mountVersionLabel()
+startErrorReports()
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: null } }

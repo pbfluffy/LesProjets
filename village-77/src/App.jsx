@@ -86,7 +86,7 @@ export default function App() {
   const favorites = useFavorites(user)
   // Saved posts that were deleted since: drop them from the list. Only when
   // both lists are fully loaded (usePosts reads at most 300 each).
-  const postsLoaded = !shops.loading && !providers.loading
+  const postsLoaded = shops.synced && providers.synced // from the server, not just the phone's cache
   useEffect(() => {
     if (!user || !postsLoaded || shops.posts.length >= 300 || providers.posts.length >= 300) return
     if (!favorites.ids.length) return
@@ -127,15 +127,15 @@ export default function App() {
   const shownPost = shownShop || findPost(liveProviders, providers.posts)
   // Deleted (or hidden) while open: close the page.
   useEffect(() => {
-    if (openPostId && !shops.loading && !providers.loading && !shownPost) closePost()
-  }, [openPostId, shops.loading, providers.loading, shownPost])
+    if (openPostId && postsLoaded && !shownPost) closePost()
+  }, [openPostId, postsLoaded, shownPost])
 
   // A shared post link (?p=<id>, see share.js): once posts have loaded, open
   // that post's page on top of its tab.
   const [focusId, setFocusId] = useState(readPostParam)
   const [linkGone, setLinkGone] = useState(false) // that post no longer exists / is listed
   useEffect(() => {
-    if (!focusId || shops.loading || providers.loading || news.loading) return
+    if (!focusId || !postsLoaded || !news.synced) return
     const target = liveShops.some((p) => p.id === focusId) ? 'market'
       : liveProviders.some((p) => p.id === focusId) ? 'services'
       : SHOW_NEWS && liveNews.some((p) => p.id === focusId) ? 'news' : null
@@ -152,7 +152,7 @@ export default function App() {
       el.classList.add('post-focus')
       setTimeout(() => el.classList.remove('post-focus'), 2500)
     }, 150) // after the tab's own scroll-to-top
-  }, [focusId, shops.loading, providers.loading, news.loading, liveShops, liveProviders, liveNews])
+  }, [focusId, postsLoaded, news.synced, liveShops, liveProviders, liveNews])
 
   function closeAdminEntry() {
     setAdminEntry(false)

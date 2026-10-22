@@ -7,6 +7,12 @@ import { WORKER_URL } from './config'
 // inside the Firestore docs).
 export const PHOTO_BIG = { maxSide: 1280, quality: 0.8 }
 export const PHOTO_ITEM = { maxSide: 800, quality: 0.8 }
+const PHOTO_THUMB = { maxSide: 240, quality: 0.7 } // list cards and item rows
+
+// The small copy's URL: <name>-t.jpg next to the photo (worker/src/index.js
+// thumbKey). Photos uploaded before thumbnails existed have none — show the
+// full photo then (see Thumb in PostCard).
+export const thumbUrl = (url) => url.replace(/\.[a-z]+$/, '-t.jpg')
 
 async function shrink(file, { maxSide, quality }) {
   const bitmap = await createImageBitmap(file)
@@ -30,6 +36,9 @@ export async function uploadPhoto(file, size = PHOTO_BIG) {
   const blob = await shrink(file, size)
   const form = new FormData()
   form.append('file', blob, 'photo.jpg')
+  try {
+    form.append('thumb', await shrink(file, PHOTO_THUMB), 'thumb.jpg')
+  } catch { /* no thumbnail: cards fall back to the full photo */ }
   const res = await fetch(WORKER_URL + '/upload', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + (await auth.currentUser.getIdToken()) },

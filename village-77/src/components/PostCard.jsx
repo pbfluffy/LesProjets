@@ -7,7 +7,7 @@ import { useFavoritesContext } from '../hooks/useFavorites'
 import ReportSheet from './ReportSheet'
 import Icon from './Icon'
 import { logAdmin } from '../adminLog'
-import { photosOf, deletePhotos } from '../photo'
+import { photosOf, deletePhotos, thumbUrl } from '../photo'
 import { isStale, updatedLabel, STALE_DAYS } from '../freshness'
 import { postUrl, shareToLine, igUrl } from '../share'
 import { isOnSale, isNewItem, salePercent } from '../deals'
@@ -29,6 +29,17 @@ function formatPrice(price, t, lang) {
   if (price === null || price === undefined) return t.priceAsk
   if (price === 0) return t.priceFree
   return '฿' + price.toLocaleString(lang === 'th' ? 'th-TH' : 'en-US')
+}
+
+// A small photo: the thumbnail if it has one, else the full photo (older
+// uploads). Remembers misses for the session so each is only tried once.
+const noThumb = new Set()
+function Thumb({ url, ...props }) {
+  const [src, setSrc] = useState(() => (noThumb.has(url) ? url : thumbUrl(url)))
+  return (
+    <img {...props} src={src} alt="" loading="lazy"
+      onError={() => { if (src !== url) { noThumb.add(url); setSrc(url) } }} />
+  )
 }
 
 // One item's stars, under its name: the average, and (not for the shop
@@ -368,7 +379,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
         aria-label={interp(t.shopOpen, { name: post.name })}
       >
         <div className={styles.rowThumb}>
-          {cover ? <img src={cover} alt="" loading="lazy" /> : <Icon name={isShop ? 'bag' : 'wrench'} size={28} strokeWidth={1.6} />}
+          {cover ? <Thumb key={cover} url={cover} /> : <Icon name={isShop ? 'bag' : 'wrench'} size={28} strokeWidth={1.6} />}
         </div>
         <div className={styles.rowBody}>
           <h3 className={styles.rowTitle}>{post.name}</h3>
@@ -470,7 +481,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
             {items.map((it, i) => (
               <li key={i} className={`${styles.item} ${it.sold ? styles.itemSold : ''}`}>
                 {it.photo ? (
-                  <img className={styles.itemPhoto} src={it.photo} alt="" loading="lazy" onClick={() => setZoomed(it.photo)} />
+                  <Thumb key={it.photo} url={it.photo} className={styles.itemPhoto} onClick={() => setZoomed(it.photo)} />
                 ) : (
                   <span className={`${styles.itemPhoto} ${styles.itemPhotoEmpty}`}><Icon name="bag" size={20} strokeWidth={1.6} /></span>
                 )}
