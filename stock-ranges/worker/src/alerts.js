@@ -156,14 +156,15 @@ export async function getPortfolio(env, uid) {
 export async function setPortfolio(env, uid, body) {
   const src = body?.holdings
   if (!src || typeof src !== 'object' || Array.isArray(src)) return false
-  const entries = Object.entries(src)
-  if (entries.length > MAX_HOLDINGS) return false
+  // A holding that fails validation is skipped, not the whole wallet —
+  // one odd entry used to silently stop every wallet notification.
+  const entries = Object.entries(src).slice(0, MAX_HOLDINGS)
   const holdings = {}
   for (const [symbol, h] of entries) {
-    if (!SYMBOL_RE.test(symbol) || !h || typeof h !== 'object') return false
+    if (!SYMBOL_RE.test(symbol) || !h || typeof h !== 'object') continue
     const qty = Number(h.qty)
     const avgCost = Number(h.avgCost)
-    if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(avgCost) || avgCost < 0) return false
+    if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(avgCost) || avgCost < 0) continue
     const costCurrency = typeof h.costCurrency === 'string' && /^[A-Z]{3}$/.test(h.costCurrency) ? h.costCurrency : 'USD'
     holdings[symbol] = {
       qty, avgCost, costCurrency,
@@ -171,7 +172,7 @@ export async function setPortfolio(env, uid, body) {
     }
   }
   const prefs = { exDividend: !!body.prefs?.exDividend, weekly: !!body.prefs?.weekly }
-  const hasAnything = entries.length > 0 || prefs.exDividend || prefs.weekly
+  const hasAnything = Object.keys(holdings).length > 0 || prefs.exDividend || prefs.weekly
   if (!hasAnything) {
     await env.ALERTS.delete(portfolioKey(uid))
     return true

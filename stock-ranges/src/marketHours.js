@@ -1,4 +1,5 @@
-// Whether the US market (NYSE/NASDAQ — every ticker this app tracks) is
+// Whether the US market (NYSE/NASDAQ — the header status, and every
+// non-Thai stock; .BK symbols use isSetOpen below) is
 // open right now, and when it opens/closes next. Computed purely from the
 // current time against the standard 9:30am-4:00pm ET regular session, with
 // the actual NYSE holiday calendar (including the two 1pm early closes) —
@@ -163,4 +164,22 @@ export function getMarketStatus(now = new Date()) {
     ({ year, month, day } = addDays(year, month, day, 1))
   }
   return { open: false, closesAt: null, nextOpen: nyWallTimeToUtc(year, month, day, 9, 30) }
+}
+
+// Stock Exchange of Thailand (.BK symbols): Mon–Fri 10:00–16:40 Bangkok
+// (UTC+7 all year, no DST), closing auction included. Thai public holidays
+// aren't modelled — prices just don't move then, so counting those days as
+// open costs nothing.
+export function isSetOpen(now = new Date()) {
+  const bkk = new Date(now.getTime() + 7 * 3600e3)
+  const day = bkk.getUTCDay()
+  const minutes = bkk.getUTCHours() * 60 + bkk.getUTCMinutes()
+  return day >= 1 && day <= 5 && minutes >= 10 * 60 && minutes < 16 * 60 + 40
+}
+
+// Whether this symbol's own exchange is open: SET for .BK symbols, the US
+// session (`usOpen`, from getMarketStatus) for everything else. Crypto
+// (24/7) is handled by the callers.
+export function isMarketOpenFor(symbol, usOpen, now = new Date()) {
+  return /\.BK$/i.test(symbol) ? isSetOpen(now) : usOpen
 }

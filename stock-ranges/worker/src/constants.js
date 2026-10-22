@@ -7,7 +7,7 @@
 // Allows '=' too — Yahoo's futures/forex symbols use it, e.g. gold's
 // "GC=F" (COMEX futures) or "XAUUSD=X" (spot forex-style quote) — and '^'
 // for indices like "^GSPC" (S&P 500), which autocomplete can surface.
-export const SYMBOL_RE = /^[A-Za-z0-9.\-=^]{1,10}$/
+export const SYMBOL_RE = /^[A-Za-z0-9.\-=^]{1,15}$/
 
 // '1d'/'7d' need intraday candles (a single day's worth of daily closes is
 // one point, not a range) — Yahoo's `range` enum has '1d' but not '7d', so

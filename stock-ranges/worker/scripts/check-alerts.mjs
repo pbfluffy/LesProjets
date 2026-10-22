@@ -10,7 +10,7 @@
 // npm package (Node crypto — the Workers-only webcrypto variant isn't
 // needed here).
 import webpush from 'web-push'
-import { getMarketStatus } from '../../src/marketHours.js'
+import { getMarketStatus, isMarketOpenFor } from '../../src/marketHours.js'
 import { computeDeciles } from '../../src/deciles.js'
 import { formatPrice } from '../../src/format.js'
 import { convert } from '../../src/fx.js'
@@ -327,7 +327,8 @@ async function checkZoneAlerts(allAlerts, marketOpen, rates) {
     const [symbol, range] = key.split(':')
     const quote = await getQuote(symbol, range).catch(() => null)
     if (!quote) return
-    if (!marketOpen && quote.instrumentType !== 'CRYPTOCURRENCY') return
+    // Each stock waits for its own exchange (SET for .BK, else US).
+    if (!isMarketOpenFor(symbol, marketOpen) && quote.instrumentType !== 'CRYPTOCURRENCY') return
     const deciles = computeDeciles({ prices: quote.prices, current: quote.current })
     const signal = deciles?.signal ?? null
 

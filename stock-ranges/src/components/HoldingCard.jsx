@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLang } from '../LangContext.jsx'
 import { QUOTE_ERROR_LABEL_KEY } from '../stockApi.js'
 import { convert } from '../fx.js'
+import { isMarketOpenFor } from '../marketHours.js'
 import { formatPrice, formatQty, maskPrice } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, groupDividendsByPeriod, inferDividendCadence } from '../wallet.js'
 import TickerLogo from './TickerLogo.jsx'
@@ -124,7 +125,7 @@ export default function HoldingCard({
         // Price in the stock's own currency (what the broker shows); totals
         // stay in the display currency like the rest of the wallet.
         <div className={styles.statsRow} data-layout="main">
-          <div className={styles.stat}><span>{marketOpen === false && !isCrypto ? s.lastCloseLabel : s.currentPriceLabel}</span><strong>{formatPrice(currentPrice, currentCurrency)}</strong></div>
+          <div className={styles.stat}><span>{marketOpen !== undefined && !isMarketOpenFor(symbol, marketOpen) && !isCrypto ? s.lastCloseLabel : s.currentPriceLabel}</span><strong>{formatPrice(currentPrice, currentCurrency)}</strong></div>
           <div className={styles.stat}><span>{s.summaryCostBasis}</span><strong>{mp(pl.costBasis, displayCurrency)}</strong></div>
           <div className={styles.stat}><span>{s.summaryMarketValue}</span><strong>{mp(pl.marketValue, displayCurrency)}</strong></div>
         </div>

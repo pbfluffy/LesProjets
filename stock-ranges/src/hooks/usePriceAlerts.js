@@ -109,11 +109,13 @@ export function usePriceAlerts() {
     return postAlerts(user, { type: 'setPortfolio', holdings, prefs, currency, lang })
   }
 
-  // The stored portfolio settings (to restore toggles on a new device), or
-  // null if none / unavailable.
+  // The stored portfolio settings (to restore toggles on a new device):
+  // the object, null if nothing is saved, or undefined if the request
+  // failed — the caller must not treat a failure as "nothing saved".
   async function getPortfolio(user) {
-    const res = await postAlertsJson(user, { type: 'getPortfolio' })
-    return res?.ok ? res.data?.portfolio ?? null : null
+    const res = await postAlertsJson(user, { type: 'getPortfolio' }).catch(() => null)
+    if (!res?.ok) return undefined
+    return res.data?.portfolio ?? null
   }
 
   // Daily portfolio values the scheduled job recorded, as chart entries

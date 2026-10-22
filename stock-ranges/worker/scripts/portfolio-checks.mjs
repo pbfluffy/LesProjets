@@ -17,8 +17,10 @@
 import { estimateNextDividend } from '../../src/wallet.js'
 import { convert } from '../../src/fx.js'
 import { formatPrice } from '../../src/format.js'
+import { isMarketOpenFor } from '../../src/marketHours.js'
 
 const GAIN_THRESHOLD = 20 // % on cost for the "gain" cost alert
+const HYSTERESIS = 1 // % points the price must clear a line by before it can alert again
 const EXDIV_DAYS_AHEAD = 3
 const HISTORY_MAX_DAYS = 400
 const SNAPSHOT_MIN_GAP_MS = 6 * 3600e3 // rewrite today's value at most every 6h (KV write budget)
@@ -116,12 +118,17 @@ export async function runPortfolioChecks({ kvListKeys, kvGet, kvPut, sendPush, p
       const wk = weekChangePct(q.prices)
       if (wk !== null && (!mover || Math.abs(wk) > Math.abs(mover.pct))) mover = { sym, pct: wk }
 
-      // #4 cost alerts (stocks only while their market is open, like zone alerts)
-      if ((h.costAlerts?.below || h.costAlerts?.gain) && (marketOpen || isCrypto) && cost > 0) {
+      // #4 cost alerts (stocks only while their own market is open, like
+      // zone alerts). A state is left only once the price is HYSTERESIS
+      // points clear of the line, so a price sitting right at cost doesn't
+      // alert on every small move across it.
+      if ((h.costAlerts?.below || h.costAlerts?.gain) && (isMarketOpenFor(sym, marketOpen) || isCrypto) && cost > 0) {
         const pct = (price / cost - 1) * 100
-        const state = pct < 0 ? 'below' : pct >= GAIN_THRESHOLD ? 'gain' : 'normal'
         const key = `coststate:${uid}:${sym}`
         const prev = await kvGet(key)
+        let state = pct < 0 ? 'below' : pct >= GAIN_THRESHOLD ? 'gain' : 'normal'
+        if (prev?.state === 'below' && pct < HYSTERESIS) state = 'below'
+        if (prev?.state === 'gain' && pct > GAIN_THRESHOLD - HYSTERESIS) state = 'gain'
         if (prev?.state !== state) {
           await kvPut(key, { state, ts: Date.now() })
           // First sight of this holding only seeds the state (no alert).

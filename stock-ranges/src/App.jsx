@@ -407,23 +407,34 @@ function Dashboard() {
   // saved settings with its empty ones.
   const [portfolioReady, setPortfolioReady] = useState(false)
   const signedInUid = cloudSync.user?.uid ?? null
+  // A failed load is retried (5s, 15s, 45s, …) and never treated as
+  // "nothing saved" — that would upload this device's empty toggles over the
+  // saved ones.
   useEffect(() => {
     setPortfolioReady(false)
     if (!cloudSync.user) return
     let cancelled = false
-    priceAlerts.getPortfolio(cloudSync.user).then((saved) => {
-      if (cancelled) return
-      if (saved) {
-        const restored = {}
-        for (const [symbol, h] of Object.entries(saved.holdings || {})) {
-          if (h.costAlerts?.below || h.costAlerts?.gain) restored[symbol] = { below: !!h.costAlerts.below, gain: !!h.costAlerts.gain }
+    let timer = null
+    const load = (attempt) => {
+      priceAlerts.getPortfolio(cloudSync.user).then((saved) => {
+        if (cancelled) return
+        if (saved === undefined) {
+          timer = setTimeout(() => load(attempt + 1), Math.min(5000 * 3 ** attempt, 300000))
+          return
         }
-        setCostAlerts(restored)
-        setWalletPrefs({ exDividend: !!saved.prefs?.exDividend, weekly: !!saved.prefs?.weekly })
-      }
-      setPortfolioReady(true)
-    })
-    return () => { cancelled = true }
+        if (saved) {
+          const restored = {}
+          for (const [symbol, h] of Object.entries(saved.holdings || {})) {
+            if (h.costAlerts?.below || h.costAlerts?.gain) restored[symbol] = { below: !!h.costAlerts.below, gain: !!h.costAlerts.gain }
+          }
+          setCostAlerts(restored)
+          setWalletPrefs({ exDividend: !!saved.prefs?.exDividend, weekly: !!saved.prefs?.weekly })
+        }
+        setPortfolioReady(true)
+      })
+    }
+    load(0)
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [signedInUid]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

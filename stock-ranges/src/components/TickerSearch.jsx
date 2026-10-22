@@ -7,7 +7,7 @@ const DEBOUNCE_MS = 300
 const MIN_QUERY_LENGTH = 2
 // Allows '=' (futures/forex, e.g. gold's "GC=F") and '^' (indices, e.g.
 // "^GSPC") — autocomplete can surface both.
-const SYMBOL_RE = /^[A-Za-z0-9.\-=^]{1,10}$/
+const SYMBOL_RE = /^[A-Za-z0-9.\-=^]{1,15}$/
 
 // Autocomplete input: typing a name or partial ticker ("btc", "gold", "aapl")
 // debounces into a search against the worker's /?q= endpoint and shows a

@@ -3,6 +3,7 @@ import { fetchQuote, QUOTE_ERROR_LABEL_KEY } from '../stockApi.js'
 import { computeDeciles, largestStep, ABNORMAL_MOVE } from '../deciles.js'
 import { convert } from '../fx.js'
 import { formatPrice, formatQty, dayChange } from '../format.js'
+import { isMarketOpenFor } from '../marketHours.js'
 import BandInfo from './BandInfo.jsx'
 import DecileGauge from './DecileGauge.jsx'
 import KnownFor from './KnownFor.jsx'
@@ -174,7 +175,7 @@ export default function TickerCard({
             const converted = state.data.currency !== currency ? convert(state.data.current, state.data.currency, currency, rates) : null
             return (
               <div className={styles.priceBlock}>
-                {marketOpen === false && state.data?.instrumentType !== 'CRYPTOCURRENCY' && <div className={styles.lastCloseLabel}>{s.lastCloseLabel}</div>}
+                {marketOpen !== undefined && !isMarketOpenFor(symbol, marketOpen) && state.data?.instrumentType !== 'CRYPTOCURRENCY' && <div className={styles.lastCloseLabel}>{s.lastCloseLabel}</div>}
                 <div className={styles.price}>{formatPrice(state.data.current, state.data.currency)}</div>
                 {converted !== null && <div className={styles.converted}>≈ {formatPrice(converted, currency)}</div>}
                 {change && (
