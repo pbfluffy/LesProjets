@@ -26,7 +26,16 @@ export function useFavorites(user) {
     return setDoc(doc(db, 'villageFavorites', user.uid), { ids: next })
   }
 
-  return { ids, has: (postId) => ids.includes(postId), toggle }
+  // Drop saved posts that no longer exist (deleted since they were saved).
+  function prune(existing) {
+    if (!user) return
+    const next = ids.filter((id) => existing.has(id))
+    if (next.length === ids.length) return
+    setIds(next)
+    setDoc(doc(db, 'villageFavorites', user.uid), { ids: next }).catch(() => {})
+  }
+
+  return { ids, has: (postId) => ids.includes(postId), toggle, prune }
 }
 
 export const FavoritesContext = createContext({ ids: [], has: () => false, toggle: () => Promise.resolve() })

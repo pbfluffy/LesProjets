@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { auth, db, doc, setDoc, getDoc, increment } from '../firebase'
+import { auth, db, doc, setDoc, getDoc, deleteDoc, increment } from '../firebase'
 
 // How often a post gets looked at: villageStats/{postId}_{YYYYMMDD} counts
 // opens of the full page and taps on Call / LINE / IG, one doc per post per
@@ -48,4 +48,17 @@ export function useWeekStats(postId, enabled) {
     return () => { live = false }
   }, [postId, enabled])
   return totals
+}
+
+// Delete a post's daily stats docs — called just before the post itself is
+// deleted (owner or admin; firestore.rules). The ids are {postId}_{day}, one
+// per day it had any views, so this checks each day since the post was made
+// (stats only exist from STATS_START) and deletes the ones that exist.
+const STATS_START = Date.UTC(2026, 9, 22) // the day stats began
+export async function removePostStats(post) {
+  const from = Math.max(STATS_START, post.createdAt?.toMillis?.() || STATS_START)
+  const ids = []
+  for (let ms = Date.now(); ms >= from - 86400000; ms -= 86400000) ids.push(`${post.id}_${dayNum(new Date(ms))}`)
+  const snaps = await Promise.all(ids.map((id) => getDoc(doc(db, STATS, id)).catch(() => null)))
+  await Promise.all(snaps.filter((s) => s?.exists()).map((s) => deleteDoc(s.ref).catch(() => {})))
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { db, collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from '../firebase'
 import { deletePost, deletePrivateAddress } from './usePosts'
+import { removePostStats } from './useStats'
 
 // Banned accounts, villageBans/{uid} = { name, reason, by, byName, at }.
 // firestore.rules stop a banned account posting, editing, rating, reporting
@@ -35,6 +36,7 @@ export async function banUser({ uid, name, reason, admin, removeContent, shops, 
     ...providers.filter((p) => p.ownerUid === uid).map((p) => ['villageProviders', p]),
   ]
   await Promise.all(theirs.map(async ([coll, p]) => {
+    await removePostStats(p)
     await deletePost(coll, p.id)
     await Promise.all([deletePrivateAddress(p.id).catch(() => {}), ratings.removeAll(p.id).catch(() => {})])
   }))

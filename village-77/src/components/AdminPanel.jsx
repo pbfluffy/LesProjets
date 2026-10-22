@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
-import { db, collection, onSnapshot } from '../firebase'
+import { db, collection, onSnapshot, doc, deleteDoc } from '../firebase'
 import { updatePost, deletePost, savePrivateAddress, deletePrivateAddress, hasHouseNumber } from '../hooks/usePosts'
 import { useAuthContext } from '../hooks/useAuth'
 import { ResidencyBadge } from './PostCard'
 import { logAdmin } from '../adminLog'
+import { removePostStats } from '../hooks/useStats'
 import AdminMembers from './AdminMembers'
 import AdminCategories from './AdminCategories'
 import AdminReports from './AdminReports'
@@ -126,7 +127,7 @@ function BanList({ bans }) {
   )
 }
 
-export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenPost }) {
+export default function AdminPanel({ shops, providers, postsLoaded, ratings, isOwner, onOpenPost }) {
   const { t, lang } = useLangContext()
   const { user } = useAuthContext()
   const [addresses, setAddresses] = useState({})
@@ -139,6 +140,15 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
     (snap) => setReports(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
     (e) => console.error('[village] reports failed:', e?.code),
   ), [])
+  // Reports about posts that have since been deleted: nothing left to act on,
+  // so clear them (only once both post lists are fully loaded).
+  useEffect(() => {
+    if (!postsLoaded || shops.length >= 300 || providers.length >= 300) return
+    const ids = new Set([...shops, ...providers].map((p) => p.id))
+    for (const r of reports) {
+      if (!ids.has(r.postId)) deleteDoc(doc(db, 'villageReports', r.id)).catch(() => {})
+    }
+  }, [postsLoaded, shops, providers, reports])
   useEffect(() => {
     if (!isOwner) return
     return onSnapshot(
@@ -182,7 +192,7 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
 
   function remove(p) {
     if (!window.confirm(t.deleteConfirm)) return
-    deletePost(p.collection, p.id).then(() => {
+    removePostStats(p).then(() => deletePost(p.collection, p.id)).then(() => {
       logAdmin(user, 'deletePost', { detail: p.name, postId: p.id, targetUid: p.ownerUid })
       deletePrivateAddress(p.id).catch(() => {})
       ratings.removeAll(p.id).catch(() => {})

@@ -11,7 +11,7 @@ import { photosOf, deletePhotos } from '../photo'
 import { isStale, updatedLabel, STALE_DAYS } from '../freshness'
 import { postUrl, shareToLine, igUrl } from '../share'
 import { isOnSale, isNewItem, salePercent } from '../deals'
-import { track, useWeekStats } from '../hooks/useStats'
+import { track, useWeekStats, removePostStats } from '../hooks/useStats'
 import { usePostExtras } from '../hooks/useRatings'
 import styles from './ui.module.css'
 
@@ -284,7 +284,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
 
   function handleDelete() {
     if (!window.confirm(t.deleteConfirm)) return
-    deletePost(collectionName, post.id).then(() => {
+    removePostStats(post).then(() => deletePost(collectionName, post.id)).then(() => {
       if (!isOwner) logAdmin(user, 'deletePost', { detail: post.name, postId: post.id, targetUid: post.ownerUid })
       deletePrivateAddress(post.id).catch(() => {}) // none saved for outsiders
       if (isOwner) deletePhotos(photosOf(post)) // the Worker only deletes the uploader's own

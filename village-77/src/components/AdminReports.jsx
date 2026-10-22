@@ -5,6 +5,7 @@ import { deletePost, deletePrivateAddress } from '../hooks/usePosts'
 import { OWNER_UID } from '../config'
 import { useAuthContext } from '../hooks/useAuth'
 import { logAdmin } from '../adminLog'
+import { removePostStats } from '../hooks/useStats'
 import styles from './ui.module.css'
 
 // Admin tab → รายงาน: posts villagers flagged with "Report this post".
@@ -50,6 +51,7 @@ export default function AdminReports({ reports, shops, providers, ratings, onOpe
     if (!window.confirm(t.deleteConfirm)) return
     try {
       if (post) {
+        await removePostStats(post)
         await deletePost(r.collection, r.postId)
         logAdmin(user, 'deletePost', { detail: post.name + ' (' + t.adminReports + ')', postId: r.postId, targetUid: post.ownerUid })
         deletePrivateAddress(r.postId).catch(() => {})

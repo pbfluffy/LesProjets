@@ -46,3 +46,17 @@ export function useLang() {
 
   return [lang, setLang]
 }
+
+// Larger text for easier reading: zooms the whole page 15% (layout, spacing
+// and text together, so nothing overlaps). Saved per browser.
+const BIG_TEXT_KEY = 'village_big_text'
+export function useBigText() {
+  const [big, setBig] = useState(() => {
+    try { return localStorage.getItem(BIG_TEXT_KEY) === '1' } catch { return false }
+  })
+  useEffect(() => {
+    document.documentElement.style.zoom = big ? '1.15' : ''
+    try { localStorage.setItem(BIG_TEXT_KEY, big ? '1' : '0') } catch { /* storage blocked */ }
+  }, [big])
+  return [big, setBig]
+}

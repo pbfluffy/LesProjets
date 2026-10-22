@@ -637,6 +637,11 @@ service cloud.firestore {
     match /villageStats/{statId} {
       allow get: if isVillageAdmin()
                  || (signedIn() && villagePostOwner(statId.split('_')[0]) == request.auth.uid);
+      // cleaned up with the post: by its owner just before deleting it, by an
+      // admin, or by anyone once the post is gone
+      allow delete: if isVillageAdmin()
+                    || (signedIn() && villagePostOwner(statId.split('_')[0]) == request.auth.uid)
+                    || (signedIn() && villagePostOwner(statId.split('_')[0]) == null);
       allow create: if request.resource.data.keys().hasOnly(['postId', 'day', 'open', 'call', 'line', 'ig'])
                     && request.resource.data.keys().size() == 3
                     && request.resource.data.day == villageToday()

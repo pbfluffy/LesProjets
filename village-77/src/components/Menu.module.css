@@ -1,0 +1,72 @@
+.wrap { position: relative; }
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 120;
+  min-width: 220px;
+  max-width: calc(100vw - 24px);
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 0.5px solid var(--color-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  animation: drop 0.12s ease-out;
+}
+@keyframes drop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+.head {
+  padding: 8px 10px 10px;
+  margin-bottom: 4px;
+  border-bottom: 0.5px solid var(--color-border);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.head strong { display: block; color: var(--color-text); font-size: 15px; }
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.item:hover { background: var(--color-surface-alt); }
+.danger { color: var(--color-red); }
+.icon { display: inline-flex; color: var(--color-text-muted); }
+.danger .icon { color: inherit; }
+.text { flex: 1; }
+
+/* on/off switch */
+.switch {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: var(--color-border-strong);
+  transition: background 0.15s;
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+}
+.switchOn { background: #06c755; }
+.switchOn::after { transform: translateX(14px); }

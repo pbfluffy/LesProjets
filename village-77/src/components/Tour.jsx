@@ -27,6 +27,15 @@ const STEPS = [
 
 const PAD = 6 // spotlight margin around the element
 
+// With larger text on, the page is zoomed (useBigText): element rects come in
+// screen pixels but the spotlight is drawn inside the zoomed page, so convert.
+const pageZoom = () => parseFloat(document.documentElement.style.zoom) || 1
+function cssRect(el) {
+  const r = el.getBoundingClientRect()
+  const z = pageZoom()
+  return { top: r.top / z, left: r.left / z, width: r.width / z, height: r.height / z, bottom: r.bottom / z }
+}
+
 export default function Tour({ onTab, onClose }) {
   const { t } = useLangContext()
   const [i, setI] = useState(0)
@@ -68,7 +77,7 @@ export default function Tour({ onTab, onClose }) {
         // header button sideways shifted the whole page on phones.
         const r = el.getBoundingClientRect()
         if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: 'center', inline: 'nearest' })
-        setRect(el.getBoundingClientRect())
+        setRect(cssRect(el))
         setFound(which)
       } else if (tries++ < 10) {
         timer = setTimeout(find, 50) // tab content still rendering
@@ -85,7 +94,7 @@ export default function Tour({ onTab, onClose }) {
     if (!step.target) return
     const update = () => {
       const el = document.querySelector(`[data-tour="${step.target}"]`)
-      if (el) setRect(el.getBoundingClientRect())
+      if (el) setRect(cssRect(el))
     }
     window.addEventListener('resize', update)
     window.addEventListener('scroll', update, true)
@@ -118,7 +127,7 @@ export default function Tour({ onTab, onClose }) {
   }
 
   // Card goes below the spotlight, or above it when there's no room.
-  const vh = window.innerHeight
+  const vh = window.innerHeight / pageZoom()
   let cardStyle
   if (rect) {
     const below = rect.bottom + PAD + 12

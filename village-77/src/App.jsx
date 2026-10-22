@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useTheme, useLang } from './hooks/useThemeLang'
+import { useTheme, useLang, useBigText } from './hooks/useThemeLang'
 import { usePosts } from './hooks/usePosts'
 import { useAuth, AuthContext, lineConfigured } from './hooks/useAuth'
 import { useRatings } from './hooks/useRatings'
-import { LangContext, STRINGS } from './LangContext'
+import { LangContext, STRINGS, interp } from './LangContext'
 import { useCategories, useCategoryHelpers, CategoriesContext } from './hooks/useCategories'
 import { useFavorites, FavoritesContext } from './hooks/useFavorites'
 import Home from './components/Home'
 import Icon from './components/Icon'
+import Menu, { MenuItem, MenuHead } from './components/Menu'
 import Board from './components/Board'
 import PostForm from './components/PostForm'
 import AdminPanel from './components/AdminPanel'
@@ -29,6 +30,7 @@ const SEEN_KEY = 'village_reviews_seen' // { postId: ms } for My shops' "new rev
 
 export default function App() {
   const [theme, setTheme] = useTheme()
+  const [bigText, setBigText] = useBigText()
   const [lang, setLang] = useLang()
   const auth = useAuth()
   const { user, isAdmin, isOwner } = auth
@@ -82,6 +84,14 @@ export default function App() {
     : []
   const newReviews = (id) => ratings.newSince(id, reviewsSeen[id] || 0)
   const favorites = useFavorites(user)
+  // Saved posts that were deleted since: drop them from the list. Only when
+  // both lists are fully loaded (usePosts reads at most 300 each).
+  const postsLoaded = !shops.loading && !providers.loading
+  useEffect(() => {
+    if (!user || !postsLoaded || shops.posts.length >= 300 || providers.posts.length >= 300) return
+    if (!favorites.ids.length) return
+    favorites.prune(new Set([...shops.posts, ...providers.posts].map((p) => p.id)))
+  }, [user, postsLoaded, shops.posts, providers.posts, favorites.ids]) // eslint-disable-line react-hooks/exhaustive-deps
   // ♥ saved posts, newest-saved first, for the home page.
   const savedPosts = favorites.ids.map((id) => {
     const shop = liveShops.find((p) => p.id === id)
@@ -166,6 +176,14 @@ export default function App() {
   const editProvider = (post) => openForm('provider', post)
   const editNews = (post) => requireSignIn() && setEditingNews({ post })
 
+  // From the account menu: the home page's My shops / Saved sections.
+  function scrollToSection(id) {
+    setTab('home')
+    setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: 'start' }), 120) // after the tab's scroll-to-top
+  }
+  const goToMyPosts = () => scrollToSection('my-posts')
+  const goToSaved = () => scrollToSection('saved-posts')
+
   function handleSignOut() {
     if (window.confirm(t.signOutConfirm)) auth.signOut()
   }
@@ -198,14 +216,17 @@ export default function App() {
                 <span className={styles.langSep}>/</span>
                 <span className={lang === 'th' ? styles.langOn : ''}>TH</span>
               </button>
-              <button
-                type="button"
-                className={styles.iconBtn}
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                aria-label="Toggle theme"
-              >
-                <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
-              </button>
+              {/* Display: dark mode and larger text (for everyone) */}
+              <Menu label={t.displayMenu} className={`${styles.iconBtn} ${styles.aaBtn}`} button="Aa" buttonProps={{ 'data-tour': 'display' }}>
+                {() => (
+                  <>
+                    <MenuItem icon={<Icon name="moon" size={16} />} checked={theme === 'dark'}
+                      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{t.darkMode}</MenuItem>
+                    <MenuItem icon={<span className={styles.aPlus}>A+</span>} checked={bigText}
+                      onClick={() => setBigText(!bigText)}>{t.bigText}</MenuItem>
+                  </>
+                )}
+              </Menu>
               <button
                 type="button"
                 className={styles.iconBtn}
@@ -216,11 +237,31 @@ export default function App() {
                 ?
               </button>
               {user ? (
-                <button type="button" data-tour="account" className={styles.avatarBtn} onClick={handleSignOut} title={user.displayName || t.signOut}>
-                  {user.photoURL
+                <Menu label={t.accountMenu} className={styles.avatarBtn} buttonProps={{ 'data-tour': 'account' }}
+                  button={user.photoURL
                     ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" />
-                    : (user.displayName || '?').slice(0, 1)}
-                </button>
+                    : (user.displayName || '?').slice(0, 1)}>
+                  {(close) => (
+                    <>
+                      <MenuHead>
+                        <strong>{user.displayName || t.adminNoName}</strong>
+                        {user.uid.startsWith('line:') ? t.signedInLine : t.signedInGoogle}
+                        {isAdmin && ' · ' + (isOwner ? t.roleOwner : t.roleAdmin)}
+                      </MenuHead>
+                      {myPosts.length > 0 && (
+                        <MenuItem icon={<Icon name="bag" size={16} />} onClick={() => { close(); goToMyPosts() }}>
+                          {interp(t.menuMyPosts, { n: myPosts.length })}
+                        </MenuItem>
+                      )}
+                      {favorites.ids.length > 0 && (
+                        <MenuItem icon={<Icon name="heart" size={16} />} onClick={() => { close(); goToSaved() }}>
+                          {interp(t.menuSaved, { n: savedPosts.length })}
+                        </MenuItem>
+                      )}
+                      <MenuItem icon={<Icon name="back" size={16} />} danger onClick={() => { close(); handleSignOut() }}>{t.signOut}</MenuItem>
+                    </>
+                  )}
+                </Menu>
               ) : (
                 <button type="button" data-tour="signin" className={styles.lineBtn} onClick={() => setAskSignIn(true)} disabled={auth.finishing}>
                   {auth.finishing ? '…' : t.signIn}
@@ -336,7 +377,7 @@ export default function App() {
             <NewsBoard posts={liveNews} loading={news.loading} onAdd={() => editNews(null)} onEdit={editNews} />
           )}
           {tab === 'admin' && isAdmin && (
-            <AdminPanel shops={shops.posts} providers={providers.posts} ratings={ratings} isOwner={isOwner} onOpenPost={openPost} />
+            <AdminPanel shops={shops.posts} providers={providers.posts} postsLoaded={postsLoaded} ratings={ratings} isOwner={isOwner} onOpenPost={openPost} />
           )}
         </main>
 

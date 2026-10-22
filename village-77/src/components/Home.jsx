@@ -91,7 +91,7 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
       {/* My shops: the signed-in person's own posts, first, with new reviews. */}
       {myPosts.length > 0 && (
         <>
-          <div className={styles.sectionHead}>
+          <div className={styles.sectionHead} id="my-posts" style={{ scrollMarginTop: 120 }}>
             <h3>{t.myPosts}</h3>
           </div>
           <div className={styles.grid} style={{ marginBottom: 24 }}>
@@ -109,7 +109,7 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
 
       {savedPosts.length > 0 && (
         <>
-          <div className={styles.sectionHead}>
+          <div className={styles.sectionHead} id="saved-posts" style={{ scrollMarginTop: 120 }}>
             <h3 className={styles.headIcon}><Icon name="heart" size={16} filled className={styles.headHeart} />{t.savedPosts} ({savedPosts.length})</h3>
             {savedPosts.length > SAVED_PREVIEW && (
               <button type="button" className={styles.linkBtn} onClick={() => setAllSaved(!allSaved)}>{allSaved ? t.showLess : t.seeAll}</button>
