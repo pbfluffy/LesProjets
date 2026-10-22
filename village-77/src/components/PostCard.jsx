@@ -5,6 +5,7 @@ import { useAuthContext } from '../hooks/useAuth'
 import { useCategoriesContext } from '../hooks/useCategories'
 import { useFavoritesContext } from '../hooks/useFavorites'
 import ReportSheet from './ReportSheet'
+import Icon from './Icon'
 import { photosOf, deletePhotos } from '../photo'
 import { isStale, updatedLabel, STALE_DAYS } from '../freshness'
 import { postUrl, shareToLine, igUrl } from '../share'
@@ -16,7 +17,8 @@ export function ResidencyBadge({ isResident }) {
   const { t } = useLangContext()
   return (
     <span className={`${styles.badge} ${isResident ? styles.badgeResident : styles.badgeOutsider}`}>
-      {isResident ? '🏡 ' + t.resident : '🚗 ' + t.outsider}
+      <Icon name={isResident ? 'home' : 'pin'} size={12} strokeWidth={2.4} />
+      {isResident ? t.resident : t.outsider}
     </span>
   )
 }
@@ -46,7 +48,7 @@ function ItemStars({ postId, item, ratings, canPick }) {
 
   return (
     <span className={styles.itemStars}>
-      {count > 0 && <span className={styles.itemStarsAvg}>★ {avg.toFixed(1)} ({count})</span>}
+      {count > 0 && <span className={styles.itemStarsAvg}><Icon name="star" size={12} filled />{avg.toFixed(1)} ({count})</span>}
       {canPick && (
         <span role="group" aria-label={t.itemRate}>
           {[1, 2, 3, 4, 5].map((n) => (
@@ -258,7 +260,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
         alert(t.saveFailed)
       })}
     >
-      {saved ? '♥' : '♡'}
+      <Icon name="heart" size={16} filled={saved} />
     </button>
   )
 
@@ -303,8 +305,8 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
           <h3 className={styles.rowTitle}>{post.name}</h3>
           <div className={styles.rowBadges}>
             <ResidencyBadge isResident={post.isResident} />
-            {post.isResident && post.verified && <span className={`${styles.badge} ${styles.badgeVerified}`}>✓</span>}
-            {!isShop && post.available === false && <span className={`${styles.badge} ${styles.badgeBusy}`}>⏸ {t.busy}</span>}
+            {post.isResident && post.verified && <span className={`${styles.badge} ${styles.badgeVerified}`} title={t.verified} aria-label={t.verified}><Icon name="verified" size={13} strokeWidth={2.2} /></span>}
+            {!isShop && post.available === false && <span className={`${styles.badge} ${styles.badgeBusy}`}><Icon name="pause" size={12} />{t.busy}</span>}
             {tags.slice(0, 2).map((c) => <span key={c} className={styles.tag}>{tagLabel(c)}</span>)}
             {tags.length > 2 && <span className={styles.tag}>+{tags.length - 2}</span>}
           </div>
@@ -313,7 +315,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
             {isShop && items.some(isOnSale) && <span className={styles.saleTag}>🏷️ {t.onSale}</span>}
             {isShop && !items.some(isOnSale) && items.some(isNewItem) && <span className={styles.newTag}>🆕 {t.itemNew}</span>}
             {rating.count > 0 && (
-              <span className={styles.rowRating}>★ {rating.avg.toFixed(1)} <small>({rating.count})</small></span>
+              <span className={styles.rowRating}><Icon name="star" size={13} filled className={styles.starIcon} />{rating.avg.toFixed(1)} <small>({rating.count})</small></span>
             )}
             {isShop && (
               <span>
@@ -326,16 +328,16 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
           </div>
           <div className={styles.rowActions}>
             {post.phone && (
-              <a className={styles.rowBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')} onClick={() => tap('call')} aria-label={t.call + ' ' + post.phone}>📞 {t.call}</a>
+              <a className={styles.rowBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')} onClick={() => tap('call')} aria-label={t.call + ' ' + post.phone}><Icon name="phone" />{t.call}</a>
             )}
             {post.line && (
-              <a className={`${styles.rowBtn} ${styles.lineBtn}`} href={lineUrl(post.line)} onClick={() => tap('line')} target="_blank" rel="noopener noreferrer">💬 {t.line}</a>
+              <a className={`${styles.rowBtn} ${styles.lineBtn}`} href={lineUrl(post.line)} onClick={() => tap('line')} target="_blank" rel="noopener noreferrer"><Icon name="chat" filled />{t.line}</a>
             )}
             {post.instagram && (
-              <a className={`${styles.rowBtn} ${styles.igBtn}`} href={igUrl(post.instagram)} onClick={() => tap('ig')} target="_blank" rel="noopener noreferrer">📷 IG</a>
+              <a className={`${styles.rowBtn} ${styles.igBtn}`} href={igUrl(post.instagram)} onClick={() => tap('ig')} target="_blank" rel="noopener noreferrer"><Icon name="instagram" />IG</a>
             )}
-            {!isOwner && heartBtn(styles.rowBtn)}
-            <span className={styles.seeAll}>{isShop ? t.shopSeeAll : t.seeDetails} ›</span>
+            {!isOwner && heartBtn(`${styles.rowBtn} ${styles.iconBtn}`)}
+            <span className={styles.seeAll}>{isShop ? t.shopSeeAll : t.seeDetails}<Icon name="chevron" size={14} strokeWidth={2.4} /></span>
           </div>
           {isOwner && isStale(post) && <span className={styles.staleBadge}>{t.staleShort}</span>}
           {weekLine && <span className={styles.ownerStats}>📊 {weekLine}</span>}
@@ -377,8 +379,8 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
       <div className={styles.cardBody}>
         <div className={styles.cardTags}>
           <ResidencyBadge isResident={post.isResident} />
-          {post.isResident && post.verified && <span className={`${styles.badge} ${styles.badgeVerified}`}>✓ {t.verified}</span>}
-          {!isShop && post.available === false && <span className={`${styles.badge} ${styles.badgeBusy}`}>⏸ {t.busy}</span>}
+          {post.isResident && post.verified && <span className={`${styles.badge} ${styles.badgeVerified}`}><Icon name="verified" size={13} strokeWidth={2.2} />{t.verified}</span>}
+          {!isShop && post.available === false && <span className={`${styles.badge} ${styles.badgeBusy}`}><Icon name="pause" size={12} />{t.busy}</span>}
           {tags.map((c) => <span key={c} className={styles.tag}>{tagLabel(c)}</span>)}
         </div>
 
@@ -434,21 +436,21 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
         <div className={styles.actions}>
           {post.phone && (
             <a className={styles.contactBtn} href={'tel:' + post.phone.replace(/[^\d+]/g, '')} onClick={() => tap('call')}>
-              📞 {t.call} {post.phone}
+              <Icon name="phone" size={16} />{t.call} {post.phone}
             </a>
           )}
           {post.line && (
             <a className={`${styles.contactBtn} ${styles.lineBtn}`} href={lineUrl(post.line)} onClick={() => tap('line')} target="_blank" rel="noopener noreferrer">
-              💬 {t.line}
+              <Icon name="chat" size={16} filled />{t.line}
             </a>
           )}
           {post.instagram && (
             <a className={`${styles.contactBtn} ${styles.igBtn}`} href={igUrl(post.instagram)} onClick={() => tap('ig')} target="_blank" rel="noopener noreferrer">
-              📷 @{post.instagram}
+              <Icon name="instagram" size={16} />@{post.instagram}
             </a>
           )}
-          <button type="button" className={styles.contactBtn} onClick={handleShare}>↗ {t.shareLine}</button>
-          {!isOwner && heartBtn(styles.contactBtn)}
+          <button type="button" className={styles.contactBtn} onClick={handleShare}><Icon name="share" size={16} />{t.shareLine}</button>
+          {!isOwner && heartBtn(`${styles.contactBtn} ${styles.iconBtn}`)}
         </div>
 
         <span className={styles.meta}>🕒 {updatedLabel(post, t, lang)}</span>

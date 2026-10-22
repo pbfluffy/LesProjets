@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLangContext } from '../LangContext'
 import PostCard from './PostCard'
+import Icon from './Icon'
 import { useCategoriesContext } from '../hooks/useCategories'
 import { useFavoritesContext } from '../hooks/useFavorites'
 import styles from './ui.module.css'
@@ -63,8 +64,8 @@ export default function Board({
         <div className={styles.segment} role="group" data-tour="residency">
           {[
             ['all', t.filterAll],
-            ['resident', '🏡 ' + t.resident],
-            ['outsider', '🚗 ' + t.outsider],
+            ['resident', <><Icon name="home" size={13} strokeWidth={2.4} />{t.resident}</>],
+            ['outsider', <><Icon name="pin" size={13} strokeWidth={2.4} />{t.outsider}</>],
           ].map(([key, label]) => (
             <button
               key={key}

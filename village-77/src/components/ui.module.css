@@ -77,6 +77,10 @@
 }
 .segmentBtn {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   border: none;
   background: none;
   color: var(--color-text-muted);
@@ -187,7 +191,8 @@
 }
 .itemName { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
 .itemStars { display: flex; align-items: center; gap: 6px; margin-top: 2px; font-size: 12px; color: var(--color-text-muted); }
-.itemStarsAvg { color: var(--color-amber); font-weight: 600; }
+.itemStarsAvg { display: inline-flex; align-items: center; gap: 2px; color: var(--color-amber); font-weight: 600; }
+.itemStarsAvg svg { color: #f5a623; }
 .itemStar { background: none; border: 0; padding: 0 1px; font-size: 16px; line-height: 1; color: var(--color-border-strong); cursor: pointer; }
 .itemStarOn { color: #f5a623; }
 .itemPrice { flex: 0 0 auto; font-family: var(--font-mono); font-size: 14px; font-weight: 500; }
@@ -240,7 +245,8 @@
 .rowBadges > span { font-size: 11px; padding: 1px 7px; }
 .rowMeta { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 12px; color: var(--color-text-muted); }
 .rowRating { color: var(--color-text); font-weight: 600; }
-.rowRating::first-letter { color: #f5a623; }
+.rowRating { display: inline-flex; align-items: center; gap: 3px; }
+.starIcon { color: #f5a623; }
 .rowRating small { color: var(--color-text-muted); font-weight: 400; }
 .rowActions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: auto; padding-top: 2px; }
 .rowBtn {
@@ -248,16 +254,27 @@
   white-space: nowrap; /* narrow cards (3 per row on a PC) used to wrap the icon and label */
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 5px;
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-pill);
   text-decoration: none;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
   color: var(--color-text);
   background: var(--color-surface-alt);
-  border-radius: var(--radius-pill);
-  padding: 4px 10px;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease;
 }
-.seeAll { margin-left: auto; flex: 0 0 auto; font-size: 12px; color: var(--color-green); font-weight: 600; }
+.rowBtn:hover, .contactBtn:hover { filter: brightness(0.96); }
+.rowBtn:active, .contactBtn:active { transform: scale(0.96); }
+/* icon-only round button (the heart) */
+.iconBtn { padding: 0; width: 30px; justify-content: center; color: var(--color-text-muted); }
+.contactBtn.iconBtn { width: 36px; height: 36px; }
+.iconBtn.heartOn { color: #e5484d; }
+.seeAll { margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 1px; font-size: 12px; color: var(--color-green); font-weight: 600; }
 .staleBadge { font-size: 12px; color: var(--color-amber); }
 
 /* Shop page (opened from a compact card) */
@@ -352,6 +369,10 @@
 .cardBody { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .cardTags { display: flex; flex-wrap: wrap; gap: 6px; }
 .badge, .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.5;
   font-size: 12px;
   border-radius: var(--radius-pill);
   padding: 2px 9px;
@@ -439,16 +460,19 @@
 
 .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 4px; }
 .contactBtn {
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   text-decoration: none;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text);
   background: var(--color-surface-alt);
   border-radius: var(--radius-pill);
-  padding: 6px 12px;
+  height: 36px;
+  padding: 0 14px;
   border: none; /* also used on the share <button> */
 }
 .lineBtn { background: #06c755; color: #fff; }
