@@ -18,7 +18,9 @@ const STEPS = [
   { key: 'residency', target: 'residency', tab: 'market' },
   { key: 'card', target: 'card', tab: 'market' },
   { key: 'add', target: 'add', tab: 'market' },
-  { key: 'signin', target: 'signin', tab: 'home' },
+  // Already signed in (e.g. automatically inside the LINE app): point at the
+  // profile picture instead of skipping the step.
+  { key: 'signin', target: 'signin', tab: 'home', alt: { key: 'account', target: 'account' } },
   { key: 'lang', target: 'lang' },
   { key: 'done' },
 ]
@@ -30,7 +32,12 @@ export default function Tour({ onTab, onClose }) {
   const [i, setI] = useState(0)
   const [rect, setRect] = useState(null) // spotlight box, or null = centred card
   const [seen, setSeen] = useState([]) // steps shown so far, for Back
-  const step = STEPS[i]
+  // The step's element as found: its own, or its `alt` one. null while still
+  // looking, so a step's text never flashes up before its element is found
+  // (or before it's skipped).
+  const [found, setFound] = useState(null)
+  const base = STEPS[i]
+  const step = found === 'alt' ? { ...base, ...base.alt } : base
 
   const finish = useCallback(() => {
     try { localStorage.setItem(TOUR_KEY, '1') } catch { /* private mode */ }
@@ -40,18 +47,29 @@ export default function Tour({ onTab, onClose }) {
 
   // Switch tab if the step needs it, then find and frame its element.
   useLayoutEffect(() => {
-    if (step.tab) onTab(step.tab)
-    if (!step.target) {
+    if (base.tab) onTab(base.tab)
+    setFound(null)
+    if (!base.target) {
       setRect(null)
+      setFound('main')
       return
     }
     let tries = 0
     let timer
     const find = () => {
-      const el = document.querySelector(`[data-tour="${step.target}"]`)
+      let which = 'main'
+      let el = document.querySelector(`[data-tour="${base.target}"]`)
+      if (!el && base.alt) {
+        which = 'alt'
+        el = document.querySelector(`[data-tour="${base.alt.target}"]`)
+      }
       if (el) {
-        el.scrollIntoView({ block: 'center' }) // instant, so it can be measured right away
+        // Only scroll when it's off screen, and only up / down: centring a
+        // header button sideways shifted the whole page on phones.
+        const r = el.getBoundingClientRect()
+        if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: 'center', inline: 'nearest' })
         setRect(el.getBoundingClientRect())
+        setFound(which)
       } else if (tries++ < 10) {
         timer = setTimeout(find, 50) // tab content still rendering
       } else {
@@ -109,7 +127,7 @@ export default function Tour({ onTab, onClose }) {
 
   return (
     <div className={styles.root} role="dialog" aria-modal="true" aria-label={t.tourTitle}>
-      {rect ? (
+      {rect && found ? (
         <div
           className={styles.spot}
           style={{
@@ -123,7 +141,7 @@ export default function Tour({ onTab, onClose }) {
         <div className={styles.dim} />
       )}
 
-      <div className={`${styles.card} ${rect ? '' : styles.cardCentre}`} style={cardStyle}>
+      {found && <div className={`${styles.card} ${rect ? '' : styles.cardCentre}`} style={cardStyle}>
         <p className={styles.count}>{i + 1} / {STEPS.length}</p>
         <h2 className={styles.title}>{t['tour_' + step.key + '_t']}</h2>
         <p className={styles.body}>{t['tour_' + step.key + '_b']}</p>
@@ -140,7 +158,7 @@ export default function Tour({ onTab, onClose }) {
             {i === STEPS.length - 1 ? t.tourStart : t.tourNext}
           </button>
         </div>
-      </div>
+      </div>}
     </div>
   )
 }

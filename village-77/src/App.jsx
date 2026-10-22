@@ -215,7 +215,7 @@ export default function App() {
                 ?
               </button>
               {user ? (
-                <button type="button" className={styles.avatarBtn} onClick={handleSignOut} title={user.displayName || t.signOut}>
+                <button type="button" data-tour="account" className={styles.avatarBtn} onClick={handleSignOut} title={user.displayName || t.signOut}>
                   {user.photoURL
                     ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" />
                     : (user.displayName || '?').slice(0, 1)}
