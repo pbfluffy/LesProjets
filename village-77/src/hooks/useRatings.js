@@ -48,6 +48,9 @@ export function useRatings(user) {
 
   return {
     get: (postId) => byPost[postId] || { avg: 0, count: 0, mine: 0, myComment: '', reviews: [] },
+    // Ratings or reviews for a post changed after `since` (ms) — the owner's
+    // "new reviews" badge in My shops.
+    newSince: (postId, since) => docs.filter((r) => r.postId === postId && (r.updatedAt?.toMillis?.() || 0) > since).length,
     rate: (postId, stars) => write(postId, { stars }),
     comment: (postId, text) => write(postId, { comment: text.trim().slice(0, 200) }),
     // When a post is deleted its ratings go too (owner or admin).

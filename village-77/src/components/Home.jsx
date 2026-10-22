@@ -3,7 +3,7 @@ import PostCard from './PostCard'
 import { NewsCard } from './NewsBoard'
 import styles from './ui.module.css'
 
-export default function Home({ shops, providers, news, ratings, onGo, onEditShop, onEditProvider, onEditNews, onOpenPost }) {
+export default function Home({ shops, providers, news, ratings, onGo, onEditShop, onEditProvider, onEditNews, onOpenPost, myPosts = [], newReviews }) {
   const { t } = useLangContext()
   const itemsForSale = shops.reduce((n, s) => n + (s.items || []).filter((it) => !it.sold).length, 0)
 
@@ -26,6 +26,25 @@ export default function Home({ shops, providers, news, ratings, onGo, onEditShop
           <small>{interp(t.homeServicesCard, { n: providers.length })}</small>
         </button>
       </div>
+
+      {/* My shops: the signed-in person's own posts, first, with new reviews. */}
+      {myPosts.length > 0 && (
+        <>
+          <div className={styles.sectionHead}>
+            <h3>{t.myPosts}</h3>
+          </div>
+          <div className={styles.grid} style={{ marginBottom: 24 }}>
+            {myPosts.map((p) => {
+              const n = newReviews(p.id)
+              return (
+                <PostCard key={p.id} kind={p.kind} collectionName={p.kind === 'shop' ? 'villageShops' : 'villageProviders'} post={p} ratings={ratings}
+                  onEdit={p.kind === 'shop' ? onEditShop : onEditProvider} compact onOpen={(post) => onOpenPost(post.id)}
+                  badge={n > 0 ? interp(t.newReviews, { n }) : null} />
+              )
+            })}
+          </div>
+        </>
+      )}
 
       {news.length > 0 && (
         <>

@@ -23,6 +23,7 @@ import styles from './App.module.css'
 const SHOPS = 'villageShops'
 const PROVIDERS = 'villageProviders'
 const NEWS = 'villageNews'
+const SEEN_KEY = 'village_reviews_seen' // { postId: ms } for My shops' "new reviews"
 
 export default function App() {
   const [theme, setTheme] = useTheme()
@@ -68,7 +69,23 @@ export default function App() {
   // their reviews. It's pushed into the address bar as ?p=<id>, so the
   // phone's back button closes it and the link can be shared.
   const [openPostId, setOpenPostId] = useState(null)
+  // My shops (home page): the signed-in person's own posts — including ones
+  // hidden for age — with a count of ratings since they last opened each.
+  const [reviewsSeen, setReviewsSeen] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(SEEN_KEY)) || {} } catch { return {} }
+  })
+  const myPosts = user
+    ? [...shops.posts.map((p) => ({ ...p, kind: 'shop' })), ...providers.posts.map((p) => ({ ...p, kind: 'provider' }))]
+      .filter((p) => p.ownerUid === user.uid)
+    : []
+  const newReviews = (id) => ratings.newSince(id, reviewsSeen[id] || 0)
+
   function openPost(id) {
+    if (myPosts.some((p) => p.id === id)) {
+      const next = { ...reviewsSeen, [id]: Date.now() }
+      setReviewsSeen(next)
+      try { localStorage.setItem(SEEN_KEY, JSON.stringify(next)) } catch { /* storage blocked */ }
+    }
     setOpenPostId(id)
     window.history.pushState({ post: id }, '', '?p=' + encodeURIComponent(id))
   }
@@ -249,6 +266,8 @@ export default function App() {
               onOpenPost={openPost}
               onEditProvider={editProvider}
               onEditNews={editNews}
+              myPosts={myPosts}
+              newReviews={newReviews}
             />
           )}
           {tab === 'market' && (

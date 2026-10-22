@@ -6,6 +6,7 @@ import { useAuthContext } from '../hooks/useAuth'
 import { ResidencyBadge } from './PostCard'
 import AdminMembers from './AdminMembers'
 import AdminCategories from './AdminCategories'
+import AdminReports from './AdminReports'
 import styles from './ui.module.css'
 
 // Admins only (the tab is hidden otherwise, and firestore.rules only let
@@ -79,6 +80,13 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
   const [addresses, setAddresses] = useState({})
   // Who posted what (owner only — the members list is owner-only too).
   const [members, setMembers] = useState({})
+  // Reports from "Report this post", for every admin.
+  const [reports, setReports] = useState([])
+  useEffect(() => onSnapshot(
+    collection(db, 'villageReports'),
+    (snap) => setReports(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    (e) => console.error('[village] reports failed:', e?.code),
+  ), [])
   useEffect(() => {
     if (!isOwner) return
     return onSnapshot(
@@ -133,8 +141,8 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
         </p>
       </div>
 
-      <div className={styles.segment} role="group" style={{ marginBottom: 12 }}>
-        {[['pending', t.adminPending], ['all', t.adminAllPosts], ['categories', t.adminCategories], ...(isOwner ? [['members', t.adminMembers]] : [])].map(([key, label]) => (
+      <div className={`${styles.segment} ${styles.adminTabs}`} role="group" style={{ marginBottom: 12 }}>
+        {[['pending', t.adminPending], ['all', t.adminAllPosts], ['reports', reports.length ? t.adminReports + ' (' + reports.length + ')' : t.adminReports], ['categories', t.adminCategories], ...(isOwner ? [['members', t.adminMembers]] : [])].map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -147,7 +155,9 @@ export default function AdminPanel({ shops, providers, ratings, isOwner, onOpenP
         ))}
       </div>
 
-      {show === 'categories' ? (
+      {show === 'reports' ? (
+        <AdminReports reports={reports} shops={shops} providers={providers} ratings={ratings} onOpenPost={onOpenPost} />
+      ) : show === 'categories' ? (
         <AdminCategories shops={shops} providers={providers} />
       ) : show === 'members' && isOwner ? (
         <AdminMembers shops={shops} providers={providers} onOpenPost={onOpenPost} />

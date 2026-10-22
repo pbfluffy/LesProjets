@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   db, collection, query, orderBy, limit, onSnapshot,
-  addDoc, setDoc, getDoc, updateDoc, deleteDoc, doc, serverTimestamp,
+  addDoc, setDoc, getDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch,
 } from '../firebase'
 
 // Live list of one collection (villageShops | villageProviders), newest
@@ -29,13 +29,49 @@ export function usePosts(collectionName) {
   return { posts, loading }
 }
 
-export function createPost(collectionName, user, data) {
-  return addDoc(collection(db, collectionName), {
+// Daily limit on new shops / handymen (firestore.rules: villageQuota). The
+// day is the UTC date as a number, e.g. 20261022, same as the rules.
+export const DAILY_POST_LIMIT = 5
+const utcDay = () => {
+  const d = new Date()
+  return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate()
+}
+const quotaRef = (uid) => doc(db, 'villageQuota', uid)
+
+// New posts the account can still make today.
+export async function postsLeftToday(user) {
+  try {
+    const snap = await getDoc(quotaRef(user.uid))
+    const q = snap.exists() ? snap.data() : null
+    return DAILY_POST_LIMIT - (q && q.day === utcDay() ? q.count : 0)
+  } catch {
+    return DAILY_POST_LIMIT // can't tell — let the rules decide
+  }
+}
+
+// { quota: true } (everyone but admins): the post and the daily counter are
+// written together, as the rules require.
+export async function createPost(collectionName, user, data, { quota = false } = {}) {
+  const ref = doc(collection(db, collectionName))
+  const post = {
     ...data,
     ownerUid: user.uid,
     verified: false, // only an admin can set this (firestore.rules)
     createdAt: serverTimestamp(),
-  })
+  }
+  if (!quota) {
+    await setDoc(ref, post)
+    return ref
+  }
+  const day = utcDay()
+  const snap = await getDoc(quotaRef(user.uid))
+  const q = snap.exists() ? snap.data() : null
+  const count = q && q.day === day ? q.count + 1 : 1
+  const batch = writeBatch(db)
+  batch.set(ref, post)
+  batch.set(quotaRef(user.uid), { day, count })
+  await batch.commit()
+  return ref
 }
 
 export function updatePost(collectionName, id, data) {

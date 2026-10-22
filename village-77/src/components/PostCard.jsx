@@ -3,6 +3,7 @@ import { useLangContext, interp } from '../LangContext'
 import { updatePost, deletePost, deletePrivateAddress } from '../hooks/usePosts'
 import { useAuthContext } from '../hooks/useAuth'
 import { useCategoriesContext } from '../hooks/useCategories'
+import ReportSheet from './ReportSheet'
 import { photosOf, deletePhotos } from '../photo'
 import { isStale, updatedLabel, STALE_DAYS } from '../freshness'
 import { postUrl, shareToLine, igUrl } from '../share'
@@ -148,9 +149,9 @@ function lineUrl(id) {
 // items they sell listed inside the card) or 'provider' (a handyman).
 // The poster gets Edit / Delete, plus a per-item sold toggle on shops;
 // admins get Delete.
-export default function PostCard({ kind, collectionName, post, ratings, onEdit, compact = false, onOpen }) {
+export default function PostCard({ kind, collectionName, post, ratings, onEdit, compact = false, onOpen, badge }) {
   const { t, lang } = useLangContext()
-  const { user, isAdmin } = useAuthContext()
+  const { user, isAdmin, requireSignIn } = useAuthContext()
   const isOwner = !!user && user.uid === post.ownerUid
   const isShop = kind === 'shop'
   const cats = useCategoriesContext()
@@ -161,6 +162,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
   const items = post.items || []
   const [shown, setShown] = useState(0) // index of the photo scrolled into view
   const [zoomed, setZoomed] = useState(null)
+  const [reporting, setReporting] = useState(false)
 
   function onStripScroll(e) {
     const el = e.currentTarget
@@ -231,6 +233,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
             {tags.length > 2 && <span className={styles.tag}>+{tags.length - 2}</span>}
           </div>
           <div className={styles.rowMeta}>
+            {badge && <span className={styles.newBadge}>{badge}</span>}
             {rating.count > 0 && (
               <span className={styles.rowRating}>★ {rating.avg.toFixed(1)} <small>({rating.count})</small></span>
             )}
@@ -358,6 +361,15 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
             <span>{interp(t.staleNote, { n: STALE_DAYS })}</span>
             <button type="button" className={styles.secondaryBtn} onClick={bump}>✓ {t.stillOpen}</button>
           </div>
+        )}
+
+        {!isOwner && (
+          <button type="button" className={`${styles.linkBtn} ${styles.reportLink}`} onClick={() => requireSignIn() && setReporting(true)}>
+            🚩 {t.reportPost}
+          </button>
+        )}
+        {reporting && user && (
+          <ReportSheet post={post} collectionName={collectionName} user={user} onClose={() => setReporting(false)} />
         )}
 
         {(isOwner || isAdmin) && (

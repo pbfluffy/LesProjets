@@ -646,3 +646,23 @@
 }
 .catSaved { font-size: 13px; color: var(--color-green); }
 .igBtn { background: linear-gradient(45deg, #f09433, #dc2743 50%, #bc1888); color: #fff; }
+.newBadge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: #f5a623;
+  border-radius: var(--radius-pill);
+  padding: 1px 8px;
+}
+/* Admin view switcher: 5 views, so it scrolls sideways on a phone */
+.adminTabs { overflow-x: auto; scrollbar-width: none; }
+.adminTabs::-webkit-scrollbar { display: none; }
+.adminTabs .segmentBtn { flex: 1 0 auto; padding: 7px 12px; }
+
+/* Report a post */
+.reportLink { align-self: flex-start; font-size: 12px; color: var(--color-text-muted); margin-top: 4px; }
+.reportReasons { display: flex; flex-direction: column; gap: 8px; }
+.reportReason { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.reportReason input { width: 18px; height: 18px; flex: 0 0 auto; }
+.reportReasonTag { font-size: 13px; font-weight: 600; color: var(--color-red); }
+.reportPostLink { align-self: flex-start; font-size: 15px; font-weight: 600; text-align: left; }

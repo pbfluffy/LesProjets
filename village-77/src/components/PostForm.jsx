@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import { useCategoriesContext } from '../hooks/useCategories'
-import { createPost, updatePost, savePrivateAddress, deletePrivateAddress, loadPrivateAddress } from '../hooks/usePosts'
+import { createPost, updatePost, savePrivateAddress, deletePrivateAddress, loadPrivateAddress, postsLeftToday, DAILY_POST_LIMIT } from '../hooks/usePosts'
+import { useAuthContext } from '../hooks/useAuth'
 import { uploadPhoto, PHOTO_ITEM, photosOf, deletePhotos } from '../photo'
 import { igHandle } from '../share'
 import styles from './ui.module.css'
@@ -16,6 +17,13 @@ const emptyItem = () => ({ name: '', price: '', photo: null, sold: false })
 export default function PostForm({ kind, collectionName, post, user, onClose, startWithNewItem = false }) {
   const { t } = useLangContext()
   const cats = useCategoriesContext()
+  const { isAdmin } = useAuthContext()
+  // New posts only: everyone but admins gets DAILY_POST_LIMIT a day.
+  const [limitReached, setLimitReached] = useState(false)
+  useEffect(() => {
+    if (post || isAdmin) return
+    postsLeftToday(user).then((left) => setLimitReached(left <= 0))
+  }, [post, isAdmin, user])
   const isShop = kind === 'shop'
   const maxPhotos = 4
   const [f, setF] = useState(() => ({
@@ -184,7 +192,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
       }
       let id = post?.id || createdId.current
       if (id) await updatePost(collectionName, id, data)
-      else id = createdId.current = (await createPost(collectionName, user, data)).id
+      else id = createdId.current = (await createPost(collectionName, user, data, { quota: !isAdmin })).id
       savedPhotos.current = photosOf(data)
       const address = f.address.trim()
       if (f.isResident && address) await savePrivateAddress(id, collectionName, address)
@@ -329,11 +337,12 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
           </div>
         </div>
 
+        {limitReached && <p className={styles.error}>{interp(t.dailyLimit, { n: DAILY_POST_LIMIT })}</p>}
         {error && <p className={styles.error}>{error}</p>}
 
         <div className={styles.sheetActions}>
           <button type="button" className={styles.secondaryBtn} onClick={cancel} disabled={saving}>{t.cancel}</button>
-          <button type="submit" className={styles.primaryBtn} disabled={saving || processing}>{saving ? t.saving : t.save}</button>
+          <button type="submit" className={styles.primaryBtn} disabled={saving || processing || limitReached}>{saving ? t.saving : t.save}</button>
         </div>
       </form>
     </div>
