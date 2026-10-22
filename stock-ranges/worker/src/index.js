@@ -40,6 +40,11 @@
 //   body { type: 'testPush' }
 //     -> sends a test notification to every registered device
 //        -> { sent, gone, failed, devices }; 429 if repeated within a minute
+//   body { type: 'setPortfolio', holdings: {SYM: {qty, avgCost, costCurrency, costAlerts: {below, gain}}},
+//          prefs: {exDividend, weekly}, currency, lang }
+//     -> stores portfolio:{uid} for the scheduled job's wallet notifications
+//   body { type: 'getPortfolio' } -> { portfolio } (settings, to restore the UI)
+//   body { type: 'portfolioHistory' } -> { history: {date: {marketValue, costBasis, currency}} }
 //   body { type: 'history' }
 //     -> { items: [{ ts, title, body, symbol?, direction?, test?, ... }] },
 //        newest first (written by the test sender and check-alerts.mjs)
@@ -58,7 +63,7 @@
 import { SYMBOL_RE, RANGE_CONFIG } from './constants.js'
 import { getQuote } from './quotes.js'
 import { verifyFirebaseToken } from './auth.js'
-import { upsertSubscription, setAlert, getAlerts, pruneSubscription, getHistory, addHistory } from './alerts.js'
+import { upsertSubscription, setAlert, getAlerts, pruneSubscription, getHistory, addHistory, getPortfolio, setPortfolio, getPortfolioHistory } from './alerts.js'
 import { sendPush } from './push.js'
 
 const CORS_HEADERS = {
@@ -262,6 +267,16 @@ async function handleAlerts(request, env) {
   }
   if (body?.type === 'history') {
     return json({ items: await getHistory(env, uid) })
+  }
+  if (body?.type === 'setPortfolio') {
+    const ok = await setPortfolio(env, uid, body)
+    return ok ? json({ ok: true }) : json({ error: 'invalid portfolio' }, 400)
+  }
+  if (body?.type === 'getPortfolio') {
+    return json({ portfolio: await getPortfolio(env, uid) })
+  }
+  if (body?.type === 'portfolioHistory') {
+    return json({ history: await getPortfolioHistory(env, uid) })
   }
   return json({ error: 'unknown type' }, 400)
 }

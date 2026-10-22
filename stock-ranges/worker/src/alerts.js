@@ -135,3 +135,60 @@ export async function addHistory(env, uid, item) {
   list.unshift(item)
   await env.ALERTS.put(historyKey(uid), JSON.stringify(list.slice(0, HISTORY_LIMIT)))
 }
+
+// ---- portfolio (for the scheduled job's wallet notifications) ----
+// `portfolio:{uid}` mirrors the user's wallet holdings plus their wallet
+// notification settings, so scripts/check-alerts.mjs (which only reads KV)
+// can send cost alerts, ex-dividend reminders, the weekly summary, and
+// record a daily portfolio value. The app re-sends it whenever holdings or
+// settings change; the holdings themselves still live in Firestore.
+const MAX_HOLDINGS = 200
+
+function portfolioKey(uid) {
+  return `portfolio:${uid}`
+}
+
+export async function getPortfolio(env, uid) {
+  const raw = await env.ALERTS.get(portfolioKey(uid), 'json')
+  return raw && typeof raw === 'object' ? raw : null
+}
+
+export async function setPortfolio(env, uid, body) {
+  const src = body?.holdings
+  if (!src || typeof src !== 'object' || Array.isArray(src)) return false
+  const entries = Object.entries(src)
+  if (entries.length > MAX_HOLDINGS) return false
+  const holdings = {}
+  for (const [symbol, h] of entries) {
+    if (!SYMBOL_RE.test(symbol) || !h || typeof h !== 'object') return false
+    const qty = Number(h.qty)
+    const avgCost = Number(h.avgCost)
+    if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(avgCost) || avgCost < 0) return false
+    const costCurrency = typeof h.costCurrency === 'string' && /^[A-Z]{3}$/.test(h.costCurrency) ? h.costCurrency : 'USD'
+    holdings[symbol] = {
+      qty, avgCost, costCurrency,
+      costAlerts: { below: !!h.costAlerts?.below, gain: !!h.costAlerts?.gain },
+    }
+  }
+  const prefs = { exDividend: !!body.prefs?.exDividend, weekly: !!body.prefs?.weekly }
+  const hasAnything = entries.length > 0 || prefs.exDividend || prefs.weekly
+  if (!hasAnything) {
+    await env.ALERTS.delete(portfolioKey(uid))
+    return true
+  }
+  await env.ALERTS.put(portfolioKey(uid), JSON.stringify({
+    holdings, prefs,
+    currency: body.currency === 'THB' ? 'THB' : 'USD',
+    lang: body.lang === 'th' ? 'th' : 'en',
+    updatedAt: new Date().toISOString(),
+  }))
+  return true
+}
+
+// Daily portfolio value written by the scheduled job (`pfhistory:{uid}`,
+// { 'YYYY-MM-DD': { marketValue, costBasis, currency, updatedAt } }), merged
+// into the app's own chart history.
+export async function getPortfolioHistory(env, uid) {
+  const raw = await env.ALERTS.get(`pfhistory:${uid}`, 'json')
+  return raw && typeof raw === 'object' ? raw : {}
+}

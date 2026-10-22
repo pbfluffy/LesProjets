@@ -14,6 +14,7 @@ import { getMarketStatus } from '../../src/marketHours.js'
 import { computeDeciles } from '../../src/deciles.js'
 import { formatPrice } from '../../src/format.js'
 import { convert } from '../../src/fx.js'
+import { runPortfolioChecks } from './portfolio-checks.mjs'
 
 const ACCOUNT_ID = '53848ae47b2ea39eddb5a90460cf9bb0'
 const NAMESPACE_ID = '3a005aaf9deb41e48856476250ecf3f2' // ALERTS — see wrangler.toml
@@ -140,6 +141,12 @@ async function resolveQuote(symbol, rangeConfig, params) {
     // e.g. EQUITY, ETF, CRYPTOCURRENCY, FUTURE, INDEX — same field
     // wallet.js already uses to tell crypto apart from stocks/ETFs.
     instrumentType: meta.instrumentType || null,
+    // Ex-dividend dates + amounts (oldest first) for the wallet reminders
+    // in portfolio-checks.mjs — same shape as worker/src/quotes.js.
+    dividends: Object.values(result?.events?.dividends || {})
+      .filter((d) => typeof d?.amount === 'number' && typeof d?.date === 'number')
+      .map((d) => ({ date: d.date, amount: d.amount }))
+      .sort((a, b) => a.date - b.date),
   }
 }
 
@@ -285,11 +292,17 @@ async function main() {
   // market to be open; crypto pairs get checked on every tick.
   const marketOpen = getMarketStatus().open
 
+  const rates = await fetchThbRates()
   const allAlerts = await listAllAlerts()
-  if (allAlerts.length === 0) {
-    console.log('No active alerts.')
-    return
-  }
+  if (allAlerts.length === 0) console.log('No active alerts.')
+  else await checkZoneAlerts(allAlerts, marketOpen, rates)
+
+  // Wallet notifications + daily portfolio value (portfolio-checks.mjs) —
+  // independent of whether anyone has buy/sell zone alerts.
+  await runPortfolioChecks({ kvListKeys, kvGet, kvPut, sendPush, pruneSubscription, addHistory, getQuote, inBatches, rates, marketOpen })
+}
+
+async function checkZoneAlerts(allAlerts, marketOpen, rates) {
 
   // Fan out: which (symbol, range) pairs actually need checking, and who
   // cares about each — computeDeciles is range-relative, so two users
@@ -306,10 +319,6 @@ async function main() {
   const subsByUid = new Map(allAlerts.map(({ uid, entry }) => [uid, entry.subscriptions || []]))
   const currencyByUid = new Map(allAlerts.map(({ uid, entry }) => [uid, entry.currency === 'THB' ? 'THB' : 'USD']))
   const langByUid = new Map(allAlerts.map(({ uid, entry }) => [uid, entry.lang === 'th' ? 'th' : 'en']))
-  // One fetch per run, reused for every notification below, regardless of
-  // how many pairs/subscribers need it — same rationale as the Worker's
-  // getQuote sharing one edge-cache entry across requests.
-  const rates = await fetchThbRates()
 
   const toNotify = [] // { uid, symbol, direction, quote }
   await inBatches([...pairs.entries()], BATCH_SIZE, async ([key, subscribers]) => {

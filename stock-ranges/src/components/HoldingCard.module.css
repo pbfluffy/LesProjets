@@ -79,6 +79,21 @@
 }
 
 /* Second line: qty @ cost (left) and P/L (right), full card width */
+.signalRow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 2px 0; }
+.signalLine {
+  display: inline-block;
+  margin: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+}
+.signalLine[data-zone='buy'] { background: var(--color-green-bg); color: var(--color-green); }
+.signalLine[data-zone='sell'] { background: var(--color-red-bg); color: var(--color-red); }
+
 .subLine {
   display: flex;
   align-items: baseline;

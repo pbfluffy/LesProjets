@@ -4,6 +4,22 @@
   margin-bottom: 12px;
 }
 
+.summarySignals {
+  grid-column: 1 / -1;
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  padding-top: 10px;
+  border-top: 0.5px solid var(--color-border);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+.summarySignals span { color: var(--color-text-faint); }
+.summarySignals strong[data-zone='buy'] { color: var(--color-green); }
+.summarySignals strong[data-zone='sell'] { color: var(--color-red); }
+
 .summaryStrip {
   display: flex;
   flex-wrap: wrap;

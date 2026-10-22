@@ -150,6 +150,15 @@
   color: var(--color-text-faint);
 }
 
+.confirmLine {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+}
+.confirmLine[data-agree='true'][data-zone='buy'] { color: var(--color-green); }
+.confirmLine[data-agree='true'][data-zone='sell'] { color: var(--color-red); }
+.sinceMove { display: block; margin-top: 4px; font-weight: 600; color: var(--color-text); }
+
 .abnormalNote {
   display: flex;
   align-items: flex-start;

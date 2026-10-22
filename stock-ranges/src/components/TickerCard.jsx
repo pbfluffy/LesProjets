@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchQuote, QUOTE_ERROR_LABEL_KEY } from '../stockApi.js'
-import { computeDeciles, maxStepMove, ABNORMAL_MOVE } from '../deciles.js'
+import { computeDeciles, largestStep, ABNORMAL_MOVE } from '../deciles.js'
 import { convert } from '../fx.js'
 import { formatPrice, formatQty, dayChange } from '../format.js'
 import BandInfo from './BandInfo.jsx'
@@ -16,6 +16,14 @@ import styles from './TickerCard.module.css'
 
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
 const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
+const RANGE_LABEL_KEY = { '1d': 'range1d', '7d': 'range7d', '3mo': 'range3mo', '6mo': 'range6mo', ytd: 'rangeYtd', '1y': 'range1y', '2y': 'range2y', '5y': 'range5y' }
+// Second lookback used to confirm the main one: 3 months, or 1 year when
+// the main range is already 3 months.
+const confirmRangeFor = (range) => (range === '3mo' ? '1y' : '3mo')
+
+function interp(str, vars) {
+  return str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '')
+}
 
 export default function TickerCard({
   symbol, range, currency, rates, chartType, tags = [], onAddTag, onRemoveTag, customBrands = [], onAddBrand, onRemoveBrand,
@@ -39,6 +47,19 @@ export default function TickerCard({
       .catch((err) => { if (!cancelled) setState({ status: 'error', data: null, error: s[QUOTE_ERROR_LABEL_KEY[err.code]] || err.message }) })
     return () => { cancelled = true }
   }, [symbol, range, refreshKey, retryNonce])
+
+  // Confirmation from a second range (shown under the band): does the
+  // shorter (or longer) view put the price in the same zone?
+  const [confirm, setConfirm] = useState(null) // { range, deciles } | null
+  useEffect(() => {
+    let cancelled = false
+    setConfirm(null)
+    const r2 = confirmRangeFor(range)
+    fetchQuote(symbol, r2)
+      .then((data) => { if (!cancelled) setConfirm({ range: r2, deciles: computeDeciles({ prices: data.prices, current: data.current }) }) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [symbol, range, refreshKey])
 
   const deciles = state.status === 'ready'
     ? computeDeciles({ prices: state.data.prices, current: state.data.current })
@@ -160,12 +181,43 @@ export default function TickerCard({
                 />
               )}
             </div>
-            {maxStepMove(state.data.prices) > ABNORMAL_MOVE && (
-              <div className={styles.abnormalNote} role="note">
-                <Icon name="alertTriangle" size={12} />
-                <span>{s.abnormalMove}</span>
-              </div>
-            )}
+            {confirm?.deciles?.signal && deciles.signal && (() => {
+              const agree = confirm.deciles.signal === deciles.signal
+              return (
+                <div className={styles.confirmLine} data-agree={agree} data-zone={confirm.deciles.signal}>
+                  {s[RANGE_LABEL_KEY[confirm.range]]}: {s.band} {confirm.deciles.band}/10 · {s[SIGNAL_LABEL_KEY[confirm.deciles.signal]]}
+                  {deciles.signal !== 'hold' && <> — {agree ? s.signalConfirms : s.signalDiffers}</>}
+                </div>
+              )
+            })()}
+            {(() => {
+              const step = largestStep(state.data.prices)
+              if (step.move <= ABNORMAL_MOVE) return null
+              // Band measured only since the big move, when there's enough
+              // history after it to mean something.
+              const after = state.data.prices.slice(step.index)
+              const since = after.length >= 10 ? computeDeciles({ prices: after, current: state.data.current }) : null
+              const ts = state.data.timestamps?.[step.index]
+              const dropped = state.data.prices[step.index] < state.data.prices[step.index - 1]
+              return (
+                <div className={styles.abnormalNote} role="note">
+                  <Icon name="alertTriangle" size={12} />
+                  <span>
+                    {s.abnormalMove}
+                    {since?.signal && typeof ts === 'number' && (
+                      <strong className={styles.sinceMove}>
+                        {interp(s.sinceMove, {
+                          kind: dropped ? s.moveDrop : s.moveJump,
+                          date: new Date(ts * 1000).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-GB', { day: 'numeric', month: 'short' }),
+                          band: since.band,
+                          zone: s[SIGNAL_LABEL_KEY[since.signal]],
+                        })}
+                      </strong>
+                    )}
+                  </span>
+                </div>
+              )
+            })()}
             <DecileGauge
               prices={state.data.prices}
               ohlc={state.data.ohlc}

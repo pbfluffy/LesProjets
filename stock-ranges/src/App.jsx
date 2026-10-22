@@ -32,6 +32,8 @@ const CHART_TYPE_KEY = 'stockranges_charttype'
 const TAGS_KEY = 'stockranges_tags'
 const KNOWN_FOR_KEY = 'stockranges_knownfor'
 const ALERTS_KEY = 'stockranges_alerts'
+const COST_ALERTS_KEY = 'stockranges_cost_alerts' // { SYMBOL: { below, gain } }
+const WALLET_PREFS_KEY = 'stockranges_wallet_prefs' // { exDividend, weekly }
 const ACTIVE_TAG_FILTERS_KEY = 'stockranges_active_tag_filters'
 const HOLDINGS_KEY = 'stockranges_holdings'
 const TAB_KEY = 'stockranges_tab'
@@ -87,6 +89,15 @@ function loadActiveTagFilters() {
 // endpoint alongside this) is the actual source of truth for the cron
 // job. If the two ever disagree, re-toggling fixes it — there's no
 // reconciliation logic beyond that for v1.
+function loadObject(key, fallback) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || 'null')
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback
+  } catch {
+    return fallback
+  }
+}
+
 function loadAlerts() {
   try {
     const raw = localStorage.getItem(ALERTS_KEY)
@@ -166,6 +177,8 @@ function Dashboard() {
   const priceAlerts = usePriceAlerts()
   const [activeTagFilters, setActiveTagFilters] = useState(loadActiveTagFilters)
   const [holdings, setHoldings] = useState(loadHoldings)
+  const [costAlerts, setCostAlerts] = useState(() => loadObject(COST_ALERTS_KEY, {}))
+  const [walletPrefs, setWalletPrefs] = useState(() => loadObject(WALLET_PREFS_KEY, { exDividend: false, weekly: false }))
   const [tab, setTab] = useState(() => (localStorage.getItem(TAB_KEY) === 'wallet' ? 'wallet' : 'watchlist'))
   const [tabActionsEl, setTabActionsEl] = useState(null)
   const [watchlistSort, setWatchlistSort] = useState(() => localStorage.getItem(WATCHLIST_SORT_KEY) || 'signal')
@@ -373,6 +386,74 @@ function Dashboard() {
   // Local state only updates after the Worker confirms the change, so a
   // failed request can't leave the toggle showing something that isn't
   // actually registered server-side.
+  useEffect(() => {
+    localStorage.setItem(COST_ALERTS_KEY, JSON.stringify(costAlerts))
+  }, [costAlerts])
+  useEffect(() => {
+    localStorage.setItem(WALLET_PREFS_KEY, JSON.stringify(walletPrefs))
+  }, [walletPrefs])
+
+  // Wallet notifications (cost alerts, ex-dividend reminders, weekly
+  // summary) and the daily portfolio value run in the scheduled job, which
+  // reads a copy of the wallet from the Worker (worker/scripts/
+  // portfolio-checks.mjs). On sign-in, restore the saved toggles first;
+  // only then keep the copy in sync, so a fresh device can't overwrite the
+  // saved settings with its empty ones.
+  const [portfolioReady, setPortfolioReady] = useState(false)
+  const signedInUid = cloudSync.user?.uid ?? null
+  useEffect(() => {
+    setPortfolioReady(false)
+    if (!cloudSync.user) return
+    let cancelled = false
+    priceAlerts.getPortfolio(cloudSync.user).then((saved) => {
+      if (cancelled) return
+      if (saved) {
+        const restored = {}
+        for (const [symbol, h] of Object.entries(saved.holdings || {})) {
+          if (h.costAlerts?.below || h.costAlerts?.gain) restored[symbol] = { below: !!h.costAlerts.below, gain: !!h.costAlerts.gain }
+        }
+        setCostAlerts(restored)
+        setWalletPrefs({ exDividend: !!saved.prefs?.exDividend, weekly: !!saved.prefs?.weekly })
+      }
+      setPortfolioReady(true)
+    })
+    return () => { cancelled = true }
+  }, [signedInUid]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!cloudSync.user || !portfolioReady) return
+    const t = setTimeout(() => {
+      const payload = {}
+      for (const [symbol, h] of Object.entries(holdings)) {
+        payload[symbol] = { ...h, costAlerts: costAlerts[symbol] || { below: false, gain: false } }
+      }
+      priceAlerts.setPortfolio(cloudSync.user, { holdings: payload, prefs: walletPrefs, currency, lang })
+    }, 2000)
+    return () => clearTimeout(t)
+  }, [signedInUid, portfolioReady, holdings, costAlerts, walletPrefs, currency, lang]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Turning a wallet notification on asks for notification permission and
+  // registers this device first (same as the per-ticker zone alerts).
+  async function handleToggleCostAlert(symbol, kind, next) {
+    if (!cloudSync.user) return false
+    if (next && !(await priceAlerts.ensureSubscribed(cloudSync.user))) return false
+    setCostAlerts((prev) => {
+      const cur = { below: false, gain: false, ...prev[symbol], [kind]: next }
+      const out = { ...prev }
+      if (!cur.below && !cur.gain) delete out[symbol]
+      else out[symbol] = cur
+      return out
+    })
+    return true
+  }
+
+  async function handleToggleWalletPref(key, next) {
+    if (!cloudSync.user) return false
+    if (next && !(await priceAlerts.ensureSubscribed(cloudSync.user))) return false
+    setWalletPrefs((prev) => ({ ...prev, [key]: next }))
+    return true
+  }
+
   async function handleToggleAlert(symbol, range, direction, next) {
     if (!cloudSync.user) return false
     const current = alerts[symbol] || {}
@@ -698,6 +779,8 @@ function Dashboard() {
           user={cloudSync.user}
           loadHistory={priceAlerts.loadHistory}
           sendTest={priceAlerts.sendTest}
+          walletPrefs={walletPrefs}
+          onToggleWalletPref={handleToggleWalletPref}
           onClose={() => setNotificationsOpen(false)}
         />
       )}
@@ -726,6 +809,10 @@ function Dashboard() {
             onAddBrand={addCustomBrand}
             onRemoveBrand={removeCustomBrand}
             marketOpen={marketStatus.open}
+            range={range}
+            costAlerts={costAlerts}
+            loadScheduledHistory={priceAlerts.loadScheduledHistory}
+            onToggleCostAlert={handleToggleCostAlert}
           />
         ) : (
           <WalletLocked />

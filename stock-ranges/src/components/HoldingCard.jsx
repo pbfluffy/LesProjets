@@ -7,9 +7,12 @@ import { computeHoldingPL, projectedDividendIncome, groupDividendsByPeriod, infe
 import TickerLogo from './TickerLogo.jsx'
 import KnownFor from './KnownFor.jsx'
 import TagChips from './TagChips.jsx'
+import CostAlertToggle from './CostAlertToggle.jsx'
 import { tagHue } from '../tagColor.js'
 import Icon from './Icon.jsx'
 import styles from './HoldingCard.module.css'
+
+const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
 
 function interp(str, vars) {
   return str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '')
@@ -18,7 +21,7 @@ function interp(str, vars) {
 export default function HoldingCard({
   symbol, holding, name, currentPrice, currentCurrency, instrumentType, dividendEvents, loading, quoteError, displayCurrency, rates,
   onEdit, onRemove, masked, watched, onWatchedClick, highlighted, tags = [], onAddTag, onRemoveTag,
-  customBrands = [], onAddBrand, onRemoveBrand, marketOpen,
+  customBrands = [], onAddBrand, onRemoveBrand, marketOpen, signal, costAlert, onToggleCostAlert,
 }) {
   const { s } = useLang()
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -84,6 +87,18 @@ export default function HoldingCard({
         )}
       </div>
 
+      {/* Where today's price sits in its range — same band/zone as the
+          watchlist card (WalletView computes it from the 2y series). */}
+      {(signal || onToggleCostAlert) && (
+        <div className={styles.signalRow}>
+          {signal && (
+            <span className={styles.signalLine} data-zone={signal.signal}>
+              {s.band} {signal.band}/10 · {s[SIGNAL_LABEL_KEY[signal.signal]]}
+            </span>
+          )}
+          {onToggleCostAlert && <CostAlertToggle config={costAlert} onToggle={onToggleCostAlert} />}
+        </div>
+      )}
       <TagChips tags={tags} onAdd={onAddTag} onRemove={onRemoveTag} />
       {/* Crypto has no consumer brands (and the empty-state note says
           "this stock"), so it skips the "known for" box altogether. */}

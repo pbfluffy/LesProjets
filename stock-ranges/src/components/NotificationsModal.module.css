@@ -48,6 +48,16 @@
 .kindDot { flex: 0 0 auto; width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: var(--color-text-muted); }
 .item[data-kind='buy'] .kindDot { background: var(--color-green); }
 .item[data-kind='sell'] .kindDot { background: var(--color-red); }
+.item[data-kind='below'] .kindDot { background: var(--color-red); }
+.item[data-kind='gain'] .kindDot { background: var(--color-green); }
+.item[data-kind='exdiv'] .kindDot,
+.item[data-kind='weekly'] .kindDot { background: var(--color-blue, #2563eb); }
+
+.prefs { margin: 16px 0 0; padding: 10px 12px; border: 0.5px solid var(--color-border); border-radius: var(--radius-sm); }
+.prefs legend { padding: 0 4px; font-size: 12px; font-weight: 600; }
+.prefRow { display: flex; align-items: flex-start; gap: 8px; min-height: 32px; padding: 4px 0; font-size: 13px; line-height: 1.4; cursor: pointer; }
+.prefRow input { margin-top: 2px; flex-shrink: 0; }
+.prefNote { margin: 6px 0 0; font-size: 11px; line-height: 1.5; color: var(--color-text-muted); }
 .itemText { min-width: 0; }
 .itemTitle { font-size: 13px; font-weight: 600; line-height: 1.4; }
 .itemBody { font-size: 12px; color: var(--color-text-muted); line-height: 1.4; }

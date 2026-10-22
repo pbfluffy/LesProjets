@@ -2,11 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLang } from '../LangContext.jsx'
 import { fetchQuote } from '../stockApi.js'
+import { computeDeciles, sliceByRange } from '../deciles.js'
+
+const RANGE_LABEL_KEY = { '3mo': 'range3mo', '6mo': 'range6mo', ytd: 'rangeYtd', '1y': 'range1y', '2y': 'range2y' }
 import { convert } from '../fx.js'
 import { formatPrice, maskPrice } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, estimateNextDividend, groupSymbolsByInstrumentType, sortHoldingSymbols, groupAllocationBySector } from '../wallet.js'
 import { generateSummaryImage } from '../shareImage.js'
-import { loadPortfolioHistory, recordPortfolioSnapshot } from '../portfolioHistory.js'
+import { loadPortfolioHistory, recordPortfolioSnapshot, mergePortfolioHistories, savePortfolioHistory } from '../portfolioHistory.js'
 import { usePortfolioHistorySync } from '../hooks/usePortfolioHistorySync.js'
 import Icon from './Icon.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
@@ -35,7 +38,8 @@ export default function WalletView({
   holdings, currency, rates,
   onAddHolding, onRemoveHolding, actionsPortalNode, user, watchlist, refreshKey,
   highlightSymbol, onWatchedClick, tags, onAddTag, onRemoveTag, activeTagFilters,
-  knownFor, onAddBrand, onRemoveBrand, marketOpen,
+  knownFor, onAddBrand, onRemoveBrand, marketOpen, range,
+  costAlerts = {}, onToggleCostAlert, loadScheduledHistory,
 }) {
   const { s } = useLang()
   const [quotes, setQuotes] = useState({})
@@ -49,6 +53,20 @@ export default function WalletView({
   const [search, setSearch] = useState('')
   const [history, setHistory] = useState(() => loadPortfolioHistory())
   const { pushSnapshot } = usePortfolioHistorySync(user, setHistory)
+
+  // Daily values the scheduled job recorded (on days the app wasn't opened),
+  // merged into this device's chart history.
+  useEffect(() => {
+    if (!user || !loadScheduledHistory) return
+    let cancelled = false
+    loadScheduledHistory(user).then((entries) => {
+      if (cancelled || !entries.length) return
+      const merged = mergePortfolioHistories(loadPortfolioHistory(), entries)
+      savePortfolioHistory(merged)
+      setHistory(merged)
+    })
+    return () => { cancelled = true }
+  }, [user?.uid]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const symbols = useMemo(() => Object.keys(holdings), [holdings])
   const watchedSet = useMemo(() => new Set(watchlist || []), [watchlist])
@@ -77,6 +95,7 @@ export default function WalletView({
           [symbol]: {
             current: data.current, currency: data.currency, dividends: data.dividends || [],
             name: data.name || null, instrumentType: data.instrumentType || null, error: null,
+            prices: data.prices || [], timestamps: data.timestamps || [],
           },
         })))
         .catch((err) => setQuotes((prev) => ({
@@ -85,6 +104,27 @@ export default function WalletView({
         })))
     })
   }, [symbols, refreshKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Buy/hold/sell band per holding, over the watchlist's chosen lookback —
+  // cut from the 2y daily series already loaded for dividends. Ranges that
+  // series can't cover (intraday 1d/7d, 5y) fall back to 1 year.
+  const signalRange = ['3mo', '6mo', 'ytd', '1y', '2y'].includes(range) ? range : '1y'
+  const signals = useMemo(() => {
+    const out = {}
+    for (const symbol of symbols) {
+      const q = quotes[symbol]
+      if (!q?.prices?.length || typeof q.current !== 'number') continue
+      const prices = sliceByRange(q.prices, q.timestamps, signalRange) || q.prices
+      const d = computeDeciles({ prices, current: q.current })
+      if (d?.signal) out[symbol] = { band: d.band, signal: d.signal }
+    }
+    return out
+  }, [symbols, quotes, signalRange])
+  const signalCounts = useMemo(() => {
+    const c = { buy: 0, hold: 0, sell: 0 }
+    Object.values(signals).forEach((x) => { c[x.signal]++ })
+    return c
+  }, [signals])
 
   const summary = useMemo(() => {
     let costBasis = 0
@@ -316,6 +356,13 @@ export default function WalletView({
             <span>{s.estPerQuarter}</span>
             <strong>{masked ? maskPrice(currency) : formatPrice(summary.perQuarter, currency)}</strong>
           </div>
+          {(signalCounts.buy > 0 || signalCounts.sell > 0) && (
+            <div className={styles.summarySignals}>
+              <span>{s.walletSignalsLabel} ({s[RANGE_LABEL_KEY[signalRange]]})</span>
+              {signalCounts.buy > 0 && <strong data-zone="buy">{signalCounts.buy} {s.signalBuy}</strong>}
+              {signalCounts.sell > 0 && <strong data-zone="sell">{signalCounts.sell} {s.signalSell}</strong>}
+            </div>
+          )}
         </div>
       )}
 
@@ -397,6 +444,9 @@ export default function WalletView({
                   onEdit={startEdit}
                   onRemove={onRemoveHolding}
                   marketOpen={marketOpen}
+                  signal={signals[symbol] ?? null}
+                  costAlert={costAlerts[symbol] ?? null}
+                  onToggleCostAlert={user && onToggleCostAlert ? (kind, next) => onToggleCostAlert(symbol, kind, next) : undefined}
                 />
                 </ErrorBoundary>
               ))}

@@ -102,5 +102,27 @@ export function usePriceAlerts() {
     return res?.ok && Array.isArray(res.data?.items) ? res.data.items : null
   }
 
-  return { permission, ensureSubscribed, setAlert, sendTest, loadHistory }
+  // Mirrors the wallet (holdings + per-holding cost alerts + wallet
+  // notification prefs) into the Worker's KV for the scheduled job — see
+  // worker/scripts/portfolio-checks.mjs.
+  async function setPortfolio(user, { holdings, prefs, currency, lang }) {
+    return postAlerts(user, { type: 'setPortfolio', holdings, prefs, currency, lang })
+  }
+
+  // The stored portfolio settings (to restore toggles on a new device), or
+  // null if none / unavailable.
+  async function getPortfolio(user) {
+    const res = await postAlertsJson(user, { type: 'getPortfolio' })
+    return res?.ok ? res.data?.portfolio ?? null : null
+  }
+
+  // Daily portfolio values the scheduled job recorded, as chart entries
+  // [{ date, marketValue, costBasis, currency, updatedAt }].
+  async function loadScheduledHistory(user) {
+    const res = await postAlertsJson(user, { type: 'portfolioHistory' })
+    const map = res?.ok ? res.data?.history : null
+    return map && typeof map === 'object' ? Object.entries(map).map(([date, e]) => ({ date, ...e })) : []
+  }
+
+  return { permission, ensureSubscribed, setAlert, sendTest, loadHistory, setPortfolio, getPortfolio, loadScheduledHistory }
 }

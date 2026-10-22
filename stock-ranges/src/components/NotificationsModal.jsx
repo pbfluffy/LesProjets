@@ -12,13 +12,14 @@ function interp(str, vars) {
 // alert check, plus test pushes) and a "Send test notification" button —
 // opened from the account menu. Data comes from the Worker's /alerts route
 // (`history` / `testPush`), via usePriceAlerts.
-export default function NotificationsModal({ user, loadHistory, sendTest, onClose }) {
+export default function NotificationsModal({ user, loadHistory, sendTest, walletPrefs, onToggleWalletPref, onClose }) {
   const { s, lang } = useLang()
   const modalRef = useRef(null)
   useFocusTrap(modalRef)
   const [items, setItems] = useState(undefined) // undefined = loading, null = failed
   const [testing, setTesting] = useState(false)
   const [testMsg, setTestMsg] = useState(null)
+  const [prefBusy, setPrefBusy] = useState(null)
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -60,13 +61,37 @@ export default function NotificationsModal({ user, loadHistory, sendTest, onClos
         </button>
         {testMsg && <div className={styles.testMsg} role="status">{testMsg}</div>}
 
+        {onToggleWalletPref && (
+          <fieldset className={styles.prefs}>
+            <legend>{s.walletNotifTitle}</legend>
+            {[['exDividend', s.walletNotifExDiv], ['weekly', s.walletNotifWeekly]].map(([key, label]) => (
+              <label key={key} className={styles.prefRow}>
+                <input
+                  type="checkbox"
+                  checked={!!walletPrefs?.[key]}
+                  disabled={prefBusy === key}
+                  onChange={async (e) => {
+                    const next = e.target.checked
+                    setPrefBusy(key)
+                    const ok = await onToggleWalletPref(key, next)
+                    setPrefBusy(null)
+                    if (!ok) setTestMsg(typeof Notification !== 'undefined' && Notification.permission === 'denied' ? s.notifTestDenied : s.notifTestFailed)
+                  }}
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+            <p className={styles.prefNote}>{s.walletNotifNote}</p>
+          </fieldset>
+        )}
+
         {items === undefined && <div className={styles.empty}>…</div>}
         {items === null && <div className={styles.empty}>{s.notifLoadError}</div>}
         {Array.isArray(items) && items.length === 0 && <div className={styles.empty}>{s.notifEmpty}</div>}
         {Array.isArray(items) && items.length > 0 && (
           <ul className={styles.list}>
             {items.map((it, i) => (
-              <li key={`${it.ts}-${i}`} className={styles.item} data-kind={it.test ? 'test' : it.direction}>
+              <li key={`${it.ts}-${i}`} className={styles.item} data-kind={it.test ? 'test' : (it.kind || it.direction)}>
                 <span className={styles.kindDot} aria-hidden="true" />
                 <div className={styles.itemText}>
                   <div className={styles.itemTitle}>
