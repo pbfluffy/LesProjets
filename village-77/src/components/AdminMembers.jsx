@@ -26,6 +26,22 @@ export default function AdminMembers({ shops, providers, onOpenPost, bans = {}, 
     },
   ), [])
 
+  // One-time cleanup: older versions also wrote LINE (village-only) members
+  // into the site-wide userProfiles that admindepum lists. Remove them once
+  // per browser (owner only — firestore.rules); Google accounts are site users.
+  useEffect(() => {
+    if (!members?.length) return
+    const KEY = 'village_profiles_cleaned_v1'
+    try { if (localStorage.getItem(KEY)) return } catch { /* storage blocked */ }
+    const line = members.filter((m) => m.uid.startsWith('line:'))
+    Promise.all(line.map((m) => deleteDoc(doc(db, 'userProfiles', m.uid))))
+      .then(() => {
+        try { localStorage.setItem(KEY, '1') } catch { /* storage blocked */ }
+        console.info('[village] removed', line.length, 'LINE members from userProfiles')
+      })
+      .catch((e) => console.error('[village] userProfiles cleanup failed:', e?.code))
+  }, [members])
+
   useEffect(() => onSnapshot(
     collection(db, 'villageAdmins'),
     (snap) => setAdmins(new Set(snap.docs.map((d) => d.id))),
