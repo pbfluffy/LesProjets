@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
-import { updatePost, deletePost, deletePrivateAddress } from '../hooks/usePosts'
+import { updatePost, deletePost, deletePrivateAddress, withItemIds, itemKey } from '../hooks/usePosts'
 import { useAuthContext } from '../hooks/useAuth'
 import { useCategoriesContext } from '../hooks/useCategories'
 import { useFavoritesContext } from '../hooks/useFavorites'
@@ -25,6 +25,38 @@ function formatPrice(price, t, lang) {
   if (price === null || price === undefined) return t.priceAsk
   if (price === 0) return t.priceFree
   return '฿' + price.toLocaleString(lang === 'th' ? 'th-TH' : 'en-US')
+}
+
+// One item's stars, under its name: the average, and (not for the shop
+// owner) five small stars to tap — the filled ones are your own rating.
+function ItemStars({ postId, item, ratings, canPick }) {
+  const { t } = useLangContext()
+  const { requireSignIn } = useAuthContext()
+  const itemId = itemKey(item) // older items: an id made from the name
+  const { avg, count, mine } = ratings.item(postId, itemId)
+  if (!canPick && !count) return null
+
+  function pick(n) {
+    if (!requireSignIn()) return
+    ratings.rateItem(postId, itemId, n).catch((e) => {
+      console.error('[village] item rating failed:', e?.code)
+      alert(t.saveFailed)
+    })
+  }
+
+  return (
+    <span className={styles.itemStars}>
+      {count > 0 && <span className={styles.itemStarsAvg}>★ {avg.toFixed(1)} ({count})</span>}
+      {canPick && (
+        <span role="group" aria-label={t.itemRate}>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button key={n} type="button" className={`${styles.itemStar} ${n <= mine ? styles.itemStarOn : ''}`}
+              onClick={() => pick(n)} aria-label={interp(t.ratingStars, { n })} aria-pressed={n === mine}>★</button>
+          ))}
+        </span>
+      )}
+    </span>
+  )
 }
 
 // Average (read-only), the latest written reviews, and — for anyone but the
@@ -230,7 +262,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
   }
 
   function toggleSold(i) {
-    const next = items.map((it, j) => (j === i ? { ...it, sold: !it.sold } : it))
+    const next = withItemIds(items).map((it, j) => (j === i ? { ...it, sold: !it.sold } : it))
     updatePost(collectionName, post.id, { items: next }).catch((e) => {
       console.error('[village] sold toggle failed:', e?.code)
       alert(t.saveFailed)
@@ -365,6 +397,7 @@ export default function PostCard({ kind, collectionName, post, ratings, onEdit, 
                 <span className={styles.itemName}>
                   {it.name}
                   {isNewItem(it) && <span className={styles.newTag}>🆕 {t.itemNew}</span>}
+                  <ItemStars postId={post.id} item={it} ratings={ratings} canPick={!isOwner && !it.sold} />
                 </span>
                 <span className={styles.itemPrice}>
                   {!it.sold && isOnSale(it) && <><s className={styles.oldPrice}>{formatPrice(it.oldPrice, t, lang)}</s>{' '}</>}

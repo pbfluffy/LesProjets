@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLangContext, interp } from '../LangContext'
 import { useCategoriesContext } from '../hooks/useCategories'
-import { createPost, updatePost, savePrivateAddress, deletePrivateAddress, loadPrivateAddress, postsLeftToday, DAILY_POST_LIMIT } from '../hooks/usePosts'
+import { createPost, updatePost, savePrivateAddress, deletePrivateAddress, loadPrivateAddress, postsLeftToday, DAILY_POST_LIMIT, newItemId, itemKey } from '../hooks/usePosts'
 import { useAuthContext } from '../hooks/useAuth'
 import { uploadPhoto, PHOTO_ITEM, photosOf, deletePhotos } from '../photo'
 import { igHandle } from '../share'
@@ -39,7 +39,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
     address: '',
     photos: post?.photos || [],
     items: post?.items?.length
-      ? [...post.items.map((it) => ({ ...it, price: it.price ?? '', oldPrice: it.oldPrice ?? '', promo: it.oldPrice != null, addedAt: it.addedAt ?? 0 })), ...(startWithNewItem ? [emptyItem()] : [])]
+      ? [...post.items.map((it) => ({ ...it, price: it.price ?? '', oldPrice: it.oldPrice ?? '', promo: it.oldPrice != null, addedAt: it.addedAt ?? 0, id: itemKey(it) })), ...(startWithNewItem ? [emptyItem()] : [])]
       : [emptyItem()],
     isResident: post ? !!post.isResident : true,
   }))
@@ -171,6 +171,7 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
           const price = it.price === '' ? null : Math.max(0, Math.round(Number(it.price)))
           const oldPrice = it.oldPrice === '' ? null : Math.round(Number(it.oldPrice))
           return {
+            id: it.id || newItemId(),
             name: it.name.trim(),
             price,
             photo: it.photo || null,
@@ -380,11 +381,20 @@ export default function PostForm({ kind, collectionName, post, user, onClose, st
                 <button type="button" className={styles.thumbRemove} onClick={() => removePhoto(i)} aria-label={t.fPhotoRemove}>×</button>
               </div>
             ))}
+            {/* No `multiple`: with it, Android Chrome jumps straight to the
+                Files app; without it, it offers Photos / Gallery. Camera is
+                its own button (capture) so it's one tap. */}
             {f.photos.length < maxPhotos && (
-              <label className={`${styles.thumb} ${styles.thumbAdd}`}>
-                {processing ? '…' : '📷 +'}
-                <input type="file" accept="image/*" multiple hidden disabled={processing} onChange={handlePhotos} />
-              </label>
+              <>
+                <label className={`${styles.thumb} ${styles.thumbAdd}`}>
+                  {processing ? '…' : <>🖼️<small>{t.fFromGallery}</small></>}
+                  <input type="file" accept="image/*" hidden disabled={processing} onChange={handlePhotos} />
+                </label>
+                <label className={`${styles.thumb} ${styles.thumbAdd}`}>
+                  {processing ? '…' : <>📷<small>{t.fTakePhoto}</small></>}
+                  <input type="file" accept="image/*" capture="environment" hidden disabled={processing} onChange={handlePhotos} />
+                </label>
+              </>
             )}
           </div>
         </div>

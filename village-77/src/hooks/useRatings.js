@@ -6,6 +6,7 @@ import { db, collection, query, limit, onSnapshot, doc, setDoc, deleteDoc, serve
 // re-rating overwrites. Anyone can read them; firestore.rules checks the id
 // is the rater's own.
 const RATINGS = 'villageRatings'
+const ITEM_RATINGS = 'villageItemRatings'
 
 export function useRatings(user) {
   const [docs, setDocs] = useState([])
@@ -39,6 +40,29 @@ export function useRatings(user) {
     return map
   }, [docs, uid])
 
+  // Item ratings (stars only): villageItemRatings/{postId}_{itemId}_{uid}.
+  // Items get a short stable id when saved (PostForm / toggleSold).
+  const [itemDocs, setItemDocs] = useState([])
+  useEffect(() => onSnapshot(
+    query(collection(db, ITEM_RATINGS), limit(5000)),
+    (snap) => setItemDocs(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    (e) => console.error('[village] item ratings subscribe failed:', e?.code),
+  ), [])
+  // "postId_itemId" -> { avg, count, mine }
+  const byItem = useMemo(() => {
+    const map = {}
+    for (const r of itemDocs) {
+      const s = (map[r.postId + '_' + r.itemId] ||= { sum: 0, count: 0, mine: 0 })
+      s.sum += r.stars
+      s.count += 1
+      if (uid && r.id === `${r.postId}_${r.itemId}_${uid}`) s.mine = r.stars
+    }
+    for (const s of Object.values(map)) s.avg = s.sum / s.count
+    return map
+  }, [itemDocs, uid])
+  const removeItemDocs = (match) =>
+    Promise.all(itemDocs.filter(match).map((r) => deleteDoc(doc(db, ITEM_RATINGS, r.id))))
+
   // merge: changing the stars keeps the comment, and vice versa.
   const write = (postId, fields) => setDoc(
     doc(db, RATINGS, `${postId}_${uid}`),
@@ -48,6 +72,11 @@ export function useRatings(user) {
 
   return {
     total: docs.length,
+    item: (postId, itemId) => byItem[postId + '_' + itemId] || { avg: 0, count: 0, mine: 0 },
+    rateItem: (postId, itemId, stars) => setDoc(
+      doc(db, ITEM_RATINGS, `${postId}_${itemId}_${uid}`),
+      { postId, itemId, stars, updatedAt: serverTimestamp() },
+    ),
     get: (postId) => byPost[postId] || { avg: 0, count: 0, mine: 0, myComment: '', reviews: [] },
     // Ratings or reviews for a post changed after `since` (ms) — the owner's
     // "new reviews" badge in My shops.
@@ -55,10 +84,10 @@ export function useRatings(user) {
     rate: (postId, stars) => write(postId, { stars }),
     comment: (postId, text) => write(postId, { comment: text.trim().slice(0, 200) }),
     // When a post is deleted its ratings go too (owner or admin).
-    removeAll: (postId) =>
-      Promise.all(docs.filter((r) => r.postId === postId).map((r) => deleteDoc(doc(db, RATINGS, r.id)))),
+    removeAll: (postId) => removeItemDocs((r) => r.postId === postId).then(() =>
+      Promise.all(docs.filter((r) => r.postId === postId).map((r) => deleteDoc(doc(db, RATINGS, r.id))))),
     // Every rating / review someone wrote (admin, when removing a banned user).
-    removeBy: (raterUid) =>
-      Promise.all(docs.filter((r) => r.id.endsWith('_' + raterUid)).map((r) => deleteDoc(doc(db, RATINGS, r.id)))),
+    removeBy: (raterUid) => removeItemDocs((r) => r.id.endsWith('_' + raterUid)).then(() =>
+      Promise.all(docs.filter((r) => r.id.endsWith('_' + raterUid)).map((r) => deleteDoc(doc(db, RATINGS, r.id))))),
   }
 }

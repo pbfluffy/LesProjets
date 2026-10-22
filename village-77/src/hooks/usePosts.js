@@ -110,3 +110,16 @@ export async function loadPrivateAddress(postId) {
     return ''
   }
 }
+
+// Short stable id for a shop item, so ratings stay on the right item when
+// items are reordered, renamed or removed. New items get a random one;
+// items saved before ids existed get one made from their name (itemKey), so
+// they can be rated straight away and keep the same id once the shop is saved.
+export const newItemId = () => Math.random().toString(36).slice(2, 10)
+export function itemKey(it) {
+  if (it.id) return it.id
+  let h = 0
+  for (const ch of it.name || '') h = (Math.imul(h, 31) + ch.codePointAt(0)) | 0
+  return 'n' + (h >>> 0).toString(36)
+}
+export const withItemIds = (items) => items.map((it) => (it.id ? it : { ...it, id: itemKey(it) }))

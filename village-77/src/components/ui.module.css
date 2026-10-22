@@ -186,6 +186,10 @@
   cursor: default;
 }
 .itemName { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.itemStars { display: flex; align-items: center; gap: 6px; margin-top: 2px; font-size: 12px; color: var(--color-text-muted); }
+.itemStarsAvg { color: var(--color-amber); font-weight: 600; }
+.itemStar { background: none; border: 0; padding: 0 1px; font-size: 16px; line-height: 1; color: var(--color-border-strong); cursor: pointer; }
+.itemStarOn { color: #f5a623; }
 .itemPrice { flex: 0 0 auto; font-family: var(--font-mono); font-size: 14px; font-weight: 500; }
 .oldPrice { color: var(--color-text-muted); font-weight: 400; font-size: 12px; }
 .saleTag, .newTag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 11px; font-weight: 600; font-family: var(--font-sans, inherit); white-space: nowrap; vertical-align: middle; }
@@ -585,6 +589,8 @@
 }
 .thumbAdd {
   display: flex;
+  flex-direction: column;
+  gap: 2px;
   align-items: center;
   justify-content: center;
   border: 1px dashed var(--color-border-strong);
@@ -592,6 +598,7 @@
   font-size: 14px;
   cursor: pointer;
 }
+.thumbAdd small { font-size: 11px; }
 
 .error { color: var(--color-red); font-size: 13px; }
 
