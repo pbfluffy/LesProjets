@@ -8,6 +8,10 @@
 //       "line:<LINE user id>") the app signs in with. Firebase has no LINE
 //       provider, so this is the bridge.
 //
+//   POST /line-link { code, redirectUri }, /line-unlink, /line-link-status
+//       (Authorization: Bearer <Firebase ID token>) — the site's home page:
+//       connect LINE to a Google account, so LINE sign-in there opens it.
+//
 //   POST /upload      multipart "file"  (Authorization: Bearer <Firebase ID token>)
 //       Stores a post photo in R2 and returns its URL. Photos used to live
 //       inside the Firestore post as data URLs, which made every visitor
@@ -33,10 +37,21 @@
 //   FIREBASE_SERVICE_ACCOUNT   secret — the pumgoda service-account JSON key
 
 const PROJECT_ID = 'pumgoda'
-const ALLOWED_ORIGINS = ['https://pumbafluffycorgi.com', 'http://localhost:5184']
+const ALLOWED_ORIGINS = ['https://pumbafluffycorgi.com', 'http://localhost:5184', 'http://localhost:5178']
+// The site's home page (pumbafluffycorgi.com/) also signs in with LINE, on
+// the same channel. There a person can connect LINE to their Google account
+// (/line-link), and LINE sign-in then opens that account. Village-77
+// sign-ins always use the "line:<LINE user id>" account — its members live
+// there.
+const MAIN_REDIRECTS = ['https://pumbafluffycorgi.com/', 'http://localhost:5178/']
 // LINE only redirects back to callback URLs registered on the channel; this
 // list must match that setting.
-const ALLOWED_REDIRECTS = ['https://pumbafluffycorgi.com/village-77/', 'http://localhost:5184/village-77/']
+const ALLOWED_REDIRECTS = ['https://pumbafluffycorgi.com/village-77/', 'http://localhost:5184/village-77/', ...MAIN_REDIRECTS]
+// Connected accounts, as tiny objects in the R2 bucket (never served by /p/):
+//   _linelinks/<LINE user id>   -> Firebase uid
+//   _linelinks-uid/<Firebase uid> -> LINE user id
+const LINK_PREFIX = '_linelinks/'
+const LINK_UID_PREFIX = '_linelinks-uid/'
 const MAX_BYTES = 3 * 1024 * 1024 // app shrinks photos well below this first
 const EXT = { 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/png': 'png' }
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'
@@ -136,14 +151,45 @@ async function handleLineAuth(request, env, origin) {
     console.warn('[line-auth] LINE returned an error', String(lineError).slice(0, 300))
     return json({ ok: true }, 200, origin)
   }
+  const r = await lineProfile(env, { code, redirectUri, liffIdToken })
+  if (r.error) return json({ error: r.error }, r.status, origin)
+  const { profile } = r
+
+  console.log('[line-auth] ok via', liffIdToken ? 'liff' : 'web') // no names in logs
+
+  // 3. Firebase custom token for uid "line:<sub>" — or, on the home page,
+  //    the account this LINE user connected to (see /line-link).
+  const name = String(profile.name || '').slice(0, 80)
+  const picture = String(profile.picture || '')
+  let uid = 'line:' + profile.sub
+  if (MAIN_REDIRECTS.includes(redirectUri)) {
+    const linked = await env.BUCKET.get(LINK_PREFIX + profile.sub)
+    if (linked) uid = await linked.text()
+  }
+  const customToken = await mintCustomToken(env, uid, { provider: 'line' })
+  // Started from the iPhone home-screen app: LINE sent the user back to
+  // Safari, not to the app. Park the sign-in under the app's one-time
+  // hand-off id; the app collects it with /line-handoff when it's reopened.
+  if (isHandoffId(handoff)) {
+    await env.BUCKET.put(HANDOFF_PREFIX + handoff, JSON.stringify({
+      customToken, name, picture, expires: Date.now() + HANDOFF_TTL_MS,
+    }))
+    return json({ handedOff: true }, 200, origin)
+  }
+  return json({ customToken, name, picture }, 200, origin)
+}
+
+// LINE code (web login) or LIFF ID token → the LINE profile { sub, name,
+// picture }, checked by LINE itself. Returns { profile } or { error, status }.
+async function lineProfile(env, { code, redirectUri, liffIdToken }) {
   let idToken
   if (typeof liffIdToken === 'string' && liffIdToken) {
     // Opened inside the LINE app (LIFF): it hands us an ID token directly —
     // no redirect to LINE's login page, which fails on some iPhones.
     idToken = liffIdToken
   } else {
-    if (typeof code !== 'string' || !code) return json({ error: 'missing code' }, 400, origin)
-    if (!ALLOWED_REDIRECTS.includes(redirectUri)) return json({ error: 'bad redirectUri' }, 400, origin)
+    if (typeof code !== 'string' || !code) return { error: 'missing code', status: 400 }
+    if (!ALLOWED_REDIRECTS.includes(redirectUri)) return { error: 'bad redirectUri', status: 400 }
 
     // 1. Authorization code → LINE ID token
     const tokenRes = await fetch('https://api.line.me/oauth2/v2.1/token', {
@@ -159,7 +205,7 @@ async function handleLineAuth(request, env, origin) {
     })
     if (!tokenRes.ok) {
       console.warn('[line-auth] code rejected', tokenRes.status, (await tokenRes.text()).slice(0, 300))
-      return json({ error: 'LINE rejected the code' }, 401, origin)
+      return { error: 'LINE rejected the code', status: 401 }
     }
     idToken = (await tokenRes.json()).id_token
   }
@@ -172,27 +218,67 @@ async function handleLineAuth(request, env, origin) {
   })
   if (!verifyRes.ok) {
     console.warn('[line-auth] token did not verify', liffIdToken ? 'liff' : 'web', verifyRes.status, (await verifyRes.text()).slice(0, 300))
-    return json({ error: 'LINE token did not verify' }, 401, origin)
+    return { error: 'LINE token did not verify', status: 401 }
   }
   const profile = await verifyRes.json() // { sub, name, picture, ... }
-  if (!profile.sub) return json({ error: 'no LINE user id' }, 401, origin)
+  if (!profile.sub) return { error: 'no LINE user id', status: 401 }
+  return { profile }
+}
 
-  console.log('[line-auth] ok via', liffIdToken ? 'liff' : 'web') // no names in logs
-
-  // 3. Firebase custom token for uid "line:<sub>"
-  const name = String(profile.name || '').slice(0, 80)
-  const picture = String(profile.picture || '')
-  const customToken = await mintCustomToken(env, 'line:' + profile.sub, { provider: 'line' })
-  // Started from the iPhone home-screen app: LINE sent the user back to
-  // Safari, not to the app. Park the sign-in under the app's one-time
-  // hand-off id; the app collects it with /line-handoff when it's reopened.
-  if (isHandoffId(handoff)) {
-    await env.BUCKET.put(HANDOFF_PREFIX + handoff, JSON.stringify({
-      customToken, name, picture, expires: Date.now() + HANDOFF_TTL_MS,
-    }))
-    return json({ handedOff: true }, 200, origin)
+// The signed-in Firebase user behind a request, or null.
+async function requestUser(request) {
+  const m = (request.headers.get('Authorization') || '').match(/^Bearer\s+(.+)$/i)
+  if (!m) return null
+  try {
+    return await verifyIdToken(m[1])
+  } catch {
+    return null
   }
-  return json({ customToken, name, picture }, 200, origin)
+}
+
+// POST /line-link { code, redirectUri } (Authorization: Bearer <Firebase ID
+// token>) — home page, signed in with Google: connect a LINE account, so
+// LINE sign-in on the home page opens this same account. One LINE account
+// per Firebase account; connecting another LINE replaces the old one.
+async function handleLineLink(request, env, origin) {
+  const user = await requestUser(request)
+  if (!user) return json({ error: 'sign in first' }, 401, origin)
+  if (user.sub.startsWith('line:')) return json({ error: 'already a LINE account' }, 400, origin)
+  const { code, redirectUri } = await request.json().catch(() => ({}))
+  if (!MAIN_REDIRECTS.includes(redirectUri)) return json({ error: 'bad redirectUri' }, 400, origin)
+  const r = await lineProfile(env, { code, redirectUri })
+  if (r.error) return json({ error: r.error }, r.status, origin)
+  const sub = r.profile.sub
+
+  const existing = await env.BUCKET.get(LINK_PREFIX + sub)
+  if (existing && (await existing.text()) !== user.sub) {
+    return json({ error: 'This LINE account is connected to another account', code: 'taken' }, 409, origin)
+  }
+  const prev = await env.BUCKET.get(LINK_UID_PREFIX + user.sub)
+  if (prev) {
+    const prevSub = await prev.text()
+    if (prevSub !== sub) await env.BUCKET.delete(LINK_PREFIX + prevSub)
+  }
+  await env.BUCKET.put(LINK_PREFIX + sub, user.sub)
+  await env.BUCKET.put(LINK_UID_PREFIX + user.sub, sub)
+  console.log('[line-link] connected') // no ids in logs
+  return json({ linked: true }, 200, origin)
+}
+
+// POST /line-unlink (Bearer) — disconnect LINE from the caller's account.
+async function handleLineUnlink(request, env, origin) {
+  const user = await requestUser(request)
+  if (!user) return json({ error: 'sign in first' }, 401, origin)
+  const prev = await env.BUCKET.get(LINK_UID_PREFIX + user.sub)
+  if (prev) await env.BUCKET.delete([LINK_PREFIX + (await prev.text()), LINK_UID_PREFIX + user.sub])
+  return json({ linked: false }, 200, origin)
+}
+
+// POST /line-link-status (Bearer) → { linked }
+async function handleLineLinkStatus(request, env, origin) {
+  const user = await requestUser(request)
+  if (!user) return json({ error: 'sign in first' }, 401, origin)
+  return json({ linked: !!(await env.BUCKET.head(LINK_UID_PREFIX + user.sub)) }, 200, origin)
 }
 
 // Home-screen app sign-in hand-off (see handleLineAuth). The id is 32 random
@@ -403,6 +489,9 @@ export default {
       if (request.method === 'POST' && url.pathname === '/upload') return await handleUpload(request, env, origin)
       if (request.method === 'POST' && url.pathname === '/delete') return await handleDelete(request, env, origin)
       if (request.method === 'POST' && url.pathname === '/line-handoff') return await handleHandoff(request, env, origin)
+      if (request.method === 'POST' && url.pathname === '/line-link') return await handleLineLink(request, env, origin)
+      if (request.method === 'POST' && url.pathname === '/line-unlink') return await handleLineUnlink(request, env, origin)
+      if (request.method === 'POST' && url.pathname === '/line-link-status') return await handleLineLinkStatus(request, env, origin)
       if (request.method === 'POST' && url.pathname === '/log') return await handleClientLog(request, origin)
     } catch (e) {
       console.error('[village-77 worker]', e)

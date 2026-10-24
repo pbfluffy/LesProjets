@@ -100,6 +100,21 @@
     .acct-popover .acct-google-btn:hover { background: #f8f9fa; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
     .acct-popover .acct-google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .acct-popover .acct-google-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+    /* LINE's own button colours (brand green, white text). */
+    .acct-popover .acct-line-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 10px 12px; margin-top: 8px;
+      background: #06C755; border: 1px solid #06C755; border-radius: 8px;
+      font-size: 13px; font-weight: 600; font-family: inherit; color: #fff;
+      cursor: pointer; transition: filter 0.15s;
+    }
+    .acct-popover .acct-line-btn:hover { filter: brightness(0.95); }
+    .acct-popover .acct-line-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .acct-popover .acct-line-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .acct-popover .acct-line { border-top: 1px solid var(--border); padding-top: 10px; margin-bottom: 12px; }
+    .acct-popover .acct-line[hidden] { display: none; }
+    .acct-popover .acct-line .status[data-linked="true"] { color: #06C755; }
+    .acct-popover .acct-line-hint { font-size: 11px; color: var(--muted); line-height: 1.4; margin-top: 6px; }
     .acct-popover .acct-privacy { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
     .acct-popover .acct-row { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
     .acct-popover .acct-row img { width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--accent); flex-shrink: 0; }
@@ -186,7 +201,11 @@
             <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.79 2.72v2.27h2.9c1.7-1.57 2.69-3.88 2.69-6.63z"/><path fill="#34A853" d="M9 18c2.43 0 4.46-.8 5.95-2.18l-2.9-2.27c-.8.55-1.84.87-3.05.87a5.36 5.36 0 0 1-5.03-3.7H1v2.34A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.94H1A9 9 0 0 0 0 9c0 1.45.35 2.83.97 4.06l3-2.34z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0a9 9 0 0 0-8.03 4.94l3 2.34A5.36 5.36 0 0 1 9 3.58z"/></svg>
             <span id="acct-google-label">Continue with Google</span>
           </button>
-          <p class="acct-privacy" id="acct-privacy">We only see your name and email. Sign out anytime.</p>
+          <button class="acct-line-btn" id="acct-line-btn">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="#fff" d="M12 3C6.48 3 2 6.63 2 11.1c0 4 3.55 7.36 8.35 8 .33.07.77.22.88.5.1.25.07.65.03.9l-.14.86c-.04.25-.2.99.87.54 1.07-.45 5.76-3.4 7.86-5.81C21.3 14.5 22 12.9 22 11.1 22 6.63 17.52 3 12 3z"/><path fill="#06C755" d="M8.6 13.2H6.6a.5.5 0 0 1-.5-.5V8.8a.5.5 0 0 1 1 0v3.4h1.5a.5.5 0 0 1 0 1zm1.6-.5a.5.5 0 0 1-1 0V8.8a.5.5 0 0 1 1 0v3.9zm4.8 0a.5.5 0 0 1-.9.3l-2-2.7v2.4a.5.5 0 0 1-1 0V8.8a.5.5 0 0 1 .9-.3l2 2.7V8.8a.5.5 0 0 1 1 0v3.9zm3.2-2.4a.5.5 0 0 1 0 1h-1.5v.9h1.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5V8.8a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-1.5v.9h1.5z"/></svg>
+            <span id="acct-line-label">Continue with LINE</span>
+          </button>
+          <p class="acct-privacy" id="acct-privacy">We only see your name and email (Google) or name and photo (LINE). Sign out anytime.</p>
         </div>
         <div class="acct-signed-in" style="display:none">
           <div class="acct-row">
@@ -208,6 +227,13 @@
               <button class="acct-mini-btn" id="acct-backup-now">Back up now</button>
               <button class="acct-mini-btn" id="acct-restore-open">Restore…</button>
             </div>
+          </div>
+          <div class="acct-line" id="acct-line-row" hidden>
+            <div class="acct-sync-row"><span id="acct-line-title">LINE sign-in</span><span class="status" id="acct-line-status" data-linked="false">· not connected</span></div>
+            <div class="acct-backup-actions">
+              <button class="acct-mini-btn" id="acct-line-link">Connect LINE</button>
+            </div>
+            <p class="acct-line-hint" id="acct-line-hint">Then "Continue with LINE" opens this account too.</p>
           </div>
           <button class="acct-signout-btn" id="acct-signout-btn">Sign out</button>
         </div>
@@ -378,7 +404,17 @@
         acctHeading: "เข้าสู่ระบบเพื่อซิงค์ข้อมูล",
         acctBlurb: "เก็บข้อมูลโภชนาการ ประวัติบิล และที่ที่บันทึกไว้ ให้ใช้ได้ทั้งมือถือและคอม",
         acctGoogleLabel: "ดำเนินการต่อด้วย Google",
-        acctPrivacy: "เราเห็นเฉพาะชื่อและอีเมล ออกจากระบบได้ตลอด",
+        acctLineLabel: "ดำเนินการต่อด้วย LINE",
+        acctLineTitle: "เข้าสู่ระบบด้วย LINE",
+        acctLineOff: "· ยังไม่เชื่อม",
+        acctLineOn: "· เชื่อมแล้ว",
+        acctLineConnect: "เชื่อม LINE",
+        acctLineDisconnect: "ยกเลิกการเชื่อม",
+        acctLineHint: "เมื่อเชื่อมแล้ว กด \"ดำเนินการต่อด้วย LINE\" ก็เข้าบัญชีนี้ได้เลย",
+        lineLinked: "เชื่อม LINE แล้ว ✓",
+        lineTaken: "บัญชี LINE นี้เชื่อมกับบัญชีอื่นอยู่แล้ว",
+        lineFailed: "เข้าสู่ระบบด้วย LINE ไม่สำเร็จ ลองใหม่อีกครั้ง",
+        acctPrivacy: "เราเห็นเฉพาะชื่อกับอีเมล (Google) หรือชื่อกับรูปโปรไฟล์ (LINE) ออกจากระบบได้ตลอด",
         acctSignOut: "ออกจากระบบ",
         acctAppNutr: "โภชนาการ",
         acctAppBill: "ประวัติบิล",
@@ -426,7 +462,17 @@
         acctHeading: "Sign in to sync",
         acctBlurb: "Keep your nutrition logs, bills, and saved places across phone and laptop.",
         acctGoogleLabel: "Continue with Google",
-        acctPrivacy: "We only see your name and email. Sign out anytime.",
+        acctLineLabel: "Continue with LINE",
+        acctLineTitle: "LINE sign-in",
+        acctLineOff: "· not connected",
+        acctLineOn: "· connected",
+        acctLineConnect: "Connect LINE",
+        acctLineDisconnect: "Disconnect",
+        acctLineHint: "Then \"Continue with LINE\" opens this account too.",
+        lineLinked: "LINE connected ✓",
+        lineTaken: "That LINE account is already connected to another account.",
+        lineFailed: "LINE sign-in didn't work — please try again.",
+        acctPrivacy: "We only see your name and email (Google) or name and photo (LINE). Sign out anytime.",
         acctSignOut: "Sign out",
         acctAppNutr: "Nutritions",
         acctAppBill: "Bill history",
@@ -487,6 +533,12 @@
       document.getElementById("acct-heading").textContent = s.acctHeading
       document.getElementById("acct-blurb").textContent = s.acctBlurb
       document.getElementById("acct-google-label").textContent = s.acctGoogleLabel
+      document.getElementById("acct-line-label").textContent = s.acctLineLabel
+      document.getElementById("acct-line-title").textContent = s.acctLineTitle
+      document.getElementById("acct-line-hint").textContent = s.acctLineHint
+      const _lineLinked = document.getElementById("acct-line-status").dataset.linked === "true"
+      document.getElementById("acct-line-status").textContent = _lineLinked ? s.acctLineOn : s.acctLineOff
+      document.getElementById("acct-line-link").textContent = _lineLinked ? s.acctLineDisconnect : s.acctLineConnect
       document.getElementById("acct-privacy").textContent = s.acctPrivacy
       document.getElementById("acct-signout-btn").textContent = s.acctSignOut
       document.getElementById("acct-app-nutr").textContent = s.acctAppNutr
@@ -554,7 +606,7 @@
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js'
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js'
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithCustomToken, updateProfile } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js'
   import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, limit, deleteDoc } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
   const firebaseConfig = {
@@ -578,6 +630,95 @@
   const signedInEl = popover.querySelector('.acct-signed-in')
   const googleBtn = document.getElementById('acct-google-btn')
   const signoutBtn = document.getElementById('acct-signout-btn')
+  const lineBtn = document.getElementById('acct-line-btn')
+  const lineRow = document.getElementById('acct-line-row')
+  const lineLinkBtn = document.getElementById('acct-line-link')
+
+  // ---- Sign in with LINE ----
+  // Firebase has no LINE provider: LINE sends the visitor back here with
+  // ?code=…&state=…, and the village-77 Worker (which holds the LINE channel
+  // secret and the Firebase service-account key) trades the code for a
+  // Firebase custom token. Same LINE Login channel as village-77, so a
+  // person's LINE account is the same one there.
+  // Signed in with Google, a person can "Connect LINE" (mode 'link'): LINE
+  // sign-in here then opens that same Google account, with its data and
+  // backups. Without a connection LINE opens its own "line:<id>" account.
+  const LINE_WORKER = 'https://village-77.pbfluffygaming.workers.dev'
+  const LINE_CHANNEL_ID = '2012133281'
+  const LINE_REDIRECT = location.origin + '/'
+  const LINE_STATE_KEY = 'lp_line_state' // { state, mode: 'signin' | 'link' } while away at LINE
+
+  function startLine(mode) {
+    const state = crypto.randomUUID()
+    try { localStorage.setItem(LINE_STATE_KEY, JSON.stringify({ state, mode })) } catch (e) { /* storage blocked */ }
+    const params = new URLSearchParams({
+      response_type: 'code', client_id: LINE_CHANNEL_ID, redirect_uri: LINE_REDIRECT, state, scope: 'profile openid',
+    })
+    location.assign('https://access.line.me/oauth2/v2.1/authorize?' + params)
+  }
+
+  async function postLine(path, body, user) {
+    const headers = { 'Content-Type': 'application/json' }
+    if (user) headers.Authorization = 'Bearer ' + await user.getIdToken()
+    const res = await fetch(LINE_WORKER + path, { method: 'POST', headers, body: JSON.stringify(body || {}) })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) { const err = new Error(data.error || 'LINE request failed'); err.code = data.code; throw err }
+    return data
+  }
+
+  function setLineLinked(linked) {
+    document.getElementById('acct-line-status').dataset.linked = linked ? 'true' : 'false'
+    if (window.applyLang) window.applyLang()
+  }
+
+  // Connect row: only for accounts that aren't LINE accounts themselves.
+  async function refreshLineRow(user) {
+    lineRow.hidden = !user || user.uid.startsWith('line:')
+    if (lineRow.hidden) return
+    try { setLineLinked((await postLine('/line-link-status', {}, user)).linked) }
+    catch (e) { console.warn('[line] status failed:', e) }
+  }
+
+  const firstAuthState = new Promise((resolve) => { const stop = onAuthStateChanged(auth, (u) => { stop(); resolve(u) }) })
+
+  // Runs on load: finishes a LINE sign-in or connect if we just came back.
+  async function finishLine() {
+    const params = new URLSearchParams(location.search)
+    const code = params.get('code')
+    const lineError = params.get('error')
+    if (!code && !lineError) return
+    history.replaceState(null, '', location.pathname + location.hash) // a reload mustn't replay the code
+    let saved = null
+    try { saved = JSON.parse(localStorage.getItem(LINE_STATE_KEY)); localStorage.removeItem(LINE_STATE_KEY) } catch (e) { /* storage blocked */ }
+    if (lineError) {
+      if (lineError !== 'access_denied') alert(txt('lineFailed')) // "cancel" on LINE's page isn't an error
+      return
+    }
+    // A different state means the code came from someone else's link (login CSRF).
+    if (!saved || saved.state !== params.get('state')) { alert(txt('lineFailed')); return }
+    try {
+      if (saved.mode === 'link') {
+        const user = await firstAuthState
+        if (!user) throw new Error('signed out while away at LINE')
+        await postLine('/line-link', { code, redirectUri: LINE_REDIRECT }, user)
+        setLineLinked(true)
+        alert(txt('lineLinked'))
+      } else {
+        const r = await postLine('/line-auth', { code, redirectUri: LINE_REDIRECT })
+        const cred = await signInWithCustomToken(auth, r.customToken)
+        // A new LINE account has no name or photo yet — use LINE's.
+        if (!cred.user.displayName && r.name) {
+          await updateProfile(cred.user, { displayName: r.name, photoURL: r.picture || null })
+          setBtnAvatar(cred.user)
+          setPopoverState(cred.user)
+        }
+      }
+    } catch (e) {
+      console.warn('[line] failed:', e)
+      alert(e.code === 'taken' ? txt('lineTaken') : txt('lineFailed'))
+    }
+  }
+  finishLine()
 
   // ---- #72 Scheduled Firestore backup (client-side daily, keep 7, whole-snapshot) ----
   const BACKUP_INTERVAL = 24 * 60 * 60 * 1000; // daily
@@ -770,8 +911,9 @@
         { el: document.getElementById("acct-status-pgd"), col: 'userPlaces' },
         { el: document.getElementById("acct-status-stock"), col: 'userStockRanges' },
       ];
+      refreshLineRow(user)
       if (user) {
-        setDoc(doc(db, 'userProfiles', user.uid), { name: user.displayName || '', email: user.email || '', photoURL: user.photoURL || null, lastSeen: serverTimestamp(), lastApp: 'Home' }, { merge: true }).catch(function (e) { console.warn('[profile] write failed:', e); });
+        if (!user.uid.startsWith('line:')) setDoc(doc(db, 'userProfiles', user.uid), { name: user.displayName || '', email: user.email || '', photoURL: user.photoURL || null, lastSeen: serverTimestamp(), lastApp: 'Home' }, { merge: true }).catch(function (e) { console.warn('[profile] write failed:', e); });
         rows.forEach(function (r) {
           if (!r.el) return;
           getDoc(doc(db, r.col, user.uid))
@@ -826,6 +968,21 @@
     } finally {
       googleBtn.disabled = false
     }
+  })
+
+  lineBtn.addEventListener('click', () => { lineBtn.disabled = true; startLine('signin') })
+  // Coming back from LINE with the browser's Back button restores this page from cache, button still disabled.
+  window.addEventListener('pageshow', () => { lineBtn.disabled = false })
+
+  lineLinkBtn.addEventListener('click', async (e) => {
+    e.stopPropagation()
+    const user = auth.currentUser
+    if (!user) return
+    if (document.getElementById('acct-line-status').dataset.linked !== 'true') { startLine('link'); return }
+    lineLinkBtn.disabled = true
+    try { await postLine('/line-unlink', {}, user); setLineLinked(false) }
+    catch (err) { console.warn('[line] disconnect failed:', err); alert(txt('lineFailed')) }
+    finally { lineLinkBtn.disabled = false }
   })
 
   signoutBtn.addEventListener('click', async () => {
