@@ -349,7 +349,7 @@ export default function PhotoTab({ store }) {
       <div className={styles.card}>
         <div className={styles.title}>{t('photo.title')}</div>
 
-        <button className={styles.pickBtn} onClick={() => fileRef.current?.click()}>
+        <button className={styles.pickBtn} onClick={() => fileRef.current?.click()} data-tour="photo">
           {t('photo.choose')}
         </button>
 

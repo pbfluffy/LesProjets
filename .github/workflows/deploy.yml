@@ -84,6 +84,8 @@ jobs:
         run: |
           mkdir -p _site/bill-splitter _site/nutritions-thailand _site/pumgoda _site/studio _site/dog-near-me _site/stock-ranges _site/village-77
           cp index.html _site/index.html
+          # The home page loads the guided tour every app shares (shared/tour.js).
+          mkdir -p _site/shared && cp shared/tour.js _site/shared/tour.js
           cp admindepum.html _site/admindepum.html
           cp temp.html _site/temp.html
           cp montreal-autumn-2026.html _site/montreal-autumn-2026.html

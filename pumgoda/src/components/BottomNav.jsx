@@ -11,7 +11,7 @@ const TABS = [
 export default function BottomNav({ active, onChange, lang }) {
   const s = STRINGS[lang]
   return (
-    <nav className="ph-nav" aria-label="Primary">
+    <nav className="ph-nav" aria-label="Primary" data-tour="nav">
       <div className="ph-nav-inner">
         {TABS.map((t) => (
           <button

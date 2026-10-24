@@ -19,6 +19,8 @@ import WalletLocked from './components/WalletLocked.jsx'
 import { MAX_CUSTOM_BRANDS } from './components/KnownFor.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import MarketStatus from './components/MarketStatus.jsx'
+import Tour, { TOUR_KEY } from './components/Tour.jsx'
+import { tourDone } from '../../shared/tour.js'
 import { generateWatchlistImage } from './shareImage.js'
 import { tagHue } from './tagColor.js'
 import { BRANDS } from './data/brands.js'
@@ -196,6 +198,8 @@ function Dashboard() {
   const [undoInfo, setUndoInfo] = useState(null)
   const [tagManagerOpen, setTagManagerOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  // Guided tour (components/Tour.jsx): once for a new visitor, then from the ? button.
+  const [showTour, setShowTour] = useState(() => !tourDone(TOUR_KEY))
 
   useEffect(() => {
     localStorage.setItem(WATCHLIST_KEY, JSON.stringify(watchlist))
@@ -705,6 +709,7 @@ function Dashboard() {
             <button className={styles.ctrlBtn} onClick={toggleTheme} title={dark ? s.themeToggleLight : s.themeToggleDark} aria-label={dark ? s.themeToggleLight : s.themeToggleDark}>
               <Icon name={dark ? 'sun' : 'moon'} size={16} />
             </button>
+            <button className={styles.ctrlBtn} onClick={() => setShowTour(true)} title={s.tourHelp} aria-label={s.tourHelp} data-tour="help">?</button>
             <button className={styles.ctrlBtn} onClick={handleRefresh} disabled={refreshing} data-loading={refreshing} title={s.refreshBtn} aria-label={s.refreshBtn}>
               <Icon name="refresh" size={15} />
             </button>
@@ -714,7 +719,9 @@ function Dashboard() {
               </button>
             )}
           </div>
-          <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} />
+          <div data-tour="account">
+            <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} />
+          </div>
         </div>
       </div>
 
@@ -731,7 +738,7 @@ function Dashboard() {
       <div className={styles.tabBar}>
         <div className={styles.tabRow}>
           <button className={styles.tabBtn} data-active={tab === 'watchlist'} onClick={() => setTab('watchlist')}>{s.navWatchlist}</button>
-          <button className={styles.tabBtn} data-active={tab === 'wallet'} onClick={() => setTab('wallet')}>{s.navWallet}</button>
+          <button className={styles.tabBtn} data-active={tab === 'wallet'} onClick={() => setTab('wallet')} data-tour="tab-wallet">{s.navWallet}</button>
         </div>
         <div className={styles.tabActions} ref={setTabActionsEl}>
           {tab === 'watchlist' && filteredWatchlist.length > 0 && (
@@ -791,6 +798,7 @@ function Dashboard() {
         />
       )}
 
+      {showTour && <Tour onTab={setTab} onClose={() => setShowTour(false)} />}
       {notificationsOpen && cloudSync.user && (
         <NotificationsModal
           user={cloudSync.user}
@@ -837,7 +845,7 @@ function Dashboard() {
       ) : (
       <>
       {summaryTotal > 0 && (
-        <div className={styles.summaryRow}>
+        <div className={styles.summaryRow} data-tour="signals">
           {['buy', 'hold', 'sell'].map((zone) => summaryCounts[zone] > 0 && (
             <button
               key={zone}
@@ -854,7 +862,7 @@ function Dashboard() {
         </div>
       )}
 
-      <div className={styles.controls}>
+      <div className={styles.controls} data-tour="add">
         <TickerSearch onAdd={addSymbol} />
       </div>
 
@@ -875,6 +883,7 @@ function Dashboard() {
           <button
             className={styles.chartTypeBtn}
             onClick={() => setWatchlistView((v) => (v === 'compact' ? 'cards' : 'compact'))}
+            data-tour="view"
             title={watchlistView === 'compact' ? s.viewCards : s.viewCompact}
             aria-label={watchlistView === 'compact' ? s.viewCards : s.viewCompact}
           >
@@ -887,7 +896,7 @@ function Dashboard() {
             </span>
           )}
         </div>
-        <span className={styles.controlPair}>
+        <span className={styles.controlPair} data-tour="range">
           <label htmlFor="lookback">{s.lookbackLabel}</label>
           <select id="lookback" value={range} onChange={(e) => setRange(e.target.value)}>
             {RANGES.map((r) => (

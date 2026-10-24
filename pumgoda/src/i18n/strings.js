@@ -50,6 +50,24 @@ export const STRINGS = {
       sharePlaceText: '🐾 {name} — เจอที่ Pumgoda',
     },
 
+    tour: {
+      help: 'วิธีใช้งาน',
+      title: 'แนะนำการใช้งาน',
+      next: 'ถัดไป',
+      back: 'ย้อนกลับ',
+      skip: 'ข้าม',
+      start: 'เริ่มใช้งาน',
+      steps: {
+        welcome: { title: 'ที่เที่ยวที่พาน้องไปได้ 🐾', body: 'คาเฟ่ ร้านอาหาร โรงแรม และสวนทั่วไทยที่พาน้องหมาไปได้ จัดระดับตามความสะดวกในการพาน้องเข้า ขอพาดูแบบสั้น ๆ' },
+        filters: { title: '🔍 ค้นหาและกรอง', body: 'ค้นจากชื่อหรือย่าน แล้วกรองตามภาค ประเภทสถานที่ และกฎเรื่องสัตว์เลี้ยง' },
+        card: { title: '🐾 อุ้งเท้าและตรา', body: 'ยิ่งอุ้งเท้ามากยิ่งพาน้องเข้าได้สะดวก ตั้งแต่ต้องใช้รถเข็น (1) ไปจนถึงร้านที่มีเมนูสัตว์เลี้ยง (4) ตรา "พุมบ้าเคยมา" คือเราไปมาเองแล้ว แตะการ์ดเพื่อดูรายละเอียด โหวต และกด ♥ บันทึก' },
+        nav: { title: '📋 🗺️ 🧳 ♥', body: 'รายการ · แผนที่ ดูสถานที่ตามพื้นที่ · แผนเที่ยว ร้อย 3–5 ที่เป็นทริปหนึ่งวัน · บันทึกไว้ ที่ที่คุณกด ♥' },
+        suggest: { title: '＋ แนะนำสถานที่', body: 'รู้จักที่ที่พาน้องไปได้แต่ยังไม่มีในรายการ? แนะนำได้ที่นี่' },
+        account: { title: '👤 เข้าสู่ระบบ', body: 'เข้าสู่ระบบด้วย Google เพื่อโหวต และเก็บที่บันทึกไว้กับแผนเที่ยวไว้ใช้ได้ทุกเครื่อง' },
+        done: { title: 'พร้อมแล้ว! 🎉', body: 'ดูวิธีใช้งานอีกครั้งได้ทุกเมื่อ กดปุ่ม ? ด้านบน' },
+      },
+    },
+
     tabs: {
       list: 'รายการ',
       map: 'แผนที่',
@@ -308,6 +326,24 @@ export const STRINGS = {
       shareTitle: 'Pumgoda',
       shareText: 'Pumgoda — Find pet-friendly places across Thailand',
       sharePlaceText: '🐾 {name} — found on Pumgoda',
+    },
+
+    tour: {
+      help: 'How to use',
+      title: 'Quick tour',
+      next: 'Next',
+      back: 'Back',
+      skip: 'Skip',
+      start: 'Start',
+      steps: {
+        welcome: { title: 'Places to bring your dog 🐾', body: 'Cafés, restaurants, hotels and parks across Thailand that welcome pets — rated by how easy the visit is. A quick tour:' },
+        filters: { title: '🔍 Search and filter', body: 'Search by name or area, then narrow by region, type of place and pet rules.' },
+        card: { title: '🐾 Paws and stamps', body: 'More paws means an easier visit, from stroller-only (1) up to a place with its own pet menu (4). "Pumba was here" means we have been ourselves. Tap a card for details, votes and ♥ to save it.' },
+        nav: { title: '📋 🗺️ 🧳 ♥', body: 'List · Map to browse by area · Trips to chain 3–5 stops into a day out · Saved for the places you ♥.' },
+        suggest: { title: '＋ Suggest a place', body: "Know somewhere pet-friendly that isn't listed? Suggest it here." },
+        account: { title: '👤 Sign in', body: 'Sign in with Google to vote, and to keep your saved places and trips on all your devices.' },
+        done: { title: "You're all set! 🎉", body: 'Replay this tour any time with the ? button at the top.' },
+      },
     },
 
     tabs: {

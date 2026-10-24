@@ -848,7 +848,7 @@ function TripList({ trips, onSelect, onNew, onDelete }) {
     <div className={styles.list}>
       <div className={styles.listHeader}>
         <h2 className={styles.listTitle}>{t.tabTrips ?? 'Trips'}</h2>
-        <button className={styles.newTripBtn} onClick={onNew}>+ {t.tripNew ?? 'New'}</button>
+        <button className={styles.newTripBtn} onClick={onNew} data-tour="trip-new">+ {t.tripNew ?? 'New'}</button>
       </div>
       {trips.length === 0 && (
         <p className={styles.empty}>{t.tripEmpty ?? 'No trips yet — create one to group bills together'}</p>

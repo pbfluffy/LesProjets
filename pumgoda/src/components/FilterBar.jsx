@@ -22,7 +22,7 @@ export default function FilterBar({ lang, filters, setRegion, toggleType, toggle
   const pumbaActive = filters.policies.includes('pumba_verified')
 
   return (
-    <div className="ph-filters">
+    <div className="ph-filters" data-tour="filters">
       {/* Free-text search — the filtering logic (useFilters' applyFilters)
           already matches name/neighborhood/notes/type/policy in both
           languages, this was just never wired to an actual input. Always

@@ -229,7 +229,7 @@ export default function CustomTab({ store }) {
 
   return (
     <>
-      <div className={styles.card}>
+      <div className={styles.card} data-tour="custom">
         <div className={styles.title}>{t('custom.add')}</div>
 
         <div className={styles.form}>

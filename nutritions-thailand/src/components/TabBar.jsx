@@ -6,7 +6,7 @@ const TABS = ['overview', 'food', 'photo', 'adjust', 'custom'];
 export default function TabBar({ active, onChange }) {
   const { t } = useLang();
   return (
-    <div className={styles.tabBar}>
+    <div className={styles.tabBar} data-tour="tabs">
       <div className={styles.tabBarInner}>
         {TABS.map((k) => (
           <button

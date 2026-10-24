@@ -43,7 +43,7 @@ export default function OverviewTab({ store }) {
         lastEdit={store.days[dateKey]?.lastEdit}
       />
 
-      <div className={styles.statRowTop}>
+      <div className={styles.statRowTop} data-tour="stats">
         <StatCard
           label={t('stat.tdee')}
           value={tdee}

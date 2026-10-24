@@ -7,6 +7,8 @@ import Header from './components/Header.jsx';
 import OverviewTab from './components/OverviewTab.jsx';
 import PhotoTab from './components/PhotoTab.jsx';
 import TabBar from './components/TabBar.jsx';
+import Tour, { TOUR_KEY } from './components/Tour.jsx';
+import { tourDone } from '../../shared/tour.js';
 import { useLang } from './LangContext.jsx';
 import { useNutritionStore } from './hooks/useNutritionStore.js';
 import { useCloudSync } from './hooks/useCloudSync.js';
@@ -16,6 +18,8 @@ export default function App() {
   const store = useNutritionStore();
   const { t } = useLang();
   const [tab, setTab] = useState('overview');
+  // Guided tour (components/Tour.jsx): once for a new visitor, then from the ? button.
+  const [showTour, setShowTour] = useState(() => !tourDone(TOUR_KEY));
 
   // Cloud sync — Feature #22. Memoize the subset of store state that gets
   // pushed/pulled, so the sync effect doesn't fire on unrelated re-renders.
@@ -68,6 +72,7 @@ export default function App() {
         onToggleTheme={store.toggleTheme}
         onReset={store.resetDay}
         syncStatus={cloudSync.syncStatus}
+        onShowTour={() => setShowTour(true)}
       />
 
       {tab === 'overview' && <OverviewTab store={store} />}
@@ -77,6 +82,8 @@ export default function App() {
       {tab === 'custom' && <CustomTab store={store} />}
 
       <TabBar active={tab} onChange={setTab} />
+
+      {showTour && <Tour onTab={setTab} onClose={() => setShowTour(false)} />}
 
       {cloudSync.syncStatus === 'awaiting-decision' && (
         <ConflictModal cloudSync={cloudSync} localState={cloudState} t={t} />

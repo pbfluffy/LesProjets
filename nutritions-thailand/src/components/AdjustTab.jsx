@@ -109,7 +109,7 @@ export default function AdjustTab({ store, cloudSync }) {
   return (
     <>
       <SyncStatusCard cloudSync={cloudSync} />
-      <div className={styles.card}>
+      <div className={styles.card} data-tour="body">
         <div className={styles.title}>{t('adjust.body')}</div>
 
         {sliders.map((s) => (

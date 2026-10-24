@@ -380,7 +380,7 @@ export default function MapView({ dogs = [], loading = false, onDogClick, theme 
   const tracking = locateState === 'tracking'
 
   return (
-    <div className={styles.mapWrap}>
+    <div className={styles.mapWrap} data-tour="map">
       <div ref={containerRef} className={styles.mapContainer} aria-label="Map of reported stray dogs" />
       <div className={styles.searchBox}>
         <input

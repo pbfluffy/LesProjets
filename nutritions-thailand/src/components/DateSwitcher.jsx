@@ -17,7 +17,7 @@ export default function DateSwitcher({ dateKey, onPrev, onNext, onToday, lastEdi
   const isToday = dateKey === todayKey();
   return (
     <>
-    <div className={styles.bar}>
+    <div className={styles.bar} data-tour="date">
       <button className={styles.btn} onClick={onPrev} aria-label="Previous day">
         {t('date.prev')}
       </button>

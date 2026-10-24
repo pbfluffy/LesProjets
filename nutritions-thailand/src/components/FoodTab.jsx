@@ -77,7 +77,7 @@ export default function FoodTab({ store }) {
 
   return (
     <>
-      <div className={styles.searchWrap}>
+      <div className={styles.searchWrap} data-tour="food-search">
         <input
           className={styles.searchInput}
           placeholder={t('food.search')}

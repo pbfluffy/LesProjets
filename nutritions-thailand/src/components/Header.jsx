@@ -4,7 +4,7 @@ import styles from './Header.module.css';
 import { useState, useEffect, useRef } from 'react';
 import { auth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from '../firebase.js';
 
-export default function Header({ theme, onToggleTheme, onReset, syncStatus }) {
+export default function Header({ theme, onToggleTheme, onReset, syncStatus, onShowTour }) {
   const { lang, toggle: toggleLang, t } = useLang();
   const [user, setUser] = useState(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -91,7 +91,16 @@ export default function Header({ theme, onToggleTheme, onReset, syncStatus }) {
         >
           {t('header.reset')}
         </button>
-      <div className={styles.acctWrap} ref={popoverWrapRef}>
+        <button
+          className={styles.iconBtn}
+          onClick={onShowTour}
+          title={t('tour.help')}
+          aria-label={t('tour.help')}
+          data-tour="help"
+        >
+          ?
+        </button>
+      <div className={styles.acctWrap} ref={popoverWrapRef} data-tour="account">
         {/* Feature #66 — sync status dot (corner of avatar button) */}
         {syncStatus && syncStatus !== 'idle' && (
           <span

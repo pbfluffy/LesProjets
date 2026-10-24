@@ -5,7 +5,7 @@ import styles from './WaterTracker.module.css';
 export default function WaterTracker({ value, onChange }) {
   const { t } = useLang();
   return (
-    <div className={styles.card}>
+    <div className={styles.card} data-tour="water">
       <div className={styles.head}>
         <span className={styles.title}>{t('water.title')}</span>
         <span className={styles.progress}>

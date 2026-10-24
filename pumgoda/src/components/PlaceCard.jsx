@@ -68,6 +68,7 @@ export default function PlaceCard({ venue, lang = 'en', onOpen, distanceKm = nul
     <button
       ref={cardRef}
       className="ph-card surface surface-hover"
+      data-tour="card"
       onClick={() => onOpen?.(venue)}
       aria-label={name}
     >

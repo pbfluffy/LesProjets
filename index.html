@@ -189,7 +189,8 @@
         <button class="ctrl-btn" id="langBtn" onclick="toggleLang()">EN</button>
         <button class="ctrl-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
         <button class="ctrl-btn" id="shareBtn" onclick="shareApp()" aria-label="Share" title="Share">↗</button>
-        <button class="ctrl-btn acct-btn" id="acctBtn" aria-label="Sign in" title="Sign in">
+        <button class="ctrl-btn" id="tourBtn" aria-label="How to use" title="How to use">?</button>
+        <button class="ctrl-btn acct-btn" id="acctBtn" aria-label="Sign in" title="Sign in" data-tour="account">
           <span class="acct-icon">👤</span>
         </button>
       </div>
@@ -256,14 +257,14 @@
   <div class="grid">
     <p class="section-label" id="label-apps">แอป</p>
 
-    <a class="card" href="./bill-splitter/">
+    <a class="card" href="./bill-splitter/" data-tour="apps">
       <div class="card-header">
         <div class="icon">🍽️</div>
         <div>
           <div class="card-name" id="app1-name">หารบิล</div>
           <div class="card-type-row">
             <div class="card-type">React App</div>
-            <span class="sushiro-mode-btn" role="button" tabindex="0" id="sushiro-btn"
+            <span class="sushiro-mode-btn" role="button" tabindex="0" id="sushiro-btn" data-tour="sushiro"
                   onclick="goSushi(event)"
                   onkeydown="if(event.key==='Enter'||event.key===' ')goSushi(event)">
               🍣 <span id="sushiro-btn-text">โหมด Sushiro</span>
@@ -402,6 +403,22 @@
       studioDesc: "ออฟฟิศหมายามค่ำคืน — พุมบ้ากับกิกี้ทำงานไปเรื่อย ๆ มีไฟตั้งโต๊ะ ดนตรีชิล และ work-log สดจาก AI",
         sushiroMode: "โหมด Sushiro",
         acctSignIn: "เข้าสู่ระบบ",
+        tourHelp: "วิธีใช้งาน",
+        tourTitle: "แนะนำการใช้งาน",
+        tourNext: "ถัดไป",
+        tourBack: "ย้อนกลับ",
+        tourSkip: "ข้าม",
+        tourStart: "เริ่มใช้งาน",
+        tour_welcome_t: "ยินดีต้อนรับ 👋",
+        tour_welcome_b: "แอปและเครื่องมือเล็ก ๆ ที่พุมบ้าทำไว้ใช้เอง ขอพาดูแบบสั้น ๆ",
+        tour_apps_t: "📱 เปิดแอป",
+        tour_apps_b: "แตะการ์ดเพื่อเปิดแอป แต่ละแอปมีปุ่ม ? ของตัวเองไว้ดูวิธีใช้งาน",
+        tour_sushiro_t: "🍣 โหมด Sushiro",
+        tour_sushiro_b: "ไปที่ตัวนับจานซูชิของหารบิลได้ทันที",
+        tour_account_t: "👤 เข้าสู่ระบบครั้งเดียว ใช้ได้ทุกแอป",
+        tour_account_b: "เข้าสู่ระบบด้วย Google หรือ LINE แล้วทุกแอปในเว็บนี้จะเข้าสู่ระบบตามไปด้วย ข้อมูลซิงค์ข้ามเครื่อง และสำรองข้อมูลทุกแอปไว้บนคลาวด์ทุกวัน กู้คืนได้จากเมนูนี้",
+        tour_done_t: "พร้อมแล้ว! 🎉",
+        tour_done_b: "ดูวิธีใช้งานอีกครั้งได้ทุกเมื่อ กดปุ่ม ? ด้านบน",
         acctHeading: "เข้าสู่ระบบเพื่อซิงค์ข้อมูล",
         acctBlurb: "เก็บข้อมูลโภชนาการ ประวัติบิล และที่ที่บันทึกไว้ ให้ใช้ได้ทั้งมือถือและคอม",
         acctGoogleLabel: "ดำเนินการต่อด้วย Google",
@@ -463,6 +480,22 @@
       studioDesc: "A cozy late-night studio — Pumba and Gigi keep working, with desk lamps, chill music, and a live AI work-log",
         sushiroMode: "Sushiro mode",
         acctSignIn: "Sign in",
+        tourHelp: "How to use",
+        tourTitle: "Quick tour",
+        tourNext: "Next",
+        tourBack: "Back",
+        tourSkip: "Skip",
+        tourStart: "Start",
+        tour_welcome_t: "Welcome 👋",
+        tour_welcome_b: "Small apps and tools Pumba made for everyday use. A quick tour:",
+        tour_apps_t: "📱 Open an app",
+        tour_apps_b: "Tap a card to open the app. Each app has its own ? button that shows how it works.",
+        tour_sushiro_t: "🍣 Sushiro mode",
+        tour_sushiro_b: "Jumps straight to Bill Splitter's sushi plate counter.",
+        tour_account_t: "👤 Sign in once, for every app",
+        tour_account_b: "Sign in with Google or LINE and every app on this site is signed in too. Your data syncs across devices, and all apps are backed up to the cloud daily — restore from this menu.",
+        tour_done_t: "You're all set! 🎉",
+        tour_done_b: "Replay this tour any time with the ? button at the top.",
         acctHeading: "Sign in to sync",
         acctBlurb: "Keep your nutrition logs, bills, and saved places across phone and laptop.",
         acctGoogleLabel: "Continue with Google",
@@ -537,6 +570,7 @@
       document.getElementById("langBtn").textContent = lang === "th" ? "EN" : "TH"
       document.documentElement.lang = lang
       // account popover strings
+      const _tourBtn = document.getElementById("tourBtn"); if (_tourBtn) { _tourBtn.title = s.tourHelp; _tourBtn.setAttribute("aria-label", s.tourHelp) }
       document.getElementById("acct-heading").textContent = s.acctHeading
       document.getElementById("acct-blurb").textContent = s.acctBlurb
       document.getElementById("acct-google-label").textContent = s.acctGoogleLabel
@@ -616,6 +650,7 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js'
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithCustomToken, updateProfile } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js'
   import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, addDoc, getDocs, query, orderBy, limit, deleteDoc } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+  import { startTour, tourDone } from './shared/tour.js'
 
   const firebaseConfig = {
     apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
@@ -780,7 +815,26 @@
     }
   }
 
+  // Read before finishLine() cleans the address bar.
+  const arrivedFromLine = /[?&](code|error)=/.test(location.search)
   finishLine().then((returned) => { if (!returned) collectLineHandoff() })
+
+  // ---- Guided tour (shared/tour.js — the same one every app uses) ----
+  // Once for a new visitor (not on a return from LINE sign-in), then from ?.
+  const TOUR_KEY = 'lp_tour_done'
+  function openTour() {
+    popover.dataset.open = 'false'
+    startTour({
+      steps: [{ key: 'welcome' }, { key: 'apps', target: 'apps' }, { key: 'sushiro', target: 'sushiro' }, { key: 'account', target: 'account' }, { key: 'done' }],
+      text: (key) => ({ title: txt('tour_' + key + '_t'), body: txt('tour_' + key + '_b') }),
+      labels: { title: txt('tourTitle'), next: txt('tourNext'), back: txt('tourBack'), skip: txt('tourSkip'), start: txt('tourStart') },
+      doneKey: TOUR_KEY,
+      accent: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c45c1a',
+      onFinish: () => window.scrollTo(0, 0),
+    })
+  }
+  document.getElementById('tourBtn').addEventListener('click', (e) => { e.stopPropagation(); openTour() })
+  if (!tourDone(TOUR_KEY) && !arrivedFromLine) setTimeout(openTour, 500)
   document.addEventListener('visibilitychange', () => { if (!document.hidden) collectLineHandoff() })
   window.addEventListener('pageshow', (e) => { if (e.persisted) collectLineHandoff() })
 

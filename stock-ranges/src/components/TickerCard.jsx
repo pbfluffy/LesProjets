@@ -129,7 +129,7 @@ export default function TickerCard({
           </span>
         )}
         {deciles && (
-          <span className={styles.rowBadge} data-zone={zone}>
+          <span className={styles.rowBadge} data-zone={zone} data-tour="band">
             <strong>{deciles.band}/10</strong>
             <span>{deciles.signal ? s[SIGNAL_LABEL_KEY[deciles.signal]] : s.signalFlat}</span>
           </span>
@@ -214,7 +214,7 @@ export default function TickerCard({
         const label = deciles.signal ? s[SIGNAL_LABEL_KEY[deciles.signal]] : s.signalFlat
         return (
           <div className={styles.body}>
-            <div className={styles.badgeRow}>
+            <div className={styles.badgeRow} data-tour="band">
               <span className={styles.badge} data-zone={zone}>
                 {s.band} {deciles.band}/10 · {label}
               </span>

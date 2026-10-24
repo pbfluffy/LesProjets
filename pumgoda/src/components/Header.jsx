@@ -25,6 +25,8 @@ export default function Header({
   popoverWrapRef,
   syncStatus,
   accountLabels,
+  onHelp,
+  helpLabel,
 }) {
   return (
     <header className="ph-header">
@@ -62,9 +64,22 @@ export default function Header({
           >
             ⟳
           </button>
+          {onHelp && (
+            <button
+              type="button"
+              className="ph-ctrl ph-ctrl-icon"
+              onClick={onHelp}
+              aria-label={helpLabel}
+              title={helpLabel}
+              data-tour="help"
+            >
+              ?
+            </button>
+          )}
           <button
             type="button"
             className="ph-ctrl ph-ctrl-icon"
+            data-tour="suggest"
             onClick={onSuggestClick}
             aria-label={suggestLabel || 'Suggest a place'}
             title={suggestLabel || 'Suggest a place'}
@@ -82,7 +97,7 @@ export default function Header({
           {accountLabels && (
             <>
               <span className="ph-header-divider" aria-hidden="true" />
-              <div style={{ position: 'relative' }} ref={popoverWrapRef}>
+              <div style={{ position: 'relative' }} ref={popoverWrapRef} data-tour="account">
               {/* Feature #66 — sync status dot (top-right of avatar button) */}
               {syncStatus && syncStatus !== 'idle' && (
                 <span

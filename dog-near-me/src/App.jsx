@@ -10,11 +10,11 @@ import { STRINGS } from './LangContext'
 import MapView from './components/MapView'
 import ReportFlow from './components/ReportFlow'
 import DogDetail from './components/DogDetail'
+import Tour, { TOUR_KEY } from './components/Tour'
+import { tourDone } from '../../shared/tour.js'
 import styles from './App.module.css'
 
 const provider = new GoogleAuthProvider()
-
-const ONBOARDING_KEY = 'majon_onboarding_dismissed'
 
 export default function App() {
   const [theme, setTheme] = useTheme()
@@ -23,28 +23,14 @@ export default function App() {
   const [tab, setTab] = useState('map') // 'map' | 'report'
   const [selectedDog, setSelectedDog] = useState(null)
   const [presetDog, setPresetDog] = useState(null)
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    try {
-      return !localStorage.getItem(ONBOARDING_KEY)
-    } catch {
-      return false
-    }
-  })
+  // Guided tour (components/Tour.jsx): once for a new visitor, then from the ? button.
+  const [showTour, setShowTour] = useState(() => !tourDone(TOUR_KEY))
 
   const { dogs, loading } = useDogs()
   const { showAndroidPrompt, showIosHint, promptInstall, dismiss: dismissInstall } = useInstallPrompt()
   const t = STRINGS[lang] || STRINGS.en
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
-
-  function dismissOnboarding() {
-    setShowOnboarding(false)
-    try {
-      localStorage.setItem(ONBOARDING_KEY, '1')
-    } catch {
-      // ignore (private browsing etc.)
-    }
-  }
 
   // Deep-linking: ?dog=<id> reopens that exact dog once the dogs list has
   // loaded, and the address bar stays in sync afterward so the Share button
@@ -106,14 +92,15 @@ export default function App() {
           <button className={styles.ctrlBtn} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
             {theme === 'dark' ? '🌞' : '🌙'}
           </button>
+          <button className={styles.ctrlBtn} onClick={() => setShowTour(true)} title={t.tourHelp} aria-label={t.tourHelp}>?</button>
           {user ? (
-            <button className={styles.ctrlBtn} onClick={() => signOut(auth)} title={t.signOut}>
+            <button className={styles.ctrlBtn} onClick={() => signOut(auth)} title={t.signOut} data-tour="account">
               {user.photoURL
                 ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className={styles.avatar} />
                 : '👤'}
             </button>
           ) : (
-            <button className={styles.ctrlBtn} onClick={handleSignIn}>{t.signIn}</button>
+            <button className={styles.ctrlBtn} onClick={handleSignIn} data-tour="signin">{t.signIn}</button>
           )}
         </div>
       </header>
@@ -129,6 +116,7 @@ export default function App() {
         <button
           type="button"
           className={`${styles.tabBtn} ${tab === 'report' ? styles.tabBtnActive : ''}`}
+          data-tour="tab-report"
           onClick={() => { setPresetDog(null); setTab('report') }}
         >
           {t.navReport}
@@ -136,16 +124,7 @@ export default function App() {
       </nav>
 
       <main className={styles.main}>
-        {tab === 'map' && showOnboarding && (
-          <div className={styles.onboarding}>
-            <div className={styles.onboardingTitle}>{t.onboardingTitle}</div>
-            <div className={styles.onboardingBody}>{t.onboardingBody}</div>
-            <button type="button" className={styles.onboardingDismiss} onClick={dismissOnboarding}>
-              {t.onboardingDismiss}
-            </button>
-          </div>
-        )}
-        {!showOnboarding && (showAndroidPrompt || showIosHint) && (
+        {!showTour && (showAndroidPrompt || showIosHint) && (
           <div className={styles.installBar}>
             <span className={styles.installText}>
               {showAndroidPrompt ? t.installTitle : t.installIosHint}
@@ -192,6 +171,7 @@ export default function App() {
           onReportSighting={handleReportSighting}
         />
       )}
+      {showTour && <Tour t={t} onTab={setTab} onClose={() => setShowTour(false)} />}
     </div>
   )
 }

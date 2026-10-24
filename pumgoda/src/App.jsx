@@ -32,6 +32,8 @@ import { STRINGS, interp } from './i18n/strings'
 import { LS_KEYS } from './config'
 
 import './styles/theme.css'
+import Tour, { TOUR_KEY } from './components/Tour'
+import { tourDone } from '../../shared/tour.js'
 
 // Haversine distance in km between two [lat, lng] arrays
 function haversineKm(a, b) {
@@ -134,6 +136,8 @@ export default function App() {
   const [places, setPlaces] = useState([])
   const [loadState, setLoadState] = useState('loading') // 'loading' | 'ok' | 'fallback' | 'stale'
   const [activeTab, setActiveTab] = useState('list')
+  // Guided tour (components/Tour.jsx): once for a new visitor, then from the ? button.
+  const [showTour, setShowTour] = useState(() => !tourDone(TOUR_KEY))
   const [selected, setSelected] = useState(null) // a venue object
   const [savedIds, setSavedIds] = useLocalStorage(LS_KEYS.SAVED, [])
 
@@ -427,6 +431,8 @@ export default function App() {
         signingIn={signingIn}
         popoverWrapRef={popoverWrapRef}
         accountLabels={s.account}
+        onHelp={() => setShowTour(true)}
+        helpLabel={s.tour.help}
       />
 
       <div className="shell">
@@ -584,6 +590,8 @@ export default function App() {
       )}
 
       <BottomNav active={activeTab} onChange={setActiveTab} lang={lang} />
+      {/* Not over a shared-trip / join link: it shows once that is closed. */}
+      {showTour && !sharedTrip && !collabTripId && <Tour lang={lang} onTab={setActiveTab} onClose={() => setShowTour(false)} />}
       {toast && (
         <div
           role="status"

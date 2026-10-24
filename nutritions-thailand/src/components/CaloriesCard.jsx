@@ -32,7 +32,7 @@ export default function CaloriesCard({ eaten, target, totals, macroTargets }) {
   ];
 
   return (
-    <div className={styles.card}>
+    <div className={styles.card} data-tour="calories">
       <div className={styles.head}>
         <span className={styles.label}>{t('cal.today')}</span>
         <span className={styles.value}>

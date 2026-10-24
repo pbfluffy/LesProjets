@@ -165,7 +165,7 @@ export default function ExtrasSection({
         </button>
       )}
       <div className={styles.divider} />
-      <div className={styles.ppHeader}>
+      <div className={styles.ppHeader} data-tour="pay">
         <span className={styles.ppLabel}>{t.payTargetLabel}</span>
         <button className={styles.toggleBtn} onClick={() => setPpOpen(o => !o)}>
           {ppOpen ? t.close : t.edit}
