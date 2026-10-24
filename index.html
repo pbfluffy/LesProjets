@@ -205,6 +205,7 @@
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="#fff" d="M12 3C6.48 3 2 6.63 2 11.1c0 4 3.55 7.36 8.35 8 .33.07.77.22.88.5.1.25.07.65.03.9l-.14.86c-.04.25-.2.99.87.54 1.07-.45 5.76-3.4 7.86-5.81C21.3 14.5 22 12.9 22 11.1 22 6.63 17.52 3 12 3z"/><path fill="#06C755" d="M8.6 13.2H6.6a.5.5 0 0 1-.5-.5V8.8a.5.5 0 0 1 1 0v3.4h1.5a.5.5 0 0 1 0 1zm1.6-.5a.5.5 0 0 1-1 0V8.8a.5.5 0 0 1 1 0v3.9zm4.8 0a.5.5 0 0 1-.9.3l-2-2.7v2.4a.5.5 0 0 1-1 0V8.8a.5.5 0 0 1 .9-.3l2 2.7V8.8a.5.5 0 0 1 1 0v3.9zm3.2-2.4a.5.5 0 0 1 0 1h-1.5v.9h1.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5V8.8a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-1.5v.9h1.5z"/></svg>
             <span id="acct-line-label">Continue with LINE</span>
           </button>
+          <p class="acct-line-hint" id="acct-line-app-hint">On a phone, tap "Log-in with LINE app" on LINE's page to use the app.</p>
           <p class="acct-privacy" id="acct-privacy">We only see your name and email (Google) or name and photo (LINE). Sign out anytime.</p>
         </div>
         <div class="acct-signed-in" style="display:none">
@@ -412,6 +413,9 @@
         acctLineDisconnect: "ยกเลิกการเชื่อม",
         acctLineHint: "เมื่อเชื่อมแล้ว กด \"ดำเนินการต่อด้วย LINE\" ก็เข้าบัญชีนี้ได้เลย",
         lineLinked: "เชื่อม LINE แล้ว ✓",
+        lineLinkedElsewhere: "เชื่อม LINE แล้ว ✓ กลับไปที่เบราว์เซอร์ที่เริ่มไว้ได้เลย",
+        lineSignedInElsewhere: "เข้าสู่ระบบด้วย LINE แล้ว ✓ กลับไปที่เบราว์เซอร์ที่เริ่มไว้ (เช่น Chrome) แล้วกดย้อนกลับมาที่ pumbafluffycorgi.com — จะเข้าสู่ระบบให้เอง",
+        acctLineAppHint: "บนมือถือ ให้กด \"Log-in with LINE app\" ในหน้าของ LINE เพื่อใช้แอป LINE",
         lineTaken: "บัญชี LINE นี้เชื่อมกับบัญชีอื่นอยู่แล้ว",
         lineFailed: "เข้าสู่ระบบด้วย LINE ไม่สำเร็จ ลองใหม่อีกครั้ง",
         acctPrivacy: "เราเห็นเฉพาะชื่อกับอีเมล (Google) หรือชื่อกับรูปโปรไฟล์ (LINE) ออกจากระบบได้ตลอด",
@@ -470,6 +474,9 @@
         acctLineDisconnect: "Disconnect",
         acctLineHint: "Then \"Continue with LINE\" opens this account too.",
         lineLinked: "LINE connected ✓",
+        lineLinkedElsewhere: "LINE connected ✓ — you can go back to the browser where you started.",
+        lineSignedInElsewhere: "Signed in with LINE ✓ — go back to the browser where you started (e.g. Chrome) and return to pumbafluffycorgi.com; you'll be signed in there.",
+        acctLineAppHint: "On a phone, tap \"Log-in with LINE app\" on LINE's page to use the app.",
         lineTaken: "That LINE account is already connected to another account.",
         lineFailed: "LINE sign-in didn't work — please try again.",
         acctPrivacy: "We only see your name and email (Google) or name and photo (LINE). Sign out anytime.",
@@ -536,6 +543,7 @@
       document.getElementById("acct-line-label").textContent = s.acctLineLabel
       document.getElementById("acct-line-title").textContent = s.acctLineTitle
       document.getElementById("acct-line-hint").textContent = s.acctLineHint
+      document.getElementById("acct-line-app-hint").textContent = s.acctLineAppHint
       const _lineLinked = document.getElementById("acct-line-status").dataset.linked === "true"
       document.getElementById("acct-line-status").textContent = _lineLinked ? s.acctLineOn : s.acctLineOff
       document.getElementById("acct-line-link").textContent = _lineLinked ? s.acctLineDisconnect : s.acctLineConnect
@@ -640,17 +648,37 @@
   // secret and the Firebase service-account key) trades the code for a
   // Firebase custom token. Same LINE Login channel as village-77, so a
   // person's LINE account is the same one there.
-  // Signed in with Google, a person can "Connect LINE" (mode 'link'): LINE
-  // sign-in here then opens that same Google account, with its data and
-  // backups. Without a connection LINE opens its own "line:<id>" account.
+  // Signed in with Google, a person can "Connect LINE": LINE sign-in here
+  // then opens that same Google account, with its data and backups. Without
+  // a connection LINE opens its own "line:<id>" account.
+  //
+  // On a phone LINE often sends the person back to a different browser than
+  // the one they started in (iPhone: Safari, after "Log-in with LINE app"),
+  // so the LINE `state` carries a one-time id:
+  //   "h<id>" sign in — a browser that didn't start it parks the sign-in on
+  //           the Worker under <id>; the starting browser collects it when
+  //           the person comes back (collectLineHandoff).
+  //   "l<id>" connect — the Worker tied <id> to the Google account before
+  //           leaving (/line-link-start), so it completes in any browser.
   const LINE_WORKER = 'https://village-77.pbfluffygaming.workers.dev'
   const LINE_CHANNEL_ID = '2012133281'
   const LINE_REDIRECT = location.origin + '/'
-  const LINE_STATE_KEY = 'lp_line_state' // { state, mode: 'signin' | 'link' } while away at LINE
+  const LINE_PENDING_KEY = 'lp_line_pending' // { state, started } while away at LINE
+  const LINE_PENDING_MAX_MS = 10 * 60 * 1000 // the Worker drops parked sign-ins after this
+  const randomHex = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('')
 
-  function startLine(mode) {
-    const state = crypto.randomUUID()
-    try { localStorage.setItem(LINE_STATE_KEY, JSON.stringify({ state, mode })) } catch (e) { /* storage blocked */ }
+  function readLinePending() {
+    try {
+      const pending = JSON.parse(localStorage.getItem(LINE_PENDING_KEY))
+      return pending && Date.now() - pending.started < LINE_PENDING_MAX_MS ? pending : null
+    } catch (e) { return null }
+  }
+  function clearLinePending() {
+    try { localStorage.removeItem(LINE_PENDING_KEY) } catch (e) { /* storage blocked */ }
+  }
+
+  function goToLine(state) {
+    try { localStorage.setItem(LINE_PENDING_KEY, JSON.stringify({ state, started: Date.now() })) } catch (e) { /* storage blocked */ }
     const params = new URLSearchParams({
       response_type: 'code', client_id: LINE_CHANNEL_ID, redirect_uri: LINE_REDIRECT, state, scope: 'profile openid',
     })
@@ -666,6 +694,16 @@
     return data
   }
 
+  async function signInWithLine(result) {
+    const cred = await signInWithCustomToken(auth, result.customToken)
+    // A new LINE account has no name or photo yet — use LINE's.
+    if (!cred.user.displayName && result.name) {
+      await updateProfile(cred.user, { displayName: result.name, photoURL: result.picture || null })
+      setBtnAvatar(cred.user)
+      setPopoverState(cred.user)
+    }
+  }
+
   function setLineLinked(linked) {
     document.getElementById('acct-line-status').dataset.linked = linked ? 'true' : 'false'
     if (window.applyLang) window.applyLang()
@@ -679,46 +717,72 @@
     catch (e) { console.warn('[line] status failed:', e) }
   }
 
-  const firstAuthState = new Promise((resolve) => { const stop = onAuthStateChanged(auth, (u) => { stop(); resolve(u) }) })
-
-  // Runs on load: finishes a LINE sign-in or connect if we just came back.
+  // Runs on load: finishes a LINE sign-in or connect if LINE just sent the
+  // person here. Returns true when this load was such a return.
   async function finishLine() {
     const params = new URLSearchParams(location.search)
     const code = params.get('code')
     const lineError = params.get('error')
-    if (!code && !lineError) return
+    if (!code && !lineError) return false
     history.replaceState(null, '', location.pathname + location.hash) // a reload mustn't replay the code
-    let saved = null
-    try { saved = JSON.parse(localStorage.getItem(LINE_STATE_KEY)); localStorage.removeItem(LINE_STATE_KEY) } catch (e) { /* storage blocked */ }
+    const state = params.get('state') || ''
+    const pending = readLinePending()
+    const startedHere = !!pending && pending.state === state
+    if (startedHere) clearLinePending()
     if (lineError) {
       if (lineError !== 'access_denied') alert(txt('lineFailed')) // "cancel" on LINE's page isn't an error
-      return
+      return true
     }
-    // A different state means the code came from someone else's link (login CSRF).
-    if (!saved || saved.state !== params.get('state')) { alert(txt('lineFailed')); return }
+    const id = state.slice(1)
+    if (!/^[0-9a-f]{32}$/.test(id)) { alert(txt('lineFailed')); return true }
     try {
-      if (saved.mode === 'link') {
-        const user = await firstAuthState
-        if (!user) throw new Error('signed out while away at LINE')
-        await postLine('/line-link', { code, redirectUri: LINE_REDIRECT }, user)
+      if (state[0] === 'l') {
+        await postLine('/line-link', { code, redirectUri: LINE_REDIRECT, linkState: id })
         setLineLinked(true)
-        alert(txt('lineLinked'))
+        alert(txt(startedHere ? 'lineLinked' : 'lineLinkedElsewhere'))
+      } else if (state[0] === 'h' && startedHere) {
+        await signInWithLine(await postLine('/line-auth', { code, redirectUri: LINE_REDIRECT }))
+      } else if (state[0] === 'h' && !pending) {
+        // Started in another browser: park it there for collectLineHandoff.
+        await postLine('/line-auth', { code, redirectUri: LINE_REDIRECT, handoff: id })
+        alert(txt('lineSignedInElsewhere'))
       } else {
-        const r = await postLine('/line-auth', { code, redirectUri: LINE_REDIRECT })
-        const cred = await signInWithCustomToken(auth, r.customToken)
-        // A new LINE account has no name or photo yet — use LINE's.
-        if (!cred.user.displayName && r.name) {
-          await updateProfile(cred.user, { displayName: r.name, photoURL: r.picture || null })
-          setBtnAvatar(cred.user)
-          setPopoverState(cred.user)
-        }
+        // This browser is waiting on a different LINE sign-in — not this code.
+        alert(txt('lineFailed'))
       }
     } catch (e) {
       console.warn('[line] failed:', e)
       alert(e.code === 'taken' ? txt('lineTaken') : txt('lineFailed'))
     }
+    return true
   }
-  finishLine()
+
+  // The starting browser, when the person comes back to it: pick up a LINE
+  // sign-in that finished in another browser, or refresh the connect row.
+  let collectingLine = false
+  async function collectLineHandoff() {
+    const pending = readLinePending()
+    if (!pending) { clearLinePending(); return }
+    if (pending.state[0] === 'l') { refreshLineRow(auth.currentUser); return }
+    if (collectingLine || auth.currentUser) return
+    collectingLine = true
+    try {
+      const res = await fetch(LINE_WORKER + '/line-handoff', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ handoff: pending.state.slice(1) }),
+      })
+      if (res.status === 404) return // not finished in the other browser yet
+      clearLinePending()
+      if (res.ok) await signInWithLine(await res.json())
+    } catch (e) {
+      console.warn('[line] hand-off failed:', e)
+    } finally {
+      collectingLine = false
+    }
+  }
+
+  finishLine().then((returned) => { if (!returned) collectLineHandoff() })
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) collectLineHandoff() })
+  window.addEventListener('pageshow', (e) => { if (e.persisted) collectLineHandoff() })
 
   // ---- #72 Scheduled Firestore backup (client-side daily, keep 7, whole-snapshot) ----
   const BACKUP_INTERVAL = 24 * 60 * 60 * 1000; // daily
@@ -970,7 +1034,7 @@
     }
   })
 
-  lineBtn.addEventListener('click', () => { lineBtn.disabled = true; startLine('signin') })
+  lineBtn.addEventListener('click', () => { lineBtn.disabled = true; goToLine('h' + randomHex()) })
   // Coming back from LINE with the browser's Back button restores this page from cache, button still disabled.
   window.addEventListener('pageshow', () => { lineBtn.disabled = false })
 
@@ -978,9 +1042,13 @@
     e.stopPropagation()
     const user = auth.currentUser
     if (!user) return
-    if (document.getElementById('acct-line-status').dataset.linked !== 'true') { startLine('link'); return }
+    const linked = document.getElementById('acct-line-status').dataset.linked === 'true'
     lineLinkBtn.disabled = true
-    try { await postLine('/line-unlink', {}, user); setLineLinked(false) }
+    try {
+      if (!linked) { goToLine('l' + (await postLine('/line-link-start', {}, user)).id); return }
+      await postLine('/line-unlink', {}, user)
+      setLineLinked(false)
+    }
     catch (err) { console.warn('[line] disconnect failed:', err); alert(txt('lineFailed')) }
     finally { lineLinkBtn.disabled = false }
   })

@@ -8,9 +8,10 @@
 //       "line:<LINE user id>") the app signs in with. Firebase has no LINE
 //       provider, so this is the bridge.
 //
-//   POST /line-link { code, redirectUri }, /line-unlink, /line-link-status
-//       (Authorization: Bearer <Firebase ID token>) — the site's home page:
-//       connect LINE to a Google account, so LINE sign-in there opens it.
+//   POST /line-link-start, /line-unlink, /line-link-status (Authorization:
+//       Bearer <Firebase ID token>) and /line-link { code, redirectUri,
+//       linkState } — the site's home page: connect LINE to a Google
+//       account, so LINE sign-in there opens it (see handleLineLink).
 //
 //   POST /upload      multipart "file"  (Authorization: Bearer <Firebase ID token>)
 //       Stores a post photo in R2 and returns its URL. Photos used to live
@@ -236,16 +237,47 @@ async function requestUser(request) {
   }
 }
 
-// POST /line-link { code, redirectUri } (Authorization: Bearer <Firebase ID
-// token>) — home page, signed in with Google: connect a LINE account, so
-// LINE sign-in on the home page opens this same account. One LINE account
-// per Firebase account; connecting another LINE replaces the old one.
-async function handleLineLink(request, env, origin) {
+// Connecting LINE happens in two steps, because on a phone LINE often sends
+// the person back to a different browser (iPhone: Safari, after the LINE
+// app) than the one they started in, where they aren't signed in:
+//   POST /line-link-start (Bearer <Firebase ID token>) → { id }: ties a
+//       one-time id (10 minutes) to the signed-in account; the page puts it
+//       in LINE's `state` ("l" + id).
+//   POST /line-link { code, redirectUri, linkState: id } — from whichever
+//       browser LINE returned to: connects that LINE account to the account
+//       the id was made for. Only the starting browser and LINE ever see the
+//       id, so nobody else can connect their LINE to someone's account.
+// One LINE account per Firebase account; connecting another LINE replaces
+// the old one. LINE sign-in on the home page then opens this same account.
+const LINK_STATE_PREFIX = '_linkstate/'          // _linkstate/<id> -> { uid, expires }
+const LINK_STATE_UID_PREFIX = '_linkstate-uid/'  // _linkstate-uid/<uid> -> that account's open id
+const LINK_STATE_TTL_MS = 10 * 60 * 1000
+
+async function handleLineLinkStart(request, env, origin) {
   const user = await requestUser(request)
   if (!user) return json({ error: 'sign in first' }, 401, origin)
   if (user.sub.startsWith('line:')) return json({ error: 'already a LINE account' }, 400, origin)
-  const { code, redirectUri } = await request.json().catch(() => ({}))
+  // At most one open connect per account: an abandoned one is dropped here
+  // rather than left in the bucket for good.
+  const open = await env.BUCKET.get(LINK_STATE_UID_PREFIX + user.sub)
+  if (open) await env.BUCKET.delete(LINK_STATE_PREFIX + (await open.text()))
+  const id = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('')
+  await env.BUCKET.put(LINK_STATE_PREFIX + id, JSON.stringify({ uid: user.sub, expires: Date.now() + LINK_STATE_TTL_MS }))
+  await env.BUCKET.put(LINK_STATE_UID_PREFIX + user.sub, id)
+  return json({ id }, 200, origin)
+}
+
+async function handleLineLink(request, env, origin) {
+  const { code, redirectUri, linkState } = await request.json().catch(() => ({}))
+  if (!isHandoffId(linkState)) return json({ error: 'bad link id' }, 400, origin)
+  const started = await env.BUCKET.get(LINK_STATE_PREFIX + linkState)
+  if (!started) return json({ error: 'link expired — start again' }, 410, origin)
+  const { uid, expires } = JSON.parse(await started.text())
+  // One use only, whatever happens next.
+  await env.BUCKET.delete([LINK_STATE_PREFIX + linkState, LINK_STATE_UID_PREFIX + uid])
+  if (expires < Date.now()) return json({ error: 'link expired — start again' }, 410, origin)
   if (!MAIN_REDIRECTS.includes(redirectUri)) return json({ error: 'bad redirectUri' }, 400, origin)
+  const user = { sub: uid }
   const r = await lineProfile(env, { code, redirectUri })
   if (r.error) return json({ error: r.error }, r.status, origin)
   const sub = r.profile.sub
@@ -489,6 +521,7 @@ export default {
       if (request.method === 'POST' && url.pathname === '/upload') return await handleUpload(request, env, origin)
       if (request.method === 'POST' && url.pathname === '/delete') return await handleDelete(request, env, origin)
       if (request.method === 'POST' && url.pathname === '/line-handoff') return await handleHandoff(request, env, origin)
+      if (request.method === 'POST' && url.pathname === '/line-link-start') return await handleLineLinkStart(request, env, origin)
       if (request.method === 'POST' && url.pathname === '/line-link') return await handleLineLink(request, env, origin)
       if (request.method === 'POST' && url.pathname === '/line-unlink') return await handleLineUnlink(request, env, origin)
       if (request.method === 'POST' && url.pathname === '/line-link-status') return await handleLineLinkStatus(request, env, origin)
