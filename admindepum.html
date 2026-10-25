@@ -1148,7 +1148,8 @@ function render(){
   $('stats').innerHTML = [
     ['Synced users', synced, ''],
     ['Active · 7d', active7, '<small>/ '+synced+'</small>'],
-    ['Google + LINE', DATA.filter(u => acctGroup(u) === 'both').length, '<small>'+DATA.filter(isLineAcct).length+' LINE only</small>'],
+    ['Google + LINE', DATA.filter(u => acctGroup(u) === 'both').length, ''],
+    ['LINE only', DATA.filter(isLineAcct).length, ''],
     ['Nutrition days', sum('nutr'), ''],
     ['Saved bills', sum('bills'), ''],
     ['Saved places', sum('places'), ''],
