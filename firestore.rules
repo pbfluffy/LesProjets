@@ -36,11 +36,13 @@ service cloud.firestore {
     // ── Pumgoda — user profiles (landing page onAuthStateChanged) ───────────
     match /userProfiles/{uid} {
       allow read:  if isAdmin();
-      // LINE accounts only exist in the village-77 app, which keeps its own
-      // member list (villageMembers) — keep them out of the site-wide one.
+      // LINE accounts ("line:<id>") sign in on the home page too now, so they
+      // write a profile like Google ones. village-77 still keeps its own
+      // member list (villageMembers) and doesn't write here.
       allow delete: if isOwner();
       allow create, update: if isUser(uid)
-                   && !uid.matches('line:.*')
+                   && (!('provider' in request.resource.data) || request.resource.data.provider in ['google', 'line'])
+                   && (!('lineLinked' in request.resource.data) || request.resource.data.lineLinked is bool)
                    && request.resource.data.name   is string
                    && request.resource.data.name.size()  <= 200
                    && request.resource.data.email  is string

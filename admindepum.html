@@ -117,6 +117,7 @@ body{
 .sync .abs{display:block;font-size:10px;color:var(--faint)}
 .apps{display:flex;gap:4px;margin-top:5px}
 .chip{font-size:9px;font-family:'JetBrains Mono',monospace;padding:2px 5px;border-radius:5px;background:var(--accent-soft);color:var(--accent);letter-spacing:.04em}
+.chip.chip-line{background:#06C75522;color:#06C755;border-color:#06C75566}
 
 .center{min-height:78vh;display:grid;place-items:center;text-align:center;padding:24px}
 .card{background:var(--panel);border:1px solid var(--line-soft);border-radius:18px;padding:34px 30px;max-width:380px;width:100%}
@@ -982,7 +983,7 @@ async function loadData(){
 
   await scan('userPlaces', (u,d) => { u.places= Array.isArray(d.savedIds) ? d.savedIds.length : 0; if(u.places) u._events.push({type:'place', title:'Saved places', detail:u.places+' places', time:ts(d.lastModified)}); u.sync = Math.max(u.sync, ts(d.lastModified)); });
   await scan('userStockRanges', (u,d) => { u.stock = Array.isArray(d.watchlist) ? d.watchlist.length : 0; u._holdingsCount = d.holdings && typeof d.holdings === 'object' ? Object.keys(d.holdings).length : 0; if(u.stock) u._events.push({type:'stock', title:'Stock Ranges watchlist', detail:u.stock+' tickers', time:ts(d.lastModified)}); u.sync = Math.max(u.sync, ts(d.lastModified)); });
-  await scan('userProfiles',(u,d) => { PROFILE_MAP.set(u.uid, d); u.name = d.name || null; u.email = d.email || null; u.photoURL = d.photoURL || d.photoUrl || d.avatarUrl || d.avatar || d.picture || null; if(ts(d.lastSeen)) u._events.push({type:'profile', title:'User active', detail:d.email || d.name || 'Profile seen', time:ts(d.lastSeen)}); u.sync = Math.max(u.sync, ts(d.lastSeen)); });
+  await scan('userProfiles',(u,d) => { PROFILE_MAP.set(u.uid, d); u._lineLinked = d.lineLinked === true; u.name = d.name || null; u.email = d.email || null; u.photoURL = d.photoURL || d.photoUrl || d.avatarUrl || d.avatar || d.picture || null; if(ts(d.lastSeen)) u._events.push({type:'profile', title:'User active', detail:d.email || d.name || 'Profile seen', time:ts(d.lastSeen)}); u.sync = Math.max(u.sync, ts(d.lastSeen)); });
   try{
     const links = await getDocs(collection(db, 'shareLinks'));
     links.forEach(s => {
@@ -994,13 +995,17 @@ async function loadData(){
   }catch(e){ errors.push('shareLinks: ' + (e.code||e.message)); }
 
   // Village 77 is a separate system with its own member list (village admin
-  // tab), so its users don't belong here: LINE accounts only exist there, and
-  // a Google account whose only trace is a profile last seen in Village 77
+  // tab), so its users don't belong here — unless they've used these apps.
+  // LINE accounts ("line:<id>") sign in on the home page too now: they count
+  // once they've been seen there (profile lastApp 'Home') or have app data.
+  // A Google account whose only trace is a profile last seen in Village 77
   // hasn't used any of these apps.
-  const villageOnly = (u) => u.uid.startsWith('line:') || (
-    PROFILE_MAP.get(u.uid)?.lastApp === 'Village 77'
-    && !u.nutr && !u.bills && !u.places && !u.stock && !u._holdingsCount && !u._shareCount
-  );
+  const villageOnly = (u) => {
+    const hasData = u.nutr || u.bills || u.places || u.stock || u._holdingsCount || u._shareCount;
+    if (hasData) return false;
+    const lastApp = PROFILE_MAP.get(u.uid)?.lastApp;
+    return u.uid.startsWith('line:') ? lastApp !== 'Home' : lastApp === 'Village 77';
+  };
   DATA = [...map.values()].filter(u => !villageOnly(u));
 
   if(errors.length){
@@ -1128,6 +1133,7 @@ function render(){
   $('stats').innerHTML = [
     ['Synced users', synced, ''],
     ['Active · 7d', active7, '<small>/ '+synced+'</small>'],
+    ['LINE sign-in', DATA.filter(u => isLineAcct(u) || u._lineLinked).length, '<small>'+DATA.filter(isLineAcct).length+' LINE-only</small>'],
     ['Nutrition days', sum('nutr'), ''],
     ['Saved bills', sum('bills'), ''],
     ['Saved places', sum('places'), ''],
@@ -1141,12 +1147,12 @@ function render(){
       const [s,abs,cls] = rel(u.sync);
       const apps = [u.nutr>0&&'NUTR', u.bills>0&&'BILL', u.places>0&&'PGD', u.stock>0&&'STOCK'].filter(Boolean).map(a=>`<span class="chip">${a}</span>`).join('');
       const m = (n,lab,sec) => n===0 ? `<div class="metric zero"><span class="lab">${lab}</span><span>—</span></div>` : `<div class="metric" onclick="toggleDrawer('${u.uid}','${sec||''}')" style="cursor:pointer" title="Click for details"><span class="lab">${lab}</span><span>${n}</span></div>`;
-      const nm = u.name || (u.uid.slice(0,12)+'…');
+      const nm = u.name || (isLineAcct(u) ? 'LINE user' : u.uid.slice(0,12)+'…');
       return `<div class="user-block" data-uid="${u.uid}">
       <div class="row body orow" onclick="toggleDrawer('${u.uid}')">
         <div class="user">
           ${userAvatarHtml(u)}
-          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><span class="uid">${u.uid.slice(0,10)}…</span><div class="apps">${apps}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(emailOf(u))}</span><span class="uid">${u.uid.slice(0,10)}…</span><div class="apps">${acctTag(u)}${apps}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
         ${m(u.nutr,'Nutrition days','nutr')}${m(u.bills,'Bills','bills')}${m(u.places,'Places','places')}${m(u.stock,'Watchlist','stock')}
         <div class="sync ${cls}">${s}<span class="abs">${abs}</span><span class="drawer-arrow">▶</span></div>
@@ -1214,7 +1220,7 @@ function renderActivityFeed(){
   DATA.forEach(u => {
     (u._events||[]).forEach(ev => {
       if(!ev.time) return;
-      events.push({ ...ev, uid:u.uid, user:u.name||u.email||u.uid.slice(0,10)+'…', email:u.email||'' });
+      events.push({ ...ev, uid:u.uid, user:userLabel(u), email:u.email||'' });
     });
   });
   events.sort((a,b)=>(b.time||0)-(a.time||0));
@@ -1358,7 +1364,17 @@ function renderBillFormCard(b){
     </div>
   </div>`;
 }
-function userLabel(u){ return u ? (u.name || u.email || u.uid.slice(0,12)+'…') : 'Unknown user'; }
+function userLabel(u){ return u ? (u.name || u.email || (isLineAcct(u) ? 'LINE user' : u.uid.slice(0,12)+'…')) : 'Unknown user'; }
+// How a person signs in: a LINE-only account ("line:<id>", no email), or a
+// Google account that has LINE connected on the home page (profile lineLinked).
+function isLineAcct(u){ return !!(u && u.uid && u.uid.startsWith('line:')); }
+function acctTag(u){
+  if(isLineAcct(u)) return '<span class="chip chip-line" title="Signs in with LINE (no Google account)">LINE</span>';
+  if(u && u._lineLinked) return '<span class="chip chip-line" title="Google account with LINE connected — signs in with either">+LINE</span>';
+  return '';
+}
+function acctKind(u){ return isLineAcct(u) ? 'LINE' : (u && u._lineLinked ? 'Google + LINE connected' : 'Google'); }
+const emailOf = (u) => u.email || (isLineAcct(u) ? 'LINE account' : '—');
 function setProfileAvatar(el, uid, label, photoURL){
   el.innerHTML = '';
   const initial = (label && label[0] || '?').toUpperCase();
@@ -1446,7 +1462,8 @@ window.openUserProfile = async function(uid){
       <div class="uprof-section"><h4>Activity timeline</h4><div class="timeline">${timeline}</div></div>
       <div class="uprof-section"><h4>Raw profile summary</h4>
         <div class="drawer-row"><span class="dk">Name</span><span class="dv">${escAdm(prof.name || u.name || '—')}</span></div>
-        <div class="drawer-row"><span class="dk">Email</span><span class="dv">${escAdm(prof.email || u.email || '—')}</span></div>
+        <div class="drawer-row"><span class="dk">Email</span><span class="dv">${escAdm(prof.email || u.email || (isLineAcct(u) ? 'LINE account — no email' : '—'))}</span></div>
+        <div class="drawer-row"><span class="dk">Signs in with</span><span class="dv">${escAdm(acctKind({ uid: u.uid || uid, _lineLinked: prof.lineLinked === true || u._lineLinked }))}</span></div>
         <div class="drawer-row"><span class="dk">Photo URL</span><span class="dv">${profilePhoto ? `<a class="profile-mini" href="${escAdm(profilePhoto)}" target="_blank" rel="noopener noreferrer">OPEN PHOTO</a>` : '—'}</span></div>
         <div class="drawer-row"><span class="dk">Last seen</span><span class="dv">${escAdm(fmtFull(prof.lastSeen || u.sync))}</span></div>
       </div>`;
@@ -1999,7 +2016,7 @@ function renderBillsTab(){
       <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .6fr .6fr .6fr 1fr" onclick="toggleDrawer('${u.uid}','bills')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','bills')}">
         <div class="user">
           ${userAvatarHtml(u)}
-          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(emailOf(u))}</span><div class="apps">${acctTag(u)}${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
         <div class="metric" onclick="event.stopPropagation();toggleDrawer('${u.uid}','bills')" style="cursor:pointer" title="Click to expand"><span class="lab">Trips</span><span>${u._tripCount||(u._hasTripMode?'✓':'—')}</span></div>
         <div class="metric ${u._legacyBillCount?'':'metric-zero'}" onclick="event.stopPropagation();toggleDrawer('${u.uid}','bills')" style="cursor:pointer" title="Click to expand"><span class="lab">Bills</span><span>${u._legacyBillCount||'—'}</span></div>
@@ -2041,7 +2058,7 @@ function renderNutrTab(){
       <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','nutr')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','nutr')}">
         <div class="user">
           ${userAvatarHtml(u)}
-          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(emailOf(u))}</span><div class="apps">${acctTag(u)}${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
         <div class="metric"><span class="lab">Days logged</span><span>${u.nutr}</span></div>
         <div class="metric"><span class="lab">Last logged</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">${escAdm(lastDate)}</span></div>
@@ -2080,7 +2097,7 @@ function renderStockTab(){
       <div class="row body" role="button" tabindex="0" style="grid-template-columns:1.8fr .8fr .8fr 1fr" onclick="toggleDrawer('${u.uid}','stock')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDrawer('${u.uid}','stock')}">
         <div class="user">
           ${userAvatarHtml(u)}
-          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(u.email||'—')}</span><div class="apps">${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
+          <div class="uinfo"><b>${escAdm(nm)}</b><span class="em">${escAdm(emailOf(u))}</span><div class="apps">${acctTag(u)}${userApps(u)}</div><button type="button" class="profile-mini" onclick="event.stopPropagation();openUserProfile('${u.uid}')">PROFILE</button></div>
         </div>
         <div class="metric"><span class="lab">Watchlist</span><span>${u.stock}</span></div>
         <div class="metric"><span class="lab">Wallet holdings</span><span>${u._holdingsCount||0}</span></div>

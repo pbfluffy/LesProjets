@@ -736,12 +736,19 @@
       await updateProfile(cred.user, { displayName: result.name, photoURL: result.picture || null })
       setBtnAvatar(cred.user)
       setPopoverState(cred.user)
+      // The sign-in profile write ran before the name was set.
+      setDoc(doc(db, 'userProfiles', cred.user.uid), { name: result.name.slice(0, 200), photoURL: result.picture || null }, { merge: true }).catch((e) => console.warn('[profile] name write failed:', e))
     }
   }
 
   function setLineLinked(linked) {
     document.getElementById('acct-line-status').dataset.linked = linked ? 'true' : 'false'
     if (window.applyLang) window.applyLang()
+    // Recorded on the profile so admindepum can show who has LINE connected.
+    const user = auth.currentUser
+    if (user && !user.uid.startsWith('line:')) {
+      setDoc(doc(db, 'userProfiles', user.uid), { lineLinked: !!linked }, { merge: true }).catch((e) => console.warn('[profile] lineLinked write failed:', e))
+    }
   }
 
   // Connect row: only for accounts that aren't LINE accounts themselves.
@@ -1031,7 +1038,8 @@
       ];
       refreshLineRow(user)
       if (user) {
-        if (!user.uid.startsWith('line:')) setDoc(doc(db, 'userProfiles', user.uid), { name: user.displayName || '', email: user.email || '', photoURL: user.photoURL || null, lastSeen: serverTimestamp(), lastApp: 'Home' }, { merge: true }).catch(function (e) { console.warn('[profile] write failed:', e); });
+        // provider: the kind of account (a LINE-only account has a line:<id> uid, no email). Shown in admindepum.
+        setDoc(doc(db, 'userProfiles', user.uid), { name: user.displayName || '', email: user.email || '', photoURL: user.photoURL || null, provider: user.uid.startsWith('line:') ? 'line' : 'google', lastSeen: serverTimestamp(), lastApp: 'Home' }, { merge: true }).catch(function (e) { console.warn('[profile] write failed:', e); });
         rows.forEach(function (r) {
           if (!r.el) return;
           getDoc(doc(db, r.col, user.uid))
