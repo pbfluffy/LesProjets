@@ -1040,6 +1040,16 @@
       if (user) {
         // provider: the kind of account (a LINE-only account has a line:<id> uid, no email). Shown in admindepum.
         setDoc(doc(db, 'userProfiles', user.uid), { name: user.displayName || '', email: user.email || '', photoURL: user.photoURL || null, provider: user.uid.startsWith('line:') ? 'line' : 'google', lastSeen: serverTimestamp(), lastApp: 'Home' }, { merge: true }).catch(function (e) { console.warn('[profile] write failed:', e); });
+        // How this sign-in happened: Google, or LINE (the village-77 Worker's
+        // custom token). usedLine on a Google account means the person really
+        // signs in both ways — "Both" in admindepum.
+        user.getIdTokenResult().then(function (r) {
+          var via = r.signInProvider === 'custom' ? 'line' : r.signInProvider === 'google.com' ? 'google' : null;
+          if (!via) return;
+          var upd = { lastSignInVia: via };
+          upd[via === 'line' ? 'usedLine' : 'usedGoogle'] = true;
+          return setDoc(doc(db, 'userProfiles', user.uid), upd, { merge: true });
+        }).catch(function (e) { console.warn('[profile] sign-in method write failed:', e); });
         rows.forEach(function (r) {
           if (!r.el) return;
           getDoc(doc(db, r.col, user.uid))

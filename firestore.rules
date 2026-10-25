@@ -43,6 +43,9 @@ service cloud.firestore {
       allow create, update: if isUser(uid)
                    && (!('provider' in request.resource.data) || request.resource.data.provider in ['google', 'line'])
                    && (!('lineLinked' in request.resource.data) || request.resource.data.lineLinked is bool)
+                   && (!('usedLine' in request.resource.data) || request.resource.data.usedLine is bool)
+                   && (!('usedGoogle' in request.resource.data) || request.resource.data.usedGoogle is bool)
+                   && (!('lastSignInVia' in request.resource.data) || request.resource.data.lastSignInVia in ['google', 'line'])
                    && request.resource.data.name   is string
                    && request.resource.data.name.size()  <= 200
                    && request.resource.data.email  is string
