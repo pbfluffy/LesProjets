@@ -1382,22 +1382,22 @@ function renderBillFormCard(b){
 function userLabel(u){ return u ? (u.name || u.email || (isLineAcct(u) ? 'LINE user' : u.uid.slice(0,12)+'…')) : 'Unknown user'; }
 // How a person signs in (profile fields written by the home page):
 //   'line'   a LINE-only account ("line:<id>", no email)
-//   'both'   a Google account that has also signed in with LINE (usedLine)
-//   'google' everyone else — maybe with LINE connected but not used yet
+//   'both'   a Google account that can also sign in with LINE: LINE connected
+//            (lineLinked) or already used to sign in (usedLine)
+//   'google' everyone else
 function isLineAcct(u){ return !!(u && u.uid && u.uid.startsWith('line:')); }
-function acctGroup(u){ return isLineAcct(u) ? 'line' : (u && u._usedLine ? 'both' : 'google'); }
+function acctGroup(u){ return isLineAcct(u) ? 'line' : (u && (u._lineLinked || u._usedLine) ? 'both' : 'google'); }
 function acctTag(u){
   const g = acctGroup(u);
   if(g === 'line') return '<span class="chip chip-line" title="Signs in with LINE only (no Google account)">LINE</span>';
-  if(g === 'both') return '<span class="chip chip-line chip-both" title="Signs in with Google and with LINE — same account">GOOGLE+LINE</span>';
-  if(u && u._lineLinked) return '<span class="chip chip-line chip-ghost" title="LINE connected, not used to sign in yet">+LINE</span>';
+  if(g === 'both') return '<span class="chip chip-line chip-both" title="Google account with LINE connected — signs in with either' + (u._usedLine ? '' : ' (no LINE sign-in recorded yet)') + '">GOOGLE+LINE</span>';
   return '';
 }
 function acctKind(u){
   const g = acctGroup(u);
   if(g === 'line') return 'LINE only';
-  if(g === 'both') return 'Google and LINE (same account)';
-  return u && u._lineLinked ? 'Google · LINE connected, not used yet' : 'Google';
+  if(g === 'both') return 'Google and LINE (same account)' + (u._usedLine ? '' : ' — no LINE sign-in recorded yet');
+  return 'Google';
 }
 const emailOf = (u) => u.email || (isLineAcct(u) ? 'LINE account' : '—');
 function setProfileAvatar(el, uid, label, photoURL){
