@@ -9,7 +9,7 @@
  */
 import { useState, useRef, useEffect } from 'react'
 import { useLang } from '../LangContext'
-import { useTripsStore, calcBillResult } from '../hooks/useTripsStore'
+import { useTripsStore, calcBillResult, pairwiseSettlements } from '../hooks/useTripsStore'
 import Avatar from './Avatar'
 import styles from './TripsTab.module.css'
 import { compressImage, scanReceipt, localizeError, getScanCount, bumpScanCount, resetScanCount, SCAN_CAP, CURRENCY_FLAGS } from './receiptScanUtils'
@@ -65,7 +65,7 @@ function TripForm({ initial, onSave, onCancel, title }) {
 }
 
 // ── Settlement + summary section ────────────────────────────────────────────
-function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, convOwed, convPaid, mixedConv, savedPayees = [] }) {
+function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, convOwed, convSettlements, mixedConv, savedPayees = [] }) {
   const { t } = useLang()
   if (!summary) return null
   if (!trip.billIds.length) return null
@@ -81,24 +81,8 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
   const isTHB = summary.currency === 'THB'
   const orig = (n) => fmtAmount(n, summary.currency)
 
-  // convOwed/convPaid/mixedConv passed down from TripDetail (already computed there)
-  // so share buttons and TripSummarySection both use the same values
-  const convSettlements = (() => {
-    if (!summary.hasPayers) return []
-    const net = {}
-    trip.members.forEach(m => { net[m] = (convPaid[m] || 0) - (convOwed[m] || 0) })
-    const creditors = Object.entries(net).filter(([, v]) => v > 0.5).map(([m, v]) => ({ m, v }))
-    const debtors   = Object.entries(net).filter(([, v]) => v < -0.5).map(([m, v]) => ({ m, v: -v }))
-    creditors.sort((a, b) => b.v - a.v); debtors.sort((a, b) => b.v - a.v)
-    const result = []; let ci = 0, di = 0
-    while (ci < creditors.length && di < debtors.length) {
-      const amount = Math.min(creditors[ci].v, debtors[di].v)
-      if (amount > 0.5) result.push({ from: debtors[di].m, to: creditors[ci].m, amount })
-      creditors[ci].v -= amount; debtors[di].v -= amount
-      if (creditors[ci].v < 0.5) ci++; if (debtors[di].v < 0.5) di++
-    }
-    return result
-  })()
+  // convOwed/convSettlements/mixedConv passed down from TripDetail (already
+  // computed there) so share buttons and TripSummarySection use the same values
   const _converted = (rates && !isTHB) || (rate && !isTHB)
   // summary.settlements is already [] for a mixed-currency trip (see
   // tripSummary in useTripsStore.js — it never sums raw cross-currency
@@ -449,9 +433,30 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
   const convOwed = mixedConv?.owed ?? (rates && !isTHB
     ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary?.owed[m] ?? 0) * (rate ?? 1))]))
     : (summary?.owed ?? {}))
-  const convPaid = mixedConv?.paid ?? (rates && !isTHB
-    ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary?.paid?.[m] ?? 0) * (rate ?? 1))]))
-    : (summary?.paid ?? {}))
+
+  // Who pays whom (pairwiseSettlements), per bill: each person pays whoever
+  // paid a bill they were part of. `factorOf(currency)` converts a bill's
+  // shares to the shown currency (1 = as is).
+  const settleWith = (factorOf) => pairwiseSettlements(
+    tripBills.filter(e => !e._missing).map(entry => {
+      const _pre = entry._sharedBill
+      const { totals: bTotals, currency: bCurr } = _pre ?? calcBillResult(entry)
+      const f = factorOf(bCurr ?? detailCurrency)
+      return {
+        payer: (trip.paidBy || {})[entry.id] || _pre?.payer || '',
+        totals: Object.fromEntries(Object.entries(bTotals || {}).map(([m, v]) => [m, (Number(v) || 0) * f])),
+      }
+    }),
+    trip.members,
+  )
+  const toThb = (c) => (c && c !== 'THB' ? (rates?.[c] ?? rate ?? 1) : 1)
+  const convSettlements = summary?.hasPayers ? settleWith(toThb) : []
+  // A shared trip's summary is the snapshot taken when it was shared; work its
+  // transfers out again from the embedded bills rather than trusting the
+  // snapshot's (older links were made with the pooled method).
+  if (summary && sharedSnapshot && trip.id === '__shared__' && summary.hasPayers) {
+    summary.settlements = settleWith(() => 1)
+  }
 
   return (
     <div className={styles.detail}>
@@ -537,7 +542,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
         </div>
       )}
 
-      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} convOwed={convOwed} convPaid={convPaid} mixedConv={mixedConv} savedPayees={savedPayees} />
+      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} convOwed={convOwed} convSettlements={convSettlements} mixedConv={mixedConv} savedPayees={savedPayees} />
 
       {/* Buttons: Share link | Line | Save image — matches Bill Splitter ResultSection */}
       {summary && summary.hasData && (
@@ -565,25 +570,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   return acc + Math.round((bt || 0) * f)
                 }, 0) : summary.grandTotal
                 const snapSettlements = (_snapRate || mixedConv) && summary.hasPayers
-                  ? (() => {
-                      const sOwed = snapOwed
-                      const sPaid = mixedConv?.paid ?? (_snapRate && !isTHB
-                        ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.paid?.[m] ?? 0) * _snapRate)]))
-                        : (summary.paid ?? {}))
-                      const net = {}
-                      trip.members.forEach(m => { net[m] = (sPaid[m] || 0) - (sOwed[m] || 0) })
-                      const creds = Object.entries(net).filter(([,v]) => v > 0.5).map(([m,v]) => ({m,v}))
-                      const debts = Object.entries(net).filter(([,v]) => v < -0.5).map(([m,v]) => ({m,v:-v}))
-                      creds.sort((a,b) => b.v-a.v); debts.sort((a,b) => b.v-a.v)
-                      const res = []; let ci=0,di=0
-                      while (ci<creds.length && di<debts.length) {
-                        const amt = Math.min(creds[ci].v, debts[di].v)
-                        if (amt > 0.5) res.push({from:debts[di].m, to:creds[ci].m, amount:amt})
-                        creds[ci].v -= amt; debts[di].v -= amt
-                        if (creds[ci].v < 0.5) ci++; if (debts[di].v < 0.5) di++
-                      }
-                      return res
-                    })()
+                  ? convSettlements
                   : summary.settlements
                 const snapTotal = rates ? _snapGrand : (_snapRate && !isTHB ? Math.round(summary.grandTotal * _snapRate) : summary.grandTotal)
                 const snapCurrency = rates ? 'THB' : (_snapRate && !isTHB ? 'THB' : summary.currency)
@@ -650,25 +637,8 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                 const dispOwed = mixedConv?.owed ?? (rate && !isTHB
                   ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.owed[m] ?? 0) * rate)]))
                   : summary.owed)
-                const dispPaid = mixedConv?.paid ?? (rate && !isTHB
-                  ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary.paid?.[m] ?? 0) * rate)]))
-                  : (summary.paid ?? {}))
                 const dispSettlements = (rates || (rate && !isTHB)) && summary.hasPayers
-                  ? (() => {
-                      const net = {}
-                      trip.members.forEach(m => { net[m] = (dispPaid[m] || 0) - (dispOwed[m] || 0) })
-                      const creds = Object.entries(net).filter(([,v]) => v > 0.5).map(([m,v]) => ({m,v}))
-                      const debts = Object.entries(net).filter(([,v]) => v < -0.5).map(([m,v]) => ({m,v:-v}))
-                      creds.sort((a,b) => b.v-a.v); debts.sort((a,b) => b.v-a.v)
-                      const res = []; let ci=0,di=0
-                      while (ci<creds.length && di<debts.length) {
-                        const amt = Math.min(creds[ci].v, debts[di].v)
-                        if (amt > 0.5) res.push({from:debts[di].m, to:creds[ci].m, amount:amt})
-                        creds[ci].v -= amt; debts[di].v -= amt
-                        if (creds[ci].v < 0.5) ci++; if (debts[di].v < 0.5) di++
-                      }
-                      return res
-                    })()
+                  ? convSettlements
                   : summary.settlements
                 const dispTotal = rates ? Object.values(dispOwed).reduce((a, v) => a + (v || 0), 0) : (rate && !isTHB ? Math.round(summary.grandTotal * rate) : summary.grandTotal)
                 const lines = [trip.name, '']

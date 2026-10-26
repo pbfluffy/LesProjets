@@ -125,6 +125,40 @@ export function calcBillResult(entry) {
   return { grandTotal, totals, currency }
 }
 
+// Who pays whom on a trip: everyone pays the person who paid each bill they
+// were part of (their share of that bill), then what two people owe each
+// other is netted into one transfer. Pooling the whole trip into net
+// balances instead (fewer transfers) had people paying someone for a bill
+// they weren't on — e.g. a songthaew rider who never took the taxi being
+// told to pay the taxi's payer.
+//   bills:   [{ payer, totals: { member: share } }] — all in one currency
+//   members: trip member order, for a stable list (grouped by who receives)
+export function pairwiseSettlements(bills, members = []) {
+  const owe = new Map() // "from\u0000to" -> amount
+  for (const b of bills) {
+    if (!b.payer) continue
+    for (const [m, v] of Object.entries(b.totals || {})) {
+      const amount = Number(v) || 0
+      if (m === b.payer || amount <= 0) continue
+      const k = m + '\u0000' + b.payer
+      owe.set(k, (owe.get(k) || 0) + amount)
+    }
+  }
+  const out = []
+  const done = new Set()
+  for (const [k, v] of owe) {
+    if (done.has(k)) continue
+    const [a, b] = k.split('\u0000')
+    const back = b + '\u0000' + a
+    done.add(k); done.add(back)
+    const net = v - (owe.get(back) || 0)
+    if (net > 0.005) out.push({ from: a, to: b, amount: net })
+    else if (net < -0.005) out.push({ from: b, to: a, amount: -net })
+  }
+  const pos = (m) => { const i = members.indexOf(m); return i < 0 ? members.length : i }
+  return out.sort((x, y) => pos(x.to) - pos(y.to) || pos(x.from) - pos(y.from))
+}
+
 export function useTripsStore() {
   const [trips, setTrips] = useState(() => readAll())
 
@@ -363,30 +397,11 @@ export function useTripsStore() {
     // from converted amounts (see TripsTab's convSettlements); this raw
     // version is only ever correct to hand out when mixedCurrencies is false.
     if (hasPayers && !mixedCurrencies) {
-      // Use per-member owed if available.
-      // Fall back to even split if member names don't match bill members (e.g. Google display name vs bill name).
-      const membersWithOwed = trip.members.filter(m => owed[m] > 0.5)
-      const owedToUse = membersWithOwed.length > 0
-        ? owed
-        : Object.fromEntries(trip.members.map(m => [m, grandTotal / (trip.members.length || 1)]))
-
-      const net = {}
-      trip.members.forEach(m => { net[m] = (paid[m] || 0) - (owedToUse[m] || 0) })
-
-      const creditors = Object.entries(net).filter(([, v]) => v > 0.5).map(([m, v]) => ({ m, v }))
-      const debtors   = Object.entries(net).filter(([, v]) => v < -0.5).map(([m, v]) => ({ m, v: -v }))
-      creditors.sort((a, b) => b.v - a.v)
-      debtors.sort((a, b) => b.v - a.v)
-
-      let ci = 0, di = 0
-      while (ci < creditors.length && di < debtors.length) {
-        const amount = Math.min(creditors[ci].v, debtors[di].v)
-        if (amount > 0.5) settlements.push({ from: debtors[di].m, to: creditors[ci].m, amount })
-        creditors[ci].v -= amount
-        debtors[di].v   -= amount
-        if (creditors[ci].v < 0.5) ci++
-        if (debtors[di].v   < 0.5) di++
-      }
+      const bills = trip.billIds.map(billId => {
+        const entry = entries.find(e => e.id === billId)
+        return entry ? { payer: (trip.paidBy || {})[billId], totals: calcBillResult(entry).totals } : null
+      }).filter(Boolean)
+      settlements = pairwiseSettlements(bills, trip.members)
     }
 
     // hasData: false when all bill entries are missing from history (trips still reference deleted bills)
