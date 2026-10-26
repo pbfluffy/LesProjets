@@ -449,6 +449,8 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
     }),
     trip.members,
   )
+  // People who paid at least one bill, in member order — the only ones who receive transfers.
+  const payers = trip.members.filter(m => Object.values(trip.paidBy || {}).includes(m))
   const toThb = (c) => (c && c !== 'THB' ? (rates?.[c] ?? rate ?? 1) : 1)
   const convSettlements = summary?.hasPayers ? settleWith(toThb) : []
   // A shared trip's summary is the snapshot taken when it was shared; work its
@@ -502,7 +504,9 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
         })()}
       </div>
 
-      {/* PromptPay per-member settings — data-snapshot-hide so it doesn't appear in share image */}
+      {/* Payment details (PromptPay / bank) — only for people who paid a bill:
+          they're the only ones anyone transfers to. data-snapshot-hide so it
+          doesn't appear in the share image. */}
       {trip.members.length > 0 && !sharedSnapshot && (
         <div data-snapshot-hide style={{ marginBottom: 12 }}>
           <button
@@ -510,11 +514,16 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
             style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--color-text-muted)', cursor: 'pointer', padding: '2px 0', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 4, userSelect: 'none' }}
           >
             <img src="https://pumbafluffycorgi.com/promptpay-logo.png" alt="PromptPay" style={{ height: 14, objectFit: 'contain', opacity: 0.7 }} />
-            {lang === 'th' ? 'ตั้งค่าช่องทางรับเงินสมาชิก' : 'Member payment details'} <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: showPPSettings ? 'rotate(90deg)' : 'rotate(0deg)' }}>›</span>
+            {lang === 'th' ? 'ช่องทางรับเงินของคนที่จ่าย' : 'Payment details for who paid'} <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: showPPSettings ? 'rotate(90deg)' : 'rotate(0deg)' }}>›</span>
           </button>
           {showPPSettings && (
             <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {trip.members.map(m => {
+              {payers.length === 0 && (
+                <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+                  {lang === 'th' ? 'เลือก ใครจ่าย? ในแต่ละบิลด้านล่างก่อน แล้วใส่ช่องทางรับเงินของคนนั้นที่นี่' : 'Pick who paid each bill below first, then add their payment details here.'}
+                </span>
+              )}
+              {payers.map(m => {
                 const v = trip.memberPromptPay?.[m] ?? ''
                 const invalid = v.trim() !== '' && !isValidPayTarget(v)
                 return (
