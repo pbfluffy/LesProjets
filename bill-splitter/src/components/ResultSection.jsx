@@ -8,8 +8,9 @@ import PayTargetDetails from './PayTargetDetails'
 import Avatar from './Avatar'
 import { CopyIcon, ShareIcon, QrIcon, SmartphoneIcon, WarnIcon, BankIcon, NoteIcon } from './icons'
 import styles from './ResultSection.module.css'
+import { money } from '../money'
 
-function fmt(n) { return n.toFixed(2) }
+function fmt(n) { return money(n) }
 
 export default function ResultSection({ result, members, foods = [], promptPay, bankInfo, notes, billName, snapshot, tab, onSave, onNewBill, paid, onTogglePaid, billOwner, onBillOwnerChange, roundTotalEnabled, onRoundTotalChange, readOnly, currency = 'THB', currencySymbol = '฿' }) {
   const { t, lang } = useLang()
@@ -50,7 +51,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
 
   const conv = (n) => convertRate !== null ? (n * convertRate) : n
   const sym = convertRate !== null ? '฿' : currencySymbol
-  const fmtC = (n) => conv(n).toFixed(2)
+  const fmtC = (n) => money(conv(n))
   const displayCurrency = convertRate !== null ? 'THB' : currency
   const currentOwner = members.includes(billOwner) ? billOwner : members[0]
   // #91 mark-as-paid — persisted via the store (paid/onTogglePaid props), so
@@ -255,46 +256,6 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
 
   return (
     <section ref={sectionRef} className={styles.section} data-bill-result>
-      {/* Actions above summary — data-snapshot-hide so they don't appear in share image */}
-      {hasData && (
-        <div data-snapshot-hide style={{ marginBottom: 12 }}>
-          {/* Row 1: Save · Share · Line (all in one row, compact) */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-            {onSave && (
-              <button onClick={handleSave} style={{ flex: 2, padding: '7px 10px', border: 'none', background: 'var(--color-accent)', color: 'var(--color-accent-text)', borderRadius: 7, cursor: 'pointer', font: 'inherit', fontWeight: 600, fontSize: 13 }}>
-                {t.saveBill}
-              </button>
-            )}
-            <button onClick={handleShareLink} disabled={creatingLink} style={{ flex: 1, padding: '7px 6px', border: '1px solid var(--color-border-strong)', background: 'transparent', color: 'var(--color-text)', borderRadius: 7, cursor: 'pointer', font: 'inherit', fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <ShareIcon width={12} height={12} />
-              {creatingLink ? '…' : (lang === 'th' ? 'แชร์' : 'Share')}
-            </button>
-            <button onClick={handleShareLine} disabled={capturing} style={{ flex: 1, padding: '7px 6px', border: '1px solid #06C755', background: 'transparent', color: '#06C755', borderRadius: 7, cursor: 'pointer', font: 'inherit', fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <svg width={12} height={12} viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.070 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
-              Line
-            </button>
-          </div>
-          {/* Row 2: + New Bill · More ▾ (muted text) */}
-          <div style={{ display: 'flex', borderTop: '1px solid var(--color-border)', paddingTop: 4 }}>
-            {onNewBill && (
-              <button onClick={onNewBill} style={{ flex: 1, padding: '4px', border: 'none', background: 'transparent', color: 'var(--color-text-muted)', font: 'inherit', fontSize: 12, cursor: 'pointer', textAlign: 'center' }}>
-                + {lang === 'th' ? 'บิลใหม่' : 'New Bill'}
-              </button>
-            )}
-            <div style={{ position: 'relative', marginLeft: 'auto' }} ref={moreRef}>
-              <button onClick={() => setMoreOpen(o => !o)} style={{ padding: '4px 8px', border: 'none', background: 'transparent', color: 'var(--color-text-muted)', font: 'inherit', fontSize: 12, cursor: 'pointer' }} aria-haspopup="true" aria-expanded={moreOpen}>
-                {t.more} ▾
-              </button>
-              {moreOpen && (
-                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 10, background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, padding: 4, minWidth: 150, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleCopyText(); setMoreOpen(false) }}><CopyIcon width={14} height={14} /> {t.copy}</button>
-                  <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleSaveImage(); setMoreOpen(false) }} disabled={capturing}>{t.saveImage}</button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
       <div className={styles.header}>
         <h2 className={styles.title} data-tour="result">{t.result}</h2>
       </div>
@@ -308,7 +269,7 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
             {(result.billDiscount ?? 0) > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.billDiscount ?? 'Bill Discount'}</span><span className={styles.rowValDiscount}>− {sym}{fmtC(result.billDiscount)}</span></div>}
             {result.serviceCharge > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.serviceCharge} ({result.serviceChargeRate}%)</span><span className={styles.rowVal}>{sym}{fmtC(result.serviceCharge)}</span></div>}
             {result.vat > 0 && <div className={styles.row}><span className={styles.rowLabel}>{t.vat} (7%)</span><span className={styles.rowVal}>{sym}{fmtC(result.vat)}</span></div>}
-            <div className={`${styles.row} ${styles.totalRow}`}><span>{t.total}</span><span className={styles.totalRight}><span className={styles.grandTotal}>{sym}{convertRate !== null ? fmtC(result.grandTotal) : (roundTotalEnabled ? Math.round(result.grandTotal) : fmt(result.grandTotal))}</span>{showRoundedFrom && convertRate === null && <span className={styles.roundFrom}>{t.roundedFrom} ฿{rawGrand.toFixed(2)}</span>}</span></div>
+            <div className={`${styles.row} ${styles.totalRow}`}><span>{t.total}</span><span className={styles.totalRight}><span className={styles.grandTotal}>{sym}{convertRate !== null ? fmtC(result.grandTotal) : (roundTotalEnabled ? money(Math.round(result.grandTotal), 0) : fmt(result.grandTotal))}</span>{showRoundedFrom && convertRate === null && <span className={styles.roundFrom}>{t.roundedFrom} ฿{money(rawGrand)}</span>}</span></div>
             {!readOnly && (
               <div className={styles.roundRow} data-snapshot-hide>
                 <span className={styles.roundLabel}>{t.roundTotal}</span>
@@ -420,6 +381,47 @@ export default function ResultSection({ result, members, foods = [], promptPay, 
           {(promptPay||bankInfo) && <div className={styles.payInfo}>{promptPay && <p className={styles.payLine}><span className={styles.payIcon}>{ppDesc.isBank ? <BankIcon width={16} height={16} /> : <SmartphoneIcon width={16} height={16} />}</span>{ppDesc.label}: <strong>{ppDesc.text}</strong>{!ppValid && <span className={styles.payWarn}><WarnIcon width={14} height={14} /> {ppDesc.isBank ? t.bankAccountInvalid : t.promptPayInvalid}</span>}</p>}{bankInfo && <p className={styles.payLine} style={{whiteSpace:'pre-line'}}><span className={styles.payIcon}><BankIcon width={16} height={16} /></span>{bankInfo}</p>}</div>}
           {notes && <div className={styles.notes}><span className={styles.notesIcon}><NoteIcon width={16} height={16} /></span><span>{notes}</span></div>}
         </>
+      )}
+      {/* Actions after the summary — you check the amounts, then share. data-snapshot-hide
+          so they don't appear in the share image. */}
+      {hasData && (
+        <div data-snapshot-hide style={{ marginTop: 16 }}>
+          {/* Row 1: Save · Share · Line (all in one row, compact) */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+            {onSave && (
+              <button onClick={handleSave} style={{ flex: 2, padding: '7px 10px', border: 'none', background: 'var(--color-accent)', color: 'var(--color-accent-text)', borderRadius: 7, cursor: 'pointer', font: 'inherit', fontWeight: 600, fontSize: 13 }}>
+                {t.saveBill}
+              </button>
+            )}
+            <button onClick={handleShareLink} disabled={creatingLink} style={{ flex: 1, padding: '7px 6px', border: '1px solid var(--color-border-strong)', background: 'transparent', color: 'var(--color-text)', borderRadius: 7, cursor: 'pointer', font: 'inherit', fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <ShareIcon width={12} height={12} />
+              {creatingLink ? '…' : (lang === 'th' ? 'แชร์' : 'Share')}
+            </button>
+            <button onClick={handleShareLine} disabled={capturing} style={{ flex: 1, padding: '7px 6px', border: '1px solid #06C755', background: 'transparent', color: '#06C755', borderRadius: 7, cursor: 'pointer', font: 'inherit', fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <svg width={12} height={12} viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.070 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+              Line
+            </button>
+          </div>
+          {/* Row 2: + New Bill · More ▾ (muted text) */}
+          <div style={{ display: 'flex', borderTop: '1px solid var(--color-border)', paddingTop: 4 }}>
+            {onNewBill && (
+              <button onClick={onNewBill} style={{ flex: 1, padding: '4px', border: 'none', background: 'transparent', color: 'var(--color-text-muted)', font: 'inherit', fontSize: 12, cursor: 'pointer', textAlign: 'center' }}>
+                + {lang === 'th' ? 'บิลใหม่' : 'New Bill'}
+              </button>
+            )}
+            <div style={{ position: 'relative', marginLeft: 'auto' }} ref={moreRef}>
+              <button onClick={() => setMoreOpen(o => !o)} style={{ padding: '4px 8px', border: 'none', background: 'transparent', color: 'var(--color-text-muted)', font: 'inherit', fontSize: 12, cursor: 'pointer' }} aria-haspopup="true" aria-expanded={moreOpen}>
+                {t.more} ▾
+              </button>
+              {moreOpen && (
+                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 10, background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, padding: 4, minWidth: 150, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleCopyText(); setMoreOpen(false) }}><CopyIcon width={14} height={14} /> {t.copy}</button>
+                  <button className={styles.shareBtn} style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }} onClick={() => { handleSaveImage(); setMoreOpen(false) }} disabled={capturing}>{t.saveImage}</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </section>
   )

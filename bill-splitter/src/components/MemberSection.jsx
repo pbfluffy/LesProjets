@@ -42,7 +42,7 @@ export default function MemberSection({ members, onAdd, onRemove }) {
             <span key={m} className={styles.tag}>
               <Avatar name={m} photoURL={photoForName(m)} size={20} />
               {m}
-              <button className={styles.removeBtn} onClick={() => onRemove(m)} aria-label={`${t.removeLabel} ${m}`}>X</button>
+              <button className={styles.removeBtn} onClick={() => onRemove(m)} aria-label={`${t.removeLabel} ${m}`}>×</button>
             </span>
           ))}
         </div>

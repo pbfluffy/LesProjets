@@ -3,6 +3,7 @@ import { useLang } from '../LangContext'
 import { describePayTarget } from '../promptpay'
 import PayTargetInput from './PayTargetInput'
 import styles from './ExtrasSection.module.css'
+import { money } from '../money'
 
 export default function ExtrasSection({
   vatEnabled, onVatChange,
@@ -96,7 +97,7 @@ export default function ExtrasSection({
           {discountOpen
             ? t.close
             : totalDiscount > 0
-              ? <span className={styles.toggleBtnContent}>−฿{totalDiscount.toFixed(2)}<span className={styles.toggleChevron}>{discountOpen ? '▲' : '▼'}</span></span>
+              ? <span className={styles.toggleBtnContent}>−฿{money(totalDiscount)}<span className={styles.toggleChevron}>{discountOpen ? '▲' : '▼'}</span></span>
               : <span className={styles.toggleBtnContent}>{t.add ?? '+ Add'}<span className={styles.toggleChevron}>▼</span></span>}
         </button>
       </div>

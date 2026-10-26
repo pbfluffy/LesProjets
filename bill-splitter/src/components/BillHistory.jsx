@@ -3,7 +3,8 @@ import { useLang } from '../LangContext'
 import styles from './BillHistory.module.css'
 import { PLATES } from '../hooks/useSushiroStore'
 
-function fmt(n) { return (Number(n) || 0).toFixed(2) }
+import { money } from '../money'
+function fmt(n) { return money(n) }
 
 function fmtWhen(ts, lang) {
   const d = new Date(ts)

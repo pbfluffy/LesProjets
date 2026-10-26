@@ -1,11 +1,20 @@
 import { useLang } from '../LangContext'
 import styles from './FoodItem.module.css'
+import { money } from '../money'
 
 const PALETTE = ['#F4B6B6','#F8D6A4','#F5E6A1','#C8E6B4','#A8D8E0','#A4C8E8','#C2BCE8','#E0B8DE','#D4CEC0','#BFD5C8']
 function hashColor(name) {
   let sum = 0
   for (let i = 0; i < (name || '').length; i++) sum += name.charCodeAt(i)
   return PALETTE[sum % PALETTE.length]
+}
+
+// Chip label: the first word of a name ("PumbaFluffy Corgi" → "PumbaFluffy"),
+// unless two members share it — then the full name. Long full names wrapped
+// every dish's chips onto two lines.
+function shortName(m, members) {
+  const first = m.trim().split(/\s+/)[0] || m
+  return members.filter(x => (x.trim().split(/\s+/)[0] || x) === first).length > 1 ? m : first
 }
 
 export default function FoodItem({ food, members, onUpdate, onToggleMember, onRemove, onDuplicate, onSelectAll, currencySymbol = '฿' }) {
@@ -28,16 +37,16 @@ export default function FoodItem({ food, members, onUpdate, onToggleMember, onRe
           <div className={styles.chips}>
             <button className={`${styles.chip} ${allSelected ? styles.chipAll : styles.chipAllOff}`} onClick={() => onSelectAll(food.id, allSelected ? [] : members)}>{t.everyone}</button>
             {members.map(m => (
-              <button key={m} className={`${styles.chip} ${food.who.includes(m) ? styles.chipOn : ''}`} onClick={() => onToggleMember(food.id, m)} style={food.who.includes(m) ? {} : { '--chip-dot': hashColor(m) }}>
+              <button key={m} title={m} className={`${styles.chip} ${food.who.includes(m) ? styles.chipOn : ''}`} onClick={() => onToggleMember(food.id, m)} style={food.who.includes(m) ? {} : { '--chip-dot': hashColor(m) }}>
                 {food.who.includes(m) && <span className={styles.chipDot} style={{ background: hashColor(m) }} />}
-                {m}
+                {shortName(m, members)}
               </button>
             ))}
           </div>
         </div>
       )}
       {food.who.length >= 1 && food.price && (
-        <p className={styles.hint}>{t.splitHint} {currencySymbol}{(parseFloat(food.price) / food.who.length).toFixed(2)}</p>
+        <p className={styles.hint}>{t.splitHint} {currencySymbol}{money(parseFloat(food.price) / food.who.length)}</p>
       )}
     </div>
   )

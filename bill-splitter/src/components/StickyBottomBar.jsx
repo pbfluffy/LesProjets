@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLang } from '../LangContext'
 import styles from './StickyBottomBar.module.css'
+import { money } from '../money'
 
 // Feature #76 Phase C — fixed bottom bar showing the running total.
 // Visible only when (a) the bill has members + a non-zero total, AND
@@ -34,7 +35,7 @@ export default function StickyBottomBar({ memberCount, grandTotal, rawSubtotal, 
   return (
     <button type="button" className={styles.bar} onClick={handleTap} aria-label={t.total || 'Total'}>
       <span className={styles.label}>{t.total || 'Total'}</span>
-      <span className={styles.amount}>{currencySymbol}{displayTotal.toFixed(2)}</span>
+      <span className={styles.amount}>{currencySymbol}{money(displayTotal)}</span>
       <span className={styles.chevron} aria-hidden="true">›</span>
     </button>
   )

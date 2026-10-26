@@ -13,8 +13,16 @@
 .whoRow { display: flex; align-items: flex-start; gap: 8px; }
 .whoLabel { font-size: 11px; color: var(--color-text-faint); padding-top: 5px; white-space: nowrap; flex-shrink: 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.chip { padding: 3px 10px; border-radius: var(--radius-pill); font-size: 12px; font-family: var(--font-body); background: none; border: 0.5px solid var(--color-border-strong); color: var(--color-text-muted); transition: all 0.1s; }
+.chip { max-width: 9.5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 3px 9px; border-radius: var(--radius-pill); font-size: 12px; font-family: var(--font-body); background: none; border: 0.5px solid var(--color-border-strong); color: var(--color-text-muted); transition: all 0.1s; }
 .chipOn { background: var(--color-accent); color: var(--color-accent-text); border-color: var(--color-accent); }
 .chipAll { background: var(--color-accent); color: var(--color-accent-text); border-color: var(--color-accent); font-weight: 500; }
 .chipAllOff { background: var(--color-surface-alt); }
 .hint { margin-top: 6px; font-size: 11px; color: var(--color-text-faint); font-family: var(--font-mono); text-align: right; }
+
+/* Phones: the "Who eats:" label took ~60px of the row, so four short names
+   still wrapped onto a second line. It stays for screen readers; the "All"
+   chip already says what the row is. */
+@media (max-width: 420px) {
+  .whoLabel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .chip { padding: 3px 8px; }
+}

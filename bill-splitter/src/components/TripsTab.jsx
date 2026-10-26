@@ -21,6 +21,7 @@ import PayTargetDetails from './PayTargetDetails'
 import PayTargetInput from './PayTargetInput'
 import { isValidPayTarget, parseBankTarget } from '../promptpay'
 import { getThbRates } from '../fx.js'
+import { money } from '../money'
 
 function fmtDate(ts) {
   if (!ts) return ''
@@ -30,7 +31,7 @@ function fmtDate(ts) {
 function fmtAmount(n, currency = 'THB') {
   const sym = { THB:'฿', KRW:'₩', JPY:'¥', USD:'$', EUR:'€', SGD:'S$', HKD:'HK$', GBP:'£', AUD:'A$', CNY:'¥' }[currency] ?? currency
   const decimals = (currency === 'KRW' || currency === 'JPY') ? 0 : 2
-  return `${sym}${Number(n).toFixed(decimals)}`
+  return `${sym}${money(n, decimals)}`
 }
 
 // ── Trip form (new + edit) ──────────────────────────────────────────────────
@@ -65,8 +66,9 @@ function TripForm({ initial, onSave, onCancel, title }) {
 }
 
 // ── Settlement + summary section ────────────────────────────────────────────
-function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, convOwed, convSettlements, mixedConv, savedPayees = [] }) {
+function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, convOwed, convPaid, convSettlements, mixedConv, savedPayees = [] }) {
   const { t } = useLang()
+  const [openQr, setOpenQr] = useState(null) // "from→to" whose QR is showing
   if (!summary) return null
   if (!trip.billIds.length) return null
   if (!summary.hasData) return (
@@ -136,7 +138,17 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
         : hasOwedData
           ? trip.members.filter(m => (summary.owed[m] ?? 0) > 0 || (summary.paid?.[m] ?? 0) > 0).map(m => (
               <div key={m} className={styles.summaryRow}>
-                <span className={styles.summaryName}><Avatar name={m} size={20} />{m}</span>
+                <span className={styles.summaryName}>
+                  <Avatar name={m} size={20} />
+                  <span className={styles.summaryNameText}>
+                    {m}
+                    {(summary.paid?.[m] ?? 0) > 0 && (
+                      <span className={styles.summaryPaid}>
+                        {t.tripPaidLabel ?? 'paid'} {rates && !isTHB ? fmtAmount(convPaid?.[m] ?? 0, 'THB') : orig(summary.paid[m])}
+                      </span>
+                    )}
+                  </span>
+                </span>
                 <span className={styles.summaryAmt}>
                   {rates && !isTHB
                     ? <><span>฿{(convOwed[m] ?? 0).toLocaleString()}</span>{!summary.mixedCurrencies && <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginLeft: 4 }}>{orig(summary.owed[m] ?? 0)}</span>}</>
@@ -165,39 +177,57 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
       {summary.hasPayers && !unresolvedMixed && displaySettlements.length > 0 && (
         <>
           <div className={styles.summaryTitle} style={{ marginTop: 14 }}>{t.tripSummaryTransfers ?? 'Who pays whom'}</div>
-          {displaySettlements.map((s, i) => (
-            <div key={i} className={styles.paymentCard}>
-              <div className={styles.paymentPeople}>
-                <div className={styles.paymentPerson}>
-                  <Avatar name={s.from} size={20} />
-                  <span><strong>{s.from}</strong> pays</span>
-                </div>
-                <div className={styles.paymentTo}>
-                  <span>to</span>
-                  <Avatar name={s.to} size={20} />
-                  <strong>{s.to}</strong>
-                </div>
-              </div>
-              <div className={styles.paymentAmount}>{fmtAmount(s.amount, displayCurrency)}</div>
-              {(() => {
-                // Trip-level member promptPay map (trip.memberPromptPay) takes priority
-                const tripPP = trip.memberPromptPay?.[s.to]
-                const savedPP = savedPayees.find(p => p.name === s.to && p.promptPay)?.promptPay
-                const promptPayId = tripPP || savedPP
-                if (!promptPayId) return null
-                if (displayCurrency !== 'THB') return null
-                if (!s.amount || s.amount < 1) return null
-                if (!isValidPayTarget(promptPayId)) return null
-                // QR for PromptPay ids and bank accounts with an attached QR;
-                // copyable transfer card for bank accounts without one.
-                return (
-                  <div style={{ marginTop: 8, paddingTop: 2, borderTop: '0.5px solid var(--color-border)' }}>
-                    <PayTargetDetails target={promptPayId} amount={s.amount} qrAmount={Math.round(s.amount)} size={150} name={s.to} reference={trip.name} />
+          {/* One card per person who receives money, listing who pays them
+              what. A payer's row opens a QR / transfer card for that exact
+              amount — one at a time, instead of a QR on every transfer. */}
+          {(() => {
+            const groups = []
+            displaySettlements.forEach(s => {
+              let g = groups.find(x => x.to === s.to)
+              if (!g) { g = { to: s.to, rows: [], total: 0 }; groups.push(g) }
+              g.rows.push(s); g.total += s.amount
+            })
+            return groups.map(g => {
+              const tripPP = trip.memberPromptPay?.[g.to]
+              const savedPP = savedPayees.find(p => p.name === g.to && p.promptPay)?.promptPay
+              const target = tripPP || savedPP
+              const canPay = !!target && displayCurrency === 'THB' && isValidPayTarget(target)
+              return (
+                <div key={g.to} className={styles.paymentCard}>
+                  <div className={styles.receiveHead}>
+                    <Avatar name={g.to} size={22} />
+                    <span className={styles.receiveName}><strong>{g.to}</strong> {t.tripReceives ?? 'receives'}</span>
+                    <span className={styles.paymentAmount}>{fmtAmount(g.total, displayCurrency)}</span>
                   </div>
-                )
-              })()}
-            </div>
-          ))}
+                  {g.rows.map(s => {
+                    const key = s.from + '→' + s.to
+                    const qrOk = canPay && s.amount >= 1
+                    return (
+                      <div key={key}>
+                        <button
+                          type="button"
+                          className={styles.payRow}
+                          onClick={() => qrOk && setOpenQr(openQr === key ? null : key)}
+                          aria-expanded={qrOk ? openQr === key : undefined}
+                          style={qrOk ? undefined : { cursor: 'default' }}
+                        >
+                          <Avatar name={s.from} size={18} />
+                          <span className={styles.payRowName}>{s.from}</span>
+                          <span className={styles.payRowAmt}>{fmtAmount(s.amount, displayCurrency)}</span>
+                          {qrOk && <span className={styles.payRowQr} data-snapshot-hide>{openQr === key ? '▾' : (t.tripShowQr ?? 'QR')}</span>}
+                        </button>
+                        {qrOk && openQr === key && (
+                          <div className={styles.payRowDetails} data-snapshot-hide>
+                            <PayTargetDetails target={target} amount={s.amount} qrAmount={Math.round(s.amount)} size={150} name={g.to} reference={trip.name} />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })
+          })()}
         </>
       )}
 
@@ -451,6 +481,9 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
   )
   // People who paid at least one bill, in member order — the only ones who receive transfers.
   const payers = trip.members.filter(m => Object.values(trip.paidBy || {}).includes(m))
+  const convPaid = mixedConv?.paid ?? (rates && !isTHB
+    ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary?.paid?.[m] ?? 0) * (rate ?? 1))]))
+    : (summary?.paid ?? {}))
   const toThb = (c) => (c && c !== 'THB' ? (rates?.[c] ?? rate ?? 1) : 1)
   const convSettlements = summary?.hasPayers ? settleWith(toThb) : []
   // A shared trip's summary is the snapshot taken when it was shared; work its
@@ -504,6 +537,100 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
         })()}
       </div>
 
+      {/* Bills first: "who paid" on each bill drives everything below. */}
+      <div className={styles.billsTitle}>{t.tripBills ?? 'Bills'} ({tripBills.length})</div>
+      {tripBills.length === 0 && (
+        <p className={styles.empty}>{t.tripNoBills ?? 'No bills yet — add one below'}</p>
+      )}
+      {tripBills.map(entry => {
+        // Missing entry — bill was deleted from history but trip still references it
+        if (entry._missing) return (
+          <div key={entry.id} className={styles.billCard} style={{ flexDirection: 'column', alignItems: 'stretch', opacity: 0.5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '10px 14px' }}>
+              <span style={{ flex: 1, fontSize: 13, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                {t.tripBillMissing ?? '(Bill deleted from history)'}
+              </span>
+              <button className={styles.billCardRemove} onClick={() => onRemoveBill(trip.id, entry.id)} aria-label="Remove from trip">×</button>
+            </div>
+          </div>
+        )
+        const _pre = entry._sharedBill
+        const { grandTotal: totalAmt, currency: _billCurr, totals } = _pre ?? calcBillResult(entry)
+        const billCurrency = (_pre?.currency) ?? _billCurr ?? detailCurrency
+        const payer = paidBy[entry.id] || ''
+        return (
+          <div key={entry.id} className={styles.billCard} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <button className={styles.billCardMain} onClick={() => !entry._sharedBill && onLoadBill(entry)} style={{ cursor: entry._sharedBill ? 'default' : undefined }}>
+                <span className={styles.billCardName}>{(() => {
+                  const name = entry.billName || (t.untitledBill ?? '(untitled)')
+                  const idx = tripBills.findIndex(b => b.id === entry.id)
+                  const dupesBefore = tripBills.slice(0, idx).filter(b => (b.billName || (t.untitledBill ?? '(untitled)')) === name).length
+                  return dupesBefore > 0 ? `${name} (${dupesBefore + 1})` : name
+                })()}</span>
+                <span className={styles.billCardDate}>{fmtDate(entry.savedAt)}</span>
+                {totalAmt > 0 && (
+                  <span className={styles.billCardAmt}>
+                    {fmtAmount(totalAmt, billCurrency)}
+                    {rate && billCurrency !== 'THB' && (
+                      <span style={{fontSize:11,color:'var(--color-text-muted)',marginLeft:4}}>≈฿{Math.round(totalAmt*rate).toLocaleString()}</span>
+                    )}
+                  </span>
+                )}
+              </button>
+              <button className={styles.billCardRemove} onClick={() => onRemoveBill(trip.id, entry.id)} aria-label="Remove from trip" data-snapshot-hide>×</button>
+            </div>
+            {/* Per-person totals */}
+            {trip.members.length > 0 && Object.keys(totals).some(m => trip.members.includes(m)) && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '6px 14px 8px' }}>
+                {trip.members.map(m => totals[m] != null ? (
+                  <span key={m} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                    <Avatar name={m} size={14} />
+                    {fmtAmount(totals[m] ?? 0, billCurrency)}
+                    {rate && billCurrency !== 'THB' && (
+                      <span style={{fontSize:10,color:'var(--color-text-muted)',marginLeft:3}}>≈฿{Math.round((totals[m]??0)*rate).toLocaleString()}</span>
+                    )}
+                  </span>
+                ) : null)}
+              </div>
+            )}
+            {trip.members.length > 0 && (
+              <div data-snapshot-hide style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px 10px', borderTop: '0.5px solid var(--color-border)' }}>
+                <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>
+                  {payer ? '' : 'ใครจ่าย?'}
+                </span>
+                {payer && <Avatar name={payer} size={16} />}
+                <select
+                  value={payer}
+                  onChange={e => onSetPayer(trip.id, entry.id, e.target.value)}
+                  style={{
+                    fontSize: 13,
+                    border: '0.5px solid var(--color-border)',
+                    borderRadius: 6,
+                    background: 'var(--color-surface)',
+                    color: payer ? 'var(--color-text)' : 'var(--color-text-muted)',
+                    padding: '3px 6px',
+                    fontFamily: 'var(--font-body)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="">— เลือก —</option>
+                  {trip.members.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )
+      })}
+      <div data-snapshot-hide style={{ marginBottom: 16 }}>
+        <button className={styles.addBillBtn} style={{ marginTop: 8 }} onClick={onAddBill}>
+          + {t.tripAddBill ?? 'Add bill to trip'}
+        </button>
+        <TripReceiptScanner trip={trip} onSaveBill={onSaveBill} onAddBillToTrip={onAddBillToTrip} />
+      </div>
+
       {/* Payment details (PromptPay / bank) — only for people who paid a bill:
           they're the only ones anyone transfers to. data-snapshot-hide so it
           doesn't appear in the share image. */}
@@ -551,7 +678,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
         </div>
       )}
 
-      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} convOwed={convOwed} convSettlements={convSettlements} mixedConv={mixedConv} savedPayees={savedPayees} />
+      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} convOwed={convOwed} convPaid={convPaid} convSettlements={convSettlements} mixedConv={mixedConv} savedPayees={savedPayees} />
 
       {/* Buttons: Share link | Line | Save image — matches Bill Splitter ResultSection */}
       {summary && summary.hasData && (
@@ -725,97 +852,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
       )}
       {toast && <div className={styles.toast}>{toast}</div>}
 
-      <div className={styles.billsTitle}>{t.tripBills ?? 'Bills'} ({tripBills.length})</div>
-      {tripBills.length === 0 && (
-        <p className={styles.empty}>{t.tripNoBills ?? 'No bills yet — add one below'}</p>
-      )}
-      {tripBills.map(entry => {
-        // Missing entry — bill was deleted from history but trip still references it
-        if (entry._missing) return (
-          <div key={entry.id} className={styles.billCard} style={{ flexDirection: 'column', alignItems: 'stretch', opacity: 0.5 }}>
-            <div style={{ display: 'flex', alignItems: 'center', padding: '10px 14px' }}>
-              <span style={{ flex: 1, fontSize: 13, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-                {t.tripBillMissing ?? '(Bill deleted from history)'}
-              </span>
-              <button className={styles.billCardRemove} onClick={() => onRemoveBill(trip.id, entry.id)} aria-label="Remove from trip">×</button>
-            </div>
-          </div>
-        )
-        const _pre = entry._sharedBill
-        const { grandTotal: totalAmt, currency: _billCurr, totals } = _pre ?? calcBillResult(entry)
-        const billCurrency = (_pre?.currency) ?? _billCurr ?? detailCurrency
-        const payer = paidBy[entry.id] || ''
-        return (
-          <div key={entry.id} className={styles.billCard} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <button className={styles.billCardMain} onClick={() => !entry._sharedBill && onLoadBill(entry)} style={{ cursor: entry._sharedBill ? 'default' : undefined }}>
-                <span className={styles.billCardName}>{(() => {
-                  const name = entry.billName || (t.untitledBill ?? '(untitled)')
-                  const idx = tripBills.findIndex(b => b.id === entry.id)
-                  const dupesBefore = tripBills.slice(0, idx).filter(b => (b.billName || (t.untitledBill ?? '(untitled)')) === name).length
-                  return dupesBefore > 0 ? `${name} (${dupesBefore + 1})` : name
-                })()}</span>
-                <span className={styles.billCardDate}>{fmtDate(entry.savedAt)}</span>
-                {totalAmt > 0 && (
-                  <span className={styles.billCardAmt}>
-                    {fmtAmount(totalAmt, billCurrency)}
-                    {rate && billCurrency !== 'THB' && (
-                      <span style={{fontSize:11,color:'var(--color-text-muted)',marginLeft:4}}>≈฿{Math.round(totalAmt*rate).toLocaleString()}</span>
-                    )}
-                  </span>
-                )}
-              </button>
-              <button className={styles.billCardRemove} onClick={() => onRemoveBill(trip.id, entry.id)} aria-label="Remove from trip" data-snapshot-hide>×</button>
-            </div>
-            {/* Per-person totals */}
-            {trip.members.length > 0 && Object.keys(totals).some(m => trip.members.includes(m)) && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '6px 14px 8px' }}>
-                {trip.members.map(m => totals[m] != null ? (
-                  <span key={m} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
-                    <Avatar name={m} size={14} />
-                    {fmtAmount(totals[m] ?? 0, billCurrency)}
-                    {rate && billCurrency !== 'THB' && (
-                      <span style={{fontSize:10,color:'var(--color-text-muted)',marginLeft:3}}>≈฿{Math.round((totals[m]??0)*rate).toLocaleString()}</span>
-                    )}
-                  </span>
-                ) : null)}
-              </div>
-            )}
-            {trip.members.length > 0 && (
-              <div data-snapshot-hide style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px 10px', borderTop: '0.5px solid var(--color-border)' }}>
-                <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>
-                  {payer ? '' : 'ใครจ่าย?'}
-                </span>
-                {payer && <Avatar name={payer} size={16} />}
-                <select
-                  value={payer}
-                  onChange={e => onSetPayer(trip.id, entry.id, e.target.value)}
-                  style={{
-                    fontSize: 13,
-                    border: '0.5px solid var(--color-border)',
-                    borderRadius: 6,
-                    background: 'var(--color-surface)',
-                    color: payer ? 'var(--color-text)' : 'var(--color-text-muted)',
-                    padding: '3px 6px',
-                    fontFamily: 'var(--font-body)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <option value="">— เลือก —</option>
-                  {trip.members.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-        )
-      })}
-      </div>{/* /captureRef: summary+bills */}
-      <button className={styles.addBillBtn} style={{ marginTop: 16 }} onClick={onAddBill}>
-        + {t.tripAddBill ?? 'Add bill to trip'}
-      </button>
-      <TripReceiptScanner trip={trip} onSaveBill={onSaveBill} onAddBillToTrip={onAddBillToTrip} />
+      </div>{/* /captureRef: bills + summary */}
     </div>
   )
 }

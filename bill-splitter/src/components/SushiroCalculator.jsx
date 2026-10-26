@@ -10,8 +10,9 @@ import { isValidPayTarget, describePayTarget } from '../promptpay'
 import PayTargetInput from './PayTargetInput'
 import PayTargetDetails from './PayTargetDetails'
 import extras from './ExtrasSection.module.css'
+import { money } from '../money'
 
-const fmt = n => n.toFixed(2)
+const fmt = n => money(n)
 const fieldsetReset = { border: 0, padding: 0, margin: 0, minInlineSize: 'auto' }
 
 function Counter({ value, onInc, onDec }) {

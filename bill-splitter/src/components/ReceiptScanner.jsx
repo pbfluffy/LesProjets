@@ -6,6 +6,7 @@ import {
   CURRENCY_FLAGS, SCAN_CAP, SCAN_KEY,
   getScanCount, bumpScanCount, resetScanCount, localizeError, compressImage, scanReceipt,
 } from './receiptScanUtils'
+import { money } from '../money'
 
 
 // Mirrors Nutritions PhotoTab BUG-02 Leak B fix — wrap object URL in try/finally
@@ -279,7 +280,7 @@ export default function ReceiptScanner({
                       )}
                       {detectedDiscounts.map((d, i) => (
                         <span key={i} className={styles.badge} style={{ background: 'var(--color-green-bg)', color: 'var(--color-green)' }}>
-                          −฿{d.amount.toFixed(2)}{d.label ? ` (${d.label})` : ''}
+                          −฿{money(d.amount)}{d.label ? ` (${d.label})` : ''}
                         </span>
                       ))}
                     </div>
