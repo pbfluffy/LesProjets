@@ -232,12 +232,16 @@ function AppInner() {
   // fresh save if that entry has since been deleted from history.
   const handleSaveBill = (tab, snapshot) => {
     if (loadedEntryId && history.entries.some(e => e.id === loadedEntryId)) {
-      return history.update(loadedEntryId, tab, snapshot)
+      return { ...history.update(loadedEntryId, tab, snapshot), updated: true }
     }
     const result = history.save(tab, snapshot)
     setLoadedEntryId(result.id)
-    return result
+    return { ...result, updated: false }
   }
+
+  const editingEntry = !shared && loadedEntryId
+    ? history.entries.find(e => e.id === loadedEntryId && e.tab === activeTab)
+    : null
 
   // Start from a blank bill: detach from any saved entry so the next save is new.
   const handleNewBill = () => {
@@ -420,6 +424,12 @@ function AppInner() {
               {tab.label}
             </button>
           ))}
+        </div>
+      )}
+
+      {editingEntry && (
+        <div className={styles.editingBar}>
+          {t.editingSaved} <strong>{editingEntry.billName || (editingEntry.tab === 'sushi' ? t.tabSushi : t.untitledBill)}</strong>
         </div>
       )}
 
