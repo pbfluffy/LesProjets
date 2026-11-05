@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { readSharedLang, writeSharedLang } from '../../shared/sharedLang.js'
 
 export const LangContext = createContext(null)
 
@@ -479,6 +480,8 @@ export const STRINGS = {
 
 export function LangProvider({ children }) {
   const [lang, setLang] = useState(() => {
+    const shared = readSharedLang()
+    if (shared) return shared
     try {
       const saved = localStorage.getItem('billSplitter_lang')
       if (saved === 'th' || saved === 'en') return saved
@@ -487,6 +490,7 @@ export function LangProvider({ children }) {
   })
   useEffect(() => {
     try { localStorage.setItem('billSplitter_lang', lang) } catch {}
+    writeSharedLang(lang)
   }, [lang])
   const t = STRINGS[lang]
   const toggle = () => setLang(l => l === 'th' ? 'en' : 'th')

@@ -538,7 +538,8 @@
     acctStatusSynced: '· synced'}
     }
 
-    let lang = "th"
+    // Shared `lang` key (plain string, like `theme`) so apps open in the language chosen here.
+    let lang = (function () { try { const v = localStorage.getItem("lang"); return v === "en" ? "en" : "th" } catch (e) { return "th" } })()
     let dark = (localStorage.getItem("theme") ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark"
 
     function applyTheme() {
@@ -569,6 +570,7 @@
       document.getElementById("sushiro-btn-text").textContent = s.sushiroMode
       document.getElementById("langBtn").textContent = lang === "th" ? "EN" : "TH"
       document.documentElement.lang = lang
+      try { localStorage.setItem("lang", lang) } catch (e) {}
       // account popover strings
       const _tourBtn = document.getElementById("tourBtn"); if (_tourBtn) { _tourBtn.title = s.tourHelp; _tourBtn.setAttribute("aria-label", s.tourHelp) }
       document.getElementById("acct-heading").textContent = s.acctHeading
