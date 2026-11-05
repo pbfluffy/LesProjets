@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useLang } from '../LangContext'
 import styles from './BillHistory.module.css'
 import { PLATES } from '../hooks/useSushiroStore'
+import { calcSplit } from '../billMath'
 
 import { money } from '../money'
 function fmt(n) { return money(n) }
@@ -40,18 +41,7 @@ function entryTotal(entry) {
     if (s.vatEnabled) mul *= 1.07
     return subtotal * mul
   }
-  const foods = Array.isArray(s.foods) ? s.foods : []
-  let subtotal = 0
-  foods.forEach(f => {
-    const price = parseFloat(f.price) || 0
-    if (!price || !Array.isArray(f.who) || !f.who.length) return
-    subtotal += price
-  })
-  const scRate = Math.max(0, Math.min(100, parseFloat(s.serviceChargeRate) || 0))
-  const scFraction = s.serviceChargeEnabled ? scRate / 100 : 0
-  let multiplier = 1 + scFraction
-  if (s.vatEnabled) multiplier *= 1.07
-  return s.roundTotalEnabled ? Math.round(subtotal * multiplier) : subtotal * multiplier
+  return calcSplit(s).grandTotal
 }
 
 function entrySummary(entry, t) {
@@ -113,7 +103,7 @@ export default function BillHistory({ entries, onLoad, onRemove, onClear, onClos
       <div className={styles.panel} onClick={e => e.stopPropagation()}>
         <div className={styles.head}>
           <h2 className={styles.title}>{t.historyTitle}</h2>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Close">✕</button>
+          <button className={styles.closeBtn} onClick={onClose} aria-label={t.close}>✕</button>
         </div>
 
         {entries.length === 0 ? (
@@ -171,7 +161,7 @@ export default function BillHistory({ entries, onLoad, onRemove, onClear, onClos
                       <span className={styles.rowMeta}>
                         {entrySummary(entry, t)} · {fmtWhen(entry.savedAt, lang)}
                       </span>
-                      <span className={styles.rowCue}>Tap to view details</span>
+                      <span className={styles.rowCue}>{t.historyCue}</span>
                       <span className={styles.rowChevron} aria-hidden="true">›</span>
                     </button>
                     <button

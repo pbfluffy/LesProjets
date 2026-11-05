@@ -29,11 +29,16 @@ export default function PayTargetInput({ value, onChange }) {
   const [reading, setReading] = useState(false)
   const [qrError, setQrError] = useState(null)
 
+  // Remember what was typed in each mode, so flipping PromptPay ⇄ Bank and back
+  // doesn't wipe it (the field holds one value at a time, so the other mode's
+  // value is parked here while you're away).
+  const parked = useRef({})
   const switchMode = (next) => {
     if (next === mode) return
+    parked.current[mode] = value
     setMode(next)
     setQrError(null)
-    onChange('')
+    onChange(parked.current[next] ?? '')
   }
 
   const setBank = (code, account, qrId) => onChange(encodeBankTarget(code, account, qrId))

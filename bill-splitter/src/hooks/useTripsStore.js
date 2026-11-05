@@ -10,6 +10,7 @@ import {
   auth, db,
   onAuthStateChanged, doc, setDoc, serverTimestamp, onSnapshot,
 } from '../firebase.js'
+import { calcSplit } from '../billMath'
 
 const TRIPS_KEY = 'bill_trips_v1'
 
@@ -86,43 +87,10 @@ export function calcBillResult(entry) {
     return { grandTotal: round2(grand), totals, currency }
   }
 
-  // Split bill
-  const members = Array.isArray(s.members) ? s.members : []
-  const foods = Array.isArray(s.foods) ? s.foods : []
-  const scRate = Math.max(0, Math.min(100, parseFloat(s.serviceChargeRate) || 0))
-  const scFraction = s.serviceChargeEnabled ? scRate / 100 : 0
-  let multiplier = 1 + scFraction
-  if (s.vatEnabled) multiplier *= 1.07
-  const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100
-
-  const shares = Object.fromEntries(members.map(m => [m, 0]))
-  let subtotal = 0
-  foods.forEach(f => {
-    const price = parseFloat(f.price) || 0
-    if (!price || !Array.isArray(f.who) || !f.who.length) return
-    subtotal += price
-    const split = price / f.who.length
-    f.who.forEach(m => { if (shares[m] !== undefined) shares[m] += split })
-  })
-
-  const rawGrand = subtotal * multiplier
-  let grandTotal = s.roundTotalEnabled ? Math.round(rawGrand) : round2(rawGrand)
-  const totals = {}
-  if (members.length > 0) {
-    const owner = members[0]
-    let othersSum = 0
-    members.forEach(m => {
-      if (m === owner) return
-      const r = round2(shares[m] * multiplier)
-      totals[m] = r
-      othersSum += r
-    })
-    let ownerAmt = round2(grandTotal - othersSum)
-    if (ownerAmt < 0) { ownerAmt = 0; grandTotal = round2(othersSum) }
-    totals[owner] = ownerAmt
-  }
-  const currency = s.currency || null
-  return { grandTotal, totals, currency }
+  // Split bill — same calculation as the bill itself, so discounts and the
+  // chosen bill owner are honoured and the trip never disagrees with the bill.
+  const { grandTotal, totals } = calcSplit(s)
+  return { grandTotal, totals, currency: s.currency || null }
 }
 
 // Who pays whom on a trip: everyone pays the person who paid each bill they

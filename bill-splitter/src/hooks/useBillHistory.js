@@ -1,8 +1,11 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { v4 as uuid } from 'uuid'
 
 const LS_KEY = 'bill_history_v1'
-const MAX_ENTRIES = 20
+// Oldest saved bills beyond this are dropped; high enough that it's not hit in
+// normal use (it used to be 20, which silently discarded bills — and Trips
+// that still referenced them).
+const MAX_ENTRIES = 100
 
 function readAll() {
   try {
@@ -46,6 +49,18 @@ export function useBillHistory() {
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
+  // Always the latest list, so a save/update can build the next list and write
+  // it *before* touching React state — the result then reports whether the
+  // write really landed, and a failed write leaves nothing half-saved on screen.
+  const entriesRef = useRef(entries)
+  entriesRef.current = entries
+  const commit = (next) => {
+    const capped = next.slice(0, MAX_ENTRIES)
+    const ok = writeAll(capped)
+    if (ok) { entriesRef.current = capped; setEntries(capped) }
+    return ok
+  }
+
   const save = useCallback((tab, state) => {
     const trimmedName = (state?.billName || '').trim()
     const entry = {
@@ -55,12 +70,7 @@ export function useBillHistory() {
       billName: trimmedName,
       state,
     }
-    let ok = true
-    setEntries(prev => {
-      const next = [entry, ...prev].slice(0, MAX_ENTRIES)
-      ok = writeAll(next)
-      return next
-    })
+    const ok = commit([entry, ...entriesRef.current])
     return { ...entry, ok }
   }, [])
 
@@ -85,15 +95,10 @@ export function useBillHistory() {
 
   const update = useCallback((id, tab, state) => {
     const trimmedName = (state?.billName || '').trim()
-    let ok = true
-    setEntries(prev => {
-      const next = prev.map(e => e.id === id
-        ? { ...e, savedAt: Date.now(), tab, billName: trimmedName, state }
-        : e
-      )
-      ok = writeAll(next)
-      return next
-    })
+    const ok = commit(entriesRef.current.map(e => e.id === id
+      ? { ...e, savedAt: Date.now(), tab, billName: trimmedName, state }
+      : e
+    ))
     return { id, ok }
   }, [])
 

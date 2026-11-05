@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import MemberSection from './MemberSection'
 import FoodList from './FoodList'
 import ReceiptScanner from './ReceiptScanner'
@@ -12,7 +13,7 @@ import appStyles from '../App.module.css'
 
 const fieldsetReset = { border: 0, padding: 0, margin: 0, minInlineSize: 'auto' }
 
-export default function BillSplitter({ sharedState, readOnly, onSaveBill, onNewBill, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled, onShowTour }) {
+export default function BillSplitter({ sharedState, readOnly, onSaveBill, onNewBill, onDraftChange, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled, onShowTour }) {
   const { t } = useLang()
   const store = useBillStore(sharedState)
   const result = store.calculate()
@@ -33,6 +34,12 @@ export default function BillSplitter({ sharedState, readOnly, onSaveBill, onNewB
     // #91 mark-as-paid — persisted so it survives Save/reload/cloud sync.
     paid: [...store.paid],
   }
+  // Keep the app's draft of this bill current (not for read-only shared views).
+  const snapshotKey = JSON.stringify(snapshot)
+  useEffect(() => {
+    if (!readOnly) onDraftChange?.('split', snapshot)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshotKey, readOnly])
   const currencySymbol = symbolFor(store.currency)
   const handleSave = (onSaveBill && !readOnly) ? () => onSaveBill('split', snapshot) : undefined
   return (

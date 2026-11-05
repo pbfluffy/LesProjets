@@ -19,6 +19,7 @@ import BillHistory from './components/BillHistory'
 import { LangProvider, useLang } from './LangContext'
 import { readShareFromHash, clearShareHash, getShortLinkId, resolveShortLink } from './share'
 import { useBillHistory } from './hooks/useBillHistory'
+import { readDrafts, writeDrafts, isEmptyDraft } from './drafts'
 import { useCloudSync } from './hooks/useCloudSync'
 import { useSavedPayees } from './hooks/useSavedPayees'
 import styles from './App.module.css'
@@ -211,11 +212,45 @@ function AppInner() {
     }
   }
   const [historyOpen, setHistoryOpen] = useState(false)
-  // Loaded entries are passed in as initial state to BillSplitter/SushiroCalculator.
-  // Bumping `loadEpoch` (used as react key) remounts the store so initial takes effect.
-  const [loaded, setLoaded] = useState(null)
+  // Each tab's in-progress bill lives in `drafts` (mirrored to localStorage), and
+  // is what BillSplitter/SushiroCalculator start from when they mount — so a bill
+  // survives switching tabs or refreshing, and a loaded history entry is just a
+  // draft that remembers which entry it edits. Bumping `loadEpoch` (used as the
+  // react key) remounts the store so a new initial state takes effect.
+  const draftsRef = useRef(null)
+  if (draftsRef.current === null) draftsRef.current = readDrafts()
+  const persistTimer = useRef(null)
+  const persistDrafts = () => {
+    clearTimeout(persistTimer.current)
+    persistTimer.current = setTimeout(() => writeDrafts(draftsRef.current), 300)
+  }
+  useEffect(() => {
+    const flush = () => { clearTimeout(persistTimer.current); writeDrafts(draftsRef.current) }
+    const onHide = () => { if (document.visibilityState === 'hidden') flush() }
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onHide)
+    return () => { window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', onHide) }
+  }, [])
   const [loadEpoch, setLoadEpoch] = useState(0)
-  const [loadedEntryId, setLoadedEntryId] = useState(null)
+  const [loadedEntryId, setLoadedEntryId] = useState(() =>
+    initialShare || initialShortId ? null : (draftsRef.current[activeTab]?.entryId ?? null))
+
+  const handleDraftChange = (tab, snapshot) => {
+    const d = draftsRef.current
+    if (isEmptyDraft(tab, snapshot)) {
+      if (d[tab]) { delete d[tab]; persistDrafts() }
+      return
+    }
+    d[tab] = { state: snapshot, entryId: d[tab]?.entryId ?? null, savedAt: Date.now() }
+    persistDrafts()
+  }
+
+  // Switch tab, picking up whichever saved entry that tab's draft is editing.
+  const goTab = (id) => {
+    if (id === activeTab) return
+    setActiveTab(id)
+    setLoadedEntryId(draftsRef.current[id]?.entryId ?? null)
+  }
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
@@ -231,30 +266,45 @@ function AppInner() {
   // again updates it in place instead of piling up copies. Falls back to a
   // fresh save if that entry has since been deleted from history.
   const handleSaveBill = (tab, snapshot) => {
-    if (loadedEntryId && history.entries.some(e => e.id === loadedEntryId)) {
-      return { ...history.update(loadedEntryId, tab, snapshot), updated: true }
+    const editing = loadedEntryId && history.entries.some(e => e.id === loadedEntryId && e.tab === tab)
+    const result = editing
+      ? { ...history.update(loadedEntryId, tab, snapshot), updated: true }
+      : { ...history.save(tab, snapshot), updated: false }
+    // Only remember the entry if it was really stored (a full storage write fails).
+    if (result.ok !== false) {
+      const d = draftsRef.current
+      d[tab] = { state: snapshot, entryId: result.id, savedAt: Date.now() }
+      persistDrafts()
+      setLoadedEntryId(result.id)
     }
-    const result = history.save(tab, snapshot)
-    setLoadedEntryId(result.id)
-    return { ...result, updated: false }
+    return result
   }
 
   const editingEntry = !shared && loadedEntryId
     ? history.entries.find(e => e.id === loadedEntryId && e.tab === activeTab)
     : null
 
-  // Start from a blank bill: detach from any saved entry so the next save is new.
+  // Start from a blank Split bill: drop its draft so the next save is a new entry.
   const handleNewBill = () => {
-    setLoaded(null)
+    delete draftsRef.current.split
+    persistDrafts()
     setLoadedEntryId(null)
     setLoadEpoch(e => e + 1)
+  }
+
+  // Keep the Sushiro people/settings but stop editing the saved entry (Reset all).
+  const detachTab = (tab) => {
+    const d = draftsRef.current[tab]
+    if (d) { d.entryId = null; persistDrafts() }
+    setLoadedEntryId(null)
   }
 
   const handleLoadEntry = (entry) => {
     setShared(null)
     clearShareHash()
     setActiveTab(entry.tab)
-    setLoaded({ tab: entry.tab, state: entry.state })
+    draftsRef.current[entry.tab] = { state: entry.state, entryId: entry.id, savedAt: Date.now() }
+    persistDrafts()
     setLoadEpoch(e => e + 1)
     setLoadedEntryId(entry.id)
     setHistoryOpen(false)
@@ -269,10 +319,8 @@ function AppInner() {
   const sharedBillName = shared?.s?.billName?.trim()
 
   // Decide what `initial` to pass to each tab's store
-  const splitInitial = shared && shared.t === 'split' ? shared.s
-                     : (loaded && loaded.tab === 'split' ? loaded.state : null)
-  const sushiInitial = shared && shared.t === 'sushi' ? shared.s
-                     : (loaded && loaded.tab === 'sushi' ? loaded.state : null)
+  const splitInitial = shared && shared.t === 'split' ? shared.s : (draftsRef.current.split?.state ?? null)
+  const sushiInitial = shared && shared.t === 'sushi' ? shared.s : (draftsRef.current.sushi?.state ?? null)
 
   return (
     <div className={styles.app}>
@@ -419,7 +467,7 @@ function AppInner() {
             <button
               key={tab.id}
               className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
-              onClick={() => { if (tab.id !== activeTab) { setActiveTab(tab.id); setLoadedEntryId(null) } }}
+              onClick={() => goTab(tab.id)}
             >
               {tab.label}
             </button>
@@ -441,6 +489,7 @@ function AppInner() {
             readOnly={!!shared}
             onSaveBill={handleSaveBill}
             onNewBill={handleNewBill}
+            onDraftChange={handleDraftChange}
             savedPayees={savedPayees.payees}
             onSavePayee={savedPayees.addPayee}
             onRemovePayee={savedPayees.removePayee}
@@ -454,7 +503,8 @@ function AppInner() {
             sharedState={sushiInitial}
             readOnly={!!shared}
             onSaveBill={handleSaveBill}
-            onNewBill={handleNewBill}
+            onDetach={() => detachTab('sushi')}
+            onDraftChange={handleDraftChange}
             savedPayees={savedPayees.payees}
             onSavePayee={savedPayees.addPayee}
             onRemovePayee={savedPayees.removePayee}
@@ -465,7 +515,7 @@ function AppInner() {
           <TripsTab
             entries={history.entries}
             onLoadBill={(entry) => { handleLoadEntry(entry); setActiveTab(entry.tab) }}
-            onNewBillForTrip={() => setActiveTab('split')}
+            onNewBillForTrip={() => goTab('split')}
             // Trips only saves brand-new bills (receipt scans), so bypass
             // handleSaveBill, which updates the loaded bill. Switching tabs
             // already clears loadedEntryId; this keeps scans safe even if a
@@ -479,7 +529,7 @@ function AppInner() {
         )}
       </main>
 
-      {showTour && !shared && <Tour onTab={setActiveTab} onClose={() => setShowTour(false)} />}
+      {showTour && !shared && <Tour onTab={goTab} onClose={() => setShowTour(false)} />}
       {historyOpen && (
         <BillHistory
           entries={history.entries}

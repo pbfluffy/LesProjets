@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import QrSvg from './QrSvg'
+import { useLang } from '../LangContext'
 import { buildPromptPayPayload } from '../promptpay'
 import styles from './PromptPayQR.module.css'
 
@@ -21,6 +22,7 @@ import styles from './PromptPayQR.module.css'
  * @param {ReactNode} [caption] - optional extra line under the QR, above Save QR (e.g. the bank account)
  */
 export default function PromptPayQR({ promptPay, amount, size = 184, name, reference, caption }) {
+  const { t } = useLang()
   const payload = buildPromptPayPayload(promptPay, amount)
   const boxRef = useRef(null)
   const [saving, setSaving] = useState(false)
@@ -105,7 +107,7 @@ export default function PromptPayQR({ promptPay, amount, size = 184, name, refer
         disabled={saving}
         className={styles.saveBtn}
       >
-        {saving ? '…' : 'Save QR'}
+        {saving ? '…' : t.saveQr}
       </button>
     </div>
   )

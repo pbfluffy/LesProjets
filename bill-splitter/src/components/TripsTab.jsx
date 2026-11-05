@@ -106,9 +106,9 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
         {!isTHB && (
           <div className={styles.currencyStatus}>
             <div className={styles.currencyStatusText}>
-              <span>{summary.mixedCurrencies ? 'Original: mixed' : `Original: ${summary.currency}`}</span>
+              <span>{t.currencyOriginal}: {summary.mixedCurrencies ? t.currencyMixed : summary.currency}</span>
               <strong>{currencyLabel}</strong>
-              <span>Display: {_converted ? 'THB' : summary.currency}</span>
+              <span>{t.currencyDisplay}: {_converted ? 'THB' : summary.currency}</span>
               {rate && <span>1 {summary.currency} = ฿{rate.toFixed(4)}</span>}
               {rates && !rate && <span>THB rates loaded</span>}
             </div>
@@ -301,6 +301,11 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip }) {
       promptPay: '', bankInfo: '', notes: '', roundTotalEnabled: false,
     }
     const entry = onSaveBill('split', state)
+    if (entry && entry.ok === false) {
+      // Storage full — nothing was saved, so don't add a bill the trip can't find.
+      setError(t.saveFailed)
+      return
+    }
     if (entry) {
       // TripDetail's onAddBillToTrip supplies the bill-history entries itself;
       // members are auto-derived from bills in useTripsStore
@@ -362,7 +367,7 @@ function TripReceiptScanner({ trip, onSaveBill, onAddBillToTrip }) {
                 <span style={{ fontVariantNumeric: 'tabular-nums' }}>{Number(item.price).toLocaleString()}</span>
               </div>
             ))}
-            {preview.items.length === 0 && <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12 }}>No items detected</div>}
+            {preview.items.length === 0 && <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12 }}>{t.noItemsDetected}</div>}
             <div style={{ marginTop: 12, fontSize: 12, color: 'var(--color-text-muted)' }}>
               {preview.vatIncluded && 'VAT  '}{preview.scIncluded && `SC ${preview.scRate}%  `}
               {trip.members.length > 0 && `Split: ${trip.members.join(', ')}`}
@@ -752,8 +757,8 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   : buildShareUrl('trips', payload)
                 const result = await shareLink({ title: trip.name, text: `Trip: ${trip.name}`, url })
                 // Only show toast for clipboard copy — share sheet is its own confirmation
-                if (result !== 'shared') showToast('Link copied')
-              } catch { showToast('Share failed') }
+                if (result !== 'shared') showToast(t.linkCopied)
+              } catch { showToast(t.shareFailed) }
               finally { setShareStatus(null) }
             }}
           >
@@ -896,6 +901,7 @@ function TripList({ trips, onSelect, onNew, onDelete }) {
 
 // ── Main export ─────────────────────────────────────────────────────────────
 export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSaveBill, user, sharedTrip, onExitShared, savedPayees = [] }) {
+  const { t } = useLang()
   const { trips, createTrip, updateTrip, deleteTrip, addBillToTrip, removeBillFromTrip, setBillPayer, getTrip, tripSummary, syncTripMembers, recomputeAllTripMembers } = useTripsStore()
 
   // Resync all trip members whenever entries change (covers edits from the main split tab)
@@ -1038,8 +1044,8 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
       <div>
         {onExitShared && (
           <div style={{ background: 'var(--color-surface-alt)', padding: '8px 12px', borderRadius: 8, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: 'var(--color-text-muted)' }}>Viewing shared trip</span>
-            <button onClick={onExitShared} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--color-text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Exit</button>
+            <span style={{ color: 'var(--color-text-muted)' }}>{t.viewingSharedTrip}</span>
+            <button onClick={onExitShared} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--color-text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>{t.exit}</button>
           </div>
         )}
         <TripDetail
@@ -1064,10 +1070,10 @@ export default function TripsTab({ entries, onLoadBill, onNewBillForTrip, onSave
   }
 
   if (addingBill && activeTrip) return <BillPicker />
-  if (view === 'new') return <TripForm title="New Trip" onSave={handleCreate} onCancel={() => setView('list')} />
+  if (view === 'new') return <TripForm title={t.tripNew} onSave={handleCreate} onCancel={() => setView('list')} />
   if (view === 'edit' && activeTrip) {
     const trip = getTrip(activeTrip.id) ?? activeTrip
-    return <TripForm title="Edit Trip" initial={trip} onSave={handleEdit} onCancel={() => setView('detail')} />
+    return <TripForm title={t.tripEdit} initial={trip} onSave={handleEdit} onCancel={() => setView('detail')} />
   }
   if (view === 'detail' && activeTrip) {
     const trip = getTrip(activeTrip.id) ?? activeTrip
