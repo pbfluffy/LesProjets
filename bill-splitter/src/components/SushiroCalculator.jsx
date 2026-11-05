@@ -42,7 +42,7 @@ function SnackAdder({ person, onAdd }) {
   )
 }
 
-export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled = false }) {
+export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, onNewBill, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled = false }) {
   const store = useSushiroStore(sharedState)
   const result = store.calculate()
   const { t, lang } = useLang()
@@ -242,7 +242,7 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, s
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.title}>{t.platesOf} <span className={styles.activePersonBadge}>{store.activePerson}</span></h2>
-              <button type="button" className={styles.resetBtn} onClick={store.resetAll}>{t.resetAll}</button>
+              <button type="button" className={styles.resetBtn} onClick={() => { store.resetAll(); onNewBill?.() }}>{t.resetAll}</button>
             </div>
             <div className={styles.plateList}>
               {PLATES.map(plate => {

@@ -227,13 +227,23 @@ function AppInner() {
     clearShareHash()
   }
 
+  // Once a bill is saved (or loaded) it stays the "current" entry, so saving
+  // again updates it in place instead of piling up copies. Falls back to a
+  // fresh save if that entry has since been deleted from history.
   const handleSaveBill = (tab, snapshot) => {
-    if (loadedEntryId) {
-      const result = history.update(loadedEntryId, tab, snapshot)
-      setLoadedEntryId(null)
-      return result
+    if (loadedEntryId && history.entries.some(e => e.id === loadedEntryId)) {
+      return history.update(loadedEntryId, tab, snapshot)
     }
-    return history.save(tab, snapshot)
+    const result = history.save(tab, snapshot)
+    setLoadedEntryId(result.id)
+    return result
+  }
+
+  // Start from a blank bill: detach from any saved entry so the next save is new.
+  const handleNewBill = () => {
+    setLoaded(null)
+    setLoadedEntryId(null)
+    setLoadEpoch(e => e + 1)
   }
 
   const handleLoadEntry = (entry) => {
@@ -405,7 +415,7 @@ function AppInner() {
             <button
               key={tab.id}
               className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
-              onClick={() => { setActiveTab(tab.id); setLoadedEntryId(null) }}
+              onClick={() => { if (tab.id !== activeTab) { setActiveTab(tab.id); setLoadedEntryId(null) } }}
             >
               {tab.label}
             </button>
@@ -420,7 +430,7 @@ function AppInner() {
             sharedState={splitInitial}
             readOnly={!!shared}
             onSaveBill={handleSaveBill}
-            onNewBill={() => { setLoadEpoch(e => e + 1) }}
+            onNewBill={handleNewBill}
             savedPayees={savedPayees.payees}
             onSavePayee={savedPayees.addPayee}
             onRemovePayee={savedPayees.removePayee}
@@ -434,6 +444,7 @@ function AppInner() {
             sharedState={sushiInitial}
             readOnly={!!shared}
             onSaveBill={handleSaveBill}
+            onNewBill={handleNewBill}
             savedPayees={savedPayees.payees}
             onSavePayee={savedPayees.addPayee}
             onRemovePayee={savedPayees.removePayee}
