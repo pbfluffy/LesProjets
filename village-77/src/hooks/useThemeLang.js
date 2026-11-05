@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useLocalStorage } from './useLocalStorage'
+import { seedAppLang, writeSharedLang } from '../../../shared/sharedLang.js'
+
+seedAppLang('village_lang')
 
 // Theme: 'light' | 'dark'. Shared `theme` localStorage key (plain string,
 // never JSON-encoded) — same convention as every other app on the origin, so
@@ -42,6 +45,7 @@ export function useLang() {
 
   useEffect(() => {
     document.documentElement.setAttribute('lang', lang)
+    writeSharedLang(lang)
   }, [lang])
 
   return [lang, setLang]

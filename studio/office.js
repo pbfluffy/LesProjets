@@ -64,7 +64,8 @@ const T = {
     logLiveOff:"ปิดบันทึกสด — กลับไปงานประจำ", lang_en:"EN", lang_th:"TH", t_auto:"อัตโนมัติ", t_day:"กลางวัน", t_night:"กลางคืน" }
 };
 const LS = { lang:'pco.lang', time:'pco.time', layout:'pco.layout' };
-let lang = localStorage.getItem(LS.lang) || 'th';
+// Shared `lang` key (set by the landing page / other apps) wins so the language carries over.
+let lang = (['th','en'].includes(localStorage.getItem('lang')) && localStorage.getItem('lang')) || localStorage.getItem(LS.lang) || 'th';
 function tr(k){ return (T[lang] && T[lang][k]!==undefined) ? T[lang][k] : (T.en[k]||k); }
 function taskText(t){ return typeof t==='string' ? t : (t[lang]||t.en); }
 
@@ -343,7 +344,7 @@ function applyLang(){
   $('tasksSub') && ($('tasksSub').textContent=tr('tasksSub'));
   tick();
 }
-$('langSeg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ lang=b.dataset.lang; localStorage.setItem(LS.lang,lang); applyLang(); }));
+$('langSeg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ lang=b.dataset.lang; localStorage.setItem(LS.lang,lang); localStorage.setItem('lang',lang); applyLang(); }));
 
 /* ── boot ────────────────────────────────────────────────────────────────── */
 applyTime(); applyLang(); tick();

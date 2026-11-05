@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { makeTranslator } from './i18n/strings.js';
+import { readSharedLang, writeSharedLang } from '../../shared/sharedLang.js';
 
 const STORAGE_KEY = 'nutritions.lang';
 
@@ -7,6 +8,8 @@ const LangContext = createContext(null);
 
 export function LangProvider({ children }) {
   const [lang, setLang] = useState(() => {
+    const shared = readSharedLang();
+    if (shared) return shared;
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved === 'en' || saved === 'th') return saved;
@@ -22,6 +25,7 @@ export function LangProvider({ children }) {
     } catch {
       /* ignore */
     }
+    writeSharedLang(lang);
     document.documentElement.setAttribute('lang', lang);
   }, [lang]);
 

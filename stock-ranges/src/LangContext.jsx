@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { readSharedLang, writeSharedLang } from '../../shared/sharedLang.js'
 
 export const LangContext = createContext(null)
 
@@ -546,10 +547,11 @@ export const STRINGS = {
 const LANG_KEY = 'stockranges_lang'
 
 export function LangProvider({ children }) {
-  const [lang, setLang] = useState(() => localStorage.getItem(LANG_KEY) || 'th')
+  const [lang, setLang] = useState(() => readSharedLang() || localStorage.getItem(LANG_KEY) || 'th')
 
   useEffect(() => {
     localStorage.setItem(LANG_KEY, lang)
+    writeSharedLang(lang)
     document.documentElement.lang = lang
   }, [lang])
 

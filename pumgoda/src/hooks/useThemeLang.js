@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useLocalStorage } from './useLocalStorage'
 import { LS_KEYS } from '../config'
+import { seedAppLang, writeSharedLang } from '../../../shared/sharedLang.js'
+
+seedAppLang(LS_KEYS.LANG)
 
 // Theme: 'light' | 'dark'. Initial guess from prefers-color-scheme; persisted thereafter.
 export function useTheme() {
@@ -46,6 +49,7 @@ export function useLang() {
 
   useEffect(() => {
     document.documentElement.setAttribute('lang', lang)
+    writeSharedLang(lang)
   }, [lang])
 
   return [lang, setLang]
