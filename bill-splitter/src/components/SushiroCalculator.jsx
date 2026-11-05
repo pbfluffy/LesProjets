@@ -161,7 +161,10 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, o
   }
 
   const handleSave = () => {
-    if (onSaveBill) { onSaveBill('sushi', buildSnapshot()); showToast(t.saved) }
+    if (onSaveBill) {
+      const result = onSaveBill('sushi', buildSnapshot())
+      showToast(result?.ok === false ? t.saveFailed : result?.updated ? t.updated : t.savedNew)
+    }
   }
 
   // Save image — capture the summary section to PNG, share on mobile / download on desktop.
