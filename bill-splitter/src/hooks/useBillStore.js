@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { v4 as uuid } from 'uuid'
 import { auth, onAuthStateChanged } from '../firebase'
 import { DEFAULT_CURRENCY, normaliseCurrency } from '../currencies'
+import { calcSplit } from '../billMath'
 
 export function useBillStore(initial) {
   const [billName, setBillName] = useState(initial?.billName ?? '')
@@ -183,73 +184,10 @@ export function useBillStore(initial) {
     setFoods(prev => prev.map(f => f.id === id ? { ...f, who: [...memberList] } : f))
   }, [])
 
-  const calculate = useCallback(() => {
-    const shares = Object.fromEntries(members.map(m => [m, 0]))
-    let subtotal = 0
-    let rawSubtotal = 0
-    foods.forEach(f => {
-      const price = parseFloat(f.price) || 0
-      if (!price) return
-      rawSubtotal += price
-      if (!f.who.length) return
-      const split = price / f.who.length
-      f.who.forEach(m => { if (shares[m] !== undefined) shares[m] += split })
-      subtotal += price
-    })
-    // Bill-level pre-tax discounts — each entry split equally among its own selected
-    // members (null/empty who = all members), then combined per member.
-    const discountByMember = Object.fromEntries(members.map(m => [m, 0]))
-    let discAmt = 0
-    billDiscounts.forEach(d => {
-      const amt = Math.max(0, parseFloat(d.amount) || 0)
-      if (!amt) return
-      const who = (d.who === null || d.who?.length === 0) ? members : d.who.filter(m => members.includes(m))
-      if (who.length === 0) return
-      const per = amt / who.length
-      who.forEach(m => { discountByMember[m] += per })
-      discAmt += amt
-    })
-    const preTaxShares = Object.fromEntries(members.map(m => [
-      m, Math.max(0, shares[m] - discountByMember[m])
-    ]))
-    const effectiveSubtotal = Math.max(0, subtotal - discAmt)
-    const scRate = Math.max(0, Math.min(100, parseFloat(serviceChargeRate) || 0))
-    const scFraction = serviceChargeEnabled ? scRate / 100 : 0
-    let multiplier = 1 + scFraction
-    if (vatEnabled) multiplier *= 1.07
-    const rawTotals = Object.fromEntries(Object.entries(preTaxShares).map(([m, v]) => [m, v * multiplier]))
-    const rawGrand = effectiveSubtotal * multiplier
-    // #88 — reconcile per-person amounts so the column always sums exactly to the
-    // grand total (fixes BUG-19). When roundTotalEnabled, the grand total snaps to
-    // the nearest whole baht. Either way the selected bill owner absorbs the rounding
-    // delta. Guard: if the owner's natural share is too
-    // small to absorb a round-down, clamp owner to >=0 and let the total settle at
-    // what is actually owed rather than display a negative amount.
-    const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100
-    let grandTotal = roundTotalEnabled ? Math.round(rawGrand) : round2(rawGrand)
-    const owner = members.includes(billOwner) ? billOwner : members[0]
-    const totals = {}
-    if (members.length > 0) {
-      let othersSum = 0
-      members.forEach(m => {
-        if (m === owner) return
-        const r = round2(rawTotals[m])
-        totals[m] = r
-        othersSum += r
-      })
-      let ownerAmt = round2(grandTotal - othersSum)
-      if (ownerAmt < 0) { ownerAmt = 0; grandTotal = round2(othersSum) }
-      totals[owner] = ownerAmt
-    }
-    return {
-      shares, preTaxShares, totals, subtotal, rawSubtotal,
-      billDiscount: discAmt, billDiscounts,
-      serviceCharge: effectiveSubtotal * scFraction,
-      serviceChargeRate: scRate,
-      vat: vatEnabled ? effectiveSubtotal * (1 + scFraction) * 0.07 : 0,
-      grandTotal, multiplier,
-    }
-  }, [members, foods, vatEnabled, serviceChargeEnabled, serviceChargeRate, roundTotalEnabled, billOwner, billDiscounts])
+  const calculate = useCallback(
+    () => calcSplit({ members, foods, billDiscounts, vatEnabled, serviceChargeEnabled, serviceChargeRate, roundTotalEnabled, billOwner }),
+    [members, foods, vatEnabled, serviceChargeEnabled, serviceChargeRate, roundTotalEnabled, billOwner, billDiscounts]
+  )
 
   return { billName, setBillName, members, addMember, removeMember, billOwner, setBillOwner, foods, addFood, addFoods, updateFood, toggleFoodMember, removeFood, duplicateFood, restoreFood, setAllMembers, vatEnabled, setVatEnabled, serviceChargeEnabled, setServiceChargeEnabled, serviceChargeRate, setServiceChargeRate, promptPay, setPromptPay, bankInfo, setBankInfo, notes, setNotes, roundTotalEnabled, setRoundTotalEnabled, currency, setCurrency, billDiscounts, setBillDiscounts, addBillDiscount, addBillDiscounts, updateBillDiscount, removeBillDiscount, paid, togglePaid, setPaid, calculate }
 }

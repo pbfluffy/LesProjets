@@ -42,7 +42,7 @@ function SnackAdder({ person, onAdd }) {
   )
 }
 
-export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, onNewBill, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled = false }) {
+export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, onDetach, onDraftChange, savedPayees = [], onSavePayee, onRemovePayee, payeesEnabled = false }) {
   const store = useSushiroStore(sharedState)
   const result = store.calculate()
   const { t, lang } = useLang()
@@ -110,6 +110,13 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, o
     bankInfo: store.bankInfo,
     notes: store.notes,
   })
+
+  // Keep the app's draft of this bill current (not for read-only shared views).
+  const snapshotKey = JSON.stringify(buildSnapshot())
+  useEffect(() => {
+    if (!readOnly) onDraftChange?.('sushi', buildSnapshot())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshotKey, readOnly])
 
   const buildSummaryText = () => {
     const prefix = t.sushiroSharePrefix
@@ -245,7 +252,7 @@ export default function SushiroCalculator({ sharedState, readOnly, onSaveBill, o
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.title}>{t.platesOf} <span className={styles.activePersonBadge}>{store.activePerson}</span></h2>
-              <button type="button" className={styles.resetBtn} onClick={() => { store.resetAll(); onNewBill?.() }}>{t.resetAll}</button>
+              <button type="button" className={styles.resetBtn} onClick={() => { store.resetAll(); onDetach?.() }}>{t.resetAll}</button>
             </div>
             <div className={styles.plateList}>
               {PLATES.map(plate => {

@@ -11,7 +11,8 @@
 
   --color-text: #1a1916;
   --color-text-muted: #6b6862;
-  --color-text-faint: #a09d98;
+  --color-text-faint: #726e67; /* was #a09d98 (2.5:1); now ≥4.5:1 on the page background */
+  --line-green-text: #05803a; /* LINE button label: brand #06C755 is only 2.1:1 on white */
 
   --color-accent: #1a1916;
   --color-accent-text: #ffffff;
@@ -43,7 +44,8 @@
 
   --color-text: #f0ede8;
   --color-text-muted: #8a8780;
-  --color-text-faint: #55534e;
+  --color-text-faint: #8c8982; /* was #55534e (2.4:1 on the dark page background) */
+  --line-green-text: #3fd47b;
 
   --color-accent: #f0ede8;
   --color-accent-text: #1a1916;
