@@ -26,9 +26,14 @@ id = "c41511c9e6104ee8853565194dfec708"
 binding = "ALERTS"
 id = "3a005aaf9deb41e48856476250ecf3f2"
 
-# No [triggers]/Cron Trigger here — the price-alert check runs as a
-# GitHub Actions scheduled workflow instead (worker/scripts/check-alerts.mjs),
-# to stay on the free tier (Workers Free caps Cron Trigger CPU at 10ms).
+# The price-alert check itself runs as a GitHub Actions workflow
+# (worker/scripts/check-alerts.mjs) — too heavy for a Cron Trigger on the free
+# tier (10ms CPU cap). GitHub's own schedule proved unreliable (about 5% of
+# requested runs actually happen), so this hourly trigger just *starts* that
+# workflow via GitHub's API (src/trigger.js): one HTTPS call, negligible CPU.
+# Needs the secret GITHUB_DISPATCH_TOKEN (`wrangler secret put ...`).
+[triggers]
+crons = ["7 * * * *"]
 
 [vars]
 # Public by design — already embedded in the client bundle's Firebase

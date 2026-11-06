@@ -63,6 +63,7 @@
 import { SYMBOL_RE, RANGE_CONFIG } from './constants.js'
 import { getQuote } from './quotes.js'
 import { verifyFirebaseToken } from './auth.js'
+import { triggerAlertCheck } from './trigger.js'
 import { upsertSubscription, setAlert, getAlerts, pruneSubscription, getHistory, addHistory, getPortfolio, setPortfolio, getPortfolioHistory } from './alerts.js'
 import { sendPush } from './push.js'
 
@@ -311,6 +312,11 @@ async function handleTestPush(env, uid) {
 }
 
 export default {
+  // Cron Trigger (see wrangler.toml): just starts the GitHub Actions alert check.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(triggerAlertCheck(env))
+  },
+
   async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS_HEADERS })

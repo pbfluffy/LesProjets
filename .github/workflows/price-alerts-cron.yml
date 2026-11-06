@@ -10,15 +10,28 @@ name: Price alerts check
 # limited to NYSE-ish hours would mean a BTC alert never fires on a
 # weekend. The script's own getMarketStatus() check still gates stock/ETF
 # pairs to real market hours; only crypto pairs get checked on every tick.
+#
+# Hourly is the intended cadence. GitHub's `schedule:` alone is best-effort
+# and only ran ~5% of the requested 15-minute runs (median gap ~5h), so the
+# stock-ranges Worker's Cron Trigger (stock-ranges/worker/src/trigger.js)
+# starts this workflow every hour via workflow_dispatch; the schedule below is
+# just a backup, at an off-peak minute (GitHub is busiest at :00).
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '41 * * * *'
   workflow_dispatch:
     inputs:
       test_push:
         description: 'Send a test notification to every registered device (through this job) instead of checking prices'
         type: boolean
         default: false
+
+# One run at a time: two overlapping runs (the Worker's trigger plus the backup
+# schedule, or a manual test) would both read the saved state before either
+# updated it, and could send the same alert twice. A waiting run is kept.
+concurrency:
+  group: price-alerts
+  cancel-in-progress: false
 
 jobs:
   check:
