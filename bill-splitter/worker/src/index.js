@@ -13,6 +13,8 @@
 // No client-facing API surface at all — this worker is purely a zone-route
 // HTML rewriter, unlike dog-near-me's worker which also serves an upload API.
 
+import { calcSplit } from '../../src/billMath.js'
+
 const PROJECT_ID = 'pumgoda'
 
 const CURRENCY_SYMBOLS = {
@@ -58,32 +60,12 @@ async function resolveShortLink(shortId) {
   return payload ? decodeShare(payload) : null
 }
 
-// Mirrors useBillStore.js's calculate() — only the grand-total path, no
-// per-person reconciliation (this only needs one number for the preview).
+// Uses the app's own split calculation (bundled in at deploy time), so the
+// preview total can never disagree with the bill — discounts, "Applies to"
+// selections, rounding and the owner clamp all behave identically.
 function calcSplitTotal(s) {
   const members = Array.isArray(s.members) ? s.members : []
-  const foods = Array.isArray(s.foods) ? s.foods : []
-  let subtotal = 0
-  foods.forEach((f) => {
-    const price = parseFloat(f.price) || 0
-    if (!price || !Array.isArray(f.who) || f.who.length === 0) return
-    subtotal += price
-  })
-  let discAmt = 0
-  ;(Array.isArray(s.billDiscounts) ? s.billDiscounts : []).forEach((d) => {
-    const amt = Math.max(0, parseFloat(d.amount) || 0)
-    if (amt) discAmt += amt
-  })
-  const effectiveSubtotal = Math.max(0, subtotal - discAmt)
-  const scRate = Math.max(0, Math.min(100, parseFloat(s.serviceChargeRate) || 0))
-  const scFraction = s.serviceChargeEnabled ? scRate / 100 : 0
-  let multiplier = 1 + scFraction
-  if (s.vatEnabled) multiplier *= 1.07
-  const rawGrand = effectiveSubtotal * multiplier
-  const grandTotal = s.roundTotalEnabled
-    ? Math.round(rawGrand)
-    : Math.round((rawGrand + Number.EPSILON) * 100) / 100
-  return { grandTotal, memberCount: members.length, currency: s.currency || 'THB' }
+  return { grandTotal: calcSplit(s).grandTotal, memberCount: members.length, currency: s.currency || 'THB' }
 }
 
 // Mirrors useSushiroStore.js's calculate() — same PLATES price table.
