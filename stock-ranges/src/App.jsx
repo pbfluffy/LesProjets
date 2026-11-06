@@ -480,18 +480,20 @@ function Dashboard() {
     const current = alerts[symbol] || {}
     const buy = direction === 'buy' ? next : !!current.buy
     const sell = direction === 'sell' ? next : !!current.sell
+    // % move alert: `next` is the threshold in percent (0 = off) when direction is 'move'.
+    const move = direction === 'move' ? next : (current.move || 0)
 
-    if (buy || sell) {
+    if (buy || sell || move) {
       const subscribed = await priceAlerts.ensureSubscribed(cloudSync.user)
       if (!subscribed) return false
     }
-    const ok = await priceAlerts.setAlert(cloudSync.user, { symbol, buy, sell, range, currency, lang })
+    const ok = await priceAlerts.setAlert(cloudSync.user, { symbol, buy, sell, move, range, currency, lang })
     if (!ok) return false
 
     setAlerts((prev) => {
       const nextAlerts = { ...prev }
-      if (!buy && !sell) delete nextAlerts[symbol]
-      else nextAlerts[symbol] = { buy, sell, range }
+      if (!buy && !sell && !move) delete nextAlerts[symbol]
+      else nextAlerts[symbol] = { buy, sell, range, ...(move ? { move } : {}) }
       return nextAlerts
     })
     return true

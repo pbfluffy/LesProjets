@@ -76,8 +76,8 @@ export function usePriceAlerts() {
     return postAlerts(user, { type: 'subscribe', subscription: subscription.toJSON() })
   }
 
-  async function setAlert(user, { symbol, buy, sell, range, currency, lang }) {
-    return postAlerts(user, { type: 'setAlert', symbol, buy, sell, range, currency, lang })
+  async function setAlert(user, { symbol, buy, sell, move, range, currency, lang }) {
+    return postAlerts(user, { type: 'setAlert', symbol, buy, sell, move, range, currency, lang })
   }
 
   // Sends a test push to every registered device. Registers this device

@@ -48,6 +48,8 @@
 .kindDot { flex: 0 0 auto; width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: var(--color-text-muted); }
 .item[data-kind='buy'] .kindDot { background: var(--color-green); }
 .item[data-kind='sell'] .kindDot { background: var(--color-red); }
+.item[data-kind='up'] .kindDot { background: var(--color-green); }
+.item[data-kind='down'] .kindDot { background: var(--color-red); }
 .item[data-kind='below'] .kindDot { background: var(--color-red); }
 .item[data-kind='gain'] .kindDot { background: var(--color-green); }
 .item[data-kind='exdiv'] .kindDot,

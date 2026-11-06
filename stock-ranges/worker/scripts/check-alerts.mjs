@@ -226,6 +226,11 @@ const NOTIFICATION_COPY = {
     nearSell: (word) => `near its ${word} high`,
     band: (n, strongest) => `band ${n}/10${strongest ? ' (strongest)' : ''}`,
     tapToView: 'tap to view',
+    moveUp: (name, pct) => `${name} is up ${pct}%`,
+    moveDown: (name, pct) => `${name} is down ${pct}%`,
+    moveFrom: (ref) => `from ${ref} at the last alert`,
+    testTitle: 'Stock Ranges test notification',
+    testBody: 'Sent by the scheduled price check — alerts can reach this device.',
   },
   th: {
     buy: 'โซนซื้อ', sell: 'โซนขาย',
@@ -234,6 +239,11 @@ const NOTIFICATION_COPY = {
     nearSell: (word) => `ใกล้จุดสูงสุด${word}`,
     band: (n, strongest) => `ระดับ ${n}/10${strongest ? ' (แรงสุด)' : ''}`,
     tapToView: 'แตะเพื่อดู',
+    moveUp: (name, pct) => `${name} ขึ้น ${pct}%`,
+    moveDown: (name, pct) => `${name} ลง ${pct}%`,
+    moveFrom: (ref) => `จาก ${ref} ตอนแจ้งเตือนครั้งก่อน`,
+    testTitle: 'ทดสอบการแจ้งเตือน Stock Ranges',
+    testBody: 'ส่งจากระบบตรวจราคาอัตโนมัติ — การแจ้งเตือนส่งถึงอุปกรณ์นี้ได้',
   },
 }
 
@@ -263,17 +273,41 @@ const RANGE_QUALIFIER = {
 // `entry.currency`) — a conversion failure (rates unavailable, or an
 // exotic quote currency open.er-api.com doesn't track) just falls back to
 // the quote's native currency, same degrade as the in-app card.
+function priceText(value, quote, targetCurrency, rates) {
+  const converted = targetCurrency && targetCurrency !== quote?.currency
+    ? convert(value, quote?.currency, targetCurrency, rates)
+    : null
+  return converted !== null
+    ? formatPrice(converted, targetCurrency)
+    : formatPrice(value, quote?.currency)
+}
+
+// "% move" alert: how far the price has moved since the last alert (or since
+// the alert was turned on), either way. Its own `tag`, so it doesn't replace a
+// still-showing buy/sell-zone notification for the same ticker.
+function moveNotificationCopy(symbol, direction, changePct, refPrice, quote, targetCurrency, rates, targetLang) {
+  const copy = NOTIFICATION_COPY[targetLang] || NOTIFICATION_COPY.en
+  const name = quote?.name && quote.name !== symbol ? quote.name : symbol
+  const pct = Math.abs(changePct).toFixed(1)
+  return {
+    title: direction === 'up' ? copy.moveUp(name, pct) : copy.moveDown(name, pct),
+    body: [
+      priceText(quote?.current, quote, targetCurrency, rates),
+      copy.moveFrom(priceText(refPrice, quote, targetCurrency, rates)),
+      copy.tapToView,
+    ].join(' · '),
+    icon: `https://financialmodelingprep.com/image-stock/${encodeURIComponent(symbol)}.png`,
+    tag: `${symbol}-move`,
+    symbol,
+  }
+}
+
 function notificationCopy(symbol, direction, range, band, quote, targetCurrency, rates, targetLang) {
   const copy = NOTIFICATION_COPY[targetLang] || NOTIFICATION_COPY.en
   const qualifiers = RANGE_QUALIFIER[targetLang] || RANGE_QUALIFIER.en
   const zone = direction === 'buy' ? copy.buy : copy.sell
   const name = quote?.name && quote.name !== symbol ? quote.name : symbol
-  const converted = targetCurrency && targetCurrency !== quote?.currency
-    ? convert(quote?.current, quote?.currency, targetCurrency, rates)
-    : null
-  const price = converted !== null
-    ? formatPrice(converted, targetCurrency)
-    : formatPrice(quote?.current, quote?.currency)
+  const price = priceText(quote?.current, quote, targetCurrency, rates)
   const rangeWord = qualifiers[range]
   const position = rangeWord ? (direction === 'buy' ? copy.near(rangeWord) : copy.nearSell(rangeWord)) : null
   // How strong the signal is: band 1 is the strongest buy, band 10 the strongest sell.
@@ -287,7 +321,37 @@ function notificationCopy(symbol, direction, range, band, quote, targetCurrency,
   }
 }
 
+// Manual run only (workflow_dispatch → "Send a test notification"): sends one
+// labelled test push to every registered device through *this script's* own
+// delivery path — web-push + the GitHub-held VAPID keys — which is what real
+// alerts use. The app's "Send test notification" button goes through the
+// Worker instead, so it can pass while this path is broken. The run turns red
+// if not every device got it.
+async function sendTestPushes() {
+  const all = await listAllAlerts()
+  let devices = 0
+  let delivered = 0
+  for (const { uid, entry } of all) {
+    const copy = NOTIFICATION_COPY[entry.lang === 'th' ? 'th' : 'en']
+    const subs = entry.subscriptions || []
+    const payload = { title: copy.testTitle, body: copy.testBody, tag: 'stock-ranges-test' }
+    let ok = 0
+    await Promise.all(subs.map(async (sub) => {
+      const result = await sendPush(sub, payload)
+      if (result === 'ok') ok++
+      if (result === 'gone') await pruneSubscription(uid, sub.endpoint)
+    }))
+    devices += subs.length
+    delivered += ok
+    if (subs.length) await addHistory(uid, [{ ts: Date.now(), test: true, title: payload.title, body: payload.body, delivered: ok, devices: subs.length }])
+  }
+  console.log(`Test push: delivered to ${delivered} of ${devices} device(s) across ${all.length} user(s).`)
+  if (delivered < devices) process.exitCode = 1
+}
+
 async function main() {
+  if (process.env.TEST_PUSH === '1') return sendTestPushes()
+
   // Gated per-pair below, not here — crypto trades 24/7, so skipping the
   // whole run whenever NYSE is closed meant a BTC alert would never fire
   // outside stock-market hours. Only stocks/ETFs/etc. still wait for the
@@ -315,20 +379,27 @@ async function checkZoneAlerts(allAlerts, marketOpen, rates) {
     for (const [symbol, cfg] of Object.entries(entry.symbols || {})) {
       const key = `${symbol}:${cfg.range}`
       if (!pairs.has(key)) pairs.set(key, [])
-      pairs.get(key).push({ uid, buy: !!cfg.buy, sell: !!cfg.sell })
+      pairs.get(key).push({ uid, buy: !!cfg.buy, sell: !!cfg.sell, move: Number(cfg.move) > 0 ? Number(cfg.move) : 0 })
     }
   }
   const subsByUid = new Map(allAlerts.map(({ uid, entry }) => [uid, entry.subscriptions || []]))
   const currencyByUid = new Map(allAlerts.map(({ uid, entry }) => [uid, entry.currency === 'THB' ? 'THB' : 'USD']))
   const langByUid = new Map(allAlerts.map(({ uid, entry }) => [uid, entry.lang === 'th' ? 'th' : 'en']))
 
-  const toNotify = [] // { uid, symbol, direction, quote }
+  // Counts only, never symbols — this repo is public, so its Actions logs are
+  // too, and a user's watchlist isn't something to print there.
+  const stats = { pairs: pairs.size, checked: 0, marketClosed: 0, quoteFailed: 0, zoneSeeded: 0, zoneChanges: 0, moveWatching: 0, moveSeeded: 0, moveTriggered: 0 }
+
+  const toNotify = [] // { kind: 'zone'|'move', uid, symbol, range, direction, ... }
   await inBatches([...pairs.entries()], BATCH_SIZE, async ([key, subscribers]) => {
     const [symbol, range] = key.split(':')
     const quote = await getQuote(symbol, range).catch(() => null)
-    if (!quote) return
+    if (!quote) { stats.quoteFailed++; return }
     // Each stock waits for its own exchange (SET for .BK, else US).
-    if (!isMarketOpenFor(symbol, marketOpen) && quote.instrumentType !== 'CRYPTOCURRENCY') return
+    if (!isMarketOpenFor(symbol, marketOpen) && quote.instrumentType !== 'CRYPTOCURRENCY') { stats.marketClosed++; return }
+    stats.checked++
+
+    // ---- buy / sell zone: fires when the signal *changes into* buy or sell ----
     const deciles = computeDeciles({ prices: quote.prices, current: quote.current })
     const signal = deciles?.signal ?? null
 
@@ -338,20 +409,52 @@ async function checkZoneAlerts(allAlerts, marketOpen, rates) {
 
     // No prior state (first time this pair's ever been checked) — seed
     // only, don't fire. Firing here would be a false transition.
-    if (!prev) return
-    if (prev.signal === signal) return
-    if (signal !== 'buy' && signal !== 'sell') return
+    if (!prev) stats.zoneSeeded++
+    else if (prev.signal !== signal) {
+      stats.zoneChanges++
+      if (signal === 'buy' || signal === 'sell') {
+        for (const sub of subscribers) {
+          if (sub[signal]) toNotify.push({ kind: 'zone', uid: sub.uid, symbol, range, band: deciles.band, direction: signal, quote })
+        }
+      }
+    }
 
+    // ---- % move: fires when the price is >= `move`% away from the price at the
+    // last alert (or from when it was turned on), either direction, then
+    // re-baselines to the current price. Independent of the zone alerts, and
+    // keyed per user + symbol since each user's threshold and last alert differ.
     for (const sub of subscribers) {
-      if (sub[signal]) toNotify.push({ uid: sub.uid, symbol, range, band: deciles.band, direction: signal, quote })
+      if (!sub.move) continue
+      stats.moveWatching++
+      const refKey = `moveref:${sub.uid}:${symbol}`
+      const ref = await kvGet(refKey)
+      if (!ref || !(ref.price > 0)) {
+        await kvPut(refKey, { price: quote.current, ts: Date.now() })
+        stats.moveSeeded++
+        continue
+      }
+      const changePct = ((quote.current - ref.price) / ref.price) * 100
+      if (Math.abs(changePct) < sub.move) continue
+      stats.moveTriggered++
+      await kvPut(refKey, { price: quote.current, ts: Date.now() })
+      toNotify.push({ kind: 'move', uid: sub.uid, symbol, range, direction: changePct > 0 ? 'up' : 'down', changePct, refPrice: ref.price, quote })
     }
   })
 
   console.log(`${toNotify.length} notification(s) to send.`)
+  console.log(
+    `Alert check: ${allAlerts.length} user(s), ${stats.pairs} symbol/range pair(s) — ` +
+    `${stats.checked} checked, ${stats.marketClosed} skipped (market closed), ${stats.quoteFailed} price fetch failed. ` +
+    `Zone: ${stats.zoneChanges} signal change(s), ${stats.zoneSeeded} newly seeded. ` +
+    `Move: ${stats.moveWatching} watched, ${stats.moveSeeded} newly seeded, ${stats.moveTriggered} triggered.`,
+  )
   const historyByUid = new Map() // uid -> [history items], written once per uid below
-  await inBatches(toNotify, BATCH_SIZE, async ({ uid, symbol, range, band, direction, quote }) => {
+  await inBatches(toNotify, BATCH_SIZE, async (n) => {
+    const { kind, uid, symbol, range, direction, quote } = n
     const subscriptions = subsByUid.get(uid) || []
-    const payload = notificationCopy(symbol, direction, range, band, quote, currencyByUid.get(uid), rates, langByUid.get(uid))
+    const payload = kind === 'move'
+      ? moveNotificationCopy(symbol, direction, n.changePct, n.refPrice, quote, currencyByUid.get(uid), rates, langByUid.get(uid))
+      : notificationCopy(symbol, direction, range, n.band, quote, currencyByUid.get(uid), rates, langByUid.get(uid))
     let delivered = 0
     await Promise.all(subscriptions.map(async (subscription) => {
       const result = await sendPush(subscription, payload)
@@ -359,7 +462,10 @@ async function checkZoneAlerts(allAlerts, marketOpen, rates) {
       if (result === 'gone') await pruneSubscription(uid, subscription.endpoint)
     }))
     if (!historyByUid.has(uid)) historyByUid.set(uid, [])
-    historyByUid.get(uid).push({ ts: Date.now(), symbol, direction, range, band, title: payload.title, body: payload.body, delivered, devices: subscriptions.length })
+    const item = { ts: Date.now(), symbol, direction, range, title: payload.title, body: payload.body, delivered, devices: subscriptions.length }
+    if (kind === 'move') item.changePct = Math.round(n.changePct * 10) / 10
+    else item.band = n.band
+    historyByUid.get(uid).push(item)
   })
   for (const [uid, items] of historyByUid) await addHistory(uid, items)
 }

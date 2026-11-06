@@ -74,19 +74,37 @@ export async function upsertSubscription(env, uid, subscription) {
 // mirrored here so the cron can format the notification the same way the
 // user has the app itself displayed — both are user-level preferences,
 // not per-symbol, so every call just re-stamps them on the whole entry.
-export async function setAlert(env, uid, { symbol, buy, sell, range, currency, lang }) {
+//
+// `move` is the third, independent alert: notify whenever the price has moved
+// this many percent (either way) from where it was at the last alert — 0/absent
+// means off. A symbol stays tracked while any of buy / sell / move is on. The
+// "where it was" baseline lives in `moveref:{uid}:{symbol}` (written by the
+// cron job), and is dropped here whenever the threshold changes or is turned
+// off, so re-enabling starts fresh instead of firing off a stale price.
+const MOVE_MIN = 1
+const MOVE_MAX = 50
+
+export async function setAlert(env, uid, { symbol, buy, sell, move, range, currency, lang }) {
   if (typeof symbol !== 'string' || !SYMBOL_RE.test(symbol)) return false
   if (!RANGE_CONFIG[range]) return false
+  let movePct = 0
+  if (move !== undefined && move !== null && move !== 0 && move !== false) {
+    const n = Number(move)
+    if (!Number.isFinite(n) || n < MOVE_MIN || n > MOVE_MAX) return false
+    movePct = Math.round(n * 2) / 2 // half-percent steps
+  }
   const entry = await getAlerts(env, uid)
-  if (!buy && !sell) {
+  const prevMove = entry.symbols[symbol]?.move || 0
+  if (!buy && !sell && !movePct) {
     delete entry.symbols[symbol]
   } else {
     if (!(symbol in entry.symbols) && Object.keys(entry.symbols).length >= MAX_SYMBOLS) return false
-    entry.symbols[symbol] = { buy: !!buy, sell: !!sell, range }
+    entry.symbols[symbol] = { buy: !!buy, sell: !!sell, range, ...(movePct ? { move: movePct } : {}) }
   }
   entry.currency = currency === 'THB' ? 'THB' : 'USD'
   entry.lang = lang === 'th' ? 'th' : 'en'
   await saveOrPrune(env, uid, entry)
+  if (prevMove !== movePct) await env.ALERTS.delete(`moveref:${uid}:${symbol}`)
   return true
 }
 
