@@ -35,7 +35,7 @@
 // auth-gated route; every route above stays fully public)
 //   body { type: 'subscribe', subscription: {endpoint, keys, expirationTime} }
 //     -> registers/refreshes one device's push subscription
-//   body { type: 'setAlert', symbol, buy, sell, range }
+//   body { type: 'setAlert', symbol, buy, sell, move, range }  (move: percent, 1–50, or 0/absent = off)
 //     -> sets (or clears, if both buy/sell are false) that symbol's alert
 //   body { type: 'testPush' }
 //     -> sends a test notification to every registered device
