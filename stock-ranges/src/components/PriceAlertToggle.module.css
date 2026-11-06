@@ -24,6 +24,12 @@
 }
 .toggle:hover { background: var(--color-surface-alt); color: var(--color-text-muted); }
 .toggle:disabled { opacity: 0.5; cursor: default; }
+/* Tapped and waiting for the save: pulse so it's clear something is happening;
+   the other buttons are locked meanwhile (aria-disabled) but not greyed. */
+.toggle[aria-disabled='true']:not([data-pending='true']) { cursor: default; }
+.toggle[data-pending='true'] { animation: alertPending 0.9s ease-in-out infinite; }
+@keyframes alertPending { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .toggle[data-pending='true'] { animation: none; opacity: 0.6; } }
 /* Text label (Buy / Sell): the two bells are otherwise identical icons. */
 .label { white-space: nowrap; }
 
@@ -66,8 +72,9 @@
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  width: 180px;
-  font-size: 11px;
+  width: min(260px, 70vw);
+  font-size: 12px;
+  line-height: 1.4;
   color: var(--color-red);
   background: var(--color-surface);
   border: 0.5px solid var(--color-border);

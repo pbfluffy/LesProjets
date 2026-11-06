@@ -12,29 +12,59 @@ function urlBase64ToUint8Array(base64) {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)))
 }
 
+// Every step that talks to the browser's push machinery or the network gets a
+// time limit. Without one, a step that never settles (a service worker that
+// isn't ready, a push service Chrome can't reach, a stalled request) leaves
+// the alert buttons locked "busy" forever: later taps silently do nothing and
+// send nothing.
+const STEP_TIMEOUT_MS = 12000
+
+function withTimeout(promise, ms, label) {
+  let timer
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms) }),
+  ]).finally(() => clearTimeout(timer))
+}
+
+async function authedPost(user, body) {
+  const idToken = await withTimeout(user.getIdToken(), STEP_TIMEOUT_MS, 'sign-in token')
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), STEP_TIMEOUT_MS)
+  try {
+    return await fetch(`${WORKER_URL}/alerts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 async function postAlerts(user, body) {
   if (!WORKER_URL || !user) return false
-  const idToken = await user.getIdToken()
-  const res = await fetch(`${WORKER_URL}/alerts`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
-    body: JSON.stringify(body),
-  }).catch(() => null)
-  return !!res?.ok
+  try {
+    const res = await authedPost(user, body)
+    return !!res?.ok
+  } catch (e) {
+    console.warn('[alerts] request failed:', body?.type, e?.message || e)
+    return false
+  }
 }
 
 // Same call, but returns { ok, status, data } for routes that answer with JSON.
 async function postAlertsJson(user, body) {
   if (!WORKER_URL || !user) return null
-  const idToken = await user.getIdToken()
-  const res = await fetch(`${WORKER_URL}/alerts`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
-    body: JSON.stringify(body),
-  }).catch(() => null)
-  if (!res) return null
-  const data = await res.json().catch(() => null)
-  return { ok: res.ok, status: res.status, data }
+  try {
+    const res = await authedPost(user, body)
+    const data = await res.json().catch(() => null)
+    return { ok: res.ok, status: res.status, data }
+  } catch (e) {
+    console.warn('[alerts] request failed:', body?.type, e?.message || e)
+    return null
+  }
 }
 
 // Narrowly scoped to the browser-permission/push-subscription mechanics
@@ -53,27 +83,44 @@ export function usePriceAlerts() {
   // any failure (permission denied, unsupported browser, no service
   // worker yet) so the caller can skip the setAlert call that follows.
   async function ensureSubscribed(user) {
-    if (typeof Notification === 'undefined' || !navigator.serviceWorker) return false
-    if (!user || !VAPID_PUBLIC_KEY) return false
-
-    let perm = Notification.permission
-    if (perm === 'default') {
-      perm = await Notification.requestPermission()
-      setPermission(perm)
+    if (typeof Notification === 'undefined' || !navigator.serviceWorker) {
+      console.warn('[alerts] this browser has no Notification / service worker support')
+      return false
     }
-    if (perm !== 'granted') return false
-
-    const registration = await navigator.serviceWorker.ready
-    let subscription = await registration.pushManager.getSubscription()
-    if (!subscription) {
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      }).catch(() => null)
+    if (!user || !VAPID_PUBLIC_KEY) {
+      console.warn('[alerts] not signed in, or the push key is missing from this build')
+      return false
     }
-    if (!subscription) return false
 
-    return postAlerts(user, { type: 'subscribe', subscription: subscription.toJSON() })
+    try {
+      let perm = Notification.permission
+      // No time limit here on purpose: this waits on the person answering the
+      // browser's permission prompt, which can take as long as they like.
+      if (perm === 'default') {
+        perm = await Notification.requestPermission()
+        setPermission(perm)
+      }
+      if (perm !== 'granted') {
+        console.warn('[alerts] notification permission is', perm)
+        return false
+      }
+
+      const registration = await withTimeout(navigator.serviceWorker.ready, STEP_TIMEOUT_MS, 'service worker')
+      let subscription = await withTimeout(registration.pushManager.getSubscription(), STEP_TIMEOUT_MS, 'push subscription lookup')
+      if (!subscription) {
+        subscription = await withTimeout(registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        }), STEP_TIMEOUT_MS * 2, 'push subscribe')
+      }
+      if (!subscription) return false
+
+      return await postAlerts(user, { type: 'subscribe', subscription: subscription.toJSON() })
+    } catch (e) {
+      // e.g. Chrome can't reach its push service, or a step timed out.
+      console.warn('[alerts] could not set up notifications:', e?.message || e)
+      return false
+    }
   }
 
   async function setAlert(user, { symbol, buy, sell, move, range, currency, lang }) {
