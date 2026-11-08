@@ -347,3 +347,8 @@ h1, h2, h3, p { margin: 0; }
   .fixed-foot .btn { min-width: 0; flex: 1; }
   .lesson-top { padding: 16px 16px 6px; }
 }
+
+/* Account */
+.avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; display: inline-flex; align-items: center; justify-content: center; background: var(--primary); color: #fff; font-weight: 900; font-size: 14px; flex-shrink: 0; }
+.chip.signin { color: var(--primary); font-size: 15px; }
+@media (max-width: 420px) { .chip.signin .lbl { display: none; } }
