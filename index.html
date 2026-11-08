@@ -324,6 +324,18 @@
       <p class="card-desc" id="stock-desc">ดูว่าราคาหุ้นแต่ละตัวอยู่ตรงไหนในช่วงราคาล่าสุดของมันเอง แบ่งเป็น 10 ระดับ พร้อมป้ายซื้อ/ถือ/ขาย</p>
     </a>
 
+    <a class="card" href="./cloudlingo/">
+      <div class="card-header">
+        <div class="icon">☁️</div>
+        <div>
+          <div class="card-name" id="cloud-name">Cloudlingo</div>
+          <div class="card-type">HTML App</div>
+        </div>
+        <span class="arrow">→</span>
+      </div>
+      <p class="card-desc" id="cloud-desc">บทเรียนสั้น ๆ ทุกวันสำหรับสอบ AWS Certification 6 ใบ พร้อมข้อสอบจำลอง XP และสถิติต่อเนื่อง</p>
+    </a>
+
     <a class="card" href="./backyard-rampage/">
       <div class="card-header">
         <div class="icon">🎮</div>
@@ -397,6 +409,8 @@
       majonDesc: "รายงานหมาจรที่เจอ — ดูว่ามีใครตั้งชื่อไว้แล้วหรือยัง แผนที่หมาจรที่ชุมชนช่วยกันสร้าง",
       stockName: "ช่วงราคาหุ้น",
       stockDesc: "ดูว่าราคาหุ้นแต่ละตัวอยู่ตรงไหนในช่วงราคาล่าสุดของมันเอง แบ่งเป็น 10 ระดับ พร้อมป้ายซื้อ/ถือ/ขาย",
+      cloudName: "Cloudlingo",
+      cloudDesc: "บทเรียนสั้น ๆ ทุกวันสำหรับสอบ AWS Certification 6 ใบ พร้อมข้อสอบจำลอง XP และสถิติต่อเนื่อง",
       gameName: "Backyard Rampage",
       gameDesc: "เกมแอ็กชันโรกไลต์ — บังคับพุมบ้าลุยศัตรูเป็นเวฟในสนามหลังบ้าน เก็บกระดูก 🦴 ไปอัปเกรดอาวุธ สกิน และพลังถาวรที่ติดตัวทุกรอบ บังคับด้วยลูกศร/WASD หรือลากบนจอสัมผัส",
       studioName: "Pum's Office",
@@ -474,6 +488,8 @@
       majonDesc: "Report a stray dog you spotted — see if the community already named it. A shared ID map of Thailand's soi dogs.",
       stockName: "Stock Ranges",
       stockDesc: "See where each stock sits in its own recent price range — split into 10 bands with a buy/hold/sell badge.",
+      cloudName: "Cloudlingo",
+      cloudDesc: "Bite-sized daily lessons for 6 AWS certifications, with mock exams, XP and streaks.",
       gameName: "Backyard Rampage",
       gameDesc: "An action roguelite — fight off waves in the backyard as Pumba, bank 🦴 bones for weapons, skins, and permanent upgrades that carry into every run. Move with arrows/WASD or drag on touch.",
       studioName: "Pum's Office",
@@ -564,6 +580,8 @@
       document.getElementById("majon-desc").textContent = s.majonDesc
       document.getElementById("stock-name").textContent = s.stockName
       document.getElementById("stock-desc").textContent = s.stockDesc
+      document.getElementById("cloud-name").textContent = s.cloudName
+      document.getElementById("cloud-desc").textContent = s.cloudDesc
       document.getElementById("game-name").textContent = s.gameName
       document.getElementById("studio-name").textContent = s.studioName
       document.getElementById("studio-desc").textContent = s.studioDesc

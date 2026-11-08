@@ -90,6 +90,7 @@ jobs:
           cp temp.html _site/temp.html
           cp montreal-autumn-2026.html _site/montreal-autumn-2026.html
           mkdir -p _site/backyard-rampage && cp -r backyard-rampage/. _site/backyard-rampage/
+          mkdir -p _site/cloudlingo && cp -r cloudlingo/index.html cloudlingo/css cloudlingo/js _site/cloudlingo/
           cp -r studio/. _site/studio/
           cp -r bill-splitter/dist/. _site/bill-splitter/
           cp -r nutritions-thailand/dist/. _site/nutritions-thailand/
