@@ -51,9 +51,12 @@
   }
 
   // ---------- Cloud sync ----------
-  // When the page runs as a claude.ai artifact and the viewer is signed in with
-  // write access, progress is also kept in their private per-user document so it
-  // follows them across devices. Browser storage stays the fallback for everyone else.
+  // Browser storage always holds progress. On top of that, progress is copied to
+  // the learner's account so it follows them across devices:
+  //  - on the website: Google sign-in (Firebase, shared with the other apps on the
+  //    same site), stored in Firestore at userCloudlingo/{uid};
+  //  - as a claude.ai artifact: the viewer's private artifact document.
+  // A sync "ref" is anything with set(data). The newest copy (by updatedAt) wins.
   let syncRef = null, syncTimer = null, syncBusy = false, syncAgain = false;
   function scheduleSync() {
     if (!syncRef) return;
@@ -64,13 +67,28 @@
     if (!syncRef) return;
     if (syncBusy) { syncAgain = true; return; }
     syncBusy = true;
-    try { await syncRef.set({ state: JSON.stringify(S), updatedAt: S.updatedAt || Date.now() }); }
-    catch (e) { if (!e || e.code !== 'unavailable') syncRef = null; } // no write access: stay local-only
+    try { await syncRef.set({ state: JSON.stringify(S), updatedAt: S.updatedAt || Date.now(), xp: S.xp || 0, lessons: S.lessons || 0 }); }
+    catch (e) {
+      if (!e || e.code !== 'unavailable') { // no write access: stay local-only
+        syncRef = null;
+        if (account) { account.error = true; refresh(); }
+      }
+    }
     syncBusy = false;
     if (syncAgain) { syncAgain = false; pushSync(); }
   }
-  async function initSync() {
-    if (!window.claude || typeof window.claude.use !== 'function') return;
+  const busyView = () => view === 'lesson' || view === 'examRun';
+  const refresh = () => { if (!busyView()) render(); };
+  const hasProgress = st => (st.xp || 0) > 0 || (st.lessons || 0) > 0 || Object.keys(st.progress || {}).length > 0;
+  function adopt(remote) {
+    S = { ...DEFAULTS(), ...JSON.parse(remote.state) };
+    try { localStorage.setItem(STORE, JSON.stringify(S)); } catch { /* ignore */ }
+    applyTheme();
+    if (view === 'onboard' && S.cert) view = 'learn';
+    refresh();
+  }
+
+  async function initClaudeSync() {
     try {
       const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
       if (!db || !user) return;
@@ -79,16 +97,114 @@
       const ref = db.doc(`data/users/${id}/progress`);
       const snap = await ref.get();
       const remote = snap.exists ? snap.data() : null;
-      if (remote && (remote.updatedAt || 0) > (S.updatedAt || 0)) {
-        S = { ...DEFAULTS(), ...JSON.parse(remote.state) };
-        try { localStorage.setItem(STORE, JSON.stringify(S)); } catch { /* ignore */ }
-        applyTheme();
-        if (view === 'onboard' && S.cert) view = 'learn';
-        if (view !== 'lesson' && view !== 'examRun') render();
-      }
+      if (remote && (remote.updatedAt || 0) > (S.updatedAt || 0)) adopt(remote);
       syncRef = ref;
       if (!remote || (remote.updatedAt || 0) < (S.updatedAt || 0)) pushSync();
     } catch { syncRef = null; }
+  }
+
+  // ---------- Account (website) ----------
+  const FIREBASE = {
+    version: '12.13.0',
+    config: {
+      apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
+      authDomain: 'auth.pumbafluffycorgi.com',
+      projectId: 'pumgoda',
+      storageBucket: 'pumgoda.firebasestorage.app',
+      messagingSenderId: '675478948836',
+      appId: '1:675478948836:web:3ad94d736b6a677d8495f1'
+    }
+  };
+  const UID_KEY = 'cloudlingo:uid'; // account last synced on this device
+  // authState: 'off' (no accounts here) | 'loading' | 'out' | 'in' | 'unavailable'
+  let fb = null, authState = 'off', account = null, unwatch = null, choice = null;
+
+  async function initFirebaseSync() {
+    authState = 'loading';
+    try {
+      const base = `https://www.gstatic.com/firebasejs/${FIREBASE.version}/`;
+      const [fa, au, fs] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
+      const fapp = fa.getApps().length ? fa.getApp() : fa.initializeApp(FIREBASE.config);
+      fb = { au, fs, auth: au.getAuth(fapp), db: fs.getFirestore(fapp) };
+    } catch { authState = 'unavailable'; refresh(); return; }
+    fb.au.getRedirectResult(fb.auth).catch(() => { /* handled by onAuthStateChanged */ });
+    fb.au.onAuthStateChanged(fb.auth, user => {
+      if (unwatch) { unwatch(); unwatch = null; }
+      syncRef = null; choice = null;
+      if (!user) {
+        account = null; authState = 'out';
+        try { localStorage.removeItem(UID_KEY); } catch { /* ignore */ }
+        refresh(); return;
+      }
+      account = { uid: user.uid, name: user.displayName || user.email || 'Signed in', email: user.email || '', photo: user.photoURL || '', synced: false };
+      authState = 'in';
+      refresh();
+      fb.fs.setDoc(fb.fs.doc(fb.db, 'userProfiles', user.uid), {
+        name: user.displayName || '', email: user.email || '', photoURL: user.photoURL || null,
+        lastSeen: fb.fs.serverTimestamp(), lastApp: 'Cloudlingo'
+      }, { merge: true }).catch(() => { /* profile is best-effort */ });
+      const dref = fb.fs.doc(fb.db, 'userCloudlingo', user.uid);
+      const ref = { set: data => fb.fs.setDoc(dref, data) };
+      let first = true;
+      unwatch = fb.fs.onSnapshot(dref, snap => {
+        if (snap.metadata.hasPendingWrites) return;
+        const remote = snap.exists() ? snap.data() : null;
+        if (first) { first = false; reconcile(ref, remote, user.uid); return; }
+        if (choice) { choice.remote = remote; return; }
+        // Progress made on another device while this one is open.
+        if (remote && syncRef && (remote.updatedAt || 0) > (S.updatedAt || 0) && !busyView()) adopt(remote);
+      }, () => { account.error = true; refresh(); });
+    });
+  }
+
+  function reconcile(ref, remote, uid) {
+    let lastUid = null;
+    try { lastUid = localStorage.getItem(UID_KEY); } catch { /* ignore */ }
+    const local = S.updatedAt || 0, cloud = remote ? remote.updatedAt || 0 : 0;
+    if (remote && cloud !== local && lastUid !== uid && hasProgress(S) && hasProgress(JSON.parse(remote.state))) {
+      // First sign-in on this device, and both copies have progress: let the learner pick.
+      choice = { ref, remote, uid };
+      askChoice();
+      return;
+    }
+    let push = false;
+    if (!remote) push = true;                                      // first save for this account
+    else if (cloud > local) adopt(remote);                         // account is newer
+    else if (lastUid !== uid && !hasProgress(S)) adopt(remote);    // fresh device: take the account's
+    else if (cloud < local) push = true;                           // this device is newer
+    linkSync(ref, uid, push);
+  }
+  function linkSync(ref, uid, push) {
+    try { localStorage.setItem(UID_KEY, uid); } catch { /* ignore */ }
+    syncRef = ref;
+    if (account) account.synced = true;
+    if (push) pushSync();
+    refresh();
+  }
+  function askChoice() {
+    const r = JSON.parse(choice.remote.state);
+    const sessions = n => `${n || 0} session${n === 1 ? '' : 's'}`;
+    modal(`${mascot(70)}<h2>Which progress should we keep?</h2>
+      <p>Your account and this device both have Cloudlingo progress. Pick one; the other is replaced.</p>
+      <div class="stack">
+        <button class="btn" data-act="keepcloud">☁️ Account · ⚡ ${r.xp || 0} XP · ${sessions(r.lessons)}</button>
+        <button class="btn ghost" data-act="keepdevice">📱 This device · ⚡ ${S.xp} XP · ${sessions(S.lessons)}</button>
+      </div>`, 'sticky');
+  }
+  function signIn() {
+    if (!fb) return;
+    const provider = new fb.au.GoogleAuthProvider();
+    fb.au.signInWithPopup(fb.auth, provider).catch(e => {
+      const code = e && e.code;
+      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-environment') fb.au.signInWithRedirect(fb.auth, provider);
+      else if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request')
+        modal(`${mascot(70, 'sad')}<h2>Sign-in didn't work</h2><p>Please try again. Your progress is still saved on this device.</p><button class="btn block" data-act="closemodal">OK</button>`);
+    });
+  }
+
+  function initSync() {
+    if (window.claude && typeof window.claude.use === 'function') initClaudeSync();
+    else if (/^https?:$/.test(location.protocol)) initFirebaseSync();
   }
 
   const course = () => COURSES.find(c => c.id === S.cert) || COURSES[0];
@@ -194,8 +310,29 @@
       <button class="chip certchip" data-act="pickcert" title="Switch certification"><span class="code">${c.code}</span><span class="muted small">▾</span></button>
       <div class="topstats">
         <button class="chip flame ${st ? '' : 'cold'}" data-act="nav" data-v="profile" title="Day streak">🔥 ${st}</button>
-        <button class="chip xp" data-act="nav" data-v="profile" title="Total XP">⚡ ${S.xp}</button>      </div>
+        <button class="chip xp" data-act="nav" data-v="profile" title="Total XP">⚡ ${S.xp}</button>${accountChip()}</div>
     </div>`;
+  }
+
+  function avatar(size) {
+    const initial = esc(((account.name || '?').trim()[0] || '?').toUpperCase());
+    return account.photo
+      ? `<img class="avatar" src="${esc(account.photo)}" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px" referrerpolicy="no-referrer">`
+      : `<span class="avatar" style="width:${size}px;height:${size}px">${initial}</span>`;
+  }
+  function accountChip() {
+    if (authState === 'out') return `<button class="chip signin" data-act="signin" title="Sign in to save progress across devices">☁️ <span class="lbl">Sign in</span></button>`;
+    if (authState === 'in' && account) return `<button class="chip" data-act="nav" data-v="profile" title="${esc(account.name)}">${avatar(26)}</button>`;
+    return '';
+  }
+  function accountCard() {
+    if (authState === 'out' || authState === 'unavailable') return `<div class="card account" style="margin-bottom:16px"><div class="row"><div class="bigicon">☁️</div><div class="grow">
+      <h3 style="margin-bottom:2px">Save your progress</h3><p class="muted small">${authState === 'unavailable' ? "Sign-in can't load right now. Your progress is saved on this device." : 'Sign in to keep your progress safe and continue on any device.'}</p></div></div>
+      ${authState === 'out' ? '<button class="btn block" style="margin-top:14px" data-act="signin">Continue with Google</button>' : ''}</div>`;
+    if (authState === 'in' && account) return `<div class="card account" style="margin-bottom:16px"><div class="row">${avatar(44)}<div class="grow">
+      <h3 style="margin-bottom:2px">${esc(account.name)}</h3><p class="muted small">${account.error ? "⚠️ Couldn't reach your account. Progress is saved on this device." : account.synced ? '✓ Progress saved to your account' : 'Connecting…'}</p></div>
+      <button class="linkbtn" data-act="signout">Sign out</button></div></div>`;
+    return '';
   }
 
   function goalInner() {
@@ -260,6 +397,7 @@
       <h2 class="section-title" style="font-size:20px;margin-top:30px">Pick a daily goal</h2>
       <p class="section-sub">You can change this anytime in your profile.</p>
       <div class="seg">${GOALS.map(g => `<button class="${OB.goal === g.xp ? 'on' : ''}" data-act="obgoal" data-g="${g.xp}">${g.name}<small>${g.xp} XP/day</small></button>`).join('')}</div>
+      ${authState === 'out' ? '<p class="muted" style="text-align:center;margin-top:26px">Studied here before? <button class="linkbtn" data-act="signin">Sign in</button></p>' : ''}
     </div>
     <div class="fixed-foot"><button class="btn" data-act="obstart" ${OB.cert ? '' : 'disabled'}>Start learning</button></div>`;
   }
@@ -707,7 +845,7 @@
     const vals = days.map(d => S.xpByDay[d] || 0);
     const max = Math.max(S.dailyGoal, ...vals);
     const domains = c.units.map(u => ({ u, acc: accuracyOf(u.questions) })).filter(x => x.acc.seen);
-    return shell(`<div class="row" style="margin:6px 0 20px">${mascot(76)}<div><h1 class="section-title" style="margin:0">Your progress</h1><p class="muted">Studying ${c.code} · ${c.name}</p></div></div>
+    return shell(`${accountCard()}<div class="row" style="margin:6px 0 20px">${mascot(76)}<div><h1 class="section-title" style="margin:0">Your progress</h1><p class="muted">Studying ${c.code} · ${c.name}</p></div></div>
       <div class="tiles">
         <div class="tile-stat"><span class="i">🔥</span><div><div class="v">${streakNow()}</div><div class="l">Day streak</div></div></div>
         <div class="tile-stat"><span class="i">⚡</span><div><div class="v">${S.xp}</div><div class="l">Total XP</div></div></div>
@@ -765,9 +903,16 @@
     toggleall: () => { R.showAll = !R.showAll; render(); },
     setgoal: d => { S.dailyGoal = +d.g; addXP(0); render(); },
     settheme: d => { S.theme = d.t; save(); applyTheme(); render(); },
-    reset: () => modal(`${mascot(70, 'sad')}<h2>Reset all progress?</h2><p>This clears your XP, streak, lessons, and exam history on this device. It can't be undone.</p>
+    reset: () => modal(`${mascot(70, 'sad')}<h2>Reset all progress?</h2><p>This clears your XP, streak, lessons, and exam history ${syncRef && account ? 'on this device and in your account' : 'on this device'}. It can't be undone.</p>
       <div class="stack"><button class="btn bad" data-act="confirmreset">Reset everything</button><button class="btn ghost" data-act="closemodal">Cancel</button></div>`),
     confirmreset: () => { try { localStorage.removeItem(STORE); } catch { /* ignore */ } S = DEFAULTS(); save(); OB = { cert: null, goal: 20 }; applyTheme(); closeModal(); go('onboard'); },
+    signin: () => signIn(),
+    signout: () => modal(`${mascot(70)}<h2>Sign out?</h2><p>Your progress stays on this device and in your account. This also signs you out of the other apps on this site.</p>
+      <div class="stack"><button class="btn" data-act="confirmsignout">Sign out</button><button class="btn ghost" data-act="closemodal">Cancel</button></div>`),
+    confirmsignout: () => { closeModal(); if (fb) fb.au.signOut(fb.auth); },
+    keepcloud: () => { const c = choice; choice = null; closeModal(); adopt(c.remote); linkSync(c.ref, c.uid, false); },
+    // save() stamps this copy as the newest, so other devices pick it up too.
+    keepdevice: () => { const c = choice; choice = null; closeModal(); linkSync(c.ref, c.uid, false); save(); },
     obcert: d => { OB.cert = d.c; render(); },
     obgoal: d => { OB.goal = +d.g; render(); },
     obstart: () => { if (!OB.cert) return; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); go('learn'); }
@@ -782,7 +927,7 @@
   }
 
   document.addEventListener('click', e => {
-    if (e.target.matches('[data-overlay]')) { closeModal(); return; }
+    if (e.target.matches('[data-overlay]')) { if (!modalRoot.querySelector('.modal.sticky')) closeModal(); return; }
     const el = e.target.closest('[data-act]');
     if (!el || el.disabled) return;
     const fn = actions[el.dataset.act];
@@ -790,7 +935,7 @@
   });
 
   document.addEventListener('keydown', e => {
-    if (modalRoot.innerHTML) { if (e.key === 'Escape') closeModal(); return; }
+    if (modalRoot.innerHTML) { if (e.key === 'Escape' && !modalRoot.querySelector('.modal.sticky')) closeModal(); return; }
     if (view === 'lesson' && L) {
       if (e.key === 'Enter') {
         e.preventDefault();

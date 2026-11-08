@@ -262,6 +262,21 @@ service cloud.firestore {
                    && (!('customFoods' in request.resource.data) || request.resource.data.customFoods is list);
     }
 
+    // ── Cloudlingo — cross-device progress ────────────────────────────────────
+    // The whole app state is one JSON string (it has nested arrays, which
+    // Firestore fields can't hold); xp / lessons are copies for the
+    // "which progress should we keep?" prompt.
+    match /userCloudlingo/{uid} {
+      allow read:  if isUser(uid) || isAdmin();
+      allow write: if isUser(uid)
+                   && request.resource.data.keys().hasOnly(['state', 'updatedAt', 'xp', 'lessons'])
+                   && request.resource.data.state is string
+                   && request.resource.data.state.size() <= 500000
+                   && request.resource.data.updatedAt is number
+                   && request.resource.data.xp is number
+                   && request.resource.data.lessons is number;
+    }
+
     // ── Backyard Rampage — cross-device save sync ───────────────────────────
     match /userGame/{uid} {
       allow read:  if isUser(uid);
