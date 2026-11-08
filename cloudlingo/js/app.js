@@ -119,11 +119,14 @@
   // authState: 'off' (no accounts here) | 'loading' | 'out' | 'in' | 'unavailable'
   let fb = null, authState = 'off', account = null, unwatch = null, choice = null;
 
+  let fbLoading = null;
   async function initFirebaseSync() {
     authState = 'loading';
+    refresh();
     try {
       const base = `https://www.gstatic.com/firebasejs/${FIREBASE.version}/`;
-      const [fa, au, fs] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
+      fbLoading = Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
+      const [fa, au, fs] = await fbLoading;
       const fapp = fa.getApps().length ? fa.getApp() : fa.initializeApp(FIREBASE.config);
       fb = { au, fs, auth: au.getAuth(fapp), db: fs.getFirestore(fapp) };
     } catch { authState = 'unavailable'; refresh(); return; }
@@ -191,8 +194,12 @@
         <button class="btn ghost" data-act="keepdevice">📱 This device · ⚡ ${S.xp} XP · ${sessions(S.lessons)}</button>
       </div>`, 'sticky');
   }
-  function signIn() {
-    if (!fb) return;
+  async function signIn() {
+    if (!fb && fbLoading) { try { await fbLoading; } catch { /* handled below */ } }
+    if (!fb) {
+      modal(`${mascot(70, 'sad')}<h2>Sign-in can't load</h2><p>Check your connection and try again. Your progress is still saved on this device.</p><button class="btn block" data-act="closemodal">OK</button>`);
+      return;
+    }
     const provider = new fb.au.GoogleAuthProvider();
     fb.au.signInWithPopup(fb.auth, provider).catch(e => {
       const code = e && e.code;
@@ -321,7 +328,7 @@
       : `<span class="avatar" style="width:${size}px;height:${size}px">${initial}</span>`;
   }
   function accountChip() {
-    if (authState === 'out') return `<button class="chip signin" data-act="signin" title="Sign in to save progress across devices">☁️ <span class="lbl">Sign in</span></button>`;
+    if (authState === 'out' || authState === 'loading') return `<button class="signin-btn" data-act="signin" title="Sign in to save progress across devices">Sign in</button>`;
     if (authState === 'in' && account) return `<button class="chip" data-act="nav" data-v="profile" title="${esc(account.name)}">${avatar(26)}</button>`;
     return '';
   }
@@ -392,12 +399,12 @@
   // ---------- Onboarding ----------
   function onboardView() {
     return `<div class="onboard">
+      ${authState === 'out' || authState === 'loading' ? '<div class="card ob-signin"><span>☁️ Studied here before?</span><button class="signin-btn" data-act="signin">Sign in</button></div>' : ''}
       <div class="hero">${mascot(96, 'happy', 'bounce')}<div class="speech">Hi, I'm Nimbus! Which AWS certification are we studying for?</div></div>
       <div class="certlist">${COURSES.map(c => certOption(c, OB.cert === c.id, 'obcert')).join('')}</div>
       <h2 class="section-title" style="font-size:20px;margin-top:30px">Pick a daily goal</h2>
       <p class="section-sub">You can change this anytime in your profile.</p>
       <div class="seg">${GOALS.map(g => `<button class="${OB.goal === g.xp ? 'on' : ''}" data-act="obgoal" data-g="${g.xp}">${g.name}<small>${g.xp} XP/day</small></button>`).join('')}</div>
-      ${authState === 'out' ? '<p class="muted" style="text-align:center;margin-top:26px">Studied here before? <button class="linkbtn" data-act="signin">Sign in</button></p>' : ''}
     </div>
     <div class="fixed-foot"><button class="btn" data-act="obstart" ${OB.cert ? '' : 'disabled'}>Start learning</button></div>`;
   }
