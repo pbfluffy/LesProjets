@@ -393,3 +393,13 @@ h1, h2, h3, p { margin: 0; }
 .brow .bname { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .brow .bxp { color: var(--gold); white-space: nowrap; }
 @media (max-width: 640px) { .langseg { width: 116px; } .sidenav .navitem { padding: 10px 8px; } }
+
+/* Sign-in sheet provider buttons */
+.btn.prov { display: flex; align-items: center; justify-content: center; gap: 10px; text-transform: none; letter-spacing: 0; font-size: 16px; }
+.btn.prov .pico { font-weight: 900; font-size: 12px; min-width: 26px; height: 26px; padding: 0 4px; border-radius: 6px; display: inline-grid; place-items: center; }
+.btn.prov.google { background: var(--surface); color: var(--ink); border: 2px solid var(--border); box-shadow: 0 4px 0 var(--border); }
+.btn.prov.google .pico { color: #4285f4; font-size: 18px; }
+.btn.prov.line { background: #06c755; box-shadow: 0 4px 0 #05a046; color: #fff; }
+.btn.prov.line .pico { background: #fff; color: #06c755; font-size: 9px; }
+.btn.prov.ms { background: #2f2f2f; box-shadow: 0 4px 0 #111; color: #fff; }
+.btn.prov.ms .pico { font-size: 18px; }

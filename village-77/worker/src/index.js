@@ -39,12 +39,13 @@
 
 const PROJECT_ID = 'pumgoda'
 const ALLOWED_ORIGINS = ['https://pumbafluffycorgi.com', 'http://localhost:5184', 'http://localhost:5178']
-// The site's home page (pumbafluffycorgi.com/) also signs in with LINE, on
+// The site's home page (pumbafluffycorgi.com/) and Cloudlingo (/cloudlingo/,
+// which shares the home page's sign-in) also sign in with LINE, on
 // the same channel. There a person can connect LINE to their Google account
 // (/line-link), and LINE sign-in then opens that account. Village-77
 // sign-ins always use the "line:<LINE user id>" account — its members live
 // there.
-const MAIN_REDIRECTS = ['https://pumbafluffycorgi.com/', 'http://localhost:5178/']
+const MAIN_REDIRECTS = ['https://pumbafluffycorgi.com/', 'http://localhost:5178/', 'https://pumbafluffycorgi.com/cloudlingo/']
 // LINE only redirects back to callback URLs registered on the channel; this
 // list must match that setting.
 const ALLOWED_REDIRECTS = ['https://pumbafluffycorgi.com/village-77/', 'http://localhost:5184/village-77/', ...MAIN_REDIRECTS]

@@ -155,7 +155,10 @@
       const fapp = fa.getApps().length ? fa.getApp() : fa.initializeApp(FIREBASE.config);
       fb = { au, fs, auth: au.getAuth(fapp), db: fs.getFirestore(fapp) };
     } catch { authState = 'unavailable'; refresh(); return; }
-    fb.au.getRedirectResult(fb.auth).catch(() => { /* handled by onAuthStateChanged */ });
+    fb.au.getRedirectResult(fb.auth).catch(e => {
+      if (e && e.code === 'auth/account-exists-with-different-credential') infoModal(t('signin_failed'), t('account_exists'));
+    });
+    finishLine().then(returned => { if (!returned) collectLineHandoff(); });
     fb.au.onAuthStateChanged(fb.auth, user => {
       if (unwatch) { unwatch(); unwatch = null; }
       syncRef = null; choice = null;
@@ -221,19 +224,119 @@
         <button class="btn ghost" data-act="keepdevice">${t('keep_device', { xp: S.xp, s: sessions(S.lessons) })}</button>
       </div>`, 'sticky');
   }
-  async function signIn() {
+  const infoModal = (title, body, mood = 'sad') =>
+    modal(`${mascot(70, mood)}<h2>${title}</h2><p>${body}</p><button class="btn block" data-act="closemodal">${t('ok')}</button>`);
+
+  // The sign-in sheet: Google, LINE, and (once it's switched on in Firebase) Microsoft.
+  const MICROSOFT_ON = false; // set to true after the Microsoft provider is enabled in Firebase Authentication
+  function signInSheet() {
+    modal(`${mascot(70)}<h2>${t('signin_sheet')}</h2><p>${t('signin_pitch')}</p>
+      <div class="stack">
+        <button class="btn prov google" data-act="signinwith" data-p="google"><span class="pico">G</span>${t('continue_google')}</button>
+        <button class="btn prov line" data-act="signinwith" data-p="line"><span class="pico">LINE</span>${t('continue_line')}</button>
+        ${MICROSOFT_ON ? `<button class="btn prov ms" data-act="signinwith" data-p="microsoft"><span class="pico">⊞</span>${t('continue_microsoft')}</button>` : ''}
+      </div>
+      <p class="muted small" style="margin:14px 0 0">${t('signin_shared')}</p>`);
+  }
+
+  async function signIn(which = 'google') {
     if (!fb && fbLoading) { try { await fbLoading; } catch { /* handled below */ } }
-    if (!fb) {
-      modal(`${mascot(70, 'sad')}<h2>${t('signin_cant_load')}</h2><p>${t('signin_cant_load_sub')}</p><button class="btn block" data-act="closemodal">${t('ok')}</button>`);
-      return;
-    }
-    const provider = new fb.au.GoogleAuthProvider();
+    if (!fb) { infoModal(t('signin_cant_load'), t('signin_cant_load_sub')); return; }
+    if (which === 'line') { goToLine(); return; }
+    let provider;
+    if (which === 'microsoft') {
+      provider = new fb.au.OAuthProvider('microsoft.com');
+      provider.setCustomParameters({ prompt: 'select_account' });
+    } else provider = new fb.au.GoogleAuthProvider();
+    closeModal();
     fb.au.signInWithPopup(fb.auth, provider).catch(e => {
       const code = e && e.code;
       if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-environment') fb.au.signInWithRedirect(fb.auth, provider);
-      else if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request')
-        modal(`${mascot(70, 'sad')}<h2>${t('signin_failed')}</h2><p>${t('signin_failed_sub')}</p><button class="btn block" data-act="closemodal">${t('ok')}</button>`);
+      else if (code === 'auth/account-exists-with-different-credential') infoModal(t('signin_failed'), t('account_exists'));
+      else if (code === 'auth/operation-not-allowed') infoModal(t('signin_failed'), t('provider_off'));
+      else if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') infoModal(t('signin_failed'), t('signin_failed_sub'));
     });
+  }
+
+  // ---------- Sign in with LINE ----------
+  // Firebase has no LINE provider. LINE sends the person back here with
+  // ?code=…&state=…, and the site's LINE Worker (the same one the home page and
+  // Village 77 use) trades the code for a Firebase custom token. A LINE account
+  // connected to a Google account on the home page opens that same account.
+  // On phones LINE may send the person back to a different browser than the
+  // one they started in; then that browser parks the sign-in on the Worker
+  // under a one-time id, and the starting browser collects it when they return.
+  const LINE_WORKER = 'https://village-77.pbfluffygaming.workers.dev';
+  const LINE_CHANNEL_ID = '2012133281';
+  const LINE_REDIRECT = location.origin + location.pathname.replace(/index\.html$/, '');
+  const LINE_PENDING_KEY = 'cloudlingo:line'; // { state, started } while away at LINE
+  const LINE_PENDING_MAX_MS = 10 * 60 * 1000;
+  const randomHex = () => [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('');
+  function readLinePending() {
+    try { const p = JSON.parse(localStorage.getItem(LINE_PENDING_KEY)); return p && Date.now() - p.started < LINE_PENDING_MAX_MS ? p : null; }
+    catch { return null; }
+  }
+  const clearLinePending = () => { try { localStorage.removeItem(LINE_PENDING_KEY); } catch { /* ignore */ } };
+  function goToLine() {
+    const state = 'h' + randomHex();
+    try { localStorage.setItem(LINE_PENDING_KEY, JSON.stringify({ state, started: Date.now() })); } catch { /* ignore */ }
+    const params = new URLSearchParams({ response_type: 'code', client_id: LINE_CHANNEL_ID, redirect_uri: LINE_REDIRECT, state, scope: 'profile openid' });
+    location.assign('https://access.line.me/oauth2/v2.1/authorize?' + params);
+  }
+  async function postLine(path, body) {
+    const res = await fetch(LINE_WORKER + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { const err = new Error(data.error || 'LINE request failed'); err.status = res.status; throw err; }
+    return data;
+  }
+  async function signInWithLine(result) {
+    const cred = await fb.au.signInWithCustomToken(fb.auth, result.customToken);
+    // A new LINE account has no name or photo yet: use LINE's.
+    if (!cred.user.displayName && result.name) {
+      await fb.au.updateProfile(cred.user, { displayName: result.name, photoURL: result.picture || null });
+      if (account && account.uid === cred.user.uid) {
+        Object.assign(account, { name: result.name, first: result.name.trim().split(/\s+/)[0], photo: result.picture || '' });
+        refresh();
+      }
+    }
+  }
+  // Runs once Firebase is loaded: finishes a LINE sign-in if LINE just sent the
+  // person here. Returns true when this page load was such a return.
+  async function finishLine() {
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code'), lineError = params.get('error');
+    if (!code && !lineError) return false;
+    history.replaceState(null, '', location.pathname + location.hash); // a reload mustn't replay the code
+    const state = params.get('state') || '';
+    const pending = readLinePending();
+    const startedHere = !!pending && pending.state === state;
+    if (startedHere) clearLinePending();
+    if (lineError) { if (lineError !== 'access_denied') infoModal(t('signin_failed'), t('line_failed')); return true; }
+    const id = state.slice(1);
+    if (state[0] !== 'h' || !/^[0-9a-f]{32}$/.test(id)) { infoModal(t('signin_failed'), t('line_failed')); return true; }
+    try {
+      if (startedHere) await signInWithLine(await postLine('/line-auth', { code, redirectUri: LINE_REDIRECT }));
+      else if (!pending) {
+        await postLine('/line-auth', { code, redirectUri: LINE_REDIRECT, handoff: id });
+        infoModal(t('line_elsewhere_t'), t('line_elsewhere'), 'happy');
+      } else infoModal(t('signin_failed'), t('line_failed'));
+    } catch { infoModal(t('signin_failed'), t('line_failed')); }
+    return true;
+  }
+  let collectingLine = false;
+  async function collectLineHandoff() {
+    const pending = readLinePending();
+    if (!pending) { clearLinePending(); return; }
+    if (collectingLine || !fb || fb.auth.currentUser) return;
+    collectingLine = true;
+    try {
+      const res = await fetch(LINE_WORKER + '/line-handoff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ handoff: pending.state.slice(1) }) });
+      if (res.status !== 404) { // 404: not finished in the other browser yet
+        clearLinePending();
+        if (res.ok) await signInWithLine(await res.json());
+      }
+    } catch { /* try again next time the page is shown */ }
+    collectingLine = false;
   }
 
   function initSync() {
@@ -382,7 +485,7 @@
   function accountCard() {
     if (authState === 'out' || authState === 'unavailable') return `<div class="card account" style="margin-bottom:16px"><div class="row"><div class="bigicon">☁️</div><div class="grow">
       <h3 style="margin-bottom:2px">${t('save_progress')}</h3><p class="muted small">${authState === 'unavailable' ? t('signin_unavailable') : t('signin_pitch')}</p></div></div>
-      ${authState === 'out' ? `<button class="btn block" style="margin-top:14px" data-act="signin">${t('continue_google')}</button>` : ''}</div>`;
+      ${authState === 'out' ? `<button class="btn block" style="margin-top:14px" data-act="signin">${t('signin')}</button>` : ''}</div>`;
     if (authState === 'in' && account) return `<div class="card account" style="margin-bottom:16px"><div class="row">${avatar(44)}<div class="grow">
       <h3 style="margin-bottom:2px">${esc(account.name)}</h3><p class="muted small">${account.error ? t('acct_error') : account.synced ? t('acct_synced') : t('connecting')}</p></div>
       <button class="linkbtn" data-act="signout">${t('signout')}</button></div></div>`;
@@ -1067,7 +1170,7 @@
     const head = `<h1 class="section-title">🏆 ${t('board_title')}</h1><p class="section-sub">${t('board_sub')}</p>`;
     if (authState !== 'in' || !account) {
       return shell(`${head}<div class="card" style="text-align:center">${mascot(80)}<p style="margin:10px 0 16px">${t('board_signin')}</p>
-        ${authState === 'out' || authState === 'loading' ? `<button class="btn" data-act="signin">${t('continue_google')}</button>` : ''}</div>`);
+        ${authState === 'out' || authState === 'loading' ? `<button class="btn" data-act="signin">${t('signin')}</button>` : ''}</div>`);
     }
     const left = 6 - ((new Date().getDay() + 6) % 7);
     const resets = left === 0 ? t('board_resets_today') : tn('board_resets', left);
@@ -1174,7 +1277,8 @@
     reset: () => modal(`${mascot(70, 'sad')}<h2>${t('reset_q')}</h2><p>${syncRef && account ? t('reset_sub_account') : t('reset_sub_device')}</p>
       <div class="stack"><button class="btn bad" data-act="confirmreset">${t('reset_btn')}</button><button class="btn ghost" data-act="closemodal">${t('cancel')}</button></div>`),
     confirmreset: () => { try { localStorage.removeItem(STORE); } catch { /* ignore */ } S = DEFAULTS(); save(); OB = { cert: null, goal: 20 }; applyTheme(); closeModal(); go('onboard'); },
-    signin: () => signIn(),
+    signin: () => signInSheet(),
+    signinwith: d => signIn(d.p),
     signout: () => modal(`${mascot(70)}<h2>${t('signout_q')}</h2><p>${t('signout_sub')}</p>
       <div class="stack"><button class="btn" data-act="confirmsignout">${t('signout')}</button><button class="btn ghost" data-act="closemodal">${t('cancel')}</button></div>`),
     confirmsignout: () => { closeModal(); if (fb) fb.au.signOut(fb.auth); },
@@ -1231,6 +1335,7 @@
   // Refresh streak/goal display when the tab regains focus (e.g. after midnight).
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
+    collectLineHandoff();
     applyFreezes();
     if (['learn', 'practice', 'profile', 'exam', 'board'].includes(view)) render();
   });
