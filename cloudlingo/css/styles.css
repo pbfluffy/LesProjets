@@ -311,7 +311,10 @@ h1, h2, h3, p { margin: 0; }
 .confetti { position: fixed; top: -12px; width: 10px; height: 14px; z-index: 100; pointer-events: none; border-radius: 2px; animation: fall linear forwards; }
 @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
 
-.mascot { display: block; }
+.mascot { display: block; object-fit: contain; user-select: none; -webkit-user-drag: none; }
+.mascot.center { margin: 0 auto; }
+.pagehead { margin-bottom: 6px; }
+.pagehead + .section-sub { margin-top: 4px; }
 .mascot.bounce { animation: bounce 1s ease-in-out infinite; }
 @keyframes bounce { 50% { transform: translateY(-8px); } }
 
@@ -403,3 +406,8 @@ h1, h2, h3, p { margin: 0; }
 .btn.prov.line .pico { background: #fff; color: #06c755; font-size: 9px; }
 .btn.prov.ms { background: #2f2f2f; box-shadow: 0 4px 0 #111; color: #fff; }
 .btn.prov.ms .pico { font-size: 18px; }
+
+/* Mascot in dark mode: a faint light edge keeps the black outline and marks readable */
+:root[data-theme="dark"] .mascot { filter: drop-shadow(0 0 1px rgba(255,255,255,.35)); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mascot { filter: drop-shadow(0 0 1px rgba(255,255,255,.35)); } }
+@media (max-width: 640px) { .qhead .mascot { width: 56px; height: 56px; } }

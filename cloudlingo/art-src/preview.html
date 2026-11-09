@@ -1,0 +1,4 @@
+<!doctype html><meta charset="utf-8"><title>Nimbus poses</title>
+<style>body{margin:0;font:12px sans-serif}.row{display:flex;flex-wrap:wrap;gap:8px;padding:10px}.light{background:#f6f9fc}.dark{background:#0f1720;color:#ccc}figure{margin:0;text-align:center}img{height:110px;display:block}</style>
+<div class="row light" id="a"></div><div class="row dark" id="b"></div>
+<script>const p='hero cool laugh think angry tired proud idea laptop shocked sleep'.split(' ');for(const id of['a','b'])document.getElementById(id).innerHTML=p.map(n=>`<figure><img src="../img/nimbus/${n}.webp?t=${Date.now()}"><figcaption>${n}</figcaption></figure>`).join('')</script>

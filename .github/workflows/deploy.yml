@@ -90,7 +90,7 @@ jobs:
           cp temp.html _site/temp.html
           cp montreal-autumn-2026.html _site/montreal-autumn-2026.html
           mkdir -p _site/backyard-rampage && cp -r backyard-rampage/. _site/backyard-rampage/
-          mkdir -p _site/cloudlingo && cp -r cloudlingo/index.html cloudlingo/css cloudlingo/js _site/cloudlingo/
+          mkdir -p _site/cloudlingo && cp -r cloudlingo/index.html cloudlingo/css cloudlingo/js cloudlingo/img _site/cloudlingo/
           # Cloudlingo has no build step: stamp the commit into its ?v= links so
           # browsers fetch fresh JS/CSS after each deploy instead of a cached copy.
           sed -i "s/?v=dev/?v=${GITHUB_SHA::8}/g" _site/cloudlingo/index.html

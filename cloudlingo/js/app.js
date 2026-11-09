@@ -221,22 +221,22 @@
   function askChoice() {
     const r = JSON.parse(choice.remote.state);
     const sessions = n => tn('sessions', n || 0);
-    modal(`${mascot(70)}<h2>${t('keep_q')}</h2>
+    modal(`${mascot(80, 'think')}<h2>${t('keep_q')}</h2>
       <p>${t('keep_sub')}</p>
       <div class="stack">
         <button class="btn" data-act="keepcloud">${t('keep_account', { xp: r.xp || 0, s: sessions(r.lessons) })}</button>
         <button class="btn ghost" data-act="keepdevice">${t('keep_device', { xp: S.xp, s: sessions(S.lessons) })}</button>
       </div>`, 'sticky');
   }
-  const infoModal = (title, body, mood = 'sad') =>
-    modal(`${mascot(70, mood)}<h2>${title}</h2><p>${body}</p><button class="btn block" data-act="closemodal">${t('ok')}</button>`);
+  const infoModal = (title, body, mood = 'shocked') =>
+    modal(`${mascot(80, mood === 'happy' ? 'laugh' : mood)}<h2>${title}</h2><p>${body}</p><button class="btn block" data-act="closemodal">${t('ok')}</button>`);
 
   // The sign-in sheet: Google, LINE, and (once it's switched on in Firebase) Microsoft.
   // Firebase Authentication → Microsoft, backed by the Entra app "pumbafluffycorgi.com sign-in".
   // Its client secret expires: renew it in Azure and update it in Firebase, or this button stops working.
   const MICROSOFT_ON = true;
   function signInSheet() {
-    modal(`${mascot(70)}<h2>${t('signin_sheet')}</h2><p>${t('signin_pitch')}</p>
+    modal(`${mascot(80, 'idea')}<h2>${t('signin_sheet')}</h2><p>${t('signin_pitch')}</p>
       <div class="stack">
         <button class="btn prov google" data-act="signinwith" data-p="google"><span class="pico">G</span>${t('continue_google')}</button>
         <button class="btn prov line" data-act="signinwith" data-p="line"><span class="pico">LINE</span>${t('continue_line')}</button>
@@ -439,17 +439,12 @@
   }
 
   // ---------- Shared pieces ----------
-  function mascot(size = 48, mood = 'happy', cls = '') {
-    const mouth = mood === 'sad'
-      ? '<path d="M27 46q6-5 12 0" stroke="#1d2b3a" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
-      : '<path d="M27 42q6 6 12 0" stroke="#1d2b3a" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
-    return `<svg class="mascot ${cls}" width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true">
-      <path d="M18 50h30a12 12 0 0 0 1-24 16 16 0 0 0-31-3 13 13 0 0 0 0 27z" fill="var(--cloud)" stroke="var(--cloud-stroke)" stroke-width="2.6" stroke-linejoin="round"/>
-      <circle cx="26" cy="35" r="3.3" fill="#1d2b3a"/><circle cx="40" cy="35" r="3.3" fill="#1d2b3a"/>
-      <circle cx="27.2" cy="33.8" r="1" fill="#fff"/><circle cx="41.2" cy="33.8" r="1" fill="#fff"/>
-      ${mouth}
-      <circle cx="20.5" cy="41" r="2.6" fill="#ff8fa6" opacity=".75"/><circle cx="45.5" cy="41" r="2.6" fill="#ff8fa6" opacity=".75"/>
-    </svg>`;
+  // Nimbus, the mascot: one pose per mood, cut from the character sheet by art-src/cut.js.
+  const POSES = ['hero', 'cool', 'laugh', 'think', 'angry', 'tired', 'proud', 'idea', 'laptop', 'shocked', 'sleep'];
+  const POSE_ALIAS = { happy: 'laugh', sad: 'tired' };
+  function mascot(size = 48, pose = 'hero', cls = '') {
+    const p = POSES.includes(pose) ? pose : POSE_ALIAS[pose] || 'hero';
+    return `<img class="mascot ${cls}" src="${(window.NIMBUS_IMG && window.NIMBUS_IMG[p]) || `img/nimbus/${p}.webp`}" width="${size}" height="${size}" alt="" aria-hidden="true" draggable="false" decoding="async">`;
   }
 
   const navItem = (v, icon, label) =>
@@ -458,7 +453,7 @@
   function shell(main) {
     return `<div class="shell">
       <nav class="sidenav">
-        <div class="brand">${mascot(38)}<span>cloudlingo</span></div>
+        <div class="brand">${mascot(40, 'hero')}<span>cloudlingo</span></div>
         ${navItem('learn', '🏠', t('nav_learn'))}${navItem('practice', '🎯', t('nav_practice'))}${navItem('exam', '📝', t('nav_exam'))}${authState !== 'off' ? navItem('board', '🏆', t('nav_board')) : ''}${navItem('profile', '👤', t('nav_profile'))}
       </nav>
       <main class="main">${topbar()}${main}</main>
@@ -566,7 +561,7 @@
   function onboardView() {
     return `<div class="onboard">
       <div class="row ob-top">${authState === 'out' || authState === 'loading' ? `<div class="card ob-signin grow"><span>${t('studied_before')}</span><button class="signin-btn" data-act="signin">${t('signin')}</button></div>` : '<div class="grow"></div>'}${langSwitch()}</div>
-      <div class="hero">${mascot(96, 'happy', 'bounce')}<div class="speech">${t('nimbus_hi')}</div></div>
+      <div class="hero">${mascot(110, 'hero', 'bounce')}<div class="speech">${t('nimbus_hi')}</div></div>
       <div class="certlist">${COURSES.map(c => certOption(c, OB.cert === c.id, 'obcert')).join('')}</div>
       <h2 class="section-title" style="font-size:20px;margin-top:30px">${t('pick_goal')}</h2>
       <p class="section-sub">${t('pick_goal_sub')}</p>
@@ -673,15 +668,16 @@
     const seen = new Set(), blocked = giveaways(q);
     const H = text => hinted(text, seen, blocked);
     // One-time nudge until the learner has opened a hint.
+    const face = !L.checked ? 'think' : L.ok ? 'laugh' : 'shocked';
     const tip = () => !S.hintSeen && seen.size ? `<p class="hint-tip">${t('hint_tip')}</p>` : '';
     if (q.t === 'mc' && q.tf) {
       const title = H(q.q);
-      return `${kick(t('tf'))}<div class="qhead">${mascot(44)}<div class="qtitle">${title}</div></div>${tip()}
+      return `${kick(t('tf'))}<div class="qhead">${mascot(76, face)}<div class="qtitle">${title}</div></div>${tip()}
         <div class="tfgrid">${L.order.map((oi, k) => optBtn(q, oi, k, true)).join('')}</div>`;
     }
     if (q.t === 'mc' || q.t === 'multi') {
       const title = H(q.q);
-      return `${kick(q.t === 'multi' ? t('select_n', { n: q.a.length }) : t('choose_best'))}<div class="qhead">${mascot(44)}<div class="qtitle">${title}</div></div>${tip()}
+      return `${kick(q.t === 'multi' ? t('select_n', { n: q.a.length }) : t('choose_best'))}<div class="qhead">${mascot(76, face)}<div class="qtitle">${title}</div></div>${tip()}
         <div class="opts">${L.order.map((oi, k) => optBtn(q, oi, k)).join('')}</div>`;
     }
     if (q.t === 'fill') {
@@ -904,7 +900,7 @@
     const title = e.unitCompleted ? t('unit_complete') : e.perfect ? t('perfect_lesson') : e.mode === 'lesson' || e.mode === 'replay' ? t('lesson_complete') : t('practice_complete');
     const sub = e.unitCompleted ? t('unit_complete_sub', { unit: esc(e.unitCompleted) }) : e.perfect ? t('perfect_sub') : t('missed_saved');
     return `<div class="center-screen">
-      ${mascot(130, 'happy', 'bounce')}
+      ${mascot(150, e.perfect ? 'cool' : e.unitCompleted || e.extended ? 'proud' : 'laugh', 'bounce')}
       <h1>${title}</h1><p class="muted">${sub}</p>
       <div class="statrow">
         <div class="stat gold"><div class="lbl">${t('xp_earned_lbl')}</div><div class="val">⚡ ${e.xp}</div></div>
@@ -973,7 +969,7 @@
         <button class="btn block ${mode === 'full' ? 'ghost' : ''}" data-act="startexam" data-mode="${mode}">${t('start_exam')}</button>
       </div>`;
     };
-    return shell(`<h1 class="section-title">${t('exam_title')}</h1>
+    return shell(`<div class="row pagehead">${mascot(72, 'laptop')}<h1 class="section-title" style="margin:0">${t('exam_title')}</h1></div>
       <p class="section-sub">${t('exam_sub')}</p>
       <div class="stack">
         ${card('quick', t('exam_quick'), t('exam_quick_note'))}
@@ -1051,7 +1047,7 @@
 
   function askSubmit() {
     const unanswered = E.ids.filter((_, i) => !isAnswered(i)).length;
-    modal(`${mascot(70)}<h2>${t('submit_q')}</h2>
+    modal(`${mascot(80, 'laptop')}<h2>${t('submit_q')}</h2>
       <p>${unanswered ? tn('unanswered', unanswered) : t('all_answered')}</p>
       <div class="stack"><button class="btn good" data-act="confirmsubmit">${t('submit')}</button><button class="btn ghost" data-act="closemodal">${t('keep_working')}</button></div>`);
   }
@@ -1097,7 +1093,7 @@
     const list = R.items.filter(x => R.showAll || !x.ok);
     return `<div class="exambody" style="padding-bottom:140px">
       <div style="text-align:center;margin:20px 0 26px">
-        ${mascot(110, R.pass ? 'happy' : 'sad', R.pass ? 'bounce' : '')}
+        ${mascot(130, R.pass ? 'cool' : 'tired', R.pass ? 'bounce' : '')}
         <h1 style="font-size:30px;font-weight:900;margin:12px 0 6px">${R.pass ? t('passed') : t('not_yet')}</h1>
         <p class="muted">${t('exam_result_sub', { code: c.code, p: R.passAt })}</p>
       </div>
@@ -1174,7 +1170,7 @@
   function boardView() {
     const head = `<h1 class="section-title">🏆 ${t('board_title')}</h1><p class="section-sub">${t('board_sub')}</p>`;
     if (authState !== 'in' || !account) {
-      return shell(`${head}<div class="card" style="text-align:center">${mascot(80)}<p style="margin:10px 0 16px">${t('board_signin')}</p>
+      return shell(`${head}<div class="card" style="text-align:center">${mascot(100, 'idea', 'center')}<p style="margin:10px 0 16px">${t('board_signin')}</p>
         ${authState === 'out' || authState === 'loading' ? `<button class="btn" data-act="signin">${t('signin')}</button>` : ''}</div>`);
     }
     const left = 6 - ((new Date().getDay() + 6) % 7);
@@ -1189,7 +1185,7 @@
     }
     const body = BOARD.state === 'error' ? `<div class="card" style="text-align:center"><p class="muted" style="margin-bottom:12px">${t('board_error')}</p><button class="btn ghost" data-act="loadboard">${t('board_retry')}</button></div>`
       : BOARD.state === 'loading' && !rows.length ? `<div class="card muted">${t('board_loading')}</div>`
-      : !rows.length ? `<div class="card muted">${t('board_empty')}</div>`
+      : !rows.length ? `<div class="card muted" style="text-align:center">${mascot(90, 'sleep', 'center')}<p style="margin-top:8px">${t('board_empty')}</p></div>`
       : `<div class="card board">${rows.map((r, i) => {
           const me = r.uid === account.uid, medal = ['🥇', '🥈', '🥉'][i] || i + 1;
           const initial = esc(((r.name || '?').trim()[0] || '?').toUpperCase());
@@ -1215,7 +1211,7 @@
     const vals = days.map(d => S.xpByDay[d] || 0);
     const max = Math.max(S.dailyGoal, ...vals);
     const domains = c.units.map(u => ({ u, acc: accuracyOf(u.questions) })).filter(x => x.acc.seen);
-    return shell(`${accountCard()}<div class="row" style="margin:6px 0 20px">${mascot(76)}<div><h1 class="section-title" style="margin:0">${t('your_progress')}</h1><p class="muted">${t('studying', { code: c.code, name: c.name })}</p></div></div>
+    return shell(`${accountCard()}<div class="row" style="margin:6px 0 20px">${mascot(84, 'proud')}<div><h1 class="section-title" style="margin:0">${t('your_progress')}</h1><p class="muted">${t('studying', { code: c.code, name: c.name })}</p></div></div>
       <div class="tiles">
         <div class="tile-stat"><span class="i">🔥</span><div><div class="v">${streakNow()}</div><div class="l">${t('day_streak')}</div></div></div>
         <div class="tile-stat"><span class="i">⚡</span><div><div class="v">${S.xp}</div><div class="l">${t('total_xp')}</div></div></div>
@@ -1273,18 +1269,18 @@
     eflag: () => { E.flags = E.flags.includes(E.cur) ? E.flags.filter(x => x !== E.cur) : E.flags.concat(E.cur); render(); },
     esubmit: () => askSubmit(),
     confirmsubmit: () => submitExam(),
-    quitexam: () => modal(`${mascot(70, 'sad')}<h2>${t('exit_exam_q')}</h2><p>${t('exit_exam_sub')}</p>
+    quitexam: () => modal(`${mascot(80, 'tired')}<h2>${t('exit_exam_q')}</h2><p>${t('exit_exam_sub')}</p>
       <div class="stack"><button class="btn" data-act="closemodal">${t('keep_going')}</button><button class="btn ghost" style="color:var(--bad)" data-act="confirmquitexam">${t('exit_exam')}</button></div>`),
     confirmquitexam: () => { clearInterval(examTimer); E = null; closeModal(); go('exam'); },
     toggleall: () => { R.showAll = !R.showAll; render(); },
     setgoal: d => { S.dailyGoal = +d.g; addXP(0); render(); },
     settheme: d => { S.theme = d.t; save(); applyTheme(); render(); },
-    reset: () => modal(`${mascot(70, 'sad')}<h2>${t('reset_q')}</h2><p>${syncRef && account ? t('reset_sub_account') : t('reset_sub_device')}</p>
+    reset: () => modal(`${mascot(80, 'shocked')}<h2>${t('reset_q')}</h2><p>${syncRef && account ? t('reset_sub_account') : t('reset_sub_device')}</p>
       <div class="stack"><button class="btn bad" data-act="confirmreset">${t('reset_btn')}</button><button class="btn ghost" data-act="closemodal">${t('cancel')}</button></div>`),
     confirmreset: () => { try { localStorage.removeItem(STORE); } catch { /* ignore */ } S = DEFAULTS(); save(); OB = { cert: null, goal: 20 }; applyTheme(); closeModal(); go('onboard'); },
     signin: () => signInSheet(),
     signinwith: d => signIn(d.p),
-    signout: () => modal(`${mascot(70)}<h2>${t('signout_q')}</h2><p>${t('signout_sub')}</p>
+    signout: () => modal(`${mascot(80, 'sleep')}<h2>${t('signout_q')}</h2><p>${t('signout_sub')}</p>
       <div class="stack"><button class="btn" data-act="confirmsignout">${t('signout')}</button><button class="btn ghost" data-act="closemodal">${t('cancel')}</button></div>`),
     confirmsignout: () => { closeModal(); if (fb) fb.au.signOut(fb.auth); },
     keepcloud: () => { const c = choice; choice = null; closeModal(); adopt(c.remote); linkSync(c.ref, c.uid, false); },
