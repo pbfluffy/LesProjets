@@ -30,11 +30,14 @@ A claude.ai Artifact copy also exists at https://claude.ai/artifact/SsWb1a26DY5i
 - **Question types**: multiple choice, select-N, true/false, fill-in-the-blank, and tap-to-match pairs. Every answer comes with an explanation.
 - **XP, daily goal, and streak**: hit your daily XP goal to extend your streak.
 - **Practice**: "Fix mistakes" brings back questions you missed (and keeps them until you get them right), plus quick practice and practice by topic.
-- **Mock exam**: a timed set of 20 questions across all domains, with a question palette, flags, a pass/fail result, a domain breakdown, and a review of your misses.
+- **Mock exam**: a quick 20-question exam, or a full-length one with 65 questions and the real time limit (90 minutes for CLF/AIF, 130 for the associate exams). Both have a question palette, flags, a pass/fail result, a domain breakdown, and a review of your misses.
+- **Weekly leaderboard**: signed-in learners are ranked by XP earned since Monday (first name only). You can hide yourself. Scores are stored in `cloudlingoWeeks/{monday}/scores/{uid}`.
+- **Streak freezes**: earn one for every 7 days in a row (hold up to 2). Each one covers a missed day automatically.
+- **English and Thai**: the interface follows the site's shared `lang` setting, with a switch on Profile and the first screen (`js/i18n.js`). Questions stay in English, like the real exams.
 - **Profile**: weekly XP chart, accuracy per domain, daily goal, and theme (auto/light/dark).
 
-Progress is always saved in the browser. On the website, learners can **sign in with Google** (the same Firebase sign-in as the other apps on pumbafluffycorgi.com) and their progress is also saved to `userCloudlingo/{uid}` in Firestore, so it follows them across devices. The newest copy wins. If both the account and the device already have progress at the first sign-in, the learner picks which one to keep. The rule for that collection lives in `LesProjets/firestore.rules` and has to be deployed with `firebase deploy --only firestore:rules`. In the claude.ai Artifact copy, signed-in viewers who can save data sync through the artifact's own storage instead.
+Progress is always saved in the browser. On the website, learners can **sign in with Google, LINE, or Microsoft**. Cloudlingo uses the same Firebase project as the other apps on pumbafluffycorgi.com but keeps its own sign-in session (a named Firebase app), so signing in or out here doesn't affect the other apps. Their progress is also saved to `userCloudlingo/{uid}` in Firestore, so it follows them across devices. The newest copy wins. If both the account and the device already have progress at the first sign-in, the learner picks which one to keep. The rule for that collection lives in `LesProjets/firestore.rules` and has to be deployed with `firebase deploy --only firestore:rules`. In the claude.ai Artifact copy, signed-in viewers who can save data sync through the artifact's own storage instead.
 
 ## Adding questions
 
-Everything lives in `js/data.js`. Add questions to any unit's `questions` array. The supported formats are documented at the top of that file.
+The original questions are in `js/data.js`, and the extra banks are in `js/bank/<cert>.js`. Add new questions with `addQuestions('<unit id>', [...])` at the end of a bank file. Always append, never insert or reorder: question ids come from their position, and learners' saved stats use those ids. The supported formats are documented at the top of `js/data.js`.

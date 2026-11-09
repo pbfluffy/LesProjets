@@ -11,7 +11,6 @@ window.I18N = {
     signin_pitch: 'Sign in to keep your progress safe and continue on any device.',
     continue_google: 'Continue with Google', continue_line: 'Continue with LINE', continue_microsoft: 'Continue with Microsoft',
     signin_sheet: 'Sign in to Cloudlingo',
-    signin_shared: 'This also signs you in to the other apps on pumbafluffycorgi.com.',
     account_exists: 'This email already signs in another way. Use the button you signed up with (for example Google).',
     provider_off: "This sign-in option isn't switched on yet. Please use another one.",
     line_failed: "LINE sign-in didn't work. Please try again.",
@@ -111,7 +110,7 @@ window.I18N = {
     sessions_one: '{n} session', sessions_other: '{n} sessions',
     signin_cant_load: "Sign-in can't load", signin_cant_load_sub: 'Check your connection and try again. Your progress is still saved on this device.',
     signin_failed: "Sign-in didn't work", signin_failed_sub: 'Please try again. Your progress is still saved on this device.', ok: 'OK',
-    signout_q: 'Sign out?', signout_sub: 'Your progress stays on this device and in your account. This also signs you out of the other apps on this site.'
+    signout_q: 'Sign out?', signout_sub: 'Your progress stays on this device and in your account.'
   },
   th: {
     nav_learn: 'เรียน', nav_practice: 'ฝึกฝน', nav_exam: 'ข้อสอบจำลอง', nav_board: 'อันดับ', nav_profile: 'โปรไฟล์',
@@ -122,7 +121,6 @@ window.I18N = {
     signin_pitch: 'เข้าสู่ระบบเพื่อเก็บความคืบหน้าไว้ และเรียนต่อได้จากทุกอุปกรณ์',
     continue_google: 'ดำเนินการต่อด้วย Google', continue_line: 'ดำเนินการต่อด้วย LINE', continue_microsoft: 'ดำเนินการต่อด้วย Microsoft',
     signin_sheet: 'เข้าสู่ระบบ Cloudlingo',
-    signin_shared: 'จะเข้าสู่ระบบแอปอื่น ๆ บน pumbafluffycorgi.com ให้ด้วย',
     account_exists: 'อีเมลนี้เคยเข้าสู่ระบบด้วยวิธีอื่นแล้ว กรุณาใช้ปุ่มเดิมที่เคยสมัครไว้ (เช่น Google)',
     provider_off: 'ยังไม่ได้เปิดใช้วิธีเข้าสู่ระบบนี้ กรุณาเลือกวิธีอื่น',
     line_failed: 'เข้าสู่ระบบด้วย LINE ไม่สำเร็จ กรุณาลองใหม่',
@@ -211,7 +209,7 @@ window.I18N = {
     sessions_other: '{n} รอบ',
     signin_cant_load: 'โหลดระบบเข้าสู่ระบบไม่ได้', signin_cant_load_sub: 'ตรวจสอบการเชื่อมต่อแล้วลองใหม่ ความคืบหน้ายังบันทึกอยู่ในอุปกรณ์นี้',
     signin_failed: 'เข้าสู่ระบบไม่สำเร็จ', signin_failed_sub: 'กรุณาลองใหม่ ความคืบหน้ายังบันทึกอยู่ในอุปกรณ์นี้', ok: 'ตกลง',
-    signout_q: 'ออกจากระบบ?', signout_sub: 'ความคืบหน้ายังอยู่ทั้งในอุปกรณ์นี้และในบัญชี และจะออกจากระบบแอปอื่น ๆ บนเว็บนี้ด้วย'
+    signout_q: 'ออกจากระบบ?', signout_sub: 'ความคืบหน้ายังอยู่ทั้งในอุปกรณ์นี้และในบัญชีของคุณ'
   }
 };
 

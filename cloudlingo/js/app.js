@@ -131,6 +131,7 @@
   // ---------- Account (website) ----------
   const FIREBASE = {
     version: '12.13.0',
+    appName: 'cloudlingo',
     config: {
       apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
       authDomain: 'auth.pumbafluffycorgi.com',
@@ -152,7 +153,10 @@
       const base = `https://www.gstatic.com/firebasejs/${FIREBASE.version}/`;
       fbLoading = Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
       const [fa, au, fs] = await fbLoading;
-      const fapp = fa.getApps().length ? fa.getApp() : fa.initializeApp(FIREBASE.config);
+      // A named Firebase app keeps Cloudlingo's sign-in separate from the other
+      // apps on the site: Firebase stores each app's session under its own name.
+      // Same project, so an account still reaches the same progress.
+      const fapp = fa.getApps().find(a => a.name === FIREBASE.appName) || fa.initializeApp(FIREBASE.config, FIREBASE.appName);
       fb = { au, fs, auth: au.getAuth(fapp), db: fs.getFirestore(fapp) };
     } catch { authState = 'unavailable'; refresh(); return; }
     fb.au.getRedirectResult(fb.auth).catch(e => {
@@ -237,8 +241,7 @@
         <button class="btn prov google" data-act="signinwith" data-p="google"><span class="pico">G</span>${t('continue_google')}</button>
         <button class="btn prov line" data-act="signinwith" data-p="line"><span class="pico">LINE</span>${t('continue_line')}</button>
         ${MICROSOFT_ON ? `<button class="btn prov ms" data-act="signinwith" data-p="microsoft"><span class="pico">⊞</span>${t('continue_microsoft')}</button>` : ''}
-      </div>
-      <p class="muted small" style="margin:14px 0 0">${t('signin_shared')}</p>`);
+      </div>`);
   }
 
   async function signIn(which = 'google') {
