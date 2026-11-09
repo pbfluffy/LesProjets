@@ -418,3 +418,8 @@ h1, h2, h3, p { margin: 0; }
 
 /* Default avatar: Nimbus's face in a circle */
 .avatar.nimbus { background: #eaf5ff; object-fit: cover; object-position: 50% 22%; border: 2px solid var(--border); box-sizing: border-box; }
+
+/* ? tour button */
+.chip.help { width: 30px; height: 30px; padding: 0; justify-content: center; border-radius: 50%; border: 2px solid var(--border); color: var(--muted); font-size: 15px; }
+.chip.help:hover { color: var(--primary); border-color: var(--primary); }
+@media (max-width: 360px) { .chip.help { width: 26px; height: 26px; font-size: 13px; } }
