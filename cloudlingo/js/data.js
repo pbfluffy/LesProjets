@@ -778,3 +778,11 @@ window.COURSES = [
     ]
   }
 ];
+
+// Extra question banks (js/bank/*.js) append to a unit with addQuestions.
+// Question ids are "<unit>-<index>", so always append, never insert: that keeps
+// learners' saved stats and mistakes pointing at the right questions.
+window.addQuestions = (unitId, qs) => {
+  for (const c of window.COURSES) for (const u of c.units) if (u.id === unitId) { u.questions.push(...qs); return; }
+  throw new Error('addQuestions: unknown unit ' + unitId);
+};
