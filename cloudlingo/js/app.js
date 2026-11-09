@@ -228,7 +228,9 @@
     modal(`${mascot(70, mood)}<h2>${title}</h2><p>${body}</p><button class="btn block" data-act="closemodal">${t('ok')}</button>`);
 
   // The sign-in sheet: Google, LINE, and (once it's switched on in Firebase) Microsoft.
-  const MICROSOFT_ON = false; // set to true after the Microsoft provider is enabled in Firebase Authentication
+  // Firebase Authentication → Microsoft, backed by the Entra app "pumbafluffycorgi.com sign-in".
+  // Its client secret expires: renew it in Azure and update it in Firebase, or this button stops working.
+  const MICROSOFT_ON = true;
   function signInSheet() {
     modal(`${mascot(70)}<h2>${t('signin_sheet')}</h2><p>${t('signin_pitch')}</p>
       <div class="stack">
