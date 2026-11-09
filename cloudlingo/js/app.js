@@ -159,7 +159,7 @@
       const fapp = fa.getApps().find(a => a.name === FIREBASE.appName) || fa.initializeApp(FIREBASE.config, FIREBASE.appName);
       fb = { au, fs, auth: au.getAuth(fapp), db: fs.getFirestore(fapp) };
     } catch { authState = 'unavailable'; refresh(); return; }
-    fb.au.getRedirectResult(fb.auth).catch(e => {
+    fb.au.getRedirectResult(fb.auth).then(res => { if (res && res.providerId === 'microsoft.com') fetchMicrosoftPhoto(res); }).catch(e => {
       if (e && e.code === 'auth/account-exists-with-different-credential') infoModal(t('signin_failed'), t('account_exists'));
     });
     finishLine().then(returned => { if (!returned) collectLineHandoff(); });
@@ -167,11 +167,14 @@
       if (unwatch) { unwatch(); unwatch = null; }
       syncRef = null; choice = null;
       if (!user) {
+        if (lastUid) forgetPhoto(lastUid);
+        lastUid = null;
         account = null; authState = 'out';
         try { localStorage.removeItem(UID_KEY); } catch { /* ignore */ }
         refresh(); return;
       }
-      account = { uid: user.uid, name: user.displayName || user.email || t('signed_in'), first: (user.displayName || '').trim().split(/\s+/)[0] || '', email: user.email || '', photo: user.photoURL || '', synced: false };
+      account = { uid: user.uid, name: user.displayName || user.email || t('signed_in'), first: (user.displayName || '').trim().split(/\s+/)[0] || '', email: user.email || '', photo: user.photoURL || savedPhoto(user.uid), synced: false };
+      lastUid = user.uid;
       authState = 'in';
       refresh();
       fb.fs.setDoc(fb.fs.doc(fb.db, 'userProfiles', user.uid), {
@@ -244,6 +247,29 @@
       </div>`);
   }
 
+  // Microsoft doesn't give Firebase a photo URL. Right after a Microsoft sign-in
+  // we get a short-lived Graph access token, download the account's photo once,
+  // shrink it to 96px, and keep it on this device for that account.
+  const PHOTO_KEY = uid => 'cloudlingo:photo:' + uid;
+  let lastUid = null;
+  function savedPhoto(uid) { try { return localStorage.getItem(PHOTO_KEY(uid)) || ''; } catch { return ''; } }
+  function forgetPhoto(uid) { try { localStorage.removeItem(PHOTO_KEY(uid)); } catch { /* ignore */ } }
+  async function fetchMicrosoftPhoto(result) {
+    try {
+      const cred = fb.au.OAuthProvider.credentialFromResult(result);
+      if (!cred || !cred.accessToken) return;
+      const res = await fetch('https://graph.microsoft.com/v1.0/me/photo/$value', { headers: { Authorization: 'Bearer ' + cred.accessToken } });
+      if (!res.ok) return; // no photo on this account: the Nimbus avatar stays
+      const bmp = await createImageBitmap(await res.blob());
+      const n = 96, c = document.createElement('canvas'); c.width = c.height = n;
+      const side = Math.min(bmp.width, bmp.height);
+      c.getContext('2d').drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, n, n);
+      const url = c.toDataURL('image/jpeg', 0.85);
+      try { localStorage.setItem(PHOTO_KEY(result.user.uid), url); } catch { /* storage full: show it this session only */ }
+      if (account && account.uid === result.user.uid) { account.photo = url; refresh(); }
+    } catch { /* the photo is optional */ }
+  }
+
   async function signIn(which = 'google') {
     if (!fb && fbLoading) { try { await fbLoading; } catch { /* handled below */ } }
     if (!fb) { infoModal(t('signin_cant_load'), t('signin_cant_load_sub')); return; }
@@ -252,9 +278,10 @@
     if (which === 'microsoft') {
       provider = new fb.au.OAuthProvider('microsoft.com');
       provider.setCustomParameters({ prompt: 'select_account' });
+      provider.addScope('User.Read'); // lets us read the account's profile photo once, right after sign-in
     } else provider = new fb.au.GoogleAuthProvider();
     closeModal();
-    fb.au.signInWithPopup(fb.auth, provider).catch(e => {
+    fb.au.signInWithPopup(fb.auth, provider).then(res => { if (which === 'microsoft') fetchMicrosoftPhoto(res); }).catch(e => {
       const code = e && e.code;
       if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-environment') fb.au.signInWithRedirect(fb.auth, provider);
       else if (code === 'auth/account-exists-with-different-credential') infoModal(t('signin_failed'), t('account_exists'));
@@ -472,10 +499,9 @@
   }
 
   function avatar(size) {
-    const initial = esc(((account.name || '?').trim()[0] || '?').toUpperCase());
     return account.photo
       ? `<img class="avatar" src="${esc(account.photo)}" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px" referrerpolicy="no-referrer">`
-      : `<span class="avatar" style="width:${size}px;height:${size}px">${initial}</span>`;
+      : `<img class="avatar nimbus" src="${(window.NIMBUS_IMG && window.NIMBUS_IMG.hero) || 'img/nimbus/hero.webp'}" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px">`;
   }
   function accountChip() {
     if (authState === 'out' || authState === 'loading') return `<button class="signin-btn" data-act="signin" title="${t('signin_title')}">${t('signin')}</button>`;

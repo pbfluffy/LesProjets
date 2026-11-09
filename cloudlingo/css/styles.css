@@ -415,3 +415,6 @@ h1, h2, h3, p { margin: 0; }
 /* Install card */
 .installcard { margin-bottom: 14px; border-color: var(--primary); }
 .installcard .appicon { width: 52px; height: 52px; border-radius: 12px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,.12); }
+
+/* Default avatar: Nimbus's face in a circle */
+.avatar.nimbus { background: #eaf5ff; object-fit: cover; object-position: 50% 22%; border: 2px solid var(--border); box-sizing: border-box; }
