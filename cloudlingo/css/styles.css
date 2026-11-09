@@ -411,3 +411,7 @@ h1, h2, h3, p { margin: 0; }
 :root[data-theme="dark"] .mascot { filter: drop-shadow(0 0 1px rgba(255,255,255,.35)); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mascot { filter: drop-shadow(0 0 1px rgba(255,255,255,.35)); } }
 @media (max-width: 640px) { .qhead .mascot { width: 56px; height: 56px; } }
+
+/* Install card */
+.installcard { margin-bottom: 14px; border-color: var(--primary); }
+.installcard .appicon { width: 52px; height: 52px; border-radius: 12px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,.12); }

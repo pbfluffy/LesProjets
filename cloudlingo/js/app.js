@@ -578,7 +578,7 @@
       <p class="muted small">${modeName(s.mode)}${s.unit ? ` · ${esc(UNITS[s.unit].title)}` : ''} · ${t('resume_done', { d: s.done, t: s.total })}</p></div></div>
       <div class="row" style="margin-top:14px"><button class="btn block grow" data-act="resume">${t('continue')}</button><button class="btn ghost" data-act="discard">${t('discard')}</button></div></div>` : '';
     const firstOpen = c.units.findIndex(u => unitDone(u) < LESSONS_PER_UNIT);
-    return shell(`${freezeNotice()}<div class="card mobile-only" style="margin-bottom:4px">${goalInner()}</div>${resume}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
+    return shell(`${freezeNotice()}${installCard(true)}<div class="card mobile-only" style="margin-bottom:4px">${goalInner()}</div>${resume}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
       <div class="card" style="margin-top:34px;text-align:center"><h3>${t('ready_title')}</h3><p class="muted" style="margin-bottom:14px">${t('ready_sub', { code: c.code })}</p><button class="btn ghost" data-act="nav" data-v="exam">${t('try_exam')}</button></div>`);
   }
 
@@ -1198,6 +1198,30 @@
         <div class="seg seg2"><button class="${hidden ? '' : 'on'}" data-act="boardvis" data-on="1">${t('board_on')}</button><button class="${hidden ? 'on' : ''}" data-act="boardvis" data-on="0">${t('board_off')}</button></div></div></div>`);
   }
 
+  // ---------- Install as an app (PWA) ----------
+  // Android / desktop Chrome and Edge fire beforeinstallprompt, so we show our own
+  // Install button. iPhone and iPad have no prompt: we explain Share → Add to Home Screen.
+  const pwaReady = !!document.querySelector('link[rel="manifest"]'); // not in the single-file claude.ai copy
+  let installPrompt = null;
+  const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; refresh(); });
+  window.addEventListener('appinstalled', () => { installPrompt = null; refresh(); });
+  if (pwaReady && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* offline support is optional */ }));
+  }
+  function installCard(dismissable) {
+    if (!pwaReady || isStandalone() || (dismissable && S.installHidden)) return '';
+    const later = dismissable ? `<button class="linkbtn" data-act="installlater">${t('install_later')}</button>` : '';
+    if (installPrompt) return `<div class="card installcard"><div class="row"><img src="img/icons/icon-192.png" alt="" class="appicon"><div class="grow">
+      <h3 style="margin-bottom:2px">${t('install_title')}</h3><p class="muted small">${t('install_sub')}</p></div></div>
+      <div class="row" style="margin-top:12px"><button class="btn grow" data-act="install">${t('install_btn')}</button>${later}</div></div>`;
+    if (isIOS()) return `<div class="card installcard"><div class="row"><img src="img/icons/icon-192.png" alt="" class="appicon"><div class="grow">
+      <h3 style="margin-bottom:2px">${t('install_title')}</h3><p class="muted small">${t('install_ios')}</p></div></div>
+      ${later ? `<div style="text-align:right;margin-top:6px">${later}</div>` : ''}</div>`;
+    return '';
+  }
+
   function langSwitch() {
     return `<div class="seg seg2 langseg" role="group" aria-label="${t('language')}"><button class="${lang === 'en' ? 'on' : ''}" data-act="setlang" data-l="en">EN</button><button class="${lang === 'th' ? 'on' : ''}" data-act="setlang" data-l="th">ไทย</button></div>`;
   }
@@ -1229,7 +1253,7 @@
       <div class="card" style="margin-top:16px"><h3>${t('daily_goal')}</h3>
         <div class="seg">${GOALS.map(g => `<button class="${S.dailyGoal === g.xp ? 'on' : ''}" data-act="setgoal" data-g="${g.xp}">${t(g.key)}<small>${g.xp} XP</small></button>`).join('')}</div>
       </div>
-      <div class="card" style="margin-top:16px"><h3>${t('language')}</h3>${langSwitch()}</div>
+      ${installCard(false) ? `<div style="margin-top:16px">${installCard(false)}</div>` : ''}<div class="card" style="margin-top:16px"><h3>${t('language')}</h3>${langSwitch()}</div>
       <div class="card" style="margin-top:16px"><h3>${t('appearance')}</h3>
         <div class="seg" style="grid-template-columns:repeat(3,1fr)">${['auto', 'light', 'dark'].map(th => `<button class="${S.theme === th ? 'on' : ''}" data-act="settheme" data-t="${th}">${t('theme_' + th)}</button>`).join('')}</div>
       </div>
@@ -1242,6 +1266,8 @@
     loadboard: () => loadBoard(),
     boardvis: d => setBoardVisible(d.on === '1'),
     setlang: d => { setLang(d.l); render(); },
+    install: async () => { if (!installPrompt) return; const p = installPrompt; installPrompt = null; p.prompt(); try { await p.userChoice; } catch { /* ignore */ } render(); },
+    installlater: () => { S.installHidden = true; save(); render(); },
     dismissfreeze: () => { S.freezeNotice = null; save(); render(); },
     pickcert: () => modal(`<h2>${t('choose_cert')}</h2><p>${t('choose_cert_sub')}</p><div class="certlist">${COURSES.map(c => certOption(c, c.id === S.cert, 'setcert')).join('')}</div>`, 'wide'),
     setcert: d => { S.cert = d.c; save(); closeModal(); go(view === 'profile' ? 'profile' : 'learn'); },
