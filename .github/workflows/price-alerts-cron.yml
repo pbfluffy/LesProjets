@@ -55,3 +55,19 @@ jobs:
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           TEST_PUSH: ${{ inputs.test_push && '1' || '' }}
         run: node scripts/check-alerts.mjs
+
+      # Cloudlingo's evening study reminders ride on this reliable hourly job.
+      # Isolated: it runs even if the price check failed, and its own failure
+      # never fails this job. Idles until the FIREBASE_SERVICE_ACCOUNT secret exists.
+      - name: Cloudlingo daily reminders
+        if: ${{ always() && !inputs.test_push }}
+        continue-on-error: true
+        working-directory: cloudlingo/reminders
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VITE_PUSH_VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then echo "FIREBASE_SERVICE_ACCOUNT not set: skipping Cloudlingo reminders."; exit 0; fi
+          npm install --no-audit --no-fund
+          node send.mjs

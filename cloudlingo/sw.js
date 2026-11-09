@@ -62,3 +62,23 @@ self.addEventListener('fetch', event => {
     })());
   }
 });
+
+// Daily reminders (sent by cloudlingo/reminders/send.mjs).
+self.addEventListener('push', event => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch { d = { body: event.data && event.data.text() }; }
+  event.waitUntil(self.registration.showNotification(d.title || 'Cloudlingo', {
+    body: d.body || '', icon: 'img/icons/icon-192.png', badge: 'img/icons/icon-192.png',
+    tag: 'cloudlingo-reminder', renotify: false, data: { url: d.url || './' }
+  }));
+});
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = new URL((event.notification.data && event.notification.data.url) || './', self.registration.scope).href;
+  event.waitUntil((async () => {
+    const open = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const tab = open.find(c => c.url.startsWith(self.registration.scope));
+    if (tab) { await tab.focus(); return; }
+    await self.clients.openWindow(url);
+  })());
+});

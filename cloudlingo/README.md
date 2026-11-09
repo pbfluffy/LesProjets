@@ -33,6 +33,14 @@ A claude.ai Artifact copy also exists at https://claude.ai/artifact/SsWb1a26DY5i
 - **Mock exam**: a quick 20-question exam, or a full-length one with 65 questions and the real time limit (90 minutes for CLF/AIF, 130 for the associate exams). Both have a question palette, flags, a pass/fail result, a domain breakdown, and a review of your misses.
 - **Weekly leaderboard**: signed-in learners are ranked by XP earned since Monday (first name only). You can hide yourself. Scores are stored in `cloudlingoWeeks/{monday}/scores/{uid}`.
 - **Streak freezes**: earn one for every 7 days in a row (hold up to 2). Each one covers a missed day automatically.
+- **Spaced review**: every answered question moves through 5 boxes (due again after 1, 3, 7, 21 or 60 days); due questions show on Learn and Practice.
+- **Exam readiness**: a per-certification % from accuracy in each domain, weighted by the domain's share of the real exam, with a "focus next on" tip.
+- **Achievements**: 12 badges (first lesson, perfect lesson, streaks, XP, unit master, mock passed, full exam passed, explorer…).
+- **Share card**: a 1080×1080 image of your streak, XP and readiness, shared through the phone's share sheet (or downloaded).
+- **Sounds & vibration**: soft, short tones for right/wrong answers and lesson end, and one tiny vibration on wrong answers only. Off switch in Profile.
+- **Report a problem**: 🚩 on every answer and in exam reviews; reports land in Firestore `cloudlingoReports` and in the admin page's ☁️ Cloudlingo tab, next to the most-missed questions.
+- **Daily reminder**: optional evening push notification, only on days you haven't hit your goal. Settings live in `cloudlingoPush/{uid}`; `reminders/send.mjs` sends them from the site's hourly GitHub Actions job (needs the `FIREBASE_SERVICE_ACCOUNT` secret).
+- **Thai explanations and hints**: `js/th/*.js` (loaded only when Thai is selected).
 - **English and Thai**: the interface follows the site's shared `lang` setting, with a switch on Profile and the first screen (`js/i18n.js`). Questions stay in English, like the real exams.
 - **Profile**: weekly XP chart, accuracy per domain, daily goal, and theme (auto/light/dark).
 

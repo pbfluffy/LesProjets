@@ -423,3 +423,26 @@ h1, h2, h3, p { margin: 0; }
 .chip.help { width: 30px; height: 30px; padding: 0; justify-content: center; border-radius: 50%; border: 2px solid var(--border); color: var(--muted); font-size: 15px; }
 .chip.help:hover { color: var(--primary); border-color: var(--primary); }
 @media (max-width: 360px) { .chip.help { width: 26px; height: 26px; font-size: 13px; } }
+
+/* Readiness, review, achievements */
+.readiness .rpct { font-weight: 900; font-size: 20px; color: var(--muted); }
+.readiness .rpct.close { color: var(--primary); } .readiness .rpct.ready { color: var(--good); }
+.duecard { margin-bottom: 14px; }
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; margin-top: 12px; }
+.badge-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px; border-radius: 14px; border: 2px solid var(--border); text-align: center; opacity: .45; filter: grayscale(1); }
+.badge-item.on { opacity: 1; filter: none; border-color: var(--gold); background: color-mix(in srgb, var(--gold) 10%, transparent); }
+.badge-item .bi { font-size: 28px; } .badge-item .bn { font-size: 12px; font-weight: 800; line-height: 1.2; }
+.stat.badge-new { border-color: var(--gold); } .stat.badge-new .lbl { background: var(--gold); } .stat.badge-new .val { color: var(--ink); font-size: 17px; }
+
+/* Report a problem */
+.reportbtn { margin-top: 8px; padding: 4px 0; font-size: 13px; text-transform: none; letter-spacing: 0; color: var(--muted); }
+.reportbtn.done { display: inline-block; font-weight: 800; }
+.reasons { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.reason { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 2px solid var(--border); border-radius: 12px; font-weight: 700; cursor: pointer; }
+.reason:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
+.reason input { accent-color: var(--primary); width: 18px; height: 18px; }
+#report-note { width: 100%; box-sizing: border-box; border: 2px solid var(--border); border-radius: 12px; padding: 10px 12px; font: inherit; background: var(--surface); color: var(--ink); resize: vertical; }
+
+/* Daily reminder */
+.remind-time { display: flex; align-items: center; gap: 8px; }
+.remind-time select { font: inherit; font-weight: 800; padding: 6px 10px; border-radius: 10px; border: 2px solid var(--border); background: var(--surface); color: var(--ink); }
