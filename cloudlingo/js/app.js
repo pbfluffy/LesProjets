@@ -475,7 +475,7 @@
   }
 
   const navItem = (v, icon, label) =>
-    `<button class="navitem ${view === v ? 'active' : ''}" data-act="nav" data-v="${v}" aria-label="${label}"><span class="ico">${icon}</span><span class="lbl">${label}</span></button>`;
+    `<button class="navitem ${view === v ? 'active' : ''}" data-act="nav" data-v="${v}" data-tour="nav-${v}" aria-label="${label}"><span class="ico">${icon}</span><span class="lbl">${label}</span></button>`;
 
   function shell(main) {
     return `<div class="shell">
@@ -491,10 +491,10 @@
   function topbar() {
     const c = course(), st = streakNow();
     return `<div class="topbar">
-      <button class="chip certchip" data-act="pickcert" title="${t('switch_cert')}"><span class="code">${c.code}</span><span class="muted small">▾</span></button>
+      <button class="chip certchip" data-tour="cert" data-act="pickcert" title="${t('switch_cert')}"><span class="code">${c.code}</span><span class="muted small">▾</span></button>
       <div class="topstats">
-        <button class="chip flame ${st ? '' : 'cold'}" data-act="nav" data-v="profile" title="${t('day_streak')}">🔥 ${st}</button>
-        <button class="chip xp" data-act="nav" data-v="profile" title="${t('total_xp')}">⚡ ${S.xp}</button>${accountChip()}</div>
+        <button class="chip flame ${st ? '' : 'cold'}" data-tour="streak" data-act="nav" data-v="profile" title="${t('day_streak')}">🔥 ${st}</button>
+        <button class="chip xp" data-act="nav" data-v="profile" title="${t('total_xp')}">⚡ ${S.xp}</button>${pwaReady ? `<button class="chip help" data-tour="help" data-act="tour" title="${t('tour_btn')}" aria-label="${t('tour_btn')}">?</button>` : ''}${accountChip()}</div>
     </div>`;
   }
 
@@ -504,8 +504,8 @@
       : `<img class="avatar nimbus" src="${(window.NIMBUS_IMG && window.NIMBUS_IMG.hero) || 'img/nimbus/hero.webp'}" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px">`;
   }
   function accountChip() {
-    if (authState === 'out' || authState === 'loading') return `<button class="signin-btn" data-act="signin" title="${t('signin_title')}">${t('signin')}</button>`;
-    if (authState === 'in' && account) return `<button class="chip" data-act="nav" data-v="profile" title="${esc(account.name)}">${avatar(26)}</button>`;
+    if (authState === 'out' || authState === 'loading') return `<button class="signin-btn" data-tour="account" data-act="signin" title="${t('signin_title')}">${t('signin')}</button>`;
+    if (authState === 'in' && account) return `<button class="chip" data-tour="account" data-act="nav" data-v="profile" title="${esc(account.name)}">${avatar(26)}</button>`;
     return '';
   }
   function accountCard() {
@@ -538,7 +538,7 @@
 
   function rightCol() {
     const mist = mistakesFor(course().id).length;
-    return `<div class="card">${goalInner()}</div>
+    return `<div class="card" data-tour="goal-side">${goalInner()}</div>
       <div class="card">${streakCard()}</div>
       ${mist ? `<div class="card"><h3>🧠 ${t('to_review', { n: mist })}</h3><p class="muted small" style="margin-bottom:12px">${t('to_review_sub')}</p><button class="btn ghost block" data-act="mistakes">${t('fix_mistakes')}</button></div>` : ''}`;
   }
@@ -604,7 +604,7 @@
       <p class="muted small">${modeName(s.mode)}${s.unit ? ` · ${esc(UNITS[s.unit].title)}` : ''} · ${t('resume_done', { d: s.done, t: s.total })}</p></div></div>
       <div class="row" style="margin-top:14px"><button class="btn block grow" data-act="resume">${t('continue')}</button><button class="btn ghost" data-act="discard">${t('discard')}</button></div></div>` : '';
     const firstOpen = c.units.findIndex(u => unitDone(u) < LESSONS_PER_UNIT);
-    return shell(`${freezeNotice()}${installCard(true)}<div class="card mobile-only" style="margin-bottom:4px">${goalInner()}</div>${resume}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
+    return shell(`${freezeNotice()}${installCard(true)}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div>${resume}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
       <div class="card" style="margin-top:34px;text-align:center"><h3>${t('ready_title')}</h3><p class="muted" style="margin-bottom:14px">${t('ready_sub', { code: c.code })}</p><button class="btn ghost" data-act="nav" data-v="exam">${t('try_exam')}</button></div>`);
   }
 
@@ -620,7 +620,7 @@
     const trophyReady = done >= LESSONS_PER_UNIT;
     nodes.push(`<div style="transform:translateX(${offs[(LESSONS_PER_UNIT + i) % 4]}px)"><button class="node trophy ${trophyReady ? 'done' : 'locked'}" data-act="unitpractice" data-u="${u.id}" ${trophyReady ? '' : 'disabled'} aria-label="${esc(t('unit_review'))}: ${esc(u.title)}" title="${t('unit_review')}">🏆</button></div>`);
     return `<section class="unit">
-      <div class="unithead unitcolor-${i % 5}">
+      <div class="unithead unitcolor-${i % 5}"${i === 0 ? ' data-tour="path"' : ''}>
         <div><div class="kicker">${t('unit_n', { n: i + 1 })} · ${domainLabel(u.domain)}</div><h2>${u.title}</h2><div class="small" style="opacity:.85;margin-top:3px">${t('lessons_done', { d: done, t: LESSONS_PER_UNIT })}</div></div>
         <div class="uicon">${u.icon}</div>
       </div>
@@ -1233,7 +1233,8 @@
   const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; refresh(); });
   window.addEventListener('appinstalled', () => { installPrompt = null; refresh(); });
-  if (pwaReady && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  // Not on localhost: there every file is ?v=dev, so a cache-first worker would keep serving stale code.
+  if (pwaReady && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/^(localhost|127.0.0.1)$/.test(location.hostname)) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* offline support is optional */ }));
   }
   function installCard(dismissable) {
@@ -1246,6 +1247,54 @@
       <h3 style="margin-bottom:2px">${t('install_title')}</h3><p class="muted small">${t('install_ios')}</p></div></div>
       ${later ? `<div style="text-align:right;margin-top:6px">${later}</div>` : ''}</div>`;
     return '';
+  }
+
+  // ---------- Guided tour ----------
+  // The same spotlight tour the site's other apps use (/shared/tour.js): dims the
+  // page and explains one real element at a time (data-tour attributes). Runs
+  // once on the first visit to the Learn page; the ? button replays it.
+  const TOUR_KEY = 'cloudlingo:tour';
+  const TOUR_STEPS = [
+    { key: 'welcome' },
+    { key: 'path', target: 'path' },
+    { key: 'cert', target: 'cert' },
+    { key: 'goal', target: 'goal', alt: { key: 'goal', target: 'goal-side' } },
+    { key: 'streak', target: 'streak' },
+    { key: 'practice', target: 'nav-practice' },
+    { key: 'exam', target: 'nav-exam' },
+    { key: 'board', target: 'nav-board' },
+    { key: 'account', target: 'account' },
+    { key: 'help', target: 'help' },
+    { key: 'done' }
+  ];
+  let touring = false;
+  const tourSeen = () => { try { return localStorage.getItem(TOUR_KEY) === '1'; } catch { return true; } };
+  async function startTour() {
+    if (touring || !pwaReady) return;
+    touring = true;
+    try {
+      closeModal(); closeHint();
+      if (view !== 'learn') go('learn');
+      window.scrollTo(0, 0);
+      const mod = await import(new URL('../shared/tour.js', document.baseURI).href);
+      mod.startTour({
+        steps: TOUR_STEPS,
+        text: key => ({ title: t('tour_' + key + '_t'), body: t('tour_' + key + '_b') }),
+        labels: { title: t('tour_title'), next: t('tour_next'), back: t('tour_back'), skip: t('tour_skip'), start: t('tour_start') },
+        doneKey: TOUR_KEY,
+        accent: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#1f8ef1',
+        onFinish: () => { touring = false; window.scrollTo(0, 0); }
+      });
+    } catch { touring = false; /* the tour is optional (e.g. offline) */ }
+  }
+  // First visit: wait until the Learn page has settled (sign-in loaded, no dialog open).
+  function maybeAutoTour(tries = 6) {
+    if (tourSeen() || touring || !pwaReady) return;
+    setTimeout(() => {
+      if (tourSeen() || touring || view !== 'learn') return;
+      if (modalRoot.innerHTML || authState === 'loading') { if (tries > 1) maybeAutoTour(tries - 1); return; }
+      startTour();
+    }, 900);
   }
 
   function langSwitch() {
@@ -1292,6 +1341,7 @@
     loadboard: () => loadBoard(),
     boardvis: d => setBoardVisible(d.on === '1'),
     setlang: d => { setLang(d.l); render(); },
+    tour: () => startTour(),
     install: async () => { if (!installPrompt) return; const p = installPrompt; installPrompt = null; p.prompt(); try { await p.userChoice; } catch { /* ignore */ } render(); },
     installlater: () => { S.installHidden = true; save(); render(); },
     dismissfreeze: () => { S.freezeNotice = null; save(); render(); },
@@ -1340,7 +1390,7 @@
     keepdevice: () => { const c = choice; choice = null; closeModal(); linkSync(c.ref, c.uid, false); save(); },
     obcert: d => { OB.cert = d.c; render(); },
     obgoal: d => { OB.goal = +d.g; render(); },
-    obstart: () => { if (!OB.cert) return; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); go('learn'); }
+    obstart: () => { if (!OB.cert) return; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); go('learn'); maybeAutoTour(); }
   };
 
   function toggleMulti(oi) {
@@ -1397,4 +1447,5 @@
   applyTheme();
   render();
   initSync();
+  if (view === 'learn') maybeAutoTour();
 })();
