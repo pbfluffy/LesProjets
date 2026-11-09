@@ -102,6 +102,9 @@ for (const [name, [x0, y0, w, h]] of Object.entries(POSES)) {
   const m = 4; tx0 = Math.max(0, tx0 - m); ty0 = Math.max(0, ty0 - m); tx1 = Math.min(w - 1, tx1 + m); ty1 = Math.min(h - 1, ty1 + m);
   const cw = tx1 - tx0 + 1, ch = ty1 - ty0 + 1, crop = Buffer.alloc(cw * ch * 4);
   for (let y = 0; y < ch; y++) px.copy(crop, y * cw * 4, ((ty0 + y) * w + tx0) * 4, ((ty0 + y) * w + tx1 + 1) * 4);
+  // The hero pose is also kept at full size for app icons and the link preview (art-src/icons.js).
+  if (name === 'hero') execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${cw}x${ch}`, '-i', '-',
+    path.join(__dirname, 'hero-full.png')], { input: crop });
   const scale = Math.min(1, MAX / Math.max(cw, ch));
   const ow = Math.round(cw * scale), oh = Math.round(ch * scale);
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${cw}x${ch}`, '-i', '-',
