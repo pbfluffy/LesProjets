@@ -280,6 +280,7 @@
 
   function render() {
     const views = { onboard: onboardView, learn: learnView, practice: practiceView, exam: examView, profile: profileView, lesson: lessonView, lessonEnd: lessonEndView, examRun: examRunView, examResult: examResultView };
+    closeHint();
     app.innerHTML = (views[view] || learnView)();
   }
 
@@ -502,19 +503,26 @@
   function renderQ(q) {
     const tag = L.missed.has(q.id) && !L.checked ?'<span class="tag">Previous mistake</span>' : '';
     const kick = t => `<div class="kicker2">${t}${tag}</div>`;
+    const seen = new Set(), blocked = giveaways(q);
+    const H = text => hinted(text, seen, blocked);
+    // One-time nudge until the learner has opened a hint.
+    const tip = () => !S.hintSeen && seen.size ? '<p class="hint-tip">💡 Tap a dotted word to see what it means</p>' : '';
     if (q.t === 'mc' && q.tf) {
-      return `${kick('True or false?')}<div class="qhead">${mascot(44)}<div class="qtitle">${esc(q.q)}</div></div>
+      const title = H(q.q);
+      return `${kick('True or false?')}<div class="qhead">${mascot(44)}<div class="qtitle">${title}</div></div>${tip()}
         <div class="tfgrid">${L.order.map((oi, k) => optBtn(q, oi, k, true)).join('')}</div>`;
     }
     if (q.t === 'mc' || q.t === 'multi') {
-      return `${kick(q.t === 'multi' ? `Select ${q.a.length}` : 'Choose the best answer')}<div class="qhead">${mascot(44)}<div class="qtitle">${esc(q.q)}</div></div>
+      const title = H(q.q);
+      return `${kick(q.t === 'multi' ? `Select ${q.a.length}` : 'Choose the best answer')}<div class="qhead">${mascot(44)}<div class="qtitle">${title}</div></div>${tip()}
         <div class="opts">${L.order.map((oi, k) => optBtn(q, oi, k)).join('')}</div>`;
     }
     if (q.t === 'fill') {
       const [before, after = ''] = q.q.split('___');
       const cls = L.checked ? (L.ok ? 'right' : 'wrong') : (L.sel != null ? 'filled' : '');
       const blank = `<span class="blank ${cls}">${L.sel != null ? esc(q.o[L.sel]) : '&nbsp;'}</span>`;
-      return `${kick('Fill in the blank')}<div class="sentence">${esc(before)}${blank}${esc(after)}</div>
+      const b = H(before), a = H(after);
+      return `${kick('Fill in the blank')}<div class="sentence">${b}${blank}${a}</div>${tip()}
         <div class="bank">${L.order.map(oi => `<button class="word ${L.sel === oi ? 'used' : ''}" data-act="pick" data-i="${oi}" ${L.checked ? 'disabled' : ''}>${esc(q.o[oi])}</button>`).join('')}</div>`;
     }
     // match
@@ -526,9 +534,94 @@
       const text = q.pairs[i][side === 'l' ? 0 : 1];
       return `<button class="tile ${side === 'l' ? 'left' : ''} ${cls}" data-act="m${side}" data-i="${i}" ${doneT || L.checked ? 'disabled' : ''}>${esc(text)}</button>`;
     };
-    return `${kick('Tap the matching pairs')}<div class="qtitle">${esc(q.q)}</div>
+    const mtitle = H(q.q);
+    return `${kick('Tap the matching pairs')}<div class="qtitle">${mtitle}</div>${tip()}
       <div class="match"><div class="col">${L.lefts.map(i => tile('l', i)).join('')}</div><div class="col">${L.rights.map(i => tile('r', i)).join('')}</div></div>`;
   }
+
+  // ---------- Hints: tap a dotted word to see what it means ----------
+  const GLOSS = window.GLOSSARY || [];
+  const HINT = (() => {
+    const exact = new Map(), lower = new Map(), pats = [];
+    const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const forms = [];
+    GLOSS.forEach((g, i) => [g.k, ...(g.also || [])].forEach(f => forms.push({ f, i })));
+    forms.sort((x, y) => y.f.length - x.f.length); // longest first: "Amazon S3" before "S3"
+    forms.forEach(({ f, i }) => {
+      if (f === f.toLowerCase()) { // plain words also match with a capital at the start of a sentence
+        lower.set(f, i);
+        pats.push(`[${f[0]}${f[0].toUpperCase()}]${reEsc(f.slice(1))}`);
+      } else { exact.set(f, i); pats.push(reEsc(f)); }
+    });
+    // Group 1 is the character before the term (no lookbehind, for older Safari).
+    return { exact, lower, re: pats.length ? new RegExp(`(^|[^\\w-])(${pats.join('|')})(?![\\w-])`, 'g') : null };
+  })();
+  function hinted(text, seen, blocked) {
+    if (!HINT.re) return esc(text);
+    let out = '', last = 0, m;
+    HINT.re.lastIndex = 0;
+    while ((m = HINT.re.exec(text))) {
+      const word = m[2], start = m.index + m[1].length;
+      const gi = HINT.exact.has(word) ? HINT.exact.get(word) : HINT.lower.get(word.toLowerCase());
+      if (gi == null || seen.has(gi) || blocked.has(gi)) continue;
+      seen.add(gi);
+      out += esc(text.slice(last, start)) + `<button type="button" class="hint" data-act="hint" data-g="${gi}">${esc(word)}</button>`;
+      last = start + word.length;
+    }
+    return out + esc(text.slice(last));
+  }
+  // Skip a hint whose definition would basically give away the answer.
+  const STOP = new Set('that this with from your their they them into when what which have will each than then also only more most some such used uses using about over like make makes made very much does just been were where there these those other another without within between both'.split(' '));
+  const words = s => String(s).toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w.length >= 4 && !STOP.has(w)).map(w => w.replace(/(ies|es|s|ing|ed)$/, ''));
+  function giveaways(q) {
+    const blocked = new Set();
+    let answers = [];
+    if (q.t === 'match') return blocked;
+    if (q.tf) answers = [q.q]; // a true/false statement is itself the answer
+    else if (q.t === 'multi') answers = q.a.map(i => q.o[i]);
+    else answers = [q.o[q.a]];
+    GLOSS.forEach((g, i) => {
+      const def = new Set(words(g.d));
+      const own = new Set(words([g.k, ...(g.also || [])].join(' ')));
+      answers.forEach(a => {
+        const aw = [...new Set(words(a))].filter(w => !own.has(w));
+        const shared = aw.filter(w => def.has(w)).length;
+        if (shared >= 2 && shared / aw.length >= (q.tf ? 0.3 : 0.4)) blocked.add(i);
+      });
+    });
+    return blocked;
+  }
+  let hintOpen = null;
+  function closeHint() {
+    if (!hintOpen) return;
+    hintOpen.el.remove(); hintOpen.btn.classList.remove('open'); hintOpen = null;
+  }
+  function showHint(btn) {
+    const same = hintOpen && hintOpen.btn === btn;
+    closeHint();
+    if (same) return; // tapping the open word again closes it
+    const g = GLOSS[+btn.dataset.g];
+    if (!g) return;
+    // Drop the one-time tip first, so the layout doesn't shift after the bubble is placed.
+    if (!S.hintSeen) { S.hintSeen = true; save(); const t = document.querySelector('.hint-tip'); if (t) t.remove(); }
+    const el = document.createElement('div');
+    el.className = 'hintpop'; el.setAttribute('role', 'tooltip');
+    el.innerHTML = `<strong>${esc(g.k)}</strong><span>${esc(g.d)}</span><i class="arrow"></i>`;
+    document.body.appendChild(el);
+    const r = btn.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+    const left = Math.max(12, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 12));
+    const below = r.bottom + 10 + h <= innerHeight - 8 || r.top - 10 - h < 8;
+    el.style.left = left + 'px';
+    el.style.top = (below ? r.bottom + 10 : r.top - 10 - h) + 'px';
+    el.classList.add(below ? 'below' : 'above');
+    el.querySelector('.arrow').style.left = Math.max(14, Math.min(r.left + r.width / 2 - left, w - 14)) + 'px';
+    btn.classList.add('open');
+    hintOpen = { el, btn };
+  }
+  window.addEventListener('scroll', closeHint, { passive: true });
+  // Phones fire resize when the address bar shows/hides; only a width change moves the word.
+  let lastWidth = innerWidth;
+  window.addEventListener('resize', () => { if (innerWidth !== lastWidth) { lastWidth = innerWidth; closeHint(); } });
 
   function correctText(q) {
     if (q.t === 'multi') return q.a.map(i => q.o[i]).join(' + ');
@@ -934,15 +1027,19 @@
   }
 
   document.addEventListener('click', e => {
+    if (hintOpen && !e.target.closest('.hint, .hintpop')) closeHint();
     if (e.target.matches('[data-overlay]')) { if (!modalRoot.querySelector('.modal.sticky')) closeModal(); return; }
     const el = e.target.closest('[data-act]');
     if (!el || el.disabled) return;
+    if (el.dataset.act === 'hint') { showHint(el); return; }
     const fn = actions[el.dataset.act];
     if (fn) fn(el.dataset);
   });
 
   document.addEventListener('keydown', e => {
     if (modalRoot.innerHTML) { if (e.key === 'Escape' && !modalRoot.querySelector('.modal.sticky')) closeModal(); return; }
+    if (hintOpen && e.key === 'Escape') { closeHint(); return; }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('.hint')) return; // let the hint button open
     if (view === 'lesson' && L) {
       if (e.key === 'Enter') {
         e.preventDefault();
