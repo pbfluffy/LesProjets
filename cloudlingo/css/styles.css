@@ -63,7 +63,7 @@ html, body { margin: 0; }
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: 'Nunito', 'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-weight: 700;
   -webkit-font-smoothing: antialiased;
 }
@@ -364,3 +364,32 @@ h1, h2, h3, p { margin: 0; }
 .hintpop.below .arrow { top: -8px; border-right: 0; border-bottom: 0; }
 .hintpop.above .arrow { bottom: -8px; border-left: 0; border-top: 0; }
 .hint-tip { color: var(--muted); font-size: 14px; font-weight: 700; margin: -6px 0 14px; }
+
+/* Language switch, onboarding top row */
+.seg.seg2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.langseg { width: 132px; flex-shrink: 0; }
+.langseg button { padding: 8px 6px; }
+.ob-top { align-items: stretch; margin-bottom: 18px; }
+.ob-top .ob-signin { margin-bottom: 0; }
+.ob-top .langseg { align-self: center; }
+
+/* Streak freezes */
+.freeze-line { color: #2f8fd6; font-weight: 800; margin-top: 8px; }
+.notice { border-color: #8fd0ff; background: #eaf6ff; display: flex; align-items: center; gap: 12px; justify-content: space-between; margin-bottom: 14px; }
+.notice p { font-weight: 800; color: #1b5f8f; }
+:root[data-theme="dark"] .notice { background: #12304a; border-color: #2d6a99; }
+:root[data-theme="dark"] .notice p { color: #bfe3ff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .notice { background: #12304a; border-color: #2d6a99; } :root:not([data-theme="light"]) .notice p { color: #bfe3ff; } }
+.stat.ice { border-color: #4fb3f6; } .stat.ice .lbl { background: #4fb3f6; } .stat.ice .val { color: #2f8fd6; font-size: 18px; }
+
+/* Exam cards, leaderboard */
+.pill.full { background: var(--primary-soft); color: var(--primary); vertical-align: 2px; }
+.pill.you { background: var(--primary); color: #fff; font-size: 11px; padding: 2px 8px; vertical-align: 2px; }
+.board { padding: 6px; }
+.brow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; }
+.brow + .brow { border-top: 1px solid var(--border); }
+.brow.me { background: var(--primary-soft); border-top-color: transparent; }
+.brow .rank { width: 30px; text-align: center; font-weight: 900; font-size: 17px; color: var(--muted); }
+.brow .bname { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brow .bxp { color: var(--gold); white-space: nowrap; }
+@media (max-width: 640px) { .langseg { width: 116px; } .sidenav .navitem { padding: 10px 8px; } }

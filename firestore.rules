@@ -277,6 +277,24 @@ service cloud.firestore {
                    && request.resource.data.lessons is number;
     }
 
+    // ── Cloudlingo — weekly leaderboard ───────────────────────────────────────
+    // One doc per learner per week (week = that Monday's date). Signed-in users
+    // can read the board; each learner writes only their own first name + XP.
+    match /cloudlingoWeeks/{week}/scores/{uid} {
+      allow read:   if signedIn();
+      allow delete: if isUser(uid) || isOwner();
+      allow create, update: if isUser(uid)
+                   && week.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+                   && request.resource.data.keys().hasOnly(['name', 'xp', 'updatedAt'])
+                   && request.resource.data.name is string
+                   && request.resource.data.name.size() <= 24
+                   && !request.resource.data.name.matches('.*[<>].*')
+                   && request.resource.data.xp is number
+                   && request.resource.data.xp >= 0
+                   && request.resource.data.xp <= 100000
+                   && request.resource.data.updatedAt is number;
+    }
+
     // ── Backyard Rampage — cross-device save sync ───────────────────────────
     match /userGame/{uid} {
       allow read:  if isUser(uid);
