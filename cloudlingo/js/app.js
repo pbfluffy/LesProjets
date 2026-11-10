@@ -922,7 +922,7 @@
       : `<img class="avatar nimbus" src="${(window.NIMBUS_IMG && window.NIMBUS_IMG.hero) || 'img/nimbus/hero.webp'}" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px">`;
   }
   function accountChip() {
-    if (authState === 'out' || authState === 'loading') return `<button class="signin-btn" data-tour="account" data-act="signin" title="${t('signin_title')}">${t('signin')}</button>`;
+    if (authState === 'out' || authState === 'loading') return `<button class="signin-btn" data-tour="account" data-act="signin" title="${t('signin_title')}" aria-label="${t('signin')}">${ICON('user')}<span class="lbl">${t('signin')}</span></button>`;
     if (authState === 'in' && account) return `<button class="chip" data-tour="account" data-act="nav" data-v="profile" title="${esc(account.name)}">${avatar(26)}</button>`;
     return '';
   }
@@ -1011,7 +1011,7 @@
       <p class="section-sub">${t('pick_goal_sub')}</p>
       <div class="seg">${GOALS.map(g => `<button class="${OB.goal === g.xp ? 'on' : ''}" data-act="obgoal" data-g="${g.xp}">${t(g.key)}<small>${t('xp_per_day', { n: g.xp })}</small></button>`).join('')}</div>
     </div>
-    <div class="fixed-foot"><button class="btn ghost" data-act="obplace" ${OB.cert ? '' : 'disabled'}>${t('place_ob')}</button><button class="btn" data-act="obstart" ${OB.cert ? '' : 'disabled'}>${t('start_learning')}</button></div>`;
+    <div class="fixed-foot ob-foot"><button class="btn" data-act="obstart" ${OB.cert ? '' : 'disabled'}>${t('start_learning')}</button><button class="linkbtn" data-act="obplace" ${OB.cert ? '' : 'disabled'}>${t('place_ob')}</button></div>`;
   }
 
   // ---------- Learn (path) ----------
@@ -1432,8 +1432,8 @@
         <div class="bigicon" style="font-size:26px;width:52px;height:52px">${unitIcon(u)}</div>
         <div class="grow"><strong>${u.title}</strong>
           <div class="progress ${acc.pct == null ? '' : acc.pct >= 80 ? 'green' : 'blue'}" style="height:8px;margin:7px 0 4px"><div style="width:${acc.pct || 0}%"></div></div>
-          <span class="muted small">${acc.pct == null ? t('not_practiced') : t('acc_answers', { p: acc.pct, n: acc.seen })}</span></div>
-        <button class="btn ghost" data-act="unitpractice" data-u="${u.id}">${t('go')}</button>
+          <span class="muted small">${acc.pct == null ? t('not_practiced') : tn('acc_answers', acc.seen, { p: acc.pct })}</span></div>
+        <button class="btn ghost btn-inline" data-act="unitpractice" data-u="${u.id}">${t('go')}</button>
       </div></div>`;
     }).join('');
     return shell(`<h1 class="section-title">${t('practice_title')}</h1>

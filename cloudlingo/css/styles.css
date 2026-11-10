@@ -115,7 +115,8 @@ h1, h2, h3, p { margin: 0; }
 .topstats { display: flex; align-items: center; gap: 4px; }
 .placed-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 4px 0 18px; }
 .placed-list span { display: inline-flex; align-items: center; gap: 6px; background: var(--good-soft); color: var(--good-dark); font-weight: 800; font-size: 14px; padding: 6px 12px; border-radius: 999px; }
-.placecard, .focuscard { margin: 0 0 14px; }
+.placecard { margin: 14px 0; }
+.focuscard { margin: 0 0 14px; }
 .domain-units { display: block; font-weight: 600; margin-top: 2px; }
 .appver { text-align: center; font-size: 11px; color: var(--muted); opacity: .7; padding: 28px 0 4px; letter-spacing: .02em; }
 .update-bar { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 100; background: var(--primary); color: #fff; font-weight: 800; font-size: 14px; padding: 10px 18px; border-radius: 999px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
@@ -280,7 +281,7 @@ h1, h2, h3, p { margin: 0; }
 .certopt p { color: var(--muted); font-size: 14px; font-weight: 700; }
 
 /* onboarding */
-.onboard { max-width: 560px; margin: 0 auto; padding: 40px 20px 140px; }
+.onboard { max-width: 560px; margin: 0 auto; padding: 40px 20px 170px; }
 .onboard .hero { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
 .speech { position: relative; background: var(--surface); border: 2px solid var(--border); border-radius: 16px; padding: 14px 16px; font-size: 18px; font-weight: 800; line-height: 1.35; }
 .speech::before { content: ''; position: absolute; left: -10px; top: 24px; border: 8px solid transparent; border-right-color: var(--border); border-left: 0; }
@@ -340,7 +341,7 @@ h1, h2, h3, p { margin: 0; }
   .mobile-only { display: block; }
 }
 @media (max-width: 640px) {
-  .shell { grid-template-columns: 1fr; }
+  .shell { grid-template-columns: minmax(0, 1fr); }
   .sidenav { position: fixed; top: auto; bottom: 0; left: 0; right: 0; height: auto; flex-direction: row; justify-content: space-around; border-right: 0; border-top: 2px solid var(--border); background: var(--bg); padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px)); z-index: 20; }
   .brand { display: none; }
   .main { padding: 0 16px 110px; }
@@ -363,6 +364,33 @@ h1, h2, h3, p { margin: 0; }
 /* Account */
 .avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; display: inline-flex; align-items: center; justify-content: center; background: var(--primary); color: #fff; font-weight: 900; font-size: 14px; flex-shrink: 0; }
 .signin-btn { background: var(--primary); color: #fff; border: 0; border-radius: 12px; padding: 8px 14px; font-weight: 900; font-size: 14px; letter-spacing: .03em; text-transform: uppercase; box-shadow: 0 3px 0 var(--primary-dark); white-space: nowrap; margin-left: 4px; }
+.signin-btn { display: inline-flex; align-items: center; gap: 6px; }
+.topstats .signin-btn .ic { display: none; font-size: 18px; }
+.ob-foot { flex-direction: column; align-items: center; gap: 6px; }
+.ob-foot .btn { width: 100%; max-width: 360px; }
+.ob-foot .linkbtn { text-transform: none; letter-spacing: 0; font-size: 15px; }
+.ob-foot .linkbtn:disabled { color: var(--muted); opacity: .6; }
+.topbar .certchip { flex: 0 1 auto; }
+.topstats { flex-shrink: 0; }
+@media (max-width: 480px) {
+  /* Cards with an icon, text and a button: the button gets its own full-width line. */
+  .card > .row:has(> .bigicon):has(> .btn:not(.btn-inline)), .card > .row:has(> .countdown):has(> .btn:not(.btn-inline)) { flex-wrap: wrap; }
+  .card > .row:has(> .bigicon) > .btn:not(.btn-inline), .card > .row:has(> .countdown) > .btn:not(.btn-inline) { flex-basis: 100%; }
+  .bigicon { width: 52px; height: 52px; }
+  /* Onboarding: language buttons on top, sign-in box full width below. */
+  .ob-top { flex-wrap: wrap; justify-content: flex-end; }
+  .ob-top > .grow:empty { display: none; }
+  .ob-top .ob-signin { order: 2; flex-basis: 100%; }
+}
+@media (max-width: 420px) {
+  .topstats .signin-btn { padding: 7px 9px; }
+  .topstats .signin-btn .lbl { display: none; }
+  .topstats .signin-btn .ic { display: block; }
+  .certchip .cname { font-size: 13px; }
+  .certchip { padding: 5px 8px; }
+  .topstats { gap: 2px; }
+  .topstats .chip { padding: 6px 5px; gap: 4px; }
+}
 .signin-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--primary-dark); }
 .ob-signin { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; margin-bottom: 18px; font-weight: 800; }
 

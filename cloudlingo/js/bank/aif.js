@@ -104,10 +104,10 @@ addQuestions('aif-2', [
 
 addQuestions('aif-3', [
   { t: 'mc', q: 'Which Bedrock feature connects a model to your company documents to implement RAG with managed chunking and embeddings?',
-    o: ['Knowledge Bases for Amazon Bedrock', 'Bedrock Guardrails', 'Provisioned Throughput', 'Model evaluation'], a: 0,
+    o: ['Amazon Bedrock Knowledge Bases', 'Bedrock Guardrails', 'Provisioned Throughput', 'Model evaluation'], a: 0,
     e: 'Knowledge Bases ingest your data into a vector store and retrieve relevant chunks at query time.' },
   { t: 'mc', q: 'Which Bedrock feature lets a model plan multi-step tasks and call APIs to complete them?',
-    o: ['Agents for Amazon Bedrock', 'Knowledge Bases', 'Model customization', 'Guardrails'], a: 0,
+    o: ['Amazon Bedrock Agents', 'Knowledge Bases', 'Model customization', 'Guardrails'], a: 0,
     e: 'Agents orchestrate reasoning steps and invoke action groups (APIs, Lambda functions).' },
   { t: 'mc', q: 'Continued pre-training differs from fine-tuning because it uses:',
     o: ['Large amounts of unlabeled domain data', 'Only labeled prompt-response pairs', 'No data at all', 'Images only'], a: 0,
