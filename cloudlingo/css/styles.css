@@ -446,3 +446,37 @@ h1, h2, h3, p { margin: 0; }
 /* Daily reminder */
 .remind-time { display: flex; align-items: center; gap: 8px; }
 .remind-time select { font: inherit; font-weight: 800; padding: 6px 10px; border-radius: 10px; border: 2px solid var(--border); background: var(--surface); color: var(--ink); }
+
+/* ---------- Line icons (js/icons.js) ---------- */
+.ic { width: 1em; height: 1em; vertical-align: -0.14em; flex-shrink: 0; }
+.ic-title { display: inline-flex; align-items: center; gap: .4em; }
+h1.ic-title, h2.ic-title, h3.ic-title { display: flex; }
+.ic-flame { color: var(--flame); } .ic-bolt, .ic-bolts { color: var(--gold); } .ic-snowflake { color: #2f8fd6; }
+.ic-trend, .ic-bell, .ic-flag, .ic-repeat, .ic-calendar, .ic-play, .ic-cloud { color: var(--primary); }
+.ic-bulb, .ic-trophy { color: var(--gold); } .ic-check.ok { color: var(--good); }
+.navitem .ico .ic, .navitem .ic { color: inherit; font-size: 24px; }
+.chip .ic { font-size: 19px; }
+.chip.flame.cold .ic-flame { color: var(--muted); }
+.bigicon { font-size: 30px; } .bigicon .ic { color: var(--primary); }
+.goalrow .big { font-size: 30px; } .goalrow .big .ic { color: var(--primary); }
+.tile-stat .i { font-size: 26px; display: inline-flex; }
+.tile-stat .ic-book { color: var(--primary); } .tile-stat .ic-target { color: var(--good); }
+.unithead .uicon { font-size: 28px; } .unithead .uicon .ic { color: #fff; }
+.node { font-size: 30px; } .node .ic { color: currentColor; } .node.trophy .ic { color: #fff; }
+.node.locked .ic { color: var(--muted); }
+.feedback .badge { font-size: 30px; }
+.lesson-foot.good .feedback .badge .ic { color: var(--good); } .lesson-foot.bad .feedback .badge .ic { color: var(--bad); }
+.opt .box .ic, .box .ic { color: #fff; font-size: 14px; }
+.stat .val .ic { color: inherit; }
+.badge-item .bi { font-size: 28px; display: inline-flex; } .badge-item.on .bi .ic { color: var(--gold); } .badge-item .bi .ic { color: var(--muted); }
+.domainbar .top .ic { color: var(--muted); }
+.lesson-top .x .ic, .x .ic { font-size: 24px; color: var(--muted); }
+.hint-tip { display: flex; align-items: center; gap: 6px; }
+.reportbtn { display: inline-flex; align-items: center; gap: 6px; } .reportbtn .ic { font-size: 15px; }
+.freeze-line, .notice p { display: flex; align-items: center; gap: 8px; }
+.medal { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: #fff; font-size: 13px; font-weight: 900; }
+.medal.m1 { background: #e8a800; } .medal.m2 { background: #9aa6b2; } .medal.m3 { background: #c47a3c; }
+.brow .bxp { display: inline-flex; align-items: center; gap: 4px; }
+.btn .ic { font-size: 18px; margin-right: 6px; vertical-align: -0.2em; }
+
+.speech .speech-sub { display: block; margin-top: 6px; font-size: 14px; font-weight: 700; color: var(--muted); }

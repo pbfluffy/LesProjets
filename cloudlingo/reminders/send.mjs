@@ -24,12 +24,12 @@ webpush.setVapidDetails('mailto:pbfluffygaming@gmail.com', VAPID_PUBLIC_KEY, VAP
 
 const TEXT = {
   en: {
-    streak: (n, left) => ({ title: `🔥 Keep your ${n}-day streak!`, body: `${left} XP to go today. A quick lesson takes about 2 minutes.` }),
-    start: left => ({ title: '☁️ Time for a quick lesson', body: `${left} XP to reach today's goal. Nimbus is waiting!` })
+    streak: (n, left) => ({ title: `Keep your ${n}-day streak!`, body: `${left} XP to go today. A quick lesson takes about 2 minutes.` }),
+    start: left => ({ title: 'Time for a quick lesson', body: `${left} XP to reach today's goal. Nimbus is waiting!` })
   },
   th: {
-    streak: (n, left) => ({ title: `🔥 รักษาสถิติ ${n} วันไว้!`, body: `อีก ${left} XP ก็ถึงเป้าวันนี้ เรียนสั้น ๆ ใช้เวลาแค่ 2 นาที` }),
-    start: left => ({ title: '☁️ ได้เวลาเรียนสั้น ๆ แล้ว', body: `อีก ${left} XP ก็ถึงเป้าวันนี้ นิมบัสรออยู่!` })
+    streak: (n, left) => ({ title: `รักษาสถิติ ${n} วันไว้!`, body: `อีก ${left} XP ก็ถึงเป้าวันนี้ เรียนสั้น ๆ ใช้เวลาแค่ 2 นาที` }),
+    start: left => ({ title: 'ได้เวลาเรียนสั้น ๆ แล้ว', body: `อีก ${left} XP ก็ถึงเป้าวันนี้ นิมบัสรออยู่!` })
   }
 };
 
