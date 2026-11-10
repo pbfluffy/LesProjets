@@ -297,6 +297,36 @@ service cloud.firestore {
 
     // ── Cloudlingo — daily reminder settings + push subscriptions ──────────────
     // Written by the learner; read by the hourly sender (Admin SDK, bypasses rules).
+    // Cloudlingo usage funnel: one anonymous record per device (random id) with the
+    // first steps reached. Anyone may write their own; only admins read.
+    match /cloudlingoFunnel/{dev} {
+      allow read, delete: if isAdmin();
+      allow create, update: if dev.matches('^[a-z0-9]{20}$')
+                   && request.resource.data.keys().hasOnly(['first', 'last', 'steps', 'cert', 'lang', 'mobile', 'standalone', 'uid', 'v'])
+                   && request.resource.data.first is int && request.resource.data.last is int
+                   && request.resource.data.steps is map
+                   && request.resource.data.steps.keys().hasOnly(['open', 'cert', 'start', 'answer', 'done1', 'done3', 'placement', 'exam', 'signin'])
+                   && request.resource.data.cert is string && request.resource.data.cert.size() <= 8
+                   && request.resource.data.lang in ['en', 'th']
+                   && request.resource.data.mobile is bool && request.resource.data.standalone is bool
+                   && (request.resource.data.uid == null || (signedIn() && request.resource.data.uid == request.auth.uid))
+                   && request.resource.data.v is string && request.resource.data.v.size() <= 40;
+    }
+    // Cloudlingo script errors from learners' devices (create only; admins read and clear).
+    match /cloudlingoErrors/{id} {
+      allow read, delete: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly(['msg', 'src', 'line', 'col', 'stack', 'v', 'view', 'ua', 'dev', 'uid', 'ts'])
+                   && request.resource.data.msg is string && request.resource.data.msg.size() <= 300
+                   && request.resource.data.src is string && request.resource.data.src.size() <= 200
+                   && request.resource.data.line is int && request.resource.data.col is int
+                   && request.resource.data.stack is string && request.resource.data.stack.size() <= 2000
+                   && request.resource.data.v is string && request.resource.data.v.size() <= 40
+                   && request.resource.data.view is string && request.resource.data.view.size() <= 20
+                   && request.resource.data.ua is string && request.resource.data.ua.size() <= 200
+                   && request.resource.data.dev is string && request.resource.data.dev.size() <= 20
+                   && (request.resource.data.uid == null || (signedIn() && request.resource.data.uid == request.auth.uid))
+                   && request.resource.data.ts == request.time;
+    }
     match /cloudlingoPush/{uid} {
       allow read:  if isUser(uid) || isAdmin();
       allow delete: if isUser(uid);
