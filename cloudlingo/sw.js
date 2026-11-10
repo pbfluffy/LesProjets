@@ -18,7 +18,8 @@ self.addEventListener('install', event => {
     const html = await res.clone().text();
     await cache.put('./', res);
     const local = [...html.matchAll(/(?:src|href)="((?:js|css|img)\/[^"]+)"/g)].map(m => m[1]);
-    const extra = POSES.map(p => `img/nimbus/${p}.webp`).concat('manifest.webmanifest', 'img/icons/icon-192.png');
+    const SOUNDS = ['correct', 'wrong', 'complete', 'streak', 'badge', 'freeze', 'pass', 'tryagain'];
+    const extra = POSES.map(p => `img/nimbus/${p}.webp`).concat(SOUNDS.map(n => `sounds/${n}.mp3`), 'manifest.webmanifest', 'img/icons/icon-192.png');
     await Promise.all([...new Set(local.concat(extra))].map(u => cache.add(u).catch(() => { /* optional */ })));
     await self.skipWaiting();
   })());
