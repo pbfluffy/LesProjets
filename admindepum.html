@@ -414,7 +414,9 @@ html.light body{
 .cloud-find-row .q{flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cloud-row{display:grid;grid-template-columns:minmax(160px,1.6fr) .6fr .6fr .6fr .6fr .7fr .7fr .9fr;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid rgba(127,127,127,.15);font-size:13px}
 .cloud-row.head{border-top:0;font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
-.cloud-row .who{min-width:0}.cloud-row .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cloud-row .who span{display:block;font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cloud-who{min-width:0;display:flex;flex-direction:column;gap:2px;line-height:1.25;overflow:hidden}
+.cloud-who b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cloud-who span{font-size:11.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cloud-board-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid rgba(127,127,127,.15)}.cloud-board-row:first-child{border-top:0}
 .cloud-board-row .rk{width:24px;text-align:center;font-weight:800;color:var(--faint)}.cloud-board-row .nm{flex:1;font-weight:600}.cloud-board-row .xp{font-weight:800}
 @media (max-width:760px){.cloud-row{grid-template-columns:minmax(120px,1.4fr) .6fr .6fr .8fr}.cloud-row > div:nth-child(5),.cloud-row > div:nth-child(6),.cloud-row > div:nth-child(7),.cloud-row > div:nth-child(8){display:none}}
@@ -2092,7 +2094,8 @@ async function renderCloudlingoTab(){
   const hourLabel = h => new Date(2000, 0, 1, h).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   document.getElementById('cloud-learners').innerHTML = ppl.length ? ppl.map(p => {
     const prof = PROFILE_MAP.get(p.uid) || {};
-    return `<div class="cloud-row"><div class="who"><b>${esc(prof.name || prof.email || p.uid.slice(0, 10))}</b><span>${esc(prof.email || p.uid)}</span></div>
+    const acct = prof.email || p.uid;
+    return `<div class="cloud-row"><div class="cloud-who" title="${esc(acct)}"><b>${esc(prof.name || prof.email || p.uid.slice(0, 10))}</b><span>${esc(acct)}</span></div>
       <div class="cloud-cert">${esc(cloudCertName(p.cert))}${cloudCourse(p.cert) ? `<small>${esc(cloudCourse(p.cert).code)}</small>` : ''}</div><div><b>${p.xp.toLocaleString('en')}</b></div><div>${p.streak ? p.streak + ' days' : '–'}</div>
       <div>${p.lessons}</div><div>${p.passed}/${p.exams}</div><div>${p.reminder != null ? hourLabel(p.reminder) : '–'}</div><div class="sync">${eventTimeLabel(p.updated)}</div></div>`;
   }).join('') : `<div class="cloud-empty">No learners${cert ? ' studying ' + esc(cloudCertName(cert)) : ''} with saved progress yet.</div>`;
