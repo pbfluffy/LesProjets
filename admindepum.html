@@ -2427,7 +2427,7 @@ function renderStockTab(){
 
 // ---- controls ----
 // wire tab buttons
-["overall","bills","nutrition","pumgoda","stock","backyard"].forEach(t => {
+TABS.forEach(t => { // every tab in TABS gets its click handler
   const btn = document.getElementById("tab-btn-"+t);
   if(btn) btn.addEventListener("click", ()=> switchTab(t));
 });
