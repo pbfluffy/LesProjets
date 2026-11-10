@@ -2,6 +2,11 @@
   'use strict';
 
   // ---------- Constants & helpers ----------
+  // This build's version: the commit stamped into the script's ?v= link at deploy ('dev' locally).
+  const APP_VERSION = (() => { try { return new URL(document.currentScript.src).searchParams.get('v') || 'dev'; } catch { return 'dev'; } })();
+  const APP_BUILT = '__BUILD_DATE__'; // deploy date, filled in at deploy (deploy.yml)
+  const APP_LABEL = APP_BUILT.startsWith('__') ? APP_VERSION : APP_BUILT + ' · ' + APP_VERSION;
+  let updatePending = false; // a newer version is waiting for the current lesson or exam to end
   const COURSES = window.COURSES;
   const app = document.getElementById('app');
   const modalRoot = document.getElementById('modal-root');
@@ -861,6 +866,7 @@
 
   function go(v) {
     view = v;
+    if (updatePending && !busyView()) { applyUpdate(); }
     render();
     window.scrollTo(0, 0);
     if (v === 'learn') {
@@ -893,7 +899,7 @@
         <div class="brand">${mascot(40, 'hero')}<span>cloudlingo</span></div>
         ${navItem('learn', ICON('home'), t('nav_learn'))}${navItem('practice', ICON('target'), t('nav_practice'))}${navItem('exam', ICON('clipboard'), t('nav_exam'))}${authState !== 'off' ? navItem('board', ICON('trophy'), t('nav_board')) : ''}${navItem('profile', ICON('user'), t('nav_profile'))}
       </nav>
-      <main class="main">${topbar()}${main}</main>
+      <main class="main">${topbar()}${main}<div class="appver">Cloudlingo v${esc(APP_LABEL)}</div></main>
       <aside class="rightcol">${rightCol()}</aside>
     </div>`;
   }
@@ -1679,6 +1685,39 @@
   if (pwaReady && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/^(localhost|127.0.0.1)$/.test(location.hostname)) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* offline support is optional */ }));
   }
+  // ---------- Auto-update ----------
+  // Each deploy writes version.json. When it names a newer build than the one
+  // running, reload so everyone is on the latest version. Never mid-lesson or
+  // mid-exam: then it waits until the learner leaves that screen.
+  function applyUpdate() {
+    if (busyView()) { updatePending = true; return; }
+    updatePending = false;
+    const bar = document.createElement('div');
+    bar.className = 'update-bar';
+    bar.textContent = t('updating');
+    document.body.appendChild(bar);
+    setTimeout(() => location.reload(), 1200);
+  }
+  async function checkForUpdate() {
+    if (APP_VERSION === 'dev' || !navigator.onLine) return;
+    try {
+      const res = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return;
+      const v = (await res.json()).v;
+      if (!v || v === APP_VERSION) return;
+      // Reload at most once per new version, in case a stale cache serves the old page again.
+      let tried = null; try { tried = sessionStorage.getItem('cl-update'); } catch { /* ignore */ }
+      if (tried === v) return;
+      try { sessionStorage.setItem('cl-update', v); } catch { /* ignore */ }
+      applyUpdate();
+    } catch { /* offline: try again later */ }
+  }
+  if (pwaReady) {
+    window.addEventListener('load', () => setTimeout(checkForUpdate, 3000));
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
+    setInterval(checkForUpdate, 15 * 60 * 1000);
+  }
+
   // ---------- Daily reminder (push notification) ----------
   // Saved per account in Firestore (cloudlingoPush/{uid}): this device's push
   // subscription, the local hour to remind at, and the time zone. An hourly job

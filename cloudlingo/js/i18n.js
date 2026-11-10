@@ -4,7 +4,7 @@
 window.I18N = {
   en: {
     nav_learn: 'Learn', nav_practice: 'Practice', nav_exam: 'Mock exam', nav_board: 'Leaderboard', nav_profile: 'Profile',
-    switch_cert: 'Switch certification', day_streak: 'Day streak', total_xp: 'Total XP',
+    switch_cert: 'Switch certification', updating: 'Updating to the latest version…', day_streak: 'Day streak', total_xp: 'Total XP',
     signin: 'Sign in', signin_title: 'Sign in to save progress across devices',
     save_progress: 'Save your progress',
     signin_unavailable: "Sign-in can't load right now. Your progress is saved on this device.",
@@ -162,7 +162,7 @@ window.I18N = {
   },
   th: {
     nav_learn: 'เรียน', nav_practice: 'ฝึกฝน', nav_exam: 'ข้อสอบจำลอง', nav_board: 'อันดับ', nav_profile: 'โปรไฟล์',
-    switch_cert: 'เปลี่ยนใบเซอร์', day_streak: 'วันต่อเนื่อง', total_xp: 'XP ทั้งหมด',
+    switch_cert: 'เปลี่ยนใบเซอร์', updating: 'กำลังอัปเดตเป็นเวอร์ชันล่าสุด…', day_streak: 'วันต่อเนื่อง', total_xp: 'XP ทั้งหมด',
     signin: 'เข้าสู่ระบบ', signin_title: 'เข้าสู่ระบบเพื่อบันทึกความคืบหน้าข้ามอุปกรณ์',
     save_progress: 'บันทึกความคืบหน้าของคุณ',
     signin_unavailable: 'ตอนนี้โหลดระบบเข้าสู่ระบบไม่ได้ ความคืบหน้ายังบันทึกอยู่ในอุปกรณ์นี้',

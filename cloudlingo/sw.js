@@ -36,6 +36,7 @@ self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  if (url.pathname.endsWith('/version.json')) return; // always from the network (update check)
   const scope = new URL(self.registration.scope);
 
   // Pages: network first so a new deploy shows up right away; cache when offline.

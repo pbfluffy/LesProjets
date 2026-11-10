@@ -100,6 +100,10 @@ jobs:
           sed -i "s/const VERSION = 'dev'/const VERSION = '${GITHUB_SHA::8}'/" _site/cloudlingo/sw.js
           # The public half of the site's push (VAPID) key, for Cloudlingo's daily reminders.
           sed -i "s|__VAPID_PUBLIC__|$CL_VAPID_PUBLIC|" _site/cloudlingo/js/app.js
+          # Version label (deploy date, Bangkok time) and version.json, which open copies
+          # of the app check so they reload onto a new deploy.
+          sed -i "s/__BUILD_DATE__/$(TZ=Asia/Bangkok date +%Y.%m.%d)/" _site/cloudlingo/js/app.js
+          echo "{\"v\":\"${GITHUB_SHA::8}\"}" > _site/cloudlingo/version.json
           cp -r studio/. _site/studio/
           cp -r bill-splitter/dist/. _site/bill-splitter/
           cp -r nutritions-thailand/dist/. _site/nutritions-thailand/
