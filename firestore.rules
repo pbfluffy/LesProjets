@@ -310,6 +310,22 @@ service cloud.firestore {
                    && (!('subs' in request.resource.data) || (request.resource.data.subs is list && request.resource.data.subs.size() <= 5));
     }
 
+    // ── Cloudlingo — question fixes made in the admin page ─────────────────────
+    // Public read (the app applies them over its built-in question bank); admins write.
+    match /cloudlingoEdits/{qid} {
+      allow read: if true;
+      allow delete: if isAdmin();
+      allow create, update: if isAdmin()
+                   && qid.size() <= 40
+                   && request.resource.data.keys().hasOnly(['fields', 'eth', 'disabled', 'updatedAt', 'by'])
+                   && request.resource.data.fields is map
+                   && request.resource.data.fields.keys().hasOnly(['q', 'o', 'a', 'e', 'pairs'])
+                   && request.resource.data.fields.q is string && request.resource.data.fields.q.size() <= 2000
+                   && request.resource.data.disabled is bool
+                   && request.resource.data.updatedAt is number
+                   && (!('eth' in request.resource.data) || (request.resource.data.eth is string && request.resource.data.eth.size() <= 3000));
+    }
+
     // ── Cloudlingo — weekly leaderboard ───────────────────────────────────────
     // One doc per learner per week (week = that Monday's date). Signed-in users
     // can read the board; each learner writes only their own first name + XP.
