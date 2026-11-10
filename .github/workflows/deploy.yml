@@ -36,6 +36,11 @@ jobs:
           npx --prefix .github/lint eslint -c .github/lint/eslint.config.mjs \
             bill-splitter/src nutritions-thailand/src pumgoda/src stock-ranges/src dog-near-me/src village-77/src shared
 
+      # Fails the deploy if a Cloudlingo question is broken: bad answer number,
+      # missing Thai text, duplicate, "pick TWO" with the wrong count, and so on.
+      - name: Check Cloudlingo questions
+        run: node .github/lint/cloudlingo-check.cjs cloudlingo
+
       - name: Build bill-splitter
         working-directory: bill-splitter
         run: |
