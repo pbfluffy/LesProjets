@@ -223,6 +223,13 @@ h1, h2, h3, p { margin: 0; }
 .bad .feedback h3 { color: var(--bad-dark); }
 .feedback .ans { font-weight: 800; margin-top: 2px; }
 .bad .feedback .ans { color: var(--bad-dark); }
+.whynot { font-size: 14px; font-weight: 600; margin-top: 8px; line-height: 1.4; color: var(--ink); max-width: 620px; }
+.whyothers { margin-top: 8px; font-size: 14px; max-width: 620px; color: var(--ink); }
+.whyothers summary { cursor: pointer; font-weight: 800; opacity: .75; }
+.whyothers ul { margin: 6px 0 0; padding-left: 18px; line-height: 1.4; font-weight: 600; }
+.whyothers li { margin-top: 4px; }
+.lesson-foot.good, .lesson-foot.bad { max-height: 85vh; overflow-y: auto; }
+.reviewitem .whynot, .reviewitem .whyothers { color: var(--muted); }
 .feedback .explain { font-size: 15px; font-weight: 600; margin-top: 6px; line-height: 1.4; color: var(--ink); opacity: .85; max-width: 620px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .good .feedback h3 { color: var(--good); } :root:not([data-theme="light"]) .bad .feedback h3, :root:not([data-theme="light"]) .bad .feedback .ans { color: var(--bad); } }
 

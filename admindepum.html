@@ -805,7 +805,7 @@ html.light body{
         <div class="panel" id="cloud-errors"><div class="skeleton-row"></div></div>
       </div>
       <div>
-        <div class="cloud-head"><h3>Most-missed questions</h3>
+        <div class="cloud-head"><h3>Most-missed questions</h3><span class="cloud-filter" id="cloud-missed-src"></span>
           <label class="cloud-filter">Min. answers <select id="cloud-min"><option>3</option><option selected>5</option><option>10</option><option>20</option></select></label></div>
         <div class="panel" id="cloud-missed"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
       </div>
@@ -2020,7 +2020,7 @@ function renderBackyardTab(){
 
 // ---- Cloudlingo: problem reports + most-missed questions ----
 const CLOUD_EDITS = new Map(); // qid -> edit doc
-const CLOUD = { loaded: false, loading: false, reports: [], learners: 0, perQ: new Map(), people: [], board: [], week: '', remindOn: 0, funnel: [], errors: [] };
+const CLOUD = { loaded: false, loading: false, reports: [], learners: 0, perQ: new Map(), qstats: new Map(), people: [], board: [], week: '', remindOn: 0, funnel: [], errors: [] };
 // The current leaderboard week = this Monday's date, same as the app.
 function cloudWeekId(){ const x = new Date(); x.setHours(12,0,0,0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0'); }
 function cloudDayKey(off){ const d = new Date(); d.setDate(d.getDate() + (off || 0)); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
@@ -2055,14 +2055,17 @@ async function loadCloudlingoData(){
     CLOUD.week = cloudWeekId();
     const edits = await getDocs(collection(db, 'cloudlingoEdits')).catch(() => null);
     CLOUD_EDITS.clear(); (edits ? edits.docs : []).forEach(d => CLOUD_EDITS.set(d.id, d.data()));
-    const [reps, progress, board, pushes, funnel, errs] = await Promise.all([
+    const [reps, progress, board, pushes, funnel, errs, qstats] = await Promise.all([
       getDocs(collection(db, 'cloudlingoReports')).catch(() => null),
       getDocs(collection(db, 'userCloudlingo')).catch(() => null),
       getDocs(collection(db, 'cloudlingoWeeks', CLOUD.week, 'scores')).catch(() => null),
       getDocs(collection(db, 'cloudlingoPush')).catch(() => null),
       getDocs(collection(db, 'cloudlingoFunnel')).catch(() => null),
-      getDocs(collection(db, 'cloudlingoErrors')).catch(() => null)
+      getDocs(collection(db, 'cloudlingoErrors')).catch(() => null),
+      getDocs(collection(db, 'cloudlingoQStats')).catch(() => null)
     ]);
+    // First-try answers per question from every learner, signed in or not (r = right, w = wrong).
+    CLOUD.qstats = new Map((qstats ? qstats.docs : []).map(d => { const x = d.data(); return [d.id, { seen: (x.r || 0) + (x.w || 0), correct: x.r || 0 }]; }));
     CLOUD.funnel = funnel ? funnel.docs.map(d => Object.assign({ id: d.id }, d.data())) : [];
     CLOUD.errors = errs ? errs.docs.map(d => Object.assign({ id: d.id }, d.data())) : [];
     CLOUD.board = board ? board.docs.map(d => Object.assign({ uid: d.id }, d.data())).sort((a, b) => (b.xp || 0) - (a.xp || 0)) : [];
@@ -2188,12 +2191,17 @@ async function renderCloudlingoTab(){
   }).join('') : '<div class="cloud-empty">No reports. 🎉</div>';
   // Most-missed questions
   const min = +(document.getElementById('cloud-min')?.value || 5);
-  const rows = [...CLOUD.perQ.entries()].filter(([qid, a]) => a.seen >= min && bank.has(qid))
+  // Answer counts from every learner once they exist; until then, signed-in learners' synced stats.
+  const useAll = CLOUD.qstats.size > 0;
+  const src = useAll ? CLOUD.qstats : CLOUD.perQ;
+  const missNote = document.getElementById('cloud-missed-src');
+  if (missNote) missNote.textContent = useAll ? 'First-try answers from all learners' : 'Signed-in learners only, until new answer counts arrive';
+  const rows = [...src.entries()].filter(([qid, a]) => a.seen >= min && bank.has(qid))
     .map(([qid, a]) => ({ qid, a, miss: 1 - a.correct / a.seen })).sort((x, y) => y.miss - x.miss).slice(0, 25);
   const reportsFor = qid => CLOUD.reports.filter(r => r.qid === qid).length;
   document.getElementById('cloud-missed').innerHTML = rows.length ? rows.map(({ qid, a, miss }) => {
     const { q, c, u } = bank.get(qid), pct = Math.round(miss * 100), n = reportsFor(qid);
-    return `<div class="cloud-item"><div class="meta"><b>${pct}% wrong</b><span>${a.seen} answers · ${a.people} learners</span><span>${esc(c.name)} · ${esc(u.title)}</span><span>${esc(qid)}</span>${n ? `<span class="cloud-pill">🚩 ${n}</span>` : ''}</div>
+    return `<div class="cloud-item"><div class="meta"><b>${pct}% wrong</b><span>${a.seen} answers${CLOUD.perQ.get(qid)?.people ? ' · ' + CLOUD.perQ.get(qid).people + ' signed-in learners' : ''}</span><span>${esc(c.name)} · ${esc(u.title)}</span><span>${esc(qid)}</span>${n ? `<span class="cloud-pill">🚩 ${n}</span>` : ''}</div>
       <div class="q">${esc(q.q)}</div><div class="cloud-bar"><i style="width:${pct}%"></i></div>
       <div class="acts" style="margin-top:8px"><button class="btn ghost small" data-cloud-edit="${esc(qid)}">Edit question</button>${CLOUD_EDITS.has(qid) ? '<span class="cloud-pill done">Edited</span>' : ''}</div></div>`;
   }).join('') : `<div class="cloud-empty">No question has ${min}+ answers yet.</div>`;

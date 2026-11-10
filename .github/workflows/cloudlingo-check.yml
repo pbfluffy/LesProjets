@@ -1,0 +1,22 @@
+name: Check Cloudlingo questions
+
+# Runs the same question check as the deploy, on pull requests that touch
+# Cloudlingo, so a broken question shows up before merging.
+on:
+  pull_request:
+    paths:
+      - 'cloudlingo/**'
+      - '.github/lint/cloudlingo-check.cjs'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node .github/lint/cloudlingo-check.cjs cloudlingo

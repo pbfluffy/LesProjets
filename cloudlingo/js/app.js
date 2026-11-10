@@ -47,13 +47,28 @@
   function loadThai() {
     if (window.TH_EXPLAIN && window.TH_GLOSS) return Promise.resolve();
     if (thaiLoading) return thaiLoading;
-    const files = ['glossary', 'clf', 'aif', 'saa', 'dva', 'soa', 'dea'].map(f => 'js/th/' + f + '.js' + (ASSET_V ? '?' + ASSET_V : ''));
+    const files = ['glossary', 'clf', 'aif', 'saa', 'dva', 'soa', 'dea', 'why-clf'].map(f => 'js/th/' + f + '.js' + (ASSET_V ? '?' + ASSET_V : ''));
     thaiLoading = Promise.all(files.map(src => new Promise(res => {
       const el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = res; document.head.appendChild(el);
     }))).then(() => { if (typeof refresh === 'function') refresh(); });
     return thaiLoading;
   }
   const explain = q => (lang === 'th' && (q.eth || (window.TH_EXPLAIN && window.TH_EXPLAIN[q.id]))) || q.e;
+  // "Why not" notes (js/why/*.js; Thai in js/th/why-*.js): one per wrong option, in bank order.
+  // Hidden once an admin has edited a question's options, since they may no longer line up.
+  const whyNot = (q, i) => {
+    if (q.tf || i == null || !q.o || (q._edited && JSON.stringify(q._orig.o) !== JSON.stringify(q.o))) return '';
+    const th = lang === 'th' && window.TH_WHY && window.TH_WHY[q.id];
+    return (th && th[i]) || (window.WHY_NOT && window.WHY_NOT[q.id] && window.WHY_NOT[q.id][i]) || '';
+  };
+  // The note for each wrong option picked, then the other wrong options folded away.
+  function whyHTML(q, picked) {
+    const isRight = i => Array.isArray(q.a) ? q.a.includes(i) : q.a === i;
+    const mine = (Array.isArray(picked) ? picked : picked == null ? [] : [picked]).filter(i => !isRight(i) && whyNot(q, i));
+    const rest = (q.o || []).map((o, i) => i).filter(i => !isRight(i) && !mine.includes(i) && whyNot(q, i));
+    return mine.map(i => `<div class="whynot"><b>${esc(t('why_not', { a: q.o[i] }))}</b> ${esc(whyNot(q, i))}</div>`).join('')
+      + (rest.length ? `<details class="whyothers"><summary>${t('why_others')}</summary><ul>${rest.map(i => `<li><b>${esc(q.o[i])}:</b> ${esc(whyNot(q, i))}</li>`).join('')}</ul></details>` : '');
+  }
   const blurb = c => (window.I18N_COURSES && I18N_COURSES[lang] && I18N_COURSES[lang][c.id]) || c.blurb;
   const domainLabel = d => lang === 'en' ? d : d.replace(/^Domains?\b/, m => t(m === 'Domains' ? 'domains' : 'domain'));
 
@@ -1263,6 +1278,7 @@
         <h3>${L.ok ? praise[L.praise % praise.length] : t('not_quite')}</h3>
         ${L.ok ? '' : `<div class="ans">${esc(t('correct_is', { a: correctText(q) }))}</div>`}
         <div class="explain">${esc(explain(q))}</div>
+        ${whyHTML(q, q.t === 'multi' ? L.multi : L.sel)}
         ${reportBtn(q)}
       </div></div>
       <button class="btn ${L.ok ? 'good' : 'bad'}" data-act="continue">${t('continue')}</button>
@@ -1286,6 +1302,7 @@
     S.stats[q.id] = st;
     const placing = L.mode === 'placement';
     if (!placing) srsUpdate(q.id, ok && !L.missed.has(q.id));
+    if (!L.missed.has(q.id)) qstat(q.id, ok);
     track('answer');
     sfx(ok ? 'right' : 'wrong');
     if (ok) {
@@ -1374,6 +1391,7 @@
   }
 
   function finishLesson() {
+    flushQStats();
     if (L.mode === 'placement') return finishPlacement();
     const perfect = L.missed.size === 0;
     let xp = (L.mode === 'replay' ? 5 : 10) + (perfect ? 5 : 0);
@@ -1587,8 +1605,10 @@
       st.seen++; if (ok) st.correct++; S.stats[id] = st;
       if (!ok) S.mistakes[id] = { ts: Date.now() };
       srsUpdate(id, ok);
+      if (a != null && !(Array.isArray(a) && !a.length)) qstat(id, ok);
       return { id, a, ok };
     });
+    flushQStats();
     const correct = items.filter(x => x.ok).length;
     const score = Math.round(100 * correct / items.length);
     const passAt = E.pass || c.exam.pass;
@@ -1645,7 +1665,7 @@
         <div class="card reviewitem ${x.ok ? 'ok' : ''}"><div class="q">${esc(q.q)}</div>
           ${x.ok ? '' : `<div class="a" style="color:var(--bad)">${esc(t('your_answer', { a: answerText(q, x.a) }))}</div>`}
           <div class="a" style="color:var(--good)">${esc(t('correct_is', { a: correctText(q) }))}</div>
-          <div class="e">${esc(explain(q))}</div>${reportBtn(q)}</div>`; }).join('') : `<div class="card muted">${t('flawless')}</div>`}</div>
+          <div class="e">${esc(explain(q))}</div>${x.ok ? '' : whyHTML(q, x.a)}${reportBtn(q)}</div>`; }).join('') : `<div class="card muted">${t('flawless')}</div>`}</div>
     </div>
     <div class="fixed-foot"><button class="btn ghost" data-act="nav" data-v="exam">${t('done')}</button><button class="btn" data-act="startexam" data-mode="${R.mode}">${t('retake')}</button></div>`;
   }
@@ -1847,6 +1867,25 @@
     const r = e.reason;
     reportError('Unhandled promise: ' + (r && r.message ? r.message : String(r)), '', 0, 0, r && r.stack);
   });
+
+  // ---------- Answer counts per question (admin "Most-missed questions") ----------
+  // First-try answers from everyone, signed in or not: cloudlingoQStats/{question id}
+  // holds totals of right (r) and wrong (w) answers. Nothing about who answered.
+  const QS = new Map();
+  function qstat(id, ok) { if (TELEMETRY && !QS.has(id)) QS.set(id, ok); }
+  async function flushQStats() {
+    if (!QS.size) return;
+    if (!fb && fbLoading) { try { await fbLoading; } catch { return; } }
+    if (!fb) return;
+    const items = [...QS]; QS.clear();
+    try {
+      const batch = fb.fs.writeBatch(fb.db);
+      items.forEach(([id, ok]) => batch.set(fb.fs.doc(fb.db, 'cloudlingoQStats', id),
+        { r: fb.fs.increment(ok ? 1 : 0), w: fb.fs.increment(ok ? 0 : 1), cert: id.split('-')[0] }, { merge: true }));
+      await batch.commit();
+    } catch { /* best effort */ }
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushQStats(); });
 
   // ---------- Daily reminder (push notification) ----------
   // Saved per account in Firestore (cloudlingoPush/{uid}): this device's push

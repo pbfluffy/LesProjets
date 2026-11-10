@@ -299,6 +299,22 @@ service cloud.firestore {
     // Written by the learner; read by the hourly sender (Admin SDK, bypasses rules).
     // Cloudlingo usage funnel: one anonymous record per device (random id) with the
     // first steps reached. Anyone may write their own; only admins read.
+    // Cloudlingo answer counts per question: right (r) and wrong (w) first-try answers.
+    // Anyone may add exactly one answer at a time; only admins read or reset.
+    match /cloudlingoQStats/{qid} {
+      allow read, delete: if isAdmin();
+      allow create: if qid.matches('^[a-z]{3}-[0-9]{1,2}-[0-9]{1,3}$')
+                   && request.resource.data.keys().hasOnly(['r', 'w', 'cert'])
+                   && request.resource.data.r is int && request.resource.data.w is int
+                   && request.resource.data.r >= 0 && request.resource.data.w >= 0
+                   && request.resource.data.r + request.resource.data.w == 1
+                   && request.resource.data.cert == qid.split('-')[0];
+      allow update: if request.resource.data.keys().hasOnly(['r', 'w', 'cert'])
+                   && request.resource.data.cert == resource.data.cert
+                   && request.resource.data.r is int && request.resource.data.w is int
+                   && ((request.resource.data.r == resource.data.r + 1 && request.resource.data.w == resource.data.w)
+                    || (request.resource.data.w == resource.data.w + 1 && request.resource.data.r == resource.data.r));
+    }
     match /cloudlingoFunnel/{dev} {
       allow read, delete: if isAdmin();
       allow create, update: if dev.matches('^[a-z0-9]{20}$')
