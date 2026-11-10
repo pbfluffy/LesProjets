@@ -392,6 +392,12 @@ html.light body{
 .cloud-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px}
 .cloud-head h3{font-size:14px;margin:0;color:var(--text)}
 .cloud-filter{font-size:12px;color:var(--faint);display:flex;align-items:center;gap:6px}
+.cloud-fn{padding:12px 14px}
+.cloud-fn-row{display:grid;grid-template-columns:minmax(150px,1.2fr) 3fr 64px 70px;gap:10px;align-items:center;padding:6px 0;font-size:13px}
+.cloud-fn-row .bar{height:12px;border-radius:6px;background:rgba(127,127,127,.15);overflow:hidden}.cloud-fn-row .bar i{display:block;height:100%;background:var(--accent);border-radius:6px}
+.cloud-fn-row .n{font-weight:800;text-align:right}.cloud-fn-row .drop{font-size:11px;color:var(--red);text-align:right}
+.cloud-fn-note{font-size:12px;color:var(--faint);padding-top:8px;border-top:1px solid rgba(127,127,127,.15);margin-top:6px;display:flex;flex-wrap:wrap;gap:6px 16px}
+.cloud-err details{margin-top:6px}.cloud-err pre{white-space:pre-wrap;word-break:break-word;font-size:11px;color:var(--muted);background:rgba(127,127,127,.08);padding:8px;border-radius:8px;max-height:220px;overflow:auto}
 .cloud-certbar{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:13px;font-weight:600;color:var(--muted)}
 .cloud-certbar select{font:inherit;font-weight:600;color:var(--text);background:var(--panel,transparent);border:1px solid rgba(127,127,127,.35);border-radius:10px;padding:7px 10px;min-width:240px}
 .cloud-cert{display:block;line-height:1.2}.cloud-cert small{display:block;font-size:10px;color:var(--faint);letter-spacing:.03em}
@@ -768,8 +774,14 @@ html.light body{
     <p class="app-note">Cloudlingo: problem reports from learners (🚩 in lessons and exam reviews), and the questions people miss most, from everyone's saved progress.</p>
     <div class="cloud-grid">
       <div>
+        <div class="cloud-head"><h3>Getting started</h3>
+          <label class="cloud-filter">First opened <select id="cloud-period"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="0">All time</option></select></label></div>
+        <div class="panel" id="cloud-funnel"><div class="skeleton-row"></div></div>
+      </div>
+      <div>
         <div class="cloud-head"><h3>Learners</h3>
-          <label class="cloud-filter">Sort <select id="cloud-sort"><option value="recent" selected>Last active</option><option value="xp">XP</option><option value="streak">Streak</option></select></label></div>
+          <span class="cloud-filter"><button class="btn ghost small" data-cloud-csv="learners">Download CSV</button>
+          <label class="cloud-filter">Sort <select id="cloud-sort"><option value="recent" selected>Last active</option><option value="xp">XP</option><option value="streak">Streak</option></select></label></span></div>
         <div class="panel"><div class="cloud-row head"><div>Learner</div><div>Cert</div><div>XP</div><div>Streak</div><div>Sessions</div><div>Exams</div><div>Reminder</div><div>Last active</div></div>
           <div id="cloud-learners"><div class="skeleton-row"></div><div class="skeleton-row"></div></div></div>
       </div>
@@ -784,8 +796,13 @@ html.light body{
       </div>
       <div>
         <div class="cloud-head"><h3>Problem reports</h3>
-          <label class="cloud-filter"><input type="checkbox" id="cloud-show-resolved"> Show resolved</label></div>
+          <span class="cloud-filter"><button class="btn ghost small" data-cloud-csv="reports">Download CSV</button>
+          <label class="cloud-filter"><input type="checkbox" id="cloud-show-resolved"> Show resolved</label></span></div>
         <div class="panel" id="cloud-reports"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
+      </div>
+      <div>
+        <div class="cloud-head"><h3>App errors</h3><span class="cloud-filter">Script errors from learners' devices, grouped</span></div>
+        <div class="panel" id="cloud-errors"><div class="skeleton-row"></div></div>
       </div>
       <div>
         <div class="cloud-head"><h3>Most-missed questions</h3>
@@ -2003,7 +2020,7 @@ function renderBackyardTab(){
 
 // ---- Cloudlingo: problem reports + most-missed questions ----
 const CLOUD_EDITS = new Map(); // qid -> edit doc
-const CLOUD = { loaded: false, loading: false, reports: [], learners: 0, perQ: new Map(), people: [], board: [], week: '', remindOn: 0 };
+const CLOUD = { loaded: false, loading: false, reports: [], learners: 0, perQ: new Map(), people: [], board: [], week: '', remindOn: 0, funnel: [], errors: [] };
 // The current leaderboard week = this Monday's date, same as the app.
 function cloudWeekId(){ const x = new Date(); x.setHours(12,0,0,0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0'); }
 function cloudDayKey(off){ const d = new Date(); d.setDate(d.getDate() + (off || 0)); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
@@ -2038,12 +2055,16 @@ async function loadCloudlingoData(){
     CLOUD.week = cloudWeekId();
     const edits = await getDocs(collection(db, 'cloudlingoEdits')).catch(() => null);
     CLOUD_EDITS.clear(); (edits ? edits.docs : []).forEach(d => CLOUD_EDITS.set(d.id, d.data()));
-    const [reps, progress, board, pushes] = await Promise.all([
+    const [reps, progress, board, pushes, funnel, errs] = await Promise.all([
       getDocs(collection(db, 'cloudlingoReports')).catch(() => null),
       getDocs(collection(db, 'userCloudlingo')).catch(() => null),
       getDocs(collection(db, 'cloudlingoWeeks', CLOUD.week, 'scores')).catch(() => null),
-      getDocs(collection(db, 'cloudlingoPush')).catch(() => null)
+      getDocs(collection(db, 'cloudlingoPush')).catch(() => null),
+      getDocs(collection(db, 'cloudlingoFunnel')).catch(() => null),
+      getDocs(collection(db, 'cloudlingoErrors')).catch(() => null)
     ]);
+    CLOUD.funnel = funnel ? funnel.docs.map(d => Object.assign({ id: d.id }, d.data())) : [];
+    CLOUD.errors = errs ? errs.docs.map(d => Object.assign({ id: d.id }, d.data())) : [];
     CLOUD.board = board ? board.docs.map(d => Object.assign({ uid: d.id }, d.data())).sort((a, b) => (b.xp || 0) - (a.xp || 0)) : [];
     const remind = new Map(); (pushes ? pushes.docs : []).forEach(d => { const p = d.data(); remind.set(d.id, p.on ? p.hour : null); });
     CLOUD.remindOn = [...remind.values()].filter(h => h != null).length;
@@ -2087,6 +2108,44 @@ async function renderCloudlingoTab(){
   const weekAgo = Date.now() - 7 * 86400000;
   const activeWeek = people.filter(p => p.updated >= weekAgo).length;
   statCards('cloud-stats', [['Learners', people.length], ['Active this week', activeWeek], ['Reminders on', people.filter(p => p.reminder != null).length], ['Answers recorded', answers.toLocaleString('en')], ['Open reports', open.length], ['Questions', bank.size]]);
+  // Getting-started funnel (one record per device)
+  const days = +(document.getElementById('cloud-period')?.value || 0);
+  const since = days ? Date.now() - days * 86400000 : 0;
+  const devs = CLOUD.funnel.filter(d => (d.first || 0) >= since && (!cert || d.cert === cert));
+  const FSTEPS = [['open', 'Opened the app'], ['cert', 'Chose a certification'], ['start', 'Started a lesson'], ['answer', 'Answered a question'], ['done1', 'Finished 1st lesson'], ['done3', 'Finished 3 lessons']];
+  const has = (d, k) => !!(d.steps && d.steps[k]);
+  const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
+  const top = devs.filter(d => has(d, 'open')).length;
+  let prev = null;
+  const fnRows = FSTEPS.map(([k, label]) => {
+    const n = devs.filter(d => has(d, k)).length;
+    const drop = prev != null && prev > n ? `-${pct(prev - n, prev)}%` : '';
+    prev = n;
+    return `<div class="cloud-fn-row"><span>${label}</span><span class="bar"><i style="width:${pct(n, top)}%"></i></span><span class="n">${n} <span class="cloud-filter" style="display:inline">${pct(n, top)}%</span></span><span class="drop">${drop}</span></div>`;
+  }).join('');
+  const cnt = k => devs.filter(d => has(d, k)).length;
+  document.getElementById('cloud-funnel').innerHTML = devs.length ? `<div class="cloud-fn">${fnRows}
+    <div class="cloud-fn-note"><span>Placement test: <b>${cnt('placement')}</b></span><span>Took an exam: <b>${cnt('exam')}</b></span><span>Signed in: <b>${cnt('signin')}</b></span>
+    <span>On a phone: <b>${pct(devs.filter(d => d.mobile).length, devs.length)}%</b></span><span>Installed app: <b>${pct(devs.filter(d => d.standalone).length, devs.length)}%</b></span>
+    <span>One device = one row; counting started with app version 2026.11.10${cert ? ' · devices that haven\'t picked a certification yet are left out' : ''}</span></div></div>`
+    : '<div class="cloud-empty">No visits recorded for this period yet. Tracking starts with this version of the app.</div>';
+  // App errors, grouped by message + place
+  const groups = new Map();
+  CLOUD.errors.forEach(e => {
+    const k = (e.msg || '') + '|' + (e.src || '') + ':' + (e.line || 0);
+    const g = groups.get(k) || { k, msg: e.msg, src: e.src, line: e.line, col: e.col, stack: e.stack, ids: [], devs: new Set(), vers: new Set(), views: new Set(), last: 0, ua: e.ua };
+    g.ids.push(e.id); if (e.dev) g.devs.add(e.dev); if (e.v) g.vers.add(e.v); if (e.view) g.views.add(e.view);
+    const ts = e.ts?.toMillis?.() || 0; if (ts > g.last) { g.last = ts; g.ua = e.ua; g.stack = e.stack || g.stack; }
+    groups.set(k, g);
+  });
+  CLOUD.errGroups = [...groups.values()].sort((a, b) => b.last - a.last);
+  document.getElementById('cloud-errors').innerHTML = CLOUD.errGroups.length ? CLOUD.errGroups.map((g, i) => `<div class="cloud-item cloud-err">
+      <div class="meta"><b>${g.ids.length}×</b><span>${g.devs.size} device${g.devs.size === 1 ? '' : 's'}</span><span>${esc([...g.vers].join(', '))}</span><span>screen: ${esc([...g.views].join(', ') || '–')}</span><span>${eventTimeLabel(g.last)}</span></div>
+      <div class="q">${esc(g.msg)}</div>
+      <div class="meta">${esc((g.src || '').replace(/^https?:\/\/[^/]+/, '') || '(no file)')}${g.line ? ':' + g.line + ':' + (g.col || 0) : ''}</div>
+      <details><summary class="cloud-filter" style="display:list-item;cursor:pointer">Details</summary><pre>${esc(g.stack || '(no stack)')}\n\n${esc(g.ua || '')}</pre></details>
+      <div class="acts"><button class="btn ghost small" data-cloud-errclear="${i}">Clear</button></div></div>`).join('')
+    : '<div class="cloud-empty">No errors reported. 🎉</div>';
   // Learners
   const sortBy = document.getElementById('cloud-sort')?.value || 'recent';
   const key = { recent: p => p.updated, xp: p => p.xp, streak: p => p.streak }[sortBy];
@@ -2096,7 +2155,7 @@ async function renderCloudlingoTab(){
     const prof = PROFILE_MAP.get(p.uid) || {};
     const acct = prof.email || p.uid;
     return `<div class="cloud-row"><div class="cloud-who" title="${esc(acct)}"><b>${esc(prof.name || prof.email || p.uid.slice(0, 10))}</b><span>${esc(acct)}</span></div>
-      <div class="cloud-cert">${esc(cloudCertName(p.cert))}${cloudCourse(p.cert) ? `<small>${esc(cloudCourse(p.cert).code)}</small>` : ''}</div><div><b>${p.xp.toLocaleString('en')}</b></div><div>${p.streak ? p.streak + ' days' : '–'}</div>
+      <div class="cloud-cert">${esc(cloudCertName(p.cert))}${cloudCourse(p.cert) ? `<small>${esc(cloudCourse(p.cert).code)}</small>` : ''}</div><div><b>${p.xp.toLocaleString('en')}</b></div><div>${p.streak ? p.streak + (p.streak === 1 ? ' day' : ' days') : '–'}</div>
       <div>${p.lessons}</div><div>${p.passed}/${p.exams}</div><div>${p.reminder != null ? hourLabel(p.reminder) : '–'}</div><div class="sync">${eventTimeLabel(p.updated)}</div></div>`;
   }).join('') : `<div class="cloud-empty">No learners${cert ? ' studying ' + esc(cloudCertName(cert)) : ''} with saved progress yet.</div>`;
   // This week's leaderboard
@@ -2158,12 +2217,55 @@ document.addEventListener('click', async e => {
     renderCloudlingoTab();
   } catch (err) { b.disabled = false; showToast('Could not update the report: ' + (err.code || err.message), 'error'); }
 });
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-cloud-errclear]');
+  if (!b) return;
+  const g = (CLOUD.errGroups || [])[+b.dataset.cloudErrclear]; if (!g) return;
+  if (!confirm('Clear this error (' + g.ids.length + ' report' + (g.ids.length === 1 ? '' : 's') + ')? It comes back if it happens again.')) return;
+  b.disabled = true;
+  try {
+    await Promise.all(g.ids.map(id => deleteDoc(doc(db, 'cloudlingoErrors', id))));
+    CLOUD.errors = CLOUD.errors.filter(x => !g.ids.includes(x.id));
+    renderCloudlingoTab();
+  } catch (err) { b.disabled = false; showToast('Could not clear: ' + (err.code || err.message), 'error'); }
+});
+// CSV downloads (UTF-8 with BOM so Excel keeps Thai names), following the certification filter.
+function cloudCsv(name, header, rows){
+  const cell = v => { const x = v == null ? '' : String(v); return /[",\n\r]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+  const text = '\ufeff' + [header, ...rows].map(r => r.map(cell).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+  a.download = name + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-cloud-csv]');
+  if (!b) return;
+  const cert = cloudCertSel(), inCert = id => !cert || id === cert;
+  const iso = ms => ms ? new Date(ms).toISOString().replace('T', ' ').slice(0, 16) : '';
+  const tag = cert ? '-' + cert : '';
+  if (b.dataset.cloudCsv === 'learners') {
+    const rows = CLOUD.people.filter(p => inCert(p.cert)).sort((a, b2) => b2.updated - a.updated).map(p => {
+      const prof = PROFILE_MAP.get(p.uid) || {}, c = cloudCourse(p.cert);
+      return [prof.name || '', prof.email || p.uid, c ? c.name : p.cert, c ? c.code : '', p.xp, p.streak, p.lessons, p.passed, p.exams, p.reminder != null ? p.reminder + ':00' : '', iso(p.updated)];
+    });
+    cloudCsv('cloudlingo-learners' + tag, ['Name', 'Account', 'Certification', 'Exam code', 'XP', 'Streak', 'Sessions', 'Exams passed', 'Exams taken', 'Reminder', 'Last active (UTC)'], rows);
+  } else {
+    const REASON = { wrong: 'Answer looks wrong', unclear: 'Question unclear', typo: 'Typo', outdated: 'Outdated', other: 'Other' };
+    const rows = CLOUD.reports.filter(r => inCert(r.cert || cloudCertOf(r.qid))).map(r => {
+      const p = r.uid ? PROFILE_MAP.get(r.uid) : null;
+      return [r.status === 'resolved' ? 'Resolved' : 'Open', REASON[r.reason] || r.reason, cloudCertName(r.cert || cloudCertOf(r.qid)), r.qid, r.qtext || '', r.answer || '', r.note || '', r.uid ? ((p && (p.email || p.name)) || r.uid) : 'signed out', iso(r.ts?.toMillis?.() || 0)];
+    });
+    cloudCsv('cloudlingo-reports' + tag, ['Status', 'Reason', 'Certification', 'Question ID', 'Question', 'Answer shown', 'Note', 'Reported by', 'Date (UTC)'], rows);
+  }
+});
 document.addEventListener('change', e => {
   if (e.target.id === 'cloud-cert') {
     try { localStorage.setItem('admin_cloud_cert', e.target.value); } catch {}
     const f = document.getElementById('cloud-find'); if (f && f.value) f.dispatchEvent(new Event('input', { bubbles: true }));
   }
-  if (['cloud-show-resolved', 'cloud-min', 'cloud-sort', 'cloud-cert'].includes(e.target.id)) renderCloudlingoTab();
+  if (['cloud-show-resolved', 'cloud-min', 'cloud-sort', 'cloud-cert', 'cloud-period'].includes(e.target.id)) renderCloudlingoTab();
 });
 
 // ---- Cloudlingo question editor ----

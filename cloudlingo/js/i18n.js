@@ -4,7 +4,12 @@
 window.I18N = {
   en: {
     nav_learn: 'Learn', nav_practice: 'Practice', nav_exam: 'Mock exam', nav_board: 'Leaderboard', nav_profile: 'Profile',
-    switch_cert: 'Switch certification', updating: 'Updating to the latest version…', day_streak: 'Day streak', total_xp: 'Total XP',
+    switch_cert: 'Switch certification', updating: 'Updating to the latest version…',
+    place_title: 'Already know some of this?', place_sub: 'Take a quick placement test ({n} questions) and skip the units you already know.',
+    place_btn: 'Placement test', place_ob: 'I know some – placement test', mode_placement: 'Placement test',
+    placement_done: 'Placement complete!', placement_skipped_one: 'You skipped {n} unit you already know:', placement_skipped_other: 'You skipped {n} units you already know:',
+    placement_none: "No units skipped this time. Starting from the beginning is the way to go.",
+    focus_next: 'Focus next: {d}', focus_sub: 'Your weakest domain on this exam:', focus_btn: 'Practice it', day_streak: 'Day streak', total_xp: 'Total XP',
     signin: 'Sign in', signin_title: 'Sign in to save progress across devices',
     save_progress: 'Save your progress',
     signin_unavailable: "Sign-in can't load right now. Your progress is saved on this device.",
@@ -162,7 +167,12 @@ window.I18N = {
   },
   th: {
     nav_learn: 'เรียน', nav_practice: 'ฝึกฝน', nav_exam: 'ข้อสอบจำลอง', nav_board: 'อันดับ', nav_profile: 'โปรไฟล์',
-    switch_cert: 'เปลี่ยนใบเซอร์', updating: 'กำลังอัปเดตเป็นเวอร์ชันล่าสุด…', day_streak: 'วันต่อเนื่อง', total_xp: 'XP ทั้งหมด',
+    switch_cert: 'เปลี่ยนใบเซอร์', updating: 'กำลังอัปเดตเป็นเวอร์ชันล่าสุด…',
+    place_title: 'รู้เรื่องนี้มาบ้างแล้ว?', place_sub: 'ทำแบบทดสอบวัดระดับสั้น ๆ ({n} ข้อ) แล้วข้ามหน่วยที่คุณรู้แล้ว',
+    place_btn: 'ทดสอบวัดระดับ', place_ob: 'รู้มาบ้างแล้ว – วัดระดับ', mode_placement: 'แบบทดสอบวัดระดับ',
+    placement_done: 'ทดสอบวัดระดับเสร็จแล้ว!', placement_skipped_one: 'คุณข้ามได้ {n} หน่วยที่รู้แล้ว:', placement_skipped_other: 'คุณข้ามได้ {n} หน่วยที่รู้แล้ว:',
+    placement_none: 'รอบนี้ยังไม่ข้ามหน่วยไหน เริ่มจากต้นจะดีที่สุด',
+    focus_next: 'ควรฝึกต่อ: {d}', focus_sub: 'โดเมนที่คุณทำได้น้อยที่สุดในการสอบนี้:', focus_btn: 'ฝึกเลย', day_streak: 'วันต่อเนื่อง', total_xp: 'XP ทั้งหมด',
     signin: 'เข้าสู่ระบบ', signin_title: 'เข้าสู่ระบบเพื่อบันทึกความคืบหน้าข้ามอุปกรณ์',
     save_progress: 'บันทึกความคืบหน้าของคุณ',
     signin_unavailable: 'ตอนนี้โหลดระบบเข้าสู่ระบบไม่ได้ ความคืบหน้ายังบันทึกอยู่ในอุปกรณ์นี้',

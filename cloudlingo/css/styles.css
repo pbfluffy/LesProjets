@@ -113,6 +113,10 @@ h1, h2, h3, p { margin: 0; }
 .certchip .cname { font-size: 14px; font-weight: 800; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .certchip .code { font-size: 11px; font-weight: 700; color: var(--primary); letter-spacing: .03em; }
 .topstats { display: flex; align-items: center; gap: 4px; }
+.placed-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 4px 0 18px; }
+.placed-list span { display: inline-flex; align-items: center; gap: 6px; background: var(--good-soft); color: var(--good-dark); font-weight: 800; font-size: 14px; padding: 6px 12px; border-radius: 999px; }
+.placecard, .focuscard { margin: 0 0 14px; }
+.domain-units { display: block; font-weight: 600; margin-top: 2px; }
 .appver { text-align: center; font-size: 11px; color: var(--muted); opacity: .7; padding: 28px 0 4px; letter-spacing: .02em; }
 .update-bar { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 100; background: var(--primary); color: #fff; font-weight: 800; font-size: 14px; padding: 10px 18px; border-radius: 999px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
 

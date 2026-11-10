@@ -13,6 +13,7 @@
   const STORE = 'cloudlingo:v1';
   const LESSONS_PER_UNIT = 3;
   const Q_PER_LESSON = 7;
+  const FIRST_LESSON_Q = 4; // the very first lesson is short, so it's a quick win
   const GOALS = [
     { xp: 10, key: 'goal_casual' }, { xp: 20, key: 'goal_regular' },
     { xp: 30, key: 'goal_serious' }, { xp: 50, key: 'goal_intense' }
@@ -238,6 +239,7 @@
       account = { uid: user.uid, name: user.displayName || user.email || t('signed_in'), first: (user.displayName || '').trim().split(/\s+/)[0] || '', email: user.email || '', photo: user.photoURL || savedPhoto(user.uid), synced: false };
       lastUid = user.uid;
       authState = 'in';
+      track('signin'); clearTimeout(fnTimer); fnTimer = setTimeout(sendFunnel, 1500);
       refresh();
       fb.fs.setDoc(fb.fs.doc(fb.db, 'userProfiles', user.uid), {
         name: user.displayName || '', email: user.email || '', photoURL: user.photoURL || null,
@@ -444,14 +446,14 @@
 
   // Save the in-progress lesson so the learner can leave and pick it up later.
   function saveSession(queue) {
-    S.session = L ? { mode: L.mode, unit: L.unit, cert: S.cert, queue: queue || L.queue, total: L.total, done: L.done, missed: [...L.missed], elapsed: Date.now() - L.start } : null;
+    S.session = L ? { mode: L.mode, unit: L.unit, cert: S.cert, queue: queue || L.queue, all: L.all, total: L.total, done: L.done, missed: [...L.missed], elapsed: Date.now() - L.start } : null;
     save();
   }
   const savedSession = () => {
     const s = S.session;
     return s && s.cert === S.cert && s.queue && s.queue.length && s.queue.every(id => live(QINDEX[id])) ? s : null;
   };
-  const modeName = m => ['lesson', 'replay', 'practice', 'mistakes', 'review'].includes(m) ? t('mode_' + m) : t('mode_session');
+  const modeName = m => ['lesson', 'replay', 'practice', 'mistakes', 'review', 'placement'].includes(m) ? t('mode_' + m) : t('mode_session');
 
   // ---------- Streak freezes ----------
   // Earn one for every 7 days in a row (hold up to 2). Each covers one missed day:
@@ -1009,7 +1011,7 @@
       <p class="section-sub">${t('pick_goal_sub')}</p>
       <div class="seg">${GOALS.map(g => `<button class="${OB.goal === g.xp ? 'on' : ''}" data-act="obgoal" data-g="${g.xp}">${t(g.key)}<small>${t('xp_per_day', { n: g.xp })}</small></button>`).join('')}</div>
     </div>
-    <div class="fixed-foot"><button class="btn" data-act="obstart" ${OB.cert ? '' : 'disabled'}>${t('start_learning')}</button></div>`;
+    <div class="fixed-foot"><button class="btn ghost" data-act="obplace" ${OB.cert ? '' : 'disabled'}>${t('place_ob')}</button><button class="btn" data-act="obstart" ${OB.cert ? '' : 'disabled'}>${t('start_learning')}</button></div>`;
   }
 
   // ---------- Learn (path) ----------
@@ -1020,9 +1022,11 @@
       <p class="muted small">${modeName(s.mode)}${s.unit ? ` · ${esc(UNITS[s.unit].title)}` : ''} · ${t('resume_done', { d: s.done, t: s.total })}</p></div></div>
       <div class="row" style="margin-top:14px"><button class="btn block grow" data-act="resume">${t('continue')}</button><button class="btn ghost" data-act="discard">${t('discard')}</button></div></div>` : '';
     const firstOpen = c.units.findIndex(u => unitDone(u) < LESSONS_PER_UNIT);
+    const placeCard = !s && !(S.placed && S.placed[c.id]) && c.units.every(u => !unitDone(u))
+      ? `<div class="card placecard"><div class="row"><div class="bigicon">${ICON('target')}</div><div class="grow"><h3 style="margin-bottom:2px">${t('place_title')}</h3><p class="muted small">${t('place_sub', { n: placeCount(c) })}</p></div><button class="btn ghost" data-act="placement">${t('place_btn')}</button></div></div>` : '';
     const due = dueFor(c.id).length;
     const dueCard = due ? `<div class="card duecard"><div class="row"><div class="bigicon">${ICON('calendar')}</div><div class="grow"><h3 style="margin-bottom:2px">${tn('review_some', due)}</h3><p class="muted small">${t('review_why')}</p></div><button class="btn ghost" data-act="review">${t('review_btn')}</button></div></div>` : '';
-    return shell(`${freezeNotice()}${installCard(true)}${certificateCard(c)}${examDateCard(c)}${dueCard}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div>${resume}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
+    return shell(`${freezeNotice()}${installCard(true)}${certificateCard(c)}${examDateCard(c)}${dueCard}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div>${resume}${placeCard}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
       <div style="margin-top:34px">${readinessCard(c, false)}</div>
       <div class="card" style="margin-top:16px;text-align:center"><h3>${t('ready_title')}</h3><p class="muted" style="margin-bottom:14px">${t('ready_sub', { code: c.code })}</p><button class="btn ghost" data-act="nav" data-v="exam">${t('try_exam')}</button></div>`);
   }
@@ -1051,13 +1055,15 @@
   const isLesson = () => L && (L.mode === 'lesson' || L.mode === 'replay');
 
   function startLesson(uid, mode) {
-    startSession(mode, pickQuestions(UNITS[uid].questions, Q_PER_LESSON), uid);
+    const n = mode === 'lesson' && !(S.lessons > 0) ? FIRST_LESSON_Q : Q_PER_LESSON;
+    startSession(mode, pickQuestions(UNITS[uid].questions, n), uid);
   }
 
   function startSession(mode, ids, uid = null) {
     if (!ids.length) return;
     closeModal();
-    L = { mode, unit: uid, queue: [...ids], total: ids.length, done: 0, missed: new Set(), start: Date.now() };
+    L = { mode, unit: uid, queue: [...ids], all: [...ids], total: ids.length, done: 0, missed: new Set(), start: Date.now() };
+    track('start');
     saveSession();
     prepareQ();
     go('lesson');
@@ -1066,7 +1072,7 @@
   function resumeSession() {
     const s = savedSession();
     if (!s) return;
-    L = { mode: s.mode, unit: s.unit, queue: [...s.queue], total: s.total, done: s.done, missed: new Set(s.missed), start: Date.now() - (s.elapsed || 0) };
+    L = { mode: s.mode, unit: s.unit, queue: [...s.queue], all: s.all || [...s.queue], total: s.total, done: s.done, missed: new Set(s.missed), start: Date.now() - (s.elapsed || 0) };
     prepareQ();
     go('lesson');
   }
@@ -1278,7 +1284,9 @@
     const st = S.stats[q.id] || { seen: 0, correct: 0 };
     st.seen++; if (ok) st.correct++;
     S.stats[q.id] = st;
-    srsUpdate(q.id, ok && !L.missed.has(q.id));
+    const placing = L.mode === 'placement';
+    if (!placing) srsUpdate(q.id, ok && !L.missed.has(q.id));
+    track('answer');
     sfx(ok ? 'right' : 'wrong');
     if (ok) {
       L.done++;
@@ -1290,17 +1298,18 @@
       }
     } else {
       L.missed.add(q.id);
-      S.mistakes[q.id] = { ts: Date.now() };
+      if (placing) L.done++;
+      else S.mistakes[q.id] = { ts: Date.now() };
     }
     // Save as if Continue was pressed, so leaving now never repeats or loses an answer.
-    saveSession(L.queue.slice(1).concat(ok ? [] : [q.id]));
+    saveSession(L.queue.slice(1).concat(ok || placing ? [] : [q.id]));
     render();
   }
 
   function next() {
     if (!L || !L.checked) return;
     const id = L.queue.shift();
-    if (!L.ok) L.queue.push(id); // missed questions come back at the end
+    if (!L.ok && L.mode !== 'placement') L.queue.push(id); // missed questions come back at the end
     if (!L.queue.length) return finishLesson();
     prepareQ();
     render();
@@ -1328,7 +1337,44 @@
     render();
   }
 
+  // ---------- Placement test ----------
+  // Two questions from each unit; every unit answered fully right is marked complete.
+  const PLACE_PER_UNIT = 2;
+  const placeCount = c => c.units.length * PLACE_PER_UNIT;
+  function startPlacement() {
+    const c = course();
+    const ids = c.units.flatMap(u => shuffle(u.questions.filter(q => q.t !== 'match' && live(q))).slice(0, PLACE_PER_UNIT).map(q => q.id));
+    startSession('placement', ids);
+  }
+  function finishPlacement() {
+    const c = course(), skipped = [];
+    c.units.forEach(u => {
+      const ids = L.all.filter(id => QINDEX[id] && QINDEX[id].unit === u.id);
+      if (ids.length && ids.every(id => !L.missed.has(id)) && unitDone(u) < LESSONS_PER_UNIT) {
+        S.progress[u.id] = LESSONS_PER_UNIT;
+        skipped.push(u.title);
+      }
+    });
+    S.placed = Object.assign({}, S.placed, { [c.id]: Date.now() });
+    S.session = null;
+    const xp = 10;
+    const { extended, earnedFreeze } = addXP(xp);
+    const badges = checkBadges();
+    sfx('complete');
+    END = {
+      xp, perfect: false, extended, earnedFreeze, badges, streak: S.streak, skipped,
+      acc: Math.round(100 * (L.total - L.missed.size) / L.total),
+      secs: Math.round((Date.now() - L.start) / 1000), mode: 'placement'
+    };
+    L = null;
+    save();
+    track('placement');
+    go('lessonEnd');
+    if (skipped.length) confetti();
+  }
+
   function finishLesson() {
+    if (L.mode === 'placement') return finishPlacement();
     const perfect = L.missed.size === 0;
     let xp = (L.mode === 'replay' ? 5 : 10) + (perfect ? 5 : 0);
     if (L.mode === 'lesson' && L.unit) S.progress[L.unit] = (S.progress[L.unit] || 0) + 1;
@@ -1350,17 +1396,21 @@
     };
     L = null;
     save();
+    if (S.lessons >= 1) track('done1');
+    if (S.lessons >= 3) track('done3');
     go('lessonEnd');
     confetti();
   }
 
   function lessonEndView() {
     const e = END;
-    const title = e.mode === 'cards' ? t('cards_done') : e.unitCompleted ? t('unit_complete') : e.perfect ? t('perfect_lesson') : e.mode === 'lesson' || e.mode === 'replay' ? t('lesson_complete') : t('practice_complete');
-    const sub = e.mode === 'cards' ? tn('cards_done_sub', e.cards) : e.unitCompleted ? t('unit_complete_sub', { unit: esc(e.unitCompleted) }) : e.perfect ? t('perfect_sub') : t('missed_saved');
+    const placed = e.mode === 'placement';
+    const title = placed ? t('placement_done') : e.mode === 'cards' ? t('cards_done') : e.unitCompleted ? t('unit_complete') : e.perfect ? t('perfect_lesson') : e.mode === 'lesson' || e.mode === 'replay' ? t('lesson_complete') : t('practice_complete');
+    const sub = placed ? (e.skipped.length ? tn('placement_skipped', e.skipped.length) : t('placement_none')) : e.mode === 'cards' ? tn('cards_done_sub', e.cards) : e.unitCompleted ? t('unit_complete_sub', { unit: esc(e.unitCompleted) }) : e.perfect ? t('perfect_sub') : t('missed_saved');
     return `<div class="center-screen">
       ${mascot(150, e.perfect ? 'cool' : e.unitCompleted || e.extended ? 'proud' : 'laugh', 'bounce')}
       <h1>${title}</h1><p class="muted">${sub}</p>
+      ${placed && e.skipped.length ? `<div class="placed-list">${e.skipped.map(u => `<span>${ICON('check')} ${esc(u)}</span>`).join('')}</div>` : ''}
       <div class="statrow">
         <div class="stat gold"><div class="lbl">${t('xp_earned_lbl')}</div><div class="val">${ICON('bolt')} ${e.xp}</div></div>
         <div class="stat green"><div class="lbl">${t('accuracy')}</div><div class="val">${ICON('target')} ${e.acc}%</div></div>
@@ -1543,10 +1593,15 @@
     const score = Math.round(100 * correct / items.length);
     const passAt = E.pass || c.exam.pass;
     const pass = score >= passAt;
-    const byUnit = c.units.map(u => {
+    const doms = new Map();
+    c.units.forEach(u => {
       const its = items.filter(x => QINDEX[x.id].unit === u.id);
-      return { title: u.title, icon: unitIcon(u), n: its.length, ok: its.filter(x => x.ok).length };
-    }).filter(x => x.n);
+      if (!its.length) return;
+      const d = doms.get(u.domain) || { label: u.domain, units: [], titles: [], n: 0, ok: 0 };
+      d.units.push(u.id); d.titles.push(u.title); d.n += its.length; d.ok += its.filter(x => x.ok).length;
+      doms.set(u.domain, d);
+    });
+    const byDomain = [...doms.values()];
     S.exams.push({ cert: c.id, ts: Date.now(), score, pass, mode: E.mode || 'quick' });
     // XP scales with exam length: about 1 XP per 5% on the quick exam, 3x on the full one.
     const xp = Math.max(5, Math.round(score / 5 * (E.mode === 'full' ? 3 : 1)));
@@ -1554,8 +1609,9 @@
     const badges = checkBadges();
     sfx(pass ? 'pass' : 'tryagain');
     if (badges.length) sfx('badge', 1500);
-    R = { badges, cert: c.id, mode: E.mode || 'quick', passAt, items, correct, score, pass, byUnit, secs: Math.round((Date.now() - E.start) / 1000), xp, showAll: false };
+    R = { badges, cert: c.id, mode: E.mode || 'quick', passAt, items, correct, score, pass, byDomain, secs: Math.round((Date.now() - E.start) / 1000), xp, showAll: false };
     E = null;
+    track('exam');
     go('examResult');
     if (pass) confetti();
   }
@@ -1577,8 +1633,12 @@
       ${(R.badges || []).length ? `<div class="statrow" style="margin-bottom:18px">${badgeLine(R.badges)}</div>` : ''}
       ${R.pass ? `<div style="text-align:center;margin-bottom:18px"><button class="btn ghost" data-act="share">${ICON('share')} ${t('share_btn')}</button></div>` : ''}
       <div class="card" style="margin-bottom:18px"><h3>${t('by_domain')}</h3>
-        ${R.byUnit.map(u => { const p = Math.round(100 * u.ok / u.n); return `<div class="domainbar"><div class="top"><span class="ic-title">${u.icon} ${u.title}</span><span class="muted">${u.ok}/${u.n}</span></div><div class="progress ${p >= R.passAt ? 'green' : ''}" style="height:10px"><div style="width:${p}%"></div></div></div>`; }).join('')}
+        ${R.byDomain.map(d => { const p = Math.round(100 * d.ok / d.n); return `<div class="domainbar"><div class="top"><span><b>${esc(domainLabel(d.label))}</b><span class="muted small domain-units">${d.titles.map(esc).join(' · ')}</span></span><span class="muted">${d.ok}/${d.n}</span></div><div class="progress ${p >= R.passAt ? 'green' : ''}" style="height:10px"><div style="width:${p}%"></div></div></div>`; }).join('')}
       </div>
+      ${(() => {
+        const weak = R.byDomain.filter(d => d.ok < d.n).sort((a, b) => a.ok / a.n - b.ok / b.n)[0];
+        return weak ? `<div class="card focuscard" style="margin-bottom:18px"><div class="row"><div class="bigicon">${ICON('target')}</div><div class="grow"><h3 style="margin-bottom:2px">${t('focus_next', { d: esc(domainLabel(weak.label)) })}</h3><p class="muted small">${t('focus_sub')} ${weak.titles.map(esc).join(' · ')}</p></div><button class="btn" data-act="domainpractice" data-us="${weak.units.join(',')}">${t('focus_btn')}</button></div></div>` : '';
+      })()}
       <div class="row" style="justify-content:space-between;margin:22px 0 12px"><h2 style="font-size:20px;font-weight:900">${R.showAll ? t('all_qs') : t('review_misses')}</h2>
         <button class="linkbtn" data-act="toggleall">${R.showAll ? t('show_misses') : t('show_all')}</button></div>
       <div class="stack">${list.length ? list.map(x => { const q = QINDEX[x.id]; return `
@@ -1717,6 +1777,76 @@
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
     setInterval(checkForUpdate, 15 * 60 * 1000);
   }
+
+  // ---------- Usage funnel + error reports (admin page) ----------
+  // Anonymous and per device: which first steps someone has reached
+  // (cloudlingoFunnel/{device id}) and script errors (cloudlingoErrors).
+  // No answers, names or emails; the account id only once someone signs in.
+  // Off on localhost unless ?telemetry=1, so testing never adds fake data.
+  const TELEMETRY = pwaReady && (APP_VERSION !== 'dev' || /[?&]telemetry=1\b/.test(location.search));
+  const FUNNEL_KEY = 'cloudlingo:funnel';
+  let FN = null;
+  try { FN = JSON.parse(localStorage.getItem(FUNNEL_KEY)); } catch { /* new device */ }
+  if (!FN || !/^[a-z0-9]{20}$/.test(FN.id || '')) {
+    const abc = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    FN = { id: Array.from(crypto.getRandomValues(new Uint8Array(20)), b => abc[b % 36]).join(''), steps: {}, sent: '' };
+  }
+  const saveFN = () => { try { localStorage.setItem(FUNNEL_KEY, JSON.stringify(FN)); } catch { /* ignore */ } };
+  let fnTimer = null;
+  function track(step) {
+    if (FN.steps[step]) return;
+    FN.steps[step] = Date.now(); saveFN();
+    clearTimeout(fnTimer); fnTimer = setTimeout(sendFunnel, 1500);
+  }
+  async function sendFunnel() {
+    if (!TELEMETRY) return;
+    if (!fb && fbLoading) { try { await fbLoading; } catch { return; } }
+    if (!fb) return;
+    const uid = account ? account.uid : null;
+    const key = JSON.stringify([FN.steps, S.cert, uid, dayKey(new Date())]);
+    if (FN.sent === key) return;
+    try {
+      await fb.fs.setDoc(fb.fs.doc(fb.db, 'cloudlingoFunnel', FN.id), {
+        first: FN.steps.open || Date.now(), last: Date.now(), steps: FN.steps, cert: S.cert || '', lang,
+        mobile: matchMedia('(pointer: coarse)').matches, standalone: isStandalone(), uid, v: APP_VERSION
+      });
+      FN.sent = key; saveFN();
+    } catch { /* best effort */ }
+  }
+  // Devices that used the app before tracking started: fill in what they've clearly done.
+  if (!FN.steps.open) {
+    FN.steps.open = Date.now();
+    if (S.cert) FN.steps.cert = Date.now();
+    if (S.lessons >= 1) Object.assign(FN.steps, { start: Date.now(), answer: Date.now(), done1: Date.now() });
+    if (S.lessons >= 3) FN.steps.done3 = Date.now();
+    if ((S.exams || []).length) FN.steps.exam = Date.now();
+    saveFN();
+  }
+  setTimeout(sendFunnel, 4000); // also refreshes "last seen" once a day
+
+  let errCount = 0;
+  const errSeen = new Set();
+  async function reportError(msg, src, line, col, stack) {
+    msg = String(msg || '').slice(0, 300);
+    if (!TELEMETRY || !msg || errCount >= 5 || /ResizeObserver loop|^Script error\.?$/.test(msg)) return;
+    const k = msg + '|' + src + '|' + line;
+    if (errSeen.has(k)) return;
+    errSeen.add(k); errCount++;
+    if (!fb && fbLoading) { try { await fbLoading; } catch { return; } }
+    if (!fb) return;
+    try {
+      await fb.fs.addDoc(fb.fs.collection(fb.db, 'cloudlingoErrors'), {
+        msg, src: String(src || '').split('?')[0].slice(0, 200), line: +line || 0, col: +col || 0,
+        stack: String(stack || '').slice(0, 2000), v: APP_VERSION, view: String(view || '').slice(0, 20),
+        ua: navigator.userAgent.slice(0, 200), dev: FN.id, uid: account ? account.uid : null, ts: fb.fs.serverTimestamp()
+      });
+    } catch { /* best effort */ }
+  }
+  window.addEventListener('error', e => reportError(e.message, e.filename, e.lineno, e.colno, e.error && e.error.stack));
+  window.addEventListener('unhandledrejection', e => {
+    const r = e.reason;
+    reportError('Unhandled promise: ' + (r && r.message ? r.message : String(r)), '', 0, 0, r && r.stack);
+  });
 
   // ---------- Daily reminder (push notification) ----------
   // Saved per account in Firestore (cloudlingoPush/{uid}): this device's push
@@ -1953,7 +2083,10 @@
     keepdevice: () => { const c = choice; choice = null; closeModal(); linkSync(c.ref, c.uid, false); save(); },
     obcert: d => { OB.cert = d.c; render(); },
     obgoal: d => { OB.goal = +d.g; render(); },
-    obstart: () => { if (!OB.cert) return; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); go('learn'); maybeAutoTour(); }
+    obstart: () => { if (!OB.cert) return; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); track('cert'); go('learn'); maybeAutoTour(); },
+    obplace: () => { if (!OB.cert) return; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); track('cert'); startPlacement(); },
+    placement: () => startPlacement(),
+    domainpractice: d => { const us = String(d.us || '').split(',').filter(u => UNITS[u]); if (us.length) startSession('practice', pickQuestions(us.flatMap(u => UNITS[u].questions), 10), us.length === 1 ? us[0] : null); },
   };
 
   function toggleMulti(oi) {
