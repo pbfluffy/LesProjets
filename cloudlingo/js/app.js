@@ -47,7 +47,7 @@
     }))).then(() => { if (typeof refresh === 'function') refresh(); });
     return thaiLoading;
   }
-  const explain = q => (lang === 'th' && window.TH_EXPLAIN && window.TH_EXPLAIN[q.id]) || q.e;
+  const explain = q => (lang === 'th' && (q.eth || (window.TH_EXPLAIN && window.TH_EXPLAIN[q.id]))) || q.e;
   const blurb = c => (window.I18N_COURSES && I18N_COURSES[lang] && I18N_COURSES[lang][c.id]) || c.blurb;
   const domainLabel = d => lang === 'en' ? d : d.replace(/^Domains?\b/, m => t(m === 'Domains' ? 'domains' : 'domain'));
 
@@ -80,6 +80,32 @@
       QINDEX[q.id] = q;
     });
   }));
+
+  // ---------- Question edits from the admin page ----------
+  // Admins can fix or hide a question (Firestore cloudlingoEdits/{questionId}).
+  // Edits are cached on the device and applied over the built-in question bank.
+  const EDITS_KEY = 'cloudlingo:edits';
+  function rawOf(q) {
+    if (!q._orig) q._orig = JSON.parse(JSON.stringify(q.tf ? { t: 'tf', q: q.q, a: q.a === 0, e: q.e } : { t: q.t, q: q.q, o: q.o, a: q.a, e: q.e, pairs: q.pairs }));
+    return q._orig;
+  }
+  function applyEdits(map) {
+    Object.values(QINDEX).forEach(q => { if (q._edited) { const o = rawOf(q); setRaw(q, o); q.disabled = false; q.eth = null; q._edited = false; } });
+    for (const [qid, ed] of Object.entries(map || {})) {
+      const q = QINDEX[qid];
+      if (!q || !ed) continue;
+      const base = Object.assign({}, rawOf(q), ed.fields || {}, { t: rawOf(q).t }); // the question type never changes
+      setRaw(q, base);
+      q.disabled = !!ed.disabled; q.eth = ed.eth || null; q._edited = true;
+    }
+  }
+  function setRaw(q, r) {
+    q.q = r.q; q.e = r.e;
+    if (r.t === 'tf') { q.t = 'mc'; q.tf = true; q.o = ['True', 'False']; q.a = r.a ? 0 : 1; }
+    else { q.t = r.t; q.tf = false; q.o = r.o; q.a = r.a; q.pairs = r.pairs; }
+  }
+  try { applyEdits(JSON.parse(localStorage.getItem(EDITS_KEY) || '{}')); } catch { /* no cached edits */ }
+  const live = q => q && !q.disabled;
 
   // ---------- Persistent state ----------
   const DEFAULTS = () => ({
@@ -188,6 +214,11 @@
       if (e && e.code === 'auth/account-exists-with-different-credential') infoModal(t('signin_failed'), t('account_exists'));
     });
     finishLine().then(returned => { if (!returned) collectLineHandoff(); });
+    fb.fs.getDocs(fb.fs.collection(fb.db, 'cloudlingoEdits')).then(snap => {
+      const map = {}; snap.forEach(d => { map[d.id] = d.data(); });
+      try { localStorage.setItem(EDITS_KEY, JSON.stringify(map)); } catch { /* ignore */ }
+      applyEdits(map); refresh();
+    }).catch(() => { /* keep the cached edits */ });
     fb.au.onAuthStateChanged(fb.auth, user => {
       if (unwatch) { unwatch(); unwatch = null; }
       syncRef = null; choice = null;
@@ -413,7 +444,7 @@
   }
   const savedSession = () => {
     const s = S.session;
-    return s && s.cert === S.cert && s.queue && s.queue.length && s.queue.every(id => QINDEX[id]) ? s : null;
+    return s && s.cert === S.cert && s.queue && s.queue.length && s.queue.every(id => live(QINDEX[id])) ? s : null;
   };
   const modeName = m => ['lesson', 'replay', 'practice', 'mistakes', 'review'].includes(m) ? t('mode_' + m) : t('mode_session');
 
@@ -458,9 +489,9 @@
   // Prefer questions the learner has seen least.
   function pickQuestions(pool, n) {
     const seen = q => (S.stats[q.id] && S.stats[q.id].seen) || 0;
-    return shuffle(shuffle(pool).sort((a, b) => seen(a) - seen(b)).slice(0, n).map(q => q.id));
+    return shuffle(shuffle(pool.filter(live)).sort((a, b) => seen(a) - seen(b)).slice(0, n).map(q => q.id));
   }
-  const mistakesFor = cid => Object.keys(S.mistakes).filter(id => QINDEX[id] && QINDEX[id].course === cid);
+  const mistakesFor = cid => Object.keys(S.mistakes).filter(id => live(QINDEX[id]) && QINDEX[id].course === cid);
 
   // ---------- Report a problem with a question ----------
   // Reports go to Firestore (cloudlingoReports) and show up in the admin page.
@@ -510,7 +541,7 @@
   }
   // Due today, for this certification, oldest first (mistakes have their own queue).
   const dueFor = cid => Object.entries(S.srs || {})
-    .filter(([id, c]) => QINDEX[id] && QINDEX[id].course === cid && c.due <= dayKey() && !S.mistakes[id])
+    .filter(([id, c]) => live(QINDEX[id]) && QINDEX[id].course === cid && c.due <= dayKey() && !S.mistakes[id])
     .sort((a, b) => a[1].due < b[1].due ? -1 : 1).map(([id]) => id);
 
   // ---------- Exam readiness ----------
@@ -542,6 +573,143 @@
         <strong class="ic-title">${ICON('trend')} ${t('ready_for', { code: c.code })}</strong><span class="rpct ${r.tier}">${r.value}%</span></div>
       <div class="progress ${color}" style="height:12px"><div style="width:${r.value}%"></div></div>
       <p class="muted small" style="margin-top:8px">${t('ready_' + r.tier)}${!compact && r.weakest && r.tier !== 'ready' ? ' ' + t('ready_focus', { unit: esc(r.weakest.title) }) : ''}</p></div>`;
+  }
+
+  // ---------- Exam date + study plan ----------
+  const daysUntil = d => Math.round((new Date(d + 'T12:00:00') - new Date(dayKey() + 'T12:00:00')) / 86400000);
+  // Questions still to master: never answered, or not yet past box 1 in spaced review.
+  const toMaster = c => c.units.reduce((n, u) => n + u.questions.filter(q => live(q) && !(S.srs && S.srs[q.id] && S.srs[q.id].b >= 2)).length, 0);
+  function studyPlan(c) {
+    const date = S.examDates && S.examDates[c.id];
+    if (!date) return null;
+    const days = daysUntil(date);
+    if (days < 0) return { date, days, past: true };
+    const left = toMaster(c), studyDays = Math.max(1, days - 3); // keep the last 3 days for mock exams
+    const lessons = Math.min(6, Math.max(1, Math.ceil(left / 7 / studyDays)));
+    const xp = lessons * 12;
+    const goal = (GOALS.find(g => g.xp >= xp) || GOALS[GOALS.length - 1]).xp;
+    const weak = readiness(c).weakest;
+    return { date, days, left, lessons, goal, weak, final: days <= 3 };
+  }
+  function examDateCard(c) {
+    const p = studyPlan(c);
+    if (!p || p.past) return `<div class="card examdate"><div class="row"><div class="bigicon">${ICON('calendar')}</div><div class="grow">
+      <h3 style="margin-bottom:2px">${p && p.past ? t('exam_past') : t('exam_set_t')}</h3><p class="muted small">${t('exam_set_sub')}</p></div>
+      <button class="btn ghost" data-act="examdate">${t('exam_set_btn')}</button></div></div>`;
+    const when = new Date(p.date + 'T12:00:00').toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' });
+    const plan = p.final ? t('plan_final') : tn('plan_daily', p.lessons, { xp: p.goal }) + (p.weak ? ' ' + t('plan_focus', { unit: esc(p.weak.title) }) : '');
+    return `<div class="card examdate on"><div class="row"><div class="countdown"><b>${p.days}</b><span>${t(p.days === 1 ? 'day_left' : 'days_left')}</span></div><div class="grow">
+      <h3 style="margin-bottom:2px">${t('exam_on', { code: c.code, date: when })}</h3><p class="muted small">${plan}</p></div></div>
+      <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">${!p.final && S.dailyGoal !== p.goal ? `<button class="btn" data-act="usegoal" data-g="${p.goal}">${t('plan_use', { xp: p.goal })}</button>` : ''}
+        <button class="btn ghost" data-act="examdate">${t('exam_change')}</button></div></div>`;
+  }
+  function examDateModal() {
+    const c = course(), cur = (S.examDates && S.examDates[c.id]) || '';
+    modal(`${mascot(80, 'laptop')}<h2>${t('exam_modal_t', { code: c.code })}</h2><p>${t('exam_modal_sub')}</p>
+      <input type="date" id="exam-date" class="dateinput" min="${dayKey()}" value="${cur}">
+      <div class="stack" style="margin-top:14px"><button class="btn" data-act="saveexamdate">${t('save')}</button>
+        ${cur ? `<button class="btn ghost" data-act="clearexamdate">${t('exam_remove')}</button>` : `<button class="btn ghost" data-act="closemodal">${t('cancel')}</button>`}</div>`);
+  }
+
+  // ---------- Course-complete certificate ----------
+  const certComplete = c => c.units.every(u => unitDone(u) >= LESSONS_PER_UNIT);
+  function certificateCard(c) {
+    if (!certComplete(c)) return '';
+    return `<div class="card certcard"><div class="row">${mascot(64, 'proud')}<div class="grow"><h3 style="margin-bottom:2px">${t('cert_done_t', { code: c.code })}</h3>
+      <p class="muted small">${t('cert_done_sub')}</p></div></div><button class="btn block" style="margin-top:12px" data-act="certificate">${ICON('award')} ${t('cert_get')}</button></div>`;
+  }
+  function certificateModal() {
+    const name = S.certName || (account && account.name) || '';
+    modal(`${mascot(80, 'cool')}<h2>${t('cert_name_t')}</h2><p>${t('cert_name_sub')}</p>
+      <input type="text" id="cert-name" class="dateinput" maxlength="40" value="${esc(name)}" placeholder="${t('cert_name_ph')}">
+      <div class="stack" style="margin-top:14px"><button class="btn" data-act="makecert">${t('cert_make')}</button><button class="btn ghost" data-act="closemodal">${t('cancel')}</button></div>`);
+  }
+  async function makeCertificate(name) {
+    const c = course(), W = 1600, H = 1130;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const x = cv.getContext('2d');
+    const font = (w, px) => `${w} ${px}px Nunito, 'Noto Sans Thai', system-ui, sans-serif`;
+    try { await Promise.all([document.fonts.load(font(900, 80)), document.fonts.load(font(700, 30))]); } catch { /* system font */ }
+    x.fillStyle = '#fbfdff'; x.fillRect(0, 0, W, H);
+    x.strokeStyle = '#1f8ef1'; x.lineWidth = 14; x.strokeRect(40, 40, W - 80, H - 80);
+    x.strokeStyle = '#bcdcfb'; x.lineWidth = 3; x.strokeRect(70, 70, W - 140, H - 140);
+    const img = new Image(); img.src = (window.NIMBUS_IMG && window.NIMBUS_IMG.proud) || 'img/nimbus/proud.webp';
+    try { await img.decode(); const h = 230, w = h * img.naturalWidth / img.naturalHeight; x.drawImage(img, W - 140 - w, H - 120 - h, w, h); } catch { /* no picture */ }
+    x.textAlign = 'center';
+    x.fillStyle = '#1f8ef1'; x.font = font(900, 54); x.fillText('Cloudlingo', W / 2, 180);
+    x.fillStyle = '#1d2b3a'; x.font = font(900, 80); x.fillText(t('cert_title'), W / 2, 300);
+    x.fillStyle = '#64748b'; x.font = font(700, 34); x.fillText(t('cert_line1'), W / 2, 400);
+    x.fillStyle = '#1d2b3a'; x.font = font(900, 90); x.fillText(name, W / 2, 520);
+    x.strokeStyle = '#f07f1a'; x.lineWidth = 4; x.beginPath(); x.moveTo(W / 2 - 360, 555); x.lineTo(W / 2 + 360, 555); x.stroke();
+    x.fillStyle = '#64748b'; x.font = font(700, 34); x.fillText(t('cert_line2'), W / 2, 640);
+    x.fillStyle = '#1f8ef1'; x.font = font(900, 52); x.fillText(`${c.name} (${c.code})`, W / 2, 720);
+    const date = new Date().toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' });
+    x.fillStyle = '#1d2b3a'; x.font = font(800, 34); x.fillText(date, W / 2, 810);
+    x.fillStyle = '#94a3b8'; x.font = font(700, 24); x.fillText(t('cert_note'), W / 2, H - 110);
+    const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+    if (!blob) return;
+    const file = new File([blob], `cloudlingo-${c.code}.png`, { type: 'image/png' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+
+  // ---------- Flashcards ----------
+  // AWS terms that appear in this certification's questions, flipped like cards.
+  // Each term sits in a box 0–3 (`S.cards`); "Got it" moves it up, "Again" back to 0.
+  let FC = null;
+  const deckCache = {};
+  function deckFor(c) {
+    if (deckCache[c.id]) return deckCache[c.id];
+    const found = new Set();
+    c.units.forEach(u => u.questions.forEach(q => {
+      [q.q, q.e].concat(q.o || [], (q.pairs || []).flat()).forEach(text => { hinted(String(text), found, new Set()); });
+    }));
+    return (deckCache[c.id] = found.size >= 10 ? [...found] : GLOSS.map((_, i) => i));
+  }
+  function startCards() {
+    const c = course(), box = gi => (S.cards || {})[GLOSS[gi].k] || 0;
+    const deck = shuffle(deckFor(c)).sort((a, b) => box(a) - box(b)).slice(0, 12);
+    FC = { deck: shuffle(deck), total: deck.length, flipped: false, known: 0, start: Date.now() };
+    closeModal(); go('cards');
+  }
+  function cardsView() {
+    const gi = FC.deck[0], g = GLOSS[gi], pct = Math.round(100 * FC.known / FC.total);
+    const def = (lang === 'th' && window.TH_GLOSS && window.TH_GLOSS[g.k]) || g.d;
+    return `<div class="lesson">
+      <div class="lesson-top"><button class="x" data-act="quitcards" aria-label="${t('save_exit')}">${ICON('x')}</button>
+        <div class="progress"><div style="width:${pct}%"></div></div><span class="muted small" style="font-weight:900">${FC.known}/${FC.total}</span></div>
+      <section class="qwrap"><div class="kicker2">${t('cards_kicker')}</div>
+        <button class="flashcard ${FC.flipped ? 'flipped' : ''}" data-act="flip" aria-label="${t('cards_flip')}">
+          <span class="face front"><span class="term">${esc(g.k)}</span><span class="muted small">${t('cards_tap')}</span></span>
+          <span class="face back"><span class="term small">${esc(g.k)}</span><span class="def">${esc(def)}</span></span>
+        </button></section>
+      <footer class="lesson-foot"><div class="foot-inner">${FC.flipped
+        ? `<button class="btn ghost" data-act="cardagain">${t('cards_again')}</button><button class="btn good" data-act="cardgot">${t('cards_got')}</button>`
+        : `<button class="btn block" data-act="flip">${t('cards_show')}</button>`}</div></footer>
+    </div>`;
+  }
+  function cardAnswer(got) {
+    const gi = FC.deck.shift(), k = GLOSS[gi].k;
+    S.cards = S.cards || {};
+    if (got) { S.cards[k] = Math.min(3, (S.cards[k] || 0) + 1); FC.known++; sfx('correct'); }
+    else { S.cards[k] = 0; FC.deck.push(gi); }
+    FC.flipped = false;
+    if (!FC.deck.length) return finishCards();
+    save(); render();
+  }
+  function finishCards() {
+    const xp = 5;
+    S.lessons = (S.lessons || 0) + 1;
+    const { extended, earnedFreeze } = addXP(xp);
+    const badges = checkBadges();
+    sfx('complete');
+    const special = badges.length ? 'badge' : earnedFreeze ? 'freeze' : extended ? 'streak' : null;
+    if (special) sfx(special, 950);
+    END = { xp, perfect: false, extended, earnedFreeze, badges, streak: S.streak, acc: 100, secs: Math.round((Date.now() - FC.start) / 1000), unitCompleted: null, mode: 'cards', cards: FC.total };
+    FC = null; save(); go('lessonEnd'); confetti();
   }
 
   // ---------- Achievements ----------
@@ -685,7 +853,11 @@
   function applyTheme() {
     if (S.theme === 'light' || S.theme === 'dark') document.documentElement.dataset.theme = S.theme;
     else delete document.documentElement.dataset.theme;
+    // Larger text scales the whole page (the shared tour already allows for page zoom).
+    document.documentElement.style.zoom = TEXT_SIZES.includes(S.textSize) && S.textSize !== 1 ? S.textSize : '';
   }
+  const TEXT_SIZES = [1, 1.12, 1.25];
+  const pageZoom = () => parseFloat(document.documentElement.style.zoom) || 1;
 
   function go(v) {
     view = v;
@@ -698,7 +870,7 @@
   }
 
   function render() {
-    const views = { onboard: onboardView, learn: learnView, practice: practiceView, exam: examView, board: boardView, profile: profileView, lesson: lessonView, lessonEnd: lessonEndView, examRun: examRunView, examResult: examResultView };
+    const views = { cards: () => FC ? cardsView() : learnView(), onboard: onboardView, learn: learnView, practice: practiceView, exam: examView, board: boardView, profile: profileView, lesson: lessonView, lessonEnd: lessonEndView, examRun: examRunView, examResult: examResultView };
     closeHint();
     app.innerHTML = (views[view] || learnView)();
   }
@@ -844,7 +1016,7 @@
     const firstOpen = c.units.findIndex(u => unitDone(u) < LESSONS_PER_UNIT);
     const due = dueFor(c.id).length;
     const dueCard = due ? `<div class="card duecard"><div class="row"><div class="bigicon">${ICON('calendar')}</div><div class="grow"><h3 style="margin-bottom:2px">${tn('review_some', due)}</h3><p class="muted small">${t('review_why')}</p></div><button class="btn ghost" data-act="review">${t('review_btn')}</button></div></div>` : '';
-    return shell(`${freezeNotice()}${installCard(true)}${dueCard}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div>${resume}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
+    return shell(`${freezeNotice()}${installCard(true)}${certificateCard(c)}${examDateCard(c)}${dueCard}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div>${resume}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
       <div style="margin-top:34px">${readinessCard(c, false)}</div>
       <div class="card" style="margin-top:16px;text-align:center"><h3>${t('ready_title')}</h3><p class="muted" style="margin-bottom:14px">${t('ready_sub', { code: c.code })}</p><button class="btn ghost" data-act="nav" data-v="exam">${t('try_exam')}</button></div>`);
   }
@@ -1038,9 +1210,11 @@
     el.className = 'hintpop'; el.setAttribute('role', 'tooltip');
     el.innerHTML = `<strong>${esc(g.k)}</strong><span>${esc((lang === 'th' && window.TH_GLOSS && window.TH_GLOSS[g.k]) || g.d)}</span><i class="arrow"></i>`;
     document.body.appendChild(el);
-    const r = btn.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
-    const left = Math.max(12, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 12));
-    const below = r.bottom + 10 + h <= innerHeight - 8 || r.top - 10 - h < 8;
+    const z = pageZoom(), br = btn.getBoundingClientRect();
+    const r = { left: br.left / z, top: br.top / z, bottom: br.bottom / z, width: br.width / z };
+    const vw = innerWidth / z, vh = innerHeight / z, w = el.offsetWidth, h = el.offsetHeight;
+    const left = Math.max(12, Math.min(r.left + r.width / 2 - w / 2, vw - w - 12));
+    const below = r.bottom + 10 + h <= vh - 8 || r.top - 10 - h < 8;
     el.style.left = left + 'px';
     el.style.top = (below ? r.bottom + 10 : r.top - 10 - h) + 'px';
     el.classList.add(below ? 'below' : 'above');
@@ -1176,8 +1350,8 @@
 
   function lessonEndView() {
     const e = END;
-    const title = e.unitCompleted ? t('unit_complete') : e.perfect ? t('perfect_lesson') : e.mode === 'lesson' || e.mode === 'replay' ? t('lesson_complete') : t('practice_complete');
-    const sub = e.unitCompleted ? t('unit_complete_sub', { unit: esc(e.unitCompleted) }) : e.perfect ? t('perfect_sub') : t('missed_saved');
+    const title = e.mode === 'cards' ? t('cards_done') : e.unitCompleted ? t('unit_complete') : e.perfect ? t('perfect_lesson') : e.mode === 'lesson' || e.mode === 'replay' ? t('lesson_complete') : t('practice_complete');
+    const sub = e.mode === 'cards' ? tn('cards_done_sub', e.cards) : e.unitCompleted ? t('unit_complete_sub', { unit: esc(e.unitCompleted) }) : e.perfect ? t('perfect_sub') : t('missed_saved');
     return `<div class="center-screen">
       ${mascot(150, e.perfect ? 'cool' : e.unitCompleted || e.extended ? 'proud' : 'laugh', 'bounce')}
       <h1>${title}</h1><p class="muted">${sub}</p>
@@ -1213,6 +1387,8 @@
           <button class="btn block" style="margin-top:14px" data-act="mistakes" ${mist.length ? '' : 'disabled'}>${t('review_mistakes')}</button></div>
         <div class="card pcard"><div class="row"><div class="bigicon">${ICON('calendar')}</div><div class="grow"><h3>${t('review_title')}</h3><p>${due.length ? tn('review_some', due.length) : t('review_none')}</p></div></div>
           <button class="btn ghost block" style="margin-top:14px" data-act="review" ${due.length ? '' : 'disabled'}>${t('review_btn')}</button></div>
+        <div class="card pcard"><div class="row"><div class="bigicon">${ICON('book')}</div><div class="grow"><h3>${t('cards_title')}</h3><p>${t('cards_sub')}</p></div></div>
+          <button class="btn ghost block" style="margin-top:14px" data-act="cards">${t('start_btn')}</button></div>
         <div class="card pcard"><div class="row"><div class="bigicon">${ICON('bolt')}</div><div class="grow"><h3>${t('quick_title')}</h3><p>${t('quick_sub')}</p></div></div>
           <button class="btn ghost block" style="margin-top:14px" data-act="quick">${t('start_btn')}</button></div>
         <h2 class="section-title" style="font-size:20px;margin-top:12px">${t('by_topic')}</h2>
@@ -1241,7 +1417,7 @@
   const examSpec = (c, mode) => mode === 'full'
     ? { questions: 65, minutes: c.level === 'Foundational' ? 90 : 130, pass: c.exam.pass }
     : c.exam;
-  const examPool = c => c.units.reduce((n, u) => n + u.questions.filter(q => q.t !== 'match').length, 0);
+  const examPool = c => c.units.reduce((n, u) => n + u.questions.filter(q => q.t !== 'match' && live(q)).length, 0);
 
   function examView() {
     const c = course(), pool = examPool(c);
@@ -1268,7 +1444,7 @@
 
   function startExam(mode = 'quick') {
     const c = course(), sp = examSpec(c, mode);
-    const byUnit = c.units.map(u => shuffle(u.questions.filter(q => q.t !== 'match')));
+    const byUnit = c.units.map(u => shuffle(u.questions.filter(q => q.t !== 'match' && live(q))));
     const ids = [];
     for (let k = 0; ids.length < sp.questions && byUnit.some(a => a.length); k++) {
       const a = byUnit[k % byUnit.length];
@@ -1655,6 +1831,9 @@
       ${reminderCard()}${installCard(false) ? `<div style="margin-top:16px">${installCard(false)}</div>` : ''}<div class="card" style="margin-top:16px"><h3>${t('language')}</h3>${langSwitch()}</div>
       <div class="card" style="margin-top:16px"><div class="row"><div class="grow"><h3 style="margin:0">${t('sound')}</h3><p class="muted small">${t('sound_sub')}</p></div>
         <div class="seg seg2" style="width:132px"><button class="${S.sound !== false ? 'on' : ''}" data-act="setsound" data-on="1">${t('board_on')}</button><button class="${S.sound === false ? 'on' : ''}" data-act="setsound" data-on="0">${t('board_off')}</button></div></div></div>
+      <div class="card" style="margin-top:16px"><h3>${t('text_size')}</h3>
+        <div class="seg" style="grid-template-columns:repeat(3,1fr)">${TEXT_SIZES.map((z, i) => `<button class="${(S.textSize || 1) === z ? 'on' : ''}" data-act="settext" data-z="${z}" style="font-size:${[14, 16, 18][i]}px">${t(['text_normal', 'text_large', 'text_larger'][i])}</button>`).join('')}</div>
+      </div>
       <div class="card" style="margin-top:16px"><h3>${t('appearance')}</h3>
         <div class="seg" style="grid-template-columns:repeat(3,1fr)">${['auto', 'light', 'dark'].map(th => `<button class="${S.theme === th ? 'on' : ''}" data-act="settheme" data-t="${th}">${t('theme_' + th)}</button>`).join('')}</div>
       </div>
@@ -1710,6 +1889,18 @@
     toggleall: () => { R.showAll = !R.showAll; render(); },
     setgoal: d => { S.dailyGoal = +d.g; addXP(0); render(); },
     settheme: d => { S.theme = d.t; save(); applyTheme(); render(); },
+    settext: d => { S.textSize = +d.z; save(); applyTheme(); render(); },
+    examdate: () => examDateModal(),
+    saveexamdate: () => { const v = (modalRoot.querySelector('#exam-date') || {}).value; if (!v || daysUntil(v) < 0) return; S.examDates = Object.assign({}, S.examDates, { [S.cert]: v }); save(); closeModal(); render(); },
+    clearexamdate: () => { if (S.examDates) delete S.examDates[S.cert]; save(); closeModal(); render(); },
+    usegoal: d => { S.dailyGoal = +d.g; addXP(0); render(); },
+    certificate: () => certificateModal(),
+    makecert: () => { const v = ((modalRoot.querySelector('#cert-name') || {}).value || '').trim().slice(0, 40); if (!v) return; S.certName = v; save(); closeModal(); makeCertificate(v); },
+    cards: () => startCards(),
+    flip: () => { if (FC) { FC.flipped = !FC.flipped; render(); } },
+    cardgot: () => cardAnswer(true),
+    cardagain: () => cardAnswer(false),
+    quitcards: () => { FC = null; save(); go('practice'); },
     reset: () => modal(`${mascot(80, 'shocked')}<h2>${t('reset_q')}</h2><p>${syncRef && account ? t('reset_sub_account') : t('reset_sub_device')}</p>
       <div class="stack"><button class="btn bad" data-act="confirmreset">${t('reset_btn')}</button><button class="btn ghost" data-act="closemodal">${t('cancel')}</button></div>`),
     confirmreset: () => { try { localStorage.removeItem(STORE); } catch { /* ignore */ } S = DEFAULTS(); save(); OB = { cert: null, goal: 20 }; applyTheme(); closeModal(); go('onboard'); },
@@ -1752,6 +1943,13 @@
     if (modalRoot.innerHTML) { if (e.key === 'Escape' && !modalRoot.querySelector('.modal.sticky')) closeModal(); return; }
     if (hintOpen && e.key === 'Escape') { closeHint(); return; }
     if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('.hint')) return; // let the hint button open
+    if (view === 'cards' && FC) {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!FC.flipped) actions.flip(); else cardAnswer(true); }
+      else if (FC.flipped && e.key === '1') cardAnswer(false);
+      else if (FC.flipped && e.key === '2') cardAnswer(true);
+      else if (e.key === 'Escape') actions.quitcards();
+      return;
+    }
     if (view === 'lesson' && L) {
       if (e.key === 'Enter') {
         e.preventDefault();
