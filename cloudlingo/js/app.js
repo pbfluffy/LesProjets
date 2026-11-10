@@ -51,6 +51,17 @@
   const blurb = c => (window.I18N_COURSES && I18N_COURSES[lang] && I18N_COURSES[lang][c.id]) || c.blurb;
   const domainLabel = d => lang === 'en' ? d : d.replace(/^Domains?\b/, m => t(m === 'Domains' ? 'domains' : 'domain'));
 
+  const ICON = window.ICON || (() => '');
+  // Line icon for each unit (replaces the emoji stored in the data files).
+  const UNIT_ICON = {
+    'clf-1': 'cloud', 'clf-2': 'shieldlock', 'clf-3': 'server', 'clf-4': 'globe', 'clf-5': 'card',
+    'aif-1': 'chip', 'aif-2': 'sparkle', 'aif-3': 'puzzle', 'aif-4': 'scale',
+    'saa-1': 'shield', 'saa-2': 'layers', 'saa-3': 'bolt', 'saa-4': 'coins',
+    'dva-1': 'code', 'dva-2': 'key', 'dva-3': 'rocket',
+    'soa-1': 'activity', 'soa-2': 'repeat', 'soa-3': 'gear', 'soa-4': 'globe',
+    'dea-1': 'inbox', 'dea-2': 'database', 'dea-3': 'lock'
+  };
+  const unitIcon = u => ICON(UNIT_ICON[u.id] || 'cloud');
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const shuffle = arr => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const range = n => [...Array(n).keys()];
@@ -258,7 +269,7 @@
       <div class="stack">
         <button class="btn prov google" data-act="signinwith" data-p="google"><span class="pico">G</span>${t('continue_google')}</button>
         <button class="btn prov line" data-act="signinwith" data-p="line"><span class="pico">LINE</span>${t('continue_line')}</button>
-        ${MICROSOFT_ON ? `<button class="btn prov ms" data-act="signinwith" data-p="microsoft"><span class="pico">⊞</span>${t('continue_microsoft')}</button>` : ''}
+        ${MICROSOFT_ON ? `<button class="btn prov ms" data-act="signinwith" data-p="microsoft"><span class="pico"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect width="9" height="9" fill="#f25022"/><rect x="11" width="9" height="9" fill="#7fba00"/><rect y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg></span>${t('continue_microsoft')}</button>` : ''}
       </div>`);
   }
 
@@ -454,12 +465,12 @@
   // ---------- Report a problem with a question ----------
   // Reports go to Firestore (cloudlingoReports) and show up in the admin page.
   const reportBtn = q => authState === 'off' ? '' : (S.reported && S.reported[q.id])
-    ? `<span class="reportbtn done">✓ ${t('report_done')}</span>`
-    : `<button class="linkbtn reportbtn" data-act="report" data-q="${q.id}">🚩 ${t('report')}</button>`;
+    ? `<span class="reportbtn done">${ICON('check')} ${t('report_done')}</span>`
+    : `<button class="linkbtn reportbtn" data-act="report" data-q="${q.id}">${ICON('flag')} ${t('report')}</button>`;
   let reportQ = null;
   function openReport(qid) {
     reportQ = qid;
-    modal(`<h2>🚩 ${t('report_title')}</h2><p>${t('report_sub')}</p>
+    modal(`<h2 class="ic-title">${ICON('flag')} ${t('report_title')}</h2><p>${t('report_sub')}</p>
       <div class="reasons">${['wrong', 'unclear', 'typo', 'outdated', 'other'].map((r, i) => `<label class="reason"><input type="radio" name="reason" value="${r}" ${i === 0 ? 'checked' : ''}><span>${t('report_' + r)}</span></label>`).join('')}</div>
       <textarea id="report-note" maxlength="500" rows="3" placeholder="${t('report_note')}"></textarea>
       <div class="stack" style="margin-top:14px"><button class="btn" data-act="sendreport">${t('report_send')}</button><button class="btn ghost" data-act="closemodal">${t('cancel')}</button></div>`, 'wide');
@@ -528,25 +539,25 @@
     const r = readiness(c);
     const color = r.tier === 'ready' ? 'green' : r.tier === 'close' ? 'blue' : '';
     return `<div class="card readiness"><div class="row" style="justify-content:space-between;margin-bottom:8px">
-        <strong>📈 ${t('ready_for', { code: c.code })}</strong><span class="rpct ${r.tier}">${r.value}%</span></div>
+        <strong class="ic-title">${ICON('trend')} ${t('ready_for', { code: c.code })}</strong><span class="rpct ${r.tier}">${r.value}%</span></div>
       <div class="progress ${color}" style="height:12px"><div style="width:${r.value}%"></div></div>
       <p class="muted small" style="margin-top:8px">${t('ready_' + r.tier)}${!compact && r.weakest && r.tier !== 'ready' ? ' ' + t('ready_focus', { unit: esc(r.weakest.title) }) : ''}</p></div>`;
   }
 
   // ---------- Achievements ----------
   const BADGES = [
-    { id: 'first', icon: '🌱', test: s => (s.lessons || 0) >= 1 },
-    { id: 'perfect', icon: '💯', test: s => (s.perfects || 0) >= 1 },
-    { id: 'streak3', icon: '🔥', test: s => (s.bestStreak || 0) >= 3 },
-    { id: 'streak7', icon: '🧊', test: s => (s.bestStreak || 0) >= 7 },
-    { id: 'streak30', icon: '🏅', test: s => (s.bestStreak || 0) >= 30 },
-    { id: 'xp100', icon: '⚡', test: s => s.xp >= 100 },
-    { id: 'xp1000', icon: '🌩️', test: s => s.xp >= 1000 },
-    { id: 'unit', icon: '🏆', test: s => Object.values(s.progress || {}).some(n => n >= LESSONS_PER_UNIT) },
-    { id: 'fixer', icon: '🧠', test: s => (s.fixed || 0) >= 10 },
-    { id: 'exam', icon: '📝', test: s => (s.exams || []).some(e => e.pass) },
-    { id: 'full', icon: '🎓', test: s => (s.exams || []).some(e => e.pass && e.mode === 'full') },
-    { id: 'explorer', icon: '🌍', test: s => new Set(Object.keys(s.stats || {}).map(id => QINDEX[id] && QINDEX[id].course).filter(Boolean)).size >= COURSES.length }
+    { id: 'first', icon: 'sprout', test: s => (s.lessons || 0) >= 1 },
+    { id: 'perfect', icon: 'checkcircle', test: s => (s.perfects || 0) >= 1 },
+    { id: 'streak3', icon: 'flame', test: s => (s.bestStreak || 0) >= 3 },
+    { id: 'streak7', icon: 'snowflake', test: s => (s.bestStreak || 0) >= 7 },
+    { id: 'streak30', icon: 'award', test: s => (s.bestStreak || 0) >= 30 },
+    { id: 'xp100', icon: 'bolt', test: s => s.xp >= 100 },
+    { id: 'xp1000', icon: 'bolts', test: s => s.xp >= 1000 },
+    { id: 'unit', icon: 'trophy', test: s => Object.values(s.progress || {}).some(n => n >= LESSONS_PER_UNIT) },
+    { id: 'fixer', icon: 'wrench', test: s => (s.fixed || 0) >= 10 },
+    { id: 'exam', icon: 'clipboard', test: s => (s.exams || []).some(e => e.pass) },
+    { id: 'full', icon: 'cap', test: s => (s.exams || []).some(e => e.pass && e.mode === 'full') },
+    { id: 'explorer', icon: 'compass', test: s => new Set(Object.keys(s.stats || {}).map(id => QINDEX[id] && QINDEX[id].course).filter(Boolean)).size >= COURSES.length }
   ];
   // Returns badges unlocked just now (and records them).
   function checkBadges() {
@@ -555,7 +566,7 @@
     fresh.forEach(b => { S.badges[b.id] = Date.now(); });
     return fresh;
   }
-  const badgeLine = list => list.length ? `<div class="stat badge-new"><div class="lbl">${t('badge_new')}</div><div class="val">${list.map(b => `${b.icon} ${t('badge_' + b.id)}`).join(' · ')}</div></div>` : '';
+  const badgeLine = list => list.length ? `<div class="stat badge-new"><div class="lbl">${t('badge_new')}</div><div class="val">${list.map(b => `${ICON(b.icon)} ${t('badge_' + b.id)}`).join(' · ')}</div></div>` : '';
 
   // ---------- Sounds (short, quiet, and only for meaningful moments) ----------
   // Sound effects generated by art-src/sounds.js (sounds/*.mp3). They're preloaded on
@@ -632,8 +643,21 @@
     try { await img.decode(); const h = 430, w = h * img.naturalWidth / img.naturalHeight; x.drawImage(img, (W - w) / 2, 110, w, h); } catch { /* no picture */ }
     x.textAlign = 'center';
     x.fillStyle = '#1f8ef1'; x.font = font(900, 64); x.fillText('Cloudlingo', W / 2, 90);
-    x.fillStyle = '#f07f1a'; x.font = font(900, 92); x.fillText(`🔥 ${t('streak_days', { n: streakNow() })}`, W / 2, 680);
-    x.fillStyle = '#1d2b3a'; x.font = font(800, 54); x.fillText(`⚡ ${S.xp} XP  ·  📈 ${c.code} ${r.value}%`, W / 2, 780);
+    // Draws one of the line icons (path-only ones) centred at cx,cy.
+    const drawIcon = (name, cx, cy, size, color) => {
+      const ds = [...((window.ICONS || {})[name] || '').matchAll(/ d="([^"]+)"/g)].map(m => m[1]);
+      x.save(); x.translate(cx - size / 2, cy - size / 2); x.scale(size / 24, size / 24);
+      x.strokeStyle = color; x.lineWidth = 2.2; x.lineCap = 'round'; x.lineJoin = 'round';
+      ds.forEach(d => x.stroke(new Path2D(d))); x.restore();
+    };
+    const line = (txt, fontSpec, color, y, iconName) => {
+      x.font = fontSpec; const w = x.measureText(txt).width, sz = iconName ? parseInt(fontSpec.split(' ')[1], 10) * 0.95 : 0, gap = iconName ? sz * 0.35 : 0;
+      const left = W / 2 - (w + sz + gap) / 2;
+      if (iconName) drawIcon(iconName, left + sz / 2, y - sz * 0.36, sz, color);
+      x.fillStyle = color; x.textAlign = 'left'; x.fillText(txt, left + sz + gap, y); x.textAlign = 'center';
+    };
+    line(t('streak_days', { n: streakNow() }), font(900, 92), '#f07f1a', 680, 'flame');
+    line(`${S.xp} XP  ·  ${c.code} ${r.value}%`, font(800, 54), '#1d2b3a', 780, 'bolt');
     x.fillStyle = '#64748b'; x.font = font(800, 40); x.fillText(t('share_tagline'), W / 2, 880);
     x.fillStyle = '#1f8ef1'; x.font = font(800, 38); x.fillText('pumbafluffycorgi.com/cloudlingo', W / 2, 990);
     const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
@@ -695,7 +719,7 @@
     return `<div class="shell">
       <nav class="sidenav">
         <div class="brand">${mascot(40, 'hero')}<span>cloudlingo</span></div>
-        ${navItem('learn', '🏠', t('nav_learn'))}${navItem('practice', '🎯', t('nav_practice'))}${navItem('exam', '📝', t('nav_exam'))}${authState !== 'off' ? navItem('board', '🏆', t('nav_board')) : ''}${navItem('profile', '👤', t('nav_profile'))}
+        ${navItem('learn', ICON('home'), t('nav_learn'))}${navItem('practice', ICON('target'), t('nav_practice'))}${navItem('exam', ICON('clipboard'), t('nav_exam'))}${authState !== 'off' ? navItem('board', ICON('trophy'), t('nav_board')) : ''}${navItem('profile', ICON('user'), t('nav_profile'))}
       </nav>
       <main class="main">${topbar()}${main}</main>
       <aside class="rightcol">${rightCol()}</aside>
@@ -707,8 +731,8 @@
     return `<div class="topbar">
       <button class="chip certchip" data-tour="cert" data-act="pickcert" title="${t('switch_cert')}"><span class="code">${c.code}</span><span class="muted small">▾</span></button>
       <div class="topstats">
-        <button class="chip flame ${st ? '' : 'cold'}" data-tour="streak" data-act="nav" data-v="profile" title="${t('day_streak')}">🔥 ${st}</button>
-        <button class="chip xp" data-act="nav" data-v="profile" title="${t('total_xp')}">⚡ ${S.xp}</button>${pwaReady ? `<button class="chip help" data-tour="help" data-act="tour" title="${t('tour_btn')}" aria-label="${t('tour_btn')}">?</button>` : ''}${accountChip()}</div>
+        <button class="chip flame ${st ? '' : 'cold'}" data-tour="streak" data-act="nav" data-v="profile" title="${t('day_streak')}">${ICON('flame')} ${st}</button>
+        <button class="chip xp" data-act="nav" data-v="profile" title="${t('total_xp')}">${ICON('bolt')} ${S.xp}</button>${pwaReady ? `<button class="chip help" data-tour="help" data-act="tour" title="${t('tour_btn')}" aria-label="${t('tour_btn')}">?</button>` : ''}${accountChip()}</div>
     </div>`;
   }
 
@@ -723,38 +747,38 @@
     return '';
   }
   function accountCard() {
-    if (authState === 'out' || authState === 'unavailable') return `<div class="card account" style="margin-bottom:16px"><div class="row"><div class="bigicon">☁️</div><div class="grow">
+    if (authState === 'out' || authState === 'unavailable') return `<div class="card account" style="margin-bottom:16px"><div class="row"><div class="bigicon">${ICON('cloud')}</div><div class="grow">
       <h3 style="margin-bottom:2px">${t('save_progress')}</h3><p class="muted small">${authState === 'unavailable' ? t('signin_unavailable') : t('signin_pitch')}</p></div></div>
       ${authState === 'out' ? `<button class="btn block" style="margin-top:14px" data-act="signin">${t('signin')}</button>` : ''}</div>`;
     if (authState === 'in' && account) return `<div class="card account" style="margin-bottom:16px"><div class="row">${avatar(44)}<div class="grow">
-      <h3 style="margin-bottom:2px">${esc(account.name)}</h3><p class="muted small">${account.error ? t('acct_error') : account.synced ? t('acct_synced') : t('connecting')}</p></div>
+      <h3 style="margin-bottom:2px">${esc(account.name)}</h3><p class="muted small">${account.error ? t('acct_error') : account.synced ? ICON('check', 'ok') + ' ' + t('acct_synced') : t('connecting')}</p></div>
       <button class="linkbtn" data-act="signout">${t('signout')}</button></div></div>`;
     return '';
   }
 
   function goalInner() {
     const today = xpToday(), g = S.dailyGoal, pct = Math.min(100, Math.round(100 * today / g));
-    return `<div class="goalrow"><div class="big">🎯</div><div class="grow">
+    return `<div class="goalrow"><div class="big">${ICON('target')}</div><div class="grow">
       <div class="row" style="justify-content:space-between;margin-bottom:7px"><strong>${t('daily_goal')}</strong><span class="muted small">${today} / ${g} XP</span></div>
       <div class="progress"><div style="width:${pct}%"></div></div></div></div>`;
   }
 
   function streakCard() {
     const st = streakNow();
-    return `<h3>🔥 ${t('streak_days', { n: st })}</h3><p class="muted small">${st ? (S.lastStreakDay === dayKey() ? t('streak_met') : t('streak_keep')) : t('streak_start')}</p>
-      <p class="small freeze-line" title="${t('freezes_how')}">${t('freezes', { n: S.freezes || 0 })}</p>`;
+    return `<h3 class="ic-title">${ICON('flame')} ${t('streak_days', { n: st })}</h3><p class="muted small">${st ? (S.lastStreakDay === dayKey() ? t('streak_met') : t('streak_keep')) : t('streak_start')}</p>
+      <p class="small freeze-line" title="${t('freezes_how')}">${ICON('snowflake')} ${t('freezes', { n: S.freezes || 0 })}</p>`;
   }
   function freezeNotice() {
     const f = S.freezeNotice;
     if (!f || f.day !== dayKey()) return '';
-    return `<div class="card notice"><p>${tn('freeze_used', f.n, { s: f.streak })}</p><button class="linkbtn" data-act="dismissfreeze">${t('dismiss')}</button></div>`;
+    return `<div class="card notice"><p>${ICON('snowflake')} ${tn('freeze_used', f.n, { s: f.streak })}</p><button class="linkbtn" data-act="dismissfreeze">${t('dismiss')}</button></div>`;
   }
 
   function rightCol() {
     const mist = mistakesFor(course().id).length;
     return `<div class="card" data-tour="goal-side">${goalInner()}</div>
       <div class="card">${streakCard()}</div>
-      ${mist ? `<div class="card"><h3>🧠 ${t('to_review', { n: mist })}</h3><p class="muted small" style="margin-bottom:12px">${t('to_review_sub')}</p><button class="btn ghost block" data-act="mistakes">${t('fix_mistakes')}</button></div>` : ''}`;
+      ${mist ? `<div class="card"><h3 class="ic-title">${ICON('repeat')} ${t('to_review', { n: mist })}</h3><p class="muted small" style="margin-bottom:12px">${t('to_review_sub')}</p><button class="btn ghost block" data-act="mistakes">${t('fix_mistakes')}</button></div>` : ''}`;
   }
 
   function modal(html, cls = '') {
@@ -801,7 +825,7 @@
   function onboardView() {
     return `<div class="onboard">
       <div class="row ob-top">${authState === 'out' || authState === 'loading' ? `<div class="card ob-signin grow"><span>${t('studied_before')}</span><button class="signin-btn" data-act="signin">${t('signin')}</button></div>` : '<div class="grow"></div>'}${langSwitch()}</div>
-      <div class="hero">${mascot(110, 'hero', 'bounce')}<div class="speech">${t('nimbus_hi')}</div></div>
+      <div class="hero">${mascot(110, 'hero', 'bounce')}<div class="speech">${t('nimbus_hi')}<span class="speech-sub">${t('nimbus_who')}</span></div></div>
       <div class="certlist">${COURSES.map(c => certOption(c, OB.cert === c.id, 'obcert')).join('')}</div>
       <h2 class="section-title" style="font-size:20px;margin-top:30px">${t('pick_goal')}</h2>
       <p class="section-sub">${t('pick_goal_sub')}</p>
@@ -814,12 +838,12 @@
   function learnView() {
     const c = course();
     const s = savedSession();
-    const resume = s ? `<div class="card resume"><div class="row"><div class="bigicon">⏯️</div><div class="grow"><h3 style="margin-bottom:2px">${t('resume_title')}</h3>
+    const resume = s ? `<div class="card resume"><div class="row"><div class="bigicon">${ICON('play')}</div><div class="grow"><h3 style="margin-bottom:2px">${t('resume_title')}</h3>
       <p class="muted small">${modeName(s.mode)}${s.unit ? ` · ${esc(UNITS[s.unit].title)}` : ''} · ${t('resume_done', { d: s.done, t: s.total })}</p></div></div>
       <div class="row" style="margin-top:14px"><button class="btn block grow" data-act="resume">${t('continue')}</button><button class="btn ghost" data-act="discard">${t('discard')}</button></div></div>` : '';
     const firstOpen = c.units.findIndex(u => unitDone(u) < LESSONS_PER_UNIT);
     const due = dueFor(c.id).length;
-    const dueCard = due ? `<div class="card duecard"><div class="row"><div class="bigicon">📅</div><div class="grow"><h3 style="margin-bottom:2px">${tn('review_some', due)}</h3><p class="muted small">${t('review_why')}</p></div><button class="btn ghost" data-act="review">${t('review_btn')}</button></div></div>` : '';
+    const dueCard = due ? `<div class="card duecard"><div class="row"><div class="bigicon">${ICON('calendar')}</div><div class="grow"><h3 style="margin-bottom:2px">${tn('review_some', due)}</h3><p class="muted small">${t('review_why')}</p></div><button class="btn ghost" data-act="review">${t('review_btn')}</button></div></div>` : '';
     return shell(`${freezeNotice()}${installCard(true)}${dueCard}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div>${resume}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
       <div style="margin-top:34px">${readinessCard(c, false)}</div>
       <div class="card" style="margin-top:16px;text-align:center"><h3>${t('ready_title')}</h3><p class="muted" style="margin-bottom:14px">${t('ready_sub', { code: c.code })}</p><button class="btn ghost" data-act="nav" data-v="exam">${t('try_exam')}</button></div>`);
@@ -830,16 +854,16 @@
     const offs = [0, 64, 0, -64];
     const nodes = range(LESSONS_PER_UNIT).map(l => {
       const state = l < done ? 'done' : (l === done ? 'current' : 'locked');
-      const icon = state === 'done' ? '✓' : state === 'locked' ? '🔒' : '★';
+      const icon = ICON(state === 'done' ? 'check' : state === 'locked' ? 'lock' : 'star');
       const label = esc(t('node_label', { n: l + 1, unit: u.title }) + (state === 'done' ? t('node_done') : state === 'locked' ? t('node_locked') : ''));
       return `<div style="transform:translateX(${offs[(l + i) % 4]}px)"><button class="node ${state} ${state === 'current' && suggested ? 'suggested' : ''}" data-act="node" data-u="${u.id}" data-l="${l}" ${state === 'locked' ? 'disabled' : ''} aria-label="${label}" title="${label}">${state === 'current' && suggested ? `<span class="bubble">${t('start')}</span>` : ''}${icon}</button></div>`;
     });
     const trophyReady = done >= LESSONS_PER_UNIT;
-    nodes.push(`<div style="transform:translateX(${offs[(LESSONS_PER_UNIT + i) % 4]}px)"><button class="node trophy ${trophyReady ? 'done' : 'locked'}" data-act="unitpractice" data-u="${u.id}" ${trophyReady ? '' : 'disabled'} aria-label="${esc(t('unit_review'))}: ${esc(u.title)}" title="${t('unit_review')}">🏆</button></div>`);
+    nodes.push(`<div style="transform:translateX(${offs[(LESSONS_PER_UNIT + i) % 4]}px)"><button class="node trophy ${trophyReady ? 'done' : 'locked'}" data-act="unitpractice" data-u="${u.id}" ${trophyReady ? '' : 'disabled'} aria-label="${esc(t('unit_review'))}: ${esc(u.title)}" title="${t('unit_review')}">${ICON('trophy')}</button></div>`);
     return `<section class="unit">
       <div class="unithead unitcolor-${i % 5}"${i === 0 ? ' data-tour="path"' : ''}>
         <div><div class="kicker">${t('unit_n', { n: i + 1 })} · ${domainLabel(u.domain)}</div><h2>${u.title}</h2><div class="small" style="opacity:.85;margin-top:3px">${t('lessons_done', { d: done, t: LESSONS_PER_UNIT })}</div></div>
-        <div class="uicon">${u.icon}</div>
+        <div class="uicon">${unitIcon(u)}</div>
       </div>
       <div class="path">${nodes.join('')}</div>
     </section>`;
@@ -883,7 +907,7 @@
   function lessonView() {
     const q = L.q, pct = Math.round(100 * L.done / L.total);
     return `<div class="lesson">
-      <div class="lesson-top"><button class="x" data-act="quit" aria-label="${t('save_exit')}">✕</button>
+      <div class="lesson-top"><button class="x" data-act="quit" aria-label="${t('save_exit')}">${ICON('x')}</button>
         <div class="progress" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><div style="width:${pct}%"></div></div><span class="muted small" style="font-weight:900">${L.done}/${L.total}</span></div>
       <section class="qwrap">${renderQ(q)}</section>
       ${lessonFoot(q)}
@@ -899,7 +923,7 @@
       if (correct) cls = 'right'; else if (selected) cls = 'wrong';
     } else if (selected) cls = 'sel';
     let lead = `<span class="num">${k + 1}</span>`;
-    if (isMulti) lead = `<span class="box">${cls === 'right' ? '✓' : cls === 'wrong' ? '✕' : selected ? '✓' : ''}</span>`;
+    if (isMulti) lead = `<span class="box">${cls === 'wrong' ? ICON('x') : cls === 'right' || selected ? ICON('check') : ''}</span>`;
     return `<button class="opt ${cls}" data-act="${isMulti ? 'toggle' : 'pick'}" data-i="${oi}" ${L.checked ? 'disabled' : ''} aria-pressed="${selected}">${plain ? '' : lead}<span>${esc(optText(q, oi))}</span></button>`;
   }
   // True/false options are shown in the interface language.
@@ -912,7 +936,7 @@
     const H = text => hinted(text, seen, blocked);
     // One-time nudge until the learner has opened a hint.
     const face = !L.checked ? 'think' : L.ok ? 'laugh' : 'shocked';
-    const tip = () => !S.hintSeen && seen.size ? `<p class="hint-tip">${t('hint_tip')}</p>` : '';
+    const tip = () => !S.hintSeen && seen.size ? `<p class="hint-tip">${ICON('bulb')} ${t('hint_tip')}</p>` : '';
     if (q.t === 'mc' && q.tf) {
       const title = H(q.q);
       return `${kick(t('tf'))}<div class="qhead">${mascot(76, face)}<div class="qtitle">${title}</div></div>${tip()}
@@ -1049,7 +1073,7 @@
     }
     const praise = t('praise');
     return `<footer class="lesson-foot ${L.ok ? 'good' : 'bad'}" aria-live="polite"><div class="foot-inner">
-      <div class="feedback"><div class="badge">${L.ok ? '✅' : '❌'}</div><div>
+      <div class="feedback"><div class="badge">${ICON(L.ok ? 'check' : 'x')}</div><div>
         <h3>${L.ok ? praise[L.praise % praise.length] : t('not_quite')}</h3>
         ${L.ok ? '' : `<div class="ans">${esc(t('correct_is', { a: correctText(q) }))}</div>`}
         <div class="explain">${esc(explain(q))}</div>
@@ -1158,13 +1182,13 @@
       ${mascot(150, e.perfect ? 'cool' : e.unitCompleted || e.extended ? 'proud' : 'laugh', 'bounce')}
       <h1>${title}</h1><p class="muted">${sub}</p>
       <div class="statrow">
-        <div class="stat gold"><div class="lbl">${t('xp_earned_lbl')}</div><div class="val">⚡ ${e.xp}</div></div>
-        <div class="stat green"><div class="lbl">${t('accuracy')}</div><div class="val">🎯 ${e.acc}%</div></div>
-        <div class="stat blue"><div class="lbl">${t('time')}</div><div class="val">⏱ ${fmtTime(e.secs)}</div></div>
+        <div class="stat gold"><div class="lbl">${t('xp_earned_lbl')}</div><div class="val">${ICON('bolt')} ${e.xp}</div></div>
+        <div class="stat green"><div class="lbl">${t('accuracy')}</div><div class="val">${ICON('target')} ${e.acc}%</div></div>
+        <div class="stat blue"><div class="lbl">${t('time')}</div><div class="val">${ICON('clock')} ${fmtTime(e.secs)}</div></div>
       </div>
-      ${e.extended ? `<div class="stat flame"><div class="lbl">${t('goal_reached')}</div><div class="val">🔥 ${t('streak_days', { n: e.streak })}</div></div>` : ''}
+      ${e.extended ? `<div class="stat flame"><div class="lbl">${t('goal_reached')}</div><div class="val">${ICON('flame')} ${t('streak_days', { n: e.streak })}</div></div>` : ''}
       ${badgeLine(e.badges || [])}
-      ${e.earnedFreeze ? `<div class="stat ice"><div class="val">${t('freeze_earned')}</div><div class="lbl">${t('freezes', { n: S.freezes || 0 })}</div></div>` : ''}
+      ${e.earnedFreeze ? `<div class="stat ice"><div class="val">${ICON('snowflake')} ${t('freeze_earned')}</div><div class="lbl">${t('freezes', { n: S.freezes || 0 })}</div></div>` : ''}
     </div>
     <div class="fixed-foot"><button class="btn" data-act="nav" data-v="learn">${t('continue')}</button></div>`;
   }
@@ -1175,7 +1199,7 @@
     const rows = c.units.map(u => {
       const acc = accuracyOf(u.questions);
       return `<div class="card"><div class="row">
-        <div class="bigicon" style="font-size:30px;width:52px;height:52px">${u.icon}</div>
+        <div class="bigicon" style="font-size:26px;width:52px;height:52px">${unitIcon(u)}</div>
         <div class="grow"><strong>${u.title}</strong>
           <div class="progress ${acc.pct == null ? '' : acc.pct >= 80 ? 'green' : 'blue'}" style="height:8px;margin:7px 0 4px"><div style="width:${acc.pct || 0}%"></div></div>
           <span class="muted small">${acc.pct == null ? t('not_practiced') : t('acc_answers', { p: acc.pct, n: acc.seen })}</span></div>
@@ -1185,11 +1209,11 @@
     return shell(`<h1 class="section-title">${t('practice_title')}</h1>
       <p class="section-sub">${t('practice_sub')}</p>
       <div class="stack">
-        <div class="card pcard"><div class="row"><div class="bigicon">🧠</div><div class="grow"><h3>${t('fix_title')}</h3><p>${mist.length ? tn('fix_some', mist.length) : t('fix_none')}</p></div></div>
+        <div class="card pcard"><div class="row"><div class="bigicon">${ICON('repeat')}</div><div class="grow"><h3>${t('fix_title')}</h3><p>${mist.length ? tn('fix_some', mist.length) : t('fix_none')}</p></div></div>
           <button class="btn block" style="margin-top:14px" data-act="mistakes" ${mist.length ? '' : 'disabled'}>${t('review_mistakes')}</button></div>
-        <div class="card pcard"><div class="row"><div class="bigicon">📅</div><div class="grow"><h3>${t('review_title')}</h3><p>${due.length ? tn('review_some', due.length) : t('review_none')}</p></div></div>
+        <div class="card pcard"><div class="row"><div class="bigicon">${ICON('calendar')}</div><div class="grow"><h3>${t('review_title')}</h3><p>${due.length ? tn('review_some', due.length) : t('review_none')}</p></div></div>
           <button class="btn ghost block" style="margin-top:14px" data-act="review" ${due.length ? '' : 'disabled'}>${t('review_btn')}</button></div>
-        <div class="card pcard"><div class="row"><div class="bigicon">⚡</div><div class="grow"><h3>${t('quick_title')}</h3><p>${t('quick_sub')}</p></div></div>
+        <div class="card pcard"><div class="row"><div class="bigicon">${ICON('bolt')}</div><div class="grow"><h3>${t('quick_title')}</h3><p>${t('quick_sub')}</p></div></div>
           <button class="btn ghost block" style="margin-top:14px" data-act="quick">${t('start_btn')}</button></div>
         <h2 class="section-title" style="font-size:20px;margin-top:12px">${t('by_topic')}</h2>
         ${rows}
@@ -1273,12 +1297,12 @@
     const left = E.end - Date.now();
     const opts = E.orders[q.id].map((oi, k) => {
       const sel = q.t === 'multi' ? (a || []).includes(oi) : a === oi;
-      const lead = q.t === 'multi' ? `<span class="box">${sel ? '✓' : ''}</span>` : `<span class="num">${String.fromCharCode(65 + k)}</span>`;
+      const lead = q.t === 'multi' ? `<span class="box">${sel ? ICON('check') : ''}</span>` : `<span class="num">${String.fromCharCode(65 + k)}</span>`;
       return `<button class="opt ${sel ? 'sel' : ''}" data-act="eopt" data-i="${oi}" aria-pressed="${sel}">${lead}<span>${esc(optText(q, oi))}</span></button>`;
     }).join('');
     const qtext = q.t === 'fill' ? esc(q.q).replace('___', '<span class="blank">&nbsp;</span>') : esc(q.q);
     return `<div class="examtop"><div class="inner">
-        <button class="linkbtn" data-act="quitexam">${t('exit')}</button>
+        <button class="linkbtn ic-title" data-act="quitexam">${ICON('x')} ${t('exit')}</button>
         <strong>${c.code} · ${i + 1} / ${n}</strong>
         <span class="timer ${left < 120000 ? 'low' : ''}" id="timer">${fmtTime(left / 1000)}</span>
       </div></div>
@@ -1339,7 +1363,7 @@
     const pass = score >= passAt;
     const byUnit = c.units.map(u => {
       const its = items.filter(x => QINDEX[x.id].unit === u.id);
-      return { title: u.title, icon: u.icon, n: its.length, ok: its.filter(x => x.ok).length };
+      return { title: u.title, icon: unitIcon(u), n: its.length, ok: its.filter(x => x.ok).length };
     }).filter(x => x.n);
     S.exams.push({ cert: c.id, ts: Date.now(), score, pass, mode: E.mode || 'quick' });
     // XP scales with exam length: about 1 XP per 5% on the quick exam, 3x on the full one.
@@ -1366,12 +1390,12 @@
       <div class="statrow" style="margin-bottom:24px">
         <div class="stat ${R.pass ? 'green' : 'flame'}"><div class="lbl">${t('score')}</div><div class="val">${R.score}%</div></div>
         <div class="stat blue"><div class="lbl">${t('correct_lbl')}</div><div class="val">${R.correct} / ${R.items.length}</div></div>
-        <div class="stat gold"><div class="lbl">${t('xp_earned')}</div><div class="val">⚡ ${R.xp}</div></div>
+        <div class="stat gold"><div class="lbl">${t('xp_earned')}</div><div class="val">${ICON('bolt')} ${R.xp}</div></div>
       </div>
       ${(R.badges || []).length ? `<div class="statrow" style="margin-bottom:18px">${badgeLine(R.badges)}</div>` : ''}
-      ${R.pass ? `<div style="text-align:center;margin-bottom:18px"><button class="btn ghost" data-act="share">📤 ${t('share_btn')}</button></div>` : ''}
+      ${R.pass ? `<div style="text-align:center;margin-bottom:18px"><button class="btn ghost" data-act="share">${ICON('share')} ${t('share_btn')}</button></div>` : ''}
       <div class="card" style="margin-bottom:18px"><h3>${t('by_domain')}</h3>
-        ${R.byUnit.map(u => { const p = Math.round(100 * u.ok / u.n); return `<div class="domainbar"><div class="top"><span>${u.icon} ${u.title}</span><span class="muted">${u.ok}/${u.n}</span></div><div class="progress ${p >= R.passAt ? 'green' : ''}" style="height:10px"><div style="width:${p}%"></div></div></div>`; }).join('')}
+        ${R.byUnit.map(u => { const p = Math.round(100 * u.ok / u.n); return `<div class="domainbar"><div class="top"><span class="ic-title">${u.icon} ${u.title}</span><span class="muted">${u.ok}/${u.n}</span></div><div class="progress ${p >= R.passAt ? 'green' : ''}" style="height:10px"><div style="width:${p}%"></div></div></div>`; }).join('')}
       </div>
       <div class="row" style="justify-content:space-between;margin:22px 0 12px"><h2 style="font-size:20px;font-weight:900">${R.showAll ? t('all_qs') : t('review_misses')}</h2>
         <button class="linkbtn" data-act="toggleall">${R.showAll ? t('show_misses') : t('show_all')}</button></div>
@@ -1436,7 +1460,7 @@
   }
 
   function boardView() {
-    const head = `<h1 class="section-title">🏆 ${t('board_title')}</h1><p class="section-sub">${t('board_sub')}</p>`;
+    const head = `<h1 class="section-title ic-title">${ICON('trophy')} ${t('board_title')}</h1><p class="section-sub">${t('board_sub')}</p>`;
     if (authState !== 'in' || !account) {
       return shell(`${head}<div class="card" style="text-align:center">${mascot(100, 'idea', 'center')}<p style="margin:10px 0 16px">${t('board_signin')}</p>
         ${authState === 'out' || authState === 'loading' ? `<button class="btn" data-act="signin">${t('signin')}</button>` : ''}</div>`);
@@ -1455,12 +1479,12 @@
       : BOARD.state === 'loading' && !rows.length ? `<div class="card muted">${t('board_loading')}</div>`
       : !rows.length ? `<div class="card muted" style="text-align:center">${mascot(90, 'sleep', 'center')}<p style="margin-top:8px">${t('board_empty')}</p></div>`
       : `<div class="card board">${rows.map((r, i) => {
-          const me = r.uid === account.uid, medal = ['🥇', '🥈', '🥉'][i] || i + 1;
+          const me = r.uid === account.uid, medal = i < 3 ? `<span class="medal m${i + 1}">${i + 1}</span>` : i + 1;
           const initial = esc(((r.name || '?').trim()[0] || '?').toUpperCase());
           return `<div class="brow ${me ? 'me' : ''}"><span class="rank">${medal}</span><span class="avatar" style="width:34px;height:34px">${initial}</span>
-            <span class="grow bname">${esc(r.name || 'Learner')}${me ? ` <span class="pill you">${t('board_you')}</span>` : ''}</span><strong class="bxp">⚡ ${r.xp}</strong></div>`;
+            <span class="grow bname">${esc(r.name || 'Learner')}${me ? ` <span class="pill you">${t('board_you')}</span>` : ''}</span><strong class="bxp">${ICON('bolt')} ${r.xp}</strong></div>`;
         }).join('')}</div>`;
-    return shell(`${head}<p class="muted small" style="margin:-8px 0 14px">⏳ ${resets}</p>
+    return shell(`${head}<p class="muted small" style="margin:-8px 0 14px">${ICON('hourglass')} ${resets}</p>
       ${hidden ? `<div class="card notice"><p>${t('board_hidden')}</p></div>` : ''}${body}
       <div class="card" style="margin-top:16px"><div class="row"><div class="grow"><strong>${t('board_show')}</strong><p class="muted small">${t('board_show_sub')}</p></div>
         <div class="seg seg2"><button class="${hidden ? '' : 'on'}" data-act="boardvis" data-on="1">${t('board_on')}</button><button class="${hidden ? 'on' : ''}" data-act="boardvis" data-on="0">${t('board_off')}</button></div></div></div>`);
@@ -1530,7 +1554,7 @@
         <label class="muted small remind-time">${t('remind_at')} <select id="remind-hour" ${remind.busy ? 'disabled' : ''}>${hours.map(h => `<option value="${h}" ${h === remind.hour ? 'selected' : ''}>${label(h)}</option>`).join('')}</select></label></div>
         ${Notification.permission === 'denied' ? `<p class="muted small" style="margin-top:8px">${t('remind_denied')}</p>` : ''}`;
     }
-    return `<div class="card" style="margin-top:16px"><h3 style="margin-bottom:2px">🔔 ${t('remind_title')}</h3><p class="muted small" style="margin-bottom:6px">${t('remind_sub')}</p>${body}</div>`;
+    return `<div class="card" style="margin-top:16px"><h3 class="ic-title" style="margin-bottom:2px">${ICON('bell')} ${t('remind_title')}</h3><p class="muted small" style="margin-bottom:6px">${t('remind_sub')}</p>${body}</div>`;
   }
 
   function installCard(dismissable) {
@@ -1608,21 +1632,21 @@
     const domains = c.units.map(u => ({ u, acc: accuracyOf(u.questions) })).filter(x => x.acc.seen);
     return shell(`${accountCard()}<div class="row" style="margin:6px 0 20px">${mascot(84, 'proud')}<div><h1 class="section-title" style="margin:0">${t('your_progress')}</h1><p class="muted">${t('studying', { code: c.code, name: c.name })}</p></div></div>
       <div class="tiles">
-        <div class="tile-stat"><span class="i">🔥</span><div><div class="v">${streakNow()}</div><div class="l">${t('day_streak')}</div></div></div>
-        <div class="tile-stat"><span class="i">⚡</span><div><div class="v">${S.xp}</div><div class="l">${t('total_xp')}</div></div></div>
-        <div class="tile-stat"><span class="i">📚</span><div><div class="v">${S.lessons || 0}</div><div class="l">${t('sessions_done')}</div></div></div>
-        <div class="tile-stat"><span class="i">🎯</span><div><div class="v">${seen ? Math.round(100 * correct / seen) + '%' : '–'}</div><div class="l">${t('accuracy')}</div></div></div>
+        <div class="tile-stat"><span class="i">${ICON('flame')}</span><div><div class="v">${streakNow()}</div><div class="l">${t('day_streak')}</div></div></div>
+        <div class="tile-stat"><span class="i">${ICON('bolt')}</span><div><div class="v">${S.xp}</div><div class="l">${t('total_xp')}</div></div></div>
+        <div class="tile-stat"><span class="i">${ICON('book')}</span><div><div class="v">${S.lessons || 0}</div><div class="l">${t('sessions_done')}</div></div></div>
+        <div class="tile-stat"><span class="i">${ICON('target')}</span><div><div class="v">${seen ? Math.round(100 * correct / seen) + '%' : '–'}</div><div class="l">${t('accuracy')}</div></div></div>
       </div>
       <div style="margin-top:16px">${readinessCard(c, false)}</div>
       <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${t('badges')}</h3><span class="muted small">${Object.keys(S.badges || {}).length} / ${BADGES.length}</span></div>
-        <div class="badges">${BADGES.map(b => `<div class="badge-item ${S.badges && S.badges[b.id] ? 'on' : ''}" title="${esc(t('badge_' + b.id + '_d'))}"><span class="bi">${b.icon}</span><span class="bn">${t('badge_' + b.id)}</span></div>`).join('')}</div>
-        <button class="btn ghost block" style="margin-top:14px" data-act="share">📤 ${t('share_btn')}</button></div>
+        <div class="badges">${BADGES.map(b => `<div class="badge-item ${S.badges && S.badges[b.id] ? 'on' : ''}" title="${esc(t('badge_' + b.id + '_d'))}"><span class="bi">${ICON(b.icon)}</span><span class="bn">${t('badge_' + b.id)}</span></div>`).join('')}</div>
+        <button class="btn ghost block" style="margin-top:14px" data-act="share">${ICON('share')} ${t('share_btn')}</button></div>
       <div class="card" style="margin-top:16px">${streakCard()}<p class="muted small" style="margin-top:4px">${t('freezes_how')}</p></div>
       <div class="card" style="margin-top:16px"><h3>${t('this_week')}</h3>
         <div class="week">${days.map((d, k) => { const dt = new Date(d + 'T12:00:00'); return `<div class="bar ${k === 6 ? 'today' : ''}"><span class="n">${vals[k] || ''}</span><div class="fill" style="height:${Math.round(85 * vals[k] / max)}%"></div><span class="d">${dt.toLocaleDateString(locale(), { weekday: 'short' })}</span></div>`; }).join('')}</div>
       </div>
       <div class="card" style="margin-top:16px"><h3>${t('strengths', { code: c.code })}</h3>
-        ${domains.length ? domains.map(({ u, acc }) => `<div class="domainbar"><div class="top"><span>${u.icon} ${u.title}</span><span class="muted">${acc.pct}%</span></div><div class="progress ${acc.pct >= 80 ? 'green' : 'blue'}" style="height:10px"><div style="width:${acc.pct}%"></div></div></div>`).join('') : `<p class="muted">${t('strengths_none')}</p>`}
+        ${domains.length ? domains.map(({ u, acc }) => `<div class="domainbar"><div class="top"><span class="ic-title">${unitIcon(u)} ${u.title}</span><span class="muted">${acc.pct}%</span></div><div class="progress ${acc.pct >= 80 ? 'green' : 'blue'}" style="height:10px"><div style="width:${acc.pct}%"></div></div></div>`).join('') : `<p class="muted">${t('strengths_none')}</p>`}
       </div>
       <div class="card" style="margin-top:16px"><h3>${t('certifications')}</h3><div class="certlist">${COURSES.map(x => certOption(x, x.id === c.id, 'setcert')).join('')}</div></div>
       <div class="card" style="margin-top:16px"><h3>${t('daily_goal')}</h3>
