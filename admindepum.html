@@ -387,6 +387,22 @@ html.light body{
 .row.body[role="button"]{outline:none}
 .row.body[role="button"]:focus{box-shadow:inset 0 0 0 2px var(--accent)}
 
+/* ---- cloudlingo ---- */
+.cloud-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+.cloud-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px}
+.cloud-head h3{font-size:14px;margin:0;color:var(--text)}
+.cloud-filter{font-size:12px;color:var(--faint);display:flex;align-items:center;gap:6px}
+.cloud-item{padding:12px 14px;border-top:1px solid rgba(127,127,127,.15)}
+.cloud-item:first-child{border-top:0}
+.cloud-item .q{font-weight:600;margin:4px 0}
+.cloud-item .meta{font-size:12px;color:var(--faint);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cloud-item .note{margin:6px 0;white-space:pre-wrap}
+.cloud-item .acts{display:flex;gap:6px;margin-top:8px}
+.cloud-pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:700;background:rgba(240,127,26,.15);color:#c45c1a}
+.cloud-pill.done{background:rgba(43,182,115,.15);color:#1f8f59}
+.cloud-bar{height:6px;border-radius:3px;background:rgba(127,127,127,.15);overflow:hidden;margin-top:6px}
+.cloud-bar > i{display:block;height:100%;background:#ec4c56}
+.cloud-empty{padding:18px;color:var(--faint);font-size:13px}
 /* ---- backyard ---- */
 .backyard-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
 .backyard-board h3{font-size:14px;margin:0 0 10px;color:var(--text)}
@@ -570,6 +586,7 @@ html.light body{
     <button type="button" id="tab-btn-pumgoda" aria-pressed="false">📍 Pumgoda<span class="tb-badge hidden" id="tab-badge-pumgoda"></span></button>
     <button type="button" id="tab-btn-stock" aria-pressed="false">📈 Stock Ranges</button>
     <button type="button" id="tab-btn-backyard" aria-pressed="false">🎮 Backyard</button>
+    <button type="button" id="tab-btn-cloudlingo" aria-pressed="false">☁️ Cloudlingo<span class="tb-badge hidden" id="tab-badge-cloudlingo"></span></button>
   </nav>
 
   <!-- ═══════════ TAB: OVERALL ═══════════ -->
@@ -725,6 +742,24 @@ html.light body{
   </div>
 
 
+
+  <!-- ═══════════ TAB: CLOUDLINGO ═══════════ -->
+  <div id="tab-pane-cloudlingo" class="tab-pane hidden">
+    <div class="tab-summary" id="cloud-stats"></div>
+    <p class="app-note">Cloudlingo: problem reports from learners (🚩 in lessons and exam reviews), and the questions people miss most, from everyone's saved progress.</p>
+    <div class="cloud-grid">
+      <div>
+        <div class="cloud-head"><h3>Problem reports</h3>
+          <label class="cloud-filter"><input type="checkbox" id="cloud-show-resolved"> Show resolved</label></div>
+        <div class="panel" id="cloud-reports"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
+      </div>
+      <div>
+        <div class="cloud-head"><h3>Most-missed questions</h3>
+          <label class="cloud-filter">Min. answers <select id="cloud-min"><option>3</option><option selected>5</option><option>10</option><option>20</option></select></label></div>
+        <div class="panel" id="cloud-missed"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
+      </div>
+    </div>
+  </div>
 
   <!-- USER PROFILE / ACTIVITY TIMELINE -->
   <div id="uprof" class="uprof-ov hidden" aria-modal="true" role="dialog">
@@ -937,7 +972,7 @@ function initialTab(){
 }
 function applyRoleRestrictions(){
   if(ROLE !== 'pumgoda') return;
-  ['overall','bills','nutrition','stock','backyard'].forEach(t => {
+  ['overall','bills','nutrition','stock','backyard','cloudlingo'].forEach(t => {
     const btn = document.getElementById('tab-btn-'+t);
     if(btn) btn.classList.add('hidden');
   });
@@ -1615,7 +1650,7 @@ function showUndoToast(message, onCommit, opts){
 
 
 // ---- tabs ----
-const TABS = ['overall','bills','nutrition','pumgoda','stock','backyard'];
+const TABS = ['overall','bills','nutrition','pumgoda','stock','backyard','cloudlingo'];
 function switchTab(name){
   if(!TABS.includes(name)) name = 'overall';
   if(ROLE === 'pumgoda') name = 'pumgoda'; // restricted role: no other tab is ever reachable
@@ -1635,6 +1670,7 @@ function switchTab(name){
   if(name === 'pumgoda'){ renderPlaces(); loadSuggestions(); }
   if(name === 'stock') renderStockTab();
   if(name === 'backyard') renderBackyardTab();
+  if(name === 'cloudlingo') renderCloudlingoTab();
 }
 
 // User drill-down: switch to tab + highlight user
@@ -1921,6 +1957,103 @@ function renderBackyardTab(){
   renderBoard(all, 'backyard-leaderboard-rows');
   if(!BACKYARD.loaded && !BACKYARD.loading) loadBackyardData();
 }
+
+// ---- Cloudlingo: problem reports + most-missed questions ----
+const CLOUD = { loaded: false, loading: false, reports: [], learners: 0, perQ: new Map() };
+let CLOUD_BANK = null;
+// The question bank, loaded from the app's own data files the first time the tab opens.
+function loadCloudBank(){
+  if (CLOUD_BANK) return CLOUD_BANK;
+  const files = ['data','bank/clf','bank/aif','bank/saa','bank/dva','bank/soa','bank/dea'].map(f => '/cloudlingo/js/' + f + '.js');
+  CLOUD_BANK = files.reduce((p, src) => p.then(() => new Promise(res => {
+    const el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = res; document.head.appendChild(el);
+  })), Promise.resolve()).then(() => {
+    const idx = new Map();
+    (window.COURSES || []).forEach(c => c.units.forEach(u => u.questions.forEach((q, i) => idx.set(u.id + '-' + i, { q, c, u }))));
+    return idx;
+  });
+  return CLOUD_BANK;
+}
+async function loadCloudlingoData(){
+  CLOUD.loading = true;
+  try {
+    const [reps, progress] = await Promise.all([
+      getDocs(collection(db, 'cloudlingoReports')).catch(() => null),
+      getDocs(collection(db, 'userCloudlingo')).catch(() => null)
+    ]);
+    CLOUD.reports = reps ? reps.docs.map(d => Object.assign({ id: d.id }, d.data())) : [];
+    CLOUD.reports.sort((a, b) => (b.ts?.toMillis?.() || 0) - (a.ts?.toMillis?.() || 0));
+    CLOUD.perQ = new Map(); CLOUD.learners = 0;
+    (progress ? progress.docs : []).forEach(d => {
+      let st; try { st = JSON.parse(d.data().state || '{}').stats || {}; } catch { st = {}; }
+      if (Object.keys(st).length) CLOUD.learners++;
+      Object.entries(st).forEach(([qid, v]) => {
+        const a = CLOUD.perQ.get(qid) || { seen: 0, correct: 0, people: 0 };
+        a.seen += v.seen || 0; a.correct += v.correct || 0; a.people++;
+        CLOUD.perQ.set(qid, a);
+      });
+    });
+    CLOUD.loaded = true;
+  } finally { CLOUD.loading = false; }
+  renderCloudlingoTab();
+}
+async function renderCloudlingoTab(){
+  if (!CLOUD.loaded) { if (!CLOUD.loading) loadCloudlingoData(); return; }
+  const bank = await loadCloudBank();
+  const open = CLOUD.reports.filter(r => r.status !== 'resolved');
+  const badge = document.getElementById('tab-badge-cloudlingo');
+  if (badge) { badge.textContent = open.length; badge.classList.toggle('hidden', !open.length); }
+  let answers = 0; CLOUD.perQ.forEach(a => { answers += a.seen; });
+  statCards('cloud-stats', [['Learners with progress', CLOUD.learners], ['Answers recorded', answers.toLocaleString('en')], ['Open reports', open.length], ['Questions', bank.size]]);
+  // Reports
+  const showResolved = document.getElementById('cloud-show-resolved')?.checked;
+  const list = CLOUD.reports.filter(r => showResolved || r.status !== 'resolved');
+  const REASON = { wrong: 'Answer looks wrong', unclear: 'Question unclear', typo: 'Typo', outdated: 'Outdated', other: 'Other' };
+  document.getElementById('cloud-reports').innerHTML = list.length ? list.map(r => {
+    const p = r.uid ? PROFILE_MAP.get(r.uid) : null;
+    const who = r.uid ? ((p && (p.name || p.email)) || r.uid.slice(0, 8)) : 'signed out';
+    const when = r.ts?.toMillis?.() || 0;
+    const live = bank.get(r.qid);
+    const changed = live && r.qtext && live.q.q !== r.qtext;
+    return `<div class="cloud-item"><div class="meta"><span class="cloud-pill ${r.status === 'resolved' ? 'done' : ''}">${r.status === 'resolved' ? 'Resolved' : 'Open'}</span>
+      <b>${esc(REASON[r.reason] || r.reason)}</b><span>${esc(r.qid)} · ${esc((r.cert || '').toUpperCase())}</span><span>by ${esc(who)}</span><span>${eventTimeLabel(when)}</span>${changed ? '<span class="cloud-pill done">question edited since</span>' : ''}</div>
+      <div class="q">${esc(r.qtext || (live ? live.q.q : ''))}</div>
+      <div class="meta">Answer shown: ${esc(r.answer || '')}</div>
+      ${r.note ? `<div class="note">“${esc(r.note)}”</div>` : ''}
+      <div class="acts">${r.status === 'resolved' ? `<button class="btn ghost small" data-cloud-reopen="${r.id}">Reopen</button>` : `<button class="btn ghost small" data-cloud-resolve="${r.id}">Mark resolved</button>`}
+        <button class="btn ghost small" data-cloud-delete="${r.id}">Delete</button></div></div>`;
+  }).join('') : '<div class="cloud-empty">No reports. 🎉</div>';
+  // Most-missed questions
+  const min = +(document.getElementById('cloud-min')?.value || 5);
+  const rows = [...CLOUD.perQ.entries()].filter(([qid, a]) => a.seen >= min && bank.has(qid))
+    .map(([qid, a]) => ({ qid, a, miss: 1 - a.correct / a.seen })).sort((x, y) => y.miss - x.miss).slice(0, 25);
+  const reportsFor = qid => CLOUD.reports.filter(r => r.qid === qid).length;
+  document.getElementById('cloud-missed').innerHTML = rows.length ? rows.map(({ qid, a, miss }) => {
+    const { q, c, u } = bank.get(qid), pct = Math.round(miss * 100), n = reportsFor(qid);
+    return `<div class="cloud-item"><div class="meta"><b>${pct}% wrong</b><span>${a.seen} answers · ${a.people} learners</span><span>${esc(c.code)} · ${esc(u.title)}</span><span>${esc(qid)}</span>${n ? `<span class="cloud-pill">🚩 ${n}</span>` : ''}</div>
+      <div class="q">${esc(q.q)}</div><div class="cloud-bar"><i style="width:${pct}%"></i></div></div>`;
+  }).join('') : `<div class="cloud-empty">No question has ${min}+ answers yet.</div>`;
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-cloud-resolve],[data-cloud-reopen],[data-cloud-delete]');
+  if (!b) return;
+  const id = b.dataset.cloudResolve || b.dataset.cloudReopen || b.dataset.cloudDelete;
+  const r = CLOUD.reports.find(x => x.id === id); if (!r) return;
+  b.disabled = true;
+  try {
+    if (b.dataset.cloudDelete) {
+      if (!confirm('Delete this report? This cannot be undone.')) { b.disabled = false; return; }
+      await deleteDoc(doc(db, 'cloudlingoReports', id));
+      CLOUD.reports = CLOUD.reports.filter(x => x.id !== id);
+    } else {
+      const status = b.dataset.cloudResolve ? 'resolved' : 'open';
+      await updateDoc(doc(db, 'cloudlingoReports', id), { status });
+      r.status = status;
+    }
+    renderCloudlingoTab();
+  } catch (err) { b.disabled = false; showToast('Could not update the report: ' + (err.code || err.message), 'error'); }
+});
+document.addEventListener('change', e => { if (e.target.id === 'cloud-show-resolved' || e.target.id === 'cloud-min') renderCloudlingoTab(); });
 
 let SHARE_LINKS = [];
 

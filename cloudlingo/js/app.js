@@ -32,8 +32,22 @@
     lang = l;
     try { localStorage.setItem(LANG_KEY, l); } catch { /* ignore */ }
     document.documentElement.lang = l;
+    if (l === 'th') loadThai();
   }
   document.documentElement.lang = lang;
+  // Thai explanations and hints (js/th/*.js) load only when Thai is in use.
+  const ASSET_V = ((document.querySelector('script[src*="js/app.js"]') || {}).src || '').split('?')[1] || '';
+  let thaiLoading = null;
+  function loadThai() {
+    if (window.TH_EXPLAIN && window.TH_GLOSS) return Promise.resolve();
+    if (thaiLoading) return thaiLoading;
+    const files = ['glossary', 'clf', 'aif', 'saa', 'dva', 'soa', 'dea'].map(f => 'js/th/' + f + '.js' + (ASSET_V ? '?' + ASSET_V : ''));
+    thaiLoading = Promise.all(files.map(src => new Promise(res => {
+      const el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = res; document.head.appendChild(el);
+    }))).then(() => { if (typeof refresh === 'function') refresh(); });
+    return thaiLoading;
+  }
+  const explain = q => (lang === 'th' && window.TH_EXPLAIN && window.TH_EXPLAIN[q.id]) || q.e;
   const blurb = c => (window.I18N_COURSES && I18N_COURSES[lang] && I18N_COURSES[lang][c.id]) || c.blurb;
   const domainLabel = d => lang === 'en' ? d : d.replace(/^Domains?\b/, m => t(m === 'Domains' ? 'domains' : 'domain'));
 
@@ -173,6 +187,7 @@
         try { localStorage.removeItem(UID_KEY); } catch { /* ignore */ }
         refresh(); return;
       }
+      remind = { loaded: false, on: false, hour: 19, busy: false };
       account = { uid: user.uid, name: user.displayName || user.email || t('signed_in'), first: (user.displayName || '').trim().split(/\s+/)[0] || '', email: user.email || '', photo: user.photoURL || savedPhoto(user.uid), synced: false };
       lastUid = user.uid;
       authState = 'in';
@@ -389,7 +404,7 @@
     const s = S.session;
     return s && s.cert === S.cert && s.queue && s.queue.length && s.queue.every(id => QINDEX[id]) ? s : null;
   };
-  const modeName = m => ['lesson', 'replay', 'practice', 'mistakes'].includes(m) ? t('mode_' + m) : t('mode_session');
+  const modeName = m => ['lesson', 'replay', 'practice', 'mistakes', 'review'].includes(m) ? t('mode_' + m) : t('mode_session');
 
   // ---------- Streak freezes ----------
   // Earn one for every 7 days in a row (hold up to 2). Each covers one missed day:
@@ -416,6 +431,7 @@
     if (S.xpByDay[k] >= S.dailyGoal && S.lastStreakDay !== k) {
       S.streak = S.lastStreakDay === dayAgo(1) ? S.streak + 1 : 1;
       S.lastStreakDay = k; extended = true;
+      S.bestStreak = Math.max(S.bestStreak || 0, S.streak);
       if (S.streak % FREEZE_EVERY === 0 && (S.freezes || 0) < MAX_FREEZES) { S.freezes = (S.freezes || 0) + 1; earnedFreeze = true; }
     }
     save();
@@ -434,6 +450,166 @@
     return shuffle(shuffle(pool).sort((a, b) => seen(a) - seen(b)).slice(0, n).map(q => q.id));
   }
   const mistakesFor = cid => Object.keys(S.mistakes).filter(id => QINDEX[id] && QINDEX[id].course === cid);
+
+  // ---------- Report a problem with a question ----------
+  // Reports go to Firestore (cloudlingoReports) and show up in the admin page.
+  const reportBtn = q => authState === 'off' ? '' : (S.reported && S.reported[q.id])
+    ? `<span class="reportbtn done">✓ ${t('report_done')}</span>`
+    : `<button class="linkbtn reportbtn" data-act="report" data-q="${q.id}">🚩 ${t('report')}</button>`;
+  let reportQ = null;
+  function openReport(qid) {
+    reportQ = qid;
+    modal(`<h2>🚩 ${t('report_title')}</h2><p>${t('report_sub')}</p>
+      <div class="reasons">${['wrong', 'unclear', 'typo', 'outdated', 'other'].map((r, i) => `<label class="reason"><input type="radio" name="reason" value="${r}" ${i === 0 ? 'checked' : ''}><span>${t('report_' + r)}</span></label>`).join('')}</div>
+      <textarea id="report-note" maxlength="500" rows="3" placeholder="${t('report_note')}"></textarea>
+      <div class="stack" style="margin-top:14px"><button class="btn" data-act="sendreport">${t('report_send')}</button><button class="btn ghost" data-act="closemodal">${t('cancel')}</button></div>`, 'wide');
+  }
+  async function sendReport(btn) {
+    const q = QINDEX[reportQ];
+    if (!q) return;
+    const picked = modalRoot.querySelector('input[name=reason]:checked');
+    const reason = picked ? picked.value : 'other';
+    const noteEl = modalRoot.querySelector('#report-note');
+    const note = noteEl ? noteEl.value.trim().slice(0, 500) : '';
+    if (btn) btn.disabled = true;
+    if (!fb && fbLoading) { try { await fbLoading; } catch { /* below */ } }
+    if (!fb) { infoModal(t('report_failed'), t('report_failed_sub')); return; }
+    try {
+      await fb.fs.addDoc(fb.fs.collection(fb.db, 'cloudlingoReports'), {
+        qid: q.id, cert: q.course, reason, note, lang, uid: account ? account.uid : null,
+        qtext: String(q.q).slice(0, 800), answer: String(correctText(q)).slice(0, 400),
+        ts: fb.fs.serverTimestamp(), status: 'open'
+      });
+      S.reported = S.reported || {}; S.reported[q.id] = 1; save();
+      infoModal(t('report_thanks'), t('report_thanks_sub'), 'happy');
+      refresh();
+    } catch { infoModal(t('report_failed'), t('report_failed_sub')); }
+  }
+
+  // ---------- Spaced review ----------
+  // Each answered question sits in a box 0–4. Right on the first try moves it up
+  // a box; wrong sends it to box 0. It's due again after 1, 3, 7, 21 or 60 days.
+  const SRS_DAYS = [1, 3, 7, 21, 60];
+  const daysFromNow = n => { const d = new Date(); d.setDate(d.getDate() + n); return dayKey(d); };
+  function srsUpdate(id, ok) {
+    S.srs = S.srs || {};
+    const prev = S.srs[id];
+    const b = ok ? (prev ? Math.min(prev.b + 1, 4) : 1) : 0;
+    S.srs[id] = { b, due: daysFromNow(SRS_DAYS[b]) };
+  }
+  // Due today, for this certification, oldest first (mistakes have their own queue).
+  const dueFor = cid => Object.entries(S.srs || {})
+    .filter(([id, c]) => QINDEX[id] && QINDEX[id].course === cid && c.due <= dayKey() && !S.mistakes[id])
+    .sort((a, b) => a[1].due < b[1].due ? -1 : 1).map(([id]) => id);
+
+  // ---------- Exam readiness ----------
+  // Accuracy per unit, weighted by the unit's share of the real exam (the % in its
+  // domain label, split between units that share a domain). A unit only counts
+  // fully once you've answered at least half of its questions.
+  function readiness(c) {
+    const pct = u => { const m = /(\d+)%/.exec(u.domain); return m ? +m[1] : 0; };
+    const sameLabel = u => c.units.filter(x => x.domain === u.domain).length;
+    const fallback = 100 / c.units.length;
+    let sum = 0, wsum = 0, weakest = null;
+    for (const u of c.units) {
+      const w = (pct(u) || fallback) / sameLabel(u);
+      let seen = 0, correct = 0, distinct = 0;
+      u.questions.forEach(q => { const s = S.stats[q.id]; if (s && s.seen) { seen += s.seen; correct += s.correct; distinct++; } });
+      const acc = seen ? correct / seen : 0;
+      const score = acc * Math.min(1, distinct / (u.questions.length * 0.5));
+      sum += w * score; wsum += w;
+      if (!weakest || score < weakest.score) weakest = { u, score };
+    }
+    const value = Math.round(100 * sum / wsum);
+    const tier = value >= 75 ? 'ready' : value >= 60 ? 'close' : value >= 35 ? 'building' : 'start';
+    return { value, tier, weakest: weakest && weakest.u };
+  }
+  function readinessCard(c, compact) {
+    const r = readiness(c);
+    const color = r.tier === 'ready' ? 'green' : r.tier === 'close' ? 'blue' : '';
+    return `<div class="card readiness"><div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <strong>📈 ${t('ready_for', { code: c.code })}</strong><span class="rpct ${r.tier}">${r.value}%</span></div>
+      <div class="progress ${color}" style="height:12px"><div style="width:${r.value}%"></div></div>
+      <p class="muted small" style="margin-top:8px">${t('ready_' + r.tier)}${!compact && r.weakest && r.tier !== 'ready' ? ' ' + t('ready_focus', { unit: esc(r.weakest.title) }) : ''}</p></div>`;
+  }
+
+  // ---------- Achievements ----------
+  const BADGES = [
+    { id: 'first', icon: '🌱', test: s => (s.lessons || 0) >= 1 },
+    { id: 'perfect', icon: '💯', test: s => (s.perfects || 0) >= 1 },
+    { id: 'streak3', icon: '🔥', test: s => (s.bestStreak || 0) >= 3 },
+    { id: 'streak7', icon: '🧊', test: s => (s.bestStreak || 0) >= 7 },
+    { id: 'streak30', icon: '🏅', test: s => (s.bestStreak || 0) >= 30 },
+    { id: 'xp100', icon: '⚡', test: s => s.xp >= 100 },
+    { id: 'xp1000', icon: '🌩️', test: s => s.xp >= 1000 },
+    { id: 'unit', icon: '🏆', test: s => Object.values(s.progress || {}).some(n => n >= LESSONS_PER_UNIT) },
+    { id: 'fixer', icon: '🧠', test: s => (s.fixed || 0) >= 10 },
+    { id: 'exam', icon: '📝', test: s => (s.exams || []).some(e => e.pass) },
+    { id: 'full', icon: '🎓', test: s => (s.exams || []).some(e => e.pass && e.mode === 'full') },
+    { id: 'explorer', icon: '🌍', test: s => new Set(Object.keys(s.stats || {}).map(id => QINDEX[id] && QINDEX[id].course).filter(Boolean)).size >= COURSES.length }
+  ];
+  // Returns badges unlocked just now (and records them).
+  function checkBadges() {
+    S.badges = S.badges || {};
+    const fresh = BADGES.filter(b => !S.badges[b.id] && b.test(S));
+    fresh.forEach(b => { S.badges[b.id] = Date.now(); });
+    return fresh;
+  }
+  const badgeLine = list => list.length ? `<div class="stat badge-new"><div class="lbl">${t('badge_new')}</div><div class="val">${list.map(b => `${b.icon} ${t('badge_' + b.id)}`).join(' · ')}</div></div>` : '';
+
+  // ---------- Sounds (soft, short, and only for lesson results) ----------
+  let audio = null;
+  function sfx(kind) {
+    if (S.sound === false || document.hidden) return;
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === 'suspended') audio.resume();
+      const notes = { right: [[659, 0], [880, 0.08]], wrong: [[247, 0]], done: [[523, 0], [659, 0.1], [784, 0.2]] }[kind];
+      const peak = kind === 'wrong' ? 0.035 : 0.05, len = kind === 'wrong' ? 0.2 : 0.15;
+      notes.forEach(([f, at]) => {
+        const o = audio.createOscillator(), g = audio.createGain(), at0 = audio.currentTime + at;
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, at0);
+        g.gain.exponentialRampToValueAtTime(peak, at0 + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, at0 + len);
+        o.connect(g).connect(audio.destination); o.start(at0); o.stop(at0 + len + 0.02);
+      });
+    } catch { /* no audio: fine */ }
+    // One tiny tap, wrong answers only (browsers allow it only after the person has touched the page).
+    if (kind === 'wrong' && navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(25);
+  }
+
+  // ---------- Share card ----------
+  // A 1080x1080 image of your streak, XP and readiness, shared to LINE etc.
+  // through the phone's share sheet, or downloaded where sharing files isn't supported.
+  async function shareCard() {
+    const c = course(), r = readiness(c), W = 1080;
+    const cv = document.createElement('canvas'); cv.width = cv.height = W;
+    const x = cv.getContext('2d');
+    const grad = x.createLinearGradient(0, 0, 0, W); grad.addColorStop(0, '#eaf5ff'); grad.addColorStop(1, '#d6ecff');
+    x.fillStyle = grad; x.fillRect(0, 0, W, W);
+    const font = (w, px) => `${w} ${px}px Nunito, 'Noto Sans Thai', system-ui, sans-serif`;
+    try { await Promise.all([document.fonts.load(font(900, 80)), document.fonts.load(font(800, 40))]); } catch { /* system font */ }
+    const img = new Image(); img.src = (window.NIMBUS_IMG && window.NIMBUS_IMG.cool) || 'img/nimbus/cool.webp';
+    try { await img.decode(); const h = 430, w = h * img.naturalWidth / img.naturalHeight; x.drawImage(img, (W - w) / 2, 110, w, h); } catch { /* no picture */ }
+    x.textAlign = 'center';
+    x.fillStyle = '#1f8ef1'; x.font = font(900, 64); x.fillText('Cloudlingo', W / 2, 90);
+    x.fillStyle = '#f07f1a'; x.font = font(900, 92); x.fillText(`🔥 ${t('streak_days', { n: streakNow() })}`, W / 2, 680);
+    x.fillStyle = '#1d2b3a'; x.font = font(800, 54); x.fillText(`⚡ ${S.xp} XP  ·  📈 ${c.code} ${r.value}%`, W / 2, 780);
+    x.fillStyle = '#64748b'; x.font = font(800, 40); x.fillText(t('share_tagline'), W / 2, 880);
+    x.fillStyle = '#1f8ef1'; x.font = font(800, 38); x.fillText('pumbafluffycorgi.com/cloudlingo', W / 2, 990);
+    const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+    if (!blob) return;
+    const file = new File([blob], 'cloudlingo.png', { type: 'image/png' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], text: t('share_text') + ' https://pumbafluffycorgi.com/cloudlingo/' });
+        return;
+      }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cloudlingo.png';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
 
   // ---------- View state ----------
   let view = S.cert ? 'learn' : 'onboard';
@@ -604,8 +780,11 @@
       <p class="muted small">${modeName(s.mode)}${s.unit ? ` · ${esc(UNITS[s.unit].title)}` : ''} · ${t('resume_done', { d: s.done, t: s.total })}</p></div></div>
       <div class="row" style="margin-top:14px"><button class="btn block grow" data-act="resume">${t('continue')}</button><button class="btn ghost" data-act="discard">${t('discard')}</button></div></div>` : '';
     const firstOpen = c.units.findIndex(u => unitDone(u) < LESSONS_PER_UNIT);
-    return shell(`${freezeNotice()}${installCard(true)}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div>${resume}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
-      <div class="card" style="margin-top:34px;text-align:center"><h3>${t('ready_title')}</h3><p class="muted" style="margin-bottom:14px">${t('ready_sub', { code: c.code })}</p><button class="btn ghost" data-act="nav" data-v="exam">${t('try_exam')}</button></div>`);
+    const due = dueFor(c.id).length;
+    const dueCard = due ? `<div class="card duecard"><div class="row"><div class="bigicon">📅</div><div class="grow"><h3 style="margin-bottom:2px">${tn('review_some', due)}</h3><p class="muted small">${t('review_why')}</p></div><button class="btn ghost" data-act="review">${t('review_btn')}</button></div></div>` : '';
+    return shell(`${freezeNotice()}${installCard(true)}${dueCard}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div>${resume}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
+      <div style="margin-top:34px">${readinessCard(c, false)}</div>
+      <div class="card" style="margin-top:16px;text-align:center"><h3>${t('ready_title')}</h3><p class="muted" style="margin-bottom:14px">${t('ready_sub', { code: c.code })}</p><button class="btn ghost" data-act="nav" data-v="exam">${t('try_exam')}</button></div>`);
   }
 
   function unitBlock(u, i, suggested) {
@@ -795,7 +974,7 @@
     if (!S.hintSeen) { S.hintSeen = true; save(); const t = document.querySelector('.hint-tip'); if (t) t.remove(); }
     const el = document.createElement('div');
     el.className = 'hintpop'; el.setAttribute('role', 'tooltip');
-    el.innerHTML = `<strong>${esc(g.k)}</strong><span>${esc(g.d)}</span><i class="arrow"></i>`;
+    el.innerHTML = `<strong>${esc(g.k)}</strong><span>${esc((lang === 'th' && window.TH_GLOSS && window.TH_GLOSS[g.k]) || g.d)}</span><i class="arrow"></i>`;
     document.body.appendChild(el);
     const r = btn.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
     const left = Math.max(12, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 12));
@@ -835,7 +1014,8 @@
       <div class="feedback"><div class="badge">${L.ok ? '✅' : '❌'}</div><div>
         <h3>${L.ok ? praise[L.praise % praise.length] : t('not_quite')}</h3>
         ${L.ok ? '' : `<div class="ans">${esc(t('correct_is', { a: correctText(q) }))}</div>`}
-        <div class="explain">${esc(q.e)}</div>
+        <div class="explain">${esc(explain(q))}</div>
+        ${reportBtn(q)}
       </div></div>
       <button class="btn ${L.ok ? 'good' : 'bad'}" data-act="continue">${t('continue')}</button>
     </div></footer>`;
@@ -856,11 +1036,16 @@
     const st = S.stats[q.id] || { seen: 0, correct: 0 };
     st.seen++; if (ok) st.correct++;
     S.stats[q.id] = st;
+    srsUpdate(q.id, ok && !L.missed.has(q.id));
+    sfx(ok ? 'right' : 'wrong');
     if (ok) {
       L.done++;
       L.praise = Math.floor(Math.random() * 6);
       // Clears from the review queue in "Fix mistakes", or when answered right on the first try in a later session.
-      if (L.mode === 'mistakes' || !L.missed.has(q.id)) delete S.mistakes[q.id];
+      if (L.mode === 'mistakes' || !L.missed.has(q.id)) {
+        if (S.mistakes[q.id]) S.fixed = (S.fixed || 0) + 1;
+        delete S.mistakes[q.id];
+      }
     } else {
       L.missed.add(q.id);
       S.mistakes[q.id] = { ts: Date.now() };
@@ -906,10 +1091,13 @@
     let xp = (L.mode === 'replay' ? 5 : 10) + (perfect ? 5 : 0);
     if (L.mode === 'lesson' && L.unit) S.progress[L.unit] = (S.progress[L.unit] || 0) + 1;
     S.lessons = (S.lessons || 0) + 1;
+    if (perfect) S.perfects = (S.perfects || 0) + 1;
     S.session = null;
     const { extended, earnedFreeze } = addXP(xp);
+    const badges = checkBadges();
+    sfx('done');
     END = {
-      xp, perfect, extended, earnedFreeze, streak: S.streak,
+      xp, perfect, extended, earnedFreeze, badges, streak: S.streak,
       acc: Math.round(100 * (L.total - L.missed.size) / L.total),
       secs: Math.round((Date.now() - L.start) / 1000),
       unitCompleted: L.mode === 'lesson' && L.unit && S.progress[L.unit] === LESSONS_PER_UNIT ? UNITS[L.unit].title : null,
@@ -934,6 +1122,7 @@
         <div class="stat blue"><div class="lbl">${t('time')}</div><div class="val">⏱ ${fmtTime(e.secs)}</div></div>
       </div>
       ${e.extended ? `<div class="stat flame"><div class="lbl">${t('goal_reached')}</div><div class="val">🔥 ${t('streak_days', { n: e.streak })}</div></div>` : ''}
+      ${badgeLine(e.badges || [])}
       ${e.earnedFreeze ? `<div class="stat ice"><div class="val">${t('freeze_earned')}</div><div class="lbl">${t('freezes', { n: S.freezes || 0 })}</div></div>` : ''}
     </div>
     <div class="fixed-foot"><button class="btn" data-act="nav" data-v="learn">${t('continue')}</button></div>`;
@@ -941,7 +1130,7 @@
 
   // ---------- Practice ----------
   function practiceView() {
-    const c = course(), mist = mistakesFor(c.id);
+    const c = course(), mist = mistakesFor(c.id), due = dueFor(c.id);
     const rows = c.units.map(u => {
       const acc = accuracyOf(u.questions);
       return `<div class="card"><div class="row">
@@ -957,6 +1146,8 @@
       <div class="stack">
         <div class="card pcard"><div class="row"><div class="bigicon">🧠</div><div class="grow"><h3>${t('fix_title')}</h3><p>${mist.length ? tn('fix_some', mist.length) : t('fix_none')}</p></div></div>
           <button class="btn block" style="margin-top:14px" data-act="mistakes" ${mist.length ? '' : 'disabled'}>${t('review_mistakes')}</button></div>
+        <div class="card pcard"><div class="row"><div class="bigicon">📅</div><div class="grow"><h3>${t('review_title')}</h3><p>${due.length ? tn('review_some', due.length) : t('review_none')}</p></div></div>
+          <button class="btn ghost block" style="margin-top:14px" data-act="review" ${due.length ? '' : 'disabled'}>${t('review_btn')}</button></div>
         <div class="card pcard"><div class="row"><div class="bigicon">⚡</div><div class="grow"><h3>${t('quick_title')}</h3><p>${t('quick_sub')}</p></div></div>
           <button class="btn ghost block" style="margin-top:14px" data-act="quick">${t('start_btn')}</button></div>
         <h2 class="section-title" style="font-size:20px;margin-top:12px">${t('by_topic')}</h2>
@@ -970,6 +1161,10 @@
     const started = c.units.filter(u => (S.progress[u.id] || 0) > 0);
     const pool = (started.length ? started : c.units).flatMap(u => u.questions);
     startSession('practice', pickQuestions(pool, 10));
+  }
+  function startReview() {
+    const ids = dueFor(course().id).slice(0, 10);
+    startSession('review', shuffle(ids));
   }
   function startMistakes() {
     const ids = mistakesFor(course().id).sort((a, b) => S.mistakes[a].ts - S.mistakes[b].ts).slice(0, 10);
@@ -1094,6 +1289,7 @@
       const st = S.stats[id] || { seen: 0, correct: 0 };
       st.seen++; if (ok) st.correct++; S.stats[id] = st;
       if (!ok) S.mistakes[id] = { ts: Date.now() };
+      srsUpdate(id, ok);
       return { id, a, ok };
     });
     const correct = items.filter(x => x.ok).length;
@@ -1108,7 +1304,9 @@
     // XP scales with exam length: about 1 XP per 5% on the quick exam, 3x on the full one.
     const xp = Math.max(5, Math.round(score / 5 * (E.mode === 'full' ? 3 : 1)));
     addXP(xp);
-    R = { cert: c.id, mode: E.mode || 'quick', passAt, items, correct, score, pass, byUnit, secs: Math.round((Date.now() - E.start) / 1000), xp, showAll: false };
+    const badges = checkBadges();
+    if (pass) sfx('done');
+    R = { badges, cert: c.id, mode: E.mode || 'quick', passAt, items, correct, score, pass, byUnit, secs: Math.round((Date.now() - E.start) / 1000), xp, showAll: false };
     E = null;
     go('examResult');
     if (pass) confetti();
@@ -1128,6 +1326,8 @@
         <div class="stat blue"><div class="lbl">${t('correct_lbl')}</div><div class="val">${R.correct} / ${R.items.length}</div></div>
         <div class="stat gold"><div class="lbl">${t('xp_earned')}</div><div class="val">⚡ ${R.xp}</div></div>
       </div>
+      ${(R.badges || []).length ? `<div class="statrow" style="margin-bottom:18px">${badgeLine(R.badges)}</div>` : ''}
+      ${R.pass ? `<div style="text-align:center;margin-bottom:18px"><button class="btn ghost" data-act="share">📤 ${t('share_btn')}</button></div>` : ''}
       <div class="card" style="margin-bottom:18px"><h3>${t('by_domain')}</h3>
         ${R.byUnit.map(u => { const p = Math.round(100 * u.ok / u.n); return `<div class="domainbar"><div class="top"><span>${u.icon} ${u.title}</span><span class="muted">${u.ok}/${u.n}</span></div><div class="progress ${p >= R.passAt ? 'green' : ''}" style="height:10px"><div style="width:${p}%"></div></div></div>`; }).join('')}
       </div>
@@ -1137,7 +1337,7 @@
         <div class="card reviewitem ${x.ok ? 'ok' : ''}"><div class="q">${esc(q.q)}</div>
           ${x.ok ? '' : `<div class="a" style="color:var(--bad)">${esc(t('your_answer', { a: answerText(q, x.a) }))}</div>`}
           <div class="a" style="color:var(--good)">${esc(t('correct_is', { a: correctText(q) }))}</div>
-          <div class="e">${esc(q.e)}</div></div>`; }).join('') : `<div class="card muted">${t('flawless')}</div>`}</div>
+          <div class="e">${esc(explain(q))}</div>${reportBtn(q)}</div>`; }).join('') : `<div class="card muted">${t('flawless')}</div>`}</div>
     </div>
     <div class="fixed-foot"><button class="btn ghost" data-act="nav" data-v="exam">${t('done')}</button><button class="btn" data-act="startexam" data-mode="${R.mode}">${t('retake')}</button></div>`;
   }
@@ -1237,6 +1437,60 @@
   if (pwaReady && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/^(localhost|127.0.0.1)$/.test(location.hostname)) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* offline support is optional */ }));
   }
+  // ---------- Daily reminder (push notification) ----------
+  // Saved per account in Firestore (cloudlingoPush/{uid}): this device's push
+  // subscription, the local hour to remind at, and the time zone. An hourly job
+  // (cloudlingo/reminders/send.mjs) sends one reminder on days the goal isn't met.
+  const VAPID_PUBLIC = '__VAPID_PUBLIC__'; // filled in at deploy (deploy.yml)
+  const pushSupported = () => pwaReady && !VAPID_PUBLIC.startsWith('__') && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  let remind = { loaded: false, on: false, hour: 19, busy: false };
+  const b64ToBytes = b64 => { const p = '='.repeat((4 - b64.length % 4) % 4); const raw = atob((b64 + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(raw, c => c.charCodeAt(0)); };
+  const remindRef = () => fb.fs.doc(fb.db, 'cloudlingoPush', account.uid);
+  async function loadReminder() {
+    if (!fb || !account || remind.loaded) return;
+    try { const snap = await fb.fs.getDoc(remindRef()); const d = snap.exists() ? snap.data() : {}; remind = { loaded: true, on: !!d.on, hour: d.hour != null ? d.hour : 19, busy: false }; }
+    catch { remind.loaded = true; }
+    if (view === 'profile') render();
+  }
+  async function setReminder(on, hour) {
+    if (!fb || !account || remind.busy) return;
+    remind.busy = true; render();
+    try {
+      const data = { on, hour, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', lang, updatedAt: Date.now() };
+      if (on) {
+        if (Notification.permission !== 'granted' && await Notification.requestPermission() !== 'granted') throw new Error('denied');
+        const reg = await navigator.serviceWorker.ready;
+        const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(VAPID_PUBLIC) });
+        const snap = await fb.fs.getDoc(remindRef());
+        const subs = ((snap.exists() && snap.data().subs) || []).filter(x => x.endpoint !== sub.endpoint);
+        data.subs = subs.concat(sub.toJSON()).slice(-5); // up to 5 devices per account
+      }
+      await fb.fs.setDoc(remindRef(), data, { merge: true });
+      remind = { loaded: true, on, hour, busy: false };
+    } catch (e) {
+      remind.busy = false;
+      infoModal(t('remind_failed'), e && e.message === 'denied' ? t('remind_denied') : t('remind_failed_sub'));
+    }
+    render();
+  }
+  function reminderCard() {
+    if (!pwaReady || VAPID_PUBLIC.startsWith('__')) return '';
+    let body;
+    if (authState !== 'in' || !account) body = `<p class="muted small">${t('remind_signin')}</p>`;
+    else if (isIOS() && !isStandalone()) body = `<p class="muted small">${t('remind_install')}</p>`;
+    else if (!pushSupported()) body = `<p class="muted small">${t('remind_unsupported')}</p>`;
+    else {
+      loadReminder();
+      const hours = [7, 8, 9, 12, 17, 18, 19, 20, 21, 22];
+      const label = h => new Date(2000, 0, 1, h).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' });
+      body = `<div class="row" style="flex-wrap:wrap;gap:10px;margin-top:6px">
+        <div class="seg seg2" style="width:132px"><button class="${remind.on ? 'on' : ''}" data-act="remindon" ${remind.busy ? 'disabled' : ''}>${t('board_on')}</button><button class="${remind.on ? '' : 'on'}" data-act="remindoff" ${remind.busy ? 'disabled' : ''}>${t('board_off')}</button></div>
+        <label class="muted small remind-time">${t('remind_at')} <select id="remind-hour" ${remind.busy ? 'disabled' : ''}>${hours.map(h => `<option value="${h}" ${h === remind.hour ? 'selected' : ''}>${label(h)}</option>`).join('')}</select></label></div>
+        ${Notification.permission === 'denied' ? `<p class="muted small" style="margin-top:8px">${t('remind_denied')}</p>` : ''}`;
+    }
+    return `<div class="card" style="margin-top:16px"><h3 style="margin-bottom:2px">🔔 ${t('remind_title')}</h3><p class="muted small" style="margin-bottom:6px">${t('remind_sub')}</p>${body}</div>`;
+  }
+
   function installCard(dismissable) {
     if (!pwaReady || isStandalone() || (dismissable && S.installHidden)) return '';
     const later = dismissable ? `<button class="linkbtn" data-act="installlater">${t('install_later')}</button>` : '';
@@ -1317,6 +1571,10 @@
         <div class="tile-stat"><span class="i">📚</span><div><div class="v">${S.lessons || 0}</div><div class="l">${t('sessions_done')}</div></div></div>
         <div class="tile-stat"><span class="i">🎯</span><div><div class="v">${seen ? Math.round(100 * correct / seen) + '%' : '–'}</div><div class="l">${t('accuracy')}</div></div></div>
       </div>
+      <div style="margin-top:16px">${readinessCard(c, false)}</div>
+      <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${t('badges')}</h3><span class="muted small">${Object.keys(S.badges || {}).length} / ${BADGES.length}</span></div>
+        <div class="badges">${BADGES.map(b => `<div class="badge-item ${S.badges && S.badges[b.id] ? 'on' : ''}" title="${esc(t('badge_' + b.id + '_d'))}"><span class="bi">${b.icon}</span><span class="bn">${t('badge_' + b.id)}</span></div>`).join('')}</div>
+        <button class="btn ghost block" style="margin-top:14px" data-act="share">📤 ${t('share_btn')}</button></div>
       <div class="card" style="margin-top:16px">${streakCard()}<p class="muted small" style="margin-top:4px">${t('freezes_how')}</p></div>
       <div class="card" style="margin-top:16px"><h3>${t('this_week')}</h3>
         <div class="week">${days.map((d, k) => { const dt = new Date(d + 'T12:00:00'); return `<div class="bar ${k === 6 ? 'today' : ''}"><span class="n">${vals[k] || ''}</span><div class="fill" style="height:${Math.round(85 * vals[k] / max)}%"></div><span class="d">${dt.toLocaleDateString(locale(), { weekday: 'short' })}</span></div>`; }).join('')}</div>
@@ -1328,7 +1586,9 @@
       <div class="card" style="margin-top:16px"><h3>${t('daily_goal')}</h3>
         <div class="seg">${GOALS.map(g => `<button class="${S.dailyGoal === g.xp ? 'on' : ''}" data-act="setgoal" data-g="${g.xp}">${t(g.key)}<small>${g.xp} XP</small></button>`).join('')}</div>
       </div>
-      ${installCard(false) ? `<div style="margin-top:16px">${installCard(false)}</div>` : ''}<div class="card" style="margin-top:16px"><h3>${t('language')}</h3>${langSwitch()}</div>
+      ${reminderCard()}${installCard(false) ? `<div style="margin-top:16px">${installCard(false)}</div>` : ''}<div class="card" style="margin-top:16px"><h3>${t('language')}</h3>${langSwitch()}</div>
+      <div class="card" style="margin-top:16px"><div class="row"><div class="grow"><h3 style="margin:0">${t('sound')}</h3><p class="muted small">${t('sound_sub')}</p></div>
+        <div class="seg seg2" style="width:132px"><button class="${S.sound !== false ? 'on' : ''}" data-act="setsound" data-on="1">${t('board_on')}</button><button class="${S.sound === false ? 'on' : ''}" data-act="setsound" data-on="0">${t('board_off')}</button></div></div></div>
       <div class="card" style="margin-top:16px"><h3>${t('appearance')}</h3>
         <div class="seg" style="grid-template-columns:repeat(3,1fr)">${['auto', 'light', 'dark'].map(th => `<button class="${S.theme === th ? 'on' : ''}" data-act="settheme" data-t="${th}">${t('theme_' + th)}</button>`).join('')}</div>
       </div>
@@ -1342,6 +1602,13 @@
     boardvis: d => setBoardVisible(d.on === '1'),
     setlang: d => { setLang(d.l); render(); },
     tour: () => startTour(),
+    remindon: () => setReminder(true, remind.hour),
+    remindoff: () => setReminder(false, remind.hour),
+    report: d => openReport(d.q),
+    sendreport: () => sendReport(modalRoot.querySelector('[data-act=sendreport]')),
+    review: () => startReview(),
+    share: () => shareCard(),
+    setsound: d => { S.sound = d.on === '1'; save(); if (S.sound) sfx('right'); render(); },
     install: async () => { if (!installPrompt) return; const p = installPrompt; installPrompt = null; p.prompt(); try { await p.userChoice; } catch { /* ignore */ } render(); },
     installlater: () => { S.installHidden = true; save(); render(); },
     dismissfreeze: () => { S.freezeNotice = null; save(); render(); },
@@ -1411,6 +1678,10 @@
     if (fn) fn(el.dataset);
   });
 
+  document.addEventListener('change', e => {
+    if (e.target && e.target.id === 'remind-hour') setReminder(remind.on, +e.target.value);
+  });
+
   document.addEventListener('keydown', e => {
     if (modalRoot.innerHTML) { if (e.key === 'Escape' && !modalRoot.querySelector('.modal.sticky')) closeModal(); return; }
     if (hintOpen && e.key === 'Escape') { closeHint(); return; }
@@ -1445,6 +1716,7 @@
 
   applyFreezes();
   applyTheme();
+  if (lang === 'th') loadThai();
   render();
   initSync();
   if (view === 'learn') maybeAutoTour();

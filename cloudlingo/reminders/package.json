@@ -1,0 +1,10 @@
+{
+  "name": "cloudlingo-reminders",
+  "private": true,
+  "type": "module",
+  "description": "Hourly daily-reminder sender for Cloudlingo (run by the site's hourly GitHub Actions job).",
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "web-push": "^3.6.7"
+  }
+}
