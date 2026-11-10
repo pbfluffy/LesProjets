@@ -403,6 +403,12 @@ html.light body{
 .cloud-bar{height:6px;border-radius:3px;background:rgba(127,127,127,.15);overflow:hidden;margin-top:6px}
 .cloud-bar > i{display:block;height:100%;background:#ec4c56}
 .cloud-empty{padding:18px;color:var(--faint);font-size:13px}
+.cloud-row{display:grid;grid-template-columns:minmax(160px,1.6fr) .6fr .6fr .6fr .6fr .7fr .7fr .9fr;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid rgba(127,127,127,.15);font-size:13px}
+.cloud-row.head{border-top:0;font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
+.cloud-row .who{min-width:0}.cloud-row .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cloud-row .who span{display:block;font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cloud-board-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid rgba(127,127,127,.15)}.cloud-board-row:first-child{border-top:0}
+.cloud-board-row .rk{width:24px;text-align:center;font-weight:800;color:var(--faint)}.cloud-board-row .nm{flex:1;font-weight:600}.cloud-board-row .xp{font-weight:800}
+@media (max-width:760px){.cloud-row{grid-template-columns:minmax(120px,1.4fr) .6fr .6fr .8fr}.cloud-row > div:nth-child(5),.cloud-row > div:nth-child(6),.cloud-row > div:nth-child(7),.cloud-row > div:nth-child(8){display:none}}
 /* ---- backyard ---- */
 .backyard-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
 .backyard-board h3{font-size:14px;margin:0 0 10px;color:var(--text)}
@@ -748,6 +754,16 @@ html.light body{
     <div class="tab-summary" id="cloud-stats"></div>
     <p class="app-note">Cloudlingo: problem reports from learners (🚩 in lessons and exam reviews), and the questions people miss most, from everyone's saved progress.</p>
     <div class="cloud-grid">
+      <div>
+        <div class="cloud-head"><h3>Learners</h3>
+          <label class="cloud-filter">Sort <select id="cloud-sort"><option value="recent" selected>Last active</option><option value="xp">XP</option><option value="streak">Streak</option></select></label></div>
+        <div class="panel"><div class="cloud-row head"><div>Learner</div><div>Cert</div><div>XP</div><div>Streak</div><div>Sessions</div><div>Exams</div><div>Reminder</div><div>Last active</div></div>
+          <div id="cloud-learners"><div class="skeleton-row"></div><div class="skeleton-row"></div></div></div>
+      </div>
+      <div>
+        <div class="cloud-head"><h3>This week's leaderboard</h3><span class="cloud-filter" id="cloud-week"></span></div>
+        <div class="panel" id="cloud-board"><div class="skeleton-row"></div></div>
+      </div>
       <div>
         <div class="cloud-head"><h3>Problem reports</h3>
           <label class="cloud-filter"><input type="checkbox" id="cloud-show-resolved"> Show resolved</label></div>
@@ -1959,7 +1975,10 @@ function renderBackyardTab(){
 }
 
 // ---- Cloudlingo: problem reports + most-missed questions ----
-const CLOUD = { loaded: false, loading: false, reports: [], learners: 0, perQ: new Map() };
+const CLOUD = { loaded: false, loading: false, reports: [], learners: 0, perQ: new Map(), people: [], board: [], week: '', remindOn: 0 };
+// The current leaderboard week = this Monday's date, same as the app.
+function cloudWeekId(){ const x = new Date(); x.setHours(12,0,0,0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0'); }
+function cloudDayKey(off){ const d = new Date(); d.setDate(d.getDate() + (off || 0)); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 let CLOUD_BANK = null;
 // The question bank, loaded from the app's own data files the first time the tab opens.
 function loadCloudBank(){
@@ -1977,16 +1996,28 @@ function loadCloudBank(){
 async function loadCloudlingoData(){
   CLOUD.loading = true;
   try {
-    const [reps, progress] = await Promise.all([
+    CLOUD.week = cloudWeekId();
+    const [reps, progress, board, pushes] = await Promise.all([
       getDocs(collection(db, 'cloudlingoReports')).catch(() => null),
-      getDocs(collection(db, 'userCloudlingo')).catch(() => null)
+      getDocs(collection(db, 'userCloudlingo')).catch(() => null),
+      getDocs(collection(db, 'cloudlingoWeeks', CLOUD.week, 'scores')).catch(() => null),
+      getDocs(collection(db, 'cloudlingoPush')).catch(() => null)
     ]);
+    CLOUD.board = board ? board.docs.map(d => Object.assign({ uid: d.id }, d.data())).sort((a, b) => (b.xp || 0) - (a.xp || 0)) : [];
+    const remind = new Map(); (pushes ? pushes.docs : []).forEach(d => { const p = d.data(); remind.set(d.id, p.on ? p.hour : null); });
+    CLOUD.remindOn = [...remind.values()].filter(h => h != null).length;
+    CLOUD.people = [];
     CLOUD.reports = reps ? reps.docs.map(d => Object.assign({ id: d.id }, d.data())) : [];
     CLOUD.reports.sort((a, b) => (b.ts?.toMillis?.() || 0) - (a.ts?.toMillis?.() || 0));
     CLOUD.perQ = new Map(); CLOUD.learners = 0;
     (progress ? progress.docs : []).forEach(d => {
-      let st; try { st = JSON.parse(d.data().state || '{}').stats || {}; } catch { st = {}; }
+      let state; try { state = JSON.parse(d.data().state || '{}'); } catch { state = {}; }
+      const st = state.stats || {};
       if (Object.keys(st).length) CLOUD.learners++;
+      const alive = state.lastStreakDay === cloudDayKey(0) || state.lastStreakDay === cloudDayKey(-1);
+      CLOUD.people.push({ uid: d.id, cert: state.cert || '', xp: state.xp || 0, streak: alive ? state.streak || 0 : 0,
+        lessons: state.lessons || 0, exams: (state.exams || []).length, passed: (state.exams || []).filter(e => e.pass).length,
+        updated: state.updatedAt || d.data().updatedAt || 0, reminder: remind.has(d.id) ? remind.get(d.id) : null });
       Object.entries(st).forEach(([qid, v]) => {
         const a = CLOUD.perQ.get(qid) || { seen: 0, correct: 0, people: 0 };
         a.seen += v.seen || 0; a.correct += v.correct || 0; a.people++;
@@ -2004,7 +2035,26 @@ async function renderCloudlingoTab(){
   const badge = document.getElementById('tab-badge-cloudlingo');
   if (badge) { badge.textContent = open.length; badge.classList.toggle('hidden', !open.length); }
   let answers = 0; CLOUD.perQ.forEach(a => { answers += a.seen; });
-  statCards('cloud-stats', [['Learners with progress', CLOUD.learners], ['Answers recorded', answers.toLocaleString('en')], ['Open reports', open.length], ['Questions', bank.size]]);
+  const weekAgo = Date.now() - 7 * 86400000;
+  const activeWeek = CLOUD.people.filter(p => p.updated >= weekAgo).length;
+  statCards('cloud-stats', [['Learners', CLOUD.people.length], ['Active this week', activeWeek], ['Reminders on', CLOUD.remindOn], ['Answers recorded', answers.toLocaleString('en')], ['Open reports', open.length], ['Questions', bank.size]]);
+  // Learners
+  const sortBy = document.getElementById('cloud-sort')?.value || 'recent';
+  const key = { recent: p => p.updated, xp: p => p.xp, streak: p => p.streak }[sortBy];
+  const ppl = CLOUD.people.slice().sort((a, b) => key(b) - key(a));
+  const hourLabel = h => new Date(2000, 0, 1, h).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('cloud-learners').innerHTML = ppl.length ? ppl.map(p => {
+    const prof = PROFILE_MAP.get(p.uid) || {};
+    return `<div class="cloud-row"><div class="who"><b>${esc(prof.name || prof.email || p.uid.slice(0, 10))}</b><span>${esc(prof.email || p.uid)}</span></div>
+      <div>${esc((p.cert || '–').toUpperCase())}</div><div><b>${p.xp.toLocaleString('en')}</b></div><div>${p.streak ? p.streak + ' days' : '–'}</div>
+      <div>${p.lessons}</div><div>${p.passed}/${p.exams}</div><div>${p.reminder != null ? hourLabel(p.reminder) : '–'}</div><div class="sync">${eventTimeLabel(p.updated)}</div></div>`;
+  }).join('') : '<div class="cloud-empty">No learners with saved progress yet.</div>';
+  // This week's leaderboard
+  const wk = document.getElementById('cloud-week'); if (wk) wk.textContent = 'Week of ' + CLOUD.week;
+  document.getElementById('cloud-board').innerHTML = CLOUD.board.length ? CLOUD.board.slice(0, 20).map((r, i) => {
+    const prof = PROFILE_MAP.get(r.uid) || {};
+    return `<div class="cloud-board-row"><span class="rk">${i + 1}</span><span class="nm">${esc(r.name || 'Learner')}${prof.email ? ` <span class="cloud-filter" style="display:inline">· ${esc(prof.email)}</span>` : ''}</span><span class="xp">${(r.xp || 0).toLocaleString('en')} XP</span></div>`;
+  }).join('') : '<div class="cloud-empty">No one has earned XP this week yet.</div>';
   // Reports
   const showResolved = document.getElementById('cloud-show-resolved')?.checked;
   const list = CLOUD.reports.filter(r => showResolved || r.status !== 'resolved');
@@ -2053,7 +2103,7 @@ document.addEventListener('click', async e => {
     renderCloudlingoTab();
   } catch (err) { b.disabled = false; showToast('Could not update the report: ' + (err.code || err.message), 'error'); }
 });
-document.addEventListener('change', e => { if (e.target.id === 'cloud-show-resolved' || e.target.id === 'cloud-min') renderCloudlingoTab(); });
+document.addEventListener('change', e => { if (['cloud-show-resolved', 'cloud-min', 'cloud-sort'].includes(e.target.id)) renderCloudlingoTab(); });
 
 let SHARE_LINKS = [];
 
