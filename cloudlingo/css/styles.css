@@ -108,7 +108,10 @@ h1, h2, h3, p { margin: 0; }
 .chip.xp { color: var(--gold); }
 .chip.heart { color: var(--heart); }
 .certchip { border: 2px solid var(--border); background: var(--surface); padding: 6px 12px; }
-.certchip .code { color: var(--primary); }
+.certchip { min-width: 0; max-width: 60%; text-align: left; }
+.certlabel { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.certchip .cname { font-size: 14px; font-weight: 800; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.certchip .code { font-size: 11px; font-weight: 700; color: var(--primary); letter-spacing: .03em; }
 .topstats { display: flex; align-items: center; gap: 4px; }
 
 .card { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); padding: 18px; }

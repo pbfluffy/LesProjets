@@ -901,7 +901,7 @@
   function topbar() {
     const c = course(), st = streakNow();
     return `<div class="topbar">
-      <button class="chip certchip" data-tour="cert" data-act="pickcert" title="${t('switch_cert')}"><span class="code">${c.code}</span><span class="muted small">▾</span></button>
+      <button class="chip certchip" data-tour="cert" data-act="pickcert" title="${t('switch_cert')}"><span class="certlabel"><span class="cname">${esc(c.name)}</span><span class="code">${c.code}</span></span><span class="muted small">▾</span></button>
       <div class="topstats">
         <button class="chip flame ${st ? '' : 'cold'}" data-tour="streak" data-act="nav" data-v="profile" title="${t('day_streak')}">${ICON('flame')} ${st}</button>
         <button class="chip xp" data-act="nav" data-v="profile" title="${t('total_xp')}">${ICON('bolt')} ${S.xp}</button>${pwaReady ? `<button class="chip help" data-tour="help" data-act="tour" title="${t('tour_btn')}" aria-label="${t('tour_btn')}">${ICON('help')}</button>` : ''}${accountChip()}</div>
