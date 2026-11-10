@@ -392,6 +392,9 @@ html.light body{
 .cloud-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px}
 .cloud-head h3{font-size:14px;margin:0;color:var(--text)}
 .cloud-filter{font-size:12px;color:var(--faint);display:flex;align-items:center;gap:6px}
+.cloud-certbar{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:13px;font-weight:600;color:var(--muted)}
+.cloud-certbar select{font:inherit;font-weight:600;color:var(--text);background:var(--panel,transparent);border:1px solid rgba(127,127,127,.35);border-radius:10px;padding:7px 10px;min-width:240px}
+.cloud-cert{display:block;line-height:1.2}.cloud-cert small{display:block;font-size:10px;color:var(--faint);letter-spacing:.03em}
 .cloud-item{padding:12px 14px;border-top:1px solid rgba(127,127,127,.15)}
 .cloud-item:first-child{border-top:0}
 .cloud-item .q{font-weight:600;margin:4px 0}
@@ -757,6 +760,8 @@ html.light body{
 
   <!-- ═══════════ TAB: CLOUDLINGO ═══════════ -->
   <div id="tab-pane-cloudlingo" class="tab-pane hidden">
+    <div class="cloud-certbar"><label for="cloud-cert">Certification</label>
+      <select id="cloud-cert"><option value="">All certifications</option></select></div>
     <div class="tab-summary" id="cloud-stats"></div>
     <p class="app-note">Cloudlingo: problem reports from learners (🚩 in lessons and exam reviews), and the questions people miss most, from everyone's saved progress.</p>
     <div class="cloud-grid">
@@ -2014,6 +2019,17 @@ function loadCloudBank(){
   });
   return CLOUD_BANK;
 }
+// Certification id ('aif') -> course; name/code helpers; the filter's current value.
+const cloudCourse = id => (window.COURSES || []).find(c => c.id === id) || null;
+const cloudCertName = id => { const c = cloudCourse(id); return c ? c.name : (id ? id.toUpperCase() : '–'); };
+const cloudCertOf = qid => String(qid || '').split('-')[0];
+const cloudCertSel = () => document.getElementById('cloud-cert')?.value || '';
+function cloudFillCertFilter(){
+  const sel = document.getElementById('cloud-cert');
+  if (!sel || sel.options.length > 1) return;
+  (window.COURSES || []).forEach(c => sel.add(new Option(c.name + ' (' + c.code + ')', c.id)));
+  try { const v = localStorage.getItem('admin_cloud_cert'); if (v && cloudCourse(v)) sel.value = v; } catch {}
+}
 async function loadCloudlingoData(){
   CLOUD.loading = true;
   try {
@@ -2053,34 +2069,46 @@ async function loadCloudlingoData(){
 }
 async function renderCloudlingoTab(){
   if (!CLOUD.loaded) { if (!CLOUD.loading) loadCloudlingoData(); return; }
-  const bank = await loadCloudBank();
-  const open = CLOUD.reports.filter(r => r.status !== 'resolved');
+  const allBank = await loadCloudBank();
+  cloudFillCertFilter();
+  const cert = cloudCertSel();
+  const inCert = id => !cert || id === cert;
+  // The tab badge always counts every open report; the rest follows the filter.
+  const openAll = CLOUD.reports.filter(r => r.status !== 'resolved');
   const badge = document.getElementById('tab-badge-cloudlingo');
-  if (badge) { badge.textContent = open.length; badge.classList.toggle('hidden', !open.length); }
-  let answers = 0; CLOUD.perQ.forEach(a => { answers += a.seen; });
+  if (badge) { badge.textContent = openAll.length; badge.classList.toggle('hidden', !openAll.length); }
+  const bank = new Map([...allBank].filter(([, x]) => inCert(x.c.id)));
+  const people = CLOUD.people.filter(p => inCert(p.cert));
+  const reports = CLOUD.reports.filter(r => inCert(r.cert || cloudCertOf(r.qid)));
+  const open = reports.filter(r => r.status !== 'resolved');
+  let answers = 0; CLOUD.perQ.forEach((a, qid) => { if (inCert(cloudCertOf(qid))) answers += a.seen; });
   const weekAgo = Date.now() - 7 * 86400000;
-  const activeWeek = CLOUD.people.filter(p => p.updated >= weekAgo).length;
-  statCards('cloud-stats', [['Learners', CLOUD.people.length], ['Active this week', activeWeek], ['Reminders on', CLOUD.remindOn], ['Answers recorded', answers.toLocaleString('en')], ['Open reports', open.length], ['Questions', bank.size]]);
+  const activeWeek = people.filter(p => p.updated >= weekAgo).length;
+  statCards('cloud-stats', [['Learners', people.length], ['Active this week', activeWeek], ['Reminders on', people.filter(p => p.reminder != null).length], ['Answers recorded', answers.toLocaleString('en')], ['Open reports', open.length], ['Questions', bank.size]]);
   // Learners
   const sortBy = document.getElementById('cloud-sort')?.value || 'recent';
   const key = { recent: p => p.updated, xp: p => p.xp, streak: p => p.streak }[sortBy];
-  const ppl = CLOUD.people.slice().sort((a, b) => key(b) - key(a));
+  const ppl = people.slice().sort((a, b) => key(b) - key(a));
   const hourLabel = h => new Date(2000, 0, 1, h).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   document.getElementById('cloud-learners').innerHTML = ppl.length ? ppl.map(p => {
     const prof = PROFILE_MAP.get(p.uid) || {};
     return `<div class="cloud-row"><div class="who"><b>${esc(prof.name || prof.email || p.uid.slice(0, 10))}</b><span>${esc(prof.email || p.uid)}</span></div>
-      <div>${esc((p.cert || '–').toUpperCase())}</div><div><b>${p.xp.toLocaleString('en')}</b></div><div>${p.streak ? p.streak + ' days' : '–'}</div>
+      <div class="cloud-cert">${esc(cloudCertName(p.cert))}${cloudCourse(p.cert) ? `<small>${esc(cloudCourse(p.cert).code)}</small>` : ''}</div><div><b>${p.xp.toLocaleString('en')}</b></div><div>${p.streak ? p.streak + ' days' : '–'}</div>
       <div>${p.lessons}</div><div>${p.passed}/${p.exams}</div><div>${p.reminder != null ? hourLabel(p.reminder) : '–'}</div><div class="sync">${eventTimeLabel(p.updated)}</div></div>`;
-  }).join('') : '<div class="cloud-empty">No learners with saved progress yet.</div>';
+  }).join('') : `<div class="cloud-empty">No learners${cert ? ' studying ' + esc(cloudCertName(cert)) : ''} with saved progress yet.</div>`;
   // This week's leaderboard
   const wk = document.getElementById('cloud-week'); if (wk) wk.textContent = 'Week of ' + CLOUD.week;
-  document.getElementById('cloud-board').innerHTML = CLOUD.board.length ? CLOUD.board.slice(0, 20).map((r, i) => {
+  const certByUid = new Map(CLOUD.people.map(p => [p.uid, p.cert]));
+  const board = CLOUD.board.filter(r => inCert(certByUid.get(r.uid) || ''));
+  if (wk) wk.textContent = 'Week of ' + CLOUD.week + (cert ? ' · learners currently on ' + cloudCertName(cert) : '');
+  document.getElementById('cloud-board').innerHTML = board.length ? board.slice(0, 20).map((r, i) => {
     const prof = PROFILE_MAP.get(r.uid) || {};
-    return `<div class="cloud-board-row"><span class="rk">${i + 1}</span><span class="nm">${esc(r.name || 'Learner')}${prof.email ? ` <span class="cloud-filter" style="display:inline">· ${esc(prof.email)}</span>` : ''}</span><span class="xp">${(r.xp || 0).toLocaleString('en')} XP</span></div>`;
+    const rc = certByUid.get(r.uid);
+    return `<div class="cloud-board-row"><span class="rk">${i + 1}</span><span class="nm">${esc(r.name || 'Learner')}${!cert && rc ? ` <span class="cloud-filter" style="display:inline">· ${esc(cloudCertName(rc))}</span>` : ''}${prof.email ? ` <span class="cloud-filter" style="display:inline">· ${esc(prof.email)}</span>` : ''}</span><span class="xp">${(r.xp || 0).toLocaleString('en')} XP</span></div>`;
   }).join('') : '<div class="cloud-empty">No one has earned XP this week yet.</div>';
   // Reports
   const showResolved = document.getElementById('cloud-show-resolved')?.checked;
-  const list = CLOUD.reports.filter(r => showResolved || r.status !== 'resolved');
+  const list = reports.filter(r => showResolved || r.status !== 'resolved');
   const REASON = { wrong: 'Answer looks wrong', unclear: 'Question unclear', typo: 'Typo', outdated: 'Outdated', other: 'Other' };
   document.getElementById('cloud-reports').innerHTML = list.length ? list.map(r => {
     const p = r.uid ? PROFILE_MAP.get(r.uid) : null;
@@ -2089,7 +2117,7 @@ async function renderCloudlingoTab(){
     const live = bank.get(r.qid);
     const changed = live && r.qtext && live.q.q !== r.qtext;
     return `<div class="cloud-item"><div class="meta"><span class="cloud-pill ${r.status === 'resolved' ? 'done' : ''}">${r.status === 'resolved' ? 'Resolved' : 'Open'}</span>
-      <b>${esc(REASON[r.reason] || r.reason)}</b><span>${esc(r.qid)} · ${esc((r.cert || '').toUpperCase())}</span><span>by ${esc(who)}</span><span>${eventTimeLabel(when)}</span>${changed ? '<span class="cloud-pill done">question edited since</span>' : ''}</div>
+      <b>${esc(REASON[r.reason] || r.reason)}</b><span>${esc(cloudCertName(r.cert || cloudCertOf(r.qid)))} · ${esc(r.qid)}</span><span>by ${esc(who)}</span><span>${eventTimeLabel(when)}</span>${changed ? '<span class="cloud-pill done">question edited since</span>' : ''}</div>
       <div class="q">${esc(r.qtext || (live ? live.q.q : ''))}</div>
       <div class="meta">Answer shown: ${esc(r.answer || '')}</div>
       ${r.note ? `<div class="note">“${esc(r.note)}”</div>` : ''}
@@ -2103,7 +2131,7 @@ async function renderCloudlingoTab(){
   const reportsFor = qid => CLOUD.reports.filter(r => r.qid === qid).length;
   document.getElementById('cloud-missed').innerHTML = rows.length ? rows.map(({ qid, a, miss }) => {
     const { q, c, u } = bank.get(qid), pct = Math.round(miss * 100), n = reportsFor(qid);
-    return `<div class="cloud-item"><div class="meta"><b>${pct}% wrong</b><span>${a.seen} answers · ${a.people} learners</span><span>${esc(c.code)} · ${esc(u.title)}</span><span>${esc(qid)}</span>${n ? `<span class="cloud-pill">🚩 ${n}</span>` : ''}</div>
+    return `<div class="cloud-item"><div class="meta"><b>${pct}% wrong</b><span>${a.seen} answers · ${a.people} learners</span><span>${esc(c.name)} · ${esc(u.title)}</span><span>${esc(qid)}</span>${n ? `<span class="cloud-pill">🚩 ${n}</span>` : ''}</div>
       <div class="q">${esc(q.q)}</div><div class="cloud-bar"><i style="width:${pct}%"></i></div>
       <div class="acts" style="margin-top:8px"><button class="btn ghost small" data-cloud-edit="${esc(qid)}">Edit question</button>${CLOUD_EDITS.has(qid) ? '<span class="cloud-pill done">Edited</span>' : ''}</div></div>`;
   }).join('') : `<div class="cloud-empty">No question has ${min}+ answers yet.</div>`;
@@ -2127,7 +2155,13 @@ document.addEventListener('click', async e => {
     renderCloudlingoTab();
   } catch (err) { b.disabled = false; showToast('Could not update the report: ' + (err.code || err.message), 'error'); }
 });
-document.addEventListener('change', e => { if (['cloud-show-resolved', 'cloud-min', 'cloud-sort'].includes(e.target.id)) renderCloudlingoTab(); });
+document.addEventListener('change', e => {
+  if (e.target.id === 'cloud-cert') {
+    try { localStorage.setItem('admin_cloud_cert', e.target.value); } catch {}
+    const f = document.getElementById('cloud-find'); if (f && f.value) f.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (['cloud-show-resolved', 'cloud-min', 'cloud-sort', 'cloud-cert'].includes(e.target.id)) renderCloudlingoTab();
+});
 
 // ---- Cloudlingo question editor ----
 // Edits are stored in the raw data-file format: { t, q, o, a, e, pairs }. The type never changes.
@@ -2137,7 +2171,8 @@ document.addEventListener('input', async e => {
   const term = e.target.value.trim().toLowerCase(), out = document.getElementById('cloud-find-results');
   if (term.length < 2) { out.innerHTML = ''; return; }
   const bank = await loadCloudBank();
-  const hits = [...bank.entries()].filter(([id, x]) => id === term || id.startsWith(term) || x.q.q.toLowerCase().includes(term)).slice(0, 12);
+  const cert = cloudCertSel();
+  const hits = [...bank.entries()].filter(([id, x]) => (!cert || x.c.id === cert)).filter(([id, x]) => id === term || id.startsWith(term) || x.q.q.toLowerCase().includes(term)).slice(0, 12);
   out.innerHTML = hits.length ? hits.map(([id, x]) => `<div class="cloud-find-row"><span class="cloud-filter">${esc(id)}</span><span class="q">${esc((CLOUD_EDITS.get(id)?.fields?.q) || x.q.q)}</span>${CLOUD_EDITS.has(id) ? '<span class="cloud-pill done">Edited</span>' : ''}<button class="btn ghost small" data-cloud-edit="${esc(id)}">Edit</button></div>`).join('') : '<div class="cloud-empty" style="padding:8px 0">No matching questions.</div>';
 });
 let CLOUD_ED = null;
@@ -2149,7 +2184,7 @@ async function openCloudEditor(qid){
   const eth = (ed && ed.eth) || (window.TH_EXPLAIN && window.TH_EXPLAIN[qid]) || '';
   CLOUD_ED = { qid, orig, t: orig.t };
   document.getElementById('ced-title').textContent = 'Edit question ' + qid;
-  document.getElementById('ced-meta').textContent = hit.c.code + ' · ' + hit.u.title + ' · type: ' + orig.t + (ed ? ' · edited' : '');
+  document.getElementById('ced-meta').textContent = hit.c.name + ' (' + hit.c.code + ') · ' + hit.u.title + ' · type: ' + orig.t + (ed ? ' · edited' : '');
   const optsField = (orig.t === 'mc' || orig.t === 'multi' || orig.t === 'fill') ? `
       <label>Options (one per line)<textarea id="ced-o" rows="5">${esc((cur.o || []).join('\n'))}</textarea></label>
       <label>Correct answer${orig.t === 'multi' ? 's' : ''} <span class="hint">(option number${orig.t === 'multi' ? 's, comma separated, e.g. 1,3' : ', e.g. 2'})</span>
