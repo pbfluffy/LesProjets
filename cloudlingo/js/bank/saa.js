@@ -42,8 +42,8 @@ addQuestions('saa-1', [
     o: ['Use an HTTPS listener with a TLS certificate', 'Enable EBS encryption', 'Use S3 SSE-KMS', 'Enable VPC Flow Logs'], a: 0,
     e: 'TLS on the listener encrypts traffic between clients and the load balancer.' },
   { t: 'multi', q: 'Which TWO are valid ways to encrypt an existing unencrypted EBS volume?',
-    o: ['Snapshot it, copy the snapshot with encryption, then create a new volume', 'Create an encrypted volume from an encrypted snapshot copy and swap it in', 'Turn on encryption directly on the attached volume', 'Enable S3 default encryption'], a: [0, 1],
-    e: 'You cannot encrypt a volume in place; you go through an encrypted snapshot copy and create a new volume.' },
+    o: ['Take a snapshot, then create a new volume from it with encryption enabled', 'Copy the snapshot with encryption enabled, then create a new volume from the encrypted copy', 'Turn on encryption directly on the attached volume', 'Enable S3 default encryption'], a: [0, 1],
+    e: 'You cannot encrypt a volume in place. Snapshot it, then either create an encrypted volume straight from the snapshot or make an encrypted copy of the snapshot first, and swap the new volume in.' },
   { t: 'mc', q: 'Which service centrally manages WAF rules and Shield Advanced protections across many accounts?',
     o: ['AWS Firewall Manager', 'AWS Config', 'AWS Control Tower', 'AWS Trusted Advisor'], a: 0,
     e: 'Firewall Manager applies security policies consistently across an organization.' }

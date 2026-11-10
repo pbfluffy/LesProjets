@@ -297,7 +297,7 @@ window.COURSES = [
         id: 'aif-4', title: 'Responsible AI & Security', domain: 'Domains 4–5 · 28%', icon: '⚖️',
         questions: [
           { t: 'mc', q: 'Which feature filters harmful content, blocks denied topics, and redacts PII in Bedrock applications?',
-            o: ['Guardrails for Amazon Bedrock', 'Amazon Macie', 'AWS WAF', 'SageMaker Model Monitor'], a: 0,
+            o: ['Amazon Bedrock Guardrails', 'Amazon Macie', 'AWS WAF', 'SageMaker Model Monitor'], a: 0,
             e: 'Guardrails apply configurable safety policies to both prompts and responses.' },
           { t: 'mc', q: 'Which tool helps detect bias in data and models and explain model predictions?',
             o: ['SageMaker Clarify', 'SageMaker Ground Truth', 'Amazon Inspector', 'AWS Config'], a: 0,
@@ -567,7 +567,7 @@ window.COURSES = [
     exam: { questions: 20, minutes: 40, pass: 72 },
     units: [
       {
-        id: 'soa-1', title: 'Monitoring & Performance', domain: 'Domain 1', icon: '📈',
+        id: 'soa-1', title: 'Monitoring & Performance', domain: 'Domain 1 · 22%', icon: '📈',
         questions: [
           { t: 'mc', q: 'You need memory and disk utilization metrics for EC2 instances in CloudWatch. What should you do?',
             o: ['Enable detailed monitoring', 'Install and configure the CloudWatch agent', 'Turn on VPC Flow Logs', 'Enable AWS Config'], a: 1,
@@ -595,7 +595,7 @@ window.COURSES = [
         ]
       },
       {
-        id: 'soa-2', title: 'Reliability & Continuity', domain: 'Domain 2', icon: '🔁',
+        id: 'soa-2', title: 'Reliability & Continuity', domain: 'Domain 2 · 22%', icon: '🔁',
         questions: [
           { t: 'mc', q: 'You need central backup policies across many accounts and services. What should you use?',
             o: ['AWS Backup with AWS Organizations backup policies', 'Manual EBS snapshots', 'S3 Cross-Region Replication only', 'CloudFormation drift detection'], a: 0,
@@ -623,7 +623,7 @@ window.COURSES = [
         ]
       },
       {
-        id: 'soa-3', title: 'Deployment & Automation', domain: 'Domain 3', icon: '⚙️',
+        id: 'soa-3', title: 'Deployment & Automation', domain: 'Domain 3 · 22%', icon: '⚙️',
         questions: [
           { t: 'mc', q: 'How do you run a shell command on 200 instances without SSH?',
             o: ['Systems Manager Run Command', 'EC2 user data', 'CloudFormation change sets', 'AWS Config'], a: 0,
@@ -651,7 +651,7 @@ window.COURSES = [
         ]
       },
       {
-        id: 'soa-4', title: 'Security & Networking', domain: 'Domains 4–5', icon: '🌐',
+        id: 'soa-4', title: 'Security & Networking', domain: 'Domains 4–5 · 34%', icon: '🌐',
         questions: [
           { t: 'mc', q: 'Instances in a private subnet need outbound internet access for updates. What should you add?',
             o: ['A NAT gateway in a public subnet, plus a route to it from the private route table', 'An internet gateway route in the private subnet', 'Public IPs on the instances', 'A VPC peering connection'], a: 0,

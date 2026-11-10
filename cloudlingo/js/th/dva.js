@@ -26,7 +26,7 @@ Object.assign(window.TH_EXPLAIN = window.TH_EXPLAIN || {}, {
   'dva-1-23': 'ฟังก์ชันที่ต่อกับ VPC จะได้ elastic network interface ใน subnet ของคุณ',
   'dva-1-24': 'RDS Proxy รวมและแชร์การเชื่อมต่อฐานข้อมูลระหว่างการเรียกใช้หลาย ๆ ครั้ง',
   'dva-1-25': 'ตั้ง ReceiveMessageWaitTimeSeconds (ได้ถึง 20) เพื่อเปิด long polling',
-  'dva-1-26': 'ข้อความ SQS มีขนาดไม่เกิน 256 KB ถ้าใหญ่กว่านั้นใช้ extended client library ร่วมกับ S3',
+  'dva-1-26': 'ตั้งแต่สิงหาคม 2025 ข้อความ SQS มีขนาดได้สูงสุด 1 MiB (เดิม 256 KB ซึ่งเอกสารเก่ายังเขียนไว้) ถ้าใหญ่กว่านั้นใช้ extended client library ร่วมกับ S3',
   'dva-1-27': 'Filter policy จับคู่ attribute หรือเนื้อหาของข้อความ ผู้รับจึงได้เฉพาะบางส่วน',
   'dva-1-28': 'Shard คือหน่วยความจุ และรับประกันลำดับภายใน shard เดียวกัน',
   'dva-1-29': 'เปิดแคชบน stage แล้วจะเก็บคำตอบไว้ตาม TTL ที่ตั้ง',
