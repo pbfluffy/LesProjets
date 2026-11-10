@@ -109,7 +109,7 @@ h1, h2, h3, p { margin: 0; }
 .chip.heart { color: var(--heart); }
 .certchip { border: 2px solid var(--border); background: var(--surface); padding: 6px 12px; }
 .certchip .code { color: var(--primary); }
-.topstats { display: flex; gap: 2px; }
+.topstats { display: flex; align-items: center; gap: 4px; }
 
 .card { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); padding: 18px; }
 .card h3 { font-size: 18px; font-weight: 900; margin-bottom: 10px; }
@@ -420,9 +420,12 @@ h1, h2, h3, p { margin: 0; }
 .avatar.nimbus { background: #eaf5ff; object-fit: cover; object-position: 50% 22%; border: 2px solid var(--border); box-sizing: border-box; }
 
 /* ? tour button */
-.chip.help { width: 30px; height: 30px; padding: 0; justify-content: center; border-radius: 50%; border: 2px solid var(--border); color: var(--muted); font-size: 15px; }
-.chip.help:hover { color: var(--primary); border-color: var(--primary); }
-@media (max-width: 360px) { .chip.help { width: 26px; height: 26px; font-size: 13px; } }
+.chip.help { color: var(--muted); padding: 7px; }
+.chip.help .ic { font-size: 22px; }
+.chip.help:hover { color: var(--primary); }
+/* Avatar button: same height as the other top-bar chips */
+.topstats .chip:has(.avatar) { padding: 4px; }
+.topstats .avatar { width: 30px !important; height: 30px !important; }
 
 /* Readiness, review, achievements */
 .readiness .rpct { font-weight: 900; font-size: 20px; color: var(--muted); }
