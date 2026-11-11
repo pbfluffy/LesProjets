@@ -241,6 +241,19 @@ h1, h2, h3, p { margin: 0; }
 .stat.boost { border-color: var(--flame); } .stat.boost .lbl { background: var(--flame); } .stat.boost .val { color: var(--ink); font-size: 15px; }
 .toast { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 14px; font-weight: 700; font-size: 14px; z-index: 60; box-shadow: 0 6px 20px rgba(0,0,0,.25); width: max-content; max-width: calc(100vw - 32px); display: flex; gap: 8px; align-items: center; animation: toastin .25s ease-out; }
 @keyframes toastin { from { opacity: 0; transform: translate(-50%, 8px); } }
+.streakday { gap: 16px; }
+.center-screen.streakday h1 { color: var(--flame); }
+.sd-flame { display: flex; align-items: center; gap: 6px; font-size: 56px; font-weight: 900; color: var(--muted); line-height: 1; }
+.sd-flame .ic { width: 52px; height: 52px; }
+.sd-flame.lit { color: var(--flame); }
+.sd-week { display: flex; gap: 8px; justify-content: center; background: var(--surface); border: 2px solid var(--border); border-radius: 18px; padding: 12px 14px; }
+.sd-day { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.sd-dot { width: 32px; height: 32px; border-radius: 50%; background: var(--locked); display: grid; place-items: center; color: #fff; }
+.sd-dot .ic { width: 18px; height: 18px; color: #fff; }
+.sd-day.on .sd-dot { background: var(--flame); }
+.sd-day.today .sd-dot { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--flame); }
+.sd-lbl { font-size: 12px; font-weight: 800; color: var(--muted); }
+.sd-day.today .sd-lbl { color: var(--flame); }
 .whynot { font-size: 14px; font-weight: 600; margin-top: 8px; line-height: 1.4; color: var(--ink); max-width: 620px; }
 .whyothers { margin-top: 8px; font-size: 14px; max-width: 620px; color: var(--ink); }
 .whyothers summary { cursor: pointer; font-weight: 800; opacity: .75; }

@@ -969,7 +969,7 @@
   }
 
   function render() {
-    const views = { cards: () => FC ? cardsView() : learnView(), onboard: onboardView, learn: learnView, practice: practiceView, exam: examView, board: boardView, profile: profileView, lesson: lessonView, lessonEnd: lessonEndView, examRun: examRunView, examResult: examResultView };
+    const views = { cards: () => FC ? cardsView() : learnView(), onboard: onboardView, learn: learnView, practice: practiceView, exam: examView, board: boardView, profile: profileView, lesson: lessonView, lessonEnd: lessonEndView, streakDay: streakDayView, examRun: examRunView, examResult: examResultView };
     closeHint();
     app.innerHTML = (views[view] || learnView)();
   }
@@ -1525,6 +1525,30 @@
       ${badgeLine(e.badges || [])}
       ${questLine(e.quests)}
       ${e.earnedFreeze ? `<div class="stat ice"><div class="val">${ICON('snowflake')} ${t('freeze_earned')}</div><div class="lbl">${t('freezes', { n: S.freezes || 0 })}</div></div>` : ''}
+    </div>
+    <div class="fixed-foot"><button class="btn" data-act="endcontinue">${t('continue')}</button></div>`;
+  }
+
+  // ---------- Streak screen ----------
+  // Shown once a day, after the first finished lesson (S.streakShown = that day).
+  function streakDayView() {
+    const st = streakNow(), met = S.lastStreakDay === dayKey(), left = Math.max(0, S.dailyGoal - xpToday());
+    // The days the current streak covers, ending today (goal met) or yesterday.
+    const covered = new Set(); for (let i = 0; i < st; i++) covered.add(dayAgo(i + (met ? 0 : 1)));
+    const loc = lang === 'th' ? 'th-TH' : 'en-US';
+    const week = [6, 5, 4, 3, 2, 1, 0].map(j => {
+      const d = new Date(); d.setDate(d.getDate() - j);
+      const on = covered.has(dayKey(d));
+      return `<div class="sd-day ${on ? 'on' : ''} ${j === 0 ? 'today' : ''}"><span class="sd-dot">${on ? ICON('flame') : ''}</span><span class="sd-lbl">${esc(d.toLocaleDateString(loc, { weekday: 'narrow' }))}</span></div>`;
+    }).join('');
+    const title = met ? t('sd_met', { n: st }) : st ? t('sd_keep', { n: st }) : t('sd_start');
+    const sub = met ? t('sd_met_sub', { n: st + 1 }) : st ? t('sd_left', { xp: left }) : t('sd_left_start', { xp: left });
+    return `<div class="center-screen streakday">
+      ${mascot(130, met ? 'proud' : 'hero', 'bounce')}
+      <div class="sd-flame ${met ? 'lit' : ''}">${ICON('flame')}<span>${st}</span></div>
+      <h1>${title}</h1><p class="muted">${sub}</p>
+      <div class="sd-week">${week}</div>
+      ${S.freezes ? `<p class="small freeze-line">${ICON('snowflake')} ${t('freezes', { n: S.freezes })}</p>` : ''}
     </div>
     <div class="fixed-foot"><button class="btn" data-act="nav" data-v="learn">${t('continue')}</button></div>`;
   }
@@ -2184,6 +2208,13 @@
       <div class="stack"><button class="btn" data-act="closemodal">${t('keep_going')}</button><button class="btn ghost" style="color:var(--bad)" data-act="confirmquitexam">${t('exit_exam')}</button></div>`),
     confirmquitexam: () => { clearInterval(examTimer); E = null; closeModal(); go('exam'); },
     toggleall: () => { R.showAll = !R.showAll; render(); },
+    // Lesson end → the day's streak screen the first time each day, otherwise back to learning.
+    endcontinue: () => {
+      if (S.streakShown === dayKey()) return go('learn');
+      S.streakShown = dayKey(); save();
+      go('streakDay');
+      if (S.lastStreakDay === dayKey()) sfx('streak');
+    },
     setgoal: d => { S.dailyGoal = +d.g; addXP(0); render(); questToasts(); },
     settheme: d => { S.theme = d.t; save(); applyTheme(); render(); },
     settext: d => { S.textSize = +d.z; save(); applyTheme(); render(); },
