@@ -487,6 +487,77 @@
     save();
   }
 
+  // ---------- Daily quests + double XP ----------
+  // Three small goals a day, picked from QUESTS by the date. Each one finished gives
+  // QUEST_XP; finishing all three starts BOOST_MIN minutes of double lesson XP.
+  const QUESTS = [
+    { id: 'lessons', n: 2, icon: 'book' },
+    { id: 'perfect', n: 1, icon: 'checkcircle' },
+    { id: 'combo', n: 5, icon: 'flame' },
+    { id: 'right', n: 15, icon: 'check' },
+    { id: 'cards', n: 1, icon: 'layers' },
+    { id: 'fix', n: 3, icon: 'wrench', when: () => Object.keys(S.mistakes || {}).length >= 3 },
+    { id: 'goal', n: 1, icon: 'target' }
+  ];
+  const QUEST_XP = 5, BOOST_MIN = 15;
+  const QDEF = id => QUESTS.find(q => q.id === id);
+  let questNew = [], questExtended = false; // finished since last shown; did a quest's XP extend the streak
+  function quests() {
+    const k = dayKey();
+    if (!S.quest || S.quest.day !== k) {
+      let h = 0; for (const ch of k) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      const pool = QUESTS.filter(q => !q.when || q.when()), ids = [];
+      while (ids.length < 3 && pool.length) { h = (Math.imul(h, 1103515245) + 12345) >>> 0; ids.push(pool.splice(h % pool.length, 1)[0].id); }
+      S.quest = { day: k, ids, p: {}, done: {}, chest: false };
+    }
+    return S.quest;
+  }
+  // Adds to a quest's progress (or raises it to `to`) and rewards it once it's reached.
+  function questAdd(id, by = 1, to = null) {
+    const Q = quests();
+    if (!Q.ids.includes(id) || Q.done[id]) return;
+    const def = QDEF(id);
+    Q.p[id] = Math.min(def.n, to != null ? Math.max(Q.p[id] || 0, to) : (Q.p[id] || 0) + by);
+    if (Q.p[id] < def.n) return;
+    Q.done[id] = Date.now();
+    questNew.push(id);
+    if (!Q.chest && Q.ids.every(x => Q.done[x])) { Q.chest = true; S.boostUntil = Date.now() + BOOST_MIN * 60000; questNew.push('chest'); }
+    if (addXP(QUEST_XP).extended) questExtended = true;
+  }
+  const takeQuestExt = () => { const x = questExtended; questExtended = false; return x; };
+  const boostOn = () => (S.boostUntil || 0) > Date.now();
+  const boostMins = () => Math.max(1, Math.ceil(((S.boostUntil || 0) - Date.now()) / 60000));
+  const questName = id => t('q_' + id, { n: QDEF(id).n });
+  function questCard() {
+    const Q = quests();
+    const rows = Q.ids.map(id => {
+      const def = QDEF(id), n = Q.p[id] || 0, done = !!Q.done[id];
+      return `<div class="quest ${done ? 'done' : ''}"><div class="qicon">${ICON(done ? 'check' : def.icon)}</div><div class="grow"><div class="qtext">${questName(id)}</div><div class="progress"><div style="width:${Math.round(100 * n / def.n)}%"></div></div></div><span class="qcount">${n}/${def.n}</span></div>`;
+    }).join('');
+    const foot = boostOn() ? `<div class="quest-foot on">${ICON('rocket')} ${t('boost_on', { m: boostMins() })}</div>`
+      : Q.chest ? `<div class="quest-foot">${ICON('check')} ${t('quests_all_done')}</div>`
+      : `<div class="quest-foot">${ICON('rocket')} ${t('quests_reward', { m: BOOST_MIN })}</div>`;
+    return `<h3 class="ic-title">${ICON('star')} ${t('quests_title')}</h3>${rows}${foot}`;
+  }
+  // Lesson-end lines for quests finished during the session.
+  function questLine(list) {
+    const done = (list || []).filter(id => id !== 'chest');
+    return (done.length ? `<div class="stat quest-new"><div class="lbl">${t('quest_done')}</div>${done.map(id => `<div class="val">${ICON('star')} ${questName(id)} · +${QUEST_XP} XP</div>`).join('')}</div>` : '')
+      + ((list || []).includes('chest') ? `<div class="stat boost"><div class="lbl">${t('boost_unlocked', { m: BOOST_MIN })}</div><div class="val">${ICON('rocket')} ${t('boost_sub')}</div></div>` : '');
+  }
+  // Quests finished outside a lesson (exam, goal change) get a short toast.
+  function questToasts() {
+    const list = questNew.splice(0); questExtended = false;
+    list.forEach((id, i) => setTimeout(() => toast(id === 'chest' ? `${ICON('rocket')} ${t('boost_unlocked', { m: BOOST_MIN })}` : `${ICON('star')} ${t('quest_done')}: ${questName(id)} · +${QUEST_XP} XP`), i * 1800));
+    if (list.length) sfx('badge');
+  }
+  function toast(html) {
+    const d = document.createElement('div');
+    d.className = 'toast'; d.setAttribute('role', 'status'); d.innerHTML = html;
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 3400);
+  }
+
   function addXP(n) {
     applyFreezes();
     const k = dayKey();
@@ -499,6 +570,7 @@
       if (S.streak % FREEZE_EVERY === 0 && (S.freezes || 0) < MAX_FREEZES) { S.freezes = (S.freezes || 0) + 1; earnedFreeze = true; }
     }
     save();
+    if (S.xpByDay[k] >= S.dailyGoal) questAdd('goal');
     return { extended, earnedFreeze };
   }
 
@@ -723,14 +795,17 @@
     save(); render();
   }
   function finishCards() {
-    const xp = 5;
+    const boosted = boostOn();
+    const xp = 5 * (boosted ? 2 : 1);
     S.lessons = (S.lessons || 0) + 1;
-    const { extended, earnedFreeze } = addXP(xp);
-    const badges = checkBadges();
+    const xpRes = addXP(xp);
+    questAdd('cards');
+    const { earnedFreeze } = xpRes, extended = xpRes.extended || takeQuestExt();
+    const badges = checkBadges(), questsDone = questNew.splice(0);
     sfx('complete');
-    const special = badges.length ? 'badge' : earnedFreeze ? 'freeze' : extended ? 'streak' : null;
+    const special = badges.length || questsDone.length ? 'badge' : earnedFreeze ? 'freeze' : extended ? 'streak' : null;
     if (special) sfx(special, 950);
-    END = { xp, perfect: false, extended, earnedFreeze, badges, streak: S.streak, acc: 100, secs: Math.round((Date.now() - FC.start) / 1000), unitCompleted: null, mode: 'cards', cards: FC.total };
+    END = { xp, perfect: false, extended, earnedFreeze, badges, streak: S.streak, boosted, quests: questsDone, acc: 100, secs: Math.round((Date.now() - FC.start) / 1000), unitCompleted: null, mode: 'cards', cards: FC.total };
     FC = null; save(); go('lessonEnd'); confetti();
   }
 
@@ -883,6 +958,7 @@
 
   function go(v) {
     view = v;
+    if (questNew.length && !['lesson', 'lessonEnd', 'examRun'].includes(v)) setTimeout(questToasts, 400);
     if (updatePending && !busyView()) { applyUpdate(); }
     render();
     window.scrollTo(0, 0);
@@ -927,7 +1003,7 @@
       <button class="chip certchip" data-tour="cert" data-act="pickcert" title="${t('switch_cert')}"><span class="certlabel"><span class="cname">${esc(c.name)}</span><span class="code">${c.code}</span></span><span class="muted small">▾</span></button>
       <div class="topstats">
         <button class="chip flame ${st ? '' : 'cold'}" data-tour="streak" data-act="nav" data-v="profile" title="${t('day_streak')}">${ICON('flame')} ${st}</button>
-        <button class="chip xp" data-act="nav" data-v="profile" title="${t('total_xp')}">${ICON('bolt')} ${S.xp}</button>${pwaReady ? `<button class="chip help" data-tour="help" data-act="tour" title="${t('tour_btn')}" aria-label="${t('tour_btn')}">${ICON('help')}</button>` : ''}${accountChip()}</div>
+        <button class="chip xp" data-act="nav" data-v="profile" title="${t('total_xp')}">${ICON('bolt')} ${S.xp}${boostOn() ? '<span class="x2">×2</span>' : ''}</button>${pwaReady ? `<button class="chip help" data-tour="help" data-act="tour" title="${t('tour_btn')}" aria-label="${t('tour_btn')}">${ICON('help')}</button>` : ''}${accountChip()}</div>
     </div>`;
   }
 
@@ -972,6 +1048,7 @@
   function rightCol() {
     const mist = mistakesFor(course().id).length;
     return `<div class="card" data-tour="goal-side">${goalInner()}</div>
+      <div class="card questcard">${questCard()}</div>
       <div class="card">${streakCard()}</div>
       ${mist ? `<div class="card"><h3 class="ic-title">${ICON('repeat')} ${t('to_review', { n: mist })}</h3><p class="muted small" style="margin-bottom:12px">${t('to_review_sub')}</p><button class="btn ghost block" data-act="mistakes">${t('fix_mistakes')}</button></div>` : ''}`;
   }
@@ -1041,7 +1118,7 @@
       ? `<div class="card placecard"><div class="row"><div class="bigicon">${ICON('target')}</div><div class="grow"><h3 style="margin-bottom:2px">${t('place_title')}</h3><p class="muted small">${t('place_sub', { n: placeCount(c) })}</p></div><button class="btn ghost" data-act="placement">${t('place_btn')}</button></div></div>` : '';
     const due = dueFor(c.id).length;
     const dueCard = due ? `<div class="card duecard"><div class="row"><div class="bigicon">${ICON('calendar')}</div><div class="grow"><h3 style="margin-bottom:2px">${tn('review_some', due)}</h3><p class="muted small">${t('review_why')}</p></div><button class="btn ghost" data-act="review">${t('review_btn')}</button></div></div>` : '';
-    return shell(`${freezeNotice()}${installCard(true)}${certificateCard(c)}${examDateCard(c)}${dueCard}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div>${resume}${placeCard}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
+    return shell(`${freezeNotice()}${installCard(true)}${certificateCard(c)}${examDateCard(c)}${dueCard}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div><div class="card mobile-only questcard">${questCard()}</div>${resume}${placeCard}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
       <div style="margin-top:34px">${readinessCard(c, false)}</div>
       <div class="card" style="margin-top:16px;text-align:center"><h3>${t('ready_title')}</h3><p class="muted" style="margin-bottom:14px">${t('ready_sub', { code: c.code })}</p><button class="btn ghost" data-act="nav" data-v="exam">${t('try_exam')}</button></div>`);
   }
@@ -1275,7 +1352,7 @@
     const praise = t('praise');
     return `<footer class="lesson-foot ${L.ok ? 'good' : 'bad'}" aria-live="polite"><div class="foot-inner">
       <div class="feedback"><div class="badge">${ICON(L.ok ? 'check' : 'x')}</div><div>
-        <h3>${L.ok ? praise[L.praise % praise.length] : t('not_quite')}</h3>
+        <h3>${L.ok ? praise[L.praise % praise.length] : t('not_quite')}${L.ok && L.combo >= 3 ? ` <span class="combo">${ICON('flame')} ${t('combo', { n: L.combo })}</span>` : ''}</h3>
         ${L.ok ? '' : `<div class="ans">${esc(t('correct_is', { a: correctText(q) }))}</div>`}
         <div class="explain">${esc(explain(q))}</div>
         ${whyHTML(q, q.t === 'multi' ? L.multi : L.sel)}
@@ -1303,6 +1380,12 @@
     const placing = L.mode === 'placement';
     if (!placing) srsUpdate(q.id, ok && !L.missed.has(q.id));
     if (!L.missed.has(q.id)) qstat(q.id, ok);
+    if (!placing) {
+      // Combo: right on the first try in a row; a retry of a missed question neither adds nor breaks it.
+      if (ok && !L.missed.has(q.id)) { L.combo = (L.combo || 0) + 1; questAdd('combo', 0, L.combo); }
+      else if (!ok) L.combo = 0;
+      if (ok) questAdd('right');
+    }
     track('answer');
     sfx(ok ? 'right' : 'wrong');
     if (ok) {
@@ -1310,7 +1393,7 @@
       L.praise = Math.floor(Math.random() * 6);
       // Clears from the review queue in "Fix mistakes", or when answered right on the first try in a later session.
       if (L.mode === 'mistakes' || !L.missed.has(q.id)) {
-        if (S.mistakes[q.id]) S.fixed = (S.fixed || 0) + 1;
+        if (S.mistakes[q.id]) { S.fixed = (S.fixed || 0) + 1; questAdd('fix'); }
         delete S.mistakes[q.id];
       }
     } else {
@@ -1394,19 +1477,23 @@
     flushQStats();
     if (L.mode === 'placement') return finishPlacement();
     const perfect = L.missed.size === 0;
-    let xp = (L.mode === 'replay' ? 5 : 10) + (perfect ? 5 : 0);
+    const boosted = boostOn();
+    let xp = ((L.mode === 'replay' ? 5 : 10) + (perfect ? 5 : 0)) * (boosted ? 2 : 1);
     if (L.mode === 'lesson' && L.unit) S.progress[L.unit] = (S.progress[L.unit] || 0) + 1;
     S.lessons = (S.lessons || 0) + 1;
     if (perfect) S.perfects = (S.perfects || 0) + 1;
     S.session = null;
-    const { extended, earnedFreeze } = addXP(xp);
-    const badges = checkBadges();
+    const xpRes = addXP(xp);
+    questAdd('lessons');
+    if (perfect) questAdd('perfect');
+    const { earnedFreeze } = xpRes, extended = xpRes.extended || takeQuestExt();
+    const badges = checkBadges(), questsDone = questNew.splice(0);
     // "Complete", then at most one extra sound for something special.
     sfx('complete');
-    const special = badges.length ? 'badge' : earnedFreeze ? 'freeze' : extended ? 'streak' : null;
+    const special = badges.length || questsDone.length ? 'badge' : earnedFreeze ? 'freeze' : extended ? 'streak' : null;
     if (special) sfx(special, 950);
     END = {
-      xp, perfect, extended, earnedFreeze, badges, streak: S.streak,
+      xp, perfect, extended, earnedFreeze, badges, streak: S.streak, boosted, quests: questsDone,
       acc: Math.round(100 * (L.total - L.missed.size) / L.total),
       secs: Math.round((Date.now() - L.start) / 1000),
       unitCompleted: L.mode === 'lesson' && L.unit && S.progress[L.unit] === LESSONS_PER_UNIT ? UNITS[L.unit].title : null,
@@ -1430,12 +1517,13 @@
       <h1>${title}</h1><p class="muted">${sub}</p>
       ${placed && e.skipped.length ? `<div class="placed-list">${e.skipped.map(u => `<span>${ICON('check')} ${esc(u)}</span>`).join('')}</div>` : ''}
       <div class="statrow">
-        <div class="stat gold"><div class="lbl">${t('xp_earned_lbl')}</div><div class="val">${ICON('bolt')} ${e.xp}</div></div>
+        <div class="stat gold"><div class="lbl">${t('xp_earned_lbl')}</div><div class="val">${ICON('bolt')} ${e.xp}${e.boosted ? '<span class="x2">×2</span>' : ''}</div></div>
         <div class="stat green"><div class="lbl">${t('accuracy')}</div><div class="val">${ICON('target')} ${e.acc}%</div></div>
         <div class="stat blue"><div class="lbl">${t('time')}</div><div class="val">${ICON('clock')} ${fmtTime(e.secs)}</div></div>
       </div>
       ${e.extended ? `<div class="stat flame"><div class="lbl">${t('goal_reached')}</div><div class="val">${ICON('flame')} ${t('streak_days', { n: e.streak })}</div></div>` : ''}
       ${badgeLine(e.badges || [])}
+      ${questLine(e.quests)}
       ${e.earnedFreeze ? `<div class="stat ice"><div class="val">${ICON('snowflake')} ${t('freeze_earned')}</div><div class="lbl">${t('freezes', { n: S.freezes || 0 })}</div></div>` : ''}
     </div>
     <div class="fixed-foot"><button class="btn" data-act="nav" data-v="learn">${t('continue')}</button></div>`;
@@ -1610,6 +1698,7 @@
     });
     flushQStats();
     const correct = items.filter(x => x.ok).length;
+    questAdd('right', correct);
     const score = Math.round(100 * correct / items.length);
     const passAt = E.pass || c.exam.pass;
     const pass = score >= passAt;
@@ -2095,13 +2184,13 @@
       <div class="stack"><button class="btn" data-act="closemodal">${t('keep_going')}</button><button class="btn ghost" style="color:var(--bad)" data-act="confirmquitexam">${t('exit_exam')}</button></div>`),
     confirmquitexam: () => { clearInterval(examTimer); E = null; closeModal(); go('exam'); },
     toggleall: () => { R.showAll = !R.showAll; render(); },
-    setgoal: d => { S.dailyGoal = +d.g; addXP(0); render(); },
+    setgoal: d => { S.dailyGoal = +d.g; addXP(0); render(); questToasts(); },
     settheme: d => { S.theme = d.t; save(); applyTheme(); render(); },
     settext: d => { S.textSize = +d.z; save(); applyTheme(); render(); },
     examdate: () => examDateModal(),
     saveexamdate: () => { const v = (modalRoot.querySelector('#exam-date') || {}).value; if (!v || daysUntil(v) < 0) return; S.examDates = Object.assign({}, S.examDates, { [S.cert]: v }); save(); closeModal(); render(); },
     clearexamdate: () => { if (S.examDates) delete S.examDates[S.cert]; save(); closeModal(); render(); },
-    usegoal: d => { S.dailyGoal = +d.g; addXP(0); render(); },
+    usegoal: d => { S.dailyGoal = +d.g; addXP(0); render(); questToasts(); },
     certificate: () => certificateModal(),
     makecert: () => { const v = ((modalRoot.querySelector('#cert-name') || {}).value || '').trim().slice(0, 40); if (!v) return; S.certName = v; save(); closeModal(); makeCertificate(v); },
     cards: () => startCards(),
