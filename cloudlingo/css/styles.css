@@ -266,6 +266,15 @@ h1, h2, h3, p { margin: 0; }
 .pathtag.next { background: var(--flame); color: #fff; }
 .pathtag .ic { color: inherit; }
 .pathmeta { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); margin-top: 8px; }
+.words-search { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2px solid var(--border); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; margin-bottom: 14px; }
+.words-search:focus { outline: none; border-color: var(--primary); }
+.wordcard h3 { font-size: 17px; font-weight: 900; margin-bottom: 2px; }
+.wordcard p:last-child { margin-top: 6px; line-height: 1.45; }
+.challenge { border-color: var(--gold); }
+.challenge .bigicon, .challenge .bigicon .ic { color: var(--gold); }
+.ob-challenge { display: flex; gap: 10px; align-items: center; font-weight: 800; margin: 6px 0 14px; }
+.ob-challenge .ic { color: var(--gold); font-size: 22px; flex-shrink: 0; }
+.chbtn { display: inline-flex; align-items: center; gap: 6px; }
 .whynot { font-size: 14px; font-weight: 600; margin-top: 8px; line-height: 1.4; color: var(--ink); max-width: 620px; }
 .whyothers { margin-top: 8px; font-size: 14px; max-width: 620px; color: var(--ink); }
 .whyothers summary { cursor: pointer; font-weight: 800; opacity: .75; }
