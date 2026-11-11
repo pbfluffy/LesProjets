@@ -47,7 +47,7 @@
   function loadThai() {
     if (window.TH_EXPLAIN && window.TH_GLOSS) return Promise.resolve();
     if (thaiLoading) return thaiLoading;
-    const files = ['glossary', 'clf', 'aif', 'saa', 'dva', 'soa', 'dea', 'why-clf', 'why-aif'].map(f => 'js/th/' + f + '.js' + (ASSET_V ? '?' + ASSET_V : ''));
+    const files = ['glossary', 'clf', 'aif', 'saa', 'dva', 'soa', 'dea', 'why-clf', 'why-aif', 'why-saa'].map(f => 'js/th/' + f + '.js' + (ASSET_V ? '?' + ASSET_V : ''));
     thaiLoading = Promise.all(files.map(src => new Promise(res => {
       const el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = res; document.head.appendChild(el);
     }))).then(() => { if (typeof refresh === 'function') refresh(); });
@@ -945,6 +945,58 @@
   let R = null;       // last exam result
   let END = null;     // lesson-complete summary
   let OB = { cert: null, goal: 20 };
+
+  // ---------- Friend challenges ----------
+  // A shared link like ?c=clf&s=85&k=e means "a friend scored 85% on a CLF-C02 mock exam"
+  // (k=l: a lesson). Only the certification and score are in the link, nothing personal.
+  let CH = null;
+  try {
+    const p = new URLSearchParams(location.search), c = p.get('c'), s = Number(p.get('s'));
+    if (COURSES.some(x => x.id === c) && p.get('s') !== null && Number.isInteger(s) && s >= 0 && s <= 100) {
+      CH = { c, s, k: p.get('k') === 'e' ? 'e' : 'l' };
+      if (!S.cert) OB.cert = c;
+      ['c', 's', 'k'].forEach(x => p.delete(x));
+      history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : '') + location.hash);
+    }
+  } catch { /* not a challenge link */ }
+  const challengeLine = () => { const c = COURSES.find(x => x.id === CH.c); return t(CH.k === 'e' ? 'ch_got_exam' : 'ch_got_lesson', { s: CH.s, code: c.code.replace('-', '‑') }); }; // non-breaking hyphen keeps "SAA-C03" on one line
+  function challengeCard() {
+    if (!CH) return '';
+    return `<div class="card challenge"><div class="row"><div class="bigicon">${ICON('trophy')}</div><div class="grow"><h3 style="margin-bottom:2px">${challengeLine()}</h3><p class="muted small">${t('ch_beat')}</p></div></div>
+      <div class="row" style="margin-top:12px;gap:8px"><button class="btn grow" data-act="chgo">${t('ch_take')}</button><button class="btn ghost" data-act="chno">${t('dismiss')}</button></div></div>`;
+  }
+  async function shareChallenge(k, s, cid) {
+    const c = COURSES.find(x => x.id === cid) || course();
+    const url = `https://pumbafluffycorgi.com/cloudlingo/?c=${c.id}&s=${s}&k=${k}`;
+    const text = t(k === 'e' ? 'ch_text_exam' : 'ch_text_lesson', { s, code: c.code });
+    if (navigator.share) {
+      try { await navigator.share({ text, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    try { await navigator.clipboard.writeText(text + ' ' + url); toast(`${ICON('check')} ${t('ch_copied')}`); }
+    catch { modal(`<h2>${t('ch_btn')}</h2><p>${t('ch_link')}</p><input class="words-search" readonly value="${esc(url)}" onfocus="this.select()"><div class="stack" style="margin-top:14px"><button class="btn" data-act="closemodal">${t('done')}</button></div>`); }
+  }
+
+  // ---------- Glossary ("Words") ----------
+  let wordQuery = '';
+  const wordDef = g => (lang === 'th' && window.TH_GLOSS && window.TH_GLOSS[g.k]) || g.d;
+  function wordsList() {
+    const q = wordQuery.trim().toLowerCase();
+    // Best matches first: the term itself, then names containing the search, then definitions.
+    const names = g => [g.k, ...(g.also || [])].map(x => x.toLowerCase());
+    const rank = g => !q ? 0 : names(g).includes(q) ? 0 : names(g).some(x => x.includes(q)) ? 1 : 2;
+    const list = GLOSS.filter(g => !q || [g.k, ...(g.also || []), g.d, (window.TH_GLOSS || {})[g.k] || ''].some(x => String(x).toLowerCase().includes(q)))
+      .sort((a, b) => rank(a) - rank(b) || a.k.localeCompare(b.k, 'en', { sensitivity: 'base' }));
+    return list.length ? list.map(g => `<div class="card wordcard"><h3>${esc(g.k)}</h3>${g.also && g.also.length ? `<p class="muted small">${esc(t('words_also', { w: g.also.join(', ') }))}</p>` : ''}<p>${esc(wordDef(g))}</p></div>`).join('')
+      : `<div class="card muted">${t('words_none')}</div>`;
+  }
+  function wordsView() {
+    return shell(`<h1 class="section-title">${t('words_title')}</h1><p class="section-sub">${t('words_sub', { n: GLOSS.length })}</p>
+      <input class="words-search" type="search" id="wordsq" placeholder="${t('words_search')}" value="${esc(wordQuery)}" autocomplete="off" aria-label="${t('words_search')}">
+      <div class="stack words-list" id="wordslist">${wordsList()}</div>`);
+  }
+  document.addEventListener('input', e => {
+    if (e.target && e.target.id === 'wordsq') { wordQuery = e.target.value; const l = document.getElementById('wordslist'); if (l) l.innerHTML = wordsList(); }
+  });
   let examTimer = null;
 
   function applyTheme() {
@@ -970,7 +1022,7 @@
   }
 
   function render() {
-    const views = { cards: () => FC ? cardsView() : learnView(), onboard: onboardView, learn: learnView, practice: practiceView, exam: examView, board: boardView, profile: profileView, lesson: lessonView, lessonEnd: lessonEndView, path: pathView, streakDay: streakDayView, examRun: examRunView, examResult: examResultView };
+    const views = { cards: () => FC ? cardsView() : learnView(), onboard: onboardView, learn: learnView, practice: practiceView, exam: examView, board: boardView, profile: profileView, lesson: lessonView, lessonEnd: lessonEndView, path: pathView, words: wordsView, streakDay: streakDayView, examRun: examRunView, examResult: examResultView };
     closeHint();
     app.innerHTML = (views[view] || learnView)();
   }
@@ -1128,6 +1180,7 @@
     return `<div class="onboard">
       <div class="row ob-top">${authState === 'out' || authState === 'loading' ? `<div class="card ob-signin grow"><span>${t('studied_before')}</span><button class="signin-btn" data-act="signin">${t('signin')}</button></div>` : '<div class="grow"></div>'}${langSwitch()}</div>
       <div class="hero">${mascot(110, 'hero', 'bounce')}<div class="speech">${t('nimbus_hi')}<span class="speech-sub">${t('nimbus_who')}</span></div></div>
+      ${CH ? `<div class="card challenge ob-challenge">${ICON('trophy')} <span>${challengeLine()}. ${t('ch_beat')}</span></div>` : ''}
       <div class="certlist">${COURSES.map(c => certOption(c, OB.cert === c.id, 'obcert')).join('')}</div>
       <h2 class="section-title" style="font-size:20px;margin-top:30px">${t('pick_goal')}</h2>
       <p class="section-sub">${t('pick_goal_sub')}</p>
@@ -1148,7 +1201,7 @@
       ? `<div class="card placecard"><div class="row"><div class="bigicon">${ICON('target')}</div><div class="grow"><h3 style="margin-bottom:2px">${t('place_title')}</h3><p class="muted small">${t('place_sub', { n: placeCount(c) })}</p></div><button class="btn ghost" data-act="placement">${t('place_btn')}</button></div></div>` : '';
     const due = dueFor(c.id).length;
     const dueCard = due ? `<div class="card duecard"><div class="row"><div class="bigicon">${ICON('calendar')}</div><div class="grow"><h3 style="margin-bottom:2px">${tn('review_some', due)}</h3><p class="muted small">${t('review_why')}</p></div><button class="btn ghost" data-act="review">${t('review_btn')}</button></div></div>` : '';
-    return shell(`${freezeNotice()}${installCard(true)}${certificateCard(c)}${examDateCard(c)}${dueCard}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div><div class="card mobile-only questcard">${questCard()}</div>${resume}${placeCard}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
+    return shell(`${freezeNotice()}${challengeCard()}${installCard(true)}${certificateCard(c)}${examDateCard(c)}${dueCard}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div><div class="card mobile-only questcard">${questCard()}</div>${resume}${placeCard}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
       <div style="margin-top:34px">${readinessCard(c, false)}</div>
       <div class="card" style="margin-top:16px;text-align:center"><h3>${t('ready_title')}</h3><p class="muted" style="margin-bottom:14px">${t('ready_sub', { code: c.code })}</p><button class="btn ghost" data-act="nav" data-v="exam">${t('try_exam')}</button></div>`);
   }
@@ -1554,6 +1607,7 @@
       ${e.extended ? `<div class="stat flame"><div class="lbl">${t('goal_reached')}</div><div class="val">${ICON('flame')} ${t('streak_days', { n: e.streak })}</div></div>` : ''}
       ${badgeLine(e.badges || [])}
       ${questLine(e.quests)}
+      ${e.mode === 'lesson' || e.mode === 'replay' ? `<button class="linkbtn chbtn" data-act="challenge" data-k="l" data-s="${e.acc}" data-c="${S.cert}">${ICON('share')} ${t('ch_btn')}</button>` : ''}
       ${e.earnedFreeze ? `<div class="stat ice"><div class="val">${ICON('snowflake')} ${t('freeze_earned')}</div><div class="lbl">${t('freezes', { n: S.freezes || 0 })}</div></div>` : ''}
     </div>
     <div class="fixed-foot"><button class="btn" data-act="endcontinue">${t('continue')}</button></div>`;
@@ -1607,6 +1661,8 @@
           <button class="btn ghost block" style="margin-top:14px" data-act="cards">${t('start_btn')}</button></div>
         <div class="card pcard"><div class="row"><div class="bigicon">${ICON('bolt')}</div><div class="grow"><h3>${t('quick_title')}</h3><p>${t('quick_sub')}</p></div></div>
           <button class="btn ghost block" style="margin-top:14px" data-act="quick">${t('start_btn')}</button></div>
+        <div class="card pcard"><div class="row"><div class="bigicon">${ICON('book')}</div><div class="grow"><h3>${t('words_title')}</h3><p>${t('words_card_sub', { n: GLOSS.length })}</p></div></div>
+          <button class="btn ghost block" style="margin-top:14px" data-act="nav" data-v="words">${t('words_open')}</button></div>
         <h2 class="section-title" style="font-size:20px;margin-top:12px">${t('by_topic')}</h2>
         ${rows}
       </div>`);
@@ -1787,6 +1843,7 @@
         ${mascot(130, R.pass ? 'cool' : 'tired', R.pass ? 'bounce' : '')}
         <h1 style="font-size:30px;font-weight:900;margin:12px 0 6px">${R.pass ? t('passed') : t('not_yet')}</h1>
         <p class="muted">${t('exam_result_sub', { code: c.code, p: R.passAt })}</p>
+        <button class="linkbtn chbtn" style="margin-top:8px" data-act="challenge" data-k="e" data-s="${R.score}" data-c="${R.cert}">${ICON('share')} ${t('ch_btn')}</button>
       </div>
       <div class="statrow" style="margin-bottom:24px">
         <div class="stat ${R.pass ? 'green' : 'flame'}"><div class="lbl">${t('score')}</div><div class="val">${R.score}%</div></div>
@@ -2213,6 +2270,9 @@
     dismissfreeze: () => { S.freezeNotice = null; save(); render(); },
     pickcert: () => modal(`<h2>${t('choose_cert')}</h2><p>${t('choose_cert_sub')}</p><div class="certlist">${COURSES.map(c => certOption(c, c.id === S.cert, 'setcert')).join('')}</div><button class="linkbtn block" style="margin-top:14px" data-act="openpath">${ICON('compass')} ${t('path_open')}</button>`, 'wide'),
     openpath: () => { closeModal(); go('path'); },
+    challenge: d => shareChallenge(d.k, +d.s, d.c),
+    chgo: () => { const ch = CH; CH = null; if (S.cert !== ch.c) { S.cert = ch.c; save(); } go(ch.k === 'e' ? 'exam' : 'learn'); },
+    chno: () => { CH = null; render(); },
     pathpick: d => { S.cert = d.c; save(); go('learn'); },
     setcert: d => { S.cert = d.c; save(); closeModal(); go(view === 'profile' ? 'profile' : 'learn'); },
     closemodal: () => closeModal(),
@@ -2278,7 +2338,7 @@
     obcert: d => { OB.cert = d.c; render(); },
     obgoal: d => { OB.goal = +d.g; render(); },
     // New learners start answering right away: lesson 1 of the first unit.
-    obstart: () => { if (!OB.cert) return; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); track('cert'); startLesson(course().units[0].id, 'lesson'); },
+    obstart: () => { if (!OB.cert) return; CH = null; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); track('cert'); startLesson(course().units[0].id, 'lesson'); },
     tourgo: () => { closeModal(); startTour(); },
     tourno: () => { try { localStorage.setItem(TOUR_KEY, '1'); } catch { /* ignore */ } closeModal(); },
     obplace: () => { if (!OB.cert) return; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); track('cert'); startPlacement(); },
