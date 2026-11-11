@@ -47,7 +47,7 @@
   function loadThai() {
     if (window.TH_EXPLAIN && window.TH_GLOSS) return Promise.resolve();
     if (thaiLoading) return thaiLoading;
-    const files = ['glossary', 'clf', 'aif', 'saa', 'dva', 'soa', 'dea', 'why-clf'].map(f => 'js/th/' + f + '.js' + (ASSET_V ? '?' + ASSET_V : ''));
+    const files = ['glossary', 'clf', 'aif', 'saa', 'dva', 'soa', 'dea', 'why-clf', 'why-aif'].map(f => 'js/th/' + f + '.js' + (ASSET_V ? '?' + ASSET_V : ''));
     thaiLoading = Promise.all(files.map(src => new Promise(res => {
       const el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = res; document.head.appendChild(el);
     }))).then(() => { if (typeof refresh === 'function') refresh(); });
@@ -963,6 +963,7 @@
     render();
     window.scrollTo(0, 0);
     if (v === 'learn') {
+      maybeAutoTour();
       const cur = document.querySelector('.node.current');
       if (cur) cur.scrollIntoView({ block: 'center' });
     }
@@ -2105,12 +2106,14 @@
     } catch { touring = false; /* the tour is optional (e.g. offline) */ }
   }
   // First visit: wait until the Learn page has settled (sign-in loaded, no dialog open).
+  // After the first lesson, the learn page offers the tour once (Take the tour / Not now).
   function maybeAutoTour(tries = 6) {
-    if (tourSeen() || touring || !pwaReady) return;
+    if (tourSeen() || touring || !pwaReady || !(S.lessons > 0)) return;
     setTimeout(() => {
       if (tourSeen() || touring || view !== 'learn') return;
       if (modalRoot.innerHTML || authState === 'loading') { if (tries > 1) maybeAutoTour(tries - 1); return; }
-      startTour();
+      modal(`<div style="text-align:center">${mascot(110, 'laugh', 'bounce')}<h2 style="margin-top:10px">${t('tour_offer_t')}</h2><p class="muted" style="margin:8px 0 18px">${t('tour_offer_b')}</p>
+        <div class="stack"><button class="btn" data-act="tourgo">${t('tour_btn')}</button><button class="btn ghost" data-act="tourno">${t('tour_later')}</button></div></div>`);
     }, 900);
   }
 
@@ -2242,7 +2245,10 @@
     keepdevice: () => { const c = choice; choice = null; closeModal(); linkSync(c.ref, c.uid, false); save(); },
     obcert: d => { OB.cert = d.c; render(); },
     obgoal: d => { OB.goal = +d.g; render(); },
-    obstart: () => { if (!OB.cert) return; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); track('cert'); go('learn'); maybeAutoTour(); },
+    // New learners start answering right away: lesson 1 of the first unit.
+    obstart: () => { if (!OB.cert) return; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); track('cert'); startLesson(course().units[0].id, 'lesson'); },
+    tourgo: () => { closeModal(); startTour(); },
+    tourno: () => { try { localStorage.setItem(TOUR_KEY, '1'); } catch { /* ignore */ } closeModal(); },
     obplace: () => { if (!OB.cert) return; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); track('cert'); startPlacement(); },
     placement: () => startPlacement(),
     domainpractice: d => { const us = String(d.us || '').split(',').filter(u => UNITS[u]); if (us.length) startSession('practice', pickQuestions(us.flatMap(u => UNITS[u].questions), 10), us.length === 1 ? us[0] : null); },
