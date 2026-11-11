@@ -970,7 +970,7 @@
   }
 
   function render() {
-    const views = { cards: () => FC ? cardsView() : learnView(), onboard: onboardView, learn: learnView, practice: practiceView, exam: examView, board: boardView, profile: profileView, lesson: lessonView, lessonEnd: lessonEndView, streakDay: streakDayView, examRun: examRunView, examResult: examResultView };
+    const views = { cards: () => FC ? cardsView() : learnView(), onboard: onboardView, learn: learnView, practice: practiceView, exam: examView, board: boardView, profile: profileView, lesson: lessonView, lessonEnd: lessonEndView, path: pathView, streakDay: streakDayView, examRun: examRunView, examResult: examResultView };
     closeHint();
     app.innerHTML = (views[view] || learnView)();
   }
@@ -991,7 +991,7 @@
     return `<div class="shell">
       <nav class="sidenav">
         <div class="brand">${mascot(40, 'hero')}<span>cloudlingo</span></div>
-        ${navItem('learn', ICON('home'), t('nav_learn'))}${navItem('practice', ICON('target'), t('nav_practice'))}${navItem('exam', ICON('clipboard'), t('nav_exam'))}${authState !== 'off' ? navItem('board', ICON('trophy'), t('nav_board')) : ''}${navItem('profile', ICON('user'), t('nav_profile'))}
+        ${navItem('learn', ICON('home'), t('nav_learn'))}${navItem('practice', ICON('target'), t('nav_practice'))}${navItem('exam', ICON('clipboard'), t('nav_exam'))}${navItem('path', ICON('compass'), t('nav_path'))}${authState !== 'off' ? navItem('board', ICON('trophy'), t('nav_board')) : ''}${navItem('profile', ICON('user'), t('nav_profile'))}
       </nav>
       <main class="main">${topbar()}${main}<div class="appver">Cloudlingo v${esc(APP_LABEL)}</div></main>
       <aside class="rightcol">${rightCol()}</aside>
@@ -1082,6 +1082,35 @@
   function certBadge(c) {
     const [a, b] = BADGE_COLORS[c.id] || ['#1f8ef1', '#8b5cf6'];
     return `<div class="badge-cert" style="background:linear-gradient(135deg, ${a}, ${b})">${c.code.replace('-', '<br>')}</div>`;
+  }
+
+  // ---------- Certification path ----------
+  // The 6 certifications by level, with progress, readiness and passed mock exams.
+  // The suggested next one follows NEXT_CERT from the current certification.
+  const NEXT_CERT = { clf: 'saa', aif: 'saa', saa: 'dva', dva: 'soa', soa: 'dea', dea: 'saa' };
+  const passedCert = id => (S.exams || []).some(e => e.cert === id && e.pass);
+  function suggestedCert() {
+    let id = S.cert || 'clf';
+    for (let i = 0; i < COURSES.length; i++) { id = NEXT_CERT[id]; if (id && id !== S.cert && !passedCert(id)) return id; }
+    return null;
+  }
+  function pathCard(c, next) {
+    const total = c.units.length * LESSONS_PER_UNIT, done = c.units.reduce((s, u) => s + unitDone(u), 0);
+    const tags = (c.id === S.cert ? `<span class="pill pathtag cur">${t('path_current')}</span>` : '')
+      + (passedCert(c.id) ? `<span class="pill pathtag ok">${ICON('check')} ${t('path_passed')}</span>` : '')
+      + (c.id === next ? `<span class="pill pathtag next">${ICON('star')} ${t('path_next')}</span>` : '');
+    return `<button class="certopt pathcard ${c.id === S.cert ? 'on' : ''}" data-act="pathpick" data-c="${c.id}">${certBadge(c)}
+      <div class="grow"><h3>${c.name}</h3>${tags ? `<div class="pathtags">${tags}</div>` : ''}
+        <div class="pathmeta"><span>${t('path_lessons', { d: done, t: total })}</span><span>${t('path_ready', { n: readiness(c).value })}</span></div>
+        <div class="progress blue" style="height:8px;margin-top:6px"><div style="width:${Math.round(100 * done / total)}%"></div></div></div></button>`;
+  }
+  function pathView() {
+    const next = suggestedCert();
+    const level = (l, icon, sub) => `<section class="pathlevel"><h2 class="ic-title">${ICON(icon)} ${t('level_' + l)}</h2><p class="muted small">${t(sub)}</p>
+      <div class="certlist">${COURSES.filter(c => c.level === l).map(c => pathCard(c, next)).join('')}</div></section>`;
+    return shell(`<h1 class="section-title">${t('path_title')}</h1><p class="muted" style="margin-bottom:18px">${t('path_sub')}</p>
+      ${level('Foundational', 'sprout', 'path_found_sub')}<div class="patharrow" aria-hidden="true">↓</div>${level('Associate', 'award', 'path_assoc_sub')}
+      <p class="muted small" style="margin-top:18px">${t('path_note')}</p>`);
   }
 
   function certOption(c, on, act) {
@@ -2138,6 +2167,7 @@
         <div class="tile-stat"><span class="i">${ICON('target')}</span><div><div class="v">${seen ? Math.round(100 * correct / seen) + '%' : '–'}</div><div class="l">${t('accuracy')}</div></div></div>
       </div>
       <div style="margin-top:16px">${readinessCard(c, false)}</div>
+      <div class="card" style="margin-top:16px"><h3 class="ic-title">${ICON('compass')} ${t('path_title')}</h3><p class="muted small" style="margin:4px 0 12px">${t('path_card_b')}</p><button class="btn ghost block" data-act="nav" data-v="path">${t('path_open')}</button></div>
       <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${t('badges')}</h3><span class="muted small">${Object.keys(S.badges || {}).length} / ${BADGES.length}</span></div>
         <div class="badges">${BADGES.map(b => `<div class="badge-item ${S.badges && S.badges[b.id] ? 'on' : ''}" title="${esc(t('badge_' + b.id + '_d'))}"><span class="bi">${ICON(b.icon)}</span><span class="bn">${t('badge_' + b.id)}</span></div>`).join('')}</div>
         <button class="btn ghost block" style="margin-top:14px" data-act="share">${ICON('share')} ${t('share_btn')}</button></div>
@@ -2181,7 +2211,9 @@
     install: async () => { if (!installPrompt) return; const p = installPrompt; installPrompt = null; p.prompt(); try { await p.userChoice; } catch { /* ignore */ } render(); },
     installlater: () => { S.installHidden = true; save(); render(); },
     dismissfreeze: () => { S.freezeNotice = null; save(); render(); },
-    pickcert: () => modal(`<h2>${t('choose_cert')}</h2><p>${t('choose_cert_sub')}</p><div class="certlist">${COURSES.map(c => certOption(c, c.id === S.cert, 'setcert')).join('')}</div>`, 'wide'),
+    pickcert: () => modal(`<h2>${t('choose_cert')}</h2><p>${t('choose_cert_sub')}</p><div class="certlist">${COURSES.map(c => certOption(c, c.id === S.cert, 'setcert')).join('')}</div><button class="linkbtn block" style="margin-top:14px" data-act="openpath">${ICON('compass')} ${t('path_open')}</button>`, 'wide'),
+    openpath: () => { closeModal(); go('path'); },
+    pathpick: d => { S.cert = d.c; save(); go('learn'); },
     setcert: d => { S.cert = d.c; save(); closeModal(); go(view === 'profile' ? 'profile' : 'learn'); },
     closemodal: () => closeModal(),
     node: d => { const u = UNITS[d.u]; startLesson(d.u, +d.l < unitDone(u) ? 'replay' : 'lesson'); },

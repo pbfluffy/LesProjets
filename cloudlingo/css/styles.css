@@ -254,6 +254,18 @@ h1, h2, h3, p { margin: 0; }
 .sd-day.today .sd-dot { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--flame); }
 .sd-lbl { font-size: 12px; font-weight: 800; color: var(--muted); }
 .sd-day.today .sd-lbl { color: var(--flame); }
+.pathlevel h2 { font-size: 20px; font-weight: 900; margin-bottom: 2px; }
+.pathlevel .certlist { margin-top: 12px; }
+.patharrow { text-align: center; font-size: 26px; font-weight: 900; color: var(--muted); margin: 10px 0; }
+.pathcard h3 { font-size: 16px; }
+.pathcard > .grow { flex: 1; min-width: 0; }
+.pathtags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+.pathtag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; }
+.pathtag.cur { background: var(--primary); color: #fff; }
+.pathtag.ok { background: var(--good-soft); color: var(--good-dark); }
+.pathtag.next { background: var(--flame); color: #fff; }
+.pathtag .ic { color: inherit; }
+.pathmeta { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); margin-top: 8px; }
 .whynot { font-size: 14px; font-weight: 600; margin-top: 8px; line-height: 1.4; color: var(--ink); max-width: 620px; }
 .whyothers { margin-top: 8px; font-size: 14px; max-width: 620px; color: var(--ink); }
 .whyothers summary { cursor: pointer; font-weight: 800; opacity: .75; }
