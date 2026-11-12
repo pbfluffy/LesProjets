@@ -2046,6 +2046,8 @@ const MS_ADMIN = {
   msalSrc: 'https://cdn.jsdelivr.net/npm/@azure/msal-browser@5.27.0/lib/msal-browser.min.js',
 };
 const MS_SCOPES = ['https://graph.microsoft.com/User.ReadBasic.All'];
+// Only for Revoke / Restore access: disable or enable the account, and end its sessions.
+const MS_SCOPES_REVOKE = ['https://graph.microsoft.com/User.EnableDisableAccount.All', 'https://graph.microsoft.com/User.RevokeSessions.All'];
 const MS_FLAG = 'admin_ms_connected';
 const MSU = { state: 'off', users: [], error: '' }; // off | loading | ready | error
 let msPca = null, msAccount = null;
@@ -2065,11 +2067,11 @@ async function msInit(){
   msAccount = (back && back.account) || msPca.getAllAccounts()[0] || null;
   try { if (msAccount) localStorage.setItem(MS_FLAG, '1'); else localStorage.removeItem(MS_FLAG); } catch {}
 }
-async function msToken(interactive){
-  try { return (await msPca.acquireTokenSilent({ scopes: MS_SCOPES, account: msAccount })).accessToken; }
+async function msToken(interactive, scopes = MS_SCOPES){
+  try { return (await msPca.acquireTokenSilent({ scopes, account: msAccount })).accessToken; }
   catch (e) {
     if (e instanceof window.msal.InteractionRequiredAuthError && !interactive) throw new Error('Microsoft sign-in has expired. Connect again.');
-    if (e instanceof window.msal.InteractionRequiredAuthError) { await msPca.acquireTokenRedirect({ scopes: MS_SCOPES, account: msAccount }); return new Promise(() => {}); }
+    if (e instanceof window.msal.InteractionRequiredAuthError) { await msPca.acquireTokenRedirect({ scopes, account: msAccount }); return new Promise(() => {}); }
     throw e;
   }
 }
@@ -2169,8 +2171,12 @@ function renderInvites(){
     + (INV.msg ? '<div class="cloud-empty" style="padding-top:0;color:' + (INV.msgType === 'error' ? '#c45c1a' : '#1f8f59') + '">' + escAdm(INV.msg) + '</div>' : '')
     + (INV.loading && !INV.loaded ? '<div class="skeleton-row"></div>'
       : INV.list.length ? INV.list.map(v => '<div class="cloud-item"><div class="meta"><b>' + escAdm(v.name) + '</b><span>' + escAdm(v.username) + '</span><span>sent to ' + escAdm(v.email) + '</span>'
-          + '<span>' + (v.sends > 1 ? 'sent ' + v.sends + ' times, last ' : 'sent ') + when(v.lastSentAt) + (v.sentBy ? ' by ' + escAdm(v.sentBy) : '') + '</span></div>'
-          + '<div class="acts"><button class="btn ghost small" data-inv-resend="' + escAdm(v.id) + '"' + (INV.busy ? ' disabled' : '') + '>Resend</button><button class="btn ghost small" data-inv-del="' + escAdm(v.id) + '"' + (INV.busy ? ' disabled' : '') + '>Remove from list</button></div></div>').join('')
+          + '<span>' + (v.sends > 1 ? 'sent ' + v.sends + ' times, last ' : 'sent ') + when(v.lastSentAt) + (v.sentBy ? ' by ' + escAdm(v.sentBy) : '') + '</span>'
+          + (v.revokedAt ? '<span class="cloud-pill">Access revoked ' + when(v.revokedAt) + '</span>' : '') + '</div>'
+          + '<div class="acts">' + (v.revokedAt
+            ? '<button class="btn ghost small" data-inv-restore="' + escAdm(v.id) + '"' + (INV.busy ? ' disabled' : '') + '>Restore access</button>'
+            : '<button class="btn ghost small" data-inv-resend="' + escAdm(v.id) + '"' + (INV.busy ? ' disabled' : '') + '>Resend</button><button class="btn ghost small" data-inv-revoke="' + escAdm(v.id) + '"' + (INV.busy ? ' disabled' : '') + '>Revoke access</button>')
+          + '<button class="btn ghost small" data-inv-del="' + escAdm(v.id) + '"' + (INV.busy ? ' disabled' : '') + '>Remove from list</button></div></div>').join('')
       : '<div class="cloud-empty">No invitations sent yet.</div>');
 }
 async function invitesSend(name, email, username){
@@ -2220,6 +2226,56 @@ document.addEventListener('click', async e => {
     if (!confirm('Remove ' + v.name + ' from this list? This doesn’t delete their Microsoft account; do that in Entra.')) return;
     try { await deleteDoc(doc(db, 'cloudlingoInvites', v.id)); INV.list = INV.list.filter(x => x.id !== v.id); renderInvites(); }
     catch (err) { showToast('Could not remove it: ' + err.message, 'error'); }
+  }
+});
+
+// Revoke / Restore a tester's access (needs Microsoft connected with an Entra admin account):
+// 1. disable their Microsoft account, 2. end their Microsoft sign-in sessions, 3. record them in
+// Firestore cloudlingoRevoked so Cloudlingo signs them out where they're still signed in.
+async function invGraph(method, pathAndQuery, body){
+  const token = await msToken(true, MS_SCOPES_REVOKE);
+  const res = await fetch('https://graph.microsoft.com/v1.0' + pathAndQuery, { method, headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  if (res.ok) return;
+  const out = await res.json().catch(() => ({}));
+  throw new Error(res.status === 403 ? 'Your Microsoft account isn’t allowed to disable users. It needs an Entra admin role such as User Administrator.'
+    : res.status === 404 ? 'That Microsoft account doesn’t exist any more in Entra.'
+    : ((out.error && out.error.message) || ('Microsoft Graph error ' + res.status)));
+}
+async function invSetAccess(v, revoke){
+  try { await msInit(); } catch (e) { INV.msg = e.message; INV.msgType = 'error'; renderInvites(); return; }
+  if (!msAccount) {
+    INV.msg = 'Connect Microsoft first (with your Entra admin account), then click ' + (revoke ? 'Revoke' : 'Restore') + ' again.'; INV.msgType = 'error'; renderInvites();
+    try { localStorage.setItem('admin_tab', 'cloudlingo'); await msPca.loginRedirect({ scopes: MS_SCOPES.concat(MS_SCOPES_REVOKE), prompt: 'select_account' }); } catch {}
+    return;
+  }
+  INV.busy = true; INV.msg = ''; renderInvites();
+  const upn = String(v.username || v.id).toLowerCase(), by = auth.currentUser.displayName || auth.currentUser.email || '';
+  try {
+    if (revoke) {
+      await invGraph('PATCH', '/users/' + encodeURIComponent(upn), { accountEnabled: false });
+      await invGraph('POST', '/users/' + encodeURIComponent(upn) + '/revokeSignInSessions');
+      await setDoc(doc(db, 'cloudlingoRevoked', upn), { at: serverTimestamp(), by });
+      await setDoc(doc(db, 'cloudlingoInvites', v.id), { revokedAt: serverTimestamp(), revokedBy: by }, { merge: true });
+      INV.msg = v.name + '’s access is revoked. Their Microsoft account is disabled and they’ll be signed out of Cloudlingo.';
+    } else {
+      await invGraph('PATCH', '/users/' + encodeURIComponent(upn), { accountEnabled: true });
+      await deleteDoc(doc(db, 'cloudlingoRevoked', upn));
+      await setDoc(doc(db, 'cloudlingoInvites', v.id), { revokedAt: null, revokedBy: null }, { merge: true });
+      INV.msg = v.name + '’s access is restored. They can sign in with Microsoft again.';
+    }
+    INV.msgType = 'ok';
+  } catch (e) { INV.msg = e.message; INV.msgType = 'error'; }
+  INV.busy = false; INV.loaded = false; await invitesLoad();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-inv-revoke],[data-inv-restore]'); if (!b) return;
+  const v = INV.list.find(x => x.id === (b.dataset.invRevoke || b.dataset.invRestore)); if (!v) return;
+  if (b.dataset.invRevoke) {
+    if (!confirm('Revoke ' + v.name + '’s access?\n\nThis disables their Microsoft account (' + v.username + '), ends their Microsoft sessions, and signs them out of Cloudlingo. You can restore it later.')) return;
+    invSetAccess(v, true);
+  } else {
+    if (!confirm('Restore ' + v.name + '’s access? Their Microsoft account (' + v.username + ') will be enabled again.')) return;
+    invSetAccess(v, false);
   }
 });
 

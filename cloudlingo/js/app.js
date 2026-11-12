@@ -253,6 +253,7 @@
       remind = { loaded: false, on: false, hour: 19, busy: false };
       account = { uid: user.uid, name: user.displayName || user.email || t('signed_in'), first: (user.displayName || '').trim().split(/\s+/)[0] || '', email: user.email || '', photo: user.photoURL || savedPhoto(user.uid), synced: false };
       lastUid = user.uid;
+      checkRevoked(user);
       authState = 'in';
       track('signin'); clearTimeout(fnTimer); fnTimer = setTimeout(sendFunnel, 1500);
       refresh();
@@ -352,6 +353,18 @@
       try { localStorage.setItem(PHOTO_KEY(result.user.uid), url); } catch { /* storage full: show it this session only */ }
       if (account && account.uid === result.user.uid) { account.photo = url; refresh(); }
     } catch { /* the photo is optional */ }
+  }
+
+  // Beta testers whose access was revoked in admindepum (Firestore cloudlingoRevoked/{account}).
+  // Signs a Microsoft-signed-in tester out here, even though their Firebase session is still alive.
+  async function checkRevoked(user) {
+    if (!user || !user.email || !(user.providerData || []).some(p => p.providerId === 'microsoft.com')) return;
+    try {
+      const snap = await fb.fs.getDoc(fb.fs.doc(fb.db, 'cloudlingoRevoked', user.email.toLowerCase()));
+      if (!snap.exists()) return;
+      await fb.au.signOut(fb.auth);
+      infoModal(t('revoked_t'), t('revoked_b'));
+    } catch { /* can't check right now: try again next time the app opens */ }
   }
 
   async function signIn(which = 'google') {
