@@ -412,6 +412,15 @@ html.light body{
 .cloud-bar{height:6px;border-radius:3px;background:rgba(127,127,127,.15);overflow:hidden;margin-top:6px}
 .cloud-bar > i{display:block;height:100%;background:#ec4c56}
 .cloud-empty{padding:18px;color:var(--faint);font-size:13px}
+.testers-access{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 14px;font-size:13px}
+.testers-access b{font-weight:700}
+.testers-sub{padding:10px 14px 4px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--faint)}
+.testers-row{display:flex;gap:10px;align-items:center;padding:9px 14px;border-top:1px solid rgba(127,127,127,.15)}
+.testers-row .who{flex:1;min-width:0}
+.testers-row .who b{display:block;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.testers-row .who span{display:block;font-size:12px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.testers-foot{padding:12px 14px;font-size:12px;color:var(--faint);border-top:1px solid rgba(127,127,127,.15);display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.testers-foot a{color:inherit}
 .cloud-input,.cloud-ed textarea,.cloud-ed select{width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:9px 11px;border-radius:9px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit}
 .cloud-ed{max-width:720px}.cloud-ed-body{padding:4px 18px 18px;display:grid;gap:12px;max-height:72vh;overflow:auto}
 .cloud-ed label{display:grid;gap:5px;font-size:12px;font-weight:700;color:var(--faint)}.cloud-ed textarea{min-height:64px;resize:vertical;font-family:inherit}
@@ -809,6 +818,10 @@ html.light body{
           <label class="cloud-filter">Min. answers <select id="cloud-min"><option>3</option><option selected>5</option><option>10</option><option>20</option></select></label></div>
         <div class="panel" id="cloud-missed"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
       </div>
+      <div>
+        <div class="cloud-head"><h3>Beta testers</h3><span class="cloud-filter" id="testers-who">Who can use "Continue with Microsoft"</span></div>
+        <div class="panel" id="cloud-testers"><div class="cloud-empty">Loading…</div></div>
+      </div>
     </div>
   </div>
 
@@ -868,6 +881,11 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRe
 import { getFirestore, collection, getDocs, getDoc, doc, setDoc, serverTimestamp, deleteDoc, updateDoc, query, where } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
 const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562';
+
+// A Microsoft sign-in (Beta testers panel) comes back as #code=…&state=… on this page.
+// Keep it for MSAL and put the Cloudlingo tab back in the address before the tab code runs.
+const MS_RETURN_HASH = /(^#|&)(code|error)=/.test(location.hash) && /state=/.test(location.hash) ? location.hash : '';
+if (MS_RETURN_HASH) { try { localStorage.setItem('admin_tab', 'cloudlingo'); } catch {} history.replaceState(null, '', location.pathname + location.search + '#cloudlingo'); }
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
@@ -2017,6 +2035,175 @@ function renderBackyardTab(){
   renderBoard(all, 'backyard-leaderboard-rows');
   if(!BACKYARD.loaded && !BACKYARD.loading) loadBackyardData();
 }
+
+// ---- Cloudlingo: beta testers (who can use Microsoft sign-in) ----
+// Same model as TalentMatch's Team page. The admin signs in to Microsoft here with their own
+// account (delegated Microsoft Graph, through the single-tenant, secret-free Entra app
+// "admindepum Entra admin"), and this panel adds or removes people on the Entra app behind
+// Cloudlingo's "Continue with Microsoft". Nothing secret is stored: what works is whatever the
+// admin's own Entra account may do. Accounts are created in the Entra admin center.
+const MS_ADMIN = {
+  clientId: '', // "admindepum Entra admin" app ID. Empty: the panel explains how to set it up.
+  tenant: 'd2209c2a-d8d5-496b-93f9-27507d8cb9dc', // pumbafluffycorgi.com
+  signInAppId: '846d6efb-db5f-4925-b2b1-1c3caf35d1ac', // "pumbafluffycorgi.com sign-in" (Firebase → Microsoft)
+  msalSrc: 'https://cdn.jsdelivr.net/npm/@azure/msal-browser@5.27.0/lib/msal-browser.min.js',
+};
+const MS_SCOPES = ['https://graph.microsoft.com/User.ReadBasic.All', 'https://graph.microsoft.com/AppRoleAssignment.ReadWrite.All', 'https://graph.microsoft.com/Application.Read.All'];
+const MS_SCOPES_SWITCH = ['https://graph.microsoft.com/Application.ReadWrite.All']; // only to turn "only listed testers" on or off
+const MS_DEFAULT_ACCESS = '00000000-0000-0000-0000-000000000000'; // the app has no roles of its own
+const MS_FLAG = 'admin_ms_connected';
+const GRAPH = 'https://graph.microsoft.com/v1.0';
+const TESTERS = { state: 'idle', error: '', sp: null, users: [], assigned: [], query: '', busy: '' };
+let msPca = null, msAccount = null;
+
+function msLoadLib(){
+  if (window.msal) return Promise.resolve();
+  return new Promise((res, rej) => { const el = document.createElement('script'); el.src = MS_ADMIN.msalSrc; el.onload = res; el.onerror = () => rej(new Error('Microsoft sign-in could not load. Check the connection and try again.')); document.head.appendChild(el); });
+}
+async function msInit(){
+  if (msPca) return;
+  await msLoadLib();
+  msPca = new window.msal.PublicClientApplication({
+    auth: { clientId: MS_ADMIN.clientId, authority: 'https://login.microsoftonline.com/' + MS_ADMIN.tenant, redirectUri: location.origin + location.pathname },
+    cache: { cacheLocation: 'sessionStorage' },
+  });
+  await msPca.initialize();
+  const back = await msPca.handleRedirectPromise(MS_RETURN_HASH ? { hash: MS_RETURN_HASH, navigateToLoginRequestUrl: false } : { navigateToLoginRequestUrl: false });
+  msAccount = (back && back.account) || msPca.getAllAccounts()[0] || null;
+  if (msAccount) { try { localStorage.setItem(MS_FLAG, '1'); } catch {} }
+}
+// A Graph token for these scopes; asks Microsoft again (full-page sign-in) only when it must.
+async function msToken(scopes){
+  try { return (await msPca.acquireTokenSilent({ scopes, account: msAccount })).accessToken; }
+  catch (e) {
+    if (e instanceof window.msal.InteractionRequiredAuthError) { await msPca.acquireTokenRedirect({ scopes, account: msAccount }); return new Promise(() => {}); }
+    throw e;
+  }
+}
+async function msGraph(pathAndQuery, init = {}, scopes = MS_SCOPES){
+  const token = await msToken(scopes);
+  const res = await fetch(pathAndQuery.startsWith('http') ? pathAndQuery : GRAPH + pathAndQuery, Object.assign({}, init, { headers: Object.assign({ Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, init.headers || {}) }));
+  if (res.status === 204) return null;
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    const msg = res.status === 403 ? 'Your Microsoft account isn’t allowed to do this. It needs to be an admin in Entra, or an owner of the "pumbafluffycorgi.com sign-in" app.' : ((body && body.error && body.error.message) || ('Microsoft Graph error ' + res.status));
+    throw new Error(msg);
+  }
+  return body;
+}
+async function msAll(first){
+  const out = []; let next = first;
+  while (next) { const page = await msGraph(next); out.push(...(page.value || [])); next = page['@odata.nextLink'] || null; }
+  return out;
+}
+async function testersLoad(){
+  TESTERS.state = 'loading'; TESTERS.error = ''; renderTesters();
+  try {
+    TESTERS.sp = await msGraph("/servicePrincipals(appId='" + MS_ADMIN.signInAppId + "')?$select=id,displayName,appRoleAssignmentRequired");
+    const [assigned, users] = await Promise.all([
+      msAll('/servicePrincipals/' + TESTERS.sp.id + '/appRoleAssignedTo?$top=999'),
+      msAll('/users?$select=id,displayName,userPrincipalName,mail&$top=999'),
+    ]);
+    TESTERS.assigned = assigned; TESTERS.users = users; TESTERS.state = 'ready';
+  } catch (e) { TESTERS.state = 'error'; TESTERS.error = e.message; }
+  renderTesters();
+}
+function testersRowHtml(name, sub, btn){ return '<div class="testers-row"><div class="who"><b>' + escAdm(name) + '</b><span>' + escAdm(sub) + '</span></div>' + btn + '</div>'; }
+function testersAddList(){
+  const on = new Set(TESTERS.assigned.map(a => a.principalId));
+  const q = TESTERS.query.trim().toLowerCase();
+  const list = TESTERS.users.filter(u => !on.has(u.id) && (!q || [u.displayName, u.userPrincipalName, u.mail].some(x => String(x || '').toLowerCase().includes(q))))
+    .sort((a, b) => String(a.displayName || '').localeCompare(String(b.displayName || '')));
+  return list.length ? list.map(u => testersRowHtml(u.displayName || u.userPrincipalName, u.userPrincipalName, '<button class="btn small" data-ms-add="' + escAdm(u.id) + '"' + (TESTERS.busy ? ' disabled' : '') + '>Add</button>')).join('')
+    : '<div class="cloud-empty">' + (q ? 'No one in your tenant matches.' : 'Everyone in your tenant is already on the list.') + '</div>';
+}
+function renderTesters(){
+  const el = document.getElementById('cloud-testers'); if (!el) return;
+  const who = document.getElementById('testers-who');
+  if (!MS_ADMIN.clientId) {
+    el.innerHTML = '<div class="cloud-empty">Not set up yet. This panel needs the admin-only Entra app "admindepum Entra admin" (single-tenant, no secret, redirect URI https://pumbafluffycorgi.com/admindepum.html). Once it exists, put its app ID in MS_ADMIN.clientId.</div>';
+    return;
+  }
+  if (!msAccount) {
+    if (who) who.textContent = 'Who can use "Continue with Microsoft"';
+    el.innerHTML = '<div class="cloud-empty">Sign in with your Microsoft admin account to see and change who can use Microsoft sign-in in Cloudlingo. Testers need an account in your tenant first (Entra admin center → Users → New user).</div>'
+      + '<div class="testers-foot" style="border-top:0"><span></span><button class="btn" data-ms-act="connect"' + (TESTERS.state === 'loading' ? ' disabled' : '') + '>Connect Microsoft</button></div>'
+      + (TESTERS.error ? '<div class="cloud-empty" style="color:#c45c1a">' + escAdm(TESTERS.error) + '</div>' : '');
+    return;
+  }
+  if (who) who.textContent = 'Signed in to Microsoft as ' + (msAccount.username || msAccount.name || 'admin');
+  if (TESTERS.state === 'loading' || TESTERS.state === 'idle') { el.innerHTML = '<div class="skeleton-row"></div><div class="skeleton-row"></div>'; return; }
+  if (TESTERS.state === 'error') {
+    el.innerHTML = '<div class="cloud-empty" style="color:#c45c1a">' + escAdm(TESTERS.error) + '</div><div class="testers-foot"><button class="btn ghost small" data-ms-act="disconnect">Disconnect Microsoft</button><button class="btn small" data-ms-act="reload">Try again</button></div>';
+    return;
+  }
+  const only = !!TESTERS.sp.appRoleAssignmentRequired;
+  const nameOf = id => { const u = TESTERS.users.find(x => x.id === id); return u ? (u.userPrincipalName || u.mail || '') : ''; };
+  const testers = TESTERS.assigned.slice().sort((a, b) => String(a.principalDisplayName || '').localeCompare(String(b.principalDisplayName || '')));
+  el.innerHTML = '<div class="testers-access"><span>' + (only
+      ? '<b>Only the people listed below</b> can use Microsoft sign-in.'
+      : '<b>Anyone in your tenant</b> can use Microsoft sign-in. Turn on "Only listed testers" to limit it to the list below.')
+    + '</span><button class="btn ' + (only ? 'ghost ' : '') + 'small" data-ms-act="toggle"' + (TESTERS.busy ? ' disabled' : '') + '>' + (only ? 'Allow everyone in the tenant' : 'Only listed testers') + '</button></div>'
+    + '<div class="testers-sub">Testers (' + testers.length + ')</div>'
+    + (testers.length ? testers.map(a => testersRowHtml(a.principalDisplayName || 'Unknown', (a.principalType === 'User' ? nameOf(a.principalId) : a.principalType) || '', '<button class="btn ghost small" data-ms-remove="' + escAdm(a.id) + '"' + (TESTERS.busy ? ' disabled' : '') + '>Remove</button>')).join('')
+      : '<div class="cloud-empty">No one yet. Add people from your tenant below.</div>')
+    + '<div class="testers-sub">Add from your tenant</div>'
+    + '<div style="padding:4px 14px 8px"><input id="testers-q" class="cloud-input" placeholder="Search by name or email…" value="' + escAdm(TESTERS.query) + '" autocomplete="off"></div>'
+    + '<div id="testers-add">' + testersAddList() + '</div>'
+    + '<div class="testers-foot"><span>New tester? Create the account first in the <a href="https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/AllUsers" target="_blank" rel="noopener">Entra admin center → Users</a>, then add it here.</span>'
+    + '<span><button class="btn ghost small" data-ms-act="reload">Refresh</button> <button class="btn ghost small" data-ms-act="disconnect">Disconnect</button></span></div>';
+}
+async function testersRun(label, fn){
+  TESTERS.busy = label; renderTesters();
+  try { await fn(); } catch (e) { showToast(e.message, 'error'); }
+  TESTERS.busy = ''; await testersLoad();
+}
+document.addEventListener('input', e => {
+  if (e.target && e.target.id === 'testers-q') { TESTERS.query = e.target.value; const l = document.getElementById('testers-add'); if (l) l.innerHTML = testersAddList(); }
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-ms-act],[data-ms-add],[data-ms-remove]'); if (!b) return;
+  if (b.dataset.msAct === 'connect') {
+    TESTERS.error = '';
+    try { localStorage.setItem('admin_tab', 'cloudlingo'); await msInit(); await msPca.loginRedirect({ scopes: MS_SCOPES, prompt: 'select_account' }); }
+    catch (err) { TESTERS.error = err.message; renderTesters(); }
+  } else if (b.dataset.msAct === 'disconnect') {
+    try { await msPca.clearCache(); } catch {}
+    msAccount = null; TESTERS.state = 'idle'; try { localStorage.removeItem(MS_FLAG); } catch {}
+    renderTesters();
+  } else if (b.dataset.msAct === 'reload') {
+    testersLoad();
+  } else if (b.dataset.msAct === 'toggle') {
+    const on = !TESTERS.sp.appRoleAssignmentRequired;
+    if (on && !TESTERS.assigned.length && !confirm('No one is on the list yet, so this will block every Microsoft sign-in in Cloudlingo. Continue?')) return;
+    testersRun('toggle', async () => {
+      await msGraph('/servicePrincipals/' + TESTERS.sp.id, { method: 'PATCH', body: JSON.stringify({ appRoleAssignmentRequired: on }) }, MS_SCOPES_SWITCH);
+      showToast(on ? 'Only listed testers can use Microsoft sign-in now.' : 'Anyone in your tenant can use Microsoft sign-in now.', 'success');
+    });
+  } else if (b.dataset.msAdd) {
+    const id = b.dataset.msAdd;
+    testersRun('add', async () => {
+      await msGraph('/servicePrincipals/' + TESTERS.sp.id + '/appRoleAssignedTo', { method: 'POST', body: JSON.stringify({ principalId: id, resourceId: TESTERS.sp.id, appRoleId: MS_DEFAULT_ACCESS }) });
+      showToast('Added. They can now use "Continue with Microsoft".', 'success');
+    });
+  } else if (b.dataset.msRemove) {
+    const id = b.dataset.msRemove;
+    if (!confirm('Remove this tester? They won’t be able to use Microsoft sign-in in Cloudlingo any more (when "Only listed testers" is on).')) return;
+    testersRun('remove', async () => {
+      await msGraph('/servicePrincipals/' + TESTERS.sp.id + '/appRoleAssignedTo/' + id, { method: 'DELETE' });
+      showToast('Removed.', 'success');
+    });
+  }
+});
+// On page load: back from Microsoft sign-in, or connected earlier this browser session.
+(async () => {
+  renderTesters();
+  if (!MS_ADMIN.clientId) return;
+  let wasConnected = false; try { wasConnected = localStorage.getItem(MS_FLAG) === '1'; } catch {}
+  if (!MS_RETURN_HASH && !wasConnected) return;
+  try { await msInit(); if (msAccount) await testersLoad(); else renderTesters(); }
+  catch (e) { TESTERS.error = e.message; renderTesters(); }
+})();
 
 // ---- Cloudlingo: problem reports + most-missed questions ----
 const CLOUD_EDITS = new Map(); // qid -> edit doc
