@@ -419,6 +419,8 @@ html.light body{
 .inv-form .inv-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .inv-form .inv-hint{font-size:12px;color:var(--faint)}
 .inv-form .inv-hint a{color:inherit}
+.inv-legend{padding:10px 14px;font-size:12px;line-height:1.5;color:var(--faint);border-top:1px solid rgba(127,127,127,.15)}
+.inv-legend b{font-weight:600;color:inherit}
 .inv-form .linkbtn{background:none;border:0;padding:0;color:inherit;font:inherit;text-decoration:underline;cursor:pointer}
 @media (max-width:640px){.inv-form{grid-template-columns:1fr}}
 .cloud-input,.cloud-ed textarea,.cloud-ed select{width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:9px 11px;border-radius:9px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit}
@@ -2170,13 +2172,13 @@ function renderInvites(){
     + '</form>'
     + (INV.msg ? '<div class="cloud-empty" style="padding-top:0;color:' + (INV.msgType === 'error' ? '#c45c1a' : '#1f8f59') + '">' + escAdm(INV.msg) + '</div>' : '')
     + (INV.loading && !INV.loaded ? '<div class="skeleton-row"></div>'
-      : INV.list.length ? INV.list.map(v => '<div class="cloud-item"><div class="meta"><b>' + escAdm(v.name) + '</b><span>' + escAdm(v.username) + '</span><span>sent to ' + escAdm(v.email) + '</span>'
+      : INV.list.length ? '<div class="inv-legend"><b>Resend</b> emails the invitation again. <b>Revoke access</b> disables their Microsoft account and signs them out of Cloudlingo (Restore undoes it). <b>Remove from list</b> deletes this record only and doesn’t change access.</div>' + INV.list.map(v => '<div class="cloud-item"><div class="meta"><b>' + escAdm(v.name) + '</b><span>' + escAdm(v.username) + '</span><span>sent to ' + escAdm(v.email) + '</span>'
           + '<span>' + (v.sends > 1 ? 'sent ' + v.sends + ' times, last ' : 'sent ') + when(v.lastSentAt) + (v.sentBy ? ' by ' + escAdm(v.sentBy) : '') + '</span>'
           + (v.revokedAt ? '<span class="cloud-pill">Access revoked ' + when(v.revokedAt) + '</span>' : '') + '</div>'
           + '<div class="acts">' + (v.revokedAt
-            ? '<button class="btn ghost small" data-inv-restore="' + escAdm(v.id) + '"' + (INV.busy ? ' disabled' : '') + '>Restore access</button>'
-            : '<button class="btn ghost small" data-inv-resend="' + escAdm(v.id) + '"' + (INV.busy ? ' disabled' : '') + '>Resend</button><button class="btn ghost small" data-inv-revoke="' + escAdm(v.id) + '"' + (INV.busy ? ' disabled' : '') + '>Revoke access</button>')
-          + '<button class="btn ghost small" data-inv-del="' + escAdm(v.id) + '"' + (INV.busy ? ' disabled' : '') + '>Remove from list</button></div></div>').join('')
+            ? '<button class="btn ghost small" data-inv-restore="' + escAdm(v.id) + '" title="Turn their Microsoft account back on so they can sign in again."' + (INV.busy ? ' disabled' : '') + '>Restore access</button>'
+            : '<button class="btn ghost small" data-inv-resend="' + escAdm(v.id) + '" title="Email the same invitation again. Access doesn’t change."' + (INV.busy ? ' disabled' : '') + '>Resend</button><button class="btn ghost small" data-inv-revoke="' + escAdm(v.id) + '" title="Disable their Microsoft account, end their Microsoft sessions, and sign them out of Cloudlingo. You can restore it later."' + (INV.busy ? ' disabled' : '') + '>Revoke access</button>')
+          + '<button class="btn ghost small" data-inv-del="' + escAdm(v.id) + '" title="Delete this invitation record only. It doesn’t change their access; use Revoke access for that."' + (INV.busy ? ' disabled' : '') + '>Remove from list</button></div></div>').join('')
       : '<div class="cloud-empty">No invitations sent yet.</div>');
 }
 async function invitesSend(name, email, username){
