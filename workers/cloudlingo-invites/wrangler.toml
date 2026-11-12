@@ -1,0 +1,7 @@
+name = "cloudlingo-invites"
+main = "worker.js"
+compatibility_date = "2026-06-05"
+
+# ACS_KEY is NOT set here. It's the access key of the Azure Communication Services
+# resource "talentmatch-comms", stored as an encrypted secret:
+#   npx wrangler secret put ACS_KEY
