@@ -295,10 +295,11 @@ service cloud.firestore {
                    && (request.resource.data.uid == null || (request.auth != null && request.resource.data.uid == request.auth.uid));
     }
 
-    // ── Cloudlingo — daily reminder settings + push subscriptions ──────────────
-    // Written by the learner; read by the hourly sender (Admin SDK, bypasses rules).
-    // Cloudlingo usage funnel: one anonymous record per device (random id) with the
-    // first steps reached. Anyone may write their own; only admins read.
+    // Cloudlingo beta tester invitations (admindepum): who was invited and when.
+    // Admins only; the email itself is sent by the cloudlingo-invites worker.
+    match /cloudlingoInvites/{id} {
+      allow read, write: if isAdmin();
+    }
     // Cloudlingo answer counts per question: right (r) and wrong (w) first-try answers.
     // Anyone may add exactly one answer at a time; only admins read or reset.
     match /cloudlingoQStats/{qid} {
@@ -315,6 +316,8 @@ service cloud.firestore {
                    && ((request.resource.data.r == resource.data.r + 1 && request.resource.data.w == resource.data.w)
                     || (request.resource.data.w == resource.data.w + 1 && request.resource.data.r == resource.data.r));
     }
+    // Cloudlingo usage funnel: one anonymous record per device (random id) with the
+    // first steps reached. Anyone may write their own; only admins read.
     match /cloudlingoFunnel/{dev} {
       allow read, delete: if isAdmin();
       allow create, update: if dev.matches('^[a-z0-9]{20}$')
@@ -343,6 +346,9 @@ service cloud.firestore {
                    && (request.resource.data.uid == null || (signedIn() && request.resource.data.uid == request.auth.uid))
                    && request.resource.data.ts == request.time;
     }
+
+    // ── Cloudlingo — daily reminder settings + push subscriptions ──────────────
+    // Written by the learner; read by the hourly sender (Admin SDK, bypasses rules).
     match /cloudlingoPush/{uid} {
       allow read:  if isUser(uid) || isAdmin();
       allow delete: if isUser(uid);

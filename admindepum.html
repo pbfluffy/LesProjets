@@ -412,6 +412,14 @@ html.light body{
 .cloud-bar{height:6px;border-radius:3px;background:rgba(127,127,127,.15);overflow:hidden;margin-top:6px}
 .cloud-bar > i{display:block;height:100%;background:#ec4c56}
 .cloud-empty{padding:18px;color:var(--faint);font-size:13px}
+.inv-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px}
+.inv-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--faint)}
+.inv-form .inv-user{display:flex;align-items:center;gap:6px}
+.inv-form .inv-user span{font-size:13px;color:var(--faint);white-space:nowrap}
+.inv-form .inv-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.inv-form .inv-hint{font-size:12px;color:var(--faint)}
+.inv-form .inv-hint a{color:inherit}
+@media (max-width:640px){.inv-form{grid-template-columns:1fr}}
 .cloud-input,.cloud-ed textarea,.cloud-ed select{width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:9px 11px;border-radius:9px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit}
 .cloud-ed{max-width:720px}.cloud-ed-body{padding:4px 18px 18px;display:grid;gap:12px;max-height:72vh;overflow:auto}
 .cloud-ed label{display:grid;gap:5px;font-size:12px;font-weight:700;color:var(--faint)}.cloud-ed textarea{min-height:64px;resize:vertical;font-family:inherit}
@@ -808,6 +816,10 @@ html.light body{
         <div class="cloud-head"><h3>Most-missed questions</h3><span class="cloud-filter" id="cloud-missed-src"></span>
           <label class="cloud-filter">Min. answers <select id="cloud-min"><option>3</option><option selected>5</option><option>10</option><option>20</option></select></label></div>
         <div class="panel" id="cloud-missed"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
+      </div>
+      <div>
+        <div class="cloud-head"><h3>Beta testers</h3><span class="cloud-filter">Email an invitation to try "Continue with Microsoft"</span></div>
+        <div class="panel" id="cloud-invites"><div class="skeleton-row"></div></div>
       </div>
     </div>
   </div>
@@ -2018,6 +2030,97 @@ function renderBackyardTab(){
   if(!BACKYARD.loaded && !BACKYARD.loading) loadBackyardData();
 }
 
+// ---- Cloudlingo: beta tester invitations ----
+// Like TalentMatch's invitations: the admin creates the tester's Microsoft account in the
+// Entra admin center (name@pumbafluffycorgi.com), then sends the invitation from here.
+// The cloudlingo-invites worker checks this admin's Firebase token and emails it through
+// Azure Communication Services. The email never contains a password. Who was invited and
+// when is kept in Firestore cloudlingoInvites (admins only).
+const INVITES_URL = 'https://cloudlingo-invites.pbfluffygaming.workers.dev/invite';
+const INV_DOMAIN = '@pumbafluffycorgi.com';
+const INV = { loaded: false, loading: false, list: [], busy: false, msg: '', msgType: '' };
+async function invitesLoad(){
+  if (INV.loading) return;
+  INV.loading = true;
+  try {
+    const snap = await getDocs(collection(db, 'cloudlingoInvites'));
+    INV.list = snap.docs.map(d => Object.assign({ id: d.id }, d.data()))
+      .sort((a, b) => (b.lastSentAt?.toMillis?.() || 0) - (a.lastSentAt?.toMillis?.() || 0));
+    INV.loaded = true;
+  } catch (e) { INV.msg = 'Could not load the invitation list: ' + e.message; INV.msgType = 'error'; }
+  INV.loading = false;
+  renderInvites();
+}
+function renderInvites(){
+  const el = document.getElementById('cloud-invites'); if (!el) return;
+  if (!INV.loaded && !INV.loading) { invitesLoad(); }
+  const f = el.querySelector('.inv-form');
+  const keep = f ? { name: f.querySelector('[name=name]').value, email: f.querySelector('[name=email]').value, user: f.querySelector('[name=user]').value } : { name: '', email: '', user: '' };
+  const when = ts => { const d = ts?.toDate?.(); return d ? d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '–'; };
+  el.innerHTML = '<form class="inv-form" autocomplete="off">'
+    + '<label>Name<input class="cloud-input" name="name" maxlength="80" required value="' + escAdm(keep.name) + '"></label>'
+    + '<label>Email to send the invitation to<input class="cloud-input" name="email" type="email" maxlength="200" required value="' + escAdm(keep.email) + '"></label>'
+    + '<label style="grid-column:1/-1">Their Microsoft account (created in Entra)<span class="inv-user"><input class="cloud-input" name="user" maxlength="60" required placeholder="somchai" value="' + escAdm(keep.user) + '"><span>' + INV_DOMAIN + '</span></span></label>'
+    + '<div class="inv-actions"><span class="inv-hint">Create the account first in the <a href="https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/AllUsers" target="_blank" rel="noopener">Entra admin center → Users</a>. Give the temporary password separately; it is never emailed.</span>'
+    + '<button class="btn" type="submit"' + (INV.busy ? ' disabled' : '') + '>' + (INV.busy ? 'Sending…' : 'Send invitation') + '</button></div>'
+    + '</form>'
+    + (INV.msg ? '<div class="cloud-empty" style="padding-top:0;color:' + (INV.msgType === 'error' ? '#c45c1a' : '#1f8f59') + '">' + escAdm(INV.msg) + '</div>' : '')
+    + (INV.loading && !INV.loaded ? '<div class="skeleton-row"></div>'
+      : INV.list.length ? INV.list.map(v => '<div class="cloud-item"><div class="meta"><b>' + escAdm(v.name) + '</b><span>' + escAdm(v.username) + '</span><span>sent to ' + escAdm(v.email) + '</span>'
+          + '<span>' + (v.sends > 1 ? 'sent ' + v.sends + ' times, last ' : 'sent ') + when(v.lastSentAt) + (v.sentBy ? ' by ' + escAdm(v.sentBy) : '') + '</span></div>'
+          + '<div class="acts"><button class="btn ghost small" data-inv-resend="' + escAdm(v.id) + '"' + (INV.busy ? ' disabled' : '') + '>Resend</button><button class="btn ghost small" data-inv-del="' + escAdm(v.id) + '"' + (INV.busy ? ' disabled' : '') + '>Remove from list</button></div></div>').join('')
+      : '<div class="cloud-empty">No invitations sent yet.</div>');
+}
+async function invitesSend(name, email, username){
+  INV.busy = true; INV.msg = ''; renderInvites();
+  try {
+    const token = await auth.currentUser.getIdToken();
+    let res;
+    try { res = await fetch(INVITES_URL, { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, username }) }); }
+    catch { throw new Error('The invitation service isn’t reachable. It may not be deployed yet.'); }
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok || !out.ok) {
+      const why = { unauthorized: 'Only admins can send invitations.', bad_input: 'Check the name, email and Microsoft account.' }[out.error]
+        || ('The email couldn’t be sent' + (out.detail ? ': ' + out.detail : '.'));
+      throw new Error(why);
+    }
+    const prev = INV.list.find(v => v.id === username);
+    await setDoc(doc(db, 'cloudlingoInvites', username), {
+      name, email, username, sends: (prev?.sends || 0) + 1,
+      firstSentAt: prev?.firstSentAt || serverTimestamp(), lastSentAt: serverTimestamp(),
+      sentBy: auth.currentUser.displayName || auth.currentUser.email || '',
+    });
+    INV.msg = 'Invitation sent to ' + email + '.'; INV.msgType = 'ok';
+    const f = document.querySelector('#cloud-invites .inv-form'); if (f && !prev) f.querySelectorAll('input').forEach(i => { i.value = ''; });
+    INV.busy = false; INV.loaded = false; await invitesLoad();
+    return true;
+  } catch (e) {
+    INV.busy = false; INV.msg = e.message; INV.msgType = 'error'; renderInvites();
+    return false;
+  }
+}
+document.addEventListener('submit', e => {
+  const f = e.target.closest('#cloud-invites .inv-form'); if (!f) return;
+  e.preventDefault();
+  const name = f.querySelector('[name=name]').value.trim();
+  const email = f.querySelector('[name=email]').value.trim().toLowerCase();
+  const local = f.querySelector('[name=user]').value.trim().toLowerCase().replace(/@.*$/, '');
+  if (!name || !email || !/^[a-z0-9._-]+$/.test(local)) { INV.msg = 'Fill in the name, the email, and the Microsoft account name (letters, numbers, dots, dashes).'; INV.msgType = 'error'; renderInvites(); return; }
+  invitesSend(name, email, local + INV_DOMAIN);
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-inv-resend],[data-inv-del]'); if (!b) return;
+  const v = INV.list.find(x => x.id === (b.dataset.invResend || b.dataset.invDel)); if (!v) return;
+  if (b.dataset.invResend) {
+    if (!confirm('Send the invitation to ' + v.email + ' again?')) return;
+    invitesSend(v.name, v.email, v.username);
+  } else {
+    if (!confirm('Remove ' + v.name + ' from this list? This doesn’t delete their Microsoft account; do that in Entra.')) return;
+    try { await deleteDoc(doc(db, 'cloudlingoInvites', v.id)); INV.list = INV.list.filter(x => x.id !== v.id); renderInvites(); }
+    catch (err) { showToast('Could not remove it: ' + err.message, 'error'); }
+  }
+});
+
 // ---- Cloudlingo: problem reports + most-missed questions ----
 const CLOUD_EDITS = new Map(); // qid -> edit doc
 const CLOUD = { loaded: false, loading: false, reports: [], learners: 0, perQ: new Map(), qstats: new Map(), people: [], board: [], week: '', remindOn: 0, funnel: [], errors: [] };
@@ -2205,6 +2308,7 @@ async function renderCloudlingoTab(){
       <div class="q">${esc(q.q)}</div><div class="cloud-bar"><i style="width:${pct}%"></i></div>
       <div class="acts" style="margin-top:8px"><button class="btn ghost small" data-cloud-edit="${esc(qid)}">Edit question</button>${CLOUD_EDITS.has(qid) ? '<span class="cloud-pill done">Edited</span>' : ''}</div></div>`;
   }).join('') : `<div class="cloud-empty">No question has ${min}+ answers yet.</div>`;
+  renderInvites();
 }
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-cloud-resolve],[data-cloud-reopen],[data-cloud-delete]');
