@@ -268,7 +268,8 @@ service cloud.firestore {
     // "which progress should we keep?" prompt.
     match /userCloudlingo/{uid} {
       allow read:  if isUser(uid) || isAdmin();
-      allow write: if isUser(uid)
+      allow delete: if isAdmin(); // admindepum: remove a learner's Cloudlingo progress
+      allow write: if isUser(uid) && !exists(/databases/$(database)/documents/cloudlingoBlocked/$(request.auth.uid))
                    && request.resource.data.keys().hasOnly(['state', 'updatedAt', 'xp', 'lessons'])
                    && request.resource.data.state is string
                    && request.resource.data.state.size() <= 500000
@@ -302,6 +303,13 @@ service cloud.firestore {
     }
     // Revoked beta testers, keyed by their Microsoft account (lowercase). Admins manage it;
     // a signed-in tester may read only their own entry, so Cloudlingo can sign them out.
+    // Learners whose Cloudlingo access was revoked in admindepum (any sign-in method), by uid.
+    // Only Cloudlingo is affected: the same account still works in the site's other apps.
+    // Blocked learners can't sync progress, set reminders or post scores (rules above).
+    match /cloudlingoBlocked/{uid} {
+      allow read, write: if isAdmin();
+      allow get: if isUser(uid);
+    }
     match /cloudlingoRevoked/{account} {
       allow read, write: if isAdmin();
       allow get: if signedIn() && ('email' in request.auth.token) && request.auth.token.email is string
@@ -358,8 +366,8 @@ service cloud.firestore {
     // Written by the learner; read by the hourly sender (Admin SDK, bypasses rules).
     match /cloudlingoPush/{uid} {
       allow read:  if isUser(uid) || isAdmin();
-      allow delete: if isUser(uid);
-      allow create, update: if isUser(uid)
+      allow delete: if isUser(uid) || isAdmin();
+      allow create, update: if isUser(uid) && !exists(/databases/$(database)/documents/cloudlingoBlocked/$(request.auth.uid))
                    && request.resource.data.keys().hasOnly(['on', 'hour', 'tz', 'lang', 'subs', 'updatedAt', 'lastSent'])
                    && request.resource.data.on is bool
                    && request.resource.data.hour is int && request.resource.data.hour >= 0 && request.resource.data.hour <= 23
@@ -390,8 +398,8 @@ service cloud.firestore {
     // can read the board; each learner writes only their own first name + XP.
     match /cloudlingoWeeks/{week}/scores/{uid} {
       allow read:   if signedIn();
-      allow delete: if isUser(uid) || isOwner();
-      allow create, update: if isUser(uid)
+      allow delete: if isUser(uid) || isAdmin();
+      allow create, update: if isUser(uid) && !exists(/databases/$(database)/documents/cloudlingoBlocked/$(request.auth.uid))
                    && week.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
                    && request.resource.data.keys().hasOnly(['name', 'xp', 'updatedAt'])
                    && request.resource.data.name is string
