@@ -317,12 +317,17 @@
   // Firebase Authentication → Microsoft, backed by the Entra app "pumbafluffycorgi.com sign-in".
   // Its client secret expires: renew it in Azure and update it in Firebase, or this button stops working.
   const MICROSOFT_ON = true;
+  // Microsoft sign-in is for a small group of invited testers: guests invited into our
+  // Entra tenant (Azure portal → Entra ID → Users → Invite external user). The public uses
+  // Google or LINE. With MS_TENANT set, Microsoft only accepts users in that tenant, and
+  // the Entra app must be single-tenant. Leave it empty to accept any Microsoft account.
+  const MS_TENANT = 'd2209c2a-d8d5-496b-93f9-27507d8cb9dc'; // "Default Directory" (pumbafluffycorgi.com)
   function signInSheet() {
     modal(`${mascot(80, 'idea')}<h2>${t('signin_sheet')}</h2><p>${t('signin_pitch')}</p>
       <div class="stack">
         <button class="btn prov google" data-act="signinwith" data-p="google"><span class="pico">G</span>${t('continue_google')}</button>
         <button class="btn prov line" data-act="signinwith" data-p="line"><span class="pico">LINE</span>${t('continue_line')}</button>
-        ${MICROSOFT_ON ? `<button class="btn prov ms" data-act="signinwith" data-p="microsoft"><span class="pico"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect width="9" height="9" fill="#f25022"/><rect x="11" width="9" height="9" fill="#7fba00"/><rect y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg></span>${t('continue_microsoft')}</button>` : ''}
+        ${MICROSOFT_ON ? `<button class="btn prov ms" data-act="signinwith" data-p="microsoft"><span class="pico"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect width="9" height="9" fill="#f25022"/><rect x="11" width="9" height="9" fill="#7fba00"/><rect y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg></span>${t(MS_TENANT ? 'continue_microsoft_invited' : 'continue_microsoft')}</button>` : ''}
       </div>`);
   }
 
@@ -356,7 +361,7 @@
     let provider;
     if (which === 'microsoft') {
       provider = new fb.au.OAuthProvider('microsoft.com');
-      provider.setCustomParameters({ prompt: 'select_account' });
+      provider.setCustomParameters(Object.assign({ prompt: 'select_account' }, MS_TENANT ? { tenant: MS_TENANT } : {}));
       provider.addScope('User.Read'); // lets us read the account's profile photo once, right after sign-in
     } else provider = new fb.au.GoogleAuthProvider();
     closeModal();
@@ -365,6 +370,8 @@
       if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-environment') fb.au.signInWithRedirect(fb.auth, provider);
       else if (code === 'auth/account-exists-with-different-credential') infoModal(t('signin_failed'), t('account_exists'));
       else if (code === 'auth/operation-not-allowed') infoModal(t('signin_failed'), t('provider_off'));
+      // A Microsoft account outside the testers' tenant is refused by Microsoft: point to Google or LINE.
+      else if (which === 'microsoft' && MS_TENANT && code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') infoModal(t('signin_failed'), t('ms_invited_only'));
       else if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') infoModal(t('signin_failed'), t('signin_failed_sub'));
     });
   }
