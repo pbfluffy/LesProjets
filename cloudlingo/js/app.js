@@ -357,8 +357,15 @@
 
   // Beta testers whose access was revoked in admindepum (Firestore cloudlingoRevoked/{account}).
   // Signs a Microsoft-signed-in tester out here, even though their Firebase session is still alive.
+  // Learners whose Cloudlingo access was revoked in admindepum (cloudlingoBlocked/{uid}, any
+  // sign-in method) are signed out too; the same account keeps working in the site's other apps.
   async function checkRevoked(user) {
-    if (!user || !user.email || !(user.providerData || []).some(p => p.providerId === 'microsoft.com')) return;
+    if (!user) return;
+    try {
+      const blocked = await fb.fs.getDoc(fb.fs.doc(fb.db, 'cloudlingoBlocked', user.uid));
+      if (blocked.exists()) { await fb.au.signOut(fb.auth); infoModal(t('blocked_t'), t('blocked_b')); return; }
+    } catch { /* can't check right now: try again next time the app opens */ }
+    if (!user.email || !(user.providerData || []).some(p => p.providerId === 'microsoft.com')) return;
     try {
       const snap = await fb.fs.getDoc(fb.fs.doc(fb.db, 'cloudlingoRevoked', user.email.toLowerCase()));
       if (!snap.exists()) return;

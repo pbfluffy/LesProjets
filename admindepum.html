@@ -429,14 +429,14 @@ html.light body{
 .cloud-ed .hint{font-weight:400;font-size:11px}.cloud-ed .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .cloud-ed .err{color:#ec4c56;font-size:12px;font-weight:700}.cloud-find-row{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid rgba(127,127,127,.15)}.cloud-find-row:first-child{border-top:0}
 .cloud-find-row .q{flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cloud-row{display:grid;grid-template-columns:minmax(160px,1.6fr) .6fr .6fr .6fr .6fr .7fr .7fr .9fr;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid rgba(127,127,127,.15);font-size:13px}
+.cloud-row{display:grid;grid-template-columns:minmax(160px,1.6fr) .6fr .6fr .6fr .6fr .7fr .7fr .9fr 92px;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid rgba(127,127,127,.15);font-size:13px}
 .cloud-row.head{border-top:0;font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
 .cloud-who{min-width:0;display:flex;flex-direction:column;gap:2px;line-height:1.25;overflow:hidden}
 .cloud-who b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cloud-who span{font-size:11.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cloud-board-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid rgba(127,127,127,.15)}.cloud-board-row:first-child{border-top:0}
 .cloud-board-row .rk{width:24px;text-align:center;font-weight:800;color:var(--faint)}.cloud-board-row .nm{flex:1;font-weight:600}.cloud-board-row .xp{font-weight:800}
-@media (max-width:760px){.cloud-row{grid-template-columns:minmax(120px,1.4fr) .6fr .6fr .8fr}.cloud-row > div:nth-child(5),.cloud-row > div:nth-child(6),.cloud-row > div:nth-child(7),.cloud-row > div:nth-child(8){display:none}}
+@media (max-width:760px){.cloud-row{grid-template-columns:minmax(120px,1.4fr) .6fr .6fr .8fr 84px}.cloud-row > div:nth-child(5),.cloud-row > div:nth-child(6),.cloud-row > div:nth-child(7),.cloud-row > div:nth-child(8){display:none}}
 /* ---- backyard ---- */
 .backyard-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
 .backyard-board h3{font-size:14px;margin:0 0 10px;color:var(--text)}
@@ -793,7 +793,7 @@ html.light body{
         <div class="cloud-head"><h3>Learners</h3>
           <span class="cloud-filter"><button class="btn ghost small" data-cloud-csv="learners">Download CSV</button>
           <label class="cloud-filter">Sort <select id="cloud-sort"><option value="recent" selected>Last active</option><option value="xp">XP</option><option value="streak">Streak</option></select></label></span></div>
-        <div class="panel"><div class="cloud-row head"><div>Learner</div><div>Cert</div><div>XP</div><div>Streak</div><div>Sessions</div><div>Exams</div><div>Reminder</div><div>Last active</div></div>
+        <div class="panel"><div class="cloud-row head"><div>Learner</div><div>Cert</div><div>XP</div><div>Streak</div><div>Sessions</div><div>Exams</div><div>Reminder</div><div>Last active</div><div></div></div>
           <div id="cloud-learners"><div class="skeleton-row"></div><div class="skeleton-row"></div></div></div>
       </div>
       <div>
@@ -2281,6 +2281,43 @@ document.addEventListener('click', e => {
   }
 });
 
+// ---- Cloudlingo: revoke a learner's access (any sign-in method) ----
+// Writes cloudlingoBlocked/{uid}: Cloudlingo signs them out, and the rules stop them syncing
+// progress, setting reminders or posting scores. Their account still works in the site's
+// other apps (Firebase accounts are shared). Optionally deletes their Cloudlingo progress.
+// Their reminder settings and this week's score are always removed (the reminder sender
+// bypasses rules). For invited Microsoft testers, Beta testers → Revoke also disables Entra.
+function learnerActs(p, prof){
+  if (p.uid === ADMIN_UID || p.uid === auth.currentUser?.uid) return '<span class="cloud-filter" title="Your own account">You</span>';
+  const name = escAdm(prof.name || prof.email || p.uid.slice(0, 10));
+  return CLOUD.blocked && CLOUD.blocked.has(p.uid)
+    ? '<button class="btn ghost small" data-learner-restore="' + escAdm(p.uid) + '" data-name="' + name + '" title="Let them use Cloudlingo with this account again">Restore</button>'
+    : '<button class="btn ghost small" data-learner-revoke="' + escAdm(p.uid) + '" data-name="' + name + '" title="Sign them out of Cloudlingo and stop this account using it. Their other apps aren’t affected.">Revoke</button>';
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-learner-revoke],[data-learner-restore]'); if (!b) return;
+  const uid = b.dataset.learnerRevoke || b.dataset.learnerRestore, name = b.dataset.name;
+  const by = auth.currentUser.displayName || auth.currentUser.email || '';
+  try {
+    if (b.dataset.learnerRevoke) {
+      if (!confirm('Revoke ' + name + '’s Cloudlingo access?\n\nThey’ll be signed out of Cloudlingo and this account can’t sync progress, reminders or leaderboard scores any more. Their account in your other apps isn’t affected. You can restore it later.')) return;
+      const wipe = confirm('Also delete ' + name + '’s saved Cloudlingo progress (XP, streak, lessons)?\n\nOK = delete it.  Cancel = keep it (restoring access brings it back).');
+      b.disabled = true;
+      await setDoc(doc(db, 'cloudlingoBlocked', uid), { at: serverTimestamp(), by, name });
+      await deleteDoc(doc(db, 'cloudlingoPush', uid)).catch(() => {});
+      await deleteDoc(doc(db, 'cloudlingoWeeks', CLOUD.week, 'scores', uid)).catch(() => {});
+      if (wipe) await deleteDoc(doc(db, 'userCloudlingo', uid));
+      showToast(name + '’s Cloudlingo access is revoked' + (wipe ? ' and their progress deleted.' : '.'), 'success');
+    } else {
+      if (!confirm('Restore ' + name + '’s Cloudlingo access?')) return;
+      b.disabled = true;
+      await deleteDoc(doc(db, 'cloudlingoBlocked', uid));
+      showToast(name + ' can use Cloudlingo again.', 'success');
+    }
+  } catch (err) { showToast('That didn’t work: ' + err.message, 'error'); }
+  CLOUD.loaded = false; loadCloudlingoData();
+});
+
 // ---- Cloudlingo: problem reports + most-missed questions ----
 const CLOUD_EDITS = new Map(); // qid -> edit doc
 const CLOUD = { loaded: false, loading: false, reports: [], learners: 0, perQ: new Map(), qstats: new Map(), people: [], board: [], week: '', remindOn: 0, funnel: [], errors: [] };
@@ -2318,15 +2355,20 @@ async function loadCloudlingoData(){
     CLOUD.week = cloudWeekId();
     const edits = await getDocs(collection(db, 'cloudlingoEdits')).catch(() => null);
     CLOUD_EDITS.clear(); (edits ? edits.docs : []).forEach(d => CLOUD_EDITS.set(d.id, d.data()));
-    const [reps, progress, board, pushes, funnel, errs, qstats] = await Promise.all([
+    const [reps, progress, board, pushes, funnel, errs, qstats, blocked, profiles] = await Promise.all([
       getDocs(collection(db, 'cloudlingoReports')).catch(() => null),
       getDocs(collection(db, 'userCloudlingo')).catch(() => null),
       getDocs(collection(db, 'cloudlingoWeeks', CLOUD.week, 'scores')).catch(() => null),
       getDocs(collection(db, 'cloudlingoPush')).catch(() => null),
       getDocs(collection(db, 'cloudlingoFunnel')).catch(() => null),
       getDocs(collection(db, 'cloudlingoErrors')).catch(() => null),
-      getDocs(collection(db, 'cloudlingoQStats')).catch(() => null)
+      getDocs(collection(db, 'cloudlingoQStats')).catch(() => null),
+      getDocs(collection(db, 'cloudlingoBlocked')).catch(() => null),
+      // Names for the Learners table even when the Overview tab hasn't loaded them yet.
+      PROFILE_MAP.size ? null : getDocs(collection(db, 'userProfiles')).catch(() => null)
     ]);
+    CLOUD.blocked = new Map((blocked ? blocked.docs : []).map(d => [d.id, d.data()]));
+    if (profiles) profiles.docs.forEach(d => { if (!PROFILE_MAP.has(d.id)) PROFILE_MAP.set(d.id, d.data()); });
     // First-try answers per question from every learner, signed in or not (r = right, w = wrong).
     CLOUD.qstats = new Map((qstats ? qstats.docs : []).map(d => { const x = d.data(); return [d.id, { seen: (x.r || 0) + (x.w || 0), correct: x.r || 0 }]; }));
     CLOUD.funnel = funnel ? funnel.docs.map(d => Object.assign({ id: d.id }, d.data())) : [];
@@ -2415,14 +2457,19 @@ async function renderCloudlingoTab(){
   // Learners
   const sortBy = document.getElementById('cloud-sort')?.value || 'recent';
   const key = { recent: p => p.updated, xp: p => p.xp, streak: p => p.streak }[sortBy];
-  const ppl = people.slice().sort((a, b) => key(b) - key(a));
+  // Revoked learners stay listed (with Restore) even after their progress was deleted.
+  const listed = new Set(people.map(p => p.uid));
+  const blockedOnly = cert ? [] : [...(CLOUD.blocked || new Map()).entries()].filter(([uid]) => !listed.has(uid))
+    .map(([uid, b]) => ({ uid, cert: '', xp: 0, streak: 0, lessons: 0, exams: 0, passed: 0, reminder: null, updated: b.at?.toMillis?.() || 0 }));
+  const ppl = people.concat(blockedOnly).sort((a, b) => key(b) - key(a));
   const hourLabel = h => new Date(2000, 0, 1, h).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   document.getElementById('cloud-learners').innerHTML = ppl.length ? ppl.map(p => {
     const prof = PROFILE_MAP.get(p.uid) || {};
     const acct = prof.email || p.uid;
     return `<div class="cloud-row"><div class="cloud-who" title="${esc(acct)}"><b>${esc(prof.name || prof.email || p.uid.slice(0, 10))}</b><span>${esc(acct)}</span></div>
       <div class="cloud-cert">${esc(cloudCertName(p.cert))}${cloudCourse(p.cert) ? `<small>${esc(cloudCourse(p.cert).code)}</small>` : ''}</div><div><b>${p.xp.toLocaleString('en')}</b></div><div>${p.streak ? p.streak + (p.streak === 1 ? ' day' : ' days') : '–'}</div>
-      <div>${p.lessons}</div><div>${p.passed}/${p.exams}</div><div>${p.reminder != null ? hourLabel(p.reminder) : '–'}</div><div class="sync">${eventTimeLabel(p.updated)}</div></div>`;
+      <div>${p.lessons}</div><div>${p.passed}/${p.exams}</div><div>${p.reminder != null ? hourLabel(p.reminder) : '–'}</div><div class="sync">${eventTimeLabel(p.updated)}</div>
+      <div class="cloud-acts">${learnerActs(p, prof)}</div></div>`;
   }).join('') : `<div class="cloud-empty">No learners${cert ? ' studying ' + esc(cloudCertName(cert)) : ''} with saved progress yet.</div>`;
   // This week's leaderboard
   const wk = document.getElementById('cloud-week'); if (wk) wk.textContent = 'Week of ' + CLOUD.week;
