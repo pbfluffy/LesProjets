@@ -327,7 +327,7 @@
       <div class="stack">
         <button class="btn prov google" data-act="signinwith" data-p="google"><span class="pico">G</span>${t('continue_google')}</button>
         <button class="btn prov line" data-act="signinwith" data-p="line"><span class="pico">LINE</span>${t('continue_line')}</button>
-        ${MICROSOFT_ON ? `<button class="btn prov ms" data-act="signinwith" data-p="microsoft"><span class="pico"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect width="9" height="9" fill="#f25022"/><rect x="11" width="9" height="9" fill="#7fba00"/><rect y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg></span>${t(MS_TENANT ? 'continue_microsoft_invited' : 'continue_microsoft')}</button>` : ''}
+        ${MICROSOFT_ON ? `<button class="btn prov ms" data-act="signinwith" data-p="microsoft"><span class="pico"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect width="9" height="9" fill="#f25022"/><rect x="11" width="9" height="9" fill="#7fba00"/><rect y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg></span>${t('continue_microsoft')}${MS_TENANT ? `<span class="prov-tag">${ICON('sparkle')} ${t('ms_tag')}</span>` : ''}</button>` : ''}
       </div>`);
   }
 
