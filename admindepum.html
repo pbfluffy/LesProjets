@@ -419,6 +419,7 @@ html.light body{
 .inv-form .inv-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .inv-form .inv-hint{font-size:12px;color:var(--faint)}
 .inv-form .inv-hint a{color:inherit}
+.inv-form .linkbtn{background:none;border:0;padding:0;color:inherit;font:inherit;text-decoration:underline;cursor:pointer}
 @media (max-width:640px){.inv-form{grid-template-columns:1fr}}
 .cloud-input,.cloud-ed textarea,.cloud-ed select{width:100%;box-sizing:border-box;font:inherit;font-size:13px;padding:9px 11px;border-radius:9px;border:1px solid rgba(127,127,127,.35);background:transparent;color:inherit}
 .cloud-ed{max-width:720px}.cloud-ed-body{padding:4px 18px 18px;display:grid;gap:12px;max-height:72vh;overflow:auto}
@@ -880,6 +881,11 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRe
 import { getFirestore, collection, getDocs, getDoc, doc, setDoc, serverTimestamp, deleteDoc, updateDoc, query, where } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
 
 const ADMIN_UID = 'HfksT06CgFUkZ9s4vrzEGs85O562';
+
+// A Microsoft sign-in (Beta testers account list) comes back as #code=…&state=… on this page.
+// Keep it for MSAL and put the Cloudlingo tab back in the address before the tab code runs.
+const MS_RETURN_HASH = /(^#|&)(code|error)=/.test(location.hash) && /state=/.test(location.hash) ? location.hash : '';
+if (MS_RETURN_HASH) { try { localStorage.setItem('admin_tab', 'cloudlingo'); } catch {} history.replaceState(null, '', location.pathname + location.search + '#cloudlingo'); }
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCDciJLEz3jOkMSVMOUjEN6_jPkSdKpU_c',
@@ -2030,6 +2036,102 @@ function renderBackyardTab(){
   if(!BACKYARD.loaded && !BACKYARD.loading) loadBackyardData();
 }
 
+// ---- Microsoft sign-in (read-only): the tenant's accounts for the invitation form ----
+// The admin signs in to Microsoft here with their own account, through the single-tenant,
+// secret-free Entra app "admindepum Entra admin". Its only Graph permission is
+// User.ReadBasic.All (names and addresses), so this can't change anything in Entra.
+const MS_ADMIN = {
+  clientId: 'f31f28a4-4a4c-4473-90ed-437054628920', // "admindepum Entra admin"
+  tenant: 'd2209c2a-d8d5-496b-93f9-27507d8cb9dc', // pumbafluffycorgi.com
+  msalSrc: 'https://cdn.jsdelivr.net/npm/@azure/msal-browser@5.27.0/lib/msal-browser.min.js',
+};
+const MS_SCOPES = ['https://graph.microsoft.com/User.ReadBasic.All'];
+const MS_FLAG = 'admin_ms_connected';
+const MSU = { state: 'off', users: [], error: '' }; // off | loading | ready | error
+let msPca = null, msAccount = null;
+function msLoadLib(){
+  if (window.msal) return Promise.resolve();
+  return new Promise((res, rej) => { const el = document.createElement('script'); el.src = MS_ADMIN.msalSrc; el.onload = res; el.onerror = () => rej(new Error('Microsoft sign-in could not load. Check the connection and try again.')); document.head.appendChild(el); });
+}
+async function msInit(){
+  if (msPca) return;
+  await msLoadLib();
+  msPca = new window.msal.PublicClientApplication({
+    auth: { clientId: MS_ADMIN.clientId, authority: 'https://login.microsoftonline.com/' + MS_ADMIN.tenant, redirectUri: location.origin + location.pathname },
+    cache: { cacheLocation: 'localStorage' },
+  });
+  await msPca.initialize();
+  const back = await msPca.handleRedirectPromise(MS_RETURN_HASH ? { hash: MS_RETURN_HASH, navigateToLoginRequestUrl: false } : { navigateToLoginRequestUrl: false });
+  msAccount = (back && back.account) || msPca.getAllAccounts()[0] || null;
+  try { if (msAccount) localStorage.setItem(MS_FLAG, '1'); else localStorage.removeItem(MS_FLAG); } catch {}
+}
+async function msToken(interactive){
+  try { return (await msPca.acquireTokenSilent({ scopes: MS_SCOPES, account: msAccount })).accessToken; }
+  catch (e) {
+    if (e instanceof window.msal.InteractionRequiredAuthError && !interactive) throw new Error('Microsoft sign-in has expired. Connect again.');
+    if (e instanceof window.msal.InteractionRequiredAuthError) { await msPca.acquireTokenRedirect({ scopes: MS_SCOPES, account: msAccount }); return new Promise(() => {}); }
+    throw e;
+  }
+}
+async function msLoadUsers(interactive){
+  MSU.state = 'loading'; MSU.error = ''; renderInvites();
+  try {
+    const token = await msToken(interactive);
+    const users = []; let next = 'https://graph.microsoft.com/v1.0/users?$select=id,displayName,userPrincipalName&$top=999';
+    while (next) {
+      const res = await fetch(next, { headers: { Authorization: 'Bearer ' + token } });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((body.error && body.error.message) || ('Microsoft Graph error ' + res.status));
+      users.push(...(body.value || [])); next = body['@odata.nextLink'] || null;
+    }
+    // Only accounts on our own domain can be testers (not the owner's #EXT# account).
+    MSU.users = users.filter(u => String(u.userPrincipalName || '').toLowerCase().endsWith(INV_DOMAIN))
+      .sort((a, b) => String(a.displayName || '').localeCompare(String(b.displayName || '')));
+    MSU.state = 'ready';
+  } catch (e) { MSU.state = 'error'; MSU.error = e.message; }
+  renderInvites();
+}
+// The account field: a dropdown of tenant accounts once connected, otherwise typing.
+function invUserField(value){
+  const v = String(value || '').toLowerCase();
+  if (MSU.state === 'ready') {
+    const has = MSU.users.some(u => u.userPrincipalName.toLowerCase() === v);
+    return '<label style="grid-column:1/-1">Their Microsoft account<select class="cloud-input" name="user" required>'
+      + '<option value="">Choose an account (' + MSU.users.length + ')…</option>'
+      + MSU.users.map(u => '<option value="' + escAdm(u.userPrincipalName) + '" data-name="' + escAdm(u.displayName || '') + '"' + (has && u.userPrincipalName.toLowerCase() === v ? ' selected' : '') + '>' + escAdm((u.displayName || u.userPrincipalName) + ' — ' + u.userPrincipalName) + '</option>').join('')
+      + '</select><span style="font-size:11px">Not listed? Create it in Entra, then <button type="button" class="linkbtn" data-ms-act="reload" style="font-size:11px;padding:0">refresh the list</button>.</span></label>';
+  }
+  const local = v.replace(/@.*$/, '');
+  const note = MSU.state === 'loading' ? 'Loading accounts from Microsoft…'
+    : MSU.state === 'error' ? 'Couldn’t load the list: ' + escAdm(MSU.error) + ' <button type="button" class="linkbtn" data-ms-act="connect" style="font-size:11px;padding:0">Try again</button>'
+    : '<button type="button" class="linkbtn" data-ms-act="connect" style="font-size:11px;padding:0">Connect Microsoft</button> to pick from your tenant’s accounts.';
+  return '<label style="grid-column:1/-1">Their Microsoft account (created in Entra)<span class="inv-user"><input class="cloud-input" name="user" maxlength="60" required placeholder="somchai" value="' + escAdm(local) + '"><span>' + INV_DOMAIN + '</span></span>'
+    + '<span style="font-size:11px">' + note + '</span></label>';
+}
+document.addEventListener('change', e => {
+  // Picking an account fills in the name when it's still empty.
+  if (e.target && e.target.matches('#cloud-invites select[name=user]')) {
+    const name = document.querySelector('#cloud-invites [name=name]');
+    const opt = e.target.selectedOptions[0];
+    if (name && !name.value.trim() && opt && opt.dataset.name) name.value = opt.dataset.name;
+  }
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('#cloud-invites [data-ms-act]'); if (!b) return;
+  e.preventDefault();
+  if (b.dataset.msAct === 'connect') {
+    try { localStorage.setItem('admin_tab', 'cloudlingo'); await msInit(); if (msAccount) return msLoadUsers(true); await msPca.loginRedirect({ scopes: MS_SCOPES, prompt: 'select_account' }); }
+    catch (err) { MSU.state = 'error'; MSU.error = err.message; renderInvites(); }
+  } else if (b.dataset.msAct === 'reload') msLoadUsers(true);
+});
+// On page load: back from Microsoft sign-in, or connected before on this browser.
+(async () => {
+  let was = false; try { was = localStorage.getItem(MS_FLAG) === '1'; } catch {}
+  if (!MS_RETURN_HASH && !was) return;
+  try { await msInit(); if (msAccount) await msLoadUsers(); }
+  catch (e) { MSU.state = 'error'; MSU.error = e.message; renderInvites(); }
+})();
+
 // ---- Cloudlingo: beta tester invitations ----
 // Like TalentMatch's invitations: the admin creates the tester's Microsoft account in the
 // Entra admin center (name@pumbafluffycorgi.com), then sends the invitation from here.
@@ -2060,7 +2162,7 @@ function renderInvites(){
   el.innerHTML = '<form class="inv-form" autocomplete="off">'
     + '<label>Name<input class="cloud-input" name="name" maxlength="80" required value="' + escAdm(keep.name) + '"></label>'
     + '<label>Email to send the invitation to<input class="cloud-input" name="email" type="email" maxlength="200" required value="' + escAdm(keep.email) + '"></label>'
-    + '<label style="grid-column:1/-1">Their Microsoft account (created in Entra)<span class="inv-user"><input class="cloud-input" name="user" maxlength="60" required placeholder="somchai" value="' + escAdm(keep.user) + '"><span>' + INV_DOMAIN + '</span></span></label>'
+    + invUserField(keep.user)
     + '<div class="inv-actions"><span class="inv-hint">Create the account first in the <a href="https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/AllUsers" target="_blank" rel="noopener">Entra admin center → Users</a>. Give the temporary password separately; it is never emailed.</span>'
     + '<button class="btn" type="submit"' + (INV.busy ? ' disabled' : '') + '>' + (INV.busy ? 'Sending…' : 'Send invitation') + '</button></div>'
     + '</form>'
