@@ -275,6 +275,25 @@ h1, h2, h3, p { margin: 0; }
 .ob-challenge { display: flex; gap: 10px; align-items: center; font-weight: 800; margin: 6px 0 14px; }
 .ob-challenge .ic { color: var(--gold); font-size: 22px; flex-shrink: 0; }
 .chbtn { display: inline-flex; align-items: center; gap: 6px; }
+.diagram { margin: 12px 0 4px; max-width: 380px; }
+.diagram svg { display: block; width: 100%; height: auto; background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; padding: 6px; box-sizing: border-box; }
+.diagram figcaption { font-size: 13px; line-height: 1.4; font-weight: 600; color: var(--ink); opacity: .8; margin-top: 6px; }
+.dg-group { fill: none; stroke: var(--muted); stroke-opacity: .55; stroke-width: 1.2; stroke-dasharray: 4 3; }
+.dg-group.solid { stroke-dasharray: none; }
+.dg-group.dg-hl { stroke: var(--good); stroke-opacity: 1; stroke-width: 2.2; }
+.dg-glabel { fill: var(--muted); font-weight: 800; }
+.dg-box { fill: var(--bg); stroke: var(--border); stroke-width: 1.2; }
+.dg-text { fill: var(--ink); font-weight: 700; }
+.dg-bar { fill: var(--dgc); }
+.dg-node .ic { color: var(--dgc); }
+.dg-edge { stroke: var(--muted); stroke-width: 1.4; }
+.dg-edge.dash { stroke-dasharray: 4 3; }
+.dg-head { fill: var(--muted); }
+.dg-elabel { fill: var(--muted); font-weight: 700; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+.dg-node { --dgc: #7d8998; }
+.dg-compute { --dgc: #ed7100; } .dg-storage { --dgc: #3f8624; } .dg-db { --dgc: #2e73b8; } .dg-net { --dgc: #8c4fff; }
+.dg-sec { --dgc: #dd344c; } .dg-int { --dgc: #e7157b; } .dg-mgmt { --dgc: #b0084d; } .dg-ai { --dgc: #01a88d; } .dg-data { --dgc: #8c4fff; } .dg-user { --dgc: var(--muted); }
+.dg-hl .dg-box { fill: var(--good-soft); stroke: var(--good); stroke-width: 2.4; }
 .whynot { font-size: 14px; font-weight: 600; margin-top: 8px; line-height: 1.4; color: var(--ink); max-width: 620px; }
 .whyothers { margin-top: 8px; font-size: 14px; max-width: 620px; color: var(--ink); }
 .whyothers summary { cursor: pointer; font-weight: 800; opacity: .75; }
