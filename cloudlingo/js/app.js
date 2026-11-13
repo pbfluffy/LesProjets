@@ -1049,7 +1049,7 @@
   }
 
   function render() {
-    const views = { cards: () => FC ? cardsView() : learnView(), onboard: onboardView, learn: learnView, practice: practiceView, exam: examView, board: boardView, profile: profileView, lesson: lessonView, lessonEnd: lessonEndView, path: pathView, words: wordsView, streakDay: streakDayView, examRun: examRunView, examResult: examResultView };
+    const views = { cards: () => FC ? cardsView() : learnView(), onboard: onboardView, learn: learnView, practice: practiceView, exam: examView, board: boardView, profile: profileView, lesson: lessonView, lessonEnd: lessonEndView, path: pathView, words: wordsView, diagrams: diagramsView, streakDay: streakDayView, examRun: examRunView, examResult: examResultView };
     closeHint();
     app.innerHTML = (views[view] || learnView)();
   }
@@ -1443,12 +1443,16 @@
 
   // A concept diagram for the question, with the right answer highlighted. Lessons and practice
   // only: mock exams (and their review) stay text-only, like the real exam.
-  function lessonDiagram(q) {
-    if (!window.diagramFor || !window.renderDiagram || q.t === 'match') return '';
+  // Which concept diagram (if any) a question gets, from its text and right answer.
+  function diagramIdFor(q) {
+    if (!window.diagramFor || q.t === 'match') return null;
     const answer = q.tf ? '' : correctText(q);
     // Fill-in questions: put the answer into the blank so "a ___ table" + "route" reads "a route table".
-    const id = window.diagramFor((q.t === 'fill' ? q.q.replace(/_{2,}/, answer) : q.q) + ' ' + answer);
-    return id ? window.renderDiagram(id, { lang, answer }) : '';
+    return window.diagramFor((q.t === 'fill' ? q.q.replace(/_{2,}/, answer) : q.q) + ' ' + answer);
+  }
+  function lessonDiagram(q) {
+    const id = window.renderDiagram && diagramIdFor(q);
+    return id ? window.renderDiagram(id, { lang, answer: q.tf ? '' : correctText(q) }) : '';
   }
 
   function correctText(q) {
@@ -1701,9 +1705,49 @@
           <button class="btn ghost block" style="margin-top:14px" data-act="quick">${t('start_btn')}</button></div>
         <div class="card pcard"><div class="row"><div class="bigicon">${ICON('book')}</div><div class="grow"><h3>${t('words_title')}</h3><p>${t('words_card_sub', { n: GLOSS.length })}</p></div></div>
           <button class="btn ghost block" style="margin-top:14px" data-act="nav" data-v="words">${t('words_open')}</button></div>
+        ${window.renderDiagram && courseDiagrams(c).length ? `<div class="card pcard"><div class="row"><div class="bigicon">${ICON('layers')}</div><div class="grow"><h3>${t('dg_title')}</h3><p>${t('dg_card_sub', { n: courseDiagrams(c).length })}</p></div></div>
+          <button class="btn ghost block" style="margin-top:14px" data-act="nav" data-v="diagrams">${t('dg_open')}</button></div>` : ''}
         <h2 class="section-title" style="font-size:20px;margin-top:12px">${t('by_topic')}</h2>
         ${rows}
       </div>`);
+  }
+
+  // ---------- Diagrams page (Practice) ----------
+  // Every diagram used by this course's questions, each under the unit that uses it most,
+  // with a button to practice the questions that show it.
+  const diagCache = {};
+  function courseDiagrams(c) {
+    if (diagCache[c.id]) return diagCache[c.id];
+    const by = new Map();
+    c.units.forEach(u => u.questions.forEach(q => {
+      const id = live(q) && diagramIdFor(q);
+      if (!id) return;
+      if (!by.has(id)) by.set(id, { id, qs: [], units: {} });
+      const d = by.get(id); d.qs.push(q); d.units[u.id] = (d.units[u.id] || 0) + 1;
+    }));
+    // Page order: by unit, then the most-used diagrams first.
+    const list = [...by.values()].map(d => Object.assign(d, { unit: Object.keys(d.units).sort((a, b) => d.units[b] - d.units[a])[0] }))
+      .sort((a, b) => UNITS[a.unit].index - UNITS[b.unit].index || b.qs.length - a.qs.length);
+    return (diagCache[c.id] = list);
+  }
+  function diagramsView() {
+    const c = course(), all = courseDiagrams(c);
+    const jump = all.map(d => `<button class="dg-chip" data-act="dgjump" data-d="${d.id}">${esc(window.diagramTitle(d.id, lang))}</button>`).join('');
+    const units = c.units.map(u => {
+      const ds = all.filter(d => d.unit === u.id);
+      if (!ds.length) return '';
+      return `<h2 class="section-title" style="font-size:20px;margin-top:14px">${u.title}</h2>` + ds.map(d => `<div class="card dgcard" id="dg-${d.id}">
+          <h3>${esc(window.diagramTitle(d.id, lang))}</h3>${window.renderDiagram(d.id, { lang })}
+          <button class="btn ghost block" style="margin-top:12px" data-act="diagpractice" data-d="${d.id}">${tn('dg_practice', Math.min(d.qs.length, 10))}</button></div>`).join('');
+    }).join('');
+    return shell(`<h1 class="section-title">${t('dg_title')}</h1>
+      <p class="section-sub">${t('dg_sub', { n: all.length })}</p>
+      <div class="dg-jump">${jump}</div>
+      <div class="stack">${units}</div>`);
+  }
+  function startDiagramPractice(id) {
+    const d = courseDiagrams(course()).find(x => x.id === id);
+    if (d) startSession('practice', pickQuestions(d.qs, 10), Object.keys(d.units).length === 1 ? d.unit : null);
   }
 
   function startQuick() {
@@ -2317,6 +2361,11 @@
     node: d => { const u = UNITS[d.u]; startLesson(d.u, +d.l < unitDone(u) ? 'replay' : 'lesson'); },
     unitpractice: d => startSession('practice', pickQuestions(UNITS[d.u].questions, 8), d.u),
     quick: () => startQuick(),
+    diagpractice: d => startDiagramPractice(d.d),
+    // Wait a frame: focusing the chip scrolls its row, which would cancel a page scroll started now.
+    dgjump: d => requestAnimationFrame(() => {
+      const el = document.getElementById('dg-' + d.d), bar = document.querySelector('.topbar');
+      if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - (bar ? bar.offsetHeight : 0) - 12, behavior: reducedMotion() ? 'auto' : 'smooth' }); }),
     mistakes: () => startMistakes(),
     pick: d => { if (!L.checked) { L.sel = +d.i; render(); } },
     toggle: d => toggleMulti(+d.i),

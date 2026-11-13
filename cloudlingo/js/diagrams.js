@@ -532,4 +532,27 @@
       + `<figcaption>${esc(L(d.cap, th))}</figcaption></figure>`;
   };
   window.DIAGRAM_IDS = Object.keys(D);
+  // Names for the Diagrams page in Practice.
+  const TITLES = {
+    global: ['Regions, AZs and edge locations', 'Region, AZ และ edge location'], shared: ['Shared responsibility', 'ความรับผิดชอบร่วมกัน'],
+    vpc: ['VPC, subnets and NAT', 'VPC, subnet และ NAT'], sgnacl: ['Security groups vs network ACLs', 'Security group กับ network ACL'],
+    endpoint: ['VPC endpoints', 'VPC endpoint'], hybrid: ['Direct Connect vs VPN', 'Direct Connect กับ VPN'],
+    tgw: ['Transit Gateway', 'Transit Gateway'], cdn: ['CloudFront', 'CloudFront'], route53: ['Route 53 routing', 'การ route ของ Route 53'],
+    haweb: ['Highly available web app', 'เว็บแอปที่พร้อมใช้งานสูง'], rds: ['Multi-AZ vs read replicas', 'Multi-AZ กับ read replica'],
+    cache: ['Caching', 'การแคช'], sqs: ['SQS queues', 'คิว SQS'], fanout: ['SNS fan-out', 'SNS fan-out'], event: ['Event-driven, serverless', 'Event-driven และ serverless'],
+    storage3: ['Block, file and object storage', 'Block, file และ object storage'], s3classes: ['S3 storage classes', 'S3 storage class'],
+    dr: ['Disaster recovery strategies', 'กลยุทธ์กู้คืนระบบ'], role: ['IAM roles', 'IAM role'], kms: ['KMS envelope encryption', 'Envelope encryption ด้วย KMS'],
+    kinesis: ['Kinesis streaming', 'Streaming ด้วย Kinesis'], datalake: ['Data lake and analytics', 'Data lake และการวิเคราะห์'],
+    rag: ['RAG', 'RAG'], mllife: ['ML lifecycle', 'วงจรชีวิต ML'], aiservices: ['AI services', 'บริการ AI'], pricing: ['EC2 pricing options', 'ตัวเลือกราคา EC2'],
+    cicd: ['CI/CD pipeline', 'CI/CD pipeline'], monitor: ['CloudWatch, CloudTrail, Config', 'CloudWatch, CloudTrail, Config'], orgs: ['AWS Organizations', 'AWS Organizations'],
+    mltypes: ['Types of machine learning', 'ประเภทของ machine learning'], confusion: ['Precision and recall', 'Precision และ recall'],
+    datasplit: ['Training, validation, test', 'Training, validation, test'], llm: ['Tokens and model settings', 'Token และการตั้งค่าโมเดล'],
+    fmcustom: ['Customising a model', 'การปรับแต่งโมเดล'], agents: ['Bedrock Agents', 'Bedrock Agents'], guardrails: ['Bedrock Guardrails', 'Bedrock Guardrails'],
+    respai: ['Responsible AI', 'AI ที่มีความรับผิดชอบ'], fminfer: ['Bedrock inference options', 'ตัวเลือกการเรียกใช้ Bedrock'], evals: ['Evaluating models', 'การประเมินโมเดล'],
+    aistack: ['AI, ML and generative AI', 'AI, ML และ generative AI'], wellarch: ['Well-Architected pillars', 'เสาหลัก Well-Architected'],
+    sevenrs: ['The 7 Rs of migration', '7R ของการย้ายระบบ'], svcmodels: ['IaaS, PaaS, SaaS', 'IaaS, PaaS, SaaS'], scaling: ['Scale up vs scale out', 'Scale up กับ scale out'],
+    support: ['Support plans', 'แผน Support'], costtools: ['Cost tools', 'เครื่องมือค่าใช้จ่าย'], secmap: ['Security services', 'บริการด้านความปลอดภัย'],
+    dbpick: ['Choosing a database', 'การเลือกฐานข้อมูล'], containers: ['Containers', 'Container'],
+  };
+  window.diagramTitle = (id, lang) => { const t = TITLES[id]; return t ? (lang === 'th' ? t[1] : t[0]) : id; };
 })();
