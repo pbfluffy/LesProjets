@@ -419,14 +419,59 @@
         N('ec2', 212, 22, 98, 36, ['EC2\nyou run servers', 'EC2\nดูแลเครื่องเอง'], 'compute', '', /\bec2\b/i),
         N('fg', 212, 70, 98, 36, ['Fargate\nserverless', 'Fargate\nserverless'], 'compute', '', /fargate/i)],
       edges: [E('r', 'ecs'), E('r', 'eks'), E('ecs', 'ec2'), E('eks', 'fg')] },
+
+    // ---- AI Practitioner · security and governance ----
+    aisec: { h: 140, cap: ['A secure AI app: least-privilege IAM, a private connection, guardrails and encryption, and logs for auditing. Turn on invocation logging if you need prompt text.', 'แอป AI ที่ปลอดภัย: IAM แบบ least privilege, การเชื่อมต่อแบบส่วนตัว, guardrails และการเข้ารหัส และ log สำหรับตรวจสอบ เปิด invocation logging ถ้าต้องเก็บข้อความ prompt'],
+      groups: [G(4, 88, 312, 48, ['Audit and monitor', 'ตรวจสอบและเฝ้าดู'], 'dash')],
+      nodes: [N('app', 6, 14, 74, 56, ['Your app\nIAM role,\nleast privilege', 'แอปของคุณ\nIAM role\nสิทธิ์น้อยที่สุด'], 'compute', '', /\biam\b|least.privilege|permissions?|arn/i),
+        N('pl', 94, 20, 76, 44, ['PrivateLink\nno internet', 'PrivateLink\nไม่ผ่านเน็ต'], 'net', '', /privatelink|vpc|endpoint|network isolation/i),
+        N('br', 186, 6, 128, 72, ['Amazon Bedrock\nGuardrails\nKMS encryption\nTLS in transit', 'Amazon Bedrock\nGuardrails\nเข้ารหัสด้วย KMS\nTLS ระหว่างส่ง'], 'ai', '', /guardrail|kms|encrypt|tls/i),
+        N('ct', 12, 104, 96, 26, ['CloudTrail', 'CloudTrail'], 'mgmt', '', /cloudtrail/i),
+        N('il', 112, 104, 96, 26, ['Invocation logs', 'Invocation logs'], 'mgmt', '', /invocation log/i),
+        N('cw', 212, 104, 96, 26, ['CloudWatch', 'CloudWatch'], 'mgmt', '', /cloudwatch|metrics?/i)],
+      edges: [E('app', 'pl'), E('pl', 'br')] },
+
+    scoping: { h: 140, cap: ['The Generative AI Security Scoping Matrix. The further down, the more of the model you own, so the more you have to secure yourself.', 'Generative AI Security Scoping Matrix ยิ่งอยู่ล่าง ยิ่งเป็นเจ้าของโมเดลมาก จึงต้องดูแลความปลอดภัยเองมากขึ้น'],
+      groups: [],
+      nodes: [N('s1', 6, 4, 308, 24, ['Scope 1 · consumer app, e.g. a public chatbot', 'Scope 1 · แอปผู้บริโภค เช่น chatbot สาธารณะ'], 'plain', '', /scope 1|consumer/i),
+        N('s2', 6, 31, 308, 24, ['Scope 2 · enterprise app with AI features (SaaS)', 'Scope 2 · แอปธุรกิจที่มีฟีเจอร์ AI (SaaS)'], 'user', '', /scope 2|enterprise app/i),
+        N('s3', 6, 58, 308, 24, ['Scope 3 · your app on a pre-trained model', 'Scope 3 · แอปของคุณบนโมเดลที่เทรนแล้ว'], 'ai', '', /scope 3|pre-trained/i),
+        N('s4', 6, 85, 308, 24, ['Scope 4 · a model fine-tuned on your data', 'Scope 4 · โมเดลที่ fine-tune ด้วยข้อมูลคุณ'], 'ai', '', /scope 4|fine-tun/i),
+        N('s5', 6, 112, 308, 24, ['Scope 5 · a model you train yourself', 'Scope 5 · โมเดลที่เทรนเองทั้งหมด'], 'sec', '', /scope 5|self-trained/i)],
+      edges: [] },
+
+    aigov: { h: 116, cap: ['Governance tools for AI: keep records of what happened, prove compliance, and document models so others can trust them.', 'เครื่องมือ governance สำหรับ AI: เก็บบันทึกว่าเกิดอะไรขึ้น พิสูจน์ว่าเป็นไปตามข้อกำหนด และจัดทำเอกสารโมเดลให้ผู้อื่นเชื่อถือได้'],
+      groups: [],
+      nodes: [N('ct', 6, 4, 151, 24, ['CloudTrail · API calls', 'CloudTrail · การเรียก API'], 'mgmt', '', /cloudtrail/i),
+        N('cf', 163, 4, 151, 24, ['Config · settings history', 'Config · ประวัติการตั้งค่า'], 'mgmt', '', /\bconfig\b/i),
+        N('am', 6, 32, 151, 24, ['Audit Manager · evidence', 'Audit Manager · หลักฐาน'], 'mgmt', '', /audit manager/i),
+        N('ar', 163, 32, 151, 24, ['Artifact · AWS reports', 'Artifact · รายงานของ AWS'], 'mgmt', '', /artifact/i),
+        N('in', 6, 60, 151, 24, ['Inspector · vulnerabilities', 'Inspector · ช่องโหว่'], 'sec', '', /inspector/i),
+        N('cl', 163, 60, 151, 24, ['Clarify · bias, explain', 'Clarify · bias, อธิบายผล'], 'ai', '', /clarify/i),
+        N('mc', 6, 88, 151, 24, ['Model Cards · your models', 'Model Cards · โมเดลของคุณ'], 'ai', '', /model cards?/i),
+        N('sc', 163, 88, 151, 24, ['AI Service Cards · AWS AI', 'AI Service Cards · AI ของ AWS'], 'ai', '', /service cards?/i)],
+      edges: [] },
+
+    sminfer: { h: 108, cap: ['SageMaker inference options: pick by traffic pattern, payload size and how fast you need the answer.', 'ตัวเลือก inference ของ SageMaker: เลือกตามรูปแบบทราฟฟิก ขนาดข้อมูล และความเร็วที่ต้องการ'],
+      groups: [],
+      nodes: [N('rt', 6, 4, 151, 48, ['Real-time\nsteady traffic, milliseconds', 'Real-time\nทราฟฟิกสม่ำเสมอ, มิลลิวินาที'], 'ai', '', /real-time/i),
+        N('sl', 163, 4, 151, 48, ['Serverless\nidle gaps, no instances', 'Serverless\nมีช่วงว่าง, ไม่ต้องดูแลเครื่อง'], 'ai', '', /serverless/i),
+        N('as', 6, 56, 151, 48, ['Asynchronous\nlarge files, minutes', 'Asynchronous\nไฟล์ใหญ่, ใช้เวลาหลายนาที'], 'ai', '', /asynchronous/i),
+        N('bt', 163, 56, 151, 48, ['Batch transform\nwhole dataset, no endpoint', 'Batch transform\nทั้งชุดข้อมูล, ไม่มี endpoint'], 'ai', '', /batch transform/i)],
+      edges: [] },
   };
 
   // Which diagram a question gets: the first rule that matches its text plus its right answer.
   const RULES = [
+    ['scoping', /scoping matrix|\bscope [1-5]\b/i],
+    ['sminfer', /real-time inference|serverless inference|asynchronous inference|batch transform\b/i],
+    ['aigov', /audit manager|ai service cards?|model cards?|ai governance|governance framework|compliance requirements|evidence|\b(ml|ai) app\b.*\binspector\b/i],
+    // Security for AI apps: only when the text is about AI (Bedrock, SageMaker, models, prompts) and a security control.
+    ['aisec', /invocation logging|(bedrock|sagemaker|foundation model|\bai\b|\bml\b|\bllm|prompts?\b|machine learning)[^.]*(privatelink|vpc endpoint|\bkms\b|encrypt|\btls\b|\biam\b|least.privilege|cloudtrail|cloudwatch|secrets manager|network isolation|permissions?)|(privatelink|vpc endpoint|\bkms\b|encrypt|\btls\b|\biam\b|least.privilege|cloudtrail|cloudwatch|secrets manager|network isolation|permissions?)[^.]*(bedrock|sagemaker|foundation model|\bai\b|\bml\b|\bllm|prompts?\b|machine learning)/i],
     ['confusion', /precision|\brecall\b|confusion matrix|\bf1\b|false (positive|negative)s?|true positives?/i],
     ['datasplit', /test set|validation (set|data)|training set|split (the |your )?data|overfit|underfit/i],
     ['mltypes', /unsupervised|supervised learning|reinforcement learning|\bregression\b|classification(?!=)|clustering|\brmse\b/i],
-    ['guardrails', /bedrock guardrails?|prompt injection|jailbreak|denied topics?|harmful (content|responses?)|toxic/i],
+    ['guardrails', /bedrock guardrails?|prompt injection|prompt leak|jailbreak|denied topics?|harmful (content|responses?)|toxic/i],
     ['agents', /bedrock agents?|agents for (amazon )?bedrock|action groups?|multi-step tasks?/i],
     ['evals', /\brouge\b|\bbleu\b|bertscore|llm-as-a-judge|model evaluation|evaluate the quality|compare the quality|answer quality/i],
     ['fminfer', /provisioned throughput|input and output tokens|batch inference|streaming responses?|returns tokens|cost per token/i],
@@ -441,7 +486,7 @@
     ['support', /support plans?|technical account manager|\btam\b|enterprise on-ramp|concierge/i],
     ['costtools', /pricing calculator|cost explorer|cost and usage report|aws budgets|budgets?\b[^.?]*(alert|threshold)|cost anomaly|trusted advisor|compute optimizer|cost allocation tags?|costs? (and|or) usage exceed/i],
     ['aiservices', /rekognition|textract|comprehend|transcribe|polly|amazon lex|kendra|amazon translate|personalize/i],
-    ['mllife', /sagemaker|ground truth|hyperparameter|overfit|underfit|data drift|model monitor|feature store|training data|labeled/i],
+    ['mllife', /before training|sagemaker|ground truth|hyperparameter|overfit|underfit|data drift|model monitor|feature store|training data|labeled/i],
     ['kms', /\bkms\b|envelope encryption|data key|customer managed key/i],
     ['role', /iam role|assumerole|assume (a |the |an )?role|\bsts\b|instance profile|temporary credentials|identity pool/i],
     ['orgs', /organizations|\bscps?\b|service control polic|control tower|consolidated billing|organizational unit/i],
@@ -553,6 +598,8 @@
     sevenrs: ['The 7 Rs of migration', '7R ของการย้ายระบบ'], svcmodels: ['IaaS, PaaS, SaaS', 'IaaS, PaaS, SaaS'], scaling: ['Scale up vs scale out', 'Scale up กับ scale out'],
     support: ['Support plans', 'แผน Support'], costtools: ['Cost tools', 'เครื่องมือค่าใช้จ่าย'], secmap: ['Security services', 'บริการด้านความปลอดภัย'],
     dbpick: ['Choosing a database', 'การเลือกฐานข้อมูล'], containers: ['Containers', 'Container'],
+    aisec: ['Securing an AI app', 'การรักษาความปลอดภัยแอป AI'], scoping: ['Security Scoping Matrix', 'Security Scoping Matrix'],
+    aigov: ['AI governance tools', 'เครื่องมือ governance สำหรับ AI'], sminfer: ['SageMaker inference options', 'ตัวเลือก inference ของ SageMaker'],
   };
   window.diagramTitle = (id, lang) => { const t = TITLES[id]; return t ? (lang === 'th' ? t[1] : t[0]) : id; };
 })();
