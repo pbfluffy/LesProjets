@@ -1441,6 +1441,16 @@
   let lastWidth = innerWidth;
   window.addEventListener('resize', () => { if (innerWidth !== lastWidth) { lastWidth = innerWidth; closeHint(); } });
 
+  // A concept diagram for the question, with the right answer highlighted. Lessons and practice
+  // only: mock exams (and their review) stay text-only, like the real exam.
+  function lessonDiagram(q) {
+    if (!window.diagramFor || !window.renderDiagram || q.t === 'match') return '';
+    const answer = q.tf ? '' : correctText(q);
+    // Fill-in questions: put the answer into the blank so "a ___ table" + "route" reads "a route table".
+    const id = window.diagramFor((q.t === 'fill' ? q.q.replace(/_{2,}/, answer) : q.q) + ' ' + answer);
+    return id ? window.renderDiagram(id, { lang, answer }) : '';
+  }
+
   function correctText(q) {
     if (q.t === 'multi') return q.a.map(i => q.o[i]).join(' + ');
     if (q.t === 'match') return q.pairs.map(p => `${p[0]} → ${p[1]}`).join(' · ');
@@ -1465,6 +1475,7 @@
         <h3>${L.ok ? praise[L.praise % praise.length] : t('not_quite')}${L.ok && L.combo >= 3 ? ` <span class="combo">${ICON('flame')} ${t('combo', { n: L.combo })}</span>` : ''}</h3>
         ${L.ok ? '' : `<div class="ans">${esc(t('correct_is', { a: correctText(q) }))}</div>`}
         <div class="explain">${esc(explain(q))}</div>
+        ${lessonDiagram(q)}
         ${whyHTML(q, q.t === 'multi' ? L.multi : L.sel)}
         ${reportBtn(q)}
       </div></div>
