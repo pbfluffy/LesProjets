@@ -1,0 +1,41 @@
+*{box-sizing:border-box}
+body{margin:0;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);line-height:1.45}
+.app{max-width:760px;margin:0 auto;padding:16px 16px 48px}
+h1{font-size:1.3rem;margin:0}h2{font-size:1.15rem;margin:0}h3{font-size:1rem;margin:0}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.muted{color:var(--color-text-muted);font-size:.85rem}.fine{color:var(--color-text-faint);font-size:.78rem}
+.error{color:#b3261e;font-size:.85rem}
+.empty{color:var(--color-text-muted);text-align:center;padding:32px 0}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--color-border);margin-bottom:16px}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 12px;font:inherit;color:var(--color-text-muted);cursor:pointer}
+.tabs button.on{color:var(--color-text);border-bottom-color:var(--color-text);font-weight:600}
+.panel{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:14px;margin-bottom:12px}
+.section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+.btn{font:inherit;border:1px solid var(--color-border-strong);background:var(--color-surface);color:var(--color-text);border-radius:8px;padding:8px 14px;cursor:pointer;min-height:40px}
+.btn.primary{background:var(--color-accent);color:var(--color-accent-text);border-color:var(--color-accent)}
+.btn:disabled{opacity:.6;cursor:default}
+.link{background:none;border:0;font:inherit;font-size:.85rem;color:var(--color-text-muted);text-decoration:underline;cursor:pointer;padding:4px}
+.link.danger{color:#b3261e}
+input,select,textarea{font:inherit;width:100%;padding:9px 10px;border:1px solid var(--color-border-strong);border-radius:8px;background:var(--color-surface);color:var(--color-text)}
+.perk-form{display:grid;gap:10px}.perk-form label,.filters label{display:grid;gap:4px;font-size:.85rem;color:var(--color-text-muted)}
+label.check{display:flex;align-items:center;gap:8px;color:var(--color-text)}label.check input{width:auto}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.chip{font:inherit;font-size:.82rem;border:1px solid var(--color-border-strong);background:var(--color-surface);color:var(--color-text);border-radius:999px;padding:6px 11px;cursor:pointer}
+.chip.on{background:var(--color-accent);color:var(--color-accent-text);border-color:var(--color-accent)}
+.filter-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}.filter-row select{width:auto;flex:1;min-width:140px}
+.lbl{min-width:52px;font-size:.82rem;color:var(--color-text-muted)}
+.seg{display:inline-flex;border:1px solid var(--color-border-strong);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-size:.82rem;background:var(--color-surface);color:var(--color-text);border:0;padding:7px 11px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--color-border-strong)}
+.seg button.on{background:var(--color-accent);color:var(--color-accent-text)}
+.pill{display:inline-block;font-size:.72rem;border-radius:999px;padding:2px 9px;margin-left:8px;white-space:nowrap}
+.pill.free{background:var(--color-green-bg);color:var(--color-green)}.pill.pts{background:var(--color-blue-bg);color:var(--color-blue)}
+.results,.perk-list{list-style:none;margin:0;padding:0}
+.result-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.result.expired{opacity:.55}
+.conds{margin:8px 0 0;padding-left:18px;font-size:.85rem;color:var(--color-text-muted)}
+.perk-line{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--color-border);flex-wrap:wrap}
+.gate{min-height:100vh;display:grid;place-items:center;padding:16px}
+.gate-card{max-width:360px;text-align:center;background:var(--color-surface);border:1px solid var(--color-border);border-radius:16px;padding:28px 22px;display:grid;gap:12px}
+.gate-icon{font-size:2.4rem}

@@ -71,6 +71,13 @@
       "port": 5182
     },
     {
+      "name": "card-perks",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5185"],
+      "cwd": "card-perks",
+      "port": 5185
+    },
+    {
       "name": "village-77",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--port", "5184"],

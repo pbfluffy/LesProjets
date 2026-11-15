@@ -160,6 +160,16 @@ service cloud.firestore {
       allow delete: if isUser(resource.data.ownerUid);
     }
 
+    // ── Card Perks — user's cards and their privileges ──────────────────────
+    // Owner-only, not even admins: it's personal financial info. The app never
+    // stores card numbers; this only bounds shape/size.
+    match /userCards/{uid} {
+      allow read:  if isUser(uid);
+      allow write: if isUser(uid)
+                   && request.resource.data.cards is list
+                   && request.resource.data.cards.size() <= 30;
+    }
+
     // ── Pumgoda — user saved places ─────────────────────────────────────────
     match /userPlaces/{uid} {
       allow read:  if isUser(uid) || isAdmin();
