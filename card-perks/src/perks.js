@@ -9,6 +9,17 @@ export const DEFAULT_FILTERS = {
   hideExpired: true,
 }
 
+// "KBank The Wisdom" — bank is optional because cards saved before the bank
+// picker existed only have a name.
+export function cardFullName(card) {
+  return [card.bank, card.name].filter(Boolean).join(' ')
+}
+
+// What to call a card in lists: the user's nickname if they gave one.
+export function cardLabel(card) {
+  return card.nickname || cardFullName(card)
+}
+
 export function isExpired(perk, today = new Date()) {
   if (!perk.validUntil) return false
   const end = new Date(perk.validUntil + 'T23:59:59')
@@ -29,7 +40,7 @@ export function filterPerks(cards, filters, today = new Date()) {
       if (f.spend === 'none' && perk.minSpend) continue
       if (f.hideExpired && isExpired(perk, today)) continue
       if (q) {
-        const hay = `${perk.title} ${perk.conditions || ''} ${card.name} ${card.nickname || ''}`.toLowerCase()
+        const hay = `${perk.title} ${perk.conditions || ''} ${cardFullName(card)} ${card.nickname || ''}`.toLowerCase()
         if (!q.split(/\s+/).every((w) => hay.includes(w))) continue
       }
       rows.push({ card, perk })

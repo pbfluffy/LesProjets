@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { filterPerks, cleanPerk, isExpired } from './perks.js'
+import { filterPerks, cleanPerk, isExpired, cardLabel, cardFullName } from './perks.js'
 
 const cards = [
   { id: 'a', name: 'Alpha', perks: [
@@ -42,6 +42,16 @@ test('cleanPerk normalises', () => {
   assert.equal(p.minSpend, null)
   assert.equal(p.validUntil, null)
   assert.equal(cleanPerk({ title: 'Y', requiresPoints: true, pointsCost: '1500' }).pointsCost, 1500)
+})
+test('card labels include the bank, and tolerate cards saved without one', () => {
+  assert.equal(cardFullName({ bank: 'KBank', name: 'The Wisdom' }), 'KBank The Wisdom')
+  assert.equal(cardFullName({ name: 'Old card' }), 'Old card')
+  assert.equal(cardLabel({ bank: 'SCB', name: 'M', nickname: 'Daily' }), 'Daily')
+  assert.equal(cardLabel({ bank: 'SCB', name: 'M' }), 'SCB M')
+})
+test('search matches the bank name', () => {
+  const rows = filterPerks([{ id: 'x', bank: 'KBank', name: 'Platinum', perks: [{ id: '1', title: 'Lounge', category: 'lounge', requiresPoints: false }] }], { search: 'kbank lounge' })
+  assert.equal(rows.length, 1)
 })
 test('isExpired', () => {
   assert.equal(isExpired({ validUntil: '2026-06-01' }, new Date('2026-06-01T12:00:00')), false)

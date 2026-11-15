@@ -1,10 +1,10 @@
-// Generic starter cards. These are NOT real issuer data — perks, limits and
-// conditions change often, so they are examples to edit, not facts. Users
-// can also start from a blank card and enter their own.
+// Generic example privilege sets, offered as an optional starting point when
+// adding a card. These are NOT real issuer data — perks, limits and
+// conditions change often, so they are examples to edit, not facts.
 export const TEMPLATES = [
   {
     key: 'travel',
-    name: 'Premium Travel Card (example)',
+    name: 'Travel-style privileges (example)',
     network: 'Visa',
     perks: [
       { title: 'Airport lounge access', category: 'lounge', requiresPoints: false, pointsCost: null, minSpend: null, conditions: '4 visits per year, show card at the lounge' },
@@ -14,7 +14,7 @@ export const TEMPLATES = [
   },
   {
     key: 'dining',
-    name: 'Lifestyle Dining Card (example)',
+    name: 'Dining-style privileges (example)',
     network: 'Mastercard',
     perks: [
       { title: '1-for-1 set menu', category: 'dining', requiresPoints: false, pointsCost: null, minSpend: null, conditions: 'Participating restaurants, weekdays' },
@@ -24,7 +24,7 @@ export const TEMPLATES = [
   },
   {
     key: 'cashback',
-    name: 'Everyday Cashback Card (example)',
+    name: 'Cashback-style privileges (example)',
     network: 'JCB',
     perks: [
       { title: '5% cashback on groceries', category: 'cashback', requiresPoints: false, pointsCost: null, minSpend: 1000, conditions: 'Monthly cap applies' },
