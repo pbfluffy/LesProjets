@@ -148,6 +148,38 @@ export function promoGroupCounts(rows) {
   return counts
 }
 
+// The key figure of an offer for a badge: "Up to 20%* discount…" -> "20%", "Earn 5X* points" -> "5X".
+// Looks in the title first, then the description; empty when there is no clear number.
+export function perkHeadline(perk) {
+  for (const text of [perk.title || '', perk.conditions || '']) {
+    const x = /(\d+(?:\.\d+)?)\s?X\b/.exec(text)
+    if (x) return x[1] + 'X'
+    const p = /(\d+(?:\.\d+)?)\s?%/.exec(text)
+    if (p && Number(p[1]) > 0) return p[1] + '%' // "0% installments" is not a saving worth a badge
+  }
+  return ''
+}
+
+// Rows grouped under headings: the card's own privileges by category (in the app's
+// category order), then restaurant promotions by venue type. Row order inside a
+// group is kept (filterPerks already sorted it).
+export function groupRows(rows, categories, promoLabels = {}) {
+  const groups = new Map()
+  const put = (key, label, icon, row) => {
+    if (!groups.has(key)) groups.set(key, { key, label, icon, rows: [] })
+    groups.get(key).rows.push(row)
+  }
+  for (const row of rows) {
+    if (row.perk.promo) put('promo:' + row.perk.group, promoLabels[row.perk.group] || 'Promotions', '🍽️', row)
+    else {
+      const cat = categories.find((c) => c.id === row.perk.category) || categories[categories.length - 1]
+      put('cat:' + cat.id, cat.label, cat.icon, row)
+    }
+  }
+  const order = (g) => (g.key.startsWith('cat:') ? categories.findIndex((c) => 'cat:' + c.id === g.key) : 1000)
+  return [...groups.values()].sort((a, b) => order(a) - order(b))
+}
+
 export function newId() {
   return (globalThis.crypto?.randomUUID?.() || String(Date.now()) + Math.random().toString(36).slice(2)).slice(0, 36)
 }

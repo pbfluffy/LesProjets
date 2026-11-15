@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { filterPerks, cleanPerk, isExpired, cardLabel, cardFullName, resolveCards, cardBrand, promosFor, promoGroupCounts } from './perks.js'
+import { filterPerks, cleanPerk, isExpired, cardLabel, cardFullName, resolveCards, cardBrand, promosFor, promoGroupCounts, perkHeadline, groupRows } from './perks.js'
 
 const cards = [
   { id: 'a', name: 'Alpha', perks: [
@@ -162,4 +162,20 @@ test('promoGroupCounts counts distinct promotions per type', () => {
   const two = resolveCards([visaCard, { ...visaCard, id: 'v2' }], catalog, promoData)
   assert.deepEqual(promoGroupCounts(filterPerks(two, {}, today)), { restaurants: 1, buffets: 1 })
   assert.deepEqual(promoGroupCounts(filterPerks(two, { kind: 'privilege' }, today)), {})
+})
+
+test('perkHeadline pulls the key figure out of a title or description', () => {
+  assert.equal(perkHeadline({ title: 'Receive up to 20%* discount at participating restaurants' }), '20%')
+  assert.equal(perkHeadline({ title: 'Earn 5X* Krungsri Points at Department Stores' }), '5X')
+  assert.equal(perkHeadline({ title: 'Airport Lounge Access', conditions: 'Get 50% off a second visit' }), '50%')
+  assert.equal(perkHeadline({ title: 'Airport Lounge Access', conditions: 'Two visits' }), '')
+  assert.equal(perkHeadline({ title: 'Get up to 3.5%*,** cashback' }), '3.5%')
+  assert.equal(perkHeadline({ title: '0% 10 months installments' }), '')
+})
+
+test('groupRows groups privileges by category, then promotions by venue type', () => {
+  const cats = [{ id: 'dining', label: 'Dining', icon: 'D' }, { id: 'travel', label: 'Travel', icon: 'T' }, { id: 'other', label: 'Other', icon: 'O' }]
+  const row = (id, category, extra = {}) => ({ card: { id: 'c' }, perk: { id, category, ...extra } })
+  const g = groupRows([row('a', 'travel'), row('p1', 'dining', { promo: true, group: 'buffets' }), row('b', 'dining'), row('c', 'weird'), row('p2', 'dining', { promo: true, group: 'buffets' })], cats, { buffets: 'Buffets' })
+  assert.deepEqual(g.map((x) => [x.label, x.rows.length]), [['Dining', 1], ['Travel', 1], ['Other', 1], ['Buffets', 2]])
 })

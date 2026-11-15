@@ -46,3 +46,33 @@ label.check{display:flex;align-items:center;gap:8px;color:var(--color-text)}labe
 .auto-list{margin:6px 0;padding-left:18px;font-size:.85rem}
 .empty .btn{margin-top:10px}
 .link-catalog{display:grid;gap:4px;margin:0 0 12px;font-size:.85rem;color:var(--color-text-muted)}
+/* results: grouped, collapsed details, compact mode */
+.search-row{display:flex;gap:8px}.search-row input{flex:1;min-width:0}
+.filters-toggle{display:none;white-space:nowrap}
+.count-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:4px 0 8px}.count-row p{margin:0}
+.group{margin-bottom:14px}
+.group-head{font-size:.95rem;margin:14px 0 8px;display:flex;align-items:center;gap:6px}
+.group-head .count{font-size:.75rem;font-weight:400;color:var(--color-text-muted);border:1px solid var(--color-border);border-radius:999px;padding:0 8px}
+.result{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;margin-bottom:8px}
+.result summary,.result .no-details{display:grid;gap:3px;padding:11px 36px 11px 14px;position:relative}
+.result .no-details{padding-right:14px}
+.result summary{list-style:none;cursor:pointer}.result summary::-webkit-details-marker{display:none}
+.sum-main{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.sum-main .pill{margin-left:0}
+.sum-title{font-weight:600}
+.sum-meta{font-size:.8rem;color:var(--color-text-muted)}.sum-meta .badge{margin-left:6px}
+.headline{font-weight:700;font-size:.85rem;border-radius:8px;padding:2px 8px;background:var(--color-accent);color:var(--color-accent-text);white-space:nowrap}
+.chev{position:absolute;right:14px;top:50%;width:8px;height:8px;margin-top:-6px;border-right:2px solid var(--color-text-muted);border-bottom:2px solid var(--color-text-muted);transform:rotate(45deg);transition:transform .15s}
+details[open]>summary .chev{transform:rotate(-135deg);margin-top:-2px}
+.result .details{padding:0 14px 12px;border-top:1px solid var(--color-border)}.result .details .conds{margin-top:10px}
+.result.expired{opacity:.55}
+.compact .result{border-radius:8px;margin-bottom:4px}
+.compact .result summary,.compact .result .no-details{padding:7px 32px 7px 10px;gap:0}
+.compact .sum-title{font-weight:500;font-size:.9rem}.compact .headline{font-size:.75rem;padding:1px 6px}
+.compact .sum-meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.75rem}
+.compact .group-head{margin:10px 0 6px}
+@media (max-width:600px){
+  .filters-toggle{display:inline-block}
+  .filters-body{display:none}.filters-body.open{display:block}
+}
+.compact .sum-main{flex-wrap:nowrap;align-items:baseline;gap:6px}.compact .sum-title{min-width:0}
+.compact .pill.free{display:none} /* "No points needed" is the norm; only flag the exception */
