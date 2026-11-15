@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { CATEGORIES, categoryById } from '../categories.js'
+import { useEffect, useMemo, useState } from 'react'
+import { CATEGORIES, PROMO_GROUPS, categoryById } from '../categories.js'
 import { DEFAULT_FILTERS, filterPerks, isExpired, cardLabel } from '../perks.js'
 
 function Seg({ value, onChange, options }) {
@@ -12,10 +12,15 @@ function Seg({ value, onChange, options }) {
   )
 }
 
+const PAGE = 40 // results shown at a time; promotions can number in the hundreds
+
 export default function CheckerView({ cards, onGoCards }) {
   const [f, setF] = useState(DEFAULT_FILTERS)
+  const [limit, setLimit] = useState(PAGE)
+  useEffect(() => setLimit(PAGE), [f]) // a new filter starts again from the top
   const rows = useMemo(() => filterPerks(cards, f), [cards, f])
   const totalPerks = cards.reduce((n, c) => n + (c.perks?.length || 0), 0)
+  const hasPromos = cards.some((c) => c.perks?.some((p) => p.promo))
   const dirty = JSON.stringify(f) !== JSON.stringify(DEFAULT_FILTERS)
   const toggleCat = (id) => setF({ ...f, categories: f.categories.includes(id) ? f.categories.filter((c) => c !== id) : [...f.categories, id] })
 
@@ -51,6 +56,12 @@ export default function CheckerView({ cards, onGoCards }) {
           <span className="lbl">Spend</span>
           <Seg value={f.spend} onChange={(spend) => setF({ ...f, spend })} options={[['any', 'Any'], ['none', 'No minimum spend']]} />
         </div>
+        {hasPromos && (
+          <div className="filter-row">
+            <span className="lbl">Show</span>
+            <Seg value={f.kind} onChange={(kind) => setF({ ...f, kind })} options={[['any', 'All'], ['privilege', 'Card privileges'], ['promo', 'Restaurant promotions']]} />
+          </div>
+        )}
         <div className="filter-row">
           <span className="lbl">Card</span>
           <select value={f.cardId} onChange={(e) => setF({ ...f, cardId: e.target.value })} aria-label="Card">
@@ -65,7 +76,7 @@ export default function CheckerView({ cards, onGoCards }) {
       <p className="muted" aria-live="polite">{rows.length} of {totalPerks} privileges</p>
       {!rows.length && <p className="empty">No privileges match these filters.</p>}
       <ul className="results">
-        {rows.map(({ card, perk }) => {
+        {rows.slice(0, limit).map(({ card, perk }) => {
           const cat = categoryById(perk.category)
           return (
             <li className={'panel result' + (isExpired(perk) ? ' expired' : '')} key={card.id + perk.id}>
@@ -76,8 +87,10 @@ export default function CheckerView({ cards, onGoCards }) {
                 </span>
               </div>
               <div className="muted">
-                {cardLabel(card)} · {cat.label}
-                {perk.auto && <span className="badge" title="Collected automatically from the bank’s website">Auto</span>}
+                {cardLabel(card)} · {perk.promo ? (PROMO_GROUPS[perk.group] || 'Promotion') : cat.label}
+                {perk.promo
+                  ? <span className="badge" title="A time-limited restaurant promotion collected from the bank’s website">Promotion</span>
+                  : perk.auto && <span className="badge" title="Collected automatically from the bank’s website">Auto</span>}
               </div>
               {(perk.minSpend || perk.validUntil || perk.conditions) && (
                 <ul className="conds">
@@ -96,6 +109,11 @@ export default function CheckerView({ cards, onGoCards }) {
           )
         })}
       </ul>
+      {rows.length > limit && (
+        <div className="empty">
+          <button className="btn" onClick={() => setLimit(limit + PAGE)}>Show {Math.min(PAGE, rows.length - limit)} more ({rows.length - limit} left)</button>
+        </div>
+      )}
     </section>
   )
 }

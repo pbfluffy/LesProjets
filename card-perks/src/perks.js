@@ -6,6 +6,7 @@ export const DEFAULT_FILTERS = {
   points: 'any',       // 'any' | 'free' (no points needed) | 'points' (points needed)
   spend: 'any',        // 'any' | 'none' (no minimum spend)
   cardId: 'all',
+  kind: 'any',         // 'any' | 'privilege' (the card's own privileges) | 'promo' (restaurant promotions)
   hideExpired: true,
 }
 
@@ -45,11 +46,51 @@ export function autoPerksFor(card, catalog) {
   }))
 }
 
-// Cards with catalog privileges merged in front of the user's own.
-export function resolveCards(cards, catalog) {
+// 'visa' | 'mastercard' | 'jcb' | 'unionpay' | null, from the card's name or network.
+export function cardBrand(card) {
+  const s = `${card.name || ''} ${card.network || ''}`
+  if (/visa/i.test(s)) return 'visa'
+  if (/master\s?card/i.test(s)) return 'mastercard'
+  if (/jcb/i.test(s)) return 'jcb'
+  if (/union\s?pay/i.test(s)) return 'unionpay'
+  return null
+}
+
+const PROMO_ORIGIN = { ktc: 'https://www.ktc.co.th' }
+
+// Restaurant promotions the scanner collected for a card's bank, limited to the
+// ones its brand is eligible for (a "KTC MASTERCARD" promotion is not for a Visa).
+// promoData = { [bankId]: { promos: [...], scannedAt } }
+export function promosFor(card, promoData) {
+  const bank = card.catalogRef?.bank
+  const set = bank && promoData?.[bank]
+  if (!set) return []
+  const brand = cardBrand(card)
+  return set.promos
+    .filter((p) => !p.brands?.length || (brand && p.brands.includes(brand)))
+    .map((p) => ({
+      id: 'promo:' + p.id,
+      title: p.title,
+      category: 'dining',
+      requiresPoints: !!p.requiresPoints,
+      pointsCost: null,
+      minSpend: p.minSpend || null,
+      conditions: p.summary || '',
+      validUntil: p.end || null,
+      auto: true,
+      promo: true,
+      group: p.group,
+      brands: p.brands || [],
+      sourceUrl: (PROMO_ORIGIN[bank] || '') + p.path,
+      checkedAt: set.scannedAt || null,
+    }))
+}
+
+// Cards with catalog privileges and promotions merged in front of the user's own.
+export function resolveCards(cards, catalog, promoData) {
   return cards.map((card) => {
-    const auto = autoPerksFor(card, catalog)
-    return auto.length ? { ...card, perks: [...auto, ...(card.perks || [])] } : card
+    const extra = [...autoPerksFor(card, catalog), ...promosFor(card, promoData)]
+    return extra.length ? { ...card, perks: [...extra, ...(card.perks || [])] } : card
   })
 }
 
@@ -71,6 +112,8 @@ export function filterPerks(cards, filters, today = new Date()) {
       if (f.points === 'free' && perk.requiresPoints) continue
       if (f.points === 'points' && !perk.requiresPoints) continue
       if (f.spend === 'none' && perk.minSpend) continue
+      if (f.kind === 'privilege' && perk.promo) continue
+      if (f.kind === 'promo' && !perk.promo) continue
       if (f.hideExpired && isExpired(perk, today)) continue
       if (q) {
         const hay = `${perk.title} ${perk.conditions || ''} ${cardFullName(card)} ${card.nickname || ''}`.toLowerCase()
@@ -79,9 +122,11 @@ export function filterPerks(cards, filters, today = new Date()) {
       rows.push({ card, perk })
     }
   }
-  // Free perks first, then cheaper point cost, then title.
+  // The card's own privileges before the (many) promotions, then free before
+  // points, then cheaper point cost, then title.
   rows.sort((a, b) =>
-    Number(a.perk.requiresPoints) - Number(b.perk.requiresPoints)
+    Number(!!a.perk.promo) - Number(!!b.perk.promo)
+    || Number(a.perk.requiresPoints) - Number(b.perk.requiresPoints)
     || (a.perk.pointsCost || 0) - (b.perk.pointsCost || 0)
     || a.perk.title.localeCompare(b.perk.title))
   return rows

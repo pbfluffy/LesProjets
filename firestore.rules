@@ -179,6 +179,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Card Perks — restaurant promotions collected the same way, split into
+    // shards (cardPromos/ktc-dining-1, -2, …) to stay well under the document
+    // size limit. Same access: signed-in read, scanner-only write.
+    match /cardPromos/{shardId} {
+      allow read:  if signedIn();
+      allow write: if false;
+    }
+
     // ── Pumgoda — user saved places ─────────────────────────────────────────
     match /userPlaces/{uid} {
       allow read:  if isUser(uid) || isAdmin();

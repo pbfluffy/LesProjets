@@ -13,4 +13,13 @@ export const CATEGORIES = [
 
 export const categoryById = (id) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[CATEGORIES.length - 1]
 
-export const NETWORKS = ['Visa', 'Mastercard', 'JCB', 'UnionPay', 'Amex', 'Other']
+// Sub-groups of scanned restaurant promotions (the bank's own grouping).
+export const PROMO_GROUPS = {
+  restaurants: 'Restaurants',
+  buffets: 'Buffets',
+  'hotel-dining': 'Hotel dining',
+  'desserts-beverages': 'Desserts & drinks',
+  'hot-pot-barbecue': 'Hot pot & BBQ',
+}
+
+export const NETWORKS =['Visa', 'Mastercard', 'JCB', 'UnionPay', 'Amex', 'Other']

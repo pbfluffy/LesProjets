@@ -26,6 +26,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Each card's own privileges: ~15 pages, under a minute.
   scan:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -47,3 +48,27 @@ jobs:
           PUBLISH: ${{ github.event_name == 'schedule' || inputs.publish }}
         run: |
           if [ "$PUBLISH" = "true" ]; then node scan.mjs --publish; else node scan.mjs; fi
+
+  # Dining promotions: ~1,900 pages at one request per second (about half an
+  # hour), so its own job. A failure here never blocks the card scan above.
+  promos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install scanner
+        working-directory: card-perks/scanner
+        run: npm install --no-audit --no-fund
+      - name: Test parser
+        working-directory: card-perks/scanner
+        run: npm test
+      - name: Scan and publish promotions
+        working-directory: card-perks/scanner
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PUBLISH: ${{ github.event_name == 'schedule' || inputs.publish }}
+        run: |
+          if [ "$PUBLISH" = "true" ]; then node scan.mjs --promos --publish; else node scan.mjs --promos; fi

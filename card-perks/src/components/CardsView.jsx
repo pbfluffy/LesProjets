@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { NETWORKS, categoryById } from '../categories.js'
 import { OTHER, bankById, bankOptions } from '../banks.js'
 import { TEMPLATES } from '../templates.js'
-import { newId, cardLabel, cardFullName, autoPerksFor } from '../perks.js'
+import { newId, cardLabel, cardFullName, autoPerksFor, promosFor } from '../perks.js'
 import PerkForm from './PerkForm.jsx'
 
 const MAX_CARDS = 30
@@ -187,7 +187,7 @@ function LinkCatalog({ card, catalog, onLink }) {
   )
 }
 
-export default function CardsView({ cards, persist, catalog = {} }) {
+export default function CardsView({ cards, persist, catalog = {}, promoData = {} }) {
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState(null) // { cardId, perk|null }
   const banks = useMemo(() => bankOptions(catalog), [catalog])
@@ -222,6 +222,9 @@ export default function CardsView({ cards, persist, catalog = {} }) {
           </div>
           <LinkCatalog card={card} catalog={catalog} onLink={(patch) => update(card.id, (c) => ({ ...c, ...patch }))} />
           <AutoPerks perks={autoPerksFor(card, catalog)} />
+          {promosFor(card, promoData).length > 0 && (
+            <p className="muted">🍽️ {promosFor(card, promoData).length} restaurant promotions available for this card — see them in <strong>Check privileges</strong> (Dining).</p>
+          )}
           {card.catalogRef && !autoPerksFor(card, catalog).length && (
             <p className="muted">Automatic privileges for this card aren’t available right now — they’ll appear when the catalog loads.</p>
           )}
