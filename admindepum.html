@@ -2448,7 +2448,8 @@ async function loadCloudlingoData(){
       const st = state.stats || {};
       if (Object.keys(st).length) CLOUD.learners++;
       const alive = state.lastStreakDay === cloudDayKey(0) || state.lastStreakDay === cloudDayKey(-1);
-      CLOUD.people.push({ uid: d.id, cert: state.cert || '', xp: state.xp || 0, streak: alive ? state.streak || 0 : 0,
+      // Your own admin account isn’t a learner: leave it out of the Learners table, CSV and counts.
+      if (d.id !== ADMIN_UID && d.id !== auth.currentUser?.uid) CLOUD.people.push({ uid: d.id, cert: state.cert || '', xp: state.xp || 0, streak: alive ? state.streak || 0 : 0,
         lessons: state.lessons || 0, exams: (state.exams || []).length, passed: (state.exams || []).filter(e => e.pass).length,
         updated: state.updatedAt || d.data().updatedAt || 0, reminder: remind.has(d.id) ? remind.get(d.id) : null });
       Object.entries(st).forEach(([qid, v]) => {
