@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { filterPerks, cleanPerk, isExpired, cardLabel, cardFullName, resolveCards } from './perks.js'
+import { filterPerks, cleanPerk, isExpired, cardLabel, cardFullName, resolveCards, cardBrand, promosFor } from './perks.js'
 
 const cards = [
   { id: 'a', name: 'Alpha', perks: [
@@ -86,4 +86,63 @@ test('catalog privileges are searchable and filterable like any other', () => {
   const mine = { id: 'm', bank: 'Krungthai (KTC)', name: 'Visa Platinum', catalogRef: { bank: 'ktc', card: 'ktc-visa-platinum' }, perks: [] }
   const rows = filterPerks(resolveCards([mine], catalog), { categories: ['insurance'], points: 'free' })
   assert.equal(rows.length, 1)
+})
+
+// ---- restaurant promotions ----
+const promoData = {
+  ktc: {
+    scannedAt: '2026-11-15T00:00:00.000Z',
+    promos: [
+      { id: 'restaurants-all', path: '/en/promotion/dining-restaurants/restaurants/all', group: 'restaurants', title: 'All Cards Cafe', summary: '10% off', end: '2027-01-31', brands: [], requiresPoints: false, minSpend: 500 },
+      { id: 'restaurants-mc', path: '/en/promotion/dining-restaurants/restaurants/mc', group: 'restaurants', title: 'Mastercard Only Bistro', summary: '20% off', end: '2027-01-31', brands: ['mastercard'], requiresPoints: false, minSpend: null },
+      { id: 'buffets-pts', path: '/en/promotion/dining-restaurants/buffets/pts', group: 'buffets', title: 'Points Buffet', summary: 'Redeem points', end: '2027-01-31', brands: [], requiresPoints: true, minSpend: null },
+      { id: 'restaurants-old', path: '/en/promotion/dining-restaurants/restaurants/old', group: 'restaurants', title: 'Ended Diner', summary: 'gone', end: '2026-01-01', brands: [], requiresPoints: false, minSpend: null },
+    ],
+  },
+}
+const visaCard = { id: 'v', bank: 'Krungthai (KTC)', name: 'Visa Platinum', catalogRef: { bank: 'ktc', card: 'ktc-visa-platinum' }, perks: [] }
+const mcCard = { id: 'm', bank: 'Krungthai (KTC)', name: 'Platinum Mastercard', catalogRef: { bank: 'ktc', card: 'ktc-platinum-mastercard' }, perks: [] }
+
+test('cardBrand reads the brand from name or network', () => {
+  assert.equal(cardBrand(visaCard), 'visa')
+  assert.equal(cardBrand(mcCard), 'mastercard')
+  assert.equal(cardBrand({ name: 'UnionPay Diamond' }), 'unionpay')
+  assert.equal(cardBrand({ name: 'Gold', network: 'JCB' }), 'jcb')
+  assert.equal(cardBrand({ name: 'Mystery' }), null)
+})
+
+test('promosFor limits brand-specific promotions to matching cards', () => {
+  assert.deepEqual(promosFor(visaCard, promoData).map((p) => p.title), ['All Cards Cafe', 'Points Buffet', 'Ended Diner'])
+  assert.deepEqual(promosFor(mcCard, promoData).map((p) => p.title), ['All Cards Cafe', 'Mastercard Only Bistro', 'Points Buffet', 'Ended Diner'])
+})
+
+test('promosFor ignores cards with no catalog link or a bank with no promotions', () => {
+  assert.deepEqual(promosFor({ id: 'x', name: 'Plain', perks: [] }, promoData), [])
+  assert.deepEqual(promosFor({ ...visaCard, catalogRef: { bank: 'other', card: 'a' } }, promoData), [])
+  assert.deepEqual(promosFor(visaCard, {}), [])
+})
+
+test('promotion perks carry dining category, dates, source and a promo flag', () => {
+  const [p] = promosFor(visaCard, promoData)
+  assert.equal(p.category, 'dining')
+  assert.equal(p.promo, true)
+  assert.equal(p.validUntil, '2027-01-31')
+  assert.equal(p.minSpend, 500)
+  assert.equal(p.sourceUrl, 'https://www.ktc.co.th/en/promotion/dining-restaurants/restaurants/all')
+  assert.equal(p.checkedAt, '2026-11-15T00:00:00.000Z')
+})
+
+test('filters: kind, points, expiry and sort treat promotions like any privilege', () => {
+  const today = new Date('2026-11-15')
+  const cards = resolveCards([{ ...visaCard, perks: [{ id: 'own', title: 'Own perk', category: 'other', requiresPoints: false }] }], catalog, promoData)
+  const titles = (f) => filterPerks(cards, f, today).map((r) => r.perk.title)
+  assert.ok(!titles({}).includes('Ended Diner')) // expired promotions are hidden
+  assert.ok(titles({ hideExpired: false }).includes('Ended Diner'))
+  assert.deepEqual(titles({ kind: 'promo' }), ['All Cards Cafe', 'Points Buffet'])
+  assert.ok(!titles({ kind: 'privilege' }).includes('Points Buffet'))
+  assert.deepEqual(titles({ kind: 'promo', points: 'points' }), ['Points Buffet'])
+  assert.deepEqual(titles({ kind: 'promo', spend: 'none' }), ['Points Buffet'])
+  assert.deepEqual(titles({ categories: ['dining'] }), ['All Cards Cafe', 'Points Buffet']) // promos are dining
+  // the card's own privileges come before promotions
+  assert.deepEqual(titles({}).slice(0, 2), ['Own perk', 'Travel Insurance'])
 })

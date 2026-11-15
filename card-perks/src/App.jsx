@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { auth, onAuthStateChanged, signOut } from './firebase.js'
 import { useCards } from './useCards.js'
 import { useCatalog } from './useCatalog.js'
+import { usePromos } from './usePromos.js'
 import { resolveCards } from './perks.js'
 import LoginGate from './components/LoginGate.jsx'
 import CheckerView from './components/CheckerView.jsx'
@@ -12,8 +13,10 @@ export default function App() {
   const [tab, setTab] = useState('check')
   const { cards, status, saving, persist } = useCards(user || null)
   const { catalog } = useCatalog(user || null)
-  // Cards with their automatically collected privileges merged in.
-  const resolved = useMemo(() => resolveCards(cards, catalog), [cards, catalog])
+  // Promotions are large, so only load them once the user has a catalog-linked card.
+  const promoData = usePromos(user || null, cards.some((c) => c.catalogRef))
+  // Cards with their automatically collected privileges and promotions merged in.
+  const resolved = useMemo(() => resolveCards(cards, catalog, promoData), [cards, catalog, promoData])
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
 
@@ -39,7 +42,7 @@ export default function App() {
         {status === 'error' && <p className="error" role="alert">Couldn’t load your cards. Check your connection and reload.</p>}
         {status === 'ready' && (tab === 'check'
           ? <CheckerView cards={resolved} onGoCards={() => setTab('cards')} />
-          : <CardsView cards={cards} persist={persist} catalog={catalog} />)}
+          : <CardsView cards={cards} persist={persist} catalog={catalog} promoData={promoData} />)}
       </main>
     </div>
   )

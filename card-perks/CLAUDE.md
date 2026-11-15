@@ -48,6 +48,24 @@ category, points required or not, minimum spend, card, search and expiry. Live: 
 - Collected text is a bank's marketing copy; the UI labels it "from the bank's website, confirm with the bank".
 - The static list in `banks.js` is only a fallback for the Add card form; the catalog wins when present.
 
+### Restaurant promotions (`scanner/ktc-promos.mjs`)
+
+- KTC's dining promotions are ~1,900 individual pages found through its sitemaps (about 40% are live; the rest are
+  expired and skipped). `node scan.mjs --promos` fetches them at one request per second (~35 min), so the workflow runs
+  it as its own job (`promos`, 90 min timeout). `--limit 50` is a quick trial that refuses to `--publish`.
+- robots.txt blocks promotion URLs **with a query string** (`?page=`, `?filter=`), so never crawl the paginated list
+  pages — only the plain page URLs the sitemaps list (`isDiningPromoUrl`).
+- Output is sharded into `cardPromos/{bank}-dining-{n}` (600 promotions each, far under the 1 MB doc limit); leftover
+  higher-numbered shards are deleted after a publish. Rule: signed-in read, no client write.
+- Each promo: `{ id, path, group, title, summary, start, end, brands, requiresPoints, minSpend }`. Dates come from the
+  page's "Period 1 Feb 26 - 31 Jan 27" line; a page without a readable end date is skipped, not guessed.
+  `brands: []` means all KTC cards; otherwise only cards of that brand get it (`promosFor` uses `cardBrand`).
+- `requiresPoints` is true only for offers that *open with* a redemption ("Redeem points for …") with no plain route;
+  mixed offers count as no-points. It's a heuristic — the UI links to the source and says to confirm with the bank.
+- The app loads promotions only when the user has a catalog-linked card (`usePromos`), merges them at render time like
+  catalog privileges, and pages the results (40 at a time) because there can be hundreds.
+- `validatePromos()` is the safety valve for this scan (enough pages, few download failures, enough live promotions).
+
 ## Gotchas
 
 - Deploy order: **deploy the Firestore rules before the app is usable** (see root `CLAUDE.md`).
