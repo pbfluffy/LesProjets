@@ -459,6 +459,90 @@
         N('as', 6, 56, 151, 48, ['Asynchronous\nlarge files, minutes', 'Asynchronous\nไฟล์ใหญ่, ใช้เวลาหลายนาที'], 'ai', '', /asynchronous/i),
         N('bt', 163, 56, 151, 48, ['Batch transform\nwhole dataset, no endpoint', 'Batch transform\nทั้งชุดข้อมูล, ไม่มี endpoint'], 'ai', '', /batch transform/i)],
       edges: [] },
+
+    // ---- ITIL 4 Foundation (only used by the ITIL course) ----
+    itil_value: { h: 108, cap: ['A service creates value when it has enough utility (fit for purpose) and warranty (fit for use). Value is co-created with the consumer, weighing outcomes against costs and risks.', 'บริการสร้างคุณค่าเมื่อมีทั้ง utility (เหมาะกับวัตถุประสงค์) และ warranty (เหมาะกับการใช้งาน) คุณค่าสร้างร่วมกับผู้ใช้ โดยชั่งผลลัพธ์กับค่าใช้จ่ายและความเสี่ยง'],
+      groups: [],
+      nodes: [N('u', 6, 6, 130, 44, ['Utility\nfit for purpose', 'Utility\nเหมาะกับวัตถุประสงค์'], 'ai', '', /utility|purpose|functionality|features/i),
+        N('w', 6, 58, 130, 44, ['Warranty\nfit for use', 'Warranty\nเหมาะกับการใช้งาน'], 'net', '', /warranty|availab|secur|capacity|continuity|fit for use/i),
+        N('v', 176, 22, 138, 64, ['Value\noutcomes vs\ncosts and risks', 'คุณค่า\nผลลัพธ์เทียบกับ\nค่าใช้จ่ายและความเสี่ยง'], 'storage', '', /value|outcome|cost|risk|co-creat/i)],
+      edges: [E('u', 'v'), E('w', 'v')] },
+
+    itil_gp: { h: 120, cap: ['The seven ITIL guiding principles. They apply to almost any situation and work best when considered together.', 'หลักการชี้นำ 7 ข้อของ ITIL ใช้ได้เกือบทุกสถานการณ์ และได้ผลดีที่สุดเมื่อพิจารณาร่วมกัน'],
+      groups: [],
+      nodes: [N('a', 6, 4, 151, 24, ['Focus on value', 'Focus on value'], 'ai', '', /focus on value/i),
+        N('b', 163, 4, 151, 24, ['Start where you are', 'Start where you are'], 'ai', '', /start where you are/i),
+        N('c', 6, 32, 151, 24, ['Progress iteratively', 'Progress iteratively'], 'ai', '', /progress iteratively/i),
+        N('d', 163, 32, 151, 24, ['Collaborate, be visible', 'Collaborate, be visible'], 'ai', '', /collaborate/i),
+        N('e', 6, 60, 151, 24, ['Think holistically', 'Think holistically'], 'ai', '', /holistic/i),
+        N('f', 163, 60, 151, 24, ['Keep it simple', 'Keep it simple'], 'ai', '', /keep it simple/i),
+        N('g', 6, 88, 308, 26, ['Optimize, then automate', 'Optimize แล้วค่อย automate'], 'ai', '', /optimi[sz]e|automat/i)],
+      edges: [] },
+
+    itil_4d: { h: 150, cap: ['Every service needs all four dimensions balanced. External PESTLE factors (political, economic, social, technological, legal, environmental) affect all of them.', 'ทุกบริการต้องสมดุลทั้ง 4 มิติ และปัจจัยภายนอก PESTLE (การเมือง เศรษฐกิจ สังคม เทคโนโลยี กฎหมาย สิ่งแวดล้อม) มีผลต่อทุกมิติ'],
+      groups: [G(4, 4, 312, 142, ['External factors: PESTLE', 'ปัจจัยภายนอก: PESTLE'], 'dash', /pestle|political|external/i)],
+      nodes: [N('op', 14, 24, 130, 40, ['Organizations\nand people', 'Organizations\nand people'], 'user', '', /organizations and people|culture|roles|skills|staff/i),
+        N('it', 176, 24, 130, 40, ['Information\nand technology', 'Information\nand technology'], 'data', '', /information and technology|knowledge|tools/i),
+        N('ps', 14, 98, 130, 40, ['Partners\nand suppliers', 'Partners\nand suppliers'], 'net', '', /partners and suppliers|outsourc|supplier/i),
+        N('vs', 176, 98, 130, 40, ['Value streams\nand processes', 'Value streams\nand processes'], 'compute', '', /value streams and processes|workflow|activities/i),
+        N('c', 112, 70, 96, 24, ['Services', 'บริการ'], 'storage')],
+      edges: [] },
+
+    itil_svs: { h: 168, cap: ['The service value system turns opportunity and demand into value. Inside it, the six value chain activities are combined into value streams, guided by the other SVS components.', 'Service value system เปลี่ยน opportunity และ demand ให้เป็นคุณค่า ภายในมี 6 กิจกรรมของ value chain ที่นำมาเรียงเป็น value stream โดยมีองค์ประกอบอื่นของ SVS คอยชี้นำ'],
+      groups: [G(86, 4, 148, 124, ['Service value chain', 'Service value chain'], 'solid', /value chain|activit/i)],
+      nodes: [N('in', 6, 44, 70, 44, ['Opportunity\n+ demand', 'Opportunity\n+ demand'], 'user', '', /opportunity|demand|input/i),
+        N('p', 94, 22, 64, 28, 'Plan', 'mgmt', '', /\bplan\b/i), N('i', 162, 22, 64, 28, 'Improve', 'mgmt', '', /improve/i),
+        N('e', 94, 54, 64, 28, 'Engage', 'mgmt', '', /engage/i), N('d', 162, 54, 64, 28, ['Design +\ntransition', 'Design +\ntransition'], 'mgmt', '', /design and transition/i),
+        N('o', 94, 86, 64, 28, ['Obtain/build', 'Obtain/build'], 'mgmt', '', /obtain/i), N('s', 162, 86, 64, 28, ['Deliver +\nsupport', 'Deliver +\nsupport'], 'mgmt', '', /deliver and support/i),
+        N('out', 244, 44, 70, 44, ['Value', 'คุณค่า'], 'storage', '', /^value$|output of the/i),
+        N('c', 6, 136, 308, 28, ['Guiding principles · governance · practices · continual improvement', 'Guiding principles · governance · practices · continual improvement'], 'plain', '', /governance|guiding principles|continual improvement|practices/i)],
+      edges: [E('in', 'e'), E('s', 'out')] },
+
+    itil_prac: { h: 230, cap: ['The 15 practices you need to know the purpose of. The seven at the bottom, from continual improvement down, are tested in more detail.', 'Practice 15 ตัวที่ต้องรู้วัตถุประสงค์ ส่วน 7 ตัวด้านล่าง ตั้งแต่ continual improvement ลงมา ออกสอบละเอียดกว่า'],
+      groups: [],
+      nodes: [N('a', 6, 4, 151, 22, ['Info security · protect', 'Info security · ปกป้อง'], 'sec', '', /information security/i),
+        N('b', 163, 4, 151, 22, ['Relationship · stakeholders', 'Relationship · ผู้เกี่ยวข้อง'], 'user', '', /relationship management/i),
+        N('c', 6, 30, 151, 22, ['Supplier · suppliers', 'Supplier · ซัพพลายเออร์'], 'net', '', /supplier management/i),
+        N('d', 163, 30, 151, 22, ['IT asset · lifecycle', 'IT asset · วงจรชีวิต'], 'storage', '', /it asset/i),
+        N('e', 6, 56, 151, 22, ['Monitoring · events', 'Monitoring · event'], 'mgmt', '', /monitoring|event/i),
+        N('f', 163, 56, 151, 22, ['Release · make available', 'Release · พร้อมใช้งาน'], 'compute', '', /release/i),
+        N('g', 6, 82, 151, 22, ['Configuration · CIs', 'Configuration · CI'], 'data', '', /configuration/i),
+        N('h', 163, 82, 151, 22, ['Deployment · move to live', 'Deployment · ขึ้นระบบจริง'], 'compute', '', /deployment/i),
+        N('i', 6, 112, 151, 22, ['Continual improvement', 'Continual improvement'], 'ai', '', /continual improvement/i),
+        N('j', 163, 112, 151, 22, ['Change · authorize', 'Change · อนุมัติ'], 'ai', '', /change/i),
+        N('k', 6, 138, 151, 22, ['Incident · restore', 'Incident · กู้คืน'], 'ai', '', /incident/i),
+        N('l', 163, 138, 151, 22, ['Problem · causes', 'Problem · ต้นเหตุ'], 'ai', '', /problem/i),
+        N('m', 6, 164, 151, 22, ['Service request · requests', 'Service request · คำขอ'], 'ai', '', /service request/i),
+        N('n', 163, 164, 151, 22, ['Service desk · contact', 'Service desk · จุดติดต่อ'], 'ai', '', /service desk/i),
+        N('o', 6, 190, 308, 22, ['Service level · targets', 'Service level · เป้าหมาย'], 'ai', '', /service level/i)],
+      edges: [] },
+
+    itil_ipc: { h: 148, cap: ['Incident management restores service fast. Problem management finds causes and manages workarounds and known errors. The permanent fix goes through change enablement.', 'Incident management กู้คืนบริการให้เร็ว Problem management หาต้นเหตุและจัดการ workaround และ known error ส่วนการแก้ถาวรต้องผ่าน change enablement'],
+      groups: [],
+      nodes: [N('i', 6, 6, 92, 56, ['Incident\nrestore\nservice fast', 'Incident\nกู้คืนบริการ\nให้เร็ว'], 'sec', '', /incident|restor/i),
+        N('p', 114, 6, 92, 56, ['Problem\nfind the cause,\nworkaround', 'Problem\nหาต้นเหตุ,\nworkaround'], 'mgmt', '', /problem|cause|workaround|known error/i),
+        N('c', 222, 6, 92, 56, ['Change\npermanent\nfix', 'Change\nแก้ไข\nถาวร'], 'ai', '', /change/i),
+        N('r', 6, 86, 308, 26, ['Service request: a normal request, not a failure', 'Service request: คำขอปกติ ไม่ใช่ความล้มเหลว'], 'user', '', /service request|request/i),
+        N('d', 6, 116, 308, 26, ['Service desk: single point of contact for both', 'Service desk: จุดติดต่อเดียวสำหรับทั้งสองแบบ'], 'user', '', /service desk|contact/i)],
+      edges: [E('i', 'p'), E('p', 'c')] },
+
+    itil_chg: { h: 92, cap: ['Three types of change. Even emergency changes are assessed and authorized, just faster.', 'การเปลี่ยนแปลง 3 แบบ แม้ emergency change ก็ยังต้องประเมินและอนุมัติ เพียงแต่เร็วกว่า'],
+      groups: [],
+      nodes: [N('s', 6, 4, 308, 26, ['Standard · low risk, pre-authorized', 'Standard · ความเสี่ยงต่ำ อนุมัติล่วงหน้า'], 'storage', '', /standard/i),
+        N('n', 6, 34, 308, 26, ['Normal · assessed and authorized by a change authority', 'Normal · ประเมินและอนุมัติโดย change authority'], 'net', '', /normal|change authority/i),
+        N('e', 6, 64, 308, 26, ['Emergency · needed now, fast-track approval', 'Emergency · ต้องทำทันที อนุมัติแบบเร่งด่วน'], 'sec', '', /emergency/i)],
+      edges: [] },
+
+    itil_ci: { h: 200, cap: ['The continual improvement model. It loops: after checking results, keep the momentum and start again.', 'โมเดล continual improvement วนเป็นรอบ: หลังตรวจผลแล้ว รักษาแรงขับเคลื่อนและเริ่มรอบใหม่'],
+      groups: [],
+      nodes: [N('a', 6, 4, 308, 24, ['1 · What is the vision?', '1 · What is the vision?'], 'mgmt', '', /vision/i),
+        N('b', 6, 32, 308, 24, ['2 · Where are we now? (baseline)', '2 · Where are we now? (baseline)'], 'mgmt', '', /where are we now/i),
+        N('c', 6, 60, 308, 24, ['3 · Where do we want to be? (targets)', '3 · Where do we want to be? (เป้าหมาย)'], 'mgmt', '', /where do we want/i),
+        N('d', 6, 88, 308, 24, ['4 · How do we get there? (plan)', '4 · How do we get there? (แผน)'], 'mgmt', '', /how do we get there/i),
+        N('e', 6, 116, 308, 24, ['5 · Take action', '5 · Take action'], 'mgmt', '', /take action/i),
+        N('f', 6, 144, 308, 24, ['6 · Did we get there? (measure)', '6 · Did we get there? (วัดผล)'], 'mgmt', '', /did we get there/i),
+        N('g', 6, 172, 308, 24, ['7 · How do we keep the momentum going?', '7 · How do we keep the momentum going?'], 'mgmt', '', /momentum/i)],
+      edges: [] },
   };
 
   // Which diagram a question gets: the first rule that matches its text plus its right answer.
@@ -516,9 +600,23 @@
     ['dbpick', /neptune|documentdb|mongodb|timestream|keyspaces|cassandra|graph database|time-series|key-value|nosql|relational database|which database|database service|purpose-built database/i],
     ['containers', /\becs\b|\beks\b|fargate|\becr\b|containers?\b|kubernetes|docker/i],
     ['scaling', /scal(e|ing) (up|out|in|down)\b|scaling ___|vertical(ly)? scal|horizontal(ly)? scal|elasticity|stop guessing capacity|fault tolerance|___ tolerance/i],
+    // ITIL 4 rules: the third item limits them to the ITIL course (see diagramFor).
+    ['itil_gp', /guiding principles?|focus on value|start where you are|progress iteratively|collaborate and promote|holistically|keep it simple|optimi[sz]e and automate/i, 'itil'],
+    ['itil_ci', /continual improvement|what is the vision|where are we now|did we get there|momentum|\(cir\)/i, 'itil'],
+    ['itil_chg', /what is a change|standard change|normal change|emergency change|change authority|change schedule|type of change/i, 'itil'],
+    ['itil_4d', /dimensions?\b|pestle|organizations and people|information and technology|partners and suppliers|value streams and processes|outsource/i, 'itil'],
+    ['itil_svs', /service value (system|chain)|value chain|\bsvs\b|opportunity and demand|governance|value stream/i, 'itil'],
+    ['itil_ipc', /incident|problem|known error|workaround|swarming|service request|service desk/i, 'itil'],
+    ['itil_prac', /practice|service level|\bslas?\b|configuration item|it asset|\bevent\b|release|deployment/i, 'itil'],
+    ['itil_value', /utility|warranty|outcome|output|\bcosts?\b|\brisks?\b|value|co-creat|customer|user|sponsor|service offering|goods|access to resources/i, 'itil'],
     ['global', /availability zones?|local zones?|global infrastructure|regions? around the world|choosing an aws region/i],
   ];
-  window.diagramFor = (text) => { for (const [id, re] of RULES) if (re.test(text)) return id; return null; };
+  // Rules marked 'itil' apply only to the ITIL course; the others only to the AWS courses.
+  window.diagramFor = (text, course) => {
+    const want = course === 'itil' ? 'itil' : undefined;
+    for (const [id, re, only] of RULES) if (only === want && re.test(text)) return id;
+    return null;
+  };
 
   // ---- rendering ----
   const L = (t, th) => Array.isArray(t) ? (th ? t[1] : t[0]) : t;
@@ -600,6 +698,10 @@
     dbpick: ['Choosing a database', 'การเลือกฐานข้อมูล'], containers: ['Containers', 'Container'],
     aisec: ['Securing an AI app', 'การรักษาความปลอดภัยแอป AI'], scoping: ['Security Scoping Matrix', 'Security Scoping Matrix'],
     aigov: ['AI governance tools', 'เครื่องมือ governance สำหรับ AI'], sminfer: ['SageMaker inference options', 'ตัวเลือก inference ของ SageMaker'],
+    itil_value: ['Utility, warranty and value', 'Utility, warranty และคุณค่า'], itil_gp: ['The 7 guiding principles', 'หลักการชี้นำ 7 ข้อ'],
+    itil_4d: ['The four dimensions', '4 มิติของการจัดการบริการ'], itil_svs: ['Service value system', 'Service value system'],
+    itil_prac: ['The 15 practices', 'Practice 15 ตัว'], itil_ipc: ['Incident, problem, change', 'Incident, problem, change'],
+    itil_chg: ['Types of change', 'ประเภทของการเปลี่ยนแปลง'], itil_ci: ['Continual improvement model', 'โมเดล continual improvement'],
   };
   window.diagramTitle = (id, lang) => { const t = TITLES[id]; return t ? (lang === 'th' ? t[1] : t[0]) : id; };
 })();

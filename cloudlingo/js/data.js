@@ -781,6 +781,25 @@ window.COURSES = [
         ]
       }
     ]
+  },
+  {
+    // ITIL 4 Foundation (IT service management). Questions are in js/bank/itil.js.
+    // Real exam: 40 questions in 60 minutes, pass mark 65% (26 of 40).
+    id: 'itil',
+    code: 'ITIL-4',
+    name: 'ITIL 4 Foundation',
+    level: 'ITSM',
+    org: 'PeopleCert',
+    blurb: 'Guiding principles, the service value chain and the key ITIL practices.',
+    exam: { questions: 20, minutes: 30, pass: 65 },
+    full: { questions: 40, minutes: 60 },
+    units: [
+      { id: 'itil-1', title: 'Key Concepts', domain: 'Domain 1 · 13%', icon: '📘', questions: [] },
+      { id: 'itil-2', title: 'Guiding Principles', domain: 'Domain 2 · 15%', icon: '🧭', questions: [] },
+      { id: 'itil-3', title: 'Dimensions & Value System', domain: 'Domain 3 · 12%', icon: '🔗', questions: [] },
+      { id: 'itil-4', title: 'Practices: Purpose', domain: 'Domain 4 · 18%', icon: '🧩', questions: [] },
+      { id: 'itil-5', title: 'Practices in Detail', domain: 'Domain 5 · 42%', icon: '🛠️', questions: [] }
+    ]
   }
 ];
 
