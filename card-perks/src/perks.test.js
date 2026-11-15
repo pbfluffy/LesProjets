@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { filterPerks, cleanPerk, isExpired, cardLabel, cardFullName, resolveCards, cardBrand, promosFor } from './perks.js'
+import { filterPerks, cleanPerk, isExpired, cardLabel, cardFullName, resolveCards, cardBrand, promosFor, promoGroupCounts } from './perks.js'
 
 const cards = [
   { id: 'a', name: 'Alpha', perks: [
@@ -145,4 +145,21 @@ test('filters: kind, points, expiry and sort treat promotions like any privilege
   assert.deepEqual(titles({ categories: ['dining'] }), ['All Cards Cafe', 'Points Buffet']) // promos are dining
   // the card's own privileges come before promotions
   assert.deepEqual(titles({}).slice(0, 2), ['Own perk', 'Travel Insurance'])
+})
+
+test('venue-type filter keeps promotions of the chosen types only', () => {
+  const today = new Date('2026-11-15')
+  const cards = resolveCards([{ ...visaCard, perks: [{ id: 'own', title: 'Own perk', category: 'other', requiresPoints: false }] }], catalog, promoData)
+  const titles = (f) => filterPerks(cards, f, today).map((r) => r.perk.title)
+  assert.deepEqual(titles({ groups: ['buffets'] }), ['Points Buffet']) // card privileges drop out
+  assert.deepEqual(titles({ groups: ['buffets', 'restaurants'] }), ['All Cards Cafe', 'Points Buffet'])
+  assert.deepEqual(titles({ groups: ['hotel-dining'] }), [])
+  assert.deepEqual(titles({ groups: ['buffets'], points: 'free' }), []) // still combines with other filters
+})
+
+test('promoGroupCounts counts distinct promotions per type', () => {
+  const today = new Date('2026-11-15')
+  const two = resolveCards([visaCard, { ...visaCard, id: 'v2' }], catalog, promoData)
+  assert.deepEqual(promoGroupCounts(filterPerks(two, {}, today)), { restaurants: 1, buffets: 1 })
+  assert.deepEqual(promoGroupCounts(filterPerks(two, { kind: 'privilege' }, today)), {})
 })

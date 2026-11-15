@@ -7,6 +7,7 @@ export const DEFAULT_FILTERS = {
   spend: 'any',        // 'any' | 'none' (no minimum spend)
   cardId: 'all',
   kind: 'any',         // 'any' | 'privilege' (the card's own privileges) | 'promo' (restaurant promotions)
+  groups: [],          // restaurant-promotion types (buffets, hotel-dining…); empty = every type
   hideExpired: true,
 }
 
@@ -114,6 +115,8 @@ export function filterPerks(cards, filters, today = new Date()) {
       if (f.spend === 'none' && perk.minSpend) continue
       if (f.kind === 'privilege' && perk.promo) continue
       if (f.kind === 'promo' && !perk.promo) continue
+      // Picking a venue type (buffet, hotel…) means promotions of that type only.
+      if (f.groups.length && !(perk.promo && f.groups.includes(perk.group))) continue
       if (f.hideExpired && isExpired(perk, today)) continue
       if (q) {
         const hay = `${perk.title} ${perk.conditions || ''} ${cardFullName(card)} ${card.nickname || ''}`.toLowerCase()
@@ -130,6 +133,19 @@ export function filterPerks(cards, filters, today = new Date()) {
     || (a.perk.pointsCost || 0) - (b.perk.pointsCost || 0)
     || a.perk.title.localeCompare(b.perk.title))
   return rows
+}
+
+// How many distinct promotions of each type the rows hold (a promotion on two
+// cards counts once), for the venue-type chips.
+export function promoGroupCounts(rows) {
+  const seen = new Set()
+  const counts = {}
+  for (const { perk } of rows) {
+    if (!perk.promo || seen.has(perk.id)) continue
+    seen.add(perk.id)
+    counts[perk.group] = (counts[perk.group] || 0) + 1
+  }
+  return counts
 }
 
 export function newId() {

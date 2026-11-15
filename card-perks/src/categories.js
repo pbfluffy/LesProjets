@@ -18,8 +18,17 @@ export const PROMO_GROUPS = {
   restaurants: 'Restaurants',
   buffets: 'Buffets',
   'hotel-dining': 'Hotel dining',
-  'desserts-beverages': 'Desserts & drinks',
+  'desserts-beverages': 'Café, desserts & drinks',
   'hot-pot-barbecue': 'Hot pot & BBQ',
 }
+
+// Venue-type chips, in display order.
+export const PROMO_GROUP_CHIPS = [
+  { id: 'restaurants', label: 'Restaurant', icon: '🍴' },
+  { id: 'buffets', label: 'Buffet', icon: '🥘' },
+  { id: 'desserts-beverages', label: 'Café & desserts', icon: '☕' },
+  { id: 'hotel-dining', label: 'Hotel', icon: '🏨' },
+  { id: 'hot-pot-barbecue', label: 'Hot pot & BBQ', icon: '🍲' },
+]
 
 export const NETWORKS =['Visa', 'Mastercard', 'JCB', 'UnionPay', 'Amex', 'Other']

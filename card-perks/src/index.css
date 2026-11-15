@@ -22,6 +22,7 @@ input,select,textarea{font:inherit;width:100%;padding:9px 10px;border:1px solid 
 label.check{display:flex;align-items:center;gap:8px;color:var(--color-text)}label.check input{width:auto}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
 .chip{font:inherit;font-size:.82rem;border:1px solid var(--color-border-strong);background:var(--color-surface);color:var(--color-text);border-radius:999px;padding:6px 11px;cursor:pointer}
+.venue{margin-top:8px}.venue .chips{margin:6px 0 0}.chip .count{opacity:.7;font-size:.75rem;margin-left:2px}
 .chip.on{background:var(--color-accent);color:var(--color-accent-text);border-color:var(--color-accent)}
 .filter-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}.filter-row select{width:auto;flex:1;min-width:140px}
 .lbl{min-width:52px;font-size:.82rem;color:var(--color-text-muted)}

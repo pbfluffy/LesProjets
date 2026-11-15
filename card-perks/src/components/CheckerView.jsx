@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CATEGORIES, PROMO_GROUPS, categoryById } from '../categories.js'
-import { DEFAULT_FILTERS, filterPerks, isExpired, cardLabel } from '../perks.js'
+import { CATEGORIES, PROMO_GROUPS, PROMO_GROUP_CHIPS, categoryById } from '../categories.js'
+import { DEFAULT_FILTERS, filterPerks, promoGroupCounts, isExpired, cardLabel } from '../perks.js'
 
 function Seg({ value, onChange, options }) {
   return (
@@ -19,10 +19,13 @@ export default function CheckerView({ cards, onGoCards }) {
   const [limit, setLimit] = useState(PAGE)
   useEffect(() => setLimit(PAGE), [f]) // a new filter starts again from the top
   const rows = useMemo(() => filterPerks(cards, f), [cards, f])
+  // Per-type counts under every other filter, so a chip says how many it would show.
+  const groupCounts = useMemo(() => promoGroupCounts(filterPerks(cards, { ...f, groups: [] })), [cards, f])
   const totalPerks = cards.reduce((n, c) => n + (c.perks?.length || 0), 0)
   const hasPromos = cards.some((c) => c.perks?.some((p) => p.promo))
   const dirty = JSON.stringify(f) !== JSON.stringify(DEFAULT_FILTERS)
   const toggleCat = (id) => setF({ ...f, categories: f.categories.includes(id) ? f.categories.filter((c) => c !== id) : [...f.categories, id] })
+  const toggleGroup = (id) => setF({ ...f, groups: f.groups.includes(id) ? f.groups.filter((g) => g !== id) : [...f.groups, id] })
 
   if (!cards.length) return <p className="empty">Add a card in “My cards” first, then come back to check its privileges.</p>
 
@@ -48,6 +51,18 @@ export default function CheckerView({ cards, onGoCards }) {
             </button>
           ))}
         </div>
+        {hasPromos && f.kind !== 'privilege' && (
+          <div className="venue">
+            <span className="lbl">Where to eat</span>
+            <div className="chips" role="group" aria-label="Restaurant type">
+              {PROMO_GROUP_CHIPS.filter((g) => groupCounts[g.id] || f.groups.includes(g.id)).map((g) => (
+                <button key={g.id} className={'chip' + (f.groups.includes(g.id) ? ' on' : '')} aria-pressed={f.groups.includes(g.id)} onClick={() => toggleGroup(g.id)}>
+                  {g.icon} {g.label} <span className="count">{groupCounts[g.id] || 0}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="filter-row">
           <span className="lbl">Points</span>
           <Seg value={f.points} onChange={(points) => setF({ ...f, points })} options={[['any', 'Any'], ['free', 'No points needed'], ['points', 'Points required']]} />
