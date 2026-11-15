@@ -1079,13 +1079,19 @@
     </div>`;
   }
 
+  // Daily quests at a glance: "★ 1/3" in the top bar opens today's quests from any page.
+  function questChip() {
+    const Q = quests(), n = Q.ids.length, d = Q.ids.filter(id => Q.done[id]).length;
+    if (!n) return '';
+    return `<button class="chip quest ${d === n ? 'done' : ''}" data-tour="quests" data-act="questsopen" title="${t('quests_title')}" aria-label="${t('quests_title')}: ${d}/${n}">${ICON(d === n ? 'check' : 'star')} ${d}/${n}</button>`;
+  }
   function topbar() {
     const c = course(), st = streakNow();
     return `<div class="topbar">
       <button class="chip certchip" data-tour="cert" data-act="pickcert" title="${t('switch_cert')}"><span class="certlabel"><span class="cname">${esc(c.name)}</span><span class="code">${c.code}</span></span><span class="muted small">▾</span></button>
       <div class="topstats">
         <button class="chip flame ${st ? '' : 'cold'}" data-tour="streak" data-act="nav" data-v="profile" title="${t('day_streak')}">${ICON('flame')} ${st}</button>
-        <button class="chip xp" data-act="nav" data-v="profile" title="${t('total_xp')}">${ICON('bolt')} ${S.xp}${boostOn() ? '<span class="x2">×2</span>' : ''}</button>${pwaReady ? `<button class="chip help" data-tour="help" data-act="tour" title="${t('tour_btn')}" aria-label="${t('tour_btn')}">${ICON('help')}</button>` : ''}${accountChip()}</div>
+        <button class="chip xp" data-act="nav" data-v="profile" title="${t('total_xp')}">${ICON('bolt')} ${S.xp}${boostOn() ? '<span class="x2">×2</span>' : ''}</button>${questChip()}${pwaReady ? `<button class="chip help" data-tour="help" data-act="tour" title="${t('tour_btn')}" aria-label="${t('tour_btn')}">${ICON('help')}</button>` : ''}${accountChip()}</div>
     </div>`;
   }
 
@@ -2423,6 +2429,7 @@
     node: d => { const u = UNITS[d.u]; startLesson(d.u, +d.l < unitDone(u) ? 'replay' : 'lesson'); },
     unitpractice: d => startSession('practice', pickQuestions(UNITS[d.u].questions, 8), d.u),
     quick: () => startQuick(),
+    questsopen: () => modal(`<div class="questcard quest-modal">${questCard()}</div><button class="btn block" style="margin-top:16px" data-act="closemodal">${t('ok')}</button>`),
     diagpractice: d => startDiagramPractice(d.d),
     // Wait a frame: focusing the chip scrolls its row, which would cancel a page scroll started now.
     dgjump: d => requestAnimationFrame(() => {

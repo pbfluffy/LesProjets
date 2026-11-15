@@ -106,6 +106,9 @@ h1, h2, h3, p { margin: 0; }
 .chip.flame { color: var(--flame); }
 .chip.flame.cold { color: var(--muted); filter: grayscale(1); }
 .chip.xp { color: var(--gold); }
+.chip.quest { color: var(--primary); }
+.chip.quest.done { color: var(--good); }
+.quest-modal { text-align: left; }
 .chip.heart { color: var(--heart); }
 .certchip { border: 2px solid var(--border); background: var(--surface); padding: 6px 12px; }
 .certchip { min-width: 0; max-width: 60%; text-align: left; }
