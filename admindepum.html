@@ -1124,13 +1124,16 @@ async function loadData(){
   // once they've been seen there (profile lastApp 'Home') or have app data.
   // A Google account whose only trace is a profile last seen in Village 77
   // hasn't used any of these apps.
-  const villageOnly = (u) => {
+  // Cloudlingo learners are listed in the Cloudlingo tab: someone whose only trace here is a
+  // profile last seen in Cloudlingo (any sign-in method) isn't a user of these apps either.
+  const otherSystemOnly = (u) => {
     const hasData = u.nutr || u.bills || u.places || u.stock || u._holdingsCount || u._shareCount;
     if (hasData) return false;
     const lastApp = PROFILE_MAP.get(u.uid)?.lastApp;
+    if (lastApp === 'Cloudlingo') return true;
     return u.uid.startsWith('line:') ? lastApp !== 'Home' : lastApp === 'Village 77';
   };
-  DATA = [...map.values()].filter(u => !villageOnly(u));
+  DATA = [...map.values()].filter(u => !otherSystemOnly(u));
 
   if(errors.length){
     $('errbox').innerHTML = 'Firestore denied some reads — publish the admin rules, then Refresh.<br><code>'+errors.join('<br>')+'</code>';
@@ -2069,12 +2072,20 @@ async function msInit(){
   msAccount = (back && back.account) || msPca.getAllAccounts()[0] || null;
   try { if (msAccount) localStorage.setItem(MS_FLAG, '1'); else localStorage.removeItem(MS_FLAG); } catch {}
 }
+// Silent renewal fails once the sign-in is old: browser apps get 24-hour refresh tokens, and the
+// hidden-iframe fallback is blocked by third-party cookie rules, so MSAL reports "timed_out".
+// Treat that like "interaction required": sign in again with a redirect.
+const MS_NEEDS_SIGNIN = ['timed_out', 'monitor_window_timeout', 'block_iframe_reload', 'no_tokens_found', 'login_required', 'consent_required', 'interaction_required', 'no_account_error'];
+const msNeedsSignIn = e => e instanceof window.msal.InteractionRequiredAuthError || MS_NEEDS_SIGNIN.includes(e && e.errorCode);
 async function msToken(interactive, scopes = MS_SCOPES){
-  try { return (await msPca.acquireTokenSilent({ scopes, account: msAccount })).accessToken; }
-  catch (e) {
-    if (e instanceof window.msal.InteractionRequiredAuthError && !interactive) throw new Error('Microsoft sign-in has expired. Connect again.');
-    if (e instanceof window.msal.InteractionRequiredAuthError) { await msPca.acquireTokenRedirect({ scopes, account: msAccount }); return new Promise(() => {}); }
-    throw e;
+  try {
+    if (!msAccount) throw Object.assign(new Error('Not signed in'), { errorCode: 'no_account_error' });
+    return (await msPca.acquireTokenSilent({ scopes, account: msAccount })).accessToken;
+  } catch (e) {
+    if (!msNeedsSignIn(e)) throw e;
+    if (!interactive) throw Object.assign(new Error('Microsoft sign-in has expired.'), { expired: true });
+    await msPca.acquireTokenRedirect({ scopes, account: msAccount || undefined, prompt: msAccount ? undefined : 'select_account' });
+    return new Promise(() => {}); // the page leaves for Microsoft sign-in
   }
 }
 async function msLoadUsers(interactive){
@@ -2092,7 +2103,7 @@ async function msLoadUsers(interactive){
     MSU.users = users.filter(u => String(u.userPrincipalName || '').toLowerCase().endsWith(INV_DOMAIN))
       .sort((a, b) => String(a.displayName || '').localeCompare(String(b.displayName || '')));
     MSU.state = 'ready';
-  } catch (e) { MSU.state = 'error'; MSU.error = e.message; }
+  } catch (e) { MSU.state = e.expired ? 'expired' : 'error'; MSU.error = e.message; }
   renderInvites();
 }
 // The account field: a dropdown of tenant accounts once connected, otherwise typing.
@@ -2107,6 +2118,7 @@ function invUserField(value){
   }
   const local = v.replace(/@.*$/, '');
   const note = MSU.state === 'loading' ? 'Loading accounts from Microsoft…'
+    : MSU.state === 'expired' ? 'Your Microsoft sign-in has expired. <button type="button" class="linkbtn" data-ms-act="connect" style="font-size:11px;padding:0">Connect again</button> to pick from the list, or type the account.'
     : MSU.state === 'error' ? 'Couldn’t load the list: ' + escAdm(MSU.error) + ' <button type="button" class="linkbtn" data-ms-act="connect" style="font-size:11px;padding:0">Try again</button>'
     : '<button type="button" class="linkbtn" data-ms-act="connect" style="font-size:11px;padding:0">Connect Microsoft</button> to pick from your tenant’s accounts.';
   return '<label style="grid-column:1/-1">Their Microsoft account (created in Entra)<span class="inv-user"><input class="cloud-input" name="user" maxlength="60" required placeholder="somchai" value="' + escAdm(local) + '"><span>' + INV_DOMAIN + '</span></span>'
