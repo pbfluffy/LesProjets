@@ -1,7 +1,7 @@
 # card-perks
 
 Login-gated credit-card privilege checker. Users add cards; privileges come from a catalog the app collects itself
-from banks' public websites (currently KTC), plus any the user types in. Users filter across all of them by
+from banks' public websites (currently KTC and Krungsri), plus any the user types in. Users filter across all of them by
 category, points required or not, minimum spend, card, search and expiry. Live: `/card-perks/`.
 
 ## Layout
@@ -47,6 +47,18 @@ category, points required or not, minimum spend, card, search and expiry. Live: 
   is true only when using a privilege *costs* points ("earns points" does not count) and is rare on card pages.
 - Collected text is a bank's marketing copy; the UI labels it "from the bank's website, confirm with the bank".
 - The static list in `banks.js` is only a fallback for the Add card form; the catalog wins when present.
+
+### Krungsri (`scanner/krungsri.mjs`)
+
+- Reads **krungsricard.com** (the card company's own site), not krungsri.com: the bank's main site is behind Incapsula
+  bot protection and blocks automated requests. Do not try to get around that. krungsricard.com allows `/en/product/`
+  in robots.txt (blocks `/en/promotion`, `/en/article`, PDFs, query strings) and serves plain server-rendered HTML.
+- Cards are discovered from its `sitemap.xml` (`/product/creditcard/<slug>`, minus `-uat` and hash-suffixed copies)
+  and fetched in English. Names come from the slug (`NAMES` map, unknown slugs are prettified).
+- Two page layouts: tiles (`.card-grid-item-title`, popups `#popup-pbN`, footer strip) and sections
+  (`section.ctn-card-detail` with an `<h2>`, an `<article>` and a T&C modal). Generic headings ("Other Benefits", "Fee") and
+  Thai text are dropped. If a card yields fewer than 2 privileges `validate()` blocks the publish.
+- Not scanned: Krungsri restaurant promotions (`/en/promotion` is disallowed). Dry run: `node scan.mjs --bank krungsri`.
 
 ### Restaurant promotions (`scanner/ktc-promos.mjs`)
 

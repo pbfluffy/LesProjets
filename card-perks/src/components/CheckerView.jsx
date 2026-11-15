@@ -34,7 +34,7 @@ export default function CheckerView({ cards, onGoCards }) {
     return (
       <div className="empty">
         <p>Your cards don’t have any privileges yet.</p>
-        <p className="muted">Privileges are filled in automatically for supported cards (currently KTC). For other cards, add them yourself.</p>
+        <p className="muted">Privileges are filled in automatically for supported cards (currently KTC and Krungsri). For other cards, add them yourself.</p>
         {onGoCards && <button className="btn primary" onClick={onGoCards}>Go to My cards</button>}
       </div>
     )
