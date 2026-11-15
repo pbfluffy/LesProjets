@@ -8,7 +8,7 @@ const RULES = [
   ['other', /\b(annual fee|entrance fee|fee waiver)\b/i], // fee info, not a spending perk
   ['lounge', /\blounge\b/i],
   ['insurance', /\b(insurance|insured|coverage)\b/i],
-  ['dining', /\b(dining|restaurant|cafe|café|food|meal|buffet)\b/i],
+  ['dining', /\b(dining|restaurants?|cafes?|café|food|meal|buffet|afternoon tea)\b/i],
   ['travel', /\b(travel|flight|air ?ticket|airline|hotel|resort|visa application|schengen|airport)\b/i],
   ['fuel', /\b(fuel|petrol|gas station|ev charging|taxi|ride)\b/i],
   ['entertainment', /\b(movie|cinema|concert|show|streaming)\b/i],
@@ -27,11 +27,13 @@ export function classifyCategory(title, text = '') {
 
 // "Requires points" means using the privilege costs points. A card that merely
 // *earns* points (or says points can be redeemed somewhere) does not qualify,
-// so require a redeem/exchange/use verb tied to points AND no "earn" wording.
+// so require a redeem/exchange verb tied to points (or "use 500 points"), AND no
+// "earn" wording. "When using your card … Krungsri Points" is earning, not spending.
 export function requiresPoints(title, text = '') {
   const all = `${title}. ${text}`
   if (/\bearn(s|ed|ing)?\b/i.test(all)) return false
-  return /\b(redeem(ed|able)?|exchange[sd]?|use|using|spend)\b[^.]{0,60}\bpoints?\b/i.test(all)
+  return /\b(redeem(ed|ing|able)?|exchange[sd]?)\b[^.]{0,60}\bpoints?\b/i.test(all)
+    || /\b(use|using)\s+(\d[\d,]*\s+)?([A-Za-z]+\s+){0,2}points?\b/i.test(all)
 }
 
 // First sentences of the description, capped, as human-readable conditions.

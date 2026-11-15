@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Reads banks' official card pages and publishes the privilege catalog (Firestore cardCatalog) that the Card Perks app reads. Run by .github/workflows/card-perks-scan.yml.",
   "scripts": {
-    "test": "node --test test/classify.test.mjs test/ktc.test.mjs test/ktc-promos.test.mjs",
+    "test": "node --test test/classify.test.mjs test/ktc.test.mjs test/ktc-promos.test.mjs test/krungsri.test.mjs",
     "scan": "node scan.mjs"
   },
   "dependencies": {

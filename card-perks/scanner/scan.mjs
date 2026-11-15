@@ -3,7 +3,8 @@
 //
 //   node scan.mjs                  cards: privileges of each card  -> cardCatalog/{bankId}
 //   node scan.mjs --promos         dining promotions (~2,000 pages, ~35 min) -> cardPromos/{bank}-dining-{n}
-//   add --out file.json            also write the scan result to a file
+//   add --bank ktc|krungsri        (cards) scan just that bank
+//   add --out file.json            also write the scan result to a file (one per bank: file-<bank>.json)
 //   add --limit 50                 (promos) only fetch the first 50 pages, for a quick trial
 //   add --publish                  write to Firestore (needs FIREBASE_SERVICE_ACCOUNT)
 //
@@ -13,10 +14,11 @@
 import { createHash } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import * as ktc from './ktc.mjs'
+import * as krungsri from './krungsri.mjs'
 import * as ktcPromos from './ktc-promos.mjs'
 
 const UA = 'CardPerksScanner/1.0 (+https://pumbafluffycorgi.com/card-perks/)'
-const SCANNERS = [ktc]
+const SCANNERS = [ktc, krungsri]
 const SHARD_SIZE = 600 // promotions per Firestore doc, keeps each doc far below the 1 MB limit
 
 async function fetchText(url, tries = 2) {
@@ -97,15 +99,24 @@ async function publishPromos(result, scannedAt) {
 
 async function runCards(args, outFile) {
   let failed = false
-  for (const s of SCANNERS) {
-    const result = await s.scan(fetchText)
+  const only = args.includes('--bank') ? args[args.indexOf('--bank') + 1] : null
+  for (const s of SCANNERS.filter((x) => !only || x.BANK.id === only)) {
+    // One bank failing (site down, redesigned) must not stop the others from publishing.
+    let result
+    try {
+      result = await s.scan(fetchText)
+    } catch (e) {
+      failed = true
+      console.error(`${s.BANK.name}: scan failed: ${e.message}`)
+      continue
+    }
     const problems = validate(result)
     const hash = createHash('sha256').update(JSON.stringify(result.cards)).digest('hex').slice(0, 16)
     const doc = { ...result, scannedAt: new Date().toISOString(), contentHash: hash }
     const total = result.cards.reduce((n, c) => n + c.perks.length, 0)
     console.log(`${result.bank.name}: ${result.cards.length} cards, ${total} privileges (hash ${hash})`)
     for (const c of result.cards) console.log(`  - ${c.name}: ${c.perks.length} privileges`)
-    if (outFile) writeFileSync(outFile, JSON.stringify(doc, null, 2))
+    if (outFile) writeFileSync(SCANNERS.length > 1 ? outFile.replace(/(\.json)?$/,`-${result.bank.id}.json`) : outFile, JSON.stringify(doc, null, 2))
     if (problems.length) {
       failed = true
       console.error(`NOT publishing ${result.bank.id}:\n  ` + problems.join('\n  '))

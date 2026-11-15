@@ -26,3 +26,14 @@ test('slug is stable and url-safe', () => {
   assert.equal(slug('Cash Withdrawal of up to 100% of the Credit Limit'), 'cash-withdrawal-of-up-to-100-of-the-credit-limit')
   assert.equal(slug('Tap & go'), 'tap-and-go')
 })
+
+test("plural restaurants and afternoon tea are dining", () => {
+  assert.equal(classifyCategory("Up to 25% discount at participating restaurants"), "dining")
+  assert.equal(classifyCategory("Special price for Afternoon tea set for two"), "dining")
+})
+
+test("redeeming counts, merely using a card that earns points does not", () => {
+  assert.equal(requiresPoints("20% off airline ticket when redeeming Krungsri points"), true)
+  assert.equal(requiresPoints("Use 500 points for a voucher"), true)
+  assert.equal(requiresPoints("Cashback", "Enjoy cash back when using your Lady Titanium card at ZARA. Krungsri Points are redeemable"), false)
+})
