@@ -2126,7 +2126,7 @@ function invUserField(value){
     : MSU.state === 'expired' ? 'Your Microsoft sign-in has expired. <button type="button" class="linkbtn" data-ms-act="connect" style="font-size:11px;padding:0">Connect again</button> to pick from the list, or type the account.'
     : MSU.state === 'error' ? 'Couldn’t load the list: ' + escAdm(MSU.error) + ' <button type="button" class="linkbtn" data-ms-act="connect" style="font-size:11px;padding:0">Try again</button>'
     : '<button type="button" class="linkbtn" data-ms-act="connect" style="font-size:11px;padding:0">Connect Microsoft</button> to pick from your tenant’s accounts.';
-  return '<label style="grid-column:1/-1">Their Microsoft account (created in Entra)<span class="inv-user"><input class="cloud-input" name="user" maxlength="60" required placeholder="somchai" value="' + escAdm(local) + '"><span>' + INV_DOMAIN + '</span></span>'
+  return '<label style="grid-column:1/-1">Their Microsoft account (created in Entra)<span class="inv-user"><input class="cloud-input" name="user" maxlength="60" required value="' + escAdm(local) + '"><span>' + INV_DOMAIN + '</span></span>'
     + '<span style="font-size:11px">' + note + (MSU.state === 'off' ? '' : msWho()) + '</span></label>';
 }
 document.addEventListener('change', e => {
