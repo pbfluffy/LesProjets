@@ -76,7 +76,7 @@
   // Line icon for each unit (replaces the emoji stored in the data files).
   const UNIT_ICON = {
     'clf-1': 'cloud', 'clf-2': 'shieldlock', 'clf-3': 'server', 'clf-4': 'globe', 'clf-5': 'card',
-    'aif-1': 'chip', 'aif-2': 'sparkle', 'aif-3': 'puzzle', 'aif-4': 'scale',
+    'aif-1': 'chip', 'aif-2': 'sparkle', 'aif-3': 'puzzle', 'aif-4': 'scale', 'aif-5': 'shieldlock',
     'saa-1': 'shield', 'saa-2': 'layers', 'saa-3': 'bolt', 'saa-4': 'coins',
     'dva-1': 'code', 'dva-2': 'key', 'dva-3': 'rocket',
     'soa-1': 'activity', 'soa-2': 'repeat', 'soa-3': 'gear', 'soa-4': 'globe',
@@ -669,13 +669,14 @@
   // Accuracy per unit, weighted by the unit's share of the real exam (the % in its
   // domain label, split between units that share a domain). A unit only counts
   // fully once you've answered at least half of its questions.
+  function unitWeight(c, u) {
+    const m = /(\d+)%/.exec(u.domain);
+    return (m ? +m[1] : 100 / c.units.length) / c.units.filter(x => x.domain === u.domain).length;
+  }
   function readiness(c) {
-    const pct = u => { const m = /(\d+)%/.exec(u.domain); return m ? +m[1] : 0; };
-    const sameLabel = u => c.units.filter(x => x.domain === u.domain).length;
-    const fallback = 100 / c.units.length;
     let sum = 0, wsum = 0, weakest = null;
     for (const u of c.units) {
-      const w = (pct(u) || fallback) / sameLabel(u);
+      const w = unitWeight(c, u);
       let seen = 0, correct = 0, distinct = 0;
       u.questions.forEach(q => { const s = S.stats[q.id]; if (s && s.seen) { seen += s.seen; correct += s.correct; distinct++; } });
       const acc = seen ? correct / seen : 0;
@@ -1799,7 +1800,14 @@
   function startExam(mode = 'quick') {
     const c = course(), sp = examSpec(c, mode);
     const byUnit = c.units.map(u => shuffle(u.questions.filter(q => q.t !== 'match' && live(q))));
+    // Share of questions per unit follows the real exam's domain weights (largest remainder
+    // rounding); a unit without enough questions passes its leftover to the others.
+    const ws = c.units.map(u => unitWeight(c, u)), wsum = ws.reduce((a, b) => a + b, 0);
+    const exact = ws.map(w => w / wsum * sp.questions), want = exact.map(Math.floor);
+    exact.map((x, i) => [x - want[i], i]).sort((a, b) => b[0] - a[0])
+      .slice(0, sp.questions - want.reduce((a, b) => a + b, 0)).forEach(([, i]) => want[i]++);
     const ids = [];
+    byUnit.forEach((a, i) => { while (want[i] > 0 && a.length) { ids.push(a.pop().id); want[i]--; } });
     for (let k = 0; ids.length < sp.questions && byUnit.some(a => a.length); k++) {
       const a = byUnit[k % byUnit.length];
       if (a.length) ids.push(a.pop().id);

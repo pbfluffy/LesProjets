@@ -294,7 +294,7 @@ window.COURSES = [
         ]
       },
       {
-        id: 'aif-4', title: 'Responsible AI & Security', domain: 'Domains 4–5 · 28%', icon: '⚖️',
+        id: 'aif-4', title: 'Responsible AI', domain: 'Domain 4 · 14%', icon: '⚖️',
         questions: [
           { t: 'mc', q: 'Which feature filters harmful content, blocks denied topics, and redacts PII in Bedrock applications?',
             o: ['Amazon Bedrock Guardrails', 'Amazon Macie', 'AWS WAF', 'SageMaker Model Monitor'], a: 0,
@@ -320,6 +320,11 @@ window.COURSES = [
             o: ['Access Bedrock through a VPC interface endpoint (PrivateLink)', 'Encrypt data with AWS KMS keys', 'Store training data in a public S3 bucket', 'Share root credentials with the ML team'], a: [0, 1],
             e: 'Keep traffic off the public internet, encrypt with KMS, and grant least-privilege IAM access.' }
         ]
+      },
+      {
+        // Questions are in js/bank/aif.js.
+        id: 'aif-5', title: 'Security & Governance for AI', domain: 'Domain 5 · 14%', icon: '🔐',
+        questions: []
       }
     ]
   },
