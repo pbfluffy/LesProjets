@@ -18,6 +18,12 @@ do it in the browser pane rather than handling credentials.
 - Reload to confirm data persists (Firestore `userCards/{uid}`); sign out/in to confirm the gate returns.
 - Privacy: no field may ask for card number, expiry or CVV.
 
+- Scanner changes: `cd card-perks/scanner && npm test`, then a live dry run `node scan.mjs --out result.json` and
+  read the output — card names, privilege counts, and a few privileges per category. Fixtures only prove the parser
+  against saved markup; the live run proves it against the real site.
+
 ## Ship
 1. `npm test` and `npm run build`, then the ESLint `no-undef` gate (root `CLAUDE.md`).
 2. Deploy `firestore.rules` **before** relying on the app live (skill `deploy-firestore-rules`); then merge to `main`.
+3. After merging scanner or rule changes, run the **Card Perks scan** workflow from the Actions tab (it also runs
+   weekly). Publishing writes production Firestore, so confirm with the user first; a dry run (untick "publish") is safe.

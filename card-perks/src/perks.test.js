@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { filterPerks, cleanPerk, isExpired, cardLabel, cardFullName } from './perks.js'
+import { filterPerks, cleanPerk, isExpired, cardLabel, cardFullName, resolveCards } from './perks.js'
 
 const cards = [
   { id: 'a', name: 'Alpha', perks: [
@@ -56,4 +56,34 @@ test('search matches the bank name', () => {
 test('isExpired', () => {
   assert.equal(isExpired({ validUntil: '2026-06-01' }, new Date('2026-06-01T12:00:00')), false)
   assert.equal(isExpired({ validUntil: '2026-05-31' }, T), true)
+})
+
+const catalog = {
+  ktc: {
+    bank: { id: 'ktc', name: 'Krungthai (KTC)' },
+    scannedAt: '2026-11-15T00:00:00.000Z',
+    cards: [{ id: 'ktc-visa-platinum', name: 'Visa Platinum', url: 'https://example.test/c', perks: [
+      { id: 'travel-insurance', title: 'Travel Insurance', category: 'insurance', requiresPoints: false, conditions: 'Flights.' },
+    ] }],
+  },
+}
+test('autoPerksFor / resolveCards merge catalog privileges in front of own ones', () => {
+  const mine = { id: 'm', bank: 'Krungthai (KTC)', name: 'Visa Platinum', catalogRef: { bank: 'ktc', card: 'ktc-visa-platinum' }, perks: [{ id: 'own', title: 'My perk', category: 'other', requiresPoints: false }] }
+  const [r] = resolveCards([mine], catalog)
+  assert.deepEqual(r.perks.map((p) => p.id), ['auto:travel-insurance', 'own'])
+  assert.equal(r.perks[0].auto, true)
+  assert.equal(r.perks[0].sourceUrl, 'https://example.test/c')
+  assert.equal(r.perks[0].checkedAt, '2026-11-15T00:00:00.000Z')
+  assert.equal(mine.perks.length, 1) // input is not mutated
+})
+test('cards without a catalog link, or whose catalog entry is gone, are left unchanged', () => {
+  const plain = { id: 'p', name: 'Plain', perks: [] }
+  const gone = { id: 'g', name: 'Gone', catalogRef: { bank: 'ktc', card: 'ktc-discontinued' }, perks: [] }
+  assert.deepEqual(resolveCards([plain, gone], catalog), [plain, gone])
+  assert.deepEqual(resolveCards([plain], {}), [plain])
+})
+test('catalog privileges are searchable and filterable like any other', () => {
+  const mine = { id: 'm', bank: 'Krungthai (KTC)', name: 'Visa Platinum', catalogRef: { bank: 'ktc', card: 'ktc-visa-platinum' }, perks: [] }
+  const rows = filterPerks(resolveCards([mine], catalog), { categories: ['insurance'], points: 'free' })
+  assert.equal(rows.length, 1)
 })
