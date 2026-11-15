@@ -1,0 +1,14 @@
+{
+  "name": "card-perks-scanner",
+  "private": true,
+  "type": "module",
+  "description": "Reads banks' official card pages and publishes the privilege catalog (Firestore cardCatalog) that the Card Perks app reads. Run by .github/workflows/card-perks-scan.yml.",
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "scan": "node scan.mjs"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "firebase-admin": "^13.0.0"
+  }
+}

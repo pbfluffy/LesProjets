@@ -13,6 +13,8 @@ import {
   getFirestore,
   doc,
   getDoc,
+  getDocs,
+  collection,
   setDoc,
   serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
@@ -30,4 +32,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export { onAuthStateChanged, doc, getDoc, setDoc, serverTimestamp, GoogleAuthProvider, signInWithPopup, signOut };
+export { onAuthStateChanged, doc, getDoc, getDocs, collection, setDoc, serverTimestamp, GoogleAuthProvider, signInWithPopup, signOut };

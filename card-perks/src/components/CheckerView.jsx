@@ -12,7 +12,7 @@ function Seg({ value, onChange, options }) {
   )
 }
 
-export default function CheckerView({ cards }) {
+export default function CheckerView({ cards, onGoCards }) {
   const [f, setF] = useState(DEFAULT_FILTERS)
   const rows = useMemo(() => filterPerks(cards, f), [cards, f])
   const totalPerks = cards.reduce((n, c) => n + (c.perks?.length || 0), 0)
@@ -20,6 +20,17 @@ export default function CheckerView({ cards }) {
   const toggleCat = (id) => setF({ ...f, categories: f.categories.includes(id) ? f.categories.filter((c) => c !== id) : [...f.categories, id] })
 
   if (!cards.length) return <p className="empty">Add a card in “My cards” first, then come back to check its privileges.</p>
+
+  // Cards exist but none has a privilege: say that, instead of "no match".
+  if (!totalPerks) {
+    return (
+      <div className="empty">
+        <p>Your cards don’t have any privileges yet.</p>
+        <p className="muted">Privileges are filled in automatically for supported cards (currently KTC). For other cards, add them yourself.</p>
+        {onGoCards && <button className="btn primary" onClick={onGoCards}>Go to My cards</button>}
+      </div>
+    )
+  }
 
   return (
     <section>
@@ -64,13 +75,22 @@ export default function CheckerView({ cards }) {
                   {perk.requiresPoints ? `${perk.pointsCost ? perk.pointsCost.toLocaleString() + ' ' : ''}points` : 'No points needed'}
                 </span>
               </div>
-              <div className="muted">{cardLabel(card)} · {cat.label}</div>
+              <div className="muted">
+                {cardLabel(card)} · {cat.label}
+                {perk.auto && <span className="badge" title="Collected automatically from the bank’s website">Auto</span>}
+              </div>
               {(perk.minSpend || perk.validUntil || perk.conditions) && (
                 <ul className="conds">
                   {perk.minSpend ? <li>Minimum spend: {perk.minSpend.toLocaleString()}</li> : null}
                   {perk.validUntil ? <li>{isExpired(perk) ? 'Expired' : 'Valid until'} {perk.validUntil}</li> : null}
                   {perk.conditions ? <li>{perk.conditions}</li> : null}
                 </ul>
+              )}
+              {perk.auto && perk.sourceUrl && (
+                <div className="fine">
+                  From the bank’s website{perk.checkedAt ? `, checked ${new Date(perk.checkedAt).toLocaleDateString()}` : ''} ·{' '}
+                  <a href={perk.sourceUrl} target="_blank" rel="noopener noreferrer">Source</a> — confirm with the bank.
+                </div>
               )}
             </li>
           )

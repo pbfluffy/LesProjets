@@ -20,6 +20,39 @@ export function cardLabel(card) {
   return card.nickname || cardFullName(card)
 }
 
+// Privileges the scanner collected for a card the user picked from the catalog.
+// A card stores only a reference ({ bank, card }), never a copy, so when the
+// bank changes its page and the scanner republishes, every user sees it.
+// Ids are prefixed so they can never collide with the user's own privileges.
+export function autoPerksFor(card, catalog) {
+  const ref = card.catalogRef
+  if (!ref) return []
+  const doc = catalog?.[ref.bank]
+  const found = doc?.cards?.find((c) => c.id === ref.card)
+  if (!found) return []
+  return (found.perks || []).map((p) => ({
+    id: 'auto:' + p.id,
+    title: p.title,
+    category: p.category || 'other',
+    requiresPoints: !!p.requiresPoints,
+    pointsCost: null,
+    minSpend: null,
+    conditions: p.conditions || '',
+    validUntil: null,
+    auto: true,
+    sourceUrl: found.url || null,
+    checkedAt: doc.scannedAt || null,
+  }))
+}
+
+// Cards with catalog privileges merged in front of the user's own.
+export function resolveCards(cards, catalog) {
+  return cards.map((card) => {
+    const auto = autoPerksFor(card, catalog)
+    return auto.length ? { ...card, perks: [...auto, ...(card.perks || [])] } : card
+  })
+}
+
 export function isExpired(perk, today = new Date()) {
   if (!perk.validUntil) return false
   const end = new Date(perk.validUntil + 'T23:59:59')

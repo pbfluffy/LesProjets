@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { auth, onAuthStateChanged, signOut } from './firebase.js'
 import { useCards } from './useCards.js'
+import { useCatalog } from './useCatalog.js'
+import { resolveCards } from './perks.js'
 import LoginGate from './components/LoginGate.jsx'
 import CheckerView from './components/CheckerView.jsx'
 import CardsView from './components/CardsView.jsx'
@@ -9,6 +11,9 @@ export default function App() {
   const [user, setUser] = useState(undefined) // undefined = auth still resolving
   const [tab, setTab] = useState('check')
   const { cards, status, saving, persist } = useCards(user || null)
+  const { catalog } = useCatalog(user || null)
+  // Cards with their automatically collected privileges merged in.
+  const resolved = useMemo(() => resolveCards(cards, catalog), [cards, catalog])
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
 
@@ -32,7 +37,9 @@ export default function App() {
       <main>
         {status === 'loading' && <p className="muted">Loading your cards…</p>}
         {status === 'error' && <p className="error" role="alert">Couldn’t load your cards. Check your connection and reload.</p>}
-        {status === 'ready' && (tab === 'check' ? <CheckerView cards={cards} /> : <CardsView cards={cards} persist={persist} />)}
+        {status === 'ready' && (tab === 'check'
+          ? <CheckerView cards={resolved} onGoCards={() => setTab('cards')} />
+          : <CardsView cards={cards} persist={persist} catalog={catalog} />)}
       </main>
     </div>
   )
