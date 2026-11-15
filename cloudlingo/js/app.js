@@ -1205,12 +1205,6 @@
         ? `<button class="linkbtn" data-act="leavecert" data-c="${c.id}">${t('path_leave')}</button>`
         : `<button class="btn small" data-act="enrollcert" data-c="${c.id}">${t('path_enroll')}</button>`}</div></div>`;
   }
-  // "You're enrolled in 2: AI Practitioner, Cloud Practitioner" at the top of the Path page.
-  function myCertsCard() {
-    const mine = enrolled().map(id => COURSES.find(c => c.id === id));
-    return `<div class="card mycerts"><strong class="ic-title">${ICON('check')} ${tn('path_mine', mine.length)}</strong>
-      <div class="mycerts-list">${mine.map(c => `<span class="pill">${c.name}</span>`).join('')}</div></div>`;
-  }
   // Course picker: enrolled certifications first, then the rest.
   function certPickLists(act) {
     const mine = COURSES.filter(c => isEnrolled(c.id)), rest = COURSES.filter(c => !isEnrolled(c.id));
@@ -1218,15 +1212,25 @@
     if (!mine.length || !rest.length) return list(COURSES);
     return `<h3 class="picksec">${t('mycerts_title')}</h3>${list(mine)}<h3 class="picksec">${t('othercerts_title')}</h3>${list(rest)}`;
   }
+  // My certifications (enrolled, the current one first) at the top; below, the roadmap of the
+  // ones not enrolled yet, by level. A level disappears once all of it is enrolled.
   function pathView() {
     const next = suggestedCert();
-    const level = (l, icon, sub) => `<section class="pathlevel"><h2 class="ic-title">${ICON(icon)} ${t('level_' + l)}</h2><p class="muted small">${t(sub)}</p>
-      <div class="certlist">${COURSES.filter(c => c.level === l).map(c => pathCard(c, next)).join('')}</div></section>`;
+    const mine = COURSES.filter(c => isEnrolled(c.id)).sort((a, b) => (b.id === S.cert) - (a.id === S.cert));
+    const rest = COURSES.filter(c => !isEnrolled(c.id));
+    const level = (l, icon, sub) => {
+      const cs = rest.filter(c => c.level === l);
+      return cs.length ? `<section class="pathlevel"><h2 class="ic-title">${ICON(icon)} ${t('level_' + l)}</h2><p class="muted small">${t(sub)}</p>
+      <div class="certlist">${cs.map(c => pathCard(c, next)).join('')}</div></section>` : '';
+    };
+    const found = level('Foundational', 'sprout', 'path_found_sub'), assoc = level('Associate', 'award', 'path_assoc_sub'), itsm = level('ITSM', 'wrench', 'path_itsm_sub');
     return shell(`<h1 class="section-title">${t('path_title')}</h1><p class="muted" style="margin-bottom:18px">${t('path_sub')}</p>
-      ${myCertsCard()}
-      ${level('Foundational', 'sprout', 'path_found_sub')}<div class="patharrow" aria-hidden="true">↓</div>${level('Associate', 'award', 'path_assoc_sub')}
-      <p class="muted small" style="margin-top:18px">${t('path_note')}</p>
-      ${COURSES.some(c => c.level === 'ITSM') ? `<div style="margin-top:26px">${level('ITSM', 'wrench', 'path_itsm_sub')}</div>` : ''}`);
+      <section class="pathlevel pathmine"><h2 class="ic-title">${ICON('check')} ${t('mycerts_title')}</h2><p class="muted small">${tn('path_mine', mine.length)}</p>
+        <div class="certlist">${mine.map(c => pathCard(c, next)).join('')}</div></section>
+      ${rest.length ? `<div class="pathexplore"><h2 class="section-title" style="font-size:22px">${t('othercerts_title')}</h2><p class="muted small">${t('path_explore_sub')}</p></div>` : ''}
+      ${found}${found && assoc ? '<div class="patharrow" aria-hidden="true">↓</div>' : ''}${assoc}
+      ${found || assoc ? `<p class="muted small" style="margin-top:18px">${t('path_note')}</p>` : ''}
+      ${itsm ? `<div style="margin-top:26px">${itsm}</div>` : ''}`);
   }
 
   function certOption(c, on, act) {
