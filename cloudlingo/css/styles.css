@@ -275,9 +275,8 @@ h1, h2, h3, p { margin: 0; }
 .pathacts .btn { width: auto; margin: 0; padding: 8px 18px; font-size: 14px; }
 .certopt.pathcard.notmine { border-style: dashed; box-shadow: none; }
 .pathcard.notmine .badge-cert { filter: saturate(.35); opacity: .75; }
-.mycerts { margin-bottom: 18px; }
-.mycerts-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.mycerts-list .pill { background: var(--primary-soft); color: var(--primary); font-weight: 800; }
+.pathmine { margin-bottom: 8px; }
+.pathexplore { margin: 30px 0 14px; padding-top: 22px; border-top: 2px dashed var(--border); }
 .picksec { font-size: 14px; font-weight: 900; color: var(--muted); margin: 14px 0 8px; text-transform: uppercase; letter-spacing: .04em; }
 .pathtag .ic { color: inherit; }
 .pathmeta { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); margin-top: 8px; }
