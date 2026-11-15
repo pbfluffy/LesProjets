@@ -429,15 +429,14 @@ html.light body{
 .cloud-ed .hint{font-weight:400;font-size:11px}.cloud-ed .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .cloud-ed .err{color:#ec4c56;font-size:12px;font-weight:700}.cloud-find-row{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid rgba(127,127,127,.15)}.cloud-find-row:first-child{border-top:0}
 .cloud-find-row .q{flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cloud-row{display:grid;grid-template-columns:minmax(160px,1.6fr) .6fr .6fr .6fr .6fr .7fr .7fr .9fr 128px;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid rgba(127,127,127,.15);font-size:13px}
+.cloud-row{display:grid;grid-template-columns:minmax(160px,1.6fr) .6fr .6fr .6fr .6fr .7fr .7fr .9fr 92px;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid rgba(127,127,127,.15);font-size:13px}
 .cloud-row.head{border-top:0;font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
 .cloud-who{min-width:0;display:flex;flex-direction:column;gap:2px;line-height:1.25;overflow:hidden}
 .cloud-who b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cloud-who span{font-size:11.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cloud-board-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid rgba(127,127,127,.15)}.cloud-board-row:first-child{border-top:0}
 .cloud-board-row .rk{width:24px;text-align:center;font-weight:800;color:var(--faint)}.cloud-board-row .nm{flex:1;font-weight:600}.cloud-board-row .xp{font-weight:800}
-.cloud-acts{display:flex;flex-direction:column;align-items:stretch;gap:4px}.cloud-acts .btn{white-space:nowrap}
-@media (max-width:760px){.cloud-row{grid-template-columns:minmax(120px,1.4fr) .6fr .6fr .8fr 120px}.cloud-row > div:nth-child(5),.cloud-row > div:nth-child(6),.cloud-row > div:nth-child(7),.cloud-row > div:nth-child(8){display:none}}
+@media (max-width:760px){.cloud-row{grid-template-columns:minmax(120px,1.4fr) .6fr .6fr .8fr 84px}.cloud-row > div:nth-child(5),.cloud-row > div:nth-child(6),.cloud-row > div:nth-child(7),.cloud-row > div:nth-child(8){display:none}}
 /* ---- backyard ---- */
 .backyard-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
 .backyard-board h3{font-size:14px;margin:0 0 10px;color:var(--text)}
@@ -2107,6 +2106,11 @@ async function msLoadUsers(interactive){
   } catch (e) { MSU.state = e.expired ? 'expired' : 'error'; MSU.error = e.message; }
   renderInvites();
 }
+// "Connected as …  Disconnect": signs admindepum (only) out of Microsoft on this browser.
+function msWho(){
+  if (!msAccount) return '';
+  return ' · Connected as ' + escAdm(msAccount.username || msAccount.name || 'Microsoft') + ' <button type="button" class="linkbtn" data-ms-act="disconnect" style="font-size:11px;padding:0" title="Forget this Microsoft sign-in in admindepum. It doesn’t sign you out of other Microsoft sites.">Disconnect</button>';
+}
 // The account field: a dropdown of tenant accounts once connected, otherwise typing.
 function invUserField(value){
   const v = String(value || '').toLowerCase();
@@ -2115,7 +2119,7 @@ function invUserField(value){
     return '<label style="grid-column:1/-1">Their Microsoft account<select class="cloud-input" name="user" required>'
       + '<option value="">Choose an account (' + MSU.users.length + ')…</option>'
       + MSU.users.map(u => '<option value="' + escAdm(u.userPrincipalName) + '" data-name="' + escAdm(u.displayName || '') + '"' + (has && u.userPrincipalName.toLowerCase() === v ? ' selected' : '') + '>' + escAdm((u.displayName || u.userPrincipalName) + ' — ' + u.userPrincipalName) + '</option>').join('')
-      + '</select><span style="font-size:11px">Not listed? Create it in Entra, then <button type="button" class="linkbtn" data-ms-act="reload" style="font-size:11px;padding:0">refresh the list</button>.</span></label>';
+      + '</select><span style="font-size:11px">Not listed? Create it in Entra, then <button type="button" class="linkbtn" data-ms-act="reload" style="font-size:11px;padding:0">refresh the list</button>.' + msWho() + '</span></label>';
   }
   const local = v.replace(/@.*$/, '');
   const note = MSU.state === 'loading' ? 'Loading accounts from Microsoft…'
@@ -2123,7 +2127,7 @@ function invUserField(value){
     : MSU.state === 'error' ? 'Couldn’t load the list: ' + escAdm(MSU.error) + ' <button type="button" class="linkbtn" data-ms-act="connect" style="font-size:11px;padding:0">Try again</button>'
     : '<button type="button" class="linkbtn" data-ms-act="connect" style="font-size:11px;padding:0">Connect Microsoft</button> to pick from your tenant’s accounts.';
   return '<label style="grid-column:1/-1">Their Microsoft account (created in Entra)<span class="inv-user"><input class="cloud-input" name="user" maxlength="60" required placeholder="somchai" value="' + escAdm(local) + '"><span>' + INV_DOMAIN + '</span></span>'
-    + '<span style="font-size:11px">' + note + '</span></label>';
+    + '<span style="font-size:11px">' + note + (MSU.state === 'off' ? '' : msWho()) + '</span></label>';
 }
 document.addEventListener('change', e => {
   // Picking an account fills in the name when it's still empty.
@@ -2140,6 +2144,15 @@ document.addEventListener('click', async e => {
     try { localStorage.setItem('admin_tab', 'cloudlingo'); await msInit(); if (msAccount) return msLoadUsers(true); await msPca.loginRedirect({ scopes: MS_SCOPES, prompt: 'select_account' }); }
     catch (err) { MSU.state = 'error'; MSU.error = err.message; renderInvites(); }
   } else if (b.dataset.msAct === 'reload') msLoadUsers(true);
+  else if (b.dataset.msAct === 'disconnect') {
+    if (!confirm('Disconnect admindepum from Microsoft?\n\nThe account list goes back to typing, and Revoke / Restore will ask you to connect again. Your other Microsoft sign-ins aren’t affected.')) return;
+    try { if (msPca && msAccount) await msPca.clearCache({ account: msAccount }); } catch { /* the local sign-in is forgotten below anyway */ }
+    msAccount = null;
+    try { localStorage.removeItem(MS_FLAG); } catch {}
+    MSU.state = 'off'; MSU.users = []; MSU.error = '';
+    renderInvites();
+    showToast('Disconnected from Microsoft.', 'success');
+  }
 });
 // On page load: back from Microsoft sign-in, or connected before on this browser.
 (async () => {
@@ -2315,32 +2328,10 @@ document.addEventListener('click', e => {
 function learnerActs(p, prof){
   if (p.uid === ADMIN_UID || p.uid === auth.currentUser?.uid) return '<span class="cloud-filter" title="Your own account">You</span>';
   const name = escAdm(prof.name || prof.email || p.uid.slice(0, 10));
-  const cloud = CLOUD.blocked && CLOUD.blocked.has(p.uid)
+  return CLOUD.blocked && CLOUD.blocked.has(p.uid)
     ? '<button class="btn ghost small" data-learner-restore="' + escAdm(p.uid) + '" data-name="' + name + '" title="Let them use Cloudlingo with this account again">Restore</button>'
     : '<button class="btn ghost small" data-learner-revoke="' + escAdm(p.uid) + '" data-name="' + name + '" title="Sign them out of Cloudlingo and stop this account using it. Their other apps aren’t affected.">Revoke</button>';
-  // Microsoft (Entra) accounts on our domain: disable or enable the account itself.
-  const upn = String(prof.email || '').toLowerCase();
-  if (!upn.endsWith(INV_DOMAIN)) return cloud;
-  const off = CLOUD.revoked && CLOUD.revoked.has(upn);
-  return cloud + (off
-    ? '<button class="btn ghost small" data-entra-on="' + escAdm(upn) + '" data-name="' + name + '" title="Enable their Microsoft account (' + escAdm(upn) + ') in Entra ID again">Reconnect Entra</button>'
-    : '<button class="btn ghost small" data-entra-off="' + escAdm(upn) + '" data-name="' + name + '" title="Disable their Microsoft account (' + escAdm(upn) + ') in Entra ID and end its sessions. They can’t sign in with Microsoft anywhere until you reconnect it.">Disconnect Entra</button>');
 }
-document.addEventListener('click', async e => {
-  const b = e.target.closest('[data-entra-off],[data-entra-on]'); if (!b) return;
-  const off = !!b.dataset.entraOff, upn = b.dataset.entraOff || b.dataset.entraOn, name = b.dataset.name;
-  if (!confirm(off
-    ? 'Disconnect ' + name + ' from Entra ID?\n\nThis disables their Microsoft account (' + upn + '), ends their Microsoft sessions, and signs them out of Cloudlingo. You can reconnect it later.'
-    : 'Reconnect ' + name + '’s Microsoft account (' + upn + ')? It will be enabled in Entra ID again.')) return;
-  try {
-    if (!(await entraReady(off ? 'Disconnect Entra' : 'Reconnect Entra'))) return;
-    b.disabled = true;
-    await entraSetAccess(upn, off);
-    showToast(off ? name + ' is disconnected from Entra ID: their Microsoft account is disabled.' : name + '’s Microsoft account is enabled again.', 'success');
-  } catch (err) { b.disabled = false; showToast('That didn’t work: ' + err.message, 'error'); return; }
-  CLOUD.loaded = false; loadCloudlingoData();
-  INV.loaded = false; invitesLoad();
-});
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-learner-revoke],[data-learner-restore]'); if (!b) return;
   const uid = b.dataset.learnerRevoke || b.dataset.learnerRestore, name = b.dataset.name;
@@ -2404,7 +2395,7 @@ async function loadCloudlingoData(){
     CLOUD.week = cloudWeekId();
     const edits = await getDocs(collection(db, 'cloudlingoEdits')).catch(() => null);
     CLOUD_EDITS.clear(); (edits ? edits.docs : []).forEach(d => CLOUD_EDITS.set(d.id, d.data()));
-    const [reps, progress, board, pushes, funnel, errs, qstats, blocked, profiles, revoked] = await Promise.all([
+    const [reps, progress, board, pushes, funnel, errs, qstats, blocked, profiles] = await Promise.all([
       getDocs(collection(db, 'cloudlingoReports')).catch(() => null),
       getDocs(collection(db, 'userCloudlingo')).catch(() => null),
       getDocs(collection(db, 'cloudlingoWeeks', CLOUD.week, 'scores')).catch(() => null),
@@ -2415,11 +2406,9 @@ async function loadCloudlingoData(){
       getDocs(collection(db, 'cloudlingoBlocked')).catch(() => null),
       // Names for the Learners table. The Cloudlingo tab keeps its own copy: the Overview tab
       // rebuilds PROFILE_MAP while it loads, which used to leave learners showing only ids.
-      getDocs(collection(db, 'userProfiles')).catch(() => null),
-      getDocs(collection(db, 'cloudlingoRevoked')).catch(() => null)
+      getDocs(collection(db, 'userProfiles')).catch(() => null)
     ]);
     CLOUD.blocked = new Map((blocked ? blocked.docs : []).map(d => [d.id, d.data()]));
-    CLOUD.revoked = new Set((revoked ? revoked.docs : []).map(d => d.id.toLowerCase()));
     if (profiles) CLOUD.profiles = new Map(profiles.docs.map(d => [d.id, d.data()]));
     // First-try answers per question from every learner, signed in or not (r = right, w = wrong).
     CLOUD.qstats = new Map((qstats ? qstats.docs : []).map(d => { const x = d.data(); return [d.id, { seen: (x.r || 0) + (x.w || 0), correct: x.r || 0 }]; }));
