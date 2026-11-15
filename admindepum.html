@@ -2335,19 +2335,22 @@ function learnerActs(p, prof){
     : '<button class="btn ghost small" data-learner-revoke="' + escAdm(p.uid) + '" data-name="' + name + '" title="Sign them out of Cloudlingo and stop this account using it. Their other apps aren’t affected.">Revoke</button>';
 }
 // Remove a revoked learner from the list. The list is built from userCloudlingo, so deleting
-// that document drops the row; cloudlingoBlocked stays, so they remain revoked (and can't
-// write progress back, so the row doesn't return). Only offered for revoked learners.
+// that document drops a row that has progress. A revoked learner is ALSO listed from their
+// cloudlingoBlocked record alone (so Restore stays reachable after their progress was
+// deleted), so Remove marks that record hidden:true instead of deleting it: they stay
+// revoked and blocked by the rules, just not listed. Only offered for revoked learners.
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-learner-remove]'); if (!b) return;
   const uid = b.dataset.learnerRemove, name = b.dataset.name;
   if (!(CLOUD.blocked && CLOUD.blocked.has(uid))) return; // never remove someone who still has access
-  if (!confirm('Remove ' + name + ' from the Learners list?\n\nThis permanently deletes their saved Cloudlingo progress (XP, streak, lessons). They stay revoked, and their account in your other apps isn’t affected.')) return;
+  if (!confirm('Remove ' + name + ' from the Learners list?\n\nThis permanently deletes any saved Cloudlingo progress (XP, streak, lessons) and hides them from the list. They stay revoked (to restore them later, use the Firebase console), and their account in your other apps isn’t affected.')) return;
   try {
     b.disabled = true;
-    await deleteDoc(doc(db, 'userCloudlingo', uid));
+    await deleteDoc(doc(db, 'userCloudlingo', uid)); // deleting a missing doc is not an error
     await deleteDoc(doc(db, 'cloudlingoPush', uid)).catch(() => {});
     await deleteDoc(doc(db, 'cloudlingoWeeks', CLOUD.week, 'scores', uid)).catch(() => {});
-    showToast(name + ' removed from the list.', 'success');
+    await setDoc(doc(db, 'cloudlingoBlocked', uid), { hidden: true }, { merge: true }); // still blocked, no longer listed
+    showToast(name + ' removed from the list (still revoked).', 'success');
   } catch (err) { showToast('That didn’t work: ' + err.message, 'error'); }
   CLOUD.loaded = false; loadCloudlingoData();
 });
@@ -2519,9 +2522,10 @@ async function renderCloudlingoTab(){
   const key = { recent: p => p.updated, xp: p => p.xp, streak: p => p.streak }[sortBy];
   // Revoked learners stay listed (with Restore) even after their progress was deleted.
   const listed = new Set(people.map(p => p.uid));
-  const blockedOnly = cert ? [] : [...(CLOUD.blocked || new Map()).entries()].filter(([uid]) => !listed.has(uid))
+  const hidden = uid => !!(CLOUD.blocked && CLOUD.blocked.get(uid)?.hidden); // removed from the list in Remove
+  const blockedOnly = cert ? [] : [...(CLOUD.blocked || new Map()).entries()].filter(([uid, b]) => !listed.has(uid) && !b.hidden)
     .map(([uid, b]) => ({ uid, cert: '', xp: 0, streak: 0, lessons: 0, exams: 0, passed: 0, reminder: null, updated: b.at?.toMillis?.() || 0 }));
-  const ppl = people.concat(blockedOnly).sort((a, b) => key(b) - key(a));
+  const ppl = people.filter(p => !hidden(p.uid)).concat(blockedOnly).sort((a, b) => key(b) - key(a));
   const hourLabel = h => new Date(2000, 0, 1, h).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   document.getElementById('cloud-learners').innerHTML = ppl.length ? ppl.map(p => {
     const prof = cloudProf(p.uid) || {};
