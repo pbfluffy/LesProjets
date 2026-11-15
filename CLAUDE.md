@@ -14,7 +14,6 @@ playbooks (run / verify / ship) are project skills in `.claude/skills/`.
 | `dog-near-me/` (pkg `majon`) | Community stray-dog ID map | Vite + React, Leaflet, Worker, AI | `dog-near-me` → 5173 | `/dog-near-me/` |
 | `stock-ranges/` | Watchlist + portfolio wallet, 10-band price range | Vite + React, PWA, Worker, cron | `stock-ranges` → 5180 (worker 8787) | `/stock-ranges/` |
 | `village-77/` | Village marketplace + handymen board, LINE login | Vite + React, PWA, Worker | `village-77` → 5184 | `/village-77/` |
-| `card-perks/` | Login-gated credit-card privilege checker | Vite + React | `card-perks` → 5185 | `/card-perks/` |
 | `cloudlingo/` | AWS/ITIL exam practice, Duolingo-style | **Static JS, no build** | `admin-static` → 5178 | `/cloudlingo/` |
 | `studio/` | Ambient "Pum's Office" page | Static HTML | `admin-static` → 5178 | `/studio/` |
 | `backyard-rampage/` | Browser game | Static HTML | `admin-static` → 5178 | `/backyard-rampage/` |
@@ -33,7 +32,7 @@ catalog editor, Cloudlingo reports…), `montreal-autumn-2026.html` + `montreal-
   Changing a shared file affects every app — build each consumer.
 - **Theme** is `localStorage["theme"]` = plain string `"dark"`/`"light"` — **never JSON-encode it**. Language is
   `localStorage["lang"]` = `"th"`/`"en"`. Both are shared across every app on the origin. Apps are EN/TH via a
-  `LangContext` (card-perks is English-only).
+  `LangContext`.
 - **Firebase**: one project, `pumgoda`. Each app has its own `src/firebase.js` (npm package or gstatic CDN —
   copy the pattern of the app you're editing). Per-user data lives in `user<Thing>/{uid}` docs.
 - **Styling**: CSS Modules per component + `theme-tokens.css` variables. Don't hard-code colors that break dark mode.
