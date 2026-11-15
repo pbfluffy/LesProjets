@@ -47,7 +47,7 @@
   function loadThai() {
     if (window.TH_EXPLAIN && window.TH_GLOSS) return Promise.resolve();
     if (thaiLoading) return thaiLoading;
-    const files = ['glossary', 'clf', 'aif', 'saa', 'dva', 'soa', 'dea', 'itil', 'why-clf', 'why-aif', 'why-saa'].map(f => 'js/th/' + f + '.js' + (ASSET_V ? '?' + ASSET_V : ''));
+    const files = ['glossary', 'clf', 'aif', 'saa', 'dva', 'soa', 'dea', 'itil', 'why-clf', 'why-aif', 'why-saa', 'why-itil'].map(f => 'js/th/' + f + '.js' + (ASSET_V ? '?' + ASSET_V : ''));
     thaiLoading = Promise.all(files.map(src => new Promise(res => {
       const el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = res; document.head.appendChild(el);
     }))).then(() => { if (typeof refresh === 'function') refresh(); });
