@@ -264,6 +264,21 @@ h1, h2, h3, p { margin: 0; }
 .pathtag.cur { background: var(--primary); color: #fff; }
 .pathtag.ok { background: var(--good-soft); color: var(--good-dark); }
 .pathtag.next { background: var(--flame); color: #fff; }
+.pathtag.mine { background: var(--good-soft); color: var(--good-dark); }
+.pathtag.notmine { background: var(--surface-2); color: var(--muted); }
+/* Path cards: the top opens the certification; the row below enrolls or leaves */
+.certopt.pathcard { flex-direction: column; align-items: stretch; gap: 10px; }
+.pathmain { display: flex; align-items: center; gap: 14px; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.pathmain > .grow { flex: 1; min-width: 0; }
+.pathacts { display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
+.pathacts .linkbtn { font-size: 13px; font-weight: 800; color: var(--muted); }
+.pathacts .btn { width: auto; margin: 0; padding: 8px 18px; font-size: 14px; }
+.certopt.pathcard.notmine { border-style: dashed; box-shadow: none; }
+.pathcard.notmine .badge-cert { filter: saturate(.35); opacity: .75; }
+.mycerts { margin-bottom: 18px; }
+.mycerts-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.mycerts-list .pill { background: var(--primary-soft); color: var(--primary); font-weight: 800; }
+.picksec { font-size: 14px; font-weight: 900; color: var(--muted); margin: 14px 0 8px; text-transform: uppercase; letter-spacing: .04em; }
 .pathtag .ic { color: inherit; }
 .pathmeta { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); margin-top: 8px; }
 .words-search { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2px solid var(--border); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; margin-bottom: 14px; }

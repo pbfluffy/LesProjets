@@ -1176,21 +1176,54 @@
     for (let i = 0; i < COURSES.length; i++) { id = NEXT_CERT[id]; if (id && id !== S.cert && !passedCert(id)) return id; }
     return null;
   }
+  // ---------- Enrolment ----------
+  // The certifications a learner has chosen to study. Learners from before enrolment existed
+  // start enrolled in their current certification and any they have progress or exams in.
+  function enrolled() {
+    if (!Array.isArray(S.enrolled)) {
+      const started = c => c.id === S.cert || c.units.some(u => (S.progress[u.id] || 0) > 0) || (S.exams || []).some(e => e.cert === c.id);
+      S.enrolled = COURSES.filter(started).map(c => c.id);
+    }
+    return S.enrolled.filter(id => COURSES.some(c => c.id === id));
+  }
+  const isEnrolled = id => enrolled().includes(id);
+  function enroll(id) { if (id && !isEnrolled(id)) S.enrolled = [...enrolled(), id]; }
+
   function pathCard(c, next) {
-    const total = c.units.length * LESSONS_PER_UNIT, done = c.units.reduce((s, u) => s + unitDone(u), 0);
-    const tags = (c.id === S.cert ? `<span class="pill pathtag cur">${t('path_current')}</span>` : '')
+    const total = c.units.length * LESSONS_PER_UNIT, done = c.units.reduce((s, u) => s + unitDone(u), 0), mine = isEnrolled(c.id);
+    const tags = (c.id === S.cert ? `<span class="pill pathtag cur">${t('path_current')}</span>`
+        : mine ? `<span class="pill pathtag mine">${ICON('check')} ${t('path_enrolled')}</span>` : `<span class="pill pathtag notmine">${t('path_not_enrolled')}</span>`)
       + (passedCert(c.id) ? `<span class="pill pathtag ok">${ICON('check')} ${t('path_passed')}</span>` : '')
       + (c.id === next ? `<span class="pill pathtag next">${ICON('star')} ${t('path_next')}</span>` : '');
-    return `<button class="certopt pathcard ${c.id === S.cert ? 'on' : ''}" data-act="pathpick" data-c="${c.id}">${certBadge(c)}
-      <div class="grow"><h3>${c.name}</h3>${tags ? `<div class="pathtags">${tags}</div>` : ''}
+    // The card opens the certification (and enrolls); the action row enrolls or leaves without opening it.
+    return `<div class="certopt pathcard ${c.id === S.cert ? 'on' : ''} ${mine ? 'mine' : 'notmine'}">
+      <button class="pathmain" data-act="pathpick" data-c="${c.id}">${certBadge(c)}
+      <div class="grow"><h3>${c.name}</h3><div class="pathtags">${tags}</div>
         <div class="pathmeta"><span>${t('path_lessons', { d: done, t: total })}</span><span>${t('path_ready', { n: readiness(c).value })}</span></div>
-        <div class="progress blue" style="height:8px;margin-top:6px"><div style="width:${Math.round(100 * done / total)}%"></div></div></div></button>`;
+        <div class="progress blue" style="height:8px;margin-top:6px"><div style="width:${Math.round(100 * done / total)}%"></div></div></div></button>
+      <div class="pathacts">${mine
+        ? `<button class="linkbtn" data-act="leavecert" data-c="${c.id}">${t('path_leave')}</button>`
+        : `<button class="btn small" data-act="enrollcert" data-c="${c.id}">${t('path_enroll')}</button>`}</div></div>`;
+  }
+  // "You're enrolled in 2: AI Practitioner, Cloud Practitioner" at the top of the Path page.
+  function myCertsCard() {
+    const mine = enrolled().map(id => COURSES.find(c => c.id === id));
+    return `<div class="card mycerts"><strong class="ic-title">${ICON('check')} ${tn('path_mine', mine.length)}</strong>
+      <div class="mycerts-list">${mine.map(c => `<span class="pill">${c.name}</span>`).join('')}</div></div>`;
+  }
+  // Course picker: enrolled certifications first, then the rest.
+  function certPickLists(act) {
+    const mine = COURSES.filter(c => isEnrolled(c.id)), rest = COURSES.filter(c => !isEnrolled(c.id));
+    const list = cs => `<div class="certlist">${cs.map(c => certOption(c, c.id === S.cert, act)).join('')}</div>`;
+    if (!mine.length || !rest.length) return list(COURSES);
+    return `<h3 class="picksec">${t('mycerts_title')}</h3>${list(mine)}<h3 class="picksec">${t('othercerts_title')}</h3>${list(rest)}`;
   }
   function pathView() {
     const next = suggestedCert();
     const level = (l, icon, sub) => `<section class="pathlevel"><h2 class="ic-title">${ICON(icon)} ${t('level_' + l)}</h2><p class="muted small">${t(sub)}</p>
       <div class="certlist">${COURSES.filter(c => c.level === l).map(c => pathCard(c, next)).join('')}</div></section>`;
     return shell(`<h1 class="section-title">${t('path_title')}</h1><p class="muted" style="margin-bottom:18px">${t('path_sub')}</p>
+      ${myCertsCard()}
       ${level('Foundational', 'sprout', 'path_found_sub')}<div class="patharrow" aria-hidden="true">↓</div>${level('Associate', 'award', 'path_assoc_sub')}
       <p class="muted small" style="margin-top:18px">${t('path_note')}</p>
       ${COURSES.some(c => c.level === 'ITSM') ? `<div style="margin-top:26px">${level('ITSM', 'wrench', 'path_itsm_sub')}</div>` : ''}`);
@@ -2329,7 +2362,7 @@
       <div class="card" style="margin-top:16px"><h3>${t('strengths', { code: c.code })}</h3>
         ${domains.length ? domains.map(({ u, acc }) => `<div class="domainbar"><div class="top"><span class="ic-title">${unitIcon(u)} ${u.title}</span><span class="muted">${acc.pct}%</span></div><div class="progress ${acc.pct >= 80 ? 'green' : 'blue'}" style="height:10px"><div style="width:${acc.pct}%"></div></div></div>`).join('') : `<p class="muted">${t('strengths_none')}</p>`}
       </div>
-      <div class="card" style="margin-top:16px"><h3>${t('certifications')}</h3><div class="certlist">${COURSES.map(x => certOption(x, x.id === c.id, 'setcert')).join('')}</div></div>
+      <div class="card" style="margin-top:16px"><h3>${t('certifications')}</h3>${certPickLists('setcert')}</div>
       <div class="card" style="margin-top:16px"><h3>${t('daily_goal')}</h3>
         <div class="seg">${GOALS.map(g => `<button class="${S.dailyGoal === g.xp ? 'on' : ''}" data-act="setgoal" data-g="${g.xp}">${t(g.key)}<small>${g.xp} XP</small></button>`).join('')}</div>
       </div>
@@ -2362,13 +2395,26 @@
     install: async () => { if (!installPrompt) return; const p = installPrompt; installPrompt = null; p.prompt(); try { await p.userChoice; } catch { /* ignore */ } render(); },
     installlater: () => { S.installHidden = true; save(); render(); },
     dismissfreeze: () => { S.freezeNotice = null; save(); render(); },
-    pickcert: () => modal(`<h2>${t('choose_cert')}</h2><p>${t('choose_cert_sub')}</p><div class="certlist">${COURSES.map(c => certOption(c, c.id === S.cert, 'setcert')).join('')}</div><button class="linkbtn block" style="margin-top:14px" data-act="openpath">${ICON('compass')} ${t('path_open')}</button>`, 'wide'),
+    pickcert: () => modal(`<h2>${t('choose_cert')}</h2><p>${t('choose_cert_sub')}</p>${certPickLists('setcert')}<button class="linkbtn block" style="margin-top:14px" data-act="openpath">${ICON('compass')} ${t('path_open')}</button>`, 'wide'),
     openpath: () => { closeModal(); go('path'); },
     challenge: d => shareChallenge(d.k, +d.s, d.c),
-    chgo: () => { const ch = CH; CH = null; if (S.cert !== ch.c) { S.cert = ch.c; save(); } go(ch.k === 'e' ? 'exam' : 'learn'); },
+    chgo: () => { const ch = CH; CH = null; if (S.cert !== ch.c) { S.cert = ch.c; enroll(ch.c); save(); } go(ch.k === 'e' ? 'exam' : 'learn'); },
     chno: () => { CH = null; render(); },
-    pathpick: d => { S.cert = d.c; save(); go('learn'); },
-    setcert: d => { S.cert = d.c; save(); closeModal(); go(view === 'profile' ? 'profile' : 'learn'); },
+    pathpick: d => { S.cert = d.c; enroll(d.c); save(); go('learn'); },
+    enrollcert: d => { const c = COURSES.find(x => x.id === d.c); if (!c) return; enroll(c.id); save(); render(); toast(t('enrolled_toast', { name: esc(c.name) })); },
+    leavecert: d => {
+      const c = COURSES.find(x => x.id === d.c); if (!c) return;
+      if (!enrolled().some(id => id !== c.id)) { infoModal(t('leave_last_t'), t('leave_last_b'), 'think'); return; }
+      modal(`${mascot(80, 'think')}<h2>${t('leave_t', { name: esc(c.name) })}</h2><p>${t('leave_b')}</p>
+        <div class="stack" style="margin-top:14px"><button class="btn" data-act="leaveconfirm" data-c="${c.id}">${t('path_leave')}</button><button class="btn ghost" data-act="closemodal">${t('cancel')}</button></div>`);
+    },
+    leaveconfirm: d => {
+      const c = COURSES.find(x => x.id === d.c); if (!c) return;
+      S.enrolled = enrolled().filter(id => id !== c.id);
+      if (S.cert === c.id) S.cert = S.enrolled[0];
+      save(); closeModal(); render(); toast(t('left_toast', { name: esc(c.name) }));
+    },
+    setcert: d => { S.cert = d.c; enroll(d.c); save(); closeModal(); go(view === 'profile' ? 'profile' : 'learn'); },
     closemodal: () => closeModal(),
     node: d => { const u = UNITS[d.u]; startLesson(d.u, +d.l < unitDone(u) ? 'replay' : 'lesson'); },
     unitpractice: d => startSession('practice', pickQuestions(UNITS[d.u].questions, 8), d.u),
@@ -2437,10 +2483,10 @@
     obcert: d => { OB.cert = d.c; render(); },
     obgoal: d => { OB.goal = +d.g; render(); },
     // New learners start answering right away: lesson 1 of the first unit.
-    obstart: () => { if (!OB.cert) return; CH = null; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); track('cert'); startLesson(course().units[0].id, 'lesson'); },
+    obstart: () => { if (!OB.cert) return; CH = null; S.cert = OB.cert; enroll(OB.cert); S.dailyGoal = OB.goal; save(); track('cert'); startLesson(course().units[0].id, 'lesson'); },
     tourgo: () => { closeModal(); startTour(); },
     tourno: () => { try { localStorage.setItem(TOUR_KEY, '1'); } catch { /* ignore */ } closeModal(); },
-    obplace: () => { if (!OB.cert) return; S.cert = OB.cert; S.dailyGoal = OB.goal; save(); track('cert'); startPlacement(); },
+    obplace: () => { if (!OB.cert) return; S.cert = OB.cert; enroll(OB.cert); S.dailyGoal = OB.goal; save(); track('cert'); startPlacement(); },
     placement: () => startPlacement(),
     domainpractice: d => { const us = String(d.us || '').split(',').filter(u => UNITS[u]); if (us.length) startSession('practice', pickQuestions(us.flatMap(u => UNITS[u].questions), 10), us.length === 1 ? us[0] : null); },
   };
