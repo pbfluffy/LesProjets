@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { CATEGORIES, categoryById } from '../categories.js'
-import { DEFAULT_FILTERS, filterPerks, isExpired } from '../perks.js'
+import { DEFAULT_FILTERS, filterPerks, isExpired, cardLabel } from '../perks.js'
 
 function Seg({ value, onChange, options }) {
   return (
@@ -44,7 +44,7 @@ export default function CheckerView({ cards }) {
           <span className="lbl">Card</span>
           <select value={f.cardId} onChange={(e) => setF({ ...f, cardId: e.target.value })} aria-label="Card">
             <option value="all">All cards</option>
-            {cards.map((c) => <option key={c.id} value={c.id}>{c.nickname || c.name}</option>)}
+            {cards.map((c) => <option key={c.id} value={c.id}>{cardLabel(c)}</option>)}
           </select>
           <label className="check"><input type="checkbox" checked={f.hideExpired} onChange={(e) => setF({ ...f, hideExpired: e.target.checked })} /> Hide expired</label>
         </div>
@@ -64,7 +64,7 @@ export default function CheckerView({ cards }) {
                   {perk.requiresPoints ? `${perk.pointsCost ? perk.pointsCost.toLocaleString() + ' ' : ''}points` : 'No points needed'}
                 </span>
               </div>
-              <div className="muted">{card.nickname || card.name} · {cat.label}</div>
+              <div className="muted">{cardLabel(card)} · {cat.label}</div>
               {(perk.minSpend || perk.validUntil || perk.conditions) && (
                 <ul className="conds">
                   {perk.minSpend ? <li>Minimum spend: {perk.minSpend.toLocaleString()}</li> : null}
