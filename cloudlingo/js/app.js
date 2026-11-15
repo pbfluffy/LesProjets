@@ -47,7 +47,7 @@
   function loadThai() {
     if (window.TH_EXPLAIN && window.TH_GLOSS) return Promise.resolve();
     if (thaiLoading) return thaiLoading;
-    const files = ['glossary', 'clf', 'aif', 'saa', 'dva', 'soa', 'dea', 'why-clf', 'why-aif', 'why-saa'].map(f => 'js/th/' + f + '.js' + (ASSET_V ? '?' + ASSET_V : ''));
+    const files = ['glossary', 'clf', 'aif', 'saa', 'dva', 'soa', 'dea', 'itil', 'why-clf', 'why-aif', 'why-saa'].map(f => 'js/th/' + f + '.js' + (ASSET_V ? '?' + ASSET_V : ''));
     thaiLoading = Promise.all(files.map(src => new Promise(res => {
       const el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = res; document.head.appendChild(el);
     }))).then(() => { if (typeof refresh === 'function') refresh(); });
@@ -80,7 +80,8 @@
     'saa-1': 'shield', 'saa-2': 'layers', 'saa-3': 'bolt', 'saa-4': 'coins',
     'dva-1': 'code', 'dva-2': 'key', 'dva-3': 'rocket',
     'soa-1': 'activity', 'soa-2': 'repeat', 'soa-3': 'gear', 'soa-4': 'globe',
-    'dea-1': 'inbox', 'dea-2': 'database', 'dea-3': 'lock'
+    'dea-1': 'inbox', 'dea-2': 'database', 'dea-3': 'lock',
+    'itil-1': 'book', 'itil-2': 'compass', 'itil-3': 'layers', 'itil-4': 'puzzle', 'itil-5': 'wrench'
   };
   const unitIcon = u => ICON(UNIT_ICON[u.id] || 'cloud');
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -767,7 +768,7 @@
     x.fillStyle = '#1f8ef1'; x.font = font(900, 52); x.fillText(`${c.name} (${c.code})`, W / 2, 720);
     const date = new Date().toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' });
     x.fillStyle = '#1d2b3a'; x.font = font(800, 34); x.fillText(date, W / 2, 810);
-    x.fillStyle = '#94a3b8'; x.font = font(700, 24); x.fillText(t('cert_note'), W / 2, H - 110);
+    x.fillStyle = '#94a3b8'; x.font = font(700, 24); x.fillText(t('cert_note', { org: c.org || 'AWS' }), W / 2, H - 110);
     const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
     if (!blob) return;
     const file = new File([blob], `cloudlingo-${c.code}.png`, { type: 'image/png' });
@@ -1157,7 +1158,8 @@
 
   const BADGE_COLORS = {
     clf: ['#1f8ef1', '#12a594'], aif: ['#e2457a', '#8b5cf6'], saa: ['#8b5cf6', '#1f8ef1'],
-    dva: ['#ea7a1c', '#e2457a'], soa: ['#12a594', '#2bb673'], dea: ['#f5a300', '#ea7a1c']
+    dva: ['#ea7a1c', '#e2457a'], soa: ['#12a594', '#2bb673'], dea: ['#f5a300', '#ea7a1c'],
+    itil: ['#6d28d9', '#0ea5e9']
   };
   function certBadge(c) {
     const [a, b] = BADGE_COLORS[c.id] || ['#1f8ef1', '#8b5cf6'];
@@ -1190,7 +1192,8 @@
       <div class="certlist">${COURSES.filter(c => c.level === l).map(c => pathCard(c, next)).join('')}</div></section>`;
     return shell(`<h1 class="section-title">${t('path_title')}</h1><p class="muted" style="margin-bottom:18px">${t('path_sub')}</p>
       ${level('Foundational', 'sprout', 'path_found_sub')}<div class="patharrow" aria-hidden="true">↓</div>${level('Associate', 'award', 'path_assoc_sub')}
-      <p class="muted small" style="margin-top:18px">${t('path_note')}</p>`);
+      <p class="muted small" style="margin-top:18px">${t('path_note')}</p>
+      ${COURSES.some(c => c.level === 'ITSM') ? `<div style="margin-top:26px">${level('ITSM', 'wrench', 'path_itsm_sub')}</div>` : ''}`);
   }
 
   function certOption(c, on, act) {
@@ -1449,7 +1452,7 @@
     if (!window.diagramFor || q.t === 'match') return null;
     const answer = q.tf ? '' : correctText(q);
     // Fill-in questions: put the answer into the blank so "a ___ table" + "route" reads "a route table".
-    return window.diagramFor((q.t === 'fill' ? q.q.replace(/_{2,}/, answer) : q.q) + ' ' + answer);
+    return window.diagramFor((q.t === 'fill' ? q.q.replace(/_{2,}/, answer) : q.q) + ' ' + answer, q.course);
   }
   function lessonDiagram(q) {
     const id = window.renderDiagram && diagramIdFor(q);
@@ -1770,7 +1773,8 @@
   // ---------- Mock exam ----------
   // Real exam length: 65 questions; 90 minutes for the foundational exams, 130 for associate.
   const examSpec = (c, mode) => mode === 'full'
-    ? { questions: 65, minutes: c.level === 'Foundational' ? 90 : 130, pass: c.exam.pass }
+    // AWS exams: 65 questions; a course can set its own real exam length (ITIL: 40 in 60 minutes).
+    ? Object.assign({ questions: 65, minutes: c.level === 'Foundational' ? 90 : 130, pass: c.exam.pass }, c.full)
     : c.exam;
   const examPool = c => c.units.reduce((n, u) => n + u.questions.filter(q => q.t !== 'match' && live(q)).length, 0);
 

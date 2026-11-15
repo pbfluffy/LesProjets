@@ -1,9 +1,10 @@
 # Cloudlingo
 
-Bite-sized daily lessons for AWS certifications:
+Bite-sized daily lessons for AWS certifications and ITIL:
 
 - **Foundational:** CLF-C02 (Cloud Practitioner) and AIF-C01 (AI Practitioner)
 - **Associate:** SAA-C03 (Solutions Architect), DVA-C02 (Developer), SOA-C03 (CloudOps Engineer), and DEA-C01 (Data Engineer)
+- **IT service management:** ITIL 4 Foundation (ITIL® is a registered trademark of PeopleCert; Cloudlingo is not affiliated with PeopleCert or AXELOS)
 
 ## Run
 

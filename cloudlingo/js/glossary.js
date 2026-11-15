@@ -151,5 +151,24 @@ window.GLOSSARY = [
   { k: 'decouple', also: ['decoupled', 'decoupling'], d: 'Separating components so one can fail or scale without breaking the others.' },
   { k: 'idempotent', d: 'Doing the same operation twice has the same effect as doing it once.' },
   { k: 'GB', d: 'Gigabyte: about one billion bytes.' },
-  { k: 'MB', d: 'Megabyte: about one million bytes.' }
+  { k: 'MB', d: 'Megabyte: about one million bytes.' },
+  // ---- ITIL 4 ----
+  { k: 'known error', d: 'A problem that has been analyzed but not yet fixed. It often has a documented workaround.' },
+  { k: 'workaround', d: 'A way to reduce or remove the impact of an incident or problem until a full fix is available.' },
+  { k: 'service desk', d: 'The single point of contact between a service provider and its users.' },
+  { k: 'service request', d: 'A user’s request for something normal and predefined, such as access or equipment. Not a failure.' },
+  { k: 'service level agreement', also: ['SLA', 'SLAs'], d: 'A documented agreement between a provider and a customer about the services and expected service levels.' },
+  { k: 'utility', d: 'What a service does: the functionality that makes it fit for purpose.' },
+  { k: 'warranty', d: 'How well a service performs: availability, capacity, security and continuity. Makes it fit for use.' },
+  { k: 'value stream', also: ['value streams'], d: 'A series of steps an organization takes to create and deliver products and services.' },
+  { k: 'service value chain', d: 'The six activities of the ITIL SVS: plan, improve, engage, design and transition, obtain/build, deliver and support.' },
+  { k: 'service value system', also: ['SVS'], d: 'How all parts of an organization work together to turn opportunity and demand into value.' },
+  { k: 'guiding principles', also: ['guiding principle'], d: 'Seven ITIL recommendations that guide decisions in any situation, such as focus on value.' },
+  { k: 'configuration item', also: ['configuration items'], d: 'Any component that needs to be managed to deliver an IT service.' },
+  { k: 'change enablement', d: 'The ITIL practice that assesses risk, authorizes changes and manages the change schedule.' },
+  { k: 'change authority', d: 'The person or group who authorizes a change.' },
+  { k: 'swarming', d: 'Many people working on an incident together until it’s clear who should take it forward.' },
+  { k: 'continual improvement', d: 'Ongoing work, at every level, to keep services and practices aligned with changing needs.' },
+  { k: 'PESTLE', d: 'Political, economic, social, technological, legal and environmental factors outside an organization.' },
+  { k: 'co-creation', d: 'Value is created together by the provider and the consumer, not by the provider alone.' }
 ];
