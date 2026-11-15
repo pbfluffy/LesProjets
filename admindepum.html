@@ -429,14 +429,15 @@ html.light body{
 .cloud-ed .hint{font-weight:400;font-size:11px}.cloud-ed .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .cloud-ed .err{color:#ec4c56;font-size:12px;font-weight:700}.cloud-find-row{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid rgba(127,127,127,.15)}.cloud-find-row:first-child{border-top:0}
 .cloud-find-row .q{flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cloud-row{display:grid;grid-template-columns:minmax(160px,1.6fr) .6fr .6fr .6fr .6fr .7fr .7fr .9fr 92px;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid rgba(127,127,127,.15);font-size:13px}
+.cloud-row{display:grid;grid-template-columns:minmax(160px,1.6fr) .6fr .6fr .6fr .6fr .7fr .7fr .9fr 128px;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid rgba(127,127,127,.15);font-size:13px}
 .cloud-row.head{border-top:0;font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
 .cloud-who{min-width:0;display:flex;flex-direction:column;gap:2px;line-height:1.25;overflow:hidden}
 .cloud-who b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cloud-who span{font-size:11.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cloud-board-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid rgba(127,127,127,.15)}.cloud-board-row:first-child{border-top:0}
 .cloud-board-row .rk{width:24px;text-align:center;font-weight:800;color:var(--faint)}.cloud-board-row .nm{flex:1;font-weight:600}.cloud-board-row .xp{font-weight:800}
-@media (max-width:760px){.cloud-row{grid-template-columns:minmax(120px,1.4fr) .6fr .6fr .8fr 84px}.cloud-row > div:nth-child(5),.cloud-row > div:nth-child(6),.cloud-row > div:nth-child(7),.cloud-row > div:nth-child(8){display:none}}
+.cloud-acts{display:flex;flex-direction:column;align-items:stretch;gap:4px}.cloud-acts .btn{white-space:nowrap}
+@media (max-width:760px){.cloud-row{grid-template-columns:minmax(120px,1.4fr) .6fr .6fr .8fr 120px}.cloud-row > div:nth-child(5),.cloud-row > div:nth-child(6),.cloud-row > div:nth-child(7),.cloud-row > div:nth-child(8){display:none}}
 /* ---- backyard ---- */
 .backyard-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
 .backyard-board h3{font-size:14px;margin:0 0 10px;color:var(--text)}
@@ -2255,31 +2256,43 @@ async function invGraph(method, pathAndQuery, body){
     : res.status === 404 ? 'That Microsoft account doesn’t exist any more in Entra.'
     : ((out.error && out.error.message) || ('Microsoft Graph error ' + res.status)));
 }
-async function invSetAccess(v, revoke){
-  try { await msInit(); } catch (e) { INV.msg = e.message; INV.msgType = 'error'; renderInvites(); return; }
-  if (!msAccount) {
-    INV.msg = 'Connect Microsoft first (with your Entra admin account), then click ' + (revoke ? 'Revoke' : 'Restore') + ' again.'; INV.msgType = 'error'; renderInvites();
-    try { localStorage.setItem('admin_tab', 'cloudlingo'); await msPca.loginRedirect({ scopes: MS_SCOPES.concat(MS_SCOPES_REVOKE), prompt: 'select_account' }); } catch {}
-    return;
+// Connected to Microsoft with an Entra admin account? If not, start the sign-in and say so.
+async function entraReady(action){
+  await msInit();
+  if (msAccount) return true;
+  try { localStorage.setItem('admin_tab', 'cloudlingo'); } catch {}
+  showToast('Connect Microsoft first (with your Entra admin account), then click ' + action + ' again.', 'error');
+  try { await msPca.loginRedirect({ scopes: MS_SCOPES.concat(MS_SCOPES_REVOKE), prompt: 'select_account' }); } catch {}
+  return false;
+}
+// Disable (revoke) or enable (restore) a Microsoft account, end its sessions, and record it in
+// cloudlingoRevoked so Cloudlingo signs it out. Also marks its invitation, if it has one.
+async function entraSetAccess(upn, revoke){
+  upn = String(upn).toLowerCase();
+  const by = auth.currentUser.displayName || auth.currentUser.email || '';
+  const invite = INV.list.find(x => String(x.username || x.id).toLowerCase() === upn || x.id === upn);
+  if (revoke) {
+    await invGraph('PATCH', '/users/' + encodeURIComponent(upn), { accountEnabled: false });
+    await invGraph('POST', '/users/' + encodeURIComponent(upn) + '/revokeSignInSessions');
+    await setDoc(doc(db, 'cloudlingoRevoked', upn), { at: serverTimestamp(), by });
+    if (invite) await setDoc(doc(db, 'cloudlingoInvites', invite.id), { revokedAt: serverTimestamp(), revokedBy: by }, { merge: true });
+  } else {
+    await invGraph('PATCH', '/users/' + encodeURIComponent(upn), { accountEnabled: true });
+    await deleteDoc(doc(db, 'cloudlingoRevoked', upn));
+    if (invite) await setDoc(doc(db, 'cloudlingoInvites', invite.id), { revokedAt: null, revokedBy: null }, { merge: true });
   }
+}
+async function invSetAccess(v, revoke){
+  try { if (!(await entraReady(revoke ? 'Revoke' : 'Restore'))) return; } catch (e) { INV.msg = e.message; INV.msgType = 'error'; renderInvites(); return; }
   INV.busy = true; INV.msg = ''; renderInvites();
-  const upn = String(v.username || v.id).toLowerCase(), by = auth.currentUser.displayName || auth.currentUser.email || '';
   try {
-    if (revoke) {
-      await invGraph('PATCH', '/users/' + encodeURIComponent(upn), { accountEnabled: false });
-      await invGraph('POST', '/users/' + encodeURIComponent(upn) + '/revokeSignInSessions');
-      await setDoc(doc(db, 'cloudlingoRevoked', upn), { at: serverTimestamp(), by });
-      await setDoc(doc(db, 'cloudlingoInvites', v.id), { revokedAt: serverTimestamp(), revokedBy: by }, { merge: true });
-      INV.msg = v.name + '’s access is revoked. Their Microsoft account is disabled and they’ll be signed out of Cloudlingo.';
-    } else {
-      await invGraph('PATCH', '/users/' + encodeURIComponent(upn), { accountEnabled: true });
-      await deleteDoc(doc(db, 'cloudlingoRevoked', upn));
-      await setDoc(doc(db, 'cloudlingoInvites', v.id), { revokedAt: null, revokedBy: null }, { merge: true });
-      INV.msg = v.name + '’s access is restored. They can sign in with Microsoft again.';
-    }
+    await entraSetAccess(v.username || v.id, revoke);
+    INV.msg = revoke ? v.name + '’s access is revoked. Their Microsoft account is disabled and they’ll be signed out of Cloudlingo.'
+      : v.name + '’s access is restored. They can sign in with Microsoft again.';
     INV.msgType = 'ok';
   } catch (e) { INV.msg = e.message; INV.msgType = 'error'; }
   INV.busy = false; INV.loaded = false; await invitesLoad();
+  CLOUD.loaded = false; loadCloudlingoData();
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-inv-revoke],[data-inv-restore]'); if (!b) return;
@@ -2302,10 +2315,32 @@ document.addEventListener('click', e => {
 function learnerActs(p, prof){
   if (p.uid === ADMIN_UID || p.uid === auth.currentUser?.uid) return '<span class="cloud-filter" title="Your own account">You</span>';
   const name = escAdm(prof.name || prof.email || p.uid.slice(0, 10));
-  return CLOUD.blocked && CLOUD.blocked.has(p.uid)
+  const cloud = CLOUD.blocked && CLOUD.blocked.has(p.uid)
     ? '<button class="btn ghost small" data-learner-restore="' + escAdm(p.uid) + '" data-name="' + name + '" title="Let them use Cloudlingo with this account again">Restore</button>'
     : '<button class="btn ghost small" data-learner-revoke="' + escAdm(p.uid) + '" data-name="' + name + '" title="Sign them out of Cloudlingo and stop this account using it. Their other apps aren’t affected.">Revoke</button>';
+  // Microsoft (Entra) accounts on our domain: disable or enable the account itself.
+  const upn = String(prof.email || '').toLowerCase();
+  if (!upn.endsWith(INV_DOMAIN)) return cloud;
+  const off = CLOUD.revoked && CLOUD.revoked.has(upn);
+  return cloud + (off
+    ? '<button class="btn ghost small" data-entra-on="' + escAdm(upn) + '" data-name="' + name + '" title="Enable their Microsoft account (' + escAdm(upn) + ') in Entra ID again">Reconnect Entra</button>'
+    : '<button class="btn ghost small" data-entra-off="' + escAdm(upn) + '" data-name="' + name + '" title="Disable their Microsoft account (' + escAdm(upn) + ') in Entra ID and end its sessions. They can’t sign in with Microsoft anywhere until you reconnect it.">Disconnect Entra</button>');
 }
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-entra-off],[data-entra-on]'); if (!b) return;
+  const off = !!b.dataset.entraOff, upn = b.dataset.entraOff || b.dataset.entraOn, name = b.dataset.name;
+  if (!confirm(off
+    ? 'Disconnect ' + name + ' from Entra ID?\n\nThis disables their Microsoft account (' + upn + '), ends their Microsoft sessions, and signs them out of Cloudlingo. You can reconnect it later.'
+    : 'Reconnect ' + name + '’s Microsoft account (' + upn + ')? It will be enabled in Entra ID again.')) return;
+  try {
+    if (!(await entraReady(off ? 'Disconnect Entra' : 'Reconnect Entra'))) return;
+    b.disabled = true;
+    await entraSetAccess(upn, off);
+    showToast(off ? name + ' is disconnected from Entra ID: their Microsoft account is disabled.' : name + '’s Microsoft account is enabled again.', 'success');
+  } catch (err) { b.disabled = false; showToast('That didn’t work: ' + err.message, 'error'); return; }
+  CLOUD.loaded = false; loadCloudlingoData();
+  INV.loaded = false; invitesLoad();
+});
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-learner-revoke],[data-learner-restore]'); if (!b) return;
   const uid = b.dataset.learnerRevoke || b.dataset.learnerRestore, name = b.dataset.name;
@@ -2361,13 +2396,15 @@ function cloudFillCertFilter(){
   (window.COURSES || []).forEach(c => sel.add(new Option(c.name + ' (' + c.code + ')', c.id)));
   try { const v = localStorage.getItem('admin_cloud_cert'); if (v && cloudCourse(v)) sel.value = v; } catch {}
 }
+// A learner's profile (name, email): the Cloudlingo tab's own copy, else the Overview tab's.
+const cloudProf = uid => (CLOUD.profiles && CLOUD.profiles.get(uid)) || PROFILE_MAP.get(uid);
 async function loadCloudlingoData(){
   CLOUD.loading = true;
   try {
     CLOUD.week = cloudWeekId();
     const edits = await getDocs(collection(db, 'cloudlingoEdits')).catch(() => null);
     CLOUD_EDITS.clear(); (edits ? edits.docs : []).forEach(d => CLOUD_EDITS.set(d.id, d.data()));
-    const [reps, progress, board, pushes, funnel, errs, qstats, blocked, profiles] = await Promise.all([
+    const [reps, progress, board, pushes, funnel, errs, qstats, blocked, profiles, revoked] = await Promise.all([
       getDocs(collection(db, 'cloudlingoReports')).catch(() => null),
       getDocs(collection(db, 'userCloudlingo')).catch(() => null),
       getDocs(collection(db, 'cloudlingoWeeks', CLOUD.week, 'scores')).catch(() => null),
@@ -2376,11 +2413,14 @@ async function loadCloudlingoData(){
       getDocs(collection(db, 'cloudlingoErrors')).catch(() => null),
       getDocs(collection(db, 'cloudlingoQStats')).catch(() => null),
       getDocs(collection(db, 'cloudlingoBlocked')).catch(() => null),
-      // Names for the Learners table even when the Overview tab hasn't loaded them yet.
-      PROFILE_MAP.size ? null : getDocs(collection(db, 'userProfiles')).catch(() => null)
+      // Names for the Learners table. The Cloudlingo tab keeps its own copy: the Overview tab
+      // rebuilds PROFILE_MAP while it loads, which used to leave learners showing only ids.
+      getDocs(collection(db, 'userProfiles')).catch(() => null),
+      getDocs(collection(db, 'cloudlingoRevoked')).catch(() => null)
     ]);
     CLOUD.blocked = new Map((blocked ? blocked.docs : []).map(d => [d.id, d.data()]));
-    if (profiles) profiles.docs.forEach(d => { if (!PROFILE_MAP.has(d.id)) PROFILE_MAP.set(d.id, d.data()); });
+    CLOUD.revoked = new Set((revoked ? revoked.docs : []).map(d => d.id.toLowerCase()));
+    if (profiles) CLOUD.profiles = new Map(profiles.docs.map(d => [d.id, d.data()]));
     // First-try answers per question from every learner, signed in or not (r = right, w = wrong).
     CLOUD.qstats = new Map((qstats ? qstats.docs : []).map(d => { const x = d.data(); return [d.id, { seen: (x.r || 0) + (x.w || 0), correct: x.r || 0 }]; }));
     CLOUD.funnel = funnel ? funnel.docs.map(d => Object.assign({ id: d.id }, d.data())) : [];
@@ -2476,7 +2516,7 @@ async function renderCloudlingoTab(){
   const ppl = people.concat(blockedOnly).sort((a, b) => key(b) - key(a));
   const hourLabel = h => new Date(2000, 0, 1, h).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   document.getElementById('cloud-learners').innerHTML = ppl.length ? ppl.map(p => {
-    const prof = PROFILE_MAP.get(p.uid) || {};
+    const prof = cloudProf(p.uid) || {};
     const acct = prof.email || p.uid;
     return `<div class="cloud-row"><div class="cloud-who" title="${esc(acct)}"><b>${esc(prof.name || prof.email || p.uid.slice(0, 10))}</b><span>${esc(acct)}</span></div>
       <div class="cloud-cert">${esc(cloudCertName(p.cert))}${cloudCourse(p.cert) ? `<small>${esc(cloudCourse(p.cert).code)}</small>` : ''}</div><div><b>${p.xp.toLocaleString('en')}</b></div><div>${p.streak ? p.streak + (p.streak === 1 ? ' day' : ' days') : '–'}</div>
@@ -2489,7 +2529,7 @@ async function renderCloudlingoTab(){
   const board = CLOUD.board.filter(r => inCert(certByUid.get(r.uid) || ''));
   if (wk) wk.textContent = 'Week of ' + CLOUD.week + (cert ? ' · learners currently on ' + cloudCertName(cert) : '');
   document.getElementById('cloud-board').innerHTML = board.length ? board.slice(0, 20).map((r, i) => {
-    const prof = PROFILE_MAP.get(r.uid) || {};
+    const prof = cloudProf(r.uid) || {};
     const rc = certByUid.get(r.uid);
     return `<div class="cloud-board-row"><span class="rk">${i + 1}</span><span class="nm">${esc(r.name || 'Learner')}${!cert && rc ? ` <span class="cloud-filter" style="display:inline">· ${esc(cloudCertName(rc))}</span>` : ''}${prof.email ? ` <span class="cloud-filter" style="display:inline">· ${esc(prof.email)}</span>` : ''}</span><span class="xp">${(r.xp || 0).toLocaleString('en')} XP</span></div>`;
   }).join('') : '<div class="cloud-empty">No one has earned XP this week yet.</div>';
@@ -2498,7 +2538,7 @@ async function renderCloudlingoTab(){
   const list = reports.filter(r => showResolved || r.status !== 'resolved');
   const REASON = { wrong: 'Answer looks wrong', unclear: 'Question unclear', typo: 'Typo', outdated: 'Outdated', other: 'Other' };
   document.getElementById('cloud-reports').innerHTML = list.length ? list.map(r => {
-    const p = r.uid ? PROFILE_MAP.get(r.uid) : null;
+    const p = r.uid ? cloudProf(r.uid) : null;
     const who = r.uid ? ((p && (p.name || p.email)) || r.uid.slice(0, 8)) : 'signed out';
     const when = r.ts?.toMillis?.() || 0;
     const live = bank.get(r.qid);
@@ -2578,14 +2618,14 @@ document.addEventListener('click', e => {
   const tag = cert ? '-' + cert : '';
   if (b.dataset.cloudCsv === 'learners') {
     const rows = CLOUD.people.filter(p => inCert(p.cert)).sort((a, b2) => b2.updated - a.updated).map(p => {
-      const prof = PROFILE_MAP.get(p.uid) || {}, c = cloudCourse(p.cert);
+      const prof = cloudProf(p.uid) || {}, c = cloudCourse(p.cert);
       return [prof.name || '', prof.email || p.uid, c ? c.name : p.cert, c ? c.code : '', p.xp, p.streak, p.lessons, p.passed, p.exams, p.reminder != null ? p.reminder + ':00' : '', iso(p.updated)];
     });
     cloudCsv('cloudlingo-learners' + tag, ['Name', 'Account', 'Certification', 'Exam code', 'XP', 'Streak', 'Sessions', 'Exams passed', 'Exams taken', 'Reminder', 'Last active (UTC)'], rows);
   } else {
     const REASON = { wrong: 'Answer looks wrong', unclear: 'Question unclear', typo: 'Typo', outdated: 'Outdated', other: 'Other' };
     const rows = CLOUD.reports.filter(r => inCert(r.cert || cloudCertOf(r.qid))).map(r => {
-      const p = r.uid ? PROFILE_MAP.get(r.uid) : null;
+      const p = r.uid ? cloudProf(r.uid) : null;
       return [r.status === 'resolved' ? 'Resolved' : 'Open', REASON[r.reason] || r.reason, cloudCertName(r.cert || cloudCertOf(r.qid)), r.qid, r.qtext || '', r.answer || '', r.note || '', r.uid ? ((p && (p.email || p.name)) || r.uid) : 'signed out', iso(r.ts?.toMillis?.() || 0)];
     });
     cloudCsv('cloudlingo-reports' + tag, ['Status', 'Reason', 'Certification', 'Question ID', 'Question', 'Answer shown', 'Note', 'Reported by', 'Date (UTC)'], rows);
