@@ -160,33 +160,6 @@ service cloud.firestore {
       allow delete: if isUser(resource.data.ownerUid);
     }
 
-    // ── Card Perks — user's cards and their privileges ──────────────────────
-    // Owner-only, not even admins: it's personal financial info. The app never
-    // stores card numbers; this only bounds shape/size.
-    match /userCards/{uid} {
-      allow read:  if isUser(uid);
-      allow write: if isUser(uid)
-                   && request.resource.data.cards is list
-                   && request.resource.data.cards.size() <= 30;
-    }
-
-    // Card Perks — privilege catalog collected from banks' public websites by
-    // the scheduled scanner (card-perks/scanner). Public bank info, so any
-    // signed-in user may read it; nobody can write from a client. The scanner
-    // writes with the service account, which bypasses these rules.
-    match /cardCatalog/{bankId} {
-      allow read:  if signedIn();
-      allow write: if false;
-    }
-
-    // Card Perks — restaurant promotions collected the same way, split into
-    // shards (cardPromos/ktc-dining-1, -2, …) to stay well under the document
-    // size limit. Same access: signed-in read, scanner-only write.
-    match /cardPromos/{shardId} {
-      allow read:  if signedIn();
-      allow write: if false;
-    }
-
     // ── Pumgoda — user saved places ─────────────────────────────────────────
     match /userPlaces/{uid} {
       allow read:  if isUser(uid) || isAdmin();
