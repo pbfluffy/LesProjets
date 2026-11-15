@@ -407,6 +407,7 @@ html.light body{
 .cloud-item .meta{font-size:12px;color:var(--faint);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .cloud-item .note{margin:6px 0;white-space:pre-wrap}
 .cloud-item .acts{display:flex;gap:6px;margin-top:8px}
+.cloud-acts{display:flex;gap:6px;flex-wrap:wrap}
 .cloud-pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:700;background:rgba(240,127,26,.15);color:#c45c1a}
 .cloud-pill.done{background:rgba(43,182,115,.15);color:#1f8f59}
 .cloud-bar{height:6px;border-radius:3px;background:rgba(127,127,127,.15);overflow:hidden;margin-top:6px}
@@ -2330,8 +2331,26 @@ function learnerActs(p, prof){
   const name = escAdm(prof.name || prof.email || p.uid.slice(0, 10));
   return CLOUD.blocked && CLOUD.blocked.has(p.uid)
     ? '<button class="btn ghost small" data-learner-restore="' + escAdm(p.uid) + '" data-name="' + name + '" title="Let them use Cloudlingo with this account again">Restore</button>'
+      + '<button class="btn ghost small" data-learner-remove="' + escAdm(p.uid) + '" data-name="' + name + '" title="Take them off this list by deleting their saved Cloudlingo progress. They stay revoked.">Remove</button>'
     : '<button class="btn ghost small" data-learner-revoke="' + escAdm(p.uid) + '" data-name="' + name + '" title="Sign them out of Cloudlingo and stop this account using it. Their other apps aren’t affected.">Revoke</button>';
 }
+// Remove a revoked learner from the list. The list is built from userCloudlingo, so deleting
+// that document drops the row; cloudlingoBlocked stays, so they remain revoked (and can't
+// write progress back, so the row doesn't return). Only offered for revoked learners.
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-learner-remove]'); if (!b) return;
+  const uid = b.dataset.learnerRemove, name = b.dataset.name;
+  if (!(CLOUD.blocked && CLOUD.blocked.has(uid))) return; // never remove someone who still has access
+  if (!confirm('Remove ' + name + ' from the Learners list?\n\nThis permanently deletes their saved Cloudlingo progress (XP, streak, lessons). They stay revoked, and their account in your other apps isn’t affected.')) return;
+  try {
+    b.disabled = true;
+    await deleteDoc(doc(db, 'userCloudlingo', uid));
+    await deleteDoc(doc(db, 'cloudlingoPush', uid)).catch(() => {});
+    await deleteDoc(doc(db, 'cloudlingoWeeks', CLOUD.week, 'scores', uid)).catch(() => {});
+    showToast(name + ' removed from the list.', 'success');
+  } catch (err) { showToast('That didn’t work: ' + err.message, 'error'); }
+  CLOUD.loaded = false; loadCloudlingoData();
+});
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-learner-revoke],[data-learner-restore]'); if (!b) return;
   const uid = b.dataset.learnerRevoke || b.dataset.learnerRestore, name = b.dataset.name;
