@@ -8,7 +8,9 @@
 const HISTORY_KEY = 'stockranges_portfolio_history'
 const MAX_ENTRIES = 400 // ~13 months of daily snapshots
 
-function todayKey() {
+// Local (device) calendar day as YYYY-MM-DD — what history entries and the sale
+// form key on. (fx.js has a UTC-based todayKey of its own, deliberately not this.)
+export function todayKey() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }

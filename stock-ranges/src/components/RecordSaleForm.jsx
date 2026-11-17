@@ -1,12 +1,7 @@
 import { useState } from 'react'
 import { useLang } from '../LangContext.jsx'
+import { todayKey } from '../portfolioHistory.js'
 import styles from './AddHoldingForm.module.css'
-
-function localToday() {
-  const d = new Date()
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
 
 // Records a sale of (part of) an existing holding — same panel look as
 // AddHoldingForm (shares its stylesheet). The realized gain is computed
@@ -22,7 +17,7 @@ export default function RecordSaleForm({ symbol, holding, defaultPrice, defaultC
   const initialCurrency = defaultCurrency || holding.costCurrency || 'USD'
   const currencyOptions = [...new Set(['USD', 'THB', initialCurrency])]
   const [saleCurrency, setSaleCurrency] = useState(initialCurrency)
-  const [date, setDate] = useState(localToday())
+  const [date, setDate] = useState(todayKey())
   const [error, setError] = useState('')
 
   function submit(e) {
@@ -45,7 +40,7 @@ export default function RecordSaleForm({ symbol, holding, defaultPrice, defaultC
       setError(s.invalidSalePriceError)
       return
     }
-    if (!date || date > localToday()) {
+    if (!date || date > todayKey()) {
       setError(s.invalidSaleDateError)
       return
     }
@@ -87,7 +82,7 @@ export default function RecordSaleForm({ symbol, holding, defaultPrice, defaultC
         <label className={styles.field}>
           <span>{s.saleDateLabel}</span>
           <input
-            type="date" value={date} max={localToday()}
+            type="date" value={date} max={todayKey()}
             onChange={(e) => { setDate(e.target.value); setError('') }}
             required
           />
