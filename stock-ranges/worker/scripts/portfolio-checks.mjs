@@ -21,7 +21,7 @@ import { estimateNextDividend } from '../../src/wallet.js'
 import { convert } from '../../src/fx.js'
 import { formatPrice } from '../../src/format.js'
 import { isMarketOpenFor } from '../../src/marketHours.js'
-import { fetchEarningsDay, matchEarnings, usEasternDates } from './earnings.mjs'
+import { fetchEarningsDay, matchEarnings, usEasternDates, usEasternMinutes, reportAlreadyOut } from './earnings.mjs'
 
 const GAIN_THRESHOLD = 20 // % on cost for the "gain" cost alert
 const HYSTERESIS = 1 // % points the price must clear a line by before it can alert again
@@ -226,13 +226,17 @@ export async function runPortfolioChecks({ kvListKeys, kvGet, kvPut, sendPush, p
     // #8 earnings reminders — independent of price availability, so it sits
     // outside the per-holding loop above. One notification per report date
     // (the dedupe key carries the date), sent the first run it falls within
-    // today/tomorrow.
+    // today/next trading day. A report that is already out today is skipped:
+    // announcing it as upcoming would be wrong (e.g. the setting was turned on
+    // mid-afternoon for a pre-market reporter).
     if (p.prefs?.earnings && earningsCal) {
+      const etMinutes = usEasternMinutes()
       for (const date of [earningsCal.today, earningsCal.next]) {
         const when = date === earningsCal.today ? 'today' : date === earningsCal.tomorrow ? 'tomorrow' : 'later'
         const rows = earningsCal.days[date]
         if (!rows) continue
         for (const { symbol, row } of matchEarnings(Object.keys(p.holdings), rows)) {
+          if (when === 'today' && reportAlreadyOut(row, etMinutes)) continue
           const key = `earn:${uid}:${symbol}:${date}`
           if (await kvGet(key)) continue
           await kvPut(key, { ts: Date.now() })

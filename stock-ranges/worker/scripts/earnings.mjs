@@ -21,6 +21,28 @@ export function isUsCalendarSymbol(symbol) {
   return /^[A-Za-z]{1,5}([-/][A-Za-z])?$/.test(symbol)
 }
 
+// Minutes since midnight on the US Eastern clock (DST-aware).
+export function usEasternMinutes(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', hour: 'numeric', minute: 'numeric', hourCycle: 'h23',
+  }).formatToParts(now)
+  const get = (type) => Number(parts.find((x) => x.type === type)?.value)
+  return get('hour') * 60 + get('minute')
+}
+
+// Regular US session, Eastern clock.
+const MARKET_OPEN_MIN = 9 * 60 + 30
+const MARKET_CLOSE_MIN = 16 * 60
+
+// True once a report scheduled for *today* has already come out, so "reports
+// earnings today" would be stale. Pre-market reports land before the open;
+// after-hours ones right after the close. When the calendar gives no timing we
+// can't know, so assume it is still ahead until the session is over.
+// Only meaningful for today's date: tomorrow's and later rows are never out.
+export function reportAlreadyOut(row, easternMinutes) {
+  return easternMinutes >= (row.time === 'pre' ? MARKET_OPEN_MIN : MARKET_CLOSE_MIN)
+}
+
 // 'YYYY-MM-DD' for today and the next weekday on the US Eastern calendar,
 // where earnings dates are published. `next` skips Saturday/Sunday so a
 // Friday run already sees Monday's reporters (US market holidays aren't
