@@ -13,7 +13,9 @@ export default function UndoToast({ type, label, onUndo }) {
   const { s } = useLang()
   const message = type === 'tag'
     ? interp(s.undoRemovedTag, { tag: label })
-    : interp(s.undoRemoved, { symbol: label })
+    : type === 'sale'
+      ? interp(s.undoSold, { symbol: label })
+      : interp(s.undoRemoved, { symbol: label })
   return (
     <div className={styles.toast} role="status">
       <span>{message}</span>

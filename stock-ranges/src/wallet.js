@@ -3,6 +3,7 @@
 // (fetched from Yahoo via the worker), not a manually entered amount. No
 // React, no I/O, same style as deciles.js.
 import { sectorFor, SECTOR } from './data/sectors.js'
+import { convert } from './fx.js'
 
 // Unrealized P/L for one holding, all inputs already in the same currency
 // (callers convert with fx.js's convert() first — this file knows nothing
@@ -128,7 +129,7 @@ export function groupSymbolsByInstrumentType(symbols, quotes) {
 }
 
 const FUND_INSTRUMENT_TYPES = new Set(['ETF', 'MUTUALFUND'])
-const SECTOR_ORDER = [
+export const SECTOR_ORDER = [
   SECTOR.TECHNOLOGY, SECTOR.COMMUNICATION_SERVICES, SECTOR.CONSUMER_DISCRETIONARY,
   SECTOR.CONSUMER_STAPLES, SECTOR.HEALTHCARE, SECTOR.FINANCIAL_SERVICES,
   SECTOR.INDUSTRIALS, SECTOR.ENERGY, SECTOR.UTILITIES, SECTOR.REAL_ESTATE,
@@ -174,5 +175,35 @@ export function sortHoldingSymbols(symbols, sortBy, metrics) {
     if (va == null) return 1
     if (vb == null) return -1
     return vb - va
+  })
+}
+
+// Compares each sector's actual share of the portfolio with the target the
+// user set. `driftPct` is current minus target in percentage points (positive
+// = overweight); `amount` is the money to add (positive) or trim (negative,
+// in the portfolio's display currency) to land exactly on target, ignoring
+// any other changes. Sectors with a target but no holdings still get a row
+// (currentPct 0) so a "buy more of X" gap is visible; sectors with no target
+// carry targetPct null and no drift/amount.
+export function computeSectorDrift(sectorItems, total, targets) {
+  const t = targets || {}
+  const rows = new Map()
+  sectorItems.forEach((item) => {
+    rows.set(item.key, { key: item.key, value: item.value })
+  })
+  Object.keys(t).forEach((key) => {
+    if (typeof t[key] === 'number' && t[key] > 0 && !rows.has(key)) rows.set(key, { key, value: 0 })
+  })
+  return [...rows.values()].map(({ key, value }) => {
+    const currentPct = total > 0 ? (value / total) * 100 : 0
+    const targetPct = typeof t[key] === 'number' && t[key] > 0 ? t[key] : null
+    return {
+      key,
+      value,
+      currentPct,
+      targetPct,
+      driftPct: targetPct === null ? null : currentPct - targetPct,
+      amount: targetPct === null ? null : ((targetPct - currentPct) / 100) * total,
+    }
   })
 }

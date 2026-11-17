@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { LangProvider, useLang } from './LangContext.jsx'
 import { getThbRates } from './fx.js'
+import { MAX_SELLS } from './realized.js'
 import { useCloudSync } from './hooks/useCloudSync.js'
 import { useInstallPrompt } from './hooks/useInstallPrompt.js'
 import { usePriceAlerts } from './hooks/usePriceAlerts.js'
@@ -36,9 +37,11 @@ const TAGS_KEY = 'stockranges_tags'
 const KNOWN_FOR_KEY = 'stockranges_knownfor'
 const ALERTS_KEY = 'stockranges_alerts'
 const COST_ALERTS_KEY = 'stockranges_cost_alerts' // { SYMBOL: { below, gain } }
-const WALLET_PREFS_KEY = 'stockranges_wallet_prefs' // { exDividend, weekly }
+const WALLET_PREFS_KEY = 'stockranges_wallet_prefs' // { exDividend, weekly, earnings }
 const ACTIVE_TAG_FILTERS_KEY = 'stockranges_active_tag_filters'
 const HOLDINGS_KEY = 'stockranges_holdings'
+const SELLS_KEY = 'stockranges_sells' // realized-sale log, newest first
+const TARGETS_KEY = 'stockranges_targets' // { SectorKey: targetPercent }
 const TAB_KEY = 'stockranges_tab'
 const WATCHLIST_SORT_KEY = 'stockranges_watchlist_sort'
 const THEME_KEY = 'theme'
@@ -152,6 +155,15 @@ function loadHoldings() {
   }
 }
 
+function loadSells() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SELLS_KEY) || 'null')
+    return Array.isArray(parsed) ? parsed.filter((x) => x && typeof x.symbol === 'string') : []
+  } catch {
+    return []
+  }
+}
+
 function useTheme() {
   const [dark, setDark] = useState(() => {
     const saved = localStorage.getItem(THEME_KEY)
@@ -181,8 +193,10 @@ function Dashboard() {
   const priceAlerts = usePriceAlerts()
   const [activeTagFilters, setActiveTagFilters] = useState(loadActiveTagFilters)
   const [holdings, setHoldings] = useState(loadHoldings)
+  const [sells, setSells] = useState(loadSells)
+  const [targets, setTargets] = useState(() => loadObject(TARGETS_KEY, {}))
   const [costAlerts, setCostAlerts] = useState(() => loadObject(COST_ALERTS_KEY, {}))
-  const [walletPrefs, setWalletPrefs] = useState(() => loadObject(WALLET_PREFS_KEY, { exDividend: false, weekly: false }))
+  const [walletPrefs, setWalletPrefs] = useState(() => loadObject(WALLET_PREFS_KEY, { exDividend: false, weekly: false, earnings: false }))
   const [tab, setTab] = useState(() => (localStorage.getItem(TAB_KEY) === 'wallet' ? 'wallet' : 'watchlist'))
   const [tabActionsEl, setTabActionsEl] = useState(null)
   const [watchlistSort, setWatchlistSort] = useState(() => localStorage.getItem(WATCHLIST_SORT_KEY) || 'signal')
@@ -246,6 +260,14 @@ function Dashboard() {
   }, [holdings])
 
   useEffect(() => {
+    localStorage.setItem(SELLS_KEY, JSON.stringify(sells))
+  }, [sells])
+
+  useEffect(() => {
+    localStorage.setItem(TARGETS_KEY, JSON.stringify(targets))
+  }, [targets])
+
+  useEffect(() => {
     localStorage.setItem(TAB_KEY, tab)
   }, [tab])
 
@@ -261,7 +283,7 @@ function Dashboard() {
   }, [])
 
   const cloudSync = useCloudSync({
-    watchlist, range, currency, tags, holdings, knownFor: customKnownFor, alerts,
+    watchlist, range, currency, tags, holdings, knownFor: customKnownFor, alerts, sells, targets,
     applyRemote: (remote) => {
       if (Array.isArray(remote?.watchlist)) setWatchlist(remote.watchlist)
       if (typeof remote?.range === 'string') setRange(remote.range)
@@ -270,6 +292,8 @@ function Dashboard() {
       if (remote?.holdings && typeof remote.holdings === 'object' && !Array.isArray(remote.holdings)) setHoldings(remote.holdings)
       if (remote?.knownFor && typeof remote.knownFor === 'object' && !Array.isArray(remote.knownFor)) setCustomKnownFor(remote.knownFor)
       if (remote?.alerts && typeof remote.alerts === 'object' && !Array.isArray(remote.alerts)) setAlerts(remote.alerts)
+      if (Array.isArray(remote?.sells)) setSells(remote.sells)
+      if (remote?.targets && typeof remote.targets === 'object' && !Array.isArray(remote.targets)) setTargets(remote.targets)
     },
   })
 
@@ -432,7 +456,7 @@ function Dashboard() {
             if (h.costAlerts?.below || h.costAlerts?.gain) restored[symbol] = { below: !!h.costAlerts.below, gain: !!h.costAlerts.gain }
           }
           setCostAlerts(restored)
-          setWalletPrefs({ exDividend: !!saved.prefs?.exDividend, weekly: !!saved.prefs?.weekly })
+          setWalletPrefs({ exDividend: !!saved.prefs?.exDividend, weekly: !!saved.prefs?.weekly, earnings: !!saved.prefs?.earnings })
         }
         setPortfolioReady(true)
       })
@@ -542,6 +566,42 @@ function Dashboard() {
     setHoldings((prev) => ({ ...prev, [symbol]: data }))
   }
 
+  // Records a (partial or full) sale: appends to the realized-P/L log and
+  // reduces the holding in one pass. avgCost/costCurrency are snapshotted
+  // into the log entry so editing the holding later never rewrites history.
+  function recordSale(symbol, { qty, price, currency: saleCurrency, date }) {
+    const holding = holdings[symbol]
+    if (!holding || !(qty > 0) || !(price >= 0) || qty > holding.qty + 1e-9) return false
+    if (sells.length >= MAX_SELLS) return false // the form explains why (logFull)
+    const sell = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      symbol,
+      qty,
+      price,
+      currency: saleCurrency,
+      avgCost: holding.avgCost,
+      costCurrency: holding.costCurrency,
+      date,
+      at: Date.now(),
+    }
+    const remaining = Math.round((holding.qty - qty) * 1e8) / 1e8
+    setSells((prev) => [sell, ...prev])
+    setHoldings((prev) => {
+      const next = { ...prev }
+      if (remaining <= 0) delete next[symbol]
+      else next[symbol] = { ...prev[symbol], qty: remaining }
+      return next
+    })
+    showUndo('sale', symbol, { holding, sellId: sell.id })
+    return true
+  }
+
+  // Removes a log entry only — holdings are never touched (the sale already
+  // happened; this just corrects the record).
+  function deleteSale(id) {
+    setSells((prev) => prev.filter((x) => x.id !== id))
+  }
+
   function removeHolding(symbol) {
     const data = holdings[symbol]
     setHoldings((prev) => {
@@ -579,6 +639,9 @@ function Dashboard() {
         })
         return next
       })
+    } else if (undoInfo.type === 'sale') {
+      setSells((prev) => prev.filter((x) => x.id !== undoInfo.data.sellId))
+      setHoldings((prev) => ({ ...prev, [undoInfo.symbol]: undoInfo.data.holding }))
     } else {
       setHoldings((prev) => ({ ...prev, [undoInfo.symbol]: undoInfo.data.data }))
     }
@@ -822,6 +885,11 @@ function Dashboard() {
             rates={rates}
             onAddHolding={addOrUpdateHolding}
             onRemoveHolding={removeHolding}
+            sells={sells}
+            onRecordSale={recordSale}
+            onDeleteSale={deleteSale}
+            targets={targets}
+            onSaveTargets={setTargets}
             actionsPortalNode={tabActionsEl}
             user={cloudSync.user}
             watchlist={watchlist}
@@ -963,7 +1031,7 @@ function Dashboard() {
 
       {cloudSync.syncStatus === 'awaiting-decision' && cloudSync.pendingServer && (
         <ConflictModal
-          localData={{ watchlist, range, currency, tags, holdings, knownFor: customKnownFor, alerts }}
+          localData={{ watchlist, range, currency, tags, holdings, knownFor: customKnownFor, alerts, sells, targets }}
           cloudData={cloudSync.pendingServer}
           onUseLocal={cloudSync.confirmLocalWins}
           onUseCloud={cloudSync.confirmCloudWins}
