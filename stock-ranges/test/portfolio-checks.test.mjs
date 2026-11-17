@@ -91,6 +91,43 @@ test('Friday: a Monday reporter is announced now, with its date', async () => {
   assert.doesNotMatch(h.pushes[0].title, /tomorrow/)
 })
 
+// Regression: turning the setting on mid-afternoon used to announce a report
+// that was already out ("reports earnings today, before the market opens").
+test('today: a pre-market report is skipped once the market has opened, an after-hours one is still sent', async () => {
+  now = TUESDAY // 10:00 ET
+  calendar({ '2026-11-17': [row('AAPL', 'time-pre-market'), row('BRK/B', 'time-after-hours', '$4.10')] })
+  const h = harness()
+  await quiet(() => runPortfolioChecks(h.deps))
+  assert.deepEqual(h.pushes.map((p) => p.symbol), ['BRK-B'])
+})
+
+test('today: a pre-market report is still announced before the open', async () => {
+  now = RealDate.parse('2026-11-17T12:00:00Z') // 07:00 ET
+  calendar({ '2026-11-17': [row('AAPL', 'time-pre-market')] })
+  const h = harness()
+  await quiet(() => runPortfolioChecks(h.deps))
+  assert.equal(h.pushes.length, 1)
+  assert.match(h.pushes[0].title, /reports earnings today/)
+})
+
+test('today: nothing is announced after the close, but the next day still is', async () => {
+  now = RealDate.parse('2026-11-17T22:00:00Z') // 17:00 ET
+  calendar({ '2026-11-17': [row('AAPL', 'time-after-hours'), row('BRK/B', 'time-not-supplied')], '2026-11-18': [row('AAPL')] })
+  const h = harness()
+  await quiet(() => runPortfolioChecks(h.deps))
+  assert.equal(h.pushes.length, 1)
+  assert.match(h.pushes[0].title, /reports earnings tomorrow/)
+})
+
+test('a skipped stale report is not recorded, so it never blocks anything later', async () => {
+  now = TUESDAY
+  calendar({ '2026-11-17': [row('AAPL', 'time-pre-market')] })
+  const h = harness()
+  await quiet(() => runPortfolioChecks(h.deps))
+  assert.equal(h.pushes.length, 0)
+  assert.equal(h.history.length, 0)
+})
+
 test('Thai copy is used for Thai portfolios', async () => {
   now = FRIDAY
   calendar({ '2026-11-16': [row('AAPL')] })

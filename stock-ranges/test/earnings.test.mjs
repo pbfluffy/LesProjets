@@ -1,7 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  symbolKey, isUsCalendarSymbol, usEasternDates, parseEarningsRows, matchEarnings, fetchEarningsDay,
+  symbolKey, isUsCalendarSymbol, usEasternDates, usEasternMinutes, reportAlreadyOut,
+  parseEarningsRows, matchEarnings, fetchEarningsDay,
 } from '../worker/scripts/earnings.mjs'
 
 test('symbolKey ignores class-share separators and case', () => {
@@ -55,4 +56,22 @@ test('fetchEarningsDay fails loudly on HTTP errors and bad payloads', async () =
   await assert.rejects(fetchEarningsDay('2026-11-17', async () => ({ ok: true, json: async () => ({ data: { rows: 'x' } }) })), /unexpected payload/)
   const rows = await fetchEarningsDay('2026-11-17', async () => ({ ok: true, json: async () => ({ data: { rows: [{ symbol: 'NVDA', time: 'time-after-hours', epsForecast: '$1.3' }] } }) }))
   assert.equal(rows[0].symbol, 'NVDA')
+})
+
+test('usEasternMinutes follows the New York clock, including DST', () => {
+  assert.equal(usEasternMinutes(new Date('2026-11-17T15:00:00Z')), 10 * 60) // EST, UTC-5
+  assert.equal(usEasternMinutes(new Date('2026-07-15T15:00:00Z')), 11 * 60) // EDT, UTC-4
+  assert.equal(usEasternMinutes(new Date('2026-11-17T05:00:00Z')), 0) // midnight, not "24:00"
+  assert.equal(usEasternMinutes(new Date('2026-11-17T14:29:00Z')), 9 * 60 + 29)
+})
+
+test('reportAlreadyOut: pre-market is out from the open, after-hours/unknown from the close', () => {
+  const at = (h, m = 0) => h * 60 + m
+  assert.equal(reportAlreadyOut({ time: 'pre' }, at(7)), false)
+  assert.equal(reportAlreadyOut({ time: 'pre' }, at(9, 29)), false)
+  assert.equal(reportAlreadyOut({ time: 'pre' }, at(9, 30)), true)
+  assert.equal(reportAlreadyOut({ time: 'after' }, at(15, 59)), false)
+  assert.equal(reportAlreadyOut({ time: 'after' }, at(16)), true)
+  assert.equal(reportAlreadyOut({ time: 'unknown' }, at(12)), false)
+  assert.equal(reportAlreadyOut({ time: 'unknown' }, at(16)), true)
 })
