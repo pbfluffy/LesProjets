@@ -30,10 +30,10 @@ function calendar(byDate, { fail = false } = {}) {
   return calls
 }
 
-function harness({ earnings = true, lang = 'en', holdings } = {}) {
+function harness({ earnings = true, exDividend = false, dividends = [], lang = 'en', holdings } = {}) {
   const kv = new Map()
   kv.set('portfolio:u1', {
-    lang, currency: 'USD', prefs: { earnings },
+    lang, currency: 'USD', prefs: { earnings, exDividend },
     holdings: holdings || {
       AAPL: { qty: 1, avgCost: 100, costCurrency: 'USD' },
       'BRK-B': { qty: 1, avgCost: 100, costCurrency: 'USD' },
@@ -52,7 +52,7 @@ function harness({ earnings = true, lang = 'en', holdings } = {}) {
     sendPush: async (_sub, payload) => { pushes.push(payload); return 'ok' },
     pruneSubscription: async () => {},
     addHistory: async (_uid, items) => { history.push(...items) },
-    getQuote: async (sym) => ({ symbol: sym, name: sym === 'AAPL' ? 'Apple Inc.' : sym, current: 100, currency: 'USD', prices: [], dividends: [] }),
+    getQuote: async (sym) => ({ symbol: sym, name: sym === 'AAPL' ? 'Apple Inc.' : sym, current: 100, currency: 'USD', prices: [], dividends }),
     inBatches: async (arr, _n, fn) => { for (const a of arr) await fn(a) },
     rates: { USD: 35, THB: 1 },
     marketOpen: {},
@@ -139,6 +139,25 @@ test('earn: dedupe keys expire, the calendar cache does not', async () => {
   assert.equal(dedupe.length, 1)
   assert.ok(dedupe[0].opts?.expirationTtl >= 4 * 86400, 'must outlive a weekend-long look-ahead')
   assert.equal(h.puts.find((p) => p.key === 'earningscal')?.opts, undefined)
+})
+
+// Regression: exdiv: dedupe keys were written without expiry and piled up forever.
+test('exdiv: dedupe keys expire, the reminder is sent once, and expiry outlasts the 3-day window', async () => {
+  now = TUESDAY
+  // Two events 91 days apart (quarterly cadence), the last 89.5 days ago, so the
+  // next estimated ex-date is 1.5 days away.
+  const last = now / 1000 - 89.5 * 86400
+  const dividends = [{ date: last - 91 * 86400, amount: 0.5 }, { date: last, amount: 0.5 }]
+  calendar({})
+  const h = harness({ earnings: false, exDividend: true, dividends, holdings: { AAPL: { qty: 10, avgCost: 100, costCurrency: 'USD' } } })
+  await quiet(() => runPortfolioChecks(h.deps))
+  assert.equal(h.pushes.length, 1)
+  assert.match(h.pushes[0].title, /goes ex-dividend in 1 day/)
+  const keys = h.puts.filter((p) => p.key.startsWith('exdiv:'))
+  assert.equal(keys.length, 1)
+  assert.ok(keys[0].opts?.expirationTtl >= 4 * 86400, 'must outlive the reminder window')
+  await quiet(() => runPortfolioChecks(h.deps))
+  assert.equal(h.pushes.length, 1, 'deduplicated on the next run')
 })
 
 test('Thai copy is used for Thai portfolios', async () => {

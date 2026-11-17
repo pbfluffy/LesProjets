@@ -94,6 +94,10 @@ const EARNINGS_CACHE_KEY = 'earningscal'
 // An `earn:` dedupe key only matters while its report date is today or the next
 // trading day (at most ~4 days out over a weekend/holiday), so it can expire.
 const EARNINGS_DEDUPE_TTL_S = 7 * 86400
+// An `exdiv:` key only matters for the 0-3 days (EXDIV_DAYS_AHEAD) before its
+// estimated ex-date; the date is part of the key, so a moved estimate is a new
+// key anyway. Generous margin over that window.
+const EXDIV_DEDUPE_TTL_S = 14 * 86400
 const EARNINGS_CACHE_MS = 6 * 3600e3 // the calendar gains rows over time, but hourly refetches are wasteful
 
 // Today's and the next weekday's US calendar rows, cached in one KV entry
@@ -214,7 +218,7 @@ export async function runPortfolioChecks({ kvListKeys, kvGet, kvPut, sendPush, p
         if (days !== null && days >= 0 && days <= EXDIV_DAYS_AHEAD) {
           const key = `exdiv:${uid}:${sym}:${new Date(next.date * 1000).toISOString().slice(0, 10)}`
           if (!(await kvGet(key))) {
-            await kvPut(key, { ts: Date.now() })
+            await kvPut(key, { ts: Date.now() }, { expirationTtl: EXDIV_DEDUPE_TTL_S })
             const amount = convert(next.amount, q.currency, cur, rates)
             const title = copy.exdiv(name, days)
             const body = copy.exdivBody(fmtDate(next.date, lang), formatPrice(amount ?? next.amount, amount !== null ? cur : q.currency))
