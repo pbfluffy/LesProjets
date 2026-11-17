@@ -11,7 +11,6 @@ playbooks (run / verify / ship) are project skills in `.claude/skills/`.
 | `bill-splitter/` | Thai bill splitter, PromptPay QR, Sushiro plate counter | Vite + React, PWA, Worker | `bill-splitter` → 5174 | `/bill-splitter/` |
 | `nutritions-thailand/` | Cut/recomp nutrition tracker, photo dish ID | Vite + React, PWA | `nutritions-thailand` → 5182 | `/nutritions-thailand/` |
 | `pumgoda/` | Pet-friendly places map with paw tiers | Vite + React, Leaflet, PWA | `pumgoda` → 5176 | `/pumgoda/` |
-| `dog-near-me/` (pkg `majon`) | Community stray-dog ID map | Vite + React, Leaflet, Worker, AI | `dog-near-me` → 5173 | `/dog-near-me/` |
 | `stock-ranges/` | Watchlist + portfolio wallet, 10-band price range | Vite + React, PWA, Worker, cron | `stock-ranges` → 5180 (worker 8787) | `/stock-ranges/` |
 | `village-77/` | Village marketplace + handymen board, LINE login | Vite + React, PWA, Worker | `village-77` → 5184 | `/village-77/` |
 | `cloudlingo/` | AWS/ITIL exam practice, Duolingo-style | **Static JS, no build** | `admin-static` → 5178 | `/cloudlingo/` |

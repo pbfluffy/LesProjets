@@ -3,7 +3,7 @@ name: new-app
 description: Add a new app to the LesProjets monorepo (scaffold, deploy wiring, rules, launch config, docs). Use when the user asks for a new app/page on pumbafluffycorgi.com.
 ---
 
-Model new Vite apps on an existing one (`dog-near-me/` or `village-77/` for a small app, `stock-ranges/` for PWA + Worker). Static pages follow
+Model new Vite apps on an existing one (`village-77/` for a small app, `stock-ranges/` for PWA + Worker). Static pages follow
 `studio/`. Confirm with the user before publishing anything outward-facing (landing-page card, merge to `main`).
 
 1. **Scaffold** `<app>/` with `package.json`, `vite.config.js` (`base: process.env.VITE_BASE_PATH || '/<app>/'`,

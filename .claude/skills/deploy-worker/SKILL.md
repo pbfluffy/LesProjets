@@ -1,6 +1,6 @@
 ---
 name: deploy-worker
-description: Deploy or update a Cloudflare Worker used by an app in this repo (bill-splitter, dog-near-me, stock-ranges, village-77, studio, workers/*). Use when Worker code or secrets change.
+description: Deploy or update a Cloudflare Worker used by an app in this repo (bill-splitter, stock-ranges, village-77, studio, workers/*). Use when Worker code or secrets change.
 ---
 
 Workers are **not** deployed by the Pages workflow, and a deploy changes live behaviour — do it only when the user
@@ -9,7 +9,6 @@ asked or approved it.
 | Worker | Folder | Name |
 |---|---|---|
 | Bill splitter og-meta | `bill-splitter/worker` | `bill-splitter-og-meta` |
-| Dog near me | `dog-near-me/worker` | `majon-photo` |
 | Stock ranges quotes/alerts/cron | `stock-ranges/worker` | `stock-ranges-quotes` |
 | Village 77 | `village-77/worker` (no package.json) | `village-77` |
 | Pumgoda places lookup | `workers/pumgoda-places-lookup` | `pumgoda-places-lookup` |
