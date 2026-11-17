@@ -7,6 +7,9 @@
 //      like the buy/sell zone alerts — state kept in `coststate:{uid}:{sym}`)
 //   #5 ex-dividend reminders — 0–3 days before the next *estimated*
 //      ex-dividend date (estimateNextDividend's cadence guess), once per date
+//   #8 earnings reminders — a US-listed holding reporting today or on the next
+//      trading day (US Eastern) per Nasdaq's public calendar, once per report date;
+//      best-effort, see earnings.mjs
 //   #6 weekly summary — on Mondays (Asia/Bangkok): value, change since last
 //      week's summary, biggest mover
 //   #7 daily value — `pfhistory:{uid}` { 'YYYY-MM-DD': {...} } for the app's
@@ -18,6 +21,7 @@ import { estimateNextDividend } from '../../src/wallet.js'
 import { convert } from '../../src/fx.js'
 import { formatPrice } from '../../src/format.js'
 import { isMarketOpenFor } from '../../src/marketHours.js'
+import { fetchEarningsDay, matchEarnings, usEasternDates } from './earnings.mjs'
 
 const GAIN_THRESHOLD = 20 // % on cost for the "gain" cost alert
 const HYSTERESIS = 1 // % points the price must clear a line by before it can alert again
@@ -36,6 +40,12 @@ const COPY = {
     weekly: (value) => `Weekly portfolio: ${value}`,
     weeklyChange: (abs, pct) => `${abs} (${pct}%) since last week`,
     weeklyMover: (sym, pct) => `biggest move: ${sym} ${pct}%`,
+    earnings: (name, when, date) => (when === 'today' ? `${name} reports earnings today` : when === 'tomorrow' ? `${name} reports earnings tomorrow` : `${name} reports earnings on ${date}`),
+    earningsBody: (date, time, eps) => [
+      `${date} (US date)`,
+      time === 'pre' ? 'before the market opens' : time === 'after' ? 'after the market closes' : null,
+      eps ? `EPS forecast ${eps}` : null,
+    ].filter(Boolean).join(' · '),
   },
   th: {
     below: (name) => `${name} ราคาต่ำกว่าทุนแล้ว`,
@@ -47,6 +57,12 @@ const COPY = {
     weekly: (value) => `สรุปพอร์ตรายสัปดาห์: ${value}`,
     weeklyChange: (abs, pct) => `${abs} (${pct}%) จากสัปดาห์ก่อน`,
     weeklyMover: (sym, pct) => `เคลื่อนไหวมากสุด: ${sym} ${pct}%`,
+    earnings: (name, when, date) => (when === 'today' ? `${name} ประกาศงบวันนี้` : when === 'tomorrow' ? `${name} ประกาศงบพรุ่งนี้` : `${name} ประกาศงบวันที่ ${date}`),
+    earningsBody: (date, time, eps) => [
+      `${date} (วันที่ตามเวลาสหรัฐฯ)`,
+      time === 'pre' ? 'ก่อนตลาดเปิด' : time === 'after' ? 'หลังตลาดปิด' : null,
+      eps ? `คาดการณ์ EPS ${eps}` : null,
+    ].filter(Boolean).join(' · '),
   },
 }
 
@@ -74,6 +90,42 @@ function weekChangePct(prices) {
   return then > 0 ? (now / then - 1) * 100 : null
 }
 
+const EARNINGS_CACHE_KEY = 'earningscal'
+const EARNINGS_CACHE_MS = 6 * 3600e3 // the calendar gains rows over time, but hourly refetches are wasteful
+
+// Today's and the next weekday's US calendar rows, cached in one KV entry
+// ({ 'YYYY-MM-DD': { ts, rows } }, only those two dates kept) so the hourly
+// runs share one fetch per ~6h. Never throws: a failed day falls back to its
+// stale cache, else null, and the reason is logged for the run summary.
+async function loadEarningsCalendar({ kvGet, kvPut }) {
+  const { today, tomorrow, next } = usEasternDates()
+  const cache = (await kvGet(EARNINGS_CACHE_KEY)) || {}
+  const kept = {} // what the cache will hold afterwards
+  const days = {}
+  const errors = []
+  for (const date of [today, next]) {
+    const hit = cache[date]
+    if (hit && Array.isArray(hit.rows) && Date.now() - hit.ts < EARNINGS_CACHE_MS) {
+      kept[date] = hit
+      days[date] = hit.rows
+      continue
+    }
+    try {
+      const rows = await fetchEarningsDay(date)
+      kept[date] = { ts: Date.now(), rows }
+      days[date] = rows
+    } catch (err) {
+      errors.push(`${date}: ${err.message}`)
+      if (hit && Array.isArray(hit.rows)) { kept[date] = hit; days[date] = hit.rows } else days[date] = null
+    }
+  }
+  if (JSON.stringify(Object.keys(kept)) !== JSON.stringify(Object.keys(cache)) || Object.keys(kept).some((d) => kept[d] !== cache[d])) {
+    await kvPut(EARNINGS_CACHE_KEY, kept).catch((err) => errors.push(`cache write: ${err.message}`))
+  }
+  console.log(`Earnings calendar: ${today} ${days[today] ? `${days[today].length} rows` : 'unavailable'}, ${next} ${days[next] ? `${days[next].length} rows` : 'unavailable'}${errors.length ? ` (${errors.join('; ')})` : ''}`)
+  return { today, tomorrow, next, days }
+}
+
 export async function runPortfolioChecks({ kvListKeys, kvGet, kvPut, sendPush, pruneSubscription, addHistory, getQuote, inBatches, rates, marketOpen }) {
   const keys = await kvListKeys('portfolio:')
   if (!keys.length) {
@@ -90,6 +142,16 @@ export async function runPortfolioChecks({ kvListKeys, kvGet, kvPut, sendPush, p
   const symbols = [...new Set(portfolios.flatMap(({ p }) => Object.keys(p.holdings)))]
   const quotes = {}
   await inBatches(symbols, 6, async (sym) => { quotes[sym] = await getQuote(sym, '2y').catch(() => null) })
+
+  // Only fetched when someone opted in; a failure just means no earnings
+  // reminders this run.
+  let earningsCal = null
+  if (portfolios.some(({ p }) => p.prefs?.earnings)) {
+    earningsCal = await loadEarningsCalendar({ kvGet, kvPut }).catch((err) => {
+      console.log(`Earnings calendar skipped: ${err.message}`)
+      return null
+    })
+  }
 
   const { date: today, weekday } = bangkokNow()
   const nowSec = Date.now() / 1000
@@ -160,6 +222,29 @@ export async function runPortfolioChecks({ kvListKeys, kvGet, kvPut, sendPush, p
     }
 
     const holdingCount = Object.keys(p.holdings).length
+
+    // #8 earnings reminders — independent of price availability, so it sits
+    // outside the per-holding loop above. One notification per report date
+    // (the dedupe key carries the date), sent the first run it falls within
+    // today/tomorrow.
+    if (p.prefs?.earnings && earningsCal) {
+      for (const date of [earningsCal.today, earningsCal.next]) {
+        const when = date === earningsCal.today ? 'today' : date === earningsCal.tomorrow ? 'tomorrow' : 'later'
+        const rows = earningsCal.days[date]
+        if (!rows) continue
+        for (const { symbol, row } of matchEarnings(Object.keys(p.holdings), rows)) {
+          const key = `earn:${uid}:${symbol}:${date}`
+          if (await kvGet(key)) continue
+          await kvPut(key, { ts: Date.now() })
+          const q = quotes[symbol]
+          const name = q?.name && q.name !== symbol ? q.name : symbol
+          const dateLabel = fmtDate(Date.parse(`${date}T12:00:00Z`) / 1000, lang)
+          const title = copy.earnings(name, when, dateLabel)
+          const body = copy.earningsBody(dateLabel, row.time, row.eps)
+          notes.push({ payload: { title, body, tag: `earnings-${symbol}`, symbol }, item: { kind: 'earnings', symbol, title, body } })
+        }
+      }
+    }
 
     // #7 daily portfolio value for the app's chart
     if (complete && holdingCount) {

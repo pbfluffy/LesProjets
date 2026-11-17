@@ -53,6 +53,7 @@
 .item[data-kind='below'] .kindDot { background: var(--color-red); }
 .item[data-kind='gain'] .kindDot { background: var(--color-green); }
 .item[data-kind='exdiv'] .kindDot,
+.item[data-kind='earnings'] .kindDot,
 .item[data-kind='weekly'] .kindDot { background: var(--color-blue, #2563eb); }
 
 .prefs { margin: 16px 0 0; padding: 10px 12px; border: 0.5px solid var(--color-border); border-radius: var(--radius-sm); }
