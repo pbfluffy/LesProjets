@@ -8,12 +8,15 @@ const RANGE_LABEL_KEY = { '3mo': 'range3mo', '6mo': 'range6mo', ytd: 'rangeYtd',
 import { convert } from '../fx.js'
 import { formatPrice, maskPrice } from '../format.js'
 import { computeHoldingPL, projectedDividendIncome, estimateNextDividend, groupSymbolsByInstrumentType, sortHoldingSymbols, groupAllocationBySector } from '../wallet.js'
+import { summarizeRealized, MAX_SELLS } from '../realized.js'
 import { generateSummaryImage } from '../shareImage.js'
 import { loadPortfolioHistory, recordPortfolioSnapshot, mergePortfolioHistories, savePortfolioHistory } from '../portfolioHistory.js'
 import { usePortfolioHistorySync } from '../hooks/usePortfolioHistorySync.js'
 import Icon from './Icon.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import AddHoldingForm from './AddHoldingForm.jsx'
+import RecordSaleForm from './RecordSaleForm.jsx'
+import SalesLog from './SalesLog.jsx'
 import SearchBox from './SearchBox.jsx'
 import HoldingCard from './HoldingCard.jsx'
 import ImportPdfModal from './ImportPdfModal.jsx'
@@ -34,17 +37,23 @@ const SORT_LABEL_KEY = { value: 'sortValue', pl: 'sortPL', alpha: 'sortAlpha', y
 // history for Yahoo to report actual dividend events (used to project
 // monthly/quarterly income), while `current` still gives the live price
 // needed for P/L regardless of range.
+function interp(str, vars) {
+  return str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '')
+}
+
 export default function WalletView({
   holdings, currency, rates,
   onAddHolding, onRemoveHolding, actionsPortalNode, user, watchlist, refreshKey,
   highlightSymbol, onWatchedClick, tags, onAddTag, onRemoveTag, activeTagFilters,
   knownFor, onAddBrand, onRemoveBrand, marketOpen, range,
   costAlerts = {}, onToggleCostAlert, loadScheduledHistory,
+  sells = [], onRecordSale, onDeleteSale, targets = {}, onSaveTargets,
 }) {
   const { s } = useLang()
   const [quotes, setQuotes] = useState({})
   const [formOpen, setFormOpen] = useState(false)
   const [editingSymbol, setEditingSymbol] = useState(null)
+  const [sellingSymbol, setSellingSymbol] = useState(null)
   const [importOpen, setImportOpen] = useState(false)
   const [masked, setMasked] = useState(() => localStorage.getItem(MASK_KEY) === '1')
   const [sharing, setSharing] = useState(false)
@@ -150,6 +159,16 @@ export default function WalletView({
     return { costBasis, marketValue, unrealizedPL: marketValue - costBasis, perMonth, perQuarter }
   }, [symbols, holdings, quotes, currency, rates])
 
+  const realized = useMemo(() => summarizeRealized(sells, currency, rates), [sells, currency, rates])
+  const realizedStat = (
+    <div className={styles.summaryStat} data-direction={realized.total >= 0 ? 'up' : 'down'}>
+      <span>{s.summaryRealizedPL}</span>
+      <strong>{masked ? maskPrice(currency) : `${realized.total >= 0 ? '+' : ''}${formatPrice(realized.total, currency)}`}</strong>
+      {!masked && <em>{s.summaryRealizedYear}: {realized.thisYear >= 0 ? '+' : ''}{formatPrice(realized.thisYear, currency)}</em>}
+      {realized.skipped > 0 && <em>{interp(s.summaryRealizedPartial, { n: realized.skipped })}</em>}
+    </div>
+  )
+
   // Records today's market-value snapshot once every holding's quote has
   // resolved — records the same day's entry again on a later visit
   // (overwriting, not duplicating) rather than needing a scheduled job.
@@ -162,13 +181,25 @@ export default function WalletView({
   }, [allQuotesResolved, summary.marketValue, summary.costBasis, currency]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function startEdit(symbol) {
+    setSellingSymbol(null)
     setEditingSymbol(symbol)
     setFormOpen(true)
+  }
+
+  function startSale(symbol) {
+    setFormOpen(false)
+    setEditingSymbol(null)
+    setSellingSymbol(symbol)
+  }
+
+  function handleSale(symbol, sale) {
+    if (onRecordSale && onRecordSale(symbol, sale)) setSellingSymbol(null)
   }
 
   function closeForm() {
     setFormOpen(false)
     setEditingSymbol(null)
+    setSellingSymbol(null)
   }
 
   function handleSave(symbol, data) {
@@ -334,6 +365,10 @@ export default function WalletView({
 
       {shareError && <div className={styles.shareError}>{shareError}</div>}
 
+      {symbols.length === 0 && sells.length > 0 && (
+        <div className={styles.summaryStrip}>{realizedStat}</div>
+      )}
+
       {symbols.length > 0 && (
         <div className={styles.summaryStrip}>
           <div className={styles.summaryStat}>
@@ -358,6 +393,7 @@ export default function WalletView({
             <strong>{masked ? maskPrice(currency) : formatPrice(summary.perMonth, currency)}<small>{s.perMonthShort}</small></strong>
             {!masked && <em>≈ {formatPrice(summary.perQuarter, currency)}{s.perQuarterShort}</em>}
           </div>
+          {sells.length > 0 && realizedStat}
           {(signalCounts.buy > 0 || signalCounts.hold > 0 || signalCounts.sell > 0) && (
             <div className={styles.summarySignals}>
               <span>{s.walletSignalsLabel} ({s[RANGE_LABEL_KEY[signalRange]]})</span>
@@ -374,17 +410,30 @@ export default function WalletView({
       )}
 
       {allocationItems.length > 0 && (
-        <AllocationChart items={allocationItems} sectorItems={sectorAllocationItems} total={summary.marketValue} currency={currency} masked={masked} />
+        <AllocationChart items={allocationItems} sectorItems={sectorAllocationItems} total={summary.marketValue} currency={currency} masked={masked} targets={targets} onSaveTargets={onSaveTargets} />
       )}
 
       <DividendCalendar entries={dividendCalendarEntries} currency={currency} masked={masked} />
+
+      <SalesLog sells={sells} currency={currency} rates={rates} masked={masked} onDelete={onDeleteSale} />
 
       {symbols.length === 0 && !formOpen && <div className={styles.empty}>{s.walletEmpty}</div>}
       {symbols.length > 0 && searchFilteredSymbols.length === 0 && (
         <div className={styles.empty}>{search.trim() ? s.noSearchMatches : s.noTagMatches}</div>
       )}
 
-      {formOpen ? (
+      {sellingSymbol && holdings[sellingSymbol] ? (
+        <RecordSaleForm
+          key={sellingSymbol}
+          symbol={sellingSymbol}
+          holding={holdings[sellingSymbol]}
+          logFull={sells.length >= MAX_SELLS}
+          defaultPrice={quotes[sellingSymbol]?.current ?? null}
+          defaultCurrency={quotes[sellingSymbol]?.currency ?? holdings[sellingSymbol].costCurrency}
+          onSave={handleSale}
+          onCancel={closeForm}
+        />
+      ) : formOpen ? (
         <AddHoldingForm
           holdings={holdings}
           editingSymbol={editingSymbol}
@@ -445,6 +494,7 @@ export default function WalletView({
                   onAddBrand={(brand) => onAddBrand(symbol, brand)}
                   onRemoveBrand={(brand) => onRemoveBrand(symbol, brand)}
                   onEdit={startEdit}
+                  onSell={onRecordSale ? startSale : undefined}
                   onRemove={onRemoveHolding}
                   marketOpen={marketOpen}
                   signal={signals[symbol] ?? null}

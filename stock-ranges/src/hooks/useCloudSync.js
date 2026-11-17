@@ -24,6 +24,8 @@ const DEFAULT_TAGS = {}
 const DEFAULT_HOLDINGS = {}
 const DEFAULT_KNOWN_FOR = {}
 const DEFAULT_ALERTS = {}
+const DEFAULT_SELLS = []
+const DEFAULT_TARGETS = {}
 
 // Deep, deterministic stringification — sorts keys recursively so identical
 // data with different field order produces the same fingerprint.
@@ -49,6 +51,7 @@ function stripDoc(d) {
   return {
     watchlist: d.watchlist, range: d.range, currency: d.currency, tags: d.tags || {},
     holdings: d.holdings || {}, knownFor: d.knownFor || {}, alerts: d.alerts || {},
+    sells: Array.isArray(d.sells) ? d.sells : [], targets: d.targets || {},
   }
 }
 
@@ -59,13 +62,24 @@ function hasData(local) {
   return fingerprint(local) !== fingerprint({
     watchlist: DEFAULT_WATCHLIST, range: DEFAULT_RANGE, currency: DEFAULT_CURRENCY, tags: DEFAULT_TAGS,
     holdings: DEFAULT_HOLDINGS, knownFor: DEFAULT_KNOWN_FOR, alerts: DEFAULT_ALERTS,
+    sells: DEFAULT_SELLS, targets: DEFAULT_TARGETS,
   })
 }
 
-export function useCloudSync({ watchlist, range, currency, tags, holdings, knownFor, alerts, applyRemote }) {
-  const localData = { watchlist, range, currency, tags, holdings, knownFor, alerts }
+// The shared core calls setDoc(ref, data) which REPLACES the whole document, so
+// a device running an older build (no `sells`/`targets` in its serialize) would
+// erase fields it doesn't know about, and so would the portfolioHistory field
+// written separately. Writing with mergeFields over exactly the keys we send
+// still replaces each of those fields wholesale (so a removed holding really
+// disappears) but leaves every other field in the doc alone.
+function mergingSetDoc(ref, data) {
+  return setDoc(ref, data, { mergeFields: Object.keys(data) })
+}
+
+export function useCloudSync({ watchlist, range, currency, tags, holdings, knownFor, alerts, sells, targets, applyRemote }) {
+  const localData = { watchlist, range, currency, tags, holdings, knownFor, alerts, sells, targets }
   const r = useCloudSyncCore({
-    auth, db, onAuthStateChanged, doc, setDoc, serverTimestamp, onSnapshot,
+    auth, db, onAuthStateChanged, doc, setDoc: mergingSetDoc, serverTimestamp, onSnapshot,
     collection: COLL,
     logPrefix: '[stockRangesSync]',
     localData,
@@ -74,6 +88,7 @@ export function useCloudSync({ watchlist, range, currency, tags, holdings, known
     serialize: (d) => ({
       watchlist: d.watchlist, range: d.range, currency: d.currency, tags: d.tags || {},
       holdings: d.holdings || {}, knownFor: d.knownFor || {}, alerts: d.alerts || {},
+      sells: Array.isArray(d.sells) ? d.sells : [], targets: d.targets || {},
     }),
     readRemote: (snap) => (snap.exists() ? stripDoc(snap.data()) : null),
     // Keeps the full doc (incl. lastModified) for the conflict modal's

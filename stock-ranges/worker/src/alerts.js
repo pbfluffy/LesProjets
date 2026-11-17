@@ -189,8 +189,8 @@ export async function setPortfolio(env, uid, body) {
       costAlerts: { below: !!h.costAlerts?.below, gain: !!h.costAlerts?.gain },
     }
   }
-  const prefs = { exDividend: !!body.prefs?.exDividend, weekly: !!body.prefs?.weekly }
-  const hasAnything = Object.keys(holdings).length > 0 || prefs.exDividend || prefs.weekly
+  const prefs = { exDividend: !!body.prefs?.exDividend, weekly: !!body.prefs?.weekly, earnings: !!body.prefs?.earnings }
+  const hasAnything = Object.keys(holdings).length > 0 || prefs.exDividend || prefs.weekly || prefs.earnings
   if (!hasAnything) {
     await env.ALERTS.delete(portfolioKey(uid))
     return true

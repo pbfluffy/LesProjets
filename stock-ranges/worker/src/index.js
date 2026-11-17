@@ -41,7 +41,7 @@
 //     -> sends a test notification to every registered device
 //        -> { sent, gone, failed, devices }; 429 if repeated within a minute
 //   body { type: 'setPortfolio', holdings: {SYM: {qty, avgCost, costCurrency, costAlerts: {below, gain}}},
-//          prefs: {exDividend, weekly}, currency, lang }
+//          prefs: {exDividend, weekly, earnings}, currency, lang }
 //     -> stores portfolio:{uid} for the scheduled job's wallet notifications
 //   body { type: 'getPortfolio' } -> { portfolio } (settings, to restore the UI)
 //   body { type: 'portfolioHistory' } -> { history: {date: {marketValue, costBasis, currency}} }

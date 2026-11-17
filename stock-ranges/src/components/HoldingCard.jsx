@@ -21,7 +21,7 @@ function interp(str, vars) {
 
 export default function HoldingCard({
   symbol, holding, name, currentPrice, currentCurrency, instrumentType, dividendEvents, loading, quoteError, displayCurrency, rates,
-  onEdit, onRemove, masked, watched, onWatchedClick, highlighted, tags = [], onAddTag, onRemoveTag,
+  onEdit, onRemove, onSell, masked, watched, onWatchedClick, highlighted, tags = [], onAddTag, onRemoveTag,
   customBrands = [], onAddBrand, onRemoveBrand, marketOpen, signal, costAlert, onToggleCostAlert,
 }) {
   const { s } = useLang()
@@ -69,6 +69,9 @@ export default function HoldingCard({
           </div>
         </div>
         <div className={styles.headRight}>
+          {onSell && (
+            <button className={styles.iconBtn} onClick={() => onSell(symbol)} aria-label={s.recordSaleLabel} title={s.recordSaleLabel}><Icon name="dollar" size={14} /></button>
+          )}
           <button className={styles.iconBtn} onClick={() => onEdit(symbol)} aria-label={s.editHoldingLabel} title={s.editHoldingLabel}><Icon name="edit" size={13} /></button>
           <button className={styles.iconBtn} onClick={() => onRemove(symbol)} aria-label={s.removeHoldingLabel} title={s.removeHoldingLabel}><Icon name="x" size={14} /></button>
         </div>

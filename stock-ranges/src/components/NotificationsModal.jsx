@@ -64,7 +64,7 @@ export default function NotificationsModal({ user, loadHistory, sendTest, wallet
         {onToggleWalletPref && (
           <fieldset className={styles.prefs}>
             <legend>{s.walletNotifTitle}</legend>
-            {[['exDividend', s.walletNotifExDiv], ['weekly', s.walletNotifWeekly]].map(([key, label]) => (
+            {[['exDividend', s.walletNotifExDiv], ['earnings', s.walletNotifEarnings], ['weekly', s.walletNotifWeekly]].map(([key, label]) => (
               <label key={key} className={styles.prefRow}>
                 <input
                   type="checkbox"

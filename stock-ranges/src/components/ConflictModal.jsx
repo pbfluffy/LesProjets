@@ -31,6 +31,8 @@ const DIFF_FIELDS = [
   { key: 'holdings', labelKey: 'conflictDiffHoldings', fallback: {} },
   { key: 'knownFor', labelKey: 'conflictDiffKnownFor', fallback: {} },
   { key: 'alerts', labelKey: 'conflictDiffAlerts', fallback: {} },
+  { key: 'sells', labelKey: 'conflictDiffSells', fallback: [] },
+  { key: 'targets', labelKey: 'conflictDiffTargets', fallback: {} },
 ]
 
 // Shown when this account already has a synced watchlist that doesn't

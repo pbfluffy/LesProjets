@@ -243,6 +243,14 @@ service cloud.firestore {
                            // reads, so this just needs the same shape/size bound
                            // as knownFor above, not deep validation.
                            && request.resource.data.alerts.size() <= 100))
+                   // Realized-sale log (newest first) and per-sector target
+                   // percentages — both shape/size bounds only, same as alerts.
+                   && (!('sells' in request.resource.data)
+                       || (request.resource.data.sells is list
+                           && request.resource.data.sells.size() <= 500))
+                   && (!('targets' in request.resource.data)
+                       || (request.resource.data.targets is map
+                           && request.resource.data.targets.size() <= 20))
                    && (!('portfolioHistory' in request.resource.data)
                        || (request.resource.data.portfolioHistory is map
                            && request.resource.data.portfolioHistory.size() <= 400))
