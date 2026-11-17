@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { convert } from '../fx.js'
 import { fetchQuote } from '../stockApi.js'
-import { flowAdjustedSeries, alignIndexSeries, benchmarkRangeFor } from '../portfolioHistory.js'
+import { flowAdjustedSeries, alignIndexSeries, benchmarkRangeFor, snapshotSeconds } from '../portfolioHistory.js'
 import { formatPrice, maskPrice, formatAxisDate } from '../format.js'
 import { useLang } from '../LangContext.jsx'
 import styles from './PortfolioHistoryChart.module.css'
@@ -124,7 +124,7 @@ export default function PortfolioHistoryChart({ history, currency, rates, masked
   const points = visibleHistory
     .map((entry) => {
       const cost = typeof entry.costBasis === 'number' ? convert(entry.costBasis, entry.currency, currency, rates) : null
-      return { date: entry.date, value: convert(entry.marketValue, entry.currency, currency, rates), costBasis: cost === null ? undefined : cost }
+      return { date: entry.date, at: snapshotSeconds(entry), value: convert(entry.marketValue, entry.currency, currency, rates), costBasis: cost === null ? undefined : cost }
     })
     .filter((p) => p.value !== null)
 
@@ -173,7 +173,7 @@ export default function PortfolioHistoryChart({ history, currency, rates, masked
   }
 
   if (benchmarks.length > 0) {
-    const dates = points.map((p) => p.date)
+    const cutoffs = points.map((p) => p.at)
     const lines = [{
       id: 'pf',
       label: s.historyPortfolioLabel,
@@ -186,7 +186,7 @@ export default function PortfolioHistoryChart({ history, currency, rates, masked
       const data = benchData[symbol]
       if (data === 'error') failed = true
       else if (!data) loading = true
-      else lines.push({ id: b.id, label: b.label, values: alignIndexSeries(data.timestamps, data.prices, dates) })
+      else lines.push({ id: b.id, label: b.label, values: alignIndexSeries(data.timestamps, data.prices, cutoffs) })
     })
     // 100 is always in range so the break-even baseline never leaves the chart.
     const all = [100, ...lines.flatMap((l) => l.values).filter((v) => v !== null && Number.isFinite(v))]
@@ -195,7 +195,7 @@ export default function PortfolioHistoryChart({ history, currency, rates, masked
     const span = hi - lo || 1
     const w = CHART_WIDTH - 2 * PAD_X
     const h = CHART_HEIGHT - 2 * PAD_Y
-    const cx = (i) => PAD_X + (i / (dates.length - 1)) * w
+    const cx = (i) => PAD_X + (i / (points.length - 1)) * w
     const cy = (v) => CHART_HEIGHT - PAD_Y - ((v - lo) / span) * h
     const endPct = (l) => {
       const last = [...l.values].reverse().find((v) => v !== null && Number.isFinite(v))
