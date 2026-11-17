@@ -56,13 +56,27 @@ export function mergePortfolioHistories(a, b) {
 
 // Turns snapshot points into an index starting at 100 that tracks investment
 // performance rather than portfolio size. The history only stores market value
-// and cost basis, so any change in cost basis between two snapshots is treated
-// as money added (or taken out by a sale), assumed to land mid-period
-// (Modified Dietz):
-//   r_t = (MV_t - MV_{t-1} - flow) / (MV_{t-1} + flow / 2),  flow = CB_t - CB_{t-1}
-// Without this, buying more shares would look like a gain. It is an estimate:
-// the real flow happened at an unknown time, and history converted with
-// today's rates carries no past FX moves.
+// and cost basis, so a change in cost basis between two snapshots is treated as
+// money added or taken out, assumed to land mid-period (Modified Dietz):
+//   r_t = (MV_t - MV_{t-1} - flow) / (MV_{t-1} + flow / 2)
+// Without this, buying more shares would look like a gain. The flow itself:
+//   - cost basis up (a buy): the extra cost is what was paid in, so flow = dCB.
+//   - cost basis down (a sale/removal): the money that LEFT is the sold shares'
+//     market value, not their cost. Using dCB there would book the whole
+//     unrealized gain of the sold shares as a loss (selling half of a +100%
+//     position showed -28.6% on a flat day). The sold fraction is
+//     -dCB / CB_{t-1}, assumed to be worth that fraction of MV_{t-1}.
+// It is still an estimate: the real flow happened at an unknown time, and
+// history converted with today's rates carries no past FX moves.
+export function estimateFlow(prev, p) {
+  if (!Number.isFinite(p.costBasis) || !Number.isFinite(prev.costBasis)) return 0
+  const dCB = p.costBasis - prev.costBasis
+  if (dCB >= 0) return dCB
+  if (!(prev.costBasis > 0) || !(prev.marketValue > 0)) return dCB
+  const soldFraction = Math.min(1, -dCB / prev.costBasis)
+  return -soldFraction * prev.marketValue
+}
+
 // `points`: [{date, marketValue, costBasis}] in ONE currency, oldest first.
 // Returns [{date, index}] aligned with `points`.
 export function flowAdjustedSeries(points) {
@@ -71,7 +85,7 @@ export function flowAdjustedSeries(points) {
   points.forEach((p, i) => {
     if (i > 0) {
       const prev = points[i - 1]
-      const flow = Number.isFinite(p.costBasis) && Number.isFinite(prev.costBasis) ? p.costBasis - prev.costBasis : 0
+      const flow = estimateFlow(prev, p)
       const denom = prev.marketValue + flow / 2
       const r = prev.marketValue > 0 && denom > 0 && Number.isFinite(p.marketValue)
         ? 1 + (p.marketValue - prev.marketValue - flow) / denom
@@ -85,23 +99,44 @@ export function flowAdjustedSeries(points) {
   return out
 }
 
-// For each 'YYYY-MM-DD' date, takes the last benchmark close on or before the
-// end of that UTC day (so weekends/holidays reuse Friday's close), then
-// rebases so the first date with data is 100. Dates before the benchmark's
-// first close get null.
+// Unix seconds at which a history snapshot's prices were current. The date key
+// is the device's local calendar day, which can be most of a day away from the
+// US session the prices came from (a 10:00 Bangkok snapshot is still priced at
+// the previous US close), so the write time is what to align on; the end of
+// the date is only a fallback for entries without one.
+export function snapshotSeconds(entry) {
+  if (Number.isFinite(entry.updatedAt)) return entry.updatedAt / 1000
+  return Date.parse(`${entry.date}T23:59:59Z`) / 1000
+}
+
+// For each cutoff (unix seconds, see snapshotSeconds), takes the last benchmark
+// bar at or before it — a bar's timestamp is its session open and its price is
+// the close, or the live price while the session is still running, which is
+// exactly what a snapshot written at that moment saw. Weekends/holidays reuse
+// the previous close. Rebases so the first point with data is 100; points
+// before the benchmark's first bar get null.
 // `timestamps` are unix seconds parallel to `prices` (either may hold nulls).
-export function alignIndexSeries(timestamps, prices, dates) {
+export function alignIndexSeries(timestamps, prices, cutoffs) {
   const bars = []
   for (let i = 0; i < prices.length; i++) {
     if (Number.isFinite(prices[i]) && Number.isFinite(timestamps[i])) bars.push([timestamps[i], prices[i]])
   }
   bars.sort((a, b) => a[0] - b[0])
-  const raw = []
-  let cursor = -1
-  dates.forEach((date) => {
-    const endOfDay = Date.parse(`${date}T23:59:59Z`) / 1000
-    while (cursor + 1 < bars.length && bars[cursor + 1][0] <= endOfDay) cursor++
-    raw.push(cursor >= 0 ? bars[cursor][1] : null)
+  // Binary search per point: cutoffs aren't guaranteed monotonic (a date key and
+  // its write time come from different clocks).
+  const lastBarAtOrBefore = (t) => {
+    let lo = 0
+    let hi = bars.length - 1
+    let found = -1
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1
+      if (bars[mid][0] <= t) { found = mid; lo = mid + 1 } else hi = mid - 1
+    }
+    return found
+  }
+  const raw = cutoffs.map((t) => {
+    const i = Number.isFinite(t) ? lastBarAtOrBefore(t) : -1
+    return i >= 0 ? bars[i][1] : null
   })
   const base = raw.find((v) => v !== null)
   return raw.map((v) => (v === null || !base ? null : (v / base) * 100))
