@@ -21,7 +21,7 @@ const NAMESPACE_ID = '3a005aaf9deb41e48856476250ecf3f2' // ALERTS — see wrangl
 const API_TOKEN = process.env.CF_API_TOKEN
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY
-const VAPID_SUBJECT = 'mailto:pbfluffygaming@gmail.com'
+const VAPID_SUBJECT = 'https://pumbafluffycorgi.com'
 
 if (!API_TOKEN || !VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
   console.error('Missing CF_API_TOKEN / VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY env vars')

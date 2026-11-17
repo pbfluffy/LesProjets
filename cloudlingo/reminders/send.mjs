@@ -20,7 +20,8 @@ if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) { console.log('Cloudlingo reminders
 
 admin.initializeApp({ credential: admin.credential.cert(JSON.parse(SA)) });
 const db = admin.firestore();
-webpush.setVapidDetails('mailto:pbfluffygaming@gmail.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+// Push-service contact (VAPID subject): an https URL is allowed by RFC 8292 and keeps a personal address out of this public repo.
+webpush.setVapidDetails('https://pumbafluffycorgi.com/cloudlingo/', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 const TEXT = {
   en: {

@@ -8,8 +8,10 @@
 import { buildPushPayload } from '@block65/webcrypto-web-push'
 
 // Shown to a push service (Google/Mozilla/Apple) if they ever need to reach
-// the app operator about abuse — required by the VAPID spec.
-const VAPID_SUBJECT = 'mailto:pbfluffygaming@gmail.com'
+// the app operator about abuse — required by the VAPID spec (RFC 8292), which
+// allows a mailto: address or an https URL. A URL keeps a personal address out
+// of this public repo; the site itself carries the way to reach the operator.
+const VAPID_SUBJECT = 'https://pumbafluffycorgi.com'
 
 // Returns 'ok', 'gone' (404/410 — the device unsubscribed or the endpoint
 // expired; caller should prune it), or 'error' (transient — leave it alone).
