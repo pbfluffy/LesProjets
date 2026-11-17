@@ -41,6 +41,13 @@ jobs:
       - name: Check Cloudlingo questions
         run: node .github/lint/cloudlingo-check.cjs cloudlingo
 
+      # Fails the deploy if the stock-ranges wallet / benchmark / earnings logic
+      # regresses. Plain `node --test` on pure modules: no install needed.
+      # Tests live in stock-ranges/test/.
+      - name: Test stock-ranges logic
+        working-directory: stock-ranges
+        run: npm test
+
       - name: Build bill-splitter
         working-directory: bill-splitter
         run: |

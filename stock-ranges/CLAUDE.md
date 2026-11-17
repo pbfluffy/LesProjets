@@ -32,3 +32,6 @@ Buy (1–3) / Hold (4–7) / Sell (8–10) label, price alerts, holdings, sales 
 - Worker is a manual `npx wrangler deploy` in `worker/`; secrets (`VAPID_PRIVATE_KEY`, `GITHUB_DISPATCH_TOKEN` used by the cron trigger) are Worker secrets. The
   alert-check GitHub Actions job has its own repo secrets.
 - Run the repo ESLint gate after edits (see root `CLAUDE.md`).
+- **Tests:** `npm test` here (Node's built-in `node --test`, zero dependencies, files in `test/`) covers the wallet,
+  benchmark and earnings logic. It is part of the deploy gate in `deploy.yml`, so a failing test blocks the Pages
+  deploy. Write the test first for a bug fix; the earnings checker is tested end to end with a fake KV and clock.
