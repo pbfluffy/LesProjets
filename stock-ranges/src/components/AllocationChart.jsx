@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { tagHue } from '../tagColor.js'
 import { formatPrice, maskPrice } from '../format.js'
 import { useLang } from '../LangContext.jsx'
+import { computeSectorDrift } from '../wallet.js'
+import TargetsEditor from './TargetsEditor.jsx'
 import styles from './AllocationChart.module.css'
 
 const CX = 100
@@ -33,10 +35,11 @@ function describeSlice(startAngle, endAngle) {
 // to here — sector slices hash color by the sector key instead of a
 // symbol, so they get their own stable, distinct palette rather than
 // coincidentally reusing one constituent ticker's color.
-export default function AllocationChart({ items, sectorItems, total, currency, masked }) {
+export default function AllocationChart({ items, sectorItems, total, currency, masked, targets = {}, onSaveTargets }) {
   const { s } = useLang()
   const [expanded, setExpanded] = useState(false)
   const [groupBy, setGroupBy] = useState('symbol')
+  const [editingTargets, setEditingTargets] = useState(false)
   if (!items.length || total <= 0) return null
 
   const bySymbol = groupBy === 'symbol'
@@ -54,6 +57,30 @@ export default function AllocationChart({ items, sectorItems, total, currency, m
   })
   const visibleSlices = expanded ? slices : slices.slice(0, COLLAPSED_COUNT)
   const hiddenCount = slices.length - visibleSlices.length
+
+  // Sector view only: drift vs the user's targets. A sector with a target but
+  // no holdings is not a pie slice, so it is listed after the legend rows.
+  const driftRows = bySymbol ? [] : computeSectorDrift(sectorItems, total, targets)
+  const driftByKey = new Map(driftRows.map((r) => [r.key, r]))
+  const missingRows = driftRows.filter((r) => r.value === 0 && r.targetPct !== null)
+  const hasTargets = driftRows.some((r) => r.targetPct !== null)
+  const mp = (value) => (masked ? maskPrice(currency) : formatPrice(Math.abs(value), currency))
+  const renderDrift = (row) => {
+    if (!row || row.targetPct === null) return null
+    const state = Math.abs(row.driftPct) < 1 ? 'ok' : row.driftPct > 0 ? 'over' : 'under'
+    const sign = row.driftPct > 0 ? '+' : '\u2212'
+    return (
+      <>
+        <span className={styles.drift} data-state={state}>
+          {state === 'ok' ? s.driftOnTarget : `${sign}${Math.abs(row.driftPct).toFixed(1)} pts`}
+        </span>
+        <span className={styles.driftNote}>
+          {s.driftTarget} {row.targetPct}%
+          {state !== 'ok' && ` · ${row.amount > 0 ? s.driftAdd : s.driftTrim} ${mp(row.amount)}`}
+        </span>
+      </>
+    )
+  }
 
   return (
     <div className={styles.wrap}>
@@ -102,6 +129,15 @@ export default function AllocationChart({ items, sectorItems, total, currency, m
                 <span className={styles.legendSymbol}>{slice.label}</span>
                 <span className={styles.legendPct}>{slice.pct.toFixed(1)}%</span>
                 <span className={styles.legendValue}>{masked ? maskPrice(currency) : formatPrice(slice.value, currency)}</span>
+                {!bySymbol && renderDrift(driftByKey.get(slice.key))}
+              </li>
+            ))}
+            {missingRows.map((row) => (
+              <li key={`missing-${row.key}`}>
+                <span className={styles.dot} style={{ background: 'transparent', border: '1px dashed var(--color-border-strong)' }} aria-hidden="true" />
+                <span className={styles.legendSymbol}>{s[`sector${row.key}`] || row.key}</span>
+                <span className={styles.legendPct}>0.0%</span>
+                {renderDrift(row)}
               </li>
             ))}
           </ul>
@@ -112,6 +148,19 @@ export default function AllocationChart({ items, sectorItems, total, currency, m
           )}
         </div>
       </div>
+      {!bySymbol && onSaveTargets && (
+        editingTargets ? (
+          <TargetsEditor
+            targets={targets}
+            onSave={(next) => { onSaveTargets(next); setEditingTargets(false) }}
+            onCancel={() => setEditingTargets(false)}
+          />
+        ) : (
+          <button type="button" className={styles.targetsBtn} onClick={() => setEditingTargets(true)}>
+            {hasTargets ? s.targetsEdit : s.targetsSet}
+          </button>
+        )
+      )}
     </div>
   )
 }
