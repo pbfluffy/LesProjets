@@ -23,7 +23,7 @@ Buy (1–3) / Hold (4–7) / Sell (8–10) label, price alerts, holdings, sales 
 
 - **New synced fields need a rule change.** `userStockRanges/{uid}` in `firestore.rules` bounds each field
   (`watchlist`, `holdings`, `alerts`, `sells`, `targets`, `portfolioHistory`, …). Add the field + a size bound there
-  and deploy the rules, or the write is rejected live.
+  and let the rules workflow deploy them (see root `CLAUDE.md`), or the write is rejected live.
 - The "not investment advice" disclaimer is permanent in the UI — keep it. Signals are a position-in-range
   heuristic, nothing more.
 - **Do not suggest or add CSV export for the wallet** — the owner rejected it as useless.

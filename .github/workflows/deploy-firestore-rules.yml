@@ -1,0 +1,55 @@
+name: Deploy Firestore rules
+
+# Publishes firestore.rules to the live `pumgoda` project whenever the file
+# changes on main, so a rule change no longer waits for a manual
+# `firebase deploy` (new collections / synced fields are rejected live until
+# the rules are out). Can also be run by hand from the Actions tab.
+#
+# Auth: the FIREBASE_SERVICE_ACCOUNT repo secret (service-account JSON, also
+# used by the Cloudlingo reminders in price-alerts-cron.yml). Its account must
+# hold the "Firebase Rules Admin" role to release rules — if a run fails with a
+# 403, add that role in Google Cloud IAM. Without the secret the job only
+# warns, so a fork or a fresh clone never fails on it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - firestore.rules
+      - firebase.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Rules are a single document: never run two deploys at once, and let a newer
+# push wait for the running one rather than cancelling it mid-release.
+concurrency:
+  group: firestore-rules
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # workflow_dispatch can pick any branch; only main's rules may go live.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Deploy rules
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT is not set: Firestore rules were NOT deployed."
+            exit 0
+          fi
+          KEY="$RUNNER_TEMP/firebase-sa.json"
+          (umask 077; printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$KEY")
+          export GOOGLE_APPLICATION_CREDENTIALS="$KEY"
+          # Pinned so a new CLI release can't change deploy behaviour unnoticed.
+          npx --yes firebase-tools@15.36.0 deploy --only firestore:rules --project pumgoda --non-interactive
+          rm -f "$KEY"

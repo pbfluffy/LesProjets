@@ -3,8 +3,12 @@ name: deploy-firestore-rules
 description: Deploy firestore.rules to the live pumgoda Firebase project safely. Use whenever a rules change must go live, or a new collection/synced field fails with permission-denied.
 ---
 
-Rules are **not** deployed by the GitHub Pages workflow. This changes production data access for every app, so only
-do it when the user asked for it (or approved it) in this conversation.
+The GitHub Pages workflow does not deploy rules. A push to `main` that changes `firestore.rules`/`firebase.json`
+runs `.github/workflows/deploy-firestore-rules.yml` instead (service-account auth via the `FIREBASE_SERVICE_ACCOUNT`
+secret, which needs the *Firebase Rules Admin* role; it only warns if the secret is missing). So first look at that
+run (`gh run list --workflow deploy-firestore-rules.yml`) and only deploy by hand below if it is missing or failed.
+This changes production data access for every app, so only do a manual deploy when the user asked for it (or
+approved it) in this conversation.
 
 1. `git fetch origin` and decide what to deploy. Normally that is the rules on `origin/main`.
 2. Check for unrelated uncommitted rule edits: `git diff firestore.rules`. The CLI deploys the **file on disk**,

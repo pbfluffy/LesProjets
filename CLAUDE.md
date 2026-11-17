@@ -41,10 +41,13 @@ catalog editor, Cloudlingo reports…), `montreal-autumn-2026.html` + `montreal-
 ## What deploys automatically, and what does not
 
 Pushing to `main` runs `.github/workflows/deploy.yml` → builds every app → publishes `_site` to GitHub Pages.
-**Only the static frontends deploy that way.** These are manual, separate steps:
+**Only the static frontends deploy that way.** Rules deploy through their own workflow, the rest are manual:
 
-- **Firestore rules** (`firestore.rules`): `firebase deploy --only firestore:rules --project pumgoda`. A new
-  collection or new synced field is rejected live until this is done. See skill `deploy-firestore-rules`.
+- **Firestore rules** (`firestore.rules`): a push to `main` that changes `firestore.rules` or `firebase.json` runs
+  `.github/workflows/deploy-firestore-rules.yml` (also runnable from the Actions tab), authenticated by the
+  `FIREBASE_SERVICE_ACCOUNT` secret, whose account needs the *Firebase Rules Admin* role. Check that run's result:
+  a new collection or synced field is rejected live until it succeeds. Manual fallback
+  (`firebase deploy --only firestore:rules --project pumgoda`) is in skill `deploy-firestore-rules`.
 - **Cloudflare Workers**: `npx wrangler deploy` from the worker folder; secrets via `npx wrangler secret put`.
   See skill `deploy-worker`.
 - **Cloudflare cache**: `sw.js` must not be edge-cached (Cache Rule, see `bill-splitter/README.md`), or phones
