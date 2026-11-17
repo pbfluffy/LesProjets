@@ -51,7 +51,8 @@ Pushing to `main` runs `.github/workflows/deploy.yml` → builds every app → p
   keep the old app after a deploy.
 
 Pre-deploy gate: ESLint `no-undef` over every app's `src/` + `shared/` (config in `.github/lint/`), and
-`.github/lint/cloudlingo-check.cjs` for Cloudlingo. Run locally:
+`.github/lint/cloudlingo-check.cjs` for Cloudlingo, and `npm test` in `stock-ranges/` (Node's built-in runner,
+no install needed). A failing check blocks the deploy. Run the lint locally:
 
 ```bash
 npm ci --prefix .github/lint
