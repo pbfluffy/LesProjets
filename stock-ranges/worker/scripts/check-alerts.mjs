@@ -65,8 +65,11 @@ async function kvGet(key) {
   }
 }
 
-async function kvPut(key, value) {
-  const res = await kvFetch(`/values/${encodeURIComponent(key)}`, {
+// `expirationTtl` (seconds; KV's minimum is 60) lets short-lived markers such as
+// dedupe keys expire on their own instead of piling up in the namespace.
+async function kvPut(key, value, { expirationTtl } = {}) {
+  const query = expirationTtl ? `?expiration_ttl=${Math.max(60, Math.floor(expirationTtl))}` : ''
+  const res = await kvFetch(`/values/${encodeURIComponent(key)}${query}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(value),

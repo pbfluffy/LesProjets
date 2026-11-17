@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { convert } from '../fx.js'
 import { fetchQuote } from '../stockApi.js'
 import { flowAdjustedSeries, alignIndexSeries, benchmarkRangeFor, snapshotSeconds } from '../portfolioHistory.js'
@@ -118,15 +118,38 @@ export default function PortfolioHistoryChart({ history, currency, rates, masked
     setBenchmarks((prev) => (prev.includes(symbol) ? prev.filter((x) => x !== symbol) : [...prev, symbol]))
   }
 
-  const cutoff = cutoffDateKey(RANGE_DAYS[range])
-  const visibleHistory = cutoff ? history.filter((e) => e.date >= cutoff) : history
+  // Derived data is memoized so mask toggles and parent re-renders don't redo
+  // the currency conversion, the flow adjustment or the per-benchmark sorted
+  // alignment (hooks stay above the early returns below).
+  const points = useMemo(() => {
+    const cutoff = cutoffDateKey(RANGE_DAYS[range])
+    const visibleHistory = cutoff ? history.filter((e) => e.date >= cutoff) : history
+    return visibleHistory
+      .map((entry) => {
+        const cost = typeof entry.costBasis === 'number' ? convert(entry.costBasis, entry.currency, currency, rates) : null
+        return { date: entry.date, at: snapshotSeconds(entry), value: convert(entry.marketValue, entry.currency, currency, rates), costBasis: cost === null ? undefined : cost }
+      })
+      .filter((p) => p.value !== null)
+  }, [history, range, currency, rates])
 
-  const points = visibleHistory
-    .map((entry) => {
-      const cost = typeof entry.costBasis === 'number' ? convert(entry.costBasis, entry.currency, currency, rates) : null
-      return { date: entry.date, at: snapshotSeconds(entry), value: convert(entry.marketValue, entry.currency, currency, rates), costBasis: cost === null ? undefined : cost }
+  const comparison = useMemo(() => {
+    if (benchmarks.length === 0 || points.length < 2) return null
+    const cutoffs = points.map((p) => p.at)
+    const lines = [{
+      id: 'pf',
+      values: flowAdjustedSeries(points.map((p) => ({ date: p.date, marketValue: p.value, costBasis: p.costBasis }))).map((x) => x.index),
+    }]
+    let failed = false
+    let loading = false
+    benchmarks.forEach((symbol) => {
+      const b = BENCHMARKS.find((x) => x.symbol === symbol)
+      const data = benchData[symbol]
+      if (data === 'error') failed = true
+      else if (!data) loading = true
+      else lines.push({ id: b.id, label: b.label, values: alignIndexSeries(data.timestamps, data.prices, cutoffs) })
     })
-    .filter((p) => p.value !== null)
+    return { lines, failed, loading }
+  }, [points, benchmarks, benchData])
 
   const rangeRow = (
     <div className={styles.rangeRow}>
@@ -172,22 +195,8 @@ export default function PortfolioHistoryChart({ history, currency, rates, masked
     )
   }
 
-  if (benchmarks.length > 0) {
-    const cutoffs = points.map((p) => p.at)
-    const lines = [{
-      id: 'pf',
-      label: s.historyPortfolioLabel,
-      values: flowAdjustedSeries(points.map((p) => ({ date: p.date, marketValue: p.value, costBasis: p.costBasis }))).map((x) => x.index),
-    }]
-    let failed = false
-    let loading = false
-    benchmarks.forEach((symbol) => {
-      const b = BENCHMARKS.find((x) => x.symbol === symbol)
-      const data = benchData[symbol]
-      if (data === 'error') failed = true
-      else if (!data) loading = true
-      else lines.push({ id: b.id, label: b.label, values: alignIndexSeries(data.timestamps, data.prices, cutoffs) })
-    })
+  if (comparison) {
+    const { lines, failed, loading } = comparison
     // 100 is always in range so the break-even baseline never leaves the chart.
     const all = [100, ...lines.flatMap((l) => l.values).filter((v) => v !== null && Number.isFinite(v))]
     const lo = Math.min(...all)
@@ -216,7 +225,7 @@ export default function PortfolioHistoryChart({ history, currency, rates, masked
             return (
               <li key={l.id}>
                 <span className={styles.legendDot} data-series={l.id} aria-hidden="true" />
-                <span>{l.label}</span>
+                <span>{l.id === 'pf' ? s.historyPortfolioLabel : l.label}</span>
                 <strong data-direction={pct !== null && pct < 0 ? 'down' : 'up'}>
                   {pct === null ? '—' : `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`}
                 </strong>

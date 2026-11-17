@@ -91,6 +91,9 @@ function weekChangePct(prices) {
 }
 
 const EARNINGS_CACHE_KEY = 'earningscal'
+// An `earn:` dedupe key only matters while its report date is today or the next
+// trading day (at most ~4 days out over a weekend/holiday), so it can expire.
+const EARNINGS_DEDUPE_TTL_S = 7 * 86400
 const EARNINGS_CACHE_MS = 6 * 3600e3 // the calendar gains rows over time, but hourly refetches are wasteful
 
 // Today's and the next weekday's US calendar rows, cached in one KV entry
@@ -239,7 +242,7 @@ export async function runPortfolioChecks({ kvListKeys, kvGet, kvPut, sendPush, p
           if (when === 'today' && reportAlreadyOut(row, etMinutes)) continue
           const key = `earn:${uid}:${symbol}:${date}`
           if (await kvGet(key)) continue
-          await kvPut(key, { ts: Date.now() })
+          await kvPut(key, { ts: Date.now() }, { expirationTtl: EARNINGS_DEDUPE_TTL_S })
           const q = quotes[symbol]
           const name = q?.name && q.name !== symbol ? q.name : symbol
           const dateLabel = fmtDate(Date.parse(`${date}T12:00:00Z`) / 1000, lang)

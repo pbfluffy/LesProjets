@@ -44,10 +44,11 @@ function harness({ earnings = true, lang = 'en', holdings } = {}) {
   kv.set('alerts:u1', { subscriptions: [{ endpoint: 'e1' }] })
   const pushes = []
   const history = []
+  const puts = []
   const deps = {
     kvListKeys: async (p) => [...kv.keys()].filter((k) => k.startsWith(p)),
     kvGet: async (k) => (kv.has(k) ? JSON.parse(JSON.stringify(kv.get(k))) : null),
-    kvPut: async (k, v) => { kv.set(k, v) },
+    kvPut: async (k, v, opts) => { puts.push({ key: k, opts }); kv.set(k, v) },
     sendPush: async (_sub, payload) => { pushes.push(payload); return 'ok' },
     pruneSubscription: async () => {},
     addHistory: async (_uid, items) => { history.push(...items) },
@@ -56,7 +57,7 @@ function harness({ earnings = true, lang = 'en', holdings } = {}) {
     rates: { USD: 35, THB: 1 },
     marketOpen: {},
   }
-  return { deps, pushes, history }
+  return { deps, pushes, history, puts }
 }
 
 const quiet = async (fn) => {
@@ -126,6 +127,18 @@ test('a skipped stale report is not recorded, so it never blocks anything later'
   await quiet(() => runPortfolioChecks(h.deps))
   assert.equal(h.pushes.length, 0)
   assert.equal(h.history.length, 0)
+})
+
+// Regression: dedupe keys used to be written without expiry and piled up forever.
+test('earn: dedupe keys expire, the calendar cache does not', async () => {
+  now = TUESDAY
+  calendar({ '2026-11-18': [row('AAPL')] })
+  const h = harness()
+  await quiet(() => runPortfolioChecks(h.deps))
+  const dedupe = h.puts.filter((p) => p.key.startsWith('earn:'))
+  assert.equal(dedupe.length, 1)
+  assert.ok(dedupe[0].opts?.expirationTtl >= 4 * 86400, 'must outlive a weekend-long look-ahead')
+  assert.equal(h.puts.find((p) => p.key === 'earningscal')?.opts, undefined)
 })
 
 test('Thai copy is used for Thai portfolios', async () => {

@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   flowAdjustedSeries, estimateFlow, alignIndexSeries, snapshotSeconds,
-  benchmarkRangeFor, mergePortfolioHistories,
+  benchmarkRangeFor, mergePortfolioHistories, todayKey,
 } from '../src/portfolioHistory.js'
 
 const near = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} !~ ${b}`)
@@ -135,4 +135,11 @@ test('mergePortfolioHistories keeps the most recently written entry per date', (
     [{ date: '2026-11-01', marketValue: 2, updatedAt: 20 }, { date: '2026-11-02', marketValue: 5, updatedAt: 5 }],
   )
   assert.deepEqual(merged.map((e) => [e.date, e.marketValue]), [['2026-11-01', 2], ['2026-11-02', 5], ['2026-11-03', 3]])
+})
+
+test('todayKey is the device-local calendar day, zero-padded', () => {
+  const d = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  assert.equal(todayKey(), `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
+  assert.match(todayKey(), /^\d{4}-\d{2}-\d{2}$/)
 })
