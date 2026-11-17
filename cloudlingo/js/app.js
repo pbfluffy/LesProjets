@@ -2268,7 +2268,7 @@
     else if (!pushSupported()) body = `<p class="muted small">${t('remind_unsupported')}</p>`;
     else {
       loadReminder();
-      const hours = [7, 8, 9, 12, 17, 18, 19, 20, 21, 22];
+      const hours = [7, 8, 9, 12, 17, 18, 19, 20, 21, 22, 23];
       const label = h => new Date(2000, 0, 1, h).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' });
       body = `<div class="row" style="flex-wrap:wrap;gap:10px;margin-top:6px">
         <div class="seg seg2" style="width:132px"><button class="${remind.on ? 'on' : ''}" data-act="remindon" ${remind.busy ? 'disabled' : ''}>${t('board_on')}</button><button class="${remind.on ? '' : 'on'}" data-act="remindoff" ${remind.busy ? 'disabled' : ''}>${t('board_off')}</button></div>
