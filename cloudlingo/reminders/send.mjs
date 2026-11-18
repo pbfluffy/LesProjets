@@ -9,6 +9,10 @@
 //
 // Needs FIREBASE_SERVICE_ACCOUNT (the pumgoda service-account JSON) and the
 // site's VAPID keys. Without the service account it does nothing.
+//
+// Diagnostic: CLOUDLINGO_TEST=path|site (set by the workflow's `cloudlingo_test` input) skips all of the
+// above and just sends one test push to every stored device, so a reminder that never shows up can be
+// traced. See the block above `const snap`.
 import admin from 'firebase-admin';
 import webpush from 'web-push';
 
@@ -21,7 +25,9 @@ if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) { console.log('Cloudlingo reminders
 admin.initializeApp({ credential: admin.credential.cert(JSON.parse(SA)) });
 const db = admin.firestore();
 // Push-service contact (VAPID subject): an https URL is allowed by RFC 8292 and keeps a personal address out of this public repo.
-webpush.setVapidDetails('https://pumbafluffycorgi.com/cloudlingo/', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+const REMINDER_CONTACT = 'https://pumbafluffycorgi.com/cloudlingo/';
+const SITE_CONTACT = 'https://pumbafluffycorgi.com'; // what the Stock Ranges sender uses
+webpush.setVapidDetails(REMINDER_CONTACT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 const TEXT = {
   en: {
@@ -42,6 +48,42 @@ function localNow(tz, offsetDays = 0) {
   catch { parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' }).formatToParts(d); }
   const get = t => parts.find(p => p.type === t).value;
   return { date: `${get('year')}-${get('month')}-${get('day')}`, hour: +get('hour') };
+}
+
+// ---- Manual diagnostic (workflow_dispatch -> cloudlingo_test) ----
+// Sends ONE test push to every stored device of every learner who has reminders on, through the same
+// code and the same stored subscriptions the real reminders use, ignoring the hour / already-reminded /
+// goal rules, and changing nothing in Firestore. "path" signs with the reminder contact, "site" with the
+// plain site URL (what Stock Ranges uses): comparing the two tells a contact problem apart from a stale
+// subscription. Actions logs of this public repo are public, so only the push host and the HTTP result are
+// printed: no ids, no endpoints.
+const TEST_TEXT = {
+  en: (mode) => ({ title: `Cloudlingo test ${mode === 'site' ? 'B' : 'A'}`, body: `Sent with the ${mode === 'site' ? 'site' : 'reminder'} contact. If you can read this, it reached this device.` }),
+  th: (mode) => ({ title: `ทดสอบ Cloudlingo ${mode === 'site' ? 'B' : 'A'}`, body: `ส่งด้วย contact แบบ ${mode === 'site' ? 'site' : 'reminder'} ถ้าเห็นข้อความนี้ แสดงว่าถึงเครื่องนี้แล้ว` })
+};
+if (process.env.CLOUDLINGO_TEST) {
+  const mode = process.env.CLOUDLINGO_TEST === 'site' ? 'site' : 'path';
+  const contact = mode === 'site' ? SITE_CONTACT : REMINDER_CONTACT;
+  console.log(`Cloudlingo TEST (${mode}): VAPID contact ${contact}`);
+  const testSnap = await db.collection('cloudlingoPush').where('on', '==', true).get();
+  let devices = 0, accepted = 0;
+  for (const doc of testSnap.docs) {
+    const p = doc.data();
+    const msg = TEST_TEXT[p.lang === 'th' ? 'th' : 'en'](mode);
+    const payload = JSON.stringify({ ...msg, url: './' });
+    for (const sub of Array.isArray(p.subs) ? p.subs : []) {
+      devices++;
+      let host = '?'; try { host = new URL(sub.endpoint).host; } catch { /* leave as ? */ }
+      try {
+        const res = await webpush.sendNotification(sub, payload, { TTL: 3 * 3600, urgency: 'normal', vapidDetails: { subject: contact, publicKey: VAPID_PUBLIC_KEY, privateKey: VAPID_PRIVATE_KEY } });
+        accepted++; console.log(`  device ${devices}: ${host} accepted (HTTP ${res.statusCode})`);
+      } catch (e) {
+        console.log(`  device ${devices}: ${host} REFUSED (HTTP ${e.statusCode || '?'}) ${String(e.body || e.message).slice(0, 120)}`);
+      }
+    }
+  }
+  console.log(`Cloudlingo TEST: ${testSnap.size} learner(s), ${devices} device(s), ${accepted} accepted by the push service.`);
+  process.exit(0);
 }
 
 const snap = await db.collection('cloudlingoPush').where('on', '==', true).get();

@@ -11,6 +11,9 @@ has the full feature list.
   `js/glossary.js` (word hints), `js/i18n.js`, `js/diagrams.js`, `js/why/`, `sw.js`, `manifest.webmanifest`.
 - `reminders/send.mjs` — daily push reminders, run as a step of the hourly GitHub Actions job
   (`price-alerts-cron.yml`); needs `FIREBASE_SERVICE_ACCOUNT` + VAPID keys, otherwise it skips quietly.
+  To trace a reminder that never shows up, run that workflow by hand with `cloudlingo_test` = `path` (the reminder's
+  VAPID contact) or `site` (the plain site URL): it sends one test to every stored device through the same code,
+  ignoring the hour/once-a-day/goal rules and changing nothing.
 - `art-src/` — source art, not deployed.
 
 ## Rules that are easy to break
