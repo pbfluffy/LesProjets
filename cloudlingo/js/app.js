@@ -2233,9 +2233,25 @@
   let remind = { loaded: false, on: false, hour: 19, busy: false };
   const b64ToBytes = b64 => { const p = '='.repeat((4 - b64.length % 4) % 4); const raw = atob((b64 + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(raw, c => c.charCodeAt(0)); };
   const remindRef = () => fb.fs.doc(fb.db, 'cloudlingoPush', account.uid);
+  // The reminders job sends to the SAVED list of devices (cloudlingoPush/{uid}.subs), not to whatever this phone
+  // holds now. If the phone's push subscription is replaced (re-added to the Home Screen, a browser reset), the
+  // saved copy would keep pointing at a dead address: the push service accepts the message, nothing is ever shown.
+  // So when the reminder state loads with reminders on and notifications allowed, make sure the live subscription
+  // is in the saved list, and add it if not. Add-only (old addresses are pruned by the job when they report gone),
+  // best effort, and never disturbs the card.
+  async function syncReminderSubscription(saved) {
+    try {
+      if (!saved.on || !pushSupported() || Notification.permission !== 'granted') return;
+      const reg = await navigator.serviceWorker.ready;
+      const live = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(VAPID_PUBLIC) });
+      const subs = Array.isArray(saved.subs) ? saved.subs : [];
+      if (subs.some(x => x && x.endpoint === live.endpoint)) return;
+      await fb.fs.setDoc(remindRef(), { subs: subs.concat(live.toJSON()).slice(-5), updatedAt: Date.now() }, { merge: true });
+    } catch { /* best effort */ }
+  }
   async function loadReminder() {
     if (!fb || !account || remind.loaded) return;
-    try { const snap = await fb.fs.getDoc(remindRef()); const d = snap.exists() ? snap.data() : {}; remind = { loaded: true, on: !!d.on, hour: d.hour != null ? d.hour : 19, busy: false }; }
+    try { const snap = await fb.fs.getDoc(remindRef()); const d = snap.exists() ? snap.data() : {}; remind = { loaded: true, on: !!d.on, hour: d.hour != null ? d.hour : 19, busy: false }; syncReminderSubscription(d); }
     catch { remind.loaded = true; }
     if (view === 'profile') render();
   }
