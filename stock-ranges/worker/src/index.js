@@ -40,6 +40,11 @@
 //   body { type: 'testPush' }
 //     -> sends a test notification to every registered device
 //        -> { sent, gone, failed, devices }; 429 if repeated within a minute
+//   body { type: 'testPushDevice', subscription, lang }
+//     -> sends ONE test notification to the given subscription (used by
+//        Cloudlingo's reminder card; that app keeps its subscriptions in Firestore,
+//        not in this store). The endpoint must be a real browser push service.
+//        -> { result: 'ok' | 'gone' | 'error' }; 400 if invalid, 429 within a minute
 //   body { type: 'setPortfolio', holdings: {SYM: {qty, avgCost, costCurrency, costAlerts: {below, gain}}},
 //          prefs: {exDividend, weekly, earnings}, currency, lang }
 //     -> stores portfolio:{uid} for the scheduled job's wallet notifications
@@ -66,6 +71,7 @@ import { verifyFirebaseToken } from './auth.js'
 import { triggerAlertCheck } from './trigger.js'
 import { upsertSubscription, setAlert, getAlerts, pruneSubscription, getHistory, addHistory, getPortfolio, setPortfolio, getPortfolioHistory } from './alerts.js'
 import { sendPush } from './push.js'
+import { parseDeviceSubscription } from './pushTarget.js'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -266,6 +272,9 @@ async function handleAlerts(request, env) {
   if (body?.type === 'testPush') {
     return handleTestPush(env, uid)
   }
+  if (body?.type === 'testPushDevice') {
+    return handleTestPushDevice(env, uid, body)
+  }
   if (body?.type === 'history') {
     return json({ items: await getHistory(env, uid) })
   }
@@ -309,6 +318,29 @@ async function handleTestPush(env, uid) {
   const sent = results.filter((r) => r === 'ok').length
   await addHistory(env, uid, { ts: Date.now(), test: true, title: copy.title, body: copy.body, delivered: sent, devices: subscriptions.length })
   return json({ sent, gone: gone.length, failed: results.filter((r) => r === 'error').length, devices: subscriptions.length })
+}
+
+// Copy for the one-device test used by Cloudlingo's reminder card. The payload
+// shape is Cloudlingo's service worker's ({ title, body, url }), not Stock Ranges'.
+const DEVICE_TEST_COPY = {
+  en: { title: 'Cloudlingo test notification', body: 'Reminders are working on this device.' },
+  th: { title: 'ทดสอบการแจ้งเตือน Cloudlingo', body: 'อุปกรณ์นี้รับการเตือนได้ปกติ' },
+}
+
+// Sends one test push to a subscription the client supplies. Validated first
+// (an invalid request must not burn the cooldown), then limited to one per
+// minute per user with a key of its own so it never blocks the other test button.
+async function handleTestPushDevice(env, uid, body) {
+  const subscription = parseDeviceSubscription(body.subscription)
+  if (!subscription) return json({ error: 'invalid subscription' }, 400)
+
+  const cooldownKey = `testdevcooldown:${uid}`
+  if (await env.ALERTS.get(cooldownKey)) return json({ error: 'too soon' }, 429)
+  await env.ALERTS.put(cooldownKey, '1', { expirationTtl: 60 })
+
+  const copy = DEVICE_TEST_COPY[body.lang === 'th' ? 'th' : 'en']
+  const result = await sendPush(env, subscription, { title: copy.title, body: copy.body, url: './' })
+  return json({ result })
 }
 
 export default {

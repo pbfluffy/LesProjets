@@ -2260,6 +2260,31 @@
     }
     render();
   }
+  // The test button asks the stock-ranges Worker (it holds the push signing key and
+  // already verifies Firebase sign-in tokens) to send ONE push to this device's own
+  // subscription, so it exercises the same delivery path the real reminders use.
+  const PUSH_WORKER = 'https://stock-ranges-quotes.pbfluffygaming.workers.dev';
+  async function sendReminderTest() {
+    if (!fb || !account || remind.busy || remind.testing) return;
+    remind.testing = true; remind.testMsg = ''; render();
+    try {
+      const user = fb.auth.currentUser;
+      if (!user) throw new Error('signin');
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (!sub) { remind.testMsg = t('remind_test_nosub'); return; }
+      const token = await user.getIdToken();
+      const res = await fetch(PUSH_WORKER + '/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ type: 'testPushDevice', subscription: sub.toJSON(), lang })
+      });
+      if (res.status === 429) remind.testMsg = t('remind_test_wait');
+      else if (!res.ok) remind.testMsg = t('remind_test_fail');
+      else { const out = await res.json(); remind.testMsg = out.result === 'ok' ? t('remind_test_ok') : out.result === 'gone' ? t('remind_test_gone') : t('remind_test_fail'); }
+    } catch { remind.testMsg = t('remind_test_fail'); }
+    finally { remind.testing = false; render(); }
+  }
   function reminderCard() {
     if (!pwaReady || VAPID_PUBLIC.startsWith('__')) return '';
     let body;
@@ -2268,11 +2293,12 @@
     else if (!pushSupported()) body = `<p class="muted small">${t('remind_unsupported')}</p>`;
     else {
       loadReminder();
-      const hours = [7, 8, 9, 12, 17, 18, 19, 20, 21, 22, 23];
+      const hours = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
       const label = h => new Date(2000, 0, 1, h).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' });
       body = `<div class="row" style="flex-wrap:wrap;gap:10px;margin-top:6px">
         <div class="seg seg2" style="width:132px"><button class="${remind.on ? 'on' : ''}" data-act="remindon" ${remind.busy ? 'disabled' : ''}>${t('board_on')}</button><button class="${remind.on ? '' : 'on'}" data-act="remindoff" ${remind.busy ? 'disabled' : ''}>${t('board_off')}</button></div>
         <label class="muted small remind-time">${t('remind_at')} <select id="remind-hour" ${remind.busy ? 'disabled' : ''}>${hours.map(h => `<option value="${h}" ${h === remind.hour ? 'selected' : ''}>${label(h)}</option>`).join('')}</select></label></div>
+        ${remind.on ? `<div style="margin-top:10px"><button class="btn ghost" data-act="remindtest" ${remind.busy || remind.testing ? 'disabled' : ''}>${remind.testing ? t('remind_testing') : t('remind_test_btn')}</button>${remind.testMsg ? `<p class="muted small" role="status" style="margin-top:6px">${remind.testMsg}</p>` : ''}</div>` : ''}
         ${Notification.permission === 'denied' ? `<p class="muted small" style="margin-top:8px">${t('remind_denied')}</p>` : ''}`;
     }
     return `<div class="card" style="margin-top:16px"><h3 class="ic-title" style="margin-bottom:2px">${ICON('bell')} ${t('remind_title')}</h3><p class="muted small" style="margin-bottom:6px">${t('remind_sub')}</p>${body}</div>`;
@@ -2397,6 +2423,7 @@
     tour: () => startTour(),
     remindon: () => setReminder(true, remind.hour),
     remindoff: () => setReminder(false, remind.hour),
+    remindtest: () => sendReminderTest(),
     report: d => openReport(d.q),
     sendreport: () => sendReport(modalRoot.querySelector('[data-act=sendreport]')),
     review: () => startReview(),
