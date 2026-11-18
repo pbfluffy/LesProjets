@@ -3,9 +3,14 @@
 // which the stock-ranges Worker starts reliably every hour.
 //
 // For every learner who turned reminders on (Firestore cloudlingoPush/{uid}):
-// if it's now their chosen hour in their own time zone, they haven't been
-// reminded today, and they haven't reached today's XP goal (from their synced
+// if it's now their chosen hour in their own time zone, they haven't already been
+// reminded for this hour, and they haven't reached today's XP goal (from their synced
 // progress in userCloudlingo/{uid}), send one push to each of their devices.
+//
+// "Already reminded" is remembered per hour slot (`lastSent` = 'YYYY-MM-DDTHH'), not per day: the job runs
+// twice in the same hour (the Worker's timer at :03 and the workflow's backup schedule at :41), so the same
+// hour must never send twice, but a different hour on the same day may (changing the reminder time after
+// today's reminder went out still works). Older values are a plain 'YYYY-MM-DD' and match no slot.
 //
 // Needs FIREBASE_SERVICE_ACCOUNT (the pumgoda service-account JSON) and the
 // site's VAPID keys. Without the service account it does nothing.
@@ -92,13 +97,14 @@ for (const doc of snap.docs) {
   const p = doc.data();
   const tz = p.tz || 'UTC';
   const now = localNow(tz);
-  if (now.hour !== (p.hour ?? 19) || p.lastSent === now.date || !Array.isArray(p.subs) || !p.subs.length) { skipped++; continue; }
+  const slot = `${now.date}T${String(now.hour).padStart(2, '0')}`; // this reminder hour, in the learner's time zone
+  if (now.hour !== (p.hour ?? 19) || p.lastSent === slot || !Array.isArray(p.subs) || !p.subs.length) { skipped++; continue; }
 
   let state = {};
   try { const prog = await db.doc(`userCloudlingo/${doc.id}`).get(); state = JSON.parse(prog.exists ? prog.data().state || '{}' : '{}'); } catch { state = {}; }
   const goal = state.dailyGoal || 20;
   const today = (state.xpByDay || {})[now.date] || 0;
-  if (today >= goal) { await doc.ref.update({ lastSent: now.date }); skipped++; continue; } // goal already met: no reminder
+  if (today >= goal) { await doc.ref.update({ lastSent: slot }); skipped++; continue; } // goal already met: no reminder
   const yesterday = localNow(tz, -1).date;
   const streak = state.lastStreakDay === yesterday ? state.streak || 0 : 0;
   const t = TEXT[p.lang === 'th' ? 'th' : 'en'];
@@ -113,7 +119,7 @@ for (const doc of snap.docs) {
       else { keep.push(sub); console.warn('push failed', e.statusCode || e.message); }
     }
   }
-  await doc.ref.update({ lastSent: now.date, subs: keep });
+  await doc.ref.update({ lastSent: slot, subs: keep });
 }
 console.log(`Cloudlingo reminders: ${snap.size} on, ${sent} sent, ${skipped} skipped, ${pruned} expired subscriptions removed.`);
 process.exit(0);
