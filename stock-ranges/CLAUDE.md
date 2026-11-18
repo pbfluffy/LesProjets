@@ -14,7 +14,7 @@ Buy (1–3) / Hold (4–7) / Sell (8–10) label, price alerts, holdings, sales 
 - `src/sw.js` — custom service worker (`injectManifest`) hosting the Web Push `push` listener. Precaching and the
   one runtime-cache rule are hand-rolled there.
 - `worker/` (`stock-ranges-quotes`): Yahoo Finance chart proxy (5-min edge cache), rate-limited AI import route,
-  `/alerts` (KV `ALERTS`), Web Push (VAPID), and an **hourly Cron Trigger (`7 * * * *`)** whose `trigger.js` starts
+  `/alerts` (KV `ALERTS`), Web Push (VAPID), and an **hourly Cron Trigger (`3 * * * *`)** whose `trigger.js` starts
   the GitHub Actions workflow `price-alerts-cron.yml` via `workflow_dispatch` (GitHub's own `schedule:` is unreliable).
   `scripts/check-alerts.mjs` (`npm run check-alerts`) is what that job runs; `portfolio-checks.mjs` and
   `earnings.mjs` are sibling scripts.
