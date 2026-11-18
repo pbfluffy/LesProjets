@@ -20,6 +20,9 @@ export default defineConfig({
       filename: 'sw.js',
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+        // The app icons and link-preview image are only fetched by the OS / link scrapers,
+        // never by the running app, so they stay out of the offline precache.
+        globIgnores: ['img/**'],
       },
       devOptions: { enabled: false },
     }),

@@ -39,7 +39,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'Stock Ranges', {
       body: data.body || '',
-      icon: data.icon || '/icon-192.png',
+      icon: data.icon || new URL('img/icons/icon-192.png', self.registration.scope).href,
       badge: '/icon-192.png',
       tag: data.tag || data.symbol,
       data: { symbol: data.symbol },
