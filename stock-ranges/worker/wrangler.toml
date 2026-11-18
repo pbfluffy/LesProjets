@@ -33,7 +33,7 @@ id = "3a005aaf9deb41e48856476250ecf3f2"
 # workflow via GitHub's API (src/trigger.js): one HTTPS call, negligible CPU.
 # Needs the secret GITHUB_DISPATCH_TOKEN (`wrangler secret put ...`).
 [triggers]
-crons = ["7 * * * *"]
+crons = ["3 * * * *"]
 
 [vars]
 # Public by design — already embedded in the client bundle's Firebase

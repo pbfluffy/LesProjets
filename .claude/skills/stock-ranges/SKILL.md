@@ -23,4 +23,4 @@ Read `stock-ranges/CLAUDE.md` first.
 ## Ship
 1. `npm run build`, then the ESLint `no-undef` gate (root `CLAUDE.md`).
 2. Frontend via merge to `main`. Worker: manual `npx wrangler deploy` in `stock-ranges/worker` (skill `deploy-worker`);
-   the cron trigger (`7 * * * *`) is defined in its `wrangler.toml`. New build env vars are GitHub Actions secrets.
+   the cron trigger (`3 * * * *`) is defined in its `wrangler.toml`. New build env vars are GitHub Actions secrets.
