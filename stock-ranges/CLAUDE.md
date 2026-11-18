@@ -35,3 +35,5 @@ Buy (1–3) / Hold (4–7) / Sell (8–10) label, price alerts, holdings, sales 
 - **Tests:** `npm test` here (Node's built-in `node --test`, zero dependencies, files in `test/`) covers the wallet,
   benchmark and earnings logic. It is part of the deploy gate in `deploy.yml`, so a failing test blocks the Pages
   deploy. Write the test first for a bug fix; the earnings checker is tested end to end with a fake KV and clock.
+  `test/worker-testpushdevice.test.mjs` drives the real Worker handler and needs the Worker's own dependencies
+  (`npm install` in `worker/`); without them it skips itself, so it runs locally but not in the deploy gate.
