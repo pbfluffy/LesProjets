@@ -25,6 +25,11 @@ on:
         description: 'Send a test notification to every registered device (through this job) instead of checking prices'
         type: boolean
         default: false
+      cloudlingo_test:
+        description: 'Diagnostic: send a test to every stored Cloudlingo reminder device through the reminder code, instead of the normal checks. path = the reminder contact (/cloudlingo/), site = the plain site URL. Leave off for normal runs.'
+        type: choice
+        options: [off, path, site]
+        default: off
 
 # One run at a time: two overlapping runs (the Worker's trigger plus the backup
 # schedule, or a manual test) would both read the saved state before either
@@ -48,6 +53,7 @@ jobs:
         run: npm install
 
       - name: Check alerts
+        if: ${{ !inputs.cloudlingo_test || inputs.cloudlingo_test == 'off' }}
         working-directory: stock-ranges/worker
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
@@ -67,6 +73,7 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           VAPID_PUBLIC_KEY: ${{ secrets.VITE_PUSH_VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          CLOUDLINGO_TEST: ${{ (inputs.cloudlingo_test == 'path' || inputs.cloudlingo_test == 'site') && inputs.cloudlingo_test || '' }}
         run: |
           if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then echo "FIREBASE_SERVICE_ACCOUNT not set: skipping Cloudlingo reminders."; exit 0; fi
           npm install --no-audit --no-fund
