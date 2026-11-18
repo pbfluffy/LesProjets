@@ -784,7 +784,7 @@ function Dashboard() {
               </button>
             )}
           </div>
-          <div data-tour="account">
+          <div className={styles.account} data-tour="account">
             <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} />
           </div>
         </div>
