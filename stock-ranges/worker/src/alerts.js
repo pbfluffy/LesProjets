@@ -6,6 +6,7 @@
 // simple against KV and would need a service-account OAuth2 flow against
 // Firestore's REST API for no real benefit here.
 import { SYMBOL_RE, RANGE_CONFIG } from './constants.js'
+import { parseDeviceSubscription } from './pushTarget.js'
 
 const MAX_SYMBOLS = 100
 const MAX_SUBSCRIPTIONS = 5
@@ -39,28 +40,21 @@ async function saveOrPrune(env, uid, entry) {
 
 // Adds/replaces one device's push subscription (idempotent by endpoint —
 // re-subscribing the same device just refreshes its keys/timestamp).
-// p256dh/auth are checked as actual non-empty strings, not just "keys is
-// truthy" — a subscription missing either would still get accepted here,
+// Validated by parseDeviceSubscription (pushTarget.js): p256dh/auth must be
+// real base64url strings (a subscription missing either would be accepted,
 // then fail every future push inside web-push's own validation before any
-// network call, so the thrown error has no HTTP status to classify as
-// "gone" and the dead subscription would never get pruned, just retried
-// forever on every cron tick.
+// network call, so the thrown error has no HTTP status to classify as "gone"
+// and the dead subscription would never get pruned, just retried forever on
+// every cron tick), AND the endpoint must be a genuine browser push service.
+// The hourly job and the test button later POST an encrypted message to this
+// address, so storing an arbitrary URL would let a signed-in user aim them at
+// any server.
 export async function upsertSubscription(env, uid, subscription) {
-  if (
-    !subscription ||
-    typeof subscription.endpoint !== 'string' ||
-    !subscription.keys ||
-    typeof subscription.keys.p256dh !== 'string' || !subscription.keys.p256dh ||
-    typeof subscription.keys.auth !== 'string' || !subscription.keys.auth
-  ) return false
+  const clean = parseDeviceSubscription(subscription)
+  if (!clean) return false
   const entry = await getAlerts(env, uid)
-  const next = entry.subscriptions.filter((s) => s.endpoint !== subscription.endpoint)
-  next.push({
-    endpoint: subscription.endpoint,
-    expirationTime: subscription.expirationTime ?? null,
-    keys: { p256dh: subscription.keys.p256dh, auth: subscription.keys.auth },
-    addedAt: new Date().toISOString(),
-  })
+  const next = entry.subscriptions.filter((s) => s.endpoint !== clean.endpoint)
+  next.push({ ...clean, addedAt: new Date().toISOString() })
   entry.subscriptions = next.slice(-MAX_SUBSCRIPTIONS)
   await saveOrPrune(env, uid, entry)
   return true

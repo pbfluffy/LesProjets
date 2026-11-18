@@ -124,3 +124,25 @@ test('reports an expired device ("gone") and a push-service failure ("error")', 
   pushStatus = 500
   assert.deepEqual((await call({ type: 'testPushDevice', subscription }, { uid: 'u-err' })).body, { result: 'error' })
 })
+
+test('the register-a-device route refuses a non-push address and accepts a real one', opts, async () => {
+  const good = await deviceSubscription()
+  assert.equal((await call({ type: 'subscribe', subscription: good }, { uid: 'u-good' })).status, 200)
+  assert.equal(env.ALERTS.m.has('alerts:u-good'), true)
+  const evil = await deviceSubscription('https://evil.example.com/x')
+  assert.equal((await call({ type: 'subscribe', subscription: evil }, { uid: 'u-evil' })).status, 400)
+  assert.equal(env.ALERTS.m.has('alerts:u-evil'), false, 'nothing stored for the refused address')
+})
+
+test('the Stock Ranges test button skips an invalid stored address instead of contacting it', opts, async () => {
+  const good = await deviceSubscription()
+  await env.ALERTS.put('alerts:user-1', JSON.stringify({
+    symbols: {}, lang: 'en',
+    subscriptions: [{ ...good, addedAt: 'x' }, { endpoint: 'https://evil.example.com/x', keys: good.keys, addedAt: 'y' }],
+  }))
+  const r = await call({ type: 'testPush' })
+  assert.equal(r.status, 200)
+  assert.equal(r.body.devices, 1)
+  assert.equal(pushCalls.length, 1)
+  assert.ok(pushCalls[0].url.startsWith('https://fcm.googleapis.com/'), 'only the genuine push service was contacted')
+})
