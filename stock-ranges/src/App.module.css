@@ -5,6 +5,7 @@
 }
 
 .header {
+  position: relative;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -57,7 +58,20 @@
     gap: 12px;
   }
   .headerBtns {
-    justify-content: space-between;
+    justify-content: flex-start;
+  }
+  /* On a phone the avatar sits in the top-right corner beside the app name (the
+     usual account spot) instead of dangling at the far end of the toolbar row,
+     where it ended up stacked above the Share button with a wide gap from its
+     own controls. The brand row reserves room so a long market-status line
+     never runs under it. */
+  .account {
+    position: absolute;
+    top: 4px;
+    right: 0;
+  }
+  .brand {
+    padding-right: 44px;
   }
   /* Static onboarding copy — not worth the vertical space it costs a
      returning user on a small screen, where every row before the

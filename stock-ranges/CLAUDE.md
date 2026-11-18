@@ -13,6 +13,9 @@ Buy (1–3) / Hold (4–7) / Sell (8–10) label, price alerts, holdings, sales 
 - `src/hooks/useCloudSync.js` (+ `usePortfolioHistorySync`, `usePriceAlerts`) — sync to Firestore `userStockRanges/{uid}`.
 - `src/sw.js` — custom service worker (`injectManifest`) hosting the Web Push `push` listener. Precaching and the
   one runtime-cache rule are hand-rolled there.
+- `src/registerPwaUpdate.js` — auto-update, like Cloudlingo's: each build emits `dist/version.json` (`vite.config.js`,
+  same value as `__APP_BUILD__`); a running app that sees a different `v` fetches the new service worker, shows an
+  "Updating…" pill and reloads, deferring while a dialog is open or a field is focused. There is no "Reload" toast.
 - `worker/` (`stock-ranges-quotes`): Yahoo Finance chart proxy (5-min edge cache), rate-limited AI import route,
   `/alerts` (KV `ALERTS`), Web Push (VAPID), and an **hourly Cron Trigger (`3 * * * *`)** whose `trigger.js` starts
   the GitHub Actions workflow `price-alerts-cron.yml` via `workflow_dispatch` (GitHub's own `schedule:` is unreliable).
