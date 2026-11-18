@@ -306,7 +306,8 @@ async function handleTestPush(env, uid) {
   await env.ALERTS.put(cooldownKey, '1', { expirationTtl: 60 })
 
   const entry = await getAlerts(env, uid)
-  const subscriptions = entry.subscriptions || []
+  // Entries stored before the endpoint check existed are re-validated here and skipped (not pruned) if invalid.
+  const subscriptions = (entry.subscriptions || []).map(parseDeviceSubscription).filter(Boolean)
   if (!subscriptions.length) return json({ sent: 0, gone: 0, failed: 0, devices: 0 })
 
   const copy = TEST_COPY[entry.lang === 'th' ? 'th' : 'en']

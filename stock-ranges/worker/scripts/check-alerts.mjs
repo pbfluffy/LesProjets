@@ -15,6 +15,7 @@ import { computeDeciles } from '../../src/deciles.js'
 import { formatPrice } from '../../src/format.js'
 import { convert } from '../../src/fx.js'
 import { runPortfolioChecks } from './portfolio-checks.mjs'
+import { parseDeviceSubscription } from '../src/pushTarget.js'
 
 const ACCOUNT_ID = '53848ae47b2ea39eddb5a90460cf9bb0'
 const NAMESPACE_ID = '3a005aaf9deb41e48856476250ecf3f2' // ALERTS — see wrangler.toml
@@ -201,8 +202,15 @@ async function pruneSubscription(uid, endpoint) {
 // Returns 'ok', 'gone' (404/410 — caller should prune this subscription),
 // or 'error' (transient — leave the subscription alone).
 async function sendPush(subscription, data) {
+  // Only genuine browser push services are contacted. A stored entry that fails the check (it predates the
+  // check on registration) is skipped, not pruned: it just never gets a request from this job.
+  const target = parseDeviceSubscription(subscription)
+  if (!target) {
+    console.error('[push] skipped a stored subscription whose address is not a known push service')
+    return 'error'
+  }
   try {
-    await webpush.sendNotification(subscription, JSON.stringify(data), { TTL: 3600, urgency: 'normal' })
+    await webpush.sendNotification(target, JSON.stringify(data), { TTL: 3600, urgency: 'normal' })
     return 'ok'
   } catch (err) {
     if (err.statusCode === 404 || err.statusCode === 410) return 'gone'
