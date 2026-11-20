@@ -884,6 +884,89 @@
     return sfxLoading;
   }
   document.addEventListener('pointerdown', () => { if (S.sound !== false) loadSfx(); }, { once: true, passive: true });
+  // ---------- Focus sounds ----------
+  // Optional background sound while studying: gentle rain, or a calm chord pad. Off by default
+  // (S.focus = 'rain' | 'calm'). It plays only in lessons, practice and flashcards, never in mock
+  // exams or the placement test (the real exam is silent), and stops when the app is hidden.
+  // Everything is generated with Web Audio: nothing to download or license, and it works offline.
+  // It mostly helps people studying somewhere noisy: a steady sound covers sudden ones.
+  let focusNodes = null, focusPreviewTimer = null;
+  const FOCUS_MAX = 0.32; // loudest it gets at volume 100%: well under the sound effects
+  const focusVol = () => (S.focusVol == null ? 0.5 : S.focusVol) * FOCUS_MAX;
+  function noiseBuffer(kind) {
+    const len = audio.sampleRate * 4, buf = audio.createBuffer(1, len, audio.sampleRate), d = buf.getChannelData(0);
+    let last = 0, b0 = 0, b1 = 0, b2 = 0;
+    for (let i = 0; i < len; i++) {
+      const w = Math.random() * 2 - 1;
+      if (kind === 'brown') { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; }
+      else { b0 = 0.99765 * b0 + w * 0.099046; b1 = 0.963 * b1 + w * 0.2965164; b2 = 0.57 * b2 + w * 1.0526913; d[i] = (b0 + b1 + b2 + w * 0.1848) * 0.11; }
+    }
+    return buf;
+  }
+  function focusRain(out, stops) {
+    // Two noise layers: a soft rumble and the hiss of rain, with a slow swell like gusts.
+    [['brown', 'lowpass', 500, 0.55], ['pink', 'bandpass', 2400, 0.5]].forEach(([kind, type, f, gain]) => {
+      const src = audio.createBufferSource(); src.buffer = noiseBuffer(kind); src.loop = true;
+      const flt = audio.createBiquadFilter(); flt.type = type; flt.frequency.value = f; flt.Q.value = 0.4;
+      const g = audio.createGain(); g.gain.value = gain;
+      src.connect(flt).connect(g).connect(out); src.start(); stops.push(() => src.stop());
+    });
+    const lfo = audio.createOscillator(), depth = audio.createGain();
+    lfo.frequency.value = 0.06; depth.gain.value = 0.18;
+    lfo.connect(depth).connect(out.gain); lfo.start(); stops.push(() => lfo.stop());
+  }
+  function focusCalm(out, stops) {
+    // A soft four-voice pad that glides through Cmaj7, Am7, Fmaj7 and G6, one chord every 8 seconds.
+    const CHORDS = [[130.81, 164.81, 196.00, 246.94], [110.00, 130.81, 164.81, 196.00], [87.31, 110.00, 130.81, 164.81], [98.00, 123.47, 146.83, 164.81]];
+    const lp = audio.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+    const delay = audio.createDelay(); delay.delayTime.value = 0.42;
+    const fb = audio.createGain(); fb.gain.value = 0.35;
+    lp.connect(out); lp.connect(delay); delay.connect(fb).connect(delay); delay.connect(out);
+    const voices = CHORDS[0].map(f => {
+      const o = audio.createOscillator(), o2 = audio.createOscillator(), g = audio.createGain();
+      o.type = 'triangle'; o2.type = 'sine'; o.frequency.value = f; o2.frequency.value = f * 2; o2.detune.value = 4;
+      g.gain.value = 0.1; o.connect(g); o2.connect(g); g.connect(lp); o.start(); o2.start();
+      stops.push(() => { o.stop(); o2.stop(); });
+      return [o, o2];
+    });
+    let i = 0;
+    const timer = setInterval(() => {
+      i = (i + 1) % CHORDS.length;
+      voices.forEach(([o, o2], v) => { o.frequency.setTargetAtTime(CHORDS[i][v], audio.currentTime, 1.2); o2.frequency.setTargetAtTime(CHORDS[i][v] * 2, audio.currentTime, 1.2); });
+    }, 8000);
+    stops.push(() => clearInterval(timer));
+  }
+  function focusStart() {
+    if (!S.focus || focusNodes || document.hidden) return;
+    try { audioCtx(); if (audio.state === 'suspended') audio.resume(); } catch { return; }
+    const master = audio.createGain(), stops = [];
+    master.gain.value = 0; master.connect(audio.destination);
+    const bus = audio.createGain(); bus.gain.value = 1; bus.connect(master);
+    (S.focus === 'calm' ? focusCalm : focusRain)(bus, stops);
+    master.gain.linearRampToValueAtTime(focusVol(), audio.currentTime + 2);
+    focusNodes = { master, stops, kind: S.focus };
+  }
+  function focusStop() {
+    clearTimeout(focusPreviewTimer);
+    if (!focusNodes) return;
+    const { master, stops } = focusNodes, now = audio.currentTime;
+    focusNodes = null;
+    master.gain.cancelScheduledValues(now); master.gain.setValueAtTime(master.gain.value, now); master.gain.linearRampToValueAtTime(0, now + 0.8);
+    setTimeout(() => { stops.forEach(f => { try { f(); } catch { /* already stopped */ } }); master.disconnect(); }, 900);
+  }
+  // Play only where studying happens; switch sound when the setting changes.
+  function focusSync() {
+    const want = S.focus && !document.hidden && (view === 'cards' || (view === 'lesson' && L && L.mode !== 'placement'));
+    if (focusNodes && (!want || focusNodes.kind !== S.focus)) focusStop();
+    if (want && !focusNodes) focusStart();
+  }
+  function focusPreview() {
+    focusStop();
+    if (!S.focus) return;
+    setTimeout(() => { focusStart(); clearTimeout(focusPreviewTimer); focusPreviewTimer = setTimeout(() => { if (view !== 'lesson' && view !== 'cards') focusStop(); }, 4000); }, focusNodes ? 900 : 0);
+  }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) focusStop(); else focusSync(); });
+
   // Play one of SFX after `delay` ms (used to layer a badge or streak sound after "complete").
   function sfx(kind, delay = 0) {
     if (S.sound === false) return;
@@ -1039,6 +1122,7 @@
 
   function go(v) {
     view = v;
+    setTimeout(focusSync, 0);
     if (questNew.length && !['lesson', 'lessonEnd', 'examRun'].includes(v)) setTimeout(questToasts, 400);
     if (updatePending && !busyView()) { applyUpdate(); }
     render();
@@ -2208,6 +2292,19 @@
   }
   const saveFN = () => { try { localStorage.setItem(FUNNEL_KEY, JSON.stringify(FN)); } catch { /* ignore */ } };
   let fnTimer = null;
+  function focusCard() {
+    const f = S.focus || '';
+    return `<div class="card focus-card" style="margin-top:16px"><h3 style="margin:0">${t('focus_title')}</h3><p class="muted small" style="margin-bottom:10px">${t('focus_sub')}</p>
+      <div class="seg" style="grid-template-columns:repeat(3,1fr)">${[['', 'focus_off'], ['rain', 'focus_rain'], ['calm', 'focus_calm']].map(([v, k]) => `<button class="${f === v ? 'on' : ''}" data-act="setfocus" data-f="${v}">${t(k)}</button>`).join('')}</div>
+      ${f ? `<label class="focus-vol"><span>${t('focus_vol')}</span><input type="range" id="focus-vol" min="0.1" max="1" step="0.05" value="${S.focusVol == null ? 0.5 : S.focusVol}" aria-label="${t('focus_vol')}"></label>` : ''}</div>`;
+  }
+  document.addEventListener('input', e => {
+    if (!e.target || e.target.id !== 'focus-vol') return;
+    S.focusVol = +e.target.value;
+    if (focusNodes) focusNodes.master.gain.setTargetAtTime(focusVol(), audio.currentTime, 0.1);
+  });
+  document.addEventListener('change', e => { if (e.target && e.target.id === 'focus-vol') save(); });
+
   function track(step) {
     if (FN.steps[step]) return;
     FN.steps[step] = Date.now(); saveFN();
@@ -2479,6 +2576,7 @@
       ${reminderCard()}${installCard(false) ? `<div style="margin-top:16px">${installCard(false)}</div>` : ''}<div class="card" style="margin-top:16px"><h3>${t('language')}</h3>${langSwitch()}</div>
       <div class="card" style="margin-top:16px"><div class="row"><div class="grow"><h3 style="margin:0">${t('sound')}</h3><p class="muted small">${t('sound_sub')}</p></div>
         <div class="seg seg2" style="width:132px"><button class="${S.sound !== false ? 'on' : ''}" data-act="setsound" data-on="1">${t('board_on')}</button><button class="${S.sound === false ? 'on' : ''}" data-act="setsound" data-on="0">${t('board_off')}</button></div></div></div>
+      ${focusCard()}
       <div class="card" style="margin-top:16px"><h3>${t('text_size')}</h3>
         <div class="seg" style="grid-template-columns:repeat(3,1fr)">${TEXT_SIZES.map((z, i) => `<button class="${(S.textSize || 1) === z ? 'on' : ''}" data-act="settext" data-z="${z}" style="font-size:${[14, 16, 18][i]}px">${t(['text_normal', 'text_large', 'text_larger'][i])}</button>`).join('')}</div>
       </div>
@@ -2502,6 +2600,7 @@
     sendreport: () => sendReport(modalRoot.querySelector('[data-act=sendreport]')),
     review: () => startReview(),
     share: () => shareCard(),
+    setfocus: d => { S.focus = d.f || null; save(); if (S.focus) track('focus'); render(); focusPreview(); },
     setsound: d => { S.sound = d.on === '1'; save(); if (S.sound) { loadSfx(); sfx('correct'); } render(); },
     install: async () => { if (!installPrompt) return; const p = installPrompt; installPrompt = null; p.prompt(); try { await p.userChoice; } catch { /* ignore */ } render(); },
     installlater: () => { S.installHidden = true; save(); render(); },
