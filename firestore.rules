@@ -324,10 +324,13 @@ service cloud.firestore {
                  && request.auth.token.email.lower() == account;
     }
     // Cloudlingo answer counts per question: right (r) and wrong (w) first-try answers.
-    // Anyone may add exactly one answer at a time; only admins read or reset.
+    // Anyone may add exactly one answer at a time and read one question's counts (Question of
+    // the day shows how everyone did); only admins list them all or reset.
     match /cloudlingoQStats/{qid} {
       allow read, delete: if isAdmin();
-      allow create: if qid.matches('^[a-z]{3}-[0-9]{1,2}-[0-9]{1,3}$')
+      allow get: if true;
+      // Course ids are 3 or 4 letters (clf-1-0, itil-1-0).
+      allow create: if qid.matches('^[a-z]{3,4}-[0-9]{1,2}-[0-9]{1,3}$')
                    && request.resource.data.keys().hasOnly(['r', 'w', 'cert'])
                    && request.resource.data.r is int && request.resource.data.w is int
                    && request.resource.data.r >= 0 && request.resource.data.w >= 0

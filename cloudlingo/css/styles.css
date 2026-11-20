@@ -107,6 +107,14 @@ h1, h2, h3, p { margin: 0; }
 .chip.flame.cold { color: var(--muted); filter: grayscale(1); }
 .chip.xp { color: var(--gold); }
 .chip.quest { color: var(--primary); }
+/* Question of the day (Learn tab) */
+.qotdcard { margin-bottom: 14px; border-color: var(--primary); }
+.qotdcard .kicker { font-size: 12px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; color: var(--primary); }
+.qotdcard .qotd-q { font-weight: 800; margin: 4px 0 2px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.qotdcard h3 { margin: 4px 0 2px; }
+.qotdcard.done { border-color: var(--border); }
+.qotdcard .row { align-items: center; }
+.qotd-pct { display: flex; align-items: center; gap: 6px; font-weight: 800; margin: 8px 0 2px; }
 .chip.quest.done { color: var(--good); }
 .quest-modal { text-align: left; }
 .chip.heart { color: var(--heart); }
