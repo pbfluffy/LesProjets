@@ -554,6 +554,17 @@ h1, h2, h3, p { margin: 0; }
 .brow .rank { width: 30px; text-align: center; font-weight: 900; font-size: 17px; color: var(--muted); }
 .brow .bname { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .brow .bxp { color: var(--gold); white-space: nowrap; }
+/* Leagues */
+.lg-badge { display: inline-grid; place-items: center; border-radius: 50%; flex-shrink: 0; vertical-align: middle; font-size: 18px; }
+.lg-badge .ic { color: #fff; }
+.lg-bronze { background: #c47a3c; } .lg-silver { background: #9aa6b2; } .lg-gold { background: #e8a800; } .lg-platinum { background: #3fa7b8; }
+.brow.zone-up { box-shadow: inset 4px 0 0 var(--good); }
+.brow.zone-down { box-shadow: inset 4px 0 0 var(--bad); }
+.league-res { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; }
+.league-res.up { border-color: var(--good); } .league-res.down { border-color: var(--bad); }
+.league-card { align-items: center; gap: 12px; }
+.brow .bname { flex: 1; min-width: 0; }
+.league-res > .grow { flex: 1; min-width: 0; }
 @media (max-width: 640px) { .langseg { width: 116px; } .sidenav .navitem { padding: 10px 8px; } }
 
 /* Sign-in sheet provider buttons */

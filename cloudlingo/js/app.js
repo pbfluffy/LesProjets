@@ -333,6 +333,7 @@
     if (account) account.synced = true;
     if (push) pushSync();
     scheduleBoard();
+    loadLeague();
     if (view === 'board') loadBoard();
     refresh();
   }
@@ -1434,7 +1435,7 @@
       ? `<div class="card placecard"><div class="row"><div class="bigicon">${ICON('target')}</div><div class="grow"><h3 style="margin-bottom:2px">${t('place_title')}</h3><p class="muted small">${t('place_sub', { n: placeCount(c) })}</p></div><button class="btn ghost" data-act="placement">${t('place_btn')}</button></div></div>` : '';
     const due = dueFor(c.id).length;
     const dueCard = due ? `<div class="card duecard"><div class="row"><div class="bigicon">${ICON('calendar')}</div><div class="grow"><h3 style="margin-bottom:2px">${tn('review_some', due)}</h3><p class="muted small">${t('review_why')}</p></div><button class="btn ghost" data-act="review">${t('review_btn')}</button></div></div>` : '';
-    return shell(`${freezeNotice()}${challengeCard()}${installCard(true)}${certificateCard(c)}${examDateCard(c)}${dueCard}${qotdCard(c)}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div><div class="card mobile-only questcard">${questCard()}</div>${resume}${placeCard}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
+    return shell(`${freezeNotice()}${leagueResult()}${challengeCard()}${installCard(true)}${certificateCard(c)}${examDateCard(c)}${dueCard}${qotdCard(c)}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div><div class="card mobile-only questcard">${questCard()}</div>${resume}${placeCard}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
       <div style="margin-top:34px">${readinessCard(c, false)}</div>
       <div class="card" style="margin-top:16px;text-align:center"><h3>${t('ready_title')}</h3><p class="muted" style="margin-bottom:14px">${t('ready_sub', { code: c.code })}</p><button class="btn ghost" data-act="nav" data-v="exam">${t('try_exam')}</button></div>`);
   }
@@ -2210,6 +2211,38 @@
   const boardName = () => ((account && account.first) || 'Learner').replace(/[<>]/g, '').slice(0, 24);
   const scoreRef = () => fb.fs.doc(fb.db, 'cloudlingoWeeks', weekId(), 'scores', account.uid);
   let BOARD = { state: 'idle', rows: [], week: null }; // idle | loading | ready | error
+
+  // ---------- Leagues ----------
+  // Each learner is in one league (Bronze → Platinum) and the board shows only that league. A weekly job
+  // (reminders/leagues.mjs) ranks every league on Monday and writes cloudlingoLeague/{uid}; the app only reads
+  // it. No league doc yet = Bronze. The result is kept in S.league so Profile and the banner need no extra read.
+  const TIERS = ['bronze', 'silver', 'gold', 'platinum'];
+  const LEAGUE_MOVE = 3, LEAGUE_MIN_DROP = 7; // same as reminders/leagues-core.mjs
+  const leagueRef = () => fb.fs.doc(fb.db, 'cloudlingoLeague', account.uid);
+  const myTier = () => S.board !== false && S.league && TIERS.includes(S.league.tier) ? S.league.tier : 'bronze';
+  const leagueName = tier => t('league_name', { league: t('league_' + tier) });
+  const leagueBadge = (tier, size = 34) => `<span class="lg-badge lg-${tier}" style="width:${size}px;height:${size}px">${ICON('trophy')}</span>`;
+  async function loadLeague() {
+    if (!fb || authState !== 'in' || !account || S.board === false) return;
+    try {
+      const snap = await fb.fs.getDoc(leagueRef());
+      const d = snap.exists() ? snap.data() : null;
+      const next = d && TIERS.includes(d.tier) ? { tier: d.tier, change: d.change || 'stay', rank: d.rank == null ? null : d.rank, size: d.size == null ? null : d.size, week: d.week || null } : null;
+      if (JSON.stringify(next) !== JSON.stringify(S.league || null)) { S.league = next; save(); refresh(); }
+    } catch { /* keep the last known league */ }
+  }
+  // Board rows: the top 3 move up (not in Platinum), the bottom 3 drop (only with 7 or more, not in Bronze).
+  const leagueZone = (i, n, tier) => i < LEAGUE_MOVE && tier !== 'platinum' ? 'zone-up'
+    : n >= LEAGUE_MIN_DROP && i >= n - LEAGUE_MOVE && tier !== 'bronze' ? 'zone-down' : '';
+  // Last week's result, once, on Home and the board.
+  function leagueResult(onBoard) {
+    const l = S.league;
+    if (authState !== 'in' || S.board === false || !l || !l.week || S.leagueSeen === l.week) return '';
+    const key = l.change === 'up' ? 'league_res_up' : l.change === 'down' ? (l.rank == null ? 'league_res_quiet' : 'league_res_down') : 'league_res_stay';
+    return `<div class="card league-res ${l.change === 'up' ? 'up' : l.change === 'down' ? 'down' : ''}">${leagueBadge(l.tier, 44)}<div class="grow">
+      <strong>${t(key, { league: t('league_' + l.tier) })}</strong>${l.rank ? `<p class="muted small">${t('league_res_rank', { rank: l.rank, n: l.size })}</p>` : ''}
+      <div class="row" style="gap:8px;margin-top:10px">${onBoard ? '' : `<button class="btn" data-act="nav" data-v="board">${t('league_open')}</button>`}<button class="btn ghost" data-act="leagueok">${t('league_res_ok')}</button></div></div></div>`;
+  }
   let boardSent = null, boardTimer = null;
   function scheduleBoard() {
     if (!fb || authState !== 'in') return;
@@ -2218,9 +2251,9 @@
   }
   async function pushBoard() {
     if (!fb || authState !== 'in' || !account || S.board === false) return;
-    const xp = weekXp(), key = `${weekId()}:${xp}:${boardName()}`;
+    const xp = weekXp(), key = `${weekId()}:${xp}:${boardName()}:${myTier()}`;
     if (xp <= 0 || boardSent === key) return;
-    try { await fb.fs.setDoc(scoreRef(), { name: boardName(), xp, updatedAt: Date.now() }); boardSent = key; }
+    try { await fb.fs.setDoc(scoreRef(), { name: boardName(), xp, tier: myTier(), updatedAt: Date.now() }); boardSent = key; }
     catch { /* the leaderboard is best-effort */ }
   }
   async function loadBoard() {
@@ -2228,10 +2261,13 @@
     BOARD = { state: 'loading', rows: BOARD.week === weekId() ? BOARD.rows : [], week: weekId() };
     if (view === 'board') render();
     try {
+      await loadLeague();
       await pushBoard();
-      const q = fb.fs.query(fb.fs.collection(fb.db, 'cloudlingoWeeks', weekId(), 'scores'), fb.fs.orderBy('xp', 'desc'), fb.fs.limit(50));
+      // My league only. Filtering on one field needs no extra Firestore index; leagues are small, so sort here.
+      const q = fb.fs.query(fb.fs.collection(fb.db, 'cloudlingoWeeks', weekId(), 'scores'), fb.fs.where('tier', '==', myTier()), fb.fs.limit(300));
       const snap = await fb.fs.getDocs(q);
-      BOARD = { state: 'ready', week: weekId(), rows: snap.docs.map(d => ({ uid: d.id, ...d.data() })) };
+      const rows = snap.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => b.xp - a.xp || (a.updatedAt || 0) - (b.updatedAt || 0));
+      BOARD = { state: 'ready', week: weekId(), rows };
     } catch { BOARD.state = 'error'; }
     if (view === 'board') render();
   }
@@ -2239,13 +2275,17 @@
     S.board = on; save();
     boardSent = null;
     if (fb && authState === 'in' && account) {
-      try { if (on) await pushBoard(); else await fb.fs.deleteDoc(scoreRef()); } catch { /* ignore */ }
+      if (!on) { S.league = null; save(); }
+      try { if (on) await pushBoard(); else { await fb.fs.deleteDoc(scoreRef()); await fb.fs.deleteDoc(leagueRef()); } } catch { /* ignore */ }
       loadBoard();
     } else render();
   }
 
   function boardView() {
-    const head = `<h1 class="section-title ic-title">${ICON('trophy')} ${t('board_title')}</h1><p class="section-sub">${t('board_sub')}</p>`;
+    const inLeague = authState === 'in' && account && S.board !== false, tier = myTier();
+    const head = inLeague
+      ? `<h1 class="section-title ic-title">${leagueBadge(tier)} ${leagueName(tier)}</h1><p class="section-sub">${t('league_sub')}</p>${leagueResult(true)}`
+      : `<h1 class="section-title ic-title">${ICON('trophy')} ${t('board_title')}</h1><p class="section-sub">${t('board_sub')}</p>`;
     if (authState !== 'in' || !account) {
       return shell(`${head}<div class="card" style="text-align:center">${mascot(100, 'idea', 'center')}<p style="margin:10px 0 16px">${t('board_signin')}</p>
         ${authState === 'out' || authState === 'loading' ? `<button class="btn" data-act="signin">${t('signin')}</button>` : ''}</div>`);
@@ -2266,11 +2306,12 @@
       : `<div class="card board">${rows.map((r, i) => {
           const me = r.uid === account.uid, medal = i < 3 ? `<span class="medal m${i + 1}">${i + 1}</span>` : i + 1;
           const initial = esc(((r.name || '?').trim()[0] || '?').toUpperCase());
-          return `<div class="brow ${me ? 'me' : ''}"><span class="rank">${medal}</span><span class="avatar" style="width:34px;height:34px">${initial}</span>
+          return `<div class="brow ${me ? 'me' : ''} ${inLeague ? leagueZone(i, rows.length, tier) : ''}"><span class="rank">${medal}</span><span class="avatar" style="width:34px;height:34px">${initial}</span>
             <span class="grow bname">${esc(r.name || 'Learner')}${me ? ` <span class="pill you">${t('board_you')}</span>` : ''}</span><strong class="bxp">${ICON('bolt')} ${r.xp}</strong></div>`;
         }).join('')}</div>`;
     return shell(`${head}<p class="muted small" style="margin:-8px 0 14px">${ICON('hourglass')} ${resets}</p>
       ${hidden ? `<div class="card notice"><p>${t('board_hidden')}</p></div>` : ''}${body}
+      ${inLeague && rows.length && rows.length < LEAGUE_MIN_DROP && tier !== 'bronze' ? `<p class="muted small" style="margin-top:8px">${t('league_small')}</p>` : ''}
       <div class="card" style="margin-top:16px"><div class="row"><div class="grow"><strong>${t('board_show')}</strong><p class="muted small">${t('board_show_sub')}</p></div>
         <div class="seg seg2"><button class="${hidden ? '' : 'on'}" data-act="boardvis" data-on="1">${t('board_on')}</button><button class="${hidden ? 'on' : ''}" data-act="boardvis" data-on="0">${t('board_off')}</button></div></div></div>`);
   }
@@ -2601,6 +2642,7 @@
         <div class="tile-stat"><span class="i">${ICON('book')}</span><div><div class="v">${S.lessons || 0}</div><div class="l">${t('sessions_done')}</div></div></div>
         <div class="tile-stat"><span class="i">${ICON('target')}</span><div><div class="v">${seen ? Math.round(100 * correct / seen) + '%' : '–'}</div><div class="l">${t('accuracy')}</div></div></div>
       </div>
+      ${authState === 'in' && S.board !== false ? `<div class="card row league-card" style="margin-top:16px">${leagueBadge(myTier())}<div class="grow"><strong>${leagueName(myTier())}</strong><p class="muted small">${t('league_profile_sub')}</p></div><button class="btn ghost" data-act="nav" data-v="board">${t('league_open')}</button></div>` : ''}
       <div style="margin-top:16px">${readinessCard(c, false)}</div>
       <div class="card" style="margin-top:16px"><h3 class="ic-title">${ICON('compass')} ${t('path_title')}</h3><p class="muted small" style="margin:4px 0 12px">${t('path_card_b')}</p><button class="btn ghost block" data-act="nav" data-v="path">${t('path_open')}</button></div>
       <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${t('badges')}</h3><span class="muted small">${Object.keys(S.badges || {}).length} / ${BADGES.length}</span></div>
@@ -2635,6 +2677,7 @@
     nav: d => { go(d.v); if (d.v === 'board') loadBoard(); },
     loadboard: () => loadBoard(),
     boardvis: d => setBoardVisible(d.on === '1'),
+    leagueok: () => { if (S.league) S.leagueSeen = S.league.week; save(); render(); },
     setlang: d => { setLang(d.l); render(); },
     tour: () => startTour(),
     remindon: () => setReminder(true, remind.hour),
