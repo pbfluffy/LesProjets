@@ -436,6 +436,64 @@ service cloud.firestore {
       allow read: if isAdmin();
     }
 
+    // ── Cloudlingo — friend streaks ───────────────────────────────────────────
+    // One-use invite links (?f=CODE): the inviter creates one; anyone signed in
+    // who has the unguessable code can read it, and it's deleted once accepted.
+    match /cloudlingoFriendInvites/{code} {
+      allow get, delete: if signedIn();
+      allow create: if signedIn() && !exists(/databases/$(database)/documents/cloudlingoBlocked/$(request.auth.uid))
+                   && code.matches('^[A-Za-z0-9]{12}$')
+                   && request.resource.data.keys().hasOnly(['from', 'name', 'createdAt', 'expiresAt'])
+                   && request.resource.data.from == request.auth.uid
+                   && request.resource.data.name is string
+                   && request.resource.data.name.size() <= 24
+                   && !request.resource.data.name.matches('.*[<>].*')
+                   && request.resource.data.createdAt is number
+                   && request.resource.data.expiresAt is number
+                   && request.resource.data.expiresAt <= request.time.toMillis() + 8 * 86400000;
+    }
+    // A pair of friends, id {uidA}_{uidB} (sorted). Created by the learner who
+    // accepts the other's invite; each member updates only their own day and name,
+    // plus the shared streak; either member can remove the friendship.
+    match /cloudlingoFriends/{pair} {
+      function invite() {
+        return get(/databases/$(database)/documents/cloudlingoFriendInvites/$(request.resource.data.invite)).data;
+      }
+      allow read, delete: if signedIn() && request.auth.uid in resource.data.members;
+      allow create: if signedIn() && !exists(/databases/$(database)/documents/cloudlingoBlocked/$(request.auth.uid))
+                   && request.resource.data.keys().hasOnly(['members', 'names', 'met', 'streak', 'best', 'lastBoth', 'createdAt', 'invite'])
+                   && request.resource.data.members is list
+                   && request.resource.data.members.size() == 2
+                   && request.resource.data.members[0] < request.resource.data.members[1]
+                   && pair == request.resource.data.members[0] + '_' + request.resource.data.members[1]
+                   && request.auth.uid in request.resource.data.members
+                   && request.resource.data.invite is string
+                   && invite().from in request.resource.data.members
+                   && invite().from != request.auth.uid
+                   && invite().expiresAt > request.time.toMillis()
+                   && request.resource.data.names is map
+                   && request.resource.data.names.keys().hasOnly(request.resource.data.members)
+                   && request.resource.data.met == {}
+                   && request.resource.data.streak == 0
+                   && request.resource.data.best == 0
+                   && request.resource.data.lastBoth == ''
+                   && request.resource.data.createdAt is number;
+      allow update: if signedIn() && request.auth.uid in resource.data.members
+                   && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['met', 'names', 'streak', 'best', 'lastBoth'])
+                   && request.resource.data.met.diff(resource.data.met).affectedKeys().hasOnly([request.auth.uid])
+                   && request.resource.data.names.diff(resource.data.names).affectedKeys().hasOnly([request.auth.uid])
+                   && request.resource.data.met.get(request.auth.uid, '2000-01-01').matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+                   && request.resource.data.names.get(request.auth.uid, '') is string
+                   && request.resource.data.names.get(request.auth.uid, '').size() <= 24
+                   && !request.resource.data.names.get(request.auth.uid, '').matches('.*[<>].*')
+                   && request.resource.data.streak is number
+                   && request.resource.data.streak >= 0
+                   && request.resource.data.streak <= 100000
+                   && request.resource.data.best is number
+                   && request.resource.data.best >= request.resource.data.streak
+                   && request.resource.data.lastBoth is string;
+    }
+
     // ── Backyard Rampage — cross-device save sync ───────────────────────────
     match /userGame/{uid} {
       allow read:  if isUser(uid);
