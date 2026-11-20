@@ -30,6 +30,11 @@ on:
         type: choice
         options: [off, path, site]
         default: off
+      cloudlingo_leagues:
+        description: 'Cloudlingo leagues: dry = print the moves for the last finished week without saving anything (works any day). Leave off for normal runs.'
+        type: choice
+        options: [off, dry]
+        default: off
 
 # One run at a time: two overlapping runs (the Worker's trigger plus the backup
 # schedule, or a manual test) would both read the saved state before either
@@ -78,3 +83,18 @@ jobs:
           if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then echo "FIREBASE_SERVICE_ACCOUNT not set: skipping Cloudlingo reminders."; exit 0; fi
           npm install --no-audit --no-fund
           node send.mjs
+
+      # Cloudlingo weekly leagues: does nothing except once a week, from Monday 12:00 UTC, when it ranks
+      # last week's leaderboard and moves learners between leagues (see cloudlingo/reminders/leagues.mjs).
+      # Isolated like the reminders: its failure never fails this job.
+      - name: Cloudlingo weekly leagues
+        if: ${{ always() && !inputs.test_push && (!inputs.cloudlingo_test || inputs.cloudlingo_test == 'off') }}
+        continue-on-error: true
+        working-directory: cloudlingo/reminders
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          CLOUDLINGO_LEAGUES: ${{ inputs.cloudlingo_leagues == 'dry' && 'dry' || '' }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then echo "FIREBASE_SERVICE_ACCOUNT not set: skipping Cloudlingo leagues."; exit 0; fi
+          [ -d node_modules ] || npm install --no-audit --no-fund
+          node leagues.mjs
