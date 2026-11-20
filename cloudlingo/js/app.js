@@ -1264,6 +1264,47 @@
   }
 
   // ---------- Learn (path) ----------
+  // ---------- Question of the day ----------
+  // One question per certification per day, the same for every learner. Answering it gives
+  // QOTD_XP and shows how everyone else did (first-try answers from cloudlingoQStats).
+  const QOTD_XP = 5;
+  function qotdId(c) {
+    const pool = c.units.flatMap(u => u.questions).filter(q => q.t !== 'match' && live(q));
+    if (!pool.length) return null;
+    let h = 2166136261; for (const ch of dayKey() + ':' + c.id) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+    return pool[h % pool.length].id;
+  }
+  const qotdDone = c => { const d = (S.qotd || {})[c.id]; return d && d.day === dayKey() ? d : null; };
+  // How everyone did on a question: { pct, n } from the shared first-try counts, or null.
+  const QOTD_PCT = {};
+  async function qotdStats(id) {
+    if (QOTD_PCT[id] !== undefined) return QOTD_PCT[id];
+    if (!fb && fbLoading) { try { await fbLoading; } catch { /* offline */ } }
+    if (!fb) return null;
+    try {
+      const snap = await fb.fs.getDoc(fb.fs.doc(fb.db, 'cloudlingoQStats', id));
+      const d = snap.exists() ? snap.data() : null, n = d ? (d.r || 0) + (d.w || 0) : 0;
+      QOTD_PCT[id] = n ? { pct: Math.round(100 * (d.r || 0) / n), n } : null;
+    } catch { return null; }
+    return QOTD_PCT[id];
+  }
+  const qotdPctLine = s => s ? (s.n >= 5 ? t('qotd_pct', { p: s.pct }) : t('qotd_few')) : '';
+  function qotdCard(c) {
+    const id = qotdId(c); if (!id) return '';
+    const q = QINDEX[id], done = qotdDone(c), s = QOTD_PCT[id];
+    if (s === undefined) qotdStats(id).then(v => { if (v && view === 'learn') render(); });
+    return `<div class="card qotdcard ${done ? 'done' : ''}"><div class="row"><div class="bigicon">${ICON(done ? (done.ok ? 'check' : 'repeat') : 'help')}</div>
+      <div class="grow"><div class="kicker">${t('qotd_title')}</div>
+      ${done ? `<h3>${done.ok ? t('qotd_right') : t('qotd_wrong')}</h3>` : `<p class="qotd-q">${esc(q.q)}</p>`}
+      ${s ? `<p class="muted small">${qotdPctLine(s)}</p>` : ''}</div>
+      ${done ? '' : `<button class="btn btn-inline" data-act="qotd">${t('qotd_answer', { n: QOTD_XP })}</button>`}</div></div>`;
+  }
+  function startQotd() {
+    const c = course(), id = qotdId(c); if (!id || qotdDone(c)) return;
+    startSession('qotd', [id]);
+    qotdStats(id).then(() => { if (view === 'lesson') render(); });
+  }
+
   function learnView() {
     const c = course();
     const s = savedSession();
@@ -1275,7 +1316,7 @@
       ? `<div class="card placecard"><div class="row"><div class="bigicon">${ICON('target')}</div><div class="grow"><h3 style="margin-bottom:2px">${t('place_title')}</h3><p class="muted small">${t('place_sub', { n: placeCount(c) })}</p></div><button class="btn ghost" data-act="placement">${t('place_btn')}</button></div></div>` : '';
     const due = dueFor(c.id).length;
     const dueCard = due ? `<div class="card duecard"><div class="row"><div class="bigicon">${ICON('calendar')}</div><div class="grow"><h3 style="margin-bottom:2px">${tn('review_some', due)}</h3><p class="muted small">${t('review_why')}</p></div><button class="btn ghost" data-act="review">${t('review_btn')}</button></div></div>` : '';
-    return shell(`${freezeNotice()}${challengeCard()}${installCard(true)}${certificateCard(c)}${examDateCard(c)}${dueCard}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div><div class="card mobile-only questcard">${questCard()}</div>${resume}${placeCard}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
+    return shell(`${freezeNotice()}${challengeCard()}${installCard(true)}${certificateCard(c)}${examDateCard(c)}${dueCard}${qotdCard(c)}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div><div class="card mobile-only questcard">${questCard()}</div>${resume}${placeCard}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
       <div style="margin-top:34px">${readinessCard(c, false)}</div>
       <div class="card" style="margin-top:16px;text-align:center"><h3>${t('ready_title')}</h3><p class="muted" style="margin-bottom:14px">${t('ready_sub', { code: c.code })}</p><button class="btn ghost" data-act="nav" data-v="exam">${t('try_exam')}</button></div>`);
   }
@@ -1526,6 +1567,7 @@
         <h3>${L.ok ? praise[L.praise % praise.length] : t('not_quite')}${L.ok && L.combo >= 3 ? ` <span class="combo">${ICON('flame')} ${t('combo', { n: L.combo })}</span>` : ''}</h3>
         ${L.ok ? '' : `<div class="ans">${esc(t('correct_is', { a: correctText(q) }))}</div>`}
         <div class="explain">${esc(explain(q))}</div>
+        ${L.mode === 'qotd' && QOTD_PCT[q.id] ? `<p class="qotd-pct">${ICON('user')} ${qotdPctLine(QOTD_PCT[q.id])}</p>` : ''}
         ${lessonDiagram(q)}
         ${whyHTML(q, q.t === 'multi' ? L.multi : L.sel)}
         ${reportBtn(q)}
@@ -1550,6 +1592,7 @@
     st.seen++; if (ok) st.correct++;
     S.stats[q.id] = st;
     const placing = L.mode === 'placement';
+    if (L.mode === 'qotd' && !L.missed.has(q.id)) { S.qotd = S.qotd || {}; S.qotd[q.course] = { day: dayKey(), id: q.id, ok }; }
     if (!placing) srsUpdate(q.id, ok && !L.missed.has(q.id));
     if (!L.missed.has(q.id)) qstat(q.id, ok);
     if (!placing) {
@@ -1648,6 +1691,7 @@
   function finishLesson() {
     flushQStats();
     if (L.mode === 'placement') return finishPlacement();
+    if (L.mode === 'qotd') return finishQotd();
     const perfect = L.missed.size === 0;
     const boosted = boostOn();
     let xp = ((L.mode === 'replay' ? 5 : 10) + (perfect ? 5 : 0)) * (boosted ? 2 : 1);
@@ -1679,11 +1723,25 @@
     confetti();
   }
 
+  function finishQotd() {
+    const q = QINDEX[L.all[0]], first = (S.qotd || {})[q.course];
+    S.session = null;
+    const xpRes = addXP(QOTD_XP * (boostOn() ? 2 : 1));
+    const badges = checkBadges(), questsDone = questNew.splice(0);
+    sfx('complete');
+    END = { mode: 'qotd', xp: QOTD_XP * (boostOn() ? 2 : 1), boosted: boostOn(), perfect: !!(first && first.ok), extended: xpRes.extended || takeQuestExt(), earnedFreeze: xpRes.earnedFreeze,
+      badges, quests: questsDone, streak: S.streak, acc: first && first.ok ? 100 : 0, secs: Math.round((Date.now() - L.start) / 1000), qid: q.id };
+    L = null;
+    save();
+    go('lessonEnd');
+    if (END.perfect) confetti();
+  }
+
   function lessonEndView() {
     const e = END;
     const placed = e.mode === 'placement';
-    const title = placed ? t('placement_done') : e.mode === 'cards' ? t('cards_done') : e.unitCompleted ? t('unit_complete') : e.perfect ? t('perfect_lesson') : e.mode === 'lesson' || e.mode === 'replay' ? t('lesson_complete') : t('practice_complete');
-    const sub = placed ? (e.skipped.length ? tn('placement_skipped', e.skipped.length) : t('placement_none')) : e.mode === 'cards' ? tn('cards_done_sub', e.cards) : e.unitCompleted ? t('unit_complete_sub', { unit: esc(e.unitCompleted) }) : e.perfect ? t('perfect_sub') : t('missed_saved');
+    const title = e.mode === 'qotd' ? t('qotd_end_t') : placed ? t('placement_done') : e.mode === 'cards' ? t('cards_done') : e.unitCompleted ? t('unit_complete') : e.perfect ? t('perfect_lesson') : e.mode === 'lesson' || e.mode === 'replay' ? t('lesson_complete') : t('practice_complete');
+    const sub = e.mode === 'qotd' ? [qotdPctLine(QOTD_PCT[e.qid]), t('qotd_end_b')].filter(Boolean).join(' ') : placed ? (e.skipped.length ? tn('placement_skipped', e.skipped.length) : t('placement_none')) : e.mode === 'cards' ? tn('cards_done_sub', e.cards) : e.unitCompleted ? t('unit_complete_sub', { unit: esc(e.unitCompleted) }) : e.perfect ? t('perfect_sub') : t('missed_saved');
     return `<div class="center-screen">
       ${mascot(150, e.perfect ? 'cool' : e.unitCompleted || e.extended ? 'proud' : 'laugh', 'bounce')}
       <h1>${title}</h1><p class="muted">${sub}</p>
@@ -2472,6 +2530,7 @@
     node: d => { const u = UNITS[d.u]; startLesson(d.u, +d.l < unitDone(u) ? 'replay' : 'lesson'); },
     unitpractice: d => startSession('practice', pickQuestions(UNITS[d.u].questions, 8), d.u),
     quick: () => startQuick(),
+    qotd: () => startQotd(),
     questsopen: () => modal(`<div class="questcard quest-modal">${questCard()}</div><button class="btn block" style="margin-top:16px" data-act="closemodal">${t('ok')}</button>`),
     diagpractice: d => startDiagramPractice(d.d),
     // Wait a frame: focusing the chip scrolls its row, which would cancel a page scroll started now.
