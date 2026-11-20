@@ -281,7 +281,7 @@
       if (!user) {
         if (lastUid) forgetPhoto(lastUid);
         lastUid = null;
-        account = null; authState = 'out';
+        account = null; authState = 'out'; FRIENDS = null;
         try { localStorage.removeItem(UID_KEY); } catch { /* ignore */ }
         refresh(); return;
       }
@@ -334,6 +334,7 @@
     if (push) pushSync();
     scheduleBoard();
     loadLeague();
+    loadFriends();
     if (view === 'board') loadBoard();
     refresh();
   }
@@ -633,7 +634,7 @@
       if (S.streak % FREEZE_EVERY === 0 && (S.freezes || 0) < MAX_FREEZES) { S.freezes = (S.freezes || 0) + 1; earnedFreeze = true; }
     }
     save();
-    if (S.xpByDay[k] >= S.dailyGoal) questAdd('goal');
+    if (S.xpByDay[k] >= S.dailyGoal) { questAdd('goal'); friendsMet(); }
     return { extended, earnedFreeze };
   }
 
@@ -1435,7 +1436,7 @@
       ? `<div class="card placecard"><div class="row"><div class="bigicon">${ICON('target')}</div><div class="grow"><h3 style="margin-bottom:2px">${t('place_title')}</h3><p class="muted small">${t('place_sub', { n: placeCount(c) })}</p></div><button class="btn ghost" data-act="placement">${t('place_btn')}</button></div></div>` : '';
     const due = dueFor(c.id).length;
     const dueCard = due ? `<div class="card duecard"><div class="row"><div class="bigicon">${ICON('calendar')}</div><div class="grow"><h3 style="margin-bottom:2px">${tn('review_some', due)}</h3><p class="muted small">${t('review_why')}</p></div><button class="btn ghost" data-act="review">${t('review_btn')}</button></div></div>` : '';
-    return shell(`${freezeNotice()}${leagueResult()}${challengeCard()}${installCard(true)}${certificateCard(c)}${examDateCard(c)}${dueCard}${qotdCard(c)}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div><div class="card mobile-only questcard">${questCard()}</div>${resume}${placeCard}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
+    return shell(`${freezeNotice()}${leagueResult()}${inviteCard()}${friendsHome()}${challengeCard()}${installCard(true)}${certificateCard(c)}${examDateCard(c)}${dueCard}${qotdCard(c)}<div class="card mobile-only" data-tour="goal" style="margin-bottom:4px">${goalInner()}</div><div class="card mobile-only questcard">${questCard()}</div>${resume}${placeCard}${c.units.map((u, i) => unitBlock(u, i, i === firstOpen)).join('')}
       <div style="margin-top:34px">${readinessCard(c, false)}</div>
       <div class="card" style="margin-top:16px;text-align:center"><h3>${t('ready_title')}</h3><p class="muted" style="margin-bottom:14px">${t('ready_sub', { code: c.code })}</p><button class="btn ghost" data-act="nav" data-v="exam">${t('try_exam')}</button></div>`);
   }
@@ -2316,6 +2317,152 @@
         <div class="seg seg2"><button class="${hidden ? '' : 'on'}" data-act="boardvis" data-on="1">${t('board_on')}</button><button class="${hidden ? 'on' : ''}" data-act="boardvis" data-on="0">${t('board_off')}</button></div></div></div>`);
   }
 
+  // ---------- Friend streaks ----------
+  // Two signed-in learners keep a shared streak: a day counts when both reach their daily goal (their own local
+  // day); a missed day restarts it, and freezes don't apply. One doc per pair, cloudlingoFriends/{uidA_uidB}
+  // (sorted), readable only by the two. Pairing goes through a one-use invite link (?f=CODE, expires in 7 days).
+  // Whoever reaches the goal second extends the streak, in a transaction, so a day is counted once.
+  const FRIEND_MAX = 5, INVITE_DAYS = 7;
+  let FRIENDS = null;  // the signed-in learner's friendships, once loaded
+  let FINVITE = null;  // an invite from a ?f= link: { code } until looked up, then { code, from, name } or { code, gone }
+  try {
+    const p = new URLSearchParams(location.search), f = p.get('f');
+    if (f && /^[A-Za-z0-9]{12}$/.test(f)) {
+      FINVITE = { code: f };
+      p.delete('f');
+      history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : '') + location.hash);
+    }
+  } catch { /* not an invite link */ }
+  const pairOf = (a, b) => a < b ? [a, b] : [b, a];
+  const friendOf = f => f.members.find(u => u !== account.uid);
+  const friendName = f => ((f.names || {})[friendOf(f)] || 'Friend').replace(/[<>]/g, '').slice(0, 24);
+  const friendAlive = f => f.lastBoth === dayKey() || f.lastBoth === dayAgo(1) ? f.streak || 0 : 0;
+  const friendRef = id => fb.fs.doc(fb.db, 'cloudlingoFriends', id);
+  const inviteRef = code => fb.fs.doc(fb.db, 'cloudlingoFriendInvites', code);
+  function randomCode(n) {
+    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789', b = new Uint8Array(n);
+    crypto.getRandomValues(b);
+    return [...b].map(x => abc[x % abc.length]).join('');
+  }
+  async function loadFriends() {
+    if (!fb || authState !== 'in' || !account) return;
+    try {
+      const snap = await fb.fs.getDocs(fb.fs.query(fb.fs.collection(fb.db, 'cloudlingoFriends'), fb.fs.where('members', 'array-contains', account.uid)));
+      FRIENDS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      refresh();
+      friendsMet();
+    } catch { /* keep what we had */ }
+    if (FINVITE && !FINVITE.from && !FINVITE.gone) loadInvite();
+  }
+  // Once today's goal is reached, mark today in each friendship; the second of the two extends the shared streak.
+  async function friendsMet() {
+    if (!fb || !FRIENDS || !account || xpToday() < S.dailyGoal) return;
+    const today = dayKey(), me = account.uid;
+    for (const f of FRIENDS) {
+      if ((f.met || {})[me] === today) continue;
+      try {
+        const upd = await fb.fs.runTransaction(fb.db, async tx => {
+          const s = await tx.get(friendRef(f.id));
+          if (!s.exists()) return null;
+          const d = s.data(), other = d.members.find(u => u !== me);
+          if ((d.met || {})[me] === today) return {};
+          const u = { ['met.' + me]: today, ['names.' + me]: boardName() };
+          if ((d.met || {})[other] === today && d.lastBoth !== today) {
+            const streak = d.lastBoth === dayAgo(1) ? (d.streak || 0) + 1 : 1;
+            Object.assign(u, { streak, lastBoth: today, best: Math.max(d.best || 0, streak) });
+          }
+          tx.update(friendRef(f.id), u);
+          return u;
+        });
+        if (!upd) continue;
+        f.met = Object.assign({}, f.met, { [me]: today });
+        if (upd.lastBoth) {
+          Object.assign(f, { streak: upd.streak, lastBoth: upd.lastBoth, best: upd.best });
+          toast(`${ICON('flame')} ${esc(t('fr_toast', { name: friendName(f), n: upd.streak }))}`);
+          sfx('streak', 600);
+        }
+        refresh();
+      } catch { /* try again the next time XP is earned or the app opens */ }
+    }
+  }
+  async function loadInvite() {
+    if (!FINVITE || !fb || authState !== 'in') return;
+    const code = FINVITE.code;
+    try {
+      const s = await fb.fs.getDoc(inviteRef(code));
+      const d = s.exists() ? s.data() : null;
+      FINVITE = d && d.expiresAt > Date.now() ? { code, from: d.from, name: String(d.name || 'Friend').replace(/[<>]/g, '').slice(0, 24) } : { code, gone: true };
+    } catch { FINVITE = { code, gone: true }; }
+    refresh();
+  }
+  async function shareLink(text, url, copied, howTo) {
+    if (navigator.share) {
+      try { await navigator.share({ text, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    try { await navigator.clipboard.writeText(text + ' ' + url); toast(`${ICON('check')} ${copied}`); }
+    catch { modal(`<h2>${t('fr_title')}</h2><p>${howTo}</p><input class="words-search" readonly value="${esc(url)}" onfocus="this.select()"><div class="stack" style="margin-top:14px"><button class="btn" data-act="closemodal">${t('done')}</button></div>`); }
+  }
+  async function inviteFriend() {
+    if (!fb || authState !== 'in' || !account) return signInSheet();
+    if ((FRIENDS || []).length >= FRIEND_MAX) return infoModal(t('fr_title'), t('fr_full', { n: FRIEND_MAX }), 'happy');
+    const code = randomCode(12), now = Date.now();
+    try { await fb.fs.setDoc(inviteRef(code), { from: account.uid, name: boardName(), createdAt: now, expiresAt: now + INVITE_DAYS * 86400000 }); }
+    catch { return infoModal(t('fr_title'), t('fr_error')); }
+    shareLink(t('fr_share_text', { name: boardName() }), `https://pumbafluffycorgi.com/cloudlingo/?f=${code}`, t('fr_copied'), t('fr_link'));
+  }
+  async function acceptInvite() {
+    const inv = FINVITE;
+    if (!inv || !inv.from || !account || inv.from === account.uid) return;
+    const members = pairOf(account.uid, inv.from), id = members.join('_');
+    try {
+      await fb.fs.setDoc(friendRef(id), { members, names: { [inv.from]: inv.name, [account.uid]: boardName() }, met: {}, streak: 0, best: 0, lastBoth: '', createdAt: Date.now(), invite: inv.code });
+      fb.fs.deleteDoc(inviteRef(inv.code)).catch(() => { /* it expires anyway */ });
+      FINVITE = null;
+      toast(`${ICON('check')} ${esc(t('fr_added', { name: inv.name }))}`);
+      await loadFriends();
+    } catch { infoModal(t('fr_title'), t('fr_error')); }
+  }
+  async function removeFriend(id) {
+    closeModal();
+    try { await fb.fs.deleteDoc(friendRef(id)); FRIENDS = (FRIENDS || []).filter(f => f.id !== id); render(); }
+    catch { infoModal(t('fr_title'), t('fr_error')); }
+  }
+  // Home: the invite from a link, then one line for the friend streak that needs me today.
+  function inviteCard() {
+    if (!FINVITE || authState === 'off' || authState === 'unavailable') return '';
+    const box = (title, body, buttons) => `<div class="card challenge"><div class="row"><div class="bigicon">${ICON('flame')}</div><div class="grow"><h3 style="margin-bottom:2px">${title}</h3>${body ? `<p class="muted small">${body}</p>` : ''}</div></div><div class="row" style="margin-top:12px;gap:8px">${buttons}</div></div>`;
+    const no = `<button class="btn ghost" data-act="frno">${t('dismiss')}</button>`;
+    if (authState !== 'in') return box(t('fr_inv_signin'), '', `<button class="btn grow" data-act="signin">${t('signin')}</button>${no}`);
+    if (FINVITE.gone) return box(t('fr_inv_gone'), '', no);
+    if (!FINVITE.from) return '';
+    if (FINVITE.from === account.uid) return box(t('fr_inv_own'), '', no);
+    const name = esc(FINVITE.name);
+    if ((FRIENDS || []).some(f => f.members.includes(FINVITE.from))) return box(t('fr_inv_already', { name }), '', no);
+    if ((FRIENDS || []).length >= FRIEND_MAX) return box(t('fr_full', { n: FRIEND_MAX }), '', no);
+    return box(t('fr_inv_t', { name }), t('fr_inv_b'), `<button class="btn grow" data-act="fraccept">${t('fr_accept')}</button><button class="btn ghost" data-act="frno">${t('fr_not_now')}</button>`);
+  }
+  function friendsHome() {
+    if (authState !== 'in' || !account || !FRIENDS || !FRIENDS.length) return '';
+    const today = dayKey(), me = account.uid;
+    const open = FRIENDS.filter(f => (f.met || {})[me] !== today);
+    const pick = open.find(f => (f.met || {})[friendOf(f)] === today) || open.find(f => friendAlive(f) > 0);
+    if (!pick) return '';
+    const n = friendAlive(pick), name = esc(friendName(pick)), theirs = (pick.met || {})[friendOf(pick)] === today;
+    const line = theirs ? (n ? t('fr_home_turn', { n: n, name }) : t('fr_home_start', { name })) : t('fr_home_keep', { n: n, name });
+    return `<div class="card friend-line">${ICON('flame')}<span>${line}</span></div>`;
+  }
+  // Profile: every friend streak, and the invite button.
+  function friendsCard() {
+    if (authState === 'out') return `<div class="card" style="margin-top:16px"><h3 class="ic-title">${ICON('flame')} ${t('fr_title')}</h3><p class="muted small" style="margin:4px 0 12px">${t('fr_signin')}</p><button class="btn ghost block" data-act="signin">${t('signin')}</button></div>`;
+    if (authState !== 'in' || !account) return '';
+    const list = FRIENDS || [], today = dayKey(), me = account.uid;
+    const rows = list.map(f => {
+      const name = friendName(f), n = friendAlive(f), theirs = (f.met || {})[friendOf(f)] === today, mine = (f.met || {})[me] === today;
+      return `<div class="frow"><span class="avatar" style="width:34px;height:34px">${esc((name[0] || '?').toUpperCase())}</span><div class="grow"><strong>${esc(name)}</strong><p class="muted small">${esc(name)} ${theirs ? '✓' : '–'} · ${t('board_you')} ${mine ? '✓' : '–'}${f.best ? ' · ' + t('fr_best', { n: f.best }) : ''}</p></div><span class="fstreak ${n ? 'on' : ''}">${ICON('flame')} ${n}</span><button class="linkbtn frx" data-act="frremove" data-id="${esc(f.id)}" aria-label="${esc(t('fr_remove'))}">${ICON('x')}</button></div>`;
+    }).join('');
+    return `<div class="card" style="margin-top:16px"><h3 class="ic-title">${ICON('flame')} ${t('fr_title')}</h3><p class="muted small" style="margin:4px 0 10px">${t('fr_sub', { n: FRIEND_MAX })}</p>${rows || (FRIENDS ? `<p class="muted">${t('fr_none')}</p>` : '')}${list.length < FRIEND_MAX ? `<button class="btn ghost block" style="margin-top:12px" data-act="frinvite">${ICON('share')} ${t('fr_invite')}</button>` : ''}</div>`;
+  }
+
   // ---------- Install as an app (PWA) ----------
   // Android / desktop Chrome and Edge fire beforeinstallprompt, so we show our own
   // Install button. iPhone and iPad have no prompt: we explain Share → Add to Home Screen.
@@ -2643,6 +2790,7 @@
         <div class="tile-stat"><span class="i">${ICON('target')}</span><div><div class="v">${seen ? Math.round(100 * correct / seen) + '%' : '–'}</div><div class="l">${t('accuracy')}</div></div></div>
       </div>
       ${authState === 'in' && S.board !== false ? `<div class="card row league-card" style="margin-top:16px">${leagueBadge(myTier())}<div class="grow"><strong>${leagueName(myTier())}</strong><p class="muted small">${t('league_profile_sub')}</p></div><button class="btn ghost" data-act="nav" data-v="board">${t('league_open')}</button></div>` : ''}
+      ${friendsCard()}
       <div style="margin-top:16px">${readinessCard(c, false)}</div>
       <div class="card" style="margin-top:16px"><h3 class="ic-title">${ICON('compass')} ${t('path_title')}</h3><p class="muted small" style="margin:4px 0 12px">${t('path_card_b')}</p><button class="btn ghost block" data-act="nav" data-v="path">${t('path_open')}</button></div>
       <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${t('badges')}</h3><span class="muted small">${Object.keys(S.badges || {}).length} / ${BADGES.length}</span></div>
@@ -2677,6 +2825,11 @@
     nav: d => { go(d.v); if (d.v === 'board') loadBoard(); },
     loadboard: () => loadBoard(),
     boardvis: d => setBoardVisible(d.on === '1'),
+    frinvite: () => inviteFriend(),
+    fraccept: () => acceptInvite(),
+    frno: () => { FINVITE = null; render(); },
+    frremove: d => { const f = (FRIENDS || []).find(x => x.id === d.id); if (f) modal(`<h2>${t('fr_remove')}</h2><p>${esc(t('fr_remove_q', { name: friendName(f) }))}</p><div class="stack" style="margin-top:14px"><button class="btn bad" data-act="frremoveok" data-id="${esc(f.id)}">${t('fr_remove')}</button><button class="btn ghost" data-act="closemodal">${t('cancel')}</button></div>`); },
+    frremoveok: d => removeFriend(d.id),
     leagueok: () => { if (S.league) S.leagueSeen = S.league.week; save(); render(); },
     setlang: d => { setLang(d.l); render(); },
     tour: () => startTour(),

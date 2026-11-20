@@ -37,11 +37,15 @@ webpush.setVapidDetails(REMINDER_CONTACT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 const TEXT = {
   en: {
     streak: (n, left) => ({ title: `Keep your ${n}-day streak!`, body: `${left} XP to go today. A quick lesson takes about 2 minutes.` }),
-    start: left => ({ title: 'Time for a quick lesson', body: `${left} XP to reach today's goal. Nimbus is waiting!` })
+    start: left => ({ title: 'Time for a quick lesson', body: `${left} XP to reach today's goal. Nimbus is waiting!` }),
+    friend: (name, n) => ({ title: `${name} already studied today`, body: `Keep your ${n}-day streak with ${name}! A quick lesson takes about 2 minutes.` }),
+    friendStart: name => ({ title: `${name} already studied today`, body: `Reach your goal today too to start a streak with ${name}.` })
   },
   th: {
     streak: (n, left) => ({ title: `รักษาสถิติ ${n} วันไว้!`, body: `อีก ${left} XP ก็ถึงเป้าวันนี้ เรียนสั้น ๆ ใช้เวลาแค่ 2 นาที` }),
-    start: left => ({ title: 'ได้เวลาเรียนสั้น ๆ แล้ว', body: `อีก ${left} XP ก็ถึงเป้าวันนี้ นิมบัสรออยู่!` })
+    start: left => ({ title: 'ได้เวลาเรียนสั้น ๆ แล้ว', body: `อีก ${left} XP ก็ถึงเป้าวันนี้ นิมบัสรออยู่!` }),
+    friend: (name, n) => ({ title: `${name} เรียนวันนี้แล้ว`, body: `รักษาสถิติ ${n} วันกับ ${name} ไว้! เรียนสั้น ๆ ใช้เวลาแค่ 2 นาที` }),
+    friendStart: name => ({ title: `${name} เรียนวันนี้แล้ว`, body: `ทำตามเป้าวันนี้ด้วยเพื่อเริ่มสถิติร่วมกับ ${name}` })
   }
 };
 
@@ -92,7 +96,7 @@ if (process.env.CLOUDLINGO_TEST) {
 }
 
 const snap = await db.collection('cloudlingoPush').where('on', '==', true).get();
-let sent = 0, skipped = 0, pruned = 0;
+let sent = 0, skipped = 0, pruned = 0, friendNudges = 0;
 for (const doc of snap.docs) {
   const p = doc.data();
   const tz = p.tz || 'UTC';
@@ -108,7 +112,22 @@ for (const doc of snap.docs) {
   const yesterday = localNow(tz, -1).date;
   const streak = state.lastStreakDay === yesterday ? state.streak || 0 : 0;
   const t = TEXT[p.lang === 'th' ? 'th' : 'en'];
-  const msg = streak > 0 ? t.streak(streak, goal - today) : t.start(goal - today);
+  // A friend already reached their goal today (cloudlingoFriends, see the app's "Friend streaks"): lead with them,
+  // preferring the longest shared streak still alive (last day both met = yesterday).
+  let friend = null;
+  try {
+    const pairs = await db.collection('cloudlingoFriends').where('members', 'array-contains', doc.id).get();
+    for (const pd of pairs.docs) {
+      const d = pd.data(), other = (d.members || []).find(u => u !== doc.id);
+      if (!other || (d.met || {})[other] !== now.date) continue;
+      const n = d.lastBoth === yesterday ? d.streak || 0 : 0;
+      const name = String((d.names || {})[other] || '').replace(/[<>]/g, '').slice(0, 24);
+      if (name && (!friend || n > friend.n)) friend = { n, name };
+    }
+  } catch { friend = null; }
+  const msg = friend ? (friend.n > 0 ? t.friend(friend.name, friend.n) : t.friendStart(friend.name))
+    : streak > 0 ? t.streak(streak, goal - today) : t.start(goal - today);
+  if (friend) friendNudges++;
   const payload = JSON.stringify({ ...msg, url: './' });
 
   const keep = [];
@@ -121,5 +140,5 @@ for (const doc of snap.docs) {
   }
   await doc.ref.update({ lastSent: slot, subs: keep });
 }
-console.log(`Cloudlingo reminders: ${snap.size} on, ${sent} sent, ${skipped} skipped, ${pruned} expired subscriptions removed.`);
+console.log(`Cloudlingo reminders: ${snap.size} on, ${sent} sent (${friendNudges} with a friend nudge), ${skipped} skipped, ${pruned} expired subscriptions removed.`);
 process.exit(0);
