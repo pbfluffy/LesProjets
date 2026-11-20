@@ -107,6 +107,9 @@ h1, h2, h3, p { margin: 0; }
 .chip.flame.cold { color: var(--muted); filter: grayscale(1); }
 .chip.xp { color: var(--gold); }
 .chip.quest { color: var(--primary); }
+/* Focus sounds (Profile) */
+.focus-vol { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 14px; font-weight: 800; color: var(--muted); }
+.focus-vol input { flex: 1; accent-color: var(--primary); }
 /* Question of the day (Learn tab) */
 .qotdcard { margin-bottom: 14px; border-color: var(--primary); }
 .qotdcard .kicker { font-size: 12px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; color: var(--primary); }
