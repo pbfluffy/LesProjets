@@ -4,6 +4,8 @@
 export const TIERS = ['bronze', 'silver', 'gold', 'platinum'];
 export const MOVE = 3;        // how many move up, and down, in each league every week
 export const MIN_DROP = 7;    // a league needs this many active learners before its bottom 3 drop
+// Leagues started in the week of Monday 2026-11-16: earlier weeks are never settled.
+export const FIRST_WEEK = '2026-11-16';
 
 // The Monday (YYYY-MM-DD, UTC) of the week that `d` is in.
 export function mondayOf(d) {
@@ -18,8 +20,8 @@ export function mondayOf(d) {
 export function weekToSettle(now = new Date()) {
   const thisMonday = mondayOf(now);
   if (now.getTime() < Date.parse(thisMonday + 'T12:00:00Z')) return null;
-  const last = new Date(Date.parse(thisMonday + 'T00:00:00Z') - 7 * 86400000);
-  return last.toISOString().slice(0, 10);
+  const last = new Date(Date.parse(thisMonday + 'T00:00:00Z') - 7 * 86400000).toISOString().slice(0, 10);
+  return last < FIRST_WEEK ? null : last;
 }
 
 const up = t => TIERS[Math.min(TIERS.indexOf(t) + 1, TIERS.length - 1)];
