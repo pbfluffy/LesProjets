@@ -28,13 +28,13 @@ on:
       cloudlingo_test:
         description: 'Diagnostic: send a test to every stored Cloudlingo reminder device through the reminder code, instead of the normal checks. path = the reminder contact (/cloudlingo/), site = the plain site URL. Leave off for normal runs.'
         type: choice
-        options: [off, path, site]
-        default: off
+        options: ['off', path, site]
+        default: 'off'
       cloudlingo_leagues:
         description: 'Cloudlingo leagues: dry = print the moves for the last finished week without saving anything (works any day). Leave off for normal runs.'
         type: choice
-        options: [off, dry]
-        default: off
+        options: ['off', dry]
+        default: 'off'
 
 # One run at a time: two overlapping runs (the Worker's trigger plus the backup
 # schedule, or a manual test) would both read the saved state before either
@@ -58,7 +58,9 @@ jobs:
         run: npm install
 
       - name: Check alerts
-        if: ${{ !inputs.cloudlingo_test || inputs.cloudlingo_test == 'off' }}
+        # Only the diagnostic values skip this: an unquoted YAML off used to arrive as something other than 'off',
+        # which skipped the price check on every Worker-started run from 2026-11-18 to 2026-11-20.
+        if: ${{ inputs.cloudlingo_test != 'path' && inputs.cloudlingo_test != 'site' }}
         working-directory: stock-ranges/worker
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
@@ -88,7 +90,7 @@ jobs:
       # last week's leaderboard and moves learners between leagues (see cloudlingo/reminders/leagues.mjs).
       # Isolated like the reminders: its failure never fails this job.
       - name: Cloudlingo weekly leagues
-        if: ${{ always() && !inputs.test_push && (!inputs.cloudlingo_test || inputs.cloudlingo_test == 'off') }}
+        if: ${{ always() && !inputs.test_push && inputs.cloudlingo_test != 'path' && inputs.cloudlingo_test != 'site' }}
         continue-on-error: true
         working-directory: cloudlingo/reminders
         env:
