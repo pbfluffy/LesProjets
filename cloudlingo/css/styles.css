@@ -330,6 +330,13 @@ h1, h2, h3, p { margin: 0; }
 .dg-compute { --dgc: #ed7100; } .dg-storage { --dgc: #3f8624; } .dg-db { --dgc: #2e73b8; } .dg-net { --dgc: #8c4fff; }
 .dg-sec { --dgc: #dd344c; } .dg-int { --dgc: #e7157b; } .dg-mgmt { --dgc: #b0084d; } .dg-ai { --dgc: #01a88d; } .dg-data { --dgc: #8c4fff; } .dg-user { --dgc: var(--muted); }
 .dg-hl .dg-box { fill: var(--good-soft); stroke: var(--good); stroke-width: 2.4; }
+/* Label the diagram: the box to fill in */
+.dg-blank .dg-box { fill: var(--surface); stroke: var(--gold); stroke-width: 2.4; stroke-dasharray: 5 3; }
+.dg-blank .dg-text { fill: var(--gold); font-size: 15px; font-weight: 900; }
+.lbl-dg { margin: 4px 0 14px; }
+.lbl-dg h3 { font-size: 15px; margin: 0; }
+.lbl-dg .diagram { margin-top: 6px; max-width: 460px; }
+.lbl-start { margin: 0 0 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .whynot { font-size: 14px; font-weight: 600; margin-top: 8px; line-height: 1.4; color: var(--ink); max-width: 620px; }
 .whyothers { margin-top: 8px; font-size: 14px; max-width: 620px; color: var(--ink); }
 .whyothers summary { cursor: pointer; font-weight: 800; opacity: .75; }
