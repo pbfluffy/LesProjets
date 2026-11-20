@@ -881,7 +881,9 @@
   window.renderDiagram = (id, opts = {}) => {
     const d = D[id]; if (!d) return '';
     const th = opts.lang === 'th', hl = String(opts.answer || '');
-    const hit = m => !!(m && hl && m.test(hl));
+    // Label quiz: `blank` shows one box as "?", `focus` highlights one box; both replace the answer highlight.
+    const pinned = opts.blank || opts.focus;
+    const hit = m => !pinned && !!(m && hl && m.test(hl));
     const nodes = Object.fromEntries(d.nodes.map(n => [n.id, n]));
     // Arrowhead ids must be unique per drawing: a url(#id) pointing into a hidden diagram draws nothing.
     const uid = 'dg-a' + (++drawn);
@@ -904,21 +906,30 @@
       if (e.t) out += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="8.5" text-anchor="middle" class="dg-elabel">${esc(L(e.t, th))}</text>`;
     }
     for (const n of d.nodes) {
-      const lines = String(L(n.t, th)).split('\n');
+      const blank = n.id === opts.blank;
+      const lines = blank ? ['?'] : String(L(n.t, th)).split('\n');
       // Rough text width (about 5.5px a character at this size): skip the icon when it would push the text out of the box.
       const roomy = Math.max(...lines.map(l => l.length)) * 5.5 + 28 <= n.w;
       const icon = n.i && roomy && window.ICON ?window.ICON(n.i).replace('<svg ', `<svg x="${n.x + 7}" y="${n.y + n.h / 2 - 7}" `).replace('width="1em" height="1em"', 'width="14" height="14"') : '';
       const tx = icon ? n.x + 25 : n.x + n.w / 2;
-      out += `<g class="dg-node dg-${n.c} ${hit(n.m) ? 'dg-hl' : ''}"><rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="7" class="dg-box"/>`
+      out += `<g class="dg-node dg-${n.c} ${blank ? 'dg-blank' : hit(n.m) || n.id === opts.focus ? 'dg-hl' : ''}"><rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="7" class="dg-box"/>`
         + `<rect x="${n.x}" y="${n.y + 4}" width="3" height="${n.h - 8}" rx="1.5" class="dg-bar"/>${icon}`
         + textLines(lines, tx, n.y, n.h, n.h < 26 ? 9 : 9.5, icon ? 'start' : 'middle', 'dg-text') + '</g>';
     }
     const defs = `<defs><marker id="${uid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="dg-head"/></marker>`
       + `<marker id="${uid}s" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="dg-head"/></marker></defs>`;
     return `<figure class="diagram"><svg viewBox="0 0 ${W} ${d.h}" role="img" aria-label="${esc(L(d.cap, th))}">${defs}${out}</svg>`
-      + `<figcaption>${esc(L(d.cap, th))}</figcaption></figure>`;
+      + (opts.nocap ? '' : `<figcaption>${esc(L(d.cap, th))}</figcaption>`) + '</figure>';
   };
   window.DIAGRAM_IDS = Object.keys(D);
+  // Boxes a label quiz can blank out: one-of-a-kind labels, short enough to be an answer option.
+  window.diagramLabels = (id, lang) => {
+    const d = D[id]; if (!d) return [];
+    const all = d.nodes.map(n => ({ id: n.id, c: n.c, text: String(L(n.t, lang === 'th')).replace(/\s*\n\s*/g, ' ').trim() }));
+    const count = {}; all.forEach(n => { const k = n.text.toLowerCase(); count[k] = (count[k] || 0) + 1; });
+    return all.filter(n => count[n.text.toLowerCase()] === 1 && n.text.length >= 2 && n.text.length <= 48);
+  };
+  window.diagramCaption = id => { const c = D[id] && D[id].cap; return Array.isArray(c) ? c : [c || '', c || '']; };
   // Names for the Diagrams page in Practice.
   const TITLES = {
     global: ['Regions, AZs and edge locations', 'Region, AZ และ edge location'], shared: ['Shared responsibility', 'ความรับผิดชอบร่วมกัน'],

@@ -129,6 +129,40 @@
   try { applyEdits(JSON.parse(localStorage.getItem(EDITS_KEY) || '{}')); } catch { /* no cached edits */ }
   const live = q => q && !q.disabled;
 
+  // ---------- Label the diagram ----------
+  // Questions made on the fly from the course's diagrams: one box is blank and the learner picks its label.
+  // They aren't in the question bank (whose ids are positional), so nothing about them is saved:
+  // no stats, review schedule, mistakes or shared percentages. Id: lbl:<course>:<diagram>:<box>.
+  const LQ = {};
+  const qOf = id => QINDEX[id] || LQ[id] || labelQ(id);
+  function labelQ(id) {
+    const m = /^lbl:([^:]+):([^:]+):([^:]+)$/.exec(id || '');
+    if (!m || !window.diagramLabels) return null;
+    const [, cid, did, nid] = m, c = COURSES.find(x => x.id === cid);
+    const labels = window.diagramLabels(did, lang), me = labels.find(n => n.id === nid);
+    if (!c || !me) return null;
+    // Wrong options: labels from the course's other diagrams that don't appear in this one, the same kind of box first.
+    const own = new Set(window.diagramLabels(did, lang).map(n => n.text.toLowerCase()));
+    const pool = [...new Map(courseDiagrams(c).filter(d => d.id !== did).flatMap(d => window.diagramLabels(d.id, lang))
+      .filter(n => !own.has(n.text.toLowerCase())).map(n => [n.text.toLowerCase(), n])).values()];
+    const wrong = [...shuffle(pool.filter(n => n.c === me.c)), ...shuffle(pool.filter(n => n.c !== me.c))].slice(0, 3).map(n => n.text);
+    if (wrong.length < 3) return null;
+    const cap = window.diagramCaption(did);
+    return (LQ[id] = { id, t: 'mc', course: cid, unit: null, lbl: { d: did, n: nid }, q: t('lbl_q'), o: [me.text, ...wrong], a: 0, e: cap[0], eth: cap[1] });
+  }
+  // Every box that can be quizzed, from diagrams with at least three of them.
+  const labelPool = c => courseDiagrams(c).flatMap(d => {
+    const ns = window.diagramLabels ? window.diagramLabels(d.id, lang) : [];
+    return ns.length >= 3 ? ns.map(n => `lbl:${c.id}:${d.id}:${n.id}`) : [];
+  });
+  const canLabel = c => new Set(labelPool(c).map(id => id.split(':')[2])).size >= 4;
+  // One box from each of up to 8 different diagrams.
+  function startLabels() {
+    const c = course(), one = {};
+    shuffle(labelPool(c)).forEach(id => { const d = id.split(':')[2]; if (!one[d]) one[d] = id; });
+    startSession('label', shuffle(Object.values(one)).filter(id => labelQ(id)).slice(0, 8));
+  }
+
   // ---------- Persistent state ----------
   const DEFAULTS = () => ({
     cert: null, xp: 0, dailyGoal: 20, xpByDay: {}, streak: 0, lastStreakDay: null,
@@ -494,9 +528,9 @@
   }
   const savedSession = () => {
     const s = S.session;
-    return s && s.cert === S.cert && s.queue && s.queue.length && s.queue.every(id => live(QINDEX[id])) ? s : null;
+    return s && s.cert === S.cert && s.queue && s.queue.length && s.queue.every(id => live(qOf(id))) ? s : null;
   };
-  const modeName = m => ['lesson', 'replay', 'practice', 'mistakes', 'review', 'placement'].includes(m) ? t('mode_' + m) : t('mode_session');
+  const modeName = m => ['lesson', 'replay', 'practice', 'mistakes', 'review', 'placement', 'label'].includes(m) ? t('mode_' + m) : t('mode_session');
 
   // ---------- Streak freezes ----------
   // Earn one for every 7 days in a row (hold up to 2). Each covers one missed day:
@@ -1452,7 +1486,7 @@
   }
 
   function prepareQ() {
-    const q = QINDEX[L.queue[0]];
+    const q = qOf(L.queue[0]);
     Object.assign(L, { q, checked: false, ok: null, sel: null, multi: [], flash: null, busy: false });
     if (q.t === 'match') {
       Object.assign(L, { lefts: shuffle(range(q.pairs.length)), rights: shuffle(range(q.pairs.length)), matched: [], pickL: null, pickR: null, matchErr: false });
@@ -1495,6 +1529,12 @@
     // One-time nudge until the learner has opened a hint.
     const face = !L.checked ? 'think' : L.ok ? 'laugh' : 'shocked';
     const tip = () => !S.hintSeen && seen.size ? `<p class="hint-tip">${ICON('bulb')} ${t('hint_tip')}</p>` : '';
+    if (q.lbl) {
+      const dg = window.renderDiagram(q.lbl.d, L.checked ? { lang, focus: q.lbl.n, nocap: true } : { lang, blank: q.lbl.n, nocap: true });
+      return `${kick(t('lbl_kick'))}<div class="qhead">${mascot(76, face)}<div class="qtitle">${esc(q.q)}</div></div>
+        <div class="lbl-dg"><h3>${esc(window.diagramTitle(q.lbl.d, lang))}</h3>${dg}</div>
+        <div class="opts">${L.order.map((oi, k) => optBtn(q, oi, k)).join('')}</div>`;
+    }
     if (q.t === 'mc' && q.tf) {
       const title = H(q.q);
       return `${kick(t('tf'))}<div class="qhead">${mascot(76, face)}<div class="qtitle">${title}</div></div>${tip()}
@@ -1617,7 +1657,7 @@
   // only: mock exams (and their review) stay text-only, like the real exam.
   // Which concept diagram (if any) a question gets, from its text and right answer.
   function diagramIdFor(q) {
-    if (!window.diagramFor || q.t === 'match') return null;
+    if (!window.diagramFor || q.t === 'match' || q.lbl) return null;
     const answer = q.tf ? '' : correctText(q);
     // Fill-in questions: put the answer into the blank so "a ___ table" + "route" reads "a route table".
     return window.diagramFor((q.t === 'fill' ? q.q.replace(/_{2,}/, answer) : q.q) + ' ' + answer, q.course);
@@ -1654,7 +1694,7 @@
         ${L.mode === 'qotd' && QOTD_PCT[q.id] ? `<p class="qotd-pct">${ICON('user')} ${qotdPctLine(QOTD_PCT[q.id])}</p>` : ''}
         ${lessonDiagram(q)}
         ${whyHTML(q, q.t === 'multi' ? L.multi : L.sel)}
-        ${reportBtn(q)}
+        ${q.lbl ? '' : reportBtn(q)}
       </div></div>
       <button class="btn ${L.ok ? 'good' : 'bad'}" data-act="continue">${t('continue')}</button>
     </div></footer>`;
@@ -1672,13 +1712,15 @@
   function grade(ok) {
     const q = L.q;
     L.checked = true; L.ok = ok;
-    const st = S.stats[q.id] || { seen: 0, correct: 0 };
-    st.seen++; if (ok) st.correct++;
-    S.stats[q.id] = st;
+    if (!q.lbl) {
+      const st = S.stats[q.id] || { seen: 0, correct: 0 };
+      st.seen++; if (ok) st.correct++;
+      S.stats[q.id] = st;
+    }
     const placing = L.mode === 'placement';
     if (L.mode === 'qotd' && !L.missed.has(q.id)) { S.qotd = S.qotd || {}; S.qotd[q.course] = { day: dayKey(), id: q.id, ok }; }
-    if (!placing) srsUpdate(q.id, ok && !L.missed.has(q.id));
-    if (!L.missed.has(q.id)) qstat(q.id, ok);
+    if (!placing && !q.lbl) srsUpdate(q.id, ok && !L.missed.has(q.id));
+    if (!L.missed.has(q.id) && !q.lbl) qstat(q.id, ok);
     if (!placing) {
       // Combo: right on the first try in a row; a retry of a missed question neither adds nor breaks it.
       if (ok && !L.missed.has(q.id)) { L.combo = (L.combo || 0) + 1; questAdd('combo', 0, L.combo); }
@@ -1698,7 +1740,7 @@
     } else {
       L.missed.add(q.id);
       if (placing) L.done++;
-      else S.mistakes[q.id] = { ts: Date.now() };
+      else if (!q.lbl) S.mistakes[q.id] = { ts: Date.now() };
     }
     // Save as if Continue was pressed, so leaving now never repeats or loses an answer.
     saveSession(L.queue.slice(1).concat(ok || placing ? [] : [q.id]));
@@ -1895,7 +1937,8 @@
         <div class="card pcard"><div class="row"><div class="bigicon">${ICON('book')}</div><div class="grow"><h3>${t('words_title')}</h3><p>${t('words_card_sub', { n: GLOSS.length })}</p></div></div>
           <button class="btn ghost block" style="margin-top:14px" data-act="nav" data-v="words">${t('words_open')}</button></div>
         ${window.renderDiagram && courseDiagrams(c).length ? `<div class="card pcard"><div class="row"><div class="bigicon">${ICON('layers')}</div><div class="grow"><h3>${t('dg_title')}</h3><p>${t('dg_card_sub', { n: courseDiagrams(c).length })}</p></div></div>
-          <button class="btn ghost block" style="margin-top:14px" data-act="nav" data-v="diagrams">${t('dg_open')}</button></div>` : ''}
+          ${canLabel(c) ? `<button class="btn block" style="margin-top:14px" data-act="labelquiz">${t('lbl_start')}</button>` : ''}
+          <button class="btn ghost block" style="margin-top:${canLabel(c) ? 8 : 14}px" data-act="nav" data-v="diagrams">${t('dg_open')}</button></div>` : ''}
         <h2 class="section-title" style="font-size:20px;margin-top:12px">${t('by_topic')}</h2>
         ${rows}
       </div>`);
@@ -1931,6 +1974,7 @@
     }).join('');
     return shell(`<h1 class="section-title">${t('dg_title')}</h1>
       <p class="section-sub">${t('dg_sub', { n: all.length })}</p>
+      ${canLabel(c) ? `<button class="btn block lbl-start" data-act="labelquiz">${ICON('layers')} ${t('lbl_start')}</button>` : ''}
       <div class="dg-jump">${jump}</div>
       <div class="stack">${units}</div>`);
   }
@@ -2632,6 +2676,7 @@
     qotd: () => startQotd(),
     questsopen: () => modal(`<div class="questcard quest-modal">${questCard()}</div><button class="btn block" style="margin-top:16px" data-act="closemodal">${t('ok')}</button>`),
     diagpractice: d => startDiagramPractice(d.d),
+    labelquiz: () => startLabels(),
     // Wait a frame: focusing the chip scrolls its row, which would cancel a page scroll started now.
     dgjump: d => requestAnimationFrame(() => {
       const el = document.getElementById('dg-' + d.d), bar = document.querySelector('.topbar');
