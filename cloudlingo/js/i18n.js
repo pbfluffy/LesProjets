@@ -213,7 +213,7 @@ window.I18N = {
     fr_inv_own: "That's your own invite link. Send it to a friend instead.", fr_inv_already: 'You and {name} already keep a streak together.',
     fr_added: 'You and {name} are now study friends!', fr_best: 'best {n}', fr_remove: 'Remove friend', fr_remove_q: 'Remove {name}? Your shared streak will be lost.',
     fr_home_turn: '{n}-day streak with {name}: {name} studied today, your turn!', fr_home_keep: '{n}-day streak with {name}: reach your goal today to keep it.',
-    fr_home_start: '{name} studied today. Reach your goal to start your streak together!', fr_toast: 'Streak with {name}: {n} days!',
+    fr_home_start: '{name} studied today. Reach your goal to start your streak together!', fr_toast_one: 'Streak with {name}: {n} day!', fr_toast_other: 'Streak with {name}: {n} days!',
     // profile
     your_progress: 'Your progress', studying: 'Studying {code} · {name}', sessions_done: 'Sessions done',
     this_week: 'Last 7 days', strengths: 'Strengths in {code}', strengths_none: "Answer a few questions to see which domains you've mastered.",
@@ -432,7 +432,7 @@ window.I18N = {
     fr_inv_own: 'นี่คือลิงก์คำเชิญของคุณเอง ส่งให้เพื่อนแทน', fr_inv_already: 'คุณกับ {name} มีสถิติร่วมกันอยู่แล้ว',
     fr_added: 'คุณกับ {name} เป็นเพื่อนเรียนกันแล้ว!', fr_best: 'ดีที่สุด {n}', fr_remove: 'ลบเพื่อน', fr_remove_q: 'ลบ {name} ไหม? สถิติร่วมกันจะหายไป',
     fr_home_turn: 'สถิติ {n} วันกับ {name}: {name} เรียนวันนี้แล้ว ตาคุณแล้ว!', fr_home_keep: 'สถิติ {n} วันกับ {name}: ทำตามเป้าวันนี้เพื่อรักษาไว้',
-    fr_home_start: '{name} เรียนวันนี้แล้ว ทำตามเป้าเพื่อเริ่มสถิติร่วมกัน!', fr_toast: 'สถิติกับ {name}: {n} วัน!',
+    fr_home_start: '{name} เรียนวันนี้แล้ว ทำตามเป้าเพื่อเริ่มสถิติร่วมกัน!', fr_toast_other: 'สถิติกับ {name}: {n} วัน!',
     your_progress: 'ความคืบหน้าของคุณ', studying: 'กำลังเรียน {code} · {name}', sessions_done: 'รอบที่เรียนจบ',
     this_week: '7 วันที่ผ่านมา', strengths: 'จุดแข็งใน {code}', strengths_none: 'ตอบคำถามสักสองสามข้อ เพื่อดูว่าคุณเก่งโดเมนไหน',
     certifications: 'ใบเซอร์', appearance: 'ธีม', theme_auto: 'อัตโนมัติ', theme_light: 'สว่าง', theme_dark: 'มืด',

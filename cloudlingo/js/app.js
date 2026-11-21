@@ -2250,12 +2250,19 @@
     clearTimeout(boardTimer);
     boardTimer = setTimeout(pushBoard, 2000);
   }
-  async function pushBoard() {
+  async function pushBoard(retry = false) {
     if (!fb || authState !== 'in' || !account || S.board === false) return;
     const xp = weekXp(), key = `${weekId()}:${xp}:${boardName()}:${myTier()}`;
     if (xp <= 0 || boardSent === key) return;
     try { await fb.fs.setDoc(scoreRef(), { name: boardName(), xp, tier: myTier(), updatedAt: Date.now() }); boardSent = key; }
-    catch { /* the leaderboard is best-effort */ }
+    catch {
+      // The rules reject a score whose league isn't my current one: most likely the weekly job moved me since
+      // the app last read it (it stayed open over Monday evening). Re-read the league and retry once.
+      if (retry) return; // the leaderboard is best-effort
+      const before = myTier();
+      await loadLeague();
+      if (myTier() !== before) return pushBoard(true);
+    }
   }
   async function loadBoard() {
     if (!fb || authState !== 'in') return;
@@ -2378,7 +2385,7 @@
         f.met = Object.assign({}, f.met, { [me]: today });
         if (upd.lastBoth) {
           Object.assign(f, { streak: upd.streak, lastBoth: upd.lastBoth, best: upd.best });
-          toast(`${ICON('flame')} ${esc(t('fr_toast', { name: friendName(f), n: upd.streak }))}`);
+          toast(`${ICON('flame')} ${esc(tn('fr_toast', upd.streak, { name: friendName(f) }))}`);
           sfx('streak', 600);
         }
         refresh();
@@ -2432,6 +2439,7 @@
     if (!FINVITE || authState === 'off' || authState === 'unavailable') return '';
     const box = (title, body, buttons) => `<div class="card challenge"><div class="row"><div class="bigicon">${ICON('flame')}</div><div class="grow"><h3 style="margin-bottom:2px">${title}</h3>${body ? `<p class="muted small">${body}</p>` : ''}</div></div><div class="row" style="margin-top:12px;gap:8px">${buttons}</div></div>`;
     const no = `<button class="btn ghost" data-act="frno">${t('dismiss')}</button>`;
+    if (authState === 'loading') return ''; // still finding out whether I'm signed in
     if (authState !== 'in') return box(t('fr_inv_signin'), '', `<button class="btn grow" data-act="signin">${t('signin')}</button>${no}`);
     if (FINVITE.gone) return box(t('fr_inv_gone'), '', no);
     if (!FINVITE.from) return '';
