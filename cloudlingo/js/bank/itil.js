@@ -60,8 +60,8 @@ addQuestions('itil-1', [
   { t: 'match', q: 'Match each term to its meaning.',
     pairs: [['Output', 'A deliverable of an activity'], ['Outcome', 'A result a stakeholder wants'], ['Utility', 'What a service does'], ['Warranty', 'How well a service performs']],
     e: 'Outputs enable outcomes; utility and warranty together make a service valuable.' },
-  { t: 'multi', q: 'Which TWO are part of warranty?',
-    o: ['Availability', 'Security', 'The features the service offers', 'The price of the service'], a: [0, 1],
+  { t: 'mc', q: 'Which TWO are part of warranty?\n1. Availability\n2. Security\n3. The features the service offers\n4. The price of the service',
+    o: ['1 and 2', '2 and 3', '3 and 4', '1 and 4'], a: 0,
     e: 'Warranty covers availability, capacity, security and continuity. Features are utility; price is a cost.' },
   { t: 'mc', q: 'Who are stakeholders in value co-creation?',
     o: ['Consumers, providers, employees, partners, investors and society', 'Only the customers who pay for the services', 'Only the IT department that delivers the services', 'Only the suppliers that provide goods and services'], a: 0,
@@ -69,8 +69,8 @@ addQuestions('itil-1', [
 ]);
 
 addQuestions('itil-2', [
-  { t: 'multi', q: 'Which TWO are ITIL 4 guiding principles?',
-    o: ['Focus on value', 'Keep it simple and practical', 'Plan everything in full before starting', 'Avoid automation'], a: [0, 1],
+  { t: 'mc', q: 'Which TWO are ITIL 4 guiding principles?\n1. Focus on value\n2. Keep it simple and practical\n3. Plan everything in full before starting\n4. Avoid automation',
+    o: ['1 and 2', '2 and 3', '3 and 4', '1 and 4'], a: 0,
     e: 'The seven principles: focus on value; start where you are; progress iteratively with feedback; collaborate and promote visibility; think and work holistically; keep it simple and practical; optimize and automate.' },
   { t: 'mc', q: 'Which guiding principle says everything the organization does should link back to value for stakeholders?',
     o: ['Focus on value', 'Start where you are', 'Optimize and automate', 'Think and work holistically'], a: 0,
@@ -133,8 +133,8 @@ addQuestions('itil-2', [
 ]);
 
 addQuestions('itil-3', [
-  { t: 'multi', q: 'Which TWO are among the four dimensions of service management?',
-    o: ['Organizations and people', 'Value streams and processes', 'Incidents and problems', 'Budgets and contracts'], a: [0, 1],
+  { t: 'mc', q: 'Which TWO are among the four dimensions of service management?\n1. Organizations and people\n2. Value streams and processes\n3. Incidents and problems\n4. Budgets and contracts',
+    o: ['1 and 2', '2 and 3', '3 and 4', '1 and 4'], a: 0,
     e: 'The four dimensions: organizations and people; information and technology; partners and suppliers; value streams and processes.' },
   { t: 'mc', q: 'Which dimension covers roles, responsibilities, culture and the skills of staff?',
     o: ['Organizations and people', 'Information and technology', 'Partners and suppliers', 'Value streams and processes'], a: 0,
@@ -157,8 +157,8 @@ addQuestions('itil-3', [
   { t: 'mc', q: 'What is the output of the service value system?',
     o: ['Value', 'Opportunity', 'Demand', 'Change requests'], a: 0,
     e: 'The SVS turns opportunity and demand into value through its components and activities.' },
-  { t: 'multi', q: 'Which TWO are components of the service value system?',
-    o: ['Governance', 'Continual improvement', 'Service desk', 'Incident management'], a: [0, 1],
+  { t: 'mc', q: 'Which TWO are components of the service value system?\n1. Governance\n2. Continual improvement\n3. Service desk\n4. Incident management',
+    o: ['1 and 2', '2 and 3', '3 and 4', '1 and 4'], a: 0,
     e: 'SVS components: guiding principles, governance, service value chain, practices and continual improvement. Service desk and incident management are practices, which form one component.' },
   { t: 'mc', q: 'In the SVS, what is the purpose of governance?',
     o: ['To direct and control the organization', 'To restore normal service quickly', 'To log every user request', 'To build and test software'], a: 0,
@@ -344,8 +344,8 @@ addQuestions('itil-5', [
   { t: 'mc', q: 'Staff in several countries work together as one service desk using shared tools. What is this called?',
     o: ['A virtual service desk', 'A local service desk', 'A problem desk', 'A change advisory board'], a: 0,
     e: 'A virtual service desk lets agents in different places work as one team with shared tools and records.' },
-  { t: 'multi', q: 'Which TWO are channels a service desk can use?',
-    o: ['Phone and live chat', 'Self-service portals', 'Root cause analysis', 'Change authorization'], a: [0, 1],
+  { t: 'mc', q: 'Which TWO are channels a service desk can use?\n1. Phone and live chat\n2. Self-service portals\n3. Root cause analysis\n4. Change authorization',
+    o: ['1 and 2', '2 and 3', '3 and 4', '1 and 4'], a: 0,
     e: 'Service desks offer many channels, such as phone, chat, email, portals and walk-in desks.' },
   { t: 'mc', q: 'What is a service level agreement (SLA)?',
     o: ['A documented agreement between a service provider and a customer that identifies services and expected service levels', 'A record of all configuration items that support a service and the relationships between them', 'A list of all changes that have been assessed, approved and scheduled for implementation', 'An agreement between two suppliers that sets out how they will work together on a contract'], a: 0,
@@ -359,4 +359,61 @@ addQuestions('itil-5', [
   { t: 'fill', q: 'A documented agreement between a provider and a customer about expected service levels is called a service level ___.',
     o: ['agreement', 'requirement', 'register', 'record'], a: 0,
     e: 'SLAs set the targets that service level management monitors and reviews with the customer.' },
+]);
+
+// Scenario questions in the style of the real exam (added 2026-11).
+addQuestions('itil-1', [
+  { t: 'mc', q: 'Identify the missing word in the following sentence.\nA [?] is a possible event that could cause harm or loss, or make it more difficult to achieve objectives.',
+    o: ['risk', 'problem', 'incident', 'change'], a: 0,
+    e: 'ITIL 4 defines a risk as a possible event that could cause harm or loss, or make it more difficult to achieve objectives.' },
+  { t: 'mc', q: 'A hospital pays a provider to run its patient booking system. The hospital’s IT manager agreed the requirements, and nurses use the system every day. What role do the nurses have?',
+    o: ['Users', 'Sponsors', 'Customers', 'Suppliers'], a: 0,
+    e: 'Users are the people who use the service. The customer defines the requirements, and the sponsor authorizes the budget.' },
+]);
+addQuestions('itil-2', [
+  { t: 'mc', q: 'A team plans to replace an old ticketing tool. Before designing anything new, it reviews what the current tool and process already do well. Which guiding principle is it applying?',
+    o: ['Start where you are', 'Optimize and automate', 'Keep it simple and practical', 'Think and work holistically'], a: 0,
+    e: 'Start where you are means assessing what already exists and reusing what works before building something new.' },
+  { t: 'mc', q: 'Identify the missing word in the following sentence.\nThe guiding principle "progress iteratively with [?]" recommends organizing work into smaller, manageable sections that can be completed in a timely way.',
+    o: ['feedback', 'automation', 'governance', 'approval'], a: 0,
+    e: 'The principle is "progress iteratively with feedback": work in small steps, using feedback before, during and after each one.' },
+]);
+addQuestions('itil-3', [
+  { t: 'mc', q: 'Which TWO are activities of the service value chain?\n1. Plan\n2. Engage\n3. Monitor\n4. Govern',
+    o: ['1 and 2', '2 and 3', '3 and 4', '1 and 4'], a: 0,
+    e: 'The six value chain activities are plan, improve, engage, design and transition, obtain/build, and deliver and support.' },
+  { t: 'mc', q: 'An organization is deciding which services to deliver itself and which to buy from other companies. Which dimension of service management covers this decision?',
+    o: ['Partners and suppliers', 'Information and technology', 'Value streams and processes', 'Organizations and people'], a: 0,
+    e: 'The partners and suppliers dimension includes the organization’s sourcing strategy: what to do itself and what to obtain from others.' },
+]);
+addQuestions('itil-4', [
+  { t: 'mc', q: 'Identify the missing words in the following sentence.\nThe purpose of the [?] practice is to support the agreed quality of a service by handling all predefined, user-initiated service requests in an effective and user-friendly manner.',
+    o: ['service request management', 'incident management', 'information security management', 'service level management'], a: 0,
+    e: 'This is the purpose of the service request management practice.' },
+  { t: 'mc', q: 'A user asks the service desk for access to a shared folder. This is a standard, pre-approved request. Which practice should handle it?',
+    o: ['Service request management', 'Incident management', 'Problem management', 'Change enablement'], a: 0,
+    e: 'Access to a standard resource is a service request, handled by service request management.' },
+  { t: 'mc', q: 'Identify the missing words in the following sentence.\nThe purpose of the [?] practice is to ensure that accurate and reliable information about the configuration of services, and the CIs that support them, is available when and where it is needed.',
+    o: ['service configuration management', 'IT asset management', 'monitoring and event management', 'deployment management'], a: 0,
+    e: 'This is the purpose of the service configuration management practice.' },
+]);
+addQuestions('itil-5', [
+  { t: 'mc', q: 'Attackers are exploiting a security flaw right now, and a change is needed to fix it. How should this emergency change be authorized?',
+    o: ['As quickly as possible, often by a separate change authority', 'By waiting for the next scheduled change advisory board meeting', 'It needs no assessment or authorization of any kind', 'Automatically, in the same way as a standard change'], a: 0,
+    e: 'Emergency changes must be implemented as soon as possible. They are still assessed and authorized, often by a separate, smaller change authority.' },
+  { t: 'mc', q: 'Identify the missing words in the following sentence.\nA [?] is a problem that has been analyzed but has not been resolved.',
+    o: ['known error', 'workaround', 'major incident', 'standard change'], a: 0,
+    e: 'In ITIL 4, a known error is a problem that has been analyzed but not yet resolved.' },
+  { t: 'mc', q: 'Many users report the same email outage. The service desk links all the reports to one incident, and later a problem record is opened. Why is the problem record opened?',
+    o: ['To find and manage the underlying cause of the outage', 'To restore the email service for every user as quickly as possible', 'To authorize a change to the email server', 'To log each user’s report as a separate record'], a: 0,
+    e: 'Problem management investigates the causes of incidents so they can be prevented or their impact reduced.' },
+  { t: 'mc', q: 'Which TWO statements about the service desk are correct?\n1. It should understand the business context of the users it supports\n2. It is the single point of contact between the service provider and users\n3. It must always be a physical team in one location\n4. It is responsible for finding the root cause of every problem',
+    o: ['1 and 2', '2 and 3', '3 and 4', '1 and 4'], a: 0,
+    e: 'The service desk is the single point of contact for users and needs to understand their business context. It can be virtual, and root causes are found by problem management.' },
+  { t: 'mc', q: 'Identify the missing word in the following sentence.\nIncidents should be [?] so that those with the highest impact on the business are resolved first.',
+    o: ['prioritized', 'escalated', 'closed', 'documented'], a: 0,
+    e: 'Incidents are prioritized, usually by impact and urgency, so the most important ones are resolved first.' },
+  { t: 'mc', q: 'A new version of an app has been installed on the live servers, but users will get it next month with a marketing launch. Which statement is correct?',
+    o: ['The deployment is done, but the release hasn’t happened yet', 'The release is done, but the deployment hasn’t happened yet', 'Both the deployment and the release are already complete', 'Neither the deployment nor the release has started yet'], a: 0,
+    e: 'Deployment moves components to live environments; release makes them available for use. They can happen at different times.' },
 ]);
