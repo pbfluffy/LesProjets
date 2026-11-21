@@ -17,6 +17,8 @@ import NotificationsModal from './components/NotificationsModal.jsx'
 import UndoToast from './components/UndoToast.jsx'
 import WalletView from './components/WalletView.jsx'
 import WalletLocked from './components/WalletLocked.jsx'
+import GoldView from './components/GoldView.jsx'
+import { GOLD_SYMBOL } from './gold.js'
 import { MAX_CUSTOM_BRANDS } from './components/KnownFor.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import MarketStatus from './components/MarketStatus.jsx'
@@ -197,7 +199,10 @@ function Dashboard() {
   const [targets, setTargets] = useState(() => loadObject(TARGETS_KEY, {}))
   const [costAlerts, setCostAlerts] = useState(() => loadObject(COST_ALERTS_KEY, {}))
   const [walletPrefs, setWalletPrefs] = useState(() => loadObject(WALLET_PREFS_KEY, { exDividend: false, weekly: false, earnings: false }))
-  const [tab, setTab] = useState(() => (localStorage.getItem(TAB_KEY) === 'wallet' ? 'wallet' : 'watchlist'))
+  const [tab, setTab] = useState(() => {
+    const saved = localStorage.getItem(TAB_KEY)
+    return saved === 'wallet' || saved === 'gold' ? saved : 'watchlist'
+  })
   const [tabActionsEl, setTabActionsEl] = useState(null)
   const [watchlistSort, setWatchlistSort] = useState(() => localStorage.getItem(WATCHLIST_SORT_KEY) || 'signal')
   const [watchlistSearch, setWatchlistSearch] = useState('')
@@ -804,6 +809,7 @@ function Dashboard() {
         <div className={styles.tabRow}>
           <button className={styles.tabBtn} data-active={tab === 'watchlist'} onClick={() => setTab('watchlist')}>{s.navWatchlist}</button>
           <button className={styles.tabBtn} data-active={tab === 'wallet'} onClick={() => setTab('wallet')} data-tour="tab-wallet">{s.navWallet}</button>
+          <button className={styles.tabBtn} data-active={tab === 'gold'} onClick={() => setTab('gold')}>{s.navGold}</button>
         </div>
         <div className={styles.tabActions} ref={setTabActionsEl}>
           {tab === 'watchlist' && filteredWatchlist.length > 0 && (
@@ -821,7 +827,8 @@ function Dashboard() {
         </div>
       </div>
 
-      {allTags.length > 0 && (
+      {/* Tags filter the watchlist and wallet; the Gold tab has no tagged items. */}
+      {allTags.length > 0 && tab !== 'gold' && (
         <div className={styles.tagFilterRow}>
           <span className={styles.tagFilterLabel}>{s.filterByTag}</span>
           {allTags.map((tag) => (
@@ -877,7 +884,19 @@ function Dashboard() {
 
       {undoInfo && <UndoToast type={undoInfo.type} label={undoInfo.symbol} onUndo={handleUndo} />}
 
-      {tab === 'wallet' ? (
+      {tab === 'gold' ? (
+        <GoldView
+          range={range}
+          ranges={RANGES}
+          rangeLabelKey={RANGE_LABEL_KEY}
+          onRangeChange={setRange}
+          chartType={chartType}
+          rates={rates}
+          refreshKey={refreshKey}
+          inWatchlist={watchlist.includes(GOLD_SYMBOL)}
+          onAddToWatchlist={(symbol) => { addSymbol(symbol); setTab('watchlist') }}
+        />
+      ) : tab === 'wallet' ? (
         cloudSync.user ? (
           <WalletView
             holdings={holdings}

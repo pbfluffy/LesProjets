@@ -1,0 +1,115 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.controlPair {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.controlPair label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+.controlPair select { width: auto; }
+
+.addBtn,
+.retryBtn {
+  background: var(--color-surface-alt);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+}
+.addBtn:hover,
+.retryBtn:hover { border-color: var(--color-border-strong); }
+.retryBtn { margin-top: 10px; }
+
+/* Same card look as a watchlist TickerCard, with a gold left edge (fixed
+   hue, like the tag-hue edge there, readable in both themes). */
+.card {
+  background: var(--color-surface);
+  border: 0.5px solid var(--color-border);
+  border-left: 4px solid hsl(45 80% 52%);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px 16px 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.titleBlock { min-width: 0; }
+.title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+.unit {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+.mono { font-family: var(--font-mono); }
+
+.badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  padding: 4px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badge[data-zone='buy'] { background: var(--color-green-bg); color: var(--color-green); }
+.badge[data-zone='hold'] { background: var(--color-amber-bg); color: var(--color-amber); }
+.badge[data-zone='sell'] { background: var(--color-red-bg); color: var(--color-red); }
+.badge[data-zone='flat'] { background: var(--color-surface-alt); color: var(--color-text-faint); }
+
+.priceLine {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.price {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: -0.01em;
+}
+.change {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+.change[data-direction='up'] { color: var(--color-green); }
+.change[data-direction='down'] { color: var(--color-red); }
+.change[data-direction='flat'] { color: var(--color-text-faint); }
+
+.muted { color: var(--color-text-muted); font-size: 13px; }
+.error { color: var(--color-red); font-size: 13px; }
+
+.note {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
