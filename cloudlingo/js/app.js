@@ -2547,7 +2547,7 @@
   let fnTimer = null;
   function focusCard() {
     const f = S.focus || '';
-    return `<div class="card focus-card" style="margin-top:16px"><h3 style="margin:0">${t('focus_title')}</h3><p class="muted small" style="margin-bottom:10px">${t('focus_sub')}</p>
+    return `<div class="card focus-card" style="margin-top:16px"><h3 style="margin:0">${t('focus_title')}</h3><p class="muted small" style="margin-bottom:10px">${t('focus_snd_sub')}</p>
       <div class="seg" style="grid-template-columns:repeat(3,1fr)">${[['', 'focus_off'], ['rain', 'focus_rain'], ['calm', 'focus_calm']].map(([v, k]) => `<button class="${f === v ? 'on' : ''}" data-act="setfocus" data-f="${v}">${t(k)}</button>`).join('')}</div>
       ${f ? `<label class="focus-vol"><span>${t('focus_vol')}</span><input type="range" id="focus-vol" min="0.1" max="1" step="0.05" value="${S.focusVol == null ? 0.5 : S.focusVol}" aria-label="${t('focus_vol')}"></label>` : ''}</div>`;
   }
