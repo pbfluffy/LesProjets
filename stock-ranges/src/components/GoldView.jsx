@@ -2,20 +2,21 @@ import { useEffect, useRef, useState } from 'react'
 import { fetchQuote, QUOTE_ERROR_LABEL_KEY } from '../stockApi.js'
 import { computeDeciles } from '../deciles.js'
 import { formatPrice, dayChange } from '../format.js'
-import { GOLD_SYMBOL, USDTHB_SYMBOL, toBahtGoldSeries, thaiGoldUnitPrices } from '../gold.js'
+import { GOLD_SYMBOL, USDTHB_SYMBOL, toBahtGoldSeries, thaiGoldUnitPrices, scaleGoldSeries, bahtPerUnit } from '../gold.js'
 import { useLang } from '../LangContext.jsx'
 import DecileGauge from './DecileGauge.jsx'
 import styles from './GoldView.module.css'
 
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
 const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
+const PER_UNIT_KEY = { baht: 'goldPerBaht', salueng: 'goldPerSalueng', gram: 'goldPerGram' }
 const UNIT_LABEL_KEY = { baht: 'goldUnitBaht', twoSalueng: 'goldUnitTwoSalueng', salueng: 'goldUnitSalueng', gram: 'goldUnitGram' }
 
 // The GOLD tab: world gold (GC=F, USD/oz) and an estimated Thai price per
 // baht-weight of 96.5% gold, each with the same 10-band position-in-range
 // gauge as a watchlist card, over the app's shared lookback. Uses only the
 // existing quotes Worker (see gold.js for why the Thai price is an estimate).
-export default function GoldView({ range, ranges, rangeLabelKey, onRangeChange, chartType, rates, refreshKey, inWatchlist, onAddToWatchlist }) {
+export default function GoldView({ range, ranges, rangeLabelKey, onRangeChange, chartType, rates, refreshKey, inWatchlist, onAddToWatchlist, goldUnit = 'baht' }) {
   const { s, lang } = useLang()
   const [state, setState] = useState({ status: 'loading', gold: null, fx: null, error: null })
   const [retryNonce, setRetryNonce] = useState(0)
@@ -41,6 +42,8 @@ export default function GoldView({ range, ranges, rangeLabelKey, onRangeChange, 
 
   const { gold, fx } = state
   const thai = gold ? toBahtGoldSeries(gold, fx, rates?.USD ?? null) : null
+  // Main price and chart in the unit picked under profile → Settings.
+  const thaiShown = thai ? scaleGoldSeries(thai, bahtPerUnit(goldUnit)) : null
   const thbPerUsd = Number.isFinite(fx?.current) ? fx.current : (rates?.USD ?? null)
 
   return (
@@ -73,11 +76,11 @@ export default function GoldView({ range, ranges, rangeLabelKey, onRangeChange, 
           {thai && (
             <GoldCard
               title={s.goldThaiTitle}
-              unit={s.goldThaiUnit}
+              unit={s[UNIT_LABEL_KEY[goldUnit]]}
               currency="THB"
-              priceUnit={s.goldPerBaht}
-              series={thai}
-              extra={<ThaiUnits pricePerBaht={thai.current} s={s} />}
+              priceUnit={s[PER_UNIT_KEY[goldUnit]]}
+              series={thaiShown}
+              extra={<ThaiUnits pricePerBaht={thai.current} active={goldUnit} s={s} />}
               sub={Number.isFinite(thbPerUsd) ? `${s.goldFxLabel} ${thbPerUsd.toFixed(2)}` : null}
               chartType={chartType}
               s={s}
@@ -105,13 +108,13 @@ export default function GoldView({ range, ranges, rangeLabelKey, onRangeChange, 
 // The Thai price in the units Thai gold shops use: per baht-weight, per
 // 2 salueng (½ baht) and 1 salueng (¼ baht), plus per gram. Whole baht —
 // shop prices are never quoted in satang.
-function ThaiUnits({ pricePerBaht, s }) {
+function ThaiUnits({ pricePerBaht, active, s }) {
   const rows = thaiGoldUnitPrices(pricePerBaht)
   if (!rows.length) return null
   return (
     <dl className={styles.units} aria-label={s.goldUnitsTitle}>
       {rows.map(({ key, price }) => (
-        <div key={key} className={styles.unitRow}>
+        <div key={key} className={styles.unitRow} data-active={key === active}>
           <dt>{s[UNIT_LABEL_KEY[key]]}</dt>
           <dd>THB {Math.round(price).toLocaleString('en-US')}</dd>
         </div>

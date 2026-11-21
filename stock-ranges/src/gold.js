@@ -26,6 +26,37 @@ export const THAI_GOLD_UNITS = [
   { key: 'gram', baht: 1 / GRAMS_PER_BAHT_WEIGHT },
 ]
 
+// Units a user can pick (profile → Settings) for the Thai card's main price
+// and chart. Stored in localStorage only — a per-device display choice, like
+// the theme, so it needs no Firestore rule.
+export const GOLD_UNIT_KEY = 'stockranges_gold_unit'
+export const GOLD_UNIT_CHOICES = ['baht', 'salueng', 'gram']
+export const DEFAULT_GOLD_UNIT = 'baht'
+
+export function readGoldUnit(raw) {
+  return GOLD_UNIT_CHOICES.includes(raw) ? raw : DEFAULT_GOLD_UNIT
+}
+
+// Baht-weights in one of `unit` (1 for baht, 0.25 for salueng, …).
+export function bahtPerUnit(unit) {
+  return THAI_GOLD_UNITS.find((u) => u.key === unit)?.baht ?? 1
+}
+
+// Multiplies every price in a toBahtGoldSeries() result by `factor`. The
+// band is unchanged by this (scaling the whole range doesn't move where the
+// price sits in it); only the shown numbers change.
+export function scaleGoldSeries(series, factor) {
+  if (!series || factor === 1) return series
+  const k = (v) => (Number.isFinite(v) ? v * factor : v)
+  return {
+    ...series,
+    prices: series.prices.map(k),
+    ohlc: series.ohlc.map((b) => ({ o: k(b.o), h: k(b.h), l: k(b.l), c: k(b.c) })),
+    current: k(series.current),
+    previousClose: k(series.previousClose),
+  }
+}
+
 // [{ key, price }] — the per-baht-weight price spread over THAI_GOLD_UNITS.
 export function thaiGoldUnitPrices(pricePerBaht) {
   if (!Number.isFinite(pricePerBaht)) return []

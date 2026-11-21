@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { auth, GoogleAuthProvider, signInWithPopup, signOut } from '../firebase.js'
 import { useLang } from '../LangContext.jsx'
 import Icon from './Icon.jsx'
+import ProfileSettings from './ProfileSettings.jsx'
 import styles from './AccountButton.module.css'
 
 const STATUS_LABEL_KEY = { syncing: 'acctSyncing', synced: 'acctSynced', error: 'acctSyncError' }
 
-export default function AccountButton({ user, syncStatus }) {
+export default function AccountButton({ user, syncStatus, settings }) {
   const { s } = useLang()
   const [open, setOpen] = useState(false)
   const [signingIn, setSigningIn] = useState(false)
@@ -86,6 +87,7 @@ export default function AccountButton({ user, syncStatus }) {
               {signInError && <div className={styles.errorText}>{s.acctSignInError}</div>}
             </>
           )}
+          {settings && <ProfileSettings {...settings} />}
         </div>
       )}
     </div>

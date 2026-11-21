@@ -141,3 +141,6 @@
   line-height: 1.5;
   margin: 0;
 }
+
+/* The unit picked in Settings, which the big price above is shown in. */
+.unitRow[data-active='true'] dt { color: var(--color-text); font-weight: 600; }
