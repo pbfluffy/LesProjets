@@ -2007,7 +2007,18 @@
     // AWS exams: 65 questions; a course can set its own real exam length (ITIL: 40 in 60 minutes).
     ? Object.assign({ questions: 65, minutes: c.level === 'Foundational' ? 90 : 130, pass: c.exam.pass }, c.full)
     : c.exam;
-  const examPool = c => c.units.reduce((n, u) => n + u.questions.filter(q => q.t !== 'match' && live(q)).length, 0);
+  // Mock exams use only the real exam's question types: one answer, or "choose two" (no true/false, fill-in or matching).
+  const examQ = q => live(q) && ((q.t === 'mc' && !q.tf) || q.t === 'multi');
+  const examPool = c => c.units.reduce((n, u) => n + u.questions.filter(examQ).length, 0);
+  // AWS reports a scaled score from 100 to 1,000 (700 to pass the Foundational exams, 720 the Associate ones) and doesn't
+  // publish how it converts. Estimate it so our pass mark lines up with theirs: below it maps to 100..pass, above to pass..1,000.
+  const AWS_PASS = { Foundational: 700, Associate: 720 };
+  function scaledScore(c, pct, passPct) {
+    const ps = AWS_PASS[c.level];
+    if (!ps) return null;
+    const v = pct >= passPct ? ps + (pct - passPct) / (100 - passPct) * (1000 - ps) : 100 + pct / passPct * (ps - 100);
+    return { v: Math.round(v), pass: ps };
+  }
 
   function examView() {
     const c = course(), pool = examPool(c);
@@ -2034,7 +2045,7 @@
 
   function startExam(mode = 'quick') {
     const c = course(), sp = examSpec(c, mode);
-    const byUnit = c.units.map(u => shuffle(u.questions.filter(q => q.t !== 'match' && live(q))));
+    const byUnit = c.units.map(u => shuffle(u.questions.filter(examQ)));
     // Share of questions per unit follows the real exam's domain weights (largest remainder
     // rounding); a unit without enough questions passes its leftover to the others.
     const ws = c.units.map(u => unitWeight(c, u)), wsum = ws.reduce((a, b) => a + b, 0);
@@ -2163,6 +2174,7 @@
   function examResultView() {
     const c = COURSES.find(x => x.id === R.cert);
     const list = R.items.filter(x => R.showAll || !x.ok);
+    const sc = scaledScore(c, R.score, R.passAt);
     return `<div class="exambody" style="padding-bottom:140px">
       <div style="text-align:center;margin:20px 0 26px">
         ${mascot(130, R.pass ? 'cool' : 'tired', R.pass ? 'bounce' : '')}
@@ -2171,10 +2183,11 @@
         <button class="linkbtn chbtn" style="margin-top:8px" data-act="challenge" data-k="e" data-s="${R.score}" data-c="${R.cert}">${ICON('share')} ${t('ch_btn')}</button>
       </div>
       <div class="statrow" style="margin-bottom:24px">
-        <div class="stat ${R.pass ? 'green' : 'flame'}"><div class="lbl">${t('score')}</div><div class="val">${R.score}%</div></div>
+        <div class="stat ${R.pass ? 'green' : 'flame'}"><div class="lbl">${t('score')}</div><div class="val">${R.score}%</div>${sc ? `<div class="sub">${t('scaled_short', { v: sc.v })}</div>` : ''}</div>
         <div class="stat blue"><div class="lbl">${t('correct_lbl')}</div><div class="val">${R.correct} / ${R.items.length}</div></div>
         <div class="stat gold"><div class="lbl">${t('xp_earned')}</div><div class="val">${ICON('bolt')} ${R.xp}</div></div>
       </div>
+      ${sc ? `<p class="muted small scaled-note">${t('scaled_note', { p: sc.pass })}</p>` : ''}
       ${(R.badges || []).length ? `<div class="statrow" style="margin-bottom:18px">${badgeLine(R.badges)}</div>` : ''}
       ${R.pass ? `<div style="text-align:center;margin-bottom:18px"><button class="btn ghost" data-act="share">${ICON('share')} ${t('share_btn')}</button></div>` : ''}
       <div class="card" style="margin-bottom:18px"><h3>${t('by_domain')}</h3>

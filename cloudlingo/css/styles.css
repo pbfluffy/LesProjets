@@ -354,6 +354,8 @@ h1, h2, h3, p { margin: 0; }
 .stat { border-radius: 16px; border: 2px solid; min-width: 130px; overflow: hidden; }
 .stat .lbl { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; color: #fff; padding: 5px 10px; }
 .stat .val { font-size: 22px; font-weight: 900; padding: 12px; background: var(--surface); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.stat .sub { background: var(--surface); font-size: 12px; font-weight: 800; color: var(--muted); text-align: center; padding: 0 10px 10px; margin-top: -6px; }
+.scaled-note { text-align: center; max-width: 520px; margin: -10px auto 22px; line-height: 1.45; }
 .stat.gold { border-color: var(--gold); } .stat.gold .lbl { background: var(--gold); } .stat.gold .val { color: var(--gold); }
 .stat.green { border-color: var(--good); } .stat.green .lbl { background: var(--good); } .stat.green .val { color: var(--good); }
 .stat.blue { border-color: var(--primary); } .stat.blue .lbl { background: var(--primary); } .stat.blue .val { color: var(--primary); }
