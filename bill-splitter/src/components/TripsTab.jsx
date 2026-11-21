@@ -66,7 +66,7 @@ function TripForm({ initial, onSave, onCancel, title }) {
 }
 
 // ── Settlement + summary section ────────────────────────────────────────────
-function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvertToggle, convOwed, convPaid, convSettlements, mixedConv, savedPayees = [] }) {
+function TripSummarySection({ trip, summary, rate, rates, rateLoading, missingRates = [], onConvertToggle,convOwed, convPaid, convSettlements, mixedConv, savedPayees = [] }) {
   const { t } = useLang()
   const [openQr, setOpenQr] = useState(null) // "from→to" whose QR is showing
   if (!summary) return null
@@ -127,8 +127,13 @@ function TripSummarySection({ trip, summary, rate, rates, rateLoading, onConvert
            that brief loading window, a failed fetch, or the user tapped back to
            "original" — the wording below has to hold for all three, not assert a
            failure that may not have happened. */}
+      {missingRates.length > 0 && !rateLoading && (
+        <div style={{ fontSize: 12, color: 'var(--color-amber)', marginBottom: 8 }}>
+          {(t.tripConvertMissing ?? 'No exchange rate for {codes} right now — showing original currencies').replace('{codes}', missingRates.join(', '))}
+        </div>
+      )}
       {summary.mixedCurrencies && !rates
-        ? (
+        ? (missingRates.length > 0 && !rateLoading) ? null : (
             <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8 }}>
               {rateLoading
                 ? (t.tripConvertLoading ?? 'Loading exchange rates…')
@@ -413,8 +418,24 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
   const summary = tripSummary(trip.id, entries) ?? (sharedSnapshot ? { ...sharedSnapshot, hasData: true, mixedCurrencies: false } : null)
   const detailCurrency = summary?.currency ?? trip.currency
   const isTHB = detailCurrency === 'THB'
-  const [rates, setRates] = useState(null) // null | { [currency]: thbRate }
+  const [fetchedRates, setRates] = useState(null) // null | { [currency]: thbRate }
   const [rateLoading, setRateLoading] = useState(false)
+  // Only treat the trip as convertible when EVERY non-THB currency in it has
+  // a rate. This used to fall back to a factor of 1 for a missing code, which
+  // silently showed e.g. ₩10,000 as ฿10,000 and put that into settlements
+  // and PromptPay QRs. A partial rate map now counts as "no rates": the trip
+  // stays in its original currencies and the summary names what's missing.
+  // (Bills with no currency field predate multi-currency and are THB.)
+  const tripCurrencies = new Set([detailCurrency])
+  tripBills.forEach(entry => {
+    if (entry._missing) return
+    const c = (entry._sharedBill ?? calcBillResult(entry)).currency
+    if (c) tripCurrencies.add(c)
+  })
+  const missingRates = fetchedRates
+    ? [...tripCurrencies].filter(c => c !== 'THB' && !(fetchedRates[c] > 0))
+    : []
+  const rates = fetchedRates && missingRates.length === 0 ? fetchedRates : null
   const rate = rates ? rates[detailCurrency] ?? null : null // backwards-compat for single-currency toggle label
   const captureRef = useRef(null)
   const [capturing, setCapturing] = useState(false)
@@ -422,10 +443,10 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
   const [showPPSettings, setShowPPSettings] = useState(false)
   const [toast, setToast] = useState(null)
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500) }
-  const fetchRates = async () => {
+  const fetchRates = async (force = false) => {
     setRateLoading(true)
     try {
-      const map = await getThbRates()
+      const map = await getThbRates({ force })
       if (map) setRates(map)
     } finally { setRateLoading(false) }
   }
@@ -435,12 +456,14 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
   // do. getThbRates() is cheap after the first call (cached per calendar
   // day), so this doesn't mean a network round-trip on every trip open.
   useEffect(() => {
-    if (!isTHB && !rates && !rateLoading) fetchRates()
+    if (!isTHB && !fetchedRates && !rateLoading) fetchRates()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip.id, isTHB])
   const handleConvertToggle = () => {
     if (rates) { setRates(null); return } // "show original" — re-tapping re-fetches (instant if same-day cached)
-    if (!isTHB) fetchRates()
+    // Rates came back without one of this trip's currencies: bypass the
+    // same-day cache, since the cached map would be missing it too.
+    if (!isTHB) fetchRates(missingRates.length > 0)
   }
   const conv = (n) => rate !== null ? n * rate : n
   const dispCurrency = rate !== null ? 'THB' : detailCurrency
@@ -455,7 +478,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
       if (entry._missing) return
       const _pre = entry._sharedBill
       const { grandTotal: bt, totals: bTotals, currency: bCurr } = _pre ?? calcBillResult(entry)
-      const factor = (bCurr && bCurr !== 'THB') ? (rates[bCurr] ?? 1) : 1
+      const factor = (bCurr && bCurr !== 'THB') ? rates[bCurr] : 1 // present: `rates` is null unless complete
       Object.entries(bTotals || {}).forEach(([m, v]) => {
         if (o[m] !== undefined) o[m] += Math.round((Number(v) || 0) * factor)
       })
@@ -489,8 +512,8 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
   const convPaid = mixedConv?.paid ?? (rates && !isTHB
     ? Object.fromEntries(trip.members.map(m => [m, Math.round((summary?.paid?.[m] ?? 0) * (rate ?? 1))]))
     : (summary?.paid ?? {}))
-  const toThb = (c) => (c && c !== 'THB' ? (rates?.[c] ?? rate ?? 1) : 1)
-  const convSettlements = summary?.hasPayers ? settleWith(toThb) : []
+  const toThb = (c) => (c && c !== 'THB' ? rates[c] : 1)
+  const convSettlements = summary?.hasPayers && rates ? settleWith(toThb) : []
   // A shared trip's summary is the snapshot taken when it was shared; work its
   // transfers out again from the embedded bills rather than trusting the
   // snapshot's (older links were made with the pooled method).
@@ -683,7 +706,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
         </div>
       )}
 
-      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} onConvertToggle={handleConvertToggle} convOwed={convOwed} convPaid={convPaid} convSettlements={convSettlements} mixedConv={mixedConv} savedPayees={savedPayees} />
+      <TripSummarySection trip={trip} summary={summary} rate={rate} rates={rates} rateLoading={rateLoading} missingRates={missingRates} onConvertToggle={handleConvertToggle} convOwed={convOwed} convPaid={convPaid} convSettlements={convSettlements} mixedConv={mixedConv} savedPayees={savedPayees} />
 
       {/* Buttons: Share link | Line | Save image — matches Bill Splitter ResultSection */}
       {summary && summary.hasData && (
@@ -707,7 +730,7 @@ function TripDetail({ trip, entries, tripSummary, onBack, onAddBill, onRemoveBil
                   if (entry._missing) return acc
                   const _pre = entry._sharedBill
                   const { grandTotal: bt, currency: bCurr } = _pre ?? calcBillResult(entry)
-                  const f = (bCurr && bCurr !== 'THB') ? (rates[bCurr] ?? 1) : 1
+                  const f = (bCurr && bCurr !== 'THB') ? rates[bCurr] : 1
                   return acc + Math.round((bt || 0) * f)
                 }, 0) : summary.grandTotal
                 const snapSettlements = (_snapRate || mixedConv) && summary.hasPayers
