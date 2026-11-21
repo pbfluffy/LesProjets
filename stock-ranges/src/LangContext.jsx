@@ -82,6 +82,15 @@ export const STRINGS = {
     goldFxLabel: 'USD/THB',
     goldPerBaht: '/ baht',
     goldPerOz: '/ oz',
+    goldPerSalueng: '/ salueng',
+    goldPerGram: '/ gram',
+    settingsTitle: 'Settings',
+    settingsLanguage: 'Language',
+    settingsCurrency: 'Default currency',
+    settingsGoldUnit: 'Thai gold unit',
+    settingsUnitBaht: 'Baht',
+    settingsUnitSalueng: 'Salueng',
+    settingsUnitGram: 'Gram',
     goldUnitsTitle: 'Price in Thai units',
     goldUnitBaht: '1 baht (15.244 g)',
     goldUnitTwoSalueng: '2 salueng (½ baht)',
@@ -408,6 +417,15 @@ export const STRINGS = {
     goldFxLabel: 'USD/THB',
     goldPerBaht: '/ บาท',
     goldPerOz: '/ ออนซ์',
+    goldPerSalueng: '/ สลึง',
+    goldPerGram: '/ กรัม',
+    settingsTitle: 'การตั้งค่า',
+    settingsLanguage: 'ภาษา',
+    settingsCurrency: 'สกุลเงินหลัก',
+    settingsGoldUnit: 'หน่วยทองคำไทย',
+    settingsUnitBaht: 'บาท',
+    settingsUnitSalueng: 'สลึง',
+    settingsUnitGram: 'กรัม',
     goldUnitsTitle: 'ราคาตามหน่วยไทย',
     goldUnitBaht: '1 บาท (15.244 กรัม)',
     goldUnitTwoSalueng: '2 สลึง (ครึ่งบาท)',
@@ -672,7 +690,7 @@ export function LangProvider({ children }) {
   const toggle = () => setLang((l) => (l === 'th' ? 'en' : 'th'))
 
   return (
-    <LangContext.Provider value={{ lang, toggle, s: STRINGS[lang] }}>
+    <LangContext.Provider value={{ lang, setLang, toggle, s: STRINGS[lang] }}>
       {children}
     </LangContext.Provider>
   )

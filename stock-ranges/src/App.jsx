@@ -18,7 +18,7 @@ import UndoToast from './components/UndoToast.jsx'
 import WalletView from './components/WalletView.jsx'
 import WalletLocked from './components/WalletLocked.jsx'
 import GoldView from './components/GoldView.jsx'
-import { GOLD_SYMBOL } from './gold.js'
+import { GOLD_SYMBOL, GOLD_UNIT_KEY, readGoldUnit } from './gold.js'
 import { MAX_CUSTOM_BRANDS } from './components/KnownFor.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import MarketStatus from './components/MarketStatus.jsx'
@@ -187,6 +187,8 @@ function Dashboard() {
   const [watchlist, setWatchlist] = useState(loadWatchlist)
   const [range, setRange] = useState(() => localStorage.getItem(RANGE_KEY) || '1y')
   const [currency, setCurrency] = useState(() => localStorage.getItem(CURRENCY_KEY) || 'USD')
+  const [goldUnit, setGoldUnit] = useState(() => readGoldUnit(localStorage.getItem(GOLD_UNIT_KEY)))
+  useEffect(() => { localStorage.setItem(GOLD_UNIT_KEY, goldUnit) }, [goldUnit])
   const [chartType, setChartType] = useState(() => localStorage.getItem(CHART_TYPE_KEY) || 'line')
   const [watchlistView, setWatchlistView] = useState(() => localStorage.getItem(WATCHLIST_VIEW_KEY) || 'cards')
   const [tags, setTags] = useState(loadTags)
@@ -790,7 +792,11 @@ function Dashboard() {
             )}
           </div>
           <div className={styles.account} data-tour="account">
-            <AccountButton user={cloudSync.user} syncStatus={cloudSync.syncStatus} />
+            <AccountButton
+              user={cloudSync.user}
+              syncStatus={cloudSync.syncStatus}
+              settings={{ currency, onCurrencyChange: setCurrency, goldUnit, onGoldUnitChange: setGoldUnit }}
+            />
           </div>
         </div>
       </div>
@@ -894,6 +900,7 @@ function Dashboard() {
           rates={rates}
           refreshKey={refreshKey}
           inWatchlist={watchlist.includes(GOLD_SYMBOL)}
+          goldUnit={goldUnit}
           onAddToWatchlist={(symbol) => { addSymbol(symbol); setTab('watchlist') }}
         />
       ) : tab === 'wallet' ? (

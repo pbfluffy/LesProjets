@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { bahtGoldPrice, toBahtGoldSeries, thaiGoldUnitPrices, GRAMS_PER_BAHT_WEIGHT, GRAMS_PER_TROY_OZ, THAI_GOLD_PURITY } from '../src/gold.js'
+import { bahtGoldPrice, toBahtGoldSeries, thaiGoldUnitPrices, readGoldUnit, bahtPerUnit, scaleGoldSeries, GRAMS_PER_BAHT_WEIGHT, GRAMS_PER_TROY_OZ, THAI_GOLD_PURITY } from '../src/gold.js'
 
 const K = (GRAMS_PER_BAHT_WEIGHT / GRAMS_PER_TROY_OZ) * THAI_GOLD_PURITY
 
@@ -49,6 +49,22 @@ test('thaiGoldUnitPrices spreads the per-baht price over baht, salueng and gram'
   assert.equal(out.salueng, 10000)
   assert.ok(Math.abs(out.gram - 40000 / 15.244) < 1e-9)
   assert.deepEqual(thaiGoldUnitPrices(null), [])
+})
+
+test('gold unit setting: unknown values fall back to baht, units convert, scaling keeps the band', () => {
+  assert.equal(readGoldUnit('gram'), 'gram')
+  assert.equal(readGoldUnit(null), 'baht')
+  assert.equal(readGoldUnit('"gram"'), 'baht')
+  assert.equal(bahtPerUnit('salueng'), 0.25)
+  assert.equal(bahtPerUnit('nope'), 1)
+  const series = { prices: [100, 200], ohlc: [{ o: 100, h: 110, l: 90, c: 100 }, { o: 200, h: 210, l: 190, c: 200 }], timestamps: [1, 2], current: 150, previousClose: null }
+  const q = scaleGoldSeries(series, 0.25)
+  assert.deepEqual(q.prices, [25, 50])
+  assert.deepEqual(q.ohlc[1], { o: 50, h: 52.5, l: 47.5, c: 50 })
+  assert.equal(q.current, 37.5)
+  assert.equal(q.previousClose, null)
+  assert.deepEqual(q.timestamps, [1, 2])
+  assert.equal(scaleGoldSeries(series, 1), series)
 })
 
 test('toBahtGoldSeries returns null with no gold data or no rate at all', () => {
