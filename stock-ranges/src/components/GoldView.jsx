@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { fetchQuote, QUOTE_ERROR_LABEL_KEY } from '../stockApi.js'
 import { computeDeciles } from '../deciles.js'
 import { formatPrice, dayChange } from '../format.js'
-import { GOLD_SYMBOL, USDTHB_SYMBOL, toBahtGoldSeries } from '../gold.js'
+import { GOLD_SYMBOL, USDTHB_SYMBOL, toBahtGoldSeries, thaiGoldUnitPrices } from '../gold.js'
 import { useLang } from '../LangContext.jsx'
 import DecileGauge from './DecileGauge.jsx'
 import styles from './GoldView.module.css'
 
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
 const CHANGE_ARROW = { up: '▲', down: '▼', flat: '·' }
+const UNIT_LABEL_KEY = { baht: 'goldUnitBaht', twoSalueng: 'goldUnitTwoSalueng', salueng: 'goldUnitSalueng', gram: 'goldUnitGram' }
 
 // The GOLD tab: world gold (GC=F, USD/oz) and an estimated Thai price per
 // baht-weight of 96.5% gold, each with the same 10-band position-in-range
@@ -74,7 +75,9 @@ export default function GoldView({ range, ranges, rangeLabelKey, onRangeChange, 
               title={s.goldThaiTitle}
               unit={s.goldThaiUnit}
               currency="THB"
+              priceUnit={s.goldPerBaht}
               series={thai}
+              extra={<ThaiUnits pricePerBaht={thai.current} s={s} />}
               sub={Number.isFinite(thbPerUsd) ? `${s.goldFxLabel} ${thbPerUsd.toFixed(2)}` : null}
               chartType={chartType}
               s={s}
@@ -85,6 +88,7 @@ export default function GoldView({ range, ranges, rangeLabelKey, onRangeChange, 
             title={s.goldWorldTitle}
             unit={s.goldWorldUnit}
             currency={gold.currency || 'USD'}
+            priceUnit={s.goldPerOz}
             series={gold}
             sub={GOLD_SYMBOL}
             chartType={chartType}
@@ -98,7 +102,25 @@ export default function GoldView({ range, ranges, rangeLabelKey, onRangeChange, 
   )
 }
 
-function GoldCard({ title, unit, currency, series, sub, chartType, s, lang }) {
+// The Thai price in the units Thai gold shops use: per baht-weight, per
+// 2 salueng (½ baht) and 1 salueng (¼ baht), plus per gram. Whole baht —
+// shop prices are never quoted in satang.
+function ThaiUnits({ pricePerBaht, s }) {
+  const rows = thaiGoldUnitPrices(pricePerBaht)
+  if (!rows.length) return null
+  return (
+    <dl className={styles.units} aria-label={s.goldUnitsTitle}>
+      {rows.map(({ key, price }) => (
+        <div key={key} className={styles.unitRow}>
+          <dt>{s[UNIT_LABEL_KEY[key]]}</dt>
+          <dd>THB {Math.round(price).toLocaleString('en-US')}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+function GoldCard({ title, unit, currency, priceUnit, series, sub, extra, chartType, s, lang }) {
   const deciles = computeDeciles({ prices: series.prices, current: series.current })
   const change = dayChange(series.current, series.previousClose)
   return (
@@ -116,12 +138,14 @@ function GoldCard({ title, unit, currency, series, sub, chartType, s, lang }) {
       </div>
       <div className={styles.priceLine}>
         <span className={styles.price}>{formatPrice(series.current, currency)}</span>
+        {priceUnit && <span className={styles.priceUnit}>{priceUnit}</span>}
         {change && (
           <span className={styles.change} data-direction={change.direction}>
             {CHANGE_ARROW[change.direction]} {Math.abs(change.percent).toFixed(2)}%
           </span>
         )}
       </div>
+      {extra}
       {deciles && (
         <DecileGauge
           prices={series.prices}

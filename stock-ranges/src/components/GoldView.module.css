@@ -95,6 +95,34 @@
   font-family: var(--font-mono);
   letter-spacing: -0.01em;
 }
+.priceUnit {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-left: -4px;
+}
+
+/* Thai units: 2×2 grid of label/price pairs under the Thai price. */
+.units {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  margin: -4px 0 12px;
+  padding: 8px 10px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+}
+.unitRow { min-width: 0; }
+.unitRow dt {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.unitRow dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
 .change {
   font-size: 12px;
   font-family: var(--font-mono);

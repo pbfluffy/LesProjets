@@ -16,6 +16,22 @@ export const GRAMS_PER_BAHT_WEIGHT = 15.244
 // Thai standard gold is 96.5% pure.
 export const THAI_GOLD_PURITY = 0.965
 
+// Thai gold is weighed in baht (บาท) and its quarter, the salueng (สลึง);
+// shops quote per baht and sell small pieces as 1 or 2 salueng. Grams are
+// listed too, for comparing with world prices.
+export const THAI_GOLD_UNITS = [
+  { key: 'baht', baht: 1 },
+  { key: 'twoSalueng', baht: 0.5 },
+  { key: 'salueng', baht: 0.25 },
+  { key: 'gram', baht: 1 / GRAMS_PER_BAHT_WEIGHT },
+]
+
+// [{ key, price }] — the per-baht-weight price spread over THAI_GOLD_UNITS.
+export function thaiGoldUnitPrices(pricePerBaht) {
+  if (!Number.isFinite(pricePerBaht)) return []
+  return THAI_GOLD_UNITS.map(({ key, baht }) => ({ key, price: pricePerBaht * baht }))
+}
+
 // THB for one baht-weight of 96.5% gold, given USD per troy ounce (of pure
 // gold) and THB per USD. null when either input isn't a usable number.
 export function bahtGoldPrice(usdPerOz, thbPerUsd) {

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { bahtGoldPrice, toBahtGoldSeries, GRAMS_PER_BAHT_WEIGHT, GRAMS_PER_TROY_OZ, THAI_GOLD_PURITY } from '../src/gold.js'
+import { bahtGoldPrice, toBahtGoldSeries, thaiGoldUnitPrices, GRAMS_PER_BAHT_WEIGHT, GRAMS_PER_TROY_OZ, THAI_GOLD_PURITY } from '../src/gold.js'
 
 const K = (GRAMS_PER_BAHT_WEIGHT / GRAMS_PER_TROY_OZ) * THAI_GOLD_PURITY
 
@@ -40,6 +40,15 @@ test('toBahtGoldSeries falls back to one rate when there is no FX series', () =>
   const out = toBahtGoldSeries({ prices: [100, 200], timestamps: [1, 2], current: 200, previousClose: 100 }, null, 35)
   assert.deepEqual(out.prices.map((p) => +(p / K).toFixed(6)), [3500, 7000])
   assert.equal(+(out.previousClose / K).toFixed(6), 3500)
+})
+
+test('thaiGoldUnitPrices spreads the per-baht price over baht, salueng and gram', () => {
+  const out = Object.fromEntries(thaiGoldUnitPrices(40000).map(({ key, price }) => [key, price]))
+  assert.equal(out.baht, 40000)
+  assert.equal(out.twoSalueng, 20000)
+  assert.equal(out.salueng, 10000)
+  assert.ok(Math.abs(out.gram - 40000 / 15.244) < 1e-9)
+  assert.deepEqual(thaiGoldUnitPrices(null), [])
 })
 
 test('toBahtGoldSeries returns null with no gold data or no rate at all', () => {
