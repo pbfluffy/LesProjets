@@ -108,7 +108,7 @@ Object.assign(window.WHY_NOT = window.WHY_NOT || {}, {
   'dva-3-15': ['', 'buildspec.yml is for CodeBuild.', 'appspec.yml is for CodeDeploy.', 'template.yaml is for SAM or CloudFormation.'],
   'dva-3-16': ['', 'Linear shifts traffic in equal steps over time.', 'All-at-once shifts everything at once.', 'In-place deployments apply to EC2, not Lambda.'],
   'dva-3-17': ['', 'CodeBuild runs builds and tests.', 'CodeDeploy deploys to compute.', 'CodeArtifact stores packages.'],
-  'dva-3-18': ['', 'ECR stores container images.', 'CodeCommit stored Git repositories.', 'Glacier archives data.'],
+  'dva-3-18': ['', 'ECR stores container images.', 'CodeCommit stores source code in Git repositories.', 'Glacier archives data.'],
   'dva-3-19': ['', 'PutMetricData in a loop adds latency and cost.', 'S3 events react to objects, not metrics.', 'Config tracks resource settings.'],
   'dva-3-20': ['', 'S3 isn’t the default log destination.', 'CloudTrail records API calls, not function logs.', 'Kinesis can receive logs but isn’t the default.'],
   'dva-3-21': ['', 'Metadata isn’t indexed, so you can’t filter traces by it.', 'Sampling rules decide which requests are traced.', 'Log groups belong to CloudWatch Logs.'],

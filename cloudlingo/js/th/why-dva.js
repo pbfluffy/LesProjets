@@ -107,7 +107,7 @@ Object.assign(window.TH_WHY = window.TH_WHY || {}, {
   'dva-3-15': ['', 'buildspec.yml ใช้กับ CodeBuild', 'appspec.yml ใช้กับ CodeDeploy', 'template.yaml ใช้กับ SAM หรือ CloudFormation'],
   'dva-3-16': ['', 'Linear เพิ่มทราฟฟิกทีละเท่าๆ กันตามเวลา', 'All-at-once ย้ายทั้งหมดในครั้งเดียว', 'In-place ใช้กับ EC2 ไม่ใช่ Lambda'],
   'dva-3-17': ['', 'CodeBuild รัน build และ test', 'CodeDeploy deploy ไปยังเครื่อง', 'CodeArtifact เก็บแพ็กเกจ'],
-  'dva-3-18': ['', 'ECR เก็บ container image', 'CodeCommit เคยใช้เก็บ Git repository', 'Glacier เก็บข้อมูลระยะยาว'],
+  'dva-3-18': ['', 'ECR เก็บ container image', 'CodeCommit เก็บซอร์สโค้ดใน Git repository', 'Glacier เก็บข้อมูลระยะยาว'],
   'dva-3-19': ['', 'เรียก PutMetricData ถี่ๆ เพิ่มความหน่วงและค่าใช้จ่าย', 'S3 event ทำงานกับอ็อบเจกต์ ไม่ใช่เมตริก', 'Config ติดตามการตั้งค่าทรัพยากร'],
   'dva-3-20': ['', 'S3 ไม่ใช่ที่ส่ง log โดยค่าเริ่มต้น', 'CloudTrail บันทึกการเรียก API ไม่ใช่ log ของฟังก์ชัน', 'Kinesis รับ log ได้แต่ไม่ใช่ค่าเริ่มต้น'],
   'dva-3-21': ['', 'Metadata ไม่ถูก index จึงใช้กรอง trace ไม่ได้', 'Sampling rule กำหนดว่าคำขอใดถูก trace', 'Log group เป็นของ CloudWatch Logs'],
