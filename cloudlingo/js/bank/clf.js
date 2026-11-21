@@ -27,7 +27,7 @@ addQuestions('clf-1', [
     o: ['AWS aggregates usage from many customers, which lowers pay-as-you-go prices', 'You must buy servers in bulk to get a discount', 'You pay a fixed monthly fee regardless of usage', 'Larger instances are always cheaper per hour'], a: 0,
     e: 'Because AWS serves hundreds of thousands of customers, it achieves lower costs and passes savings on.' },
   { t: 'multi', q: 'Which TWO are perspectives of the AWS Cloud Adoption Framework (AWS CAF)?',
-    o: ['Security', 'Platform', 'Marketing', 'Hardware'], a: [0, 1],
+    o: ['Security', 'Platform', 'Marketing', 'Hardware', 'Finance'], a: [0, 1],
     e: 'The six CAF perspectives are Business, People, Governance, Platform, Security, and Operations.' }
 ]);
 
@@ -155,7 +155,7 @@ addQuestions('clf-5', [
     o: ['second', 'year', 'month', 'request'], a: 0,
     e: 'Many EC2 instances (such as Linux) are billed per second with a 60-second minimum.' },
   { t: 'multi', q: 'Which TWO factors directly affect the cost of Amazon S3?',
-    o: ['Amount of data stored', 'Number of requests', 'Number of IAM users', 'Number of VPCs'], a: [0, 1],
+    o: ['Amount of data stored', 'Number of requests', 'Number of IAM users', 'Number of VPCs', 'Number of security groups'], a: [0, 1],
     e: 'S3 charges for storage, requests, and data transfer out, varying by storage class.' }
 ]);
 
@@ -179,7 +179,7 @@ addQuestions('clf-1', [
     o: ['Cost Optimization', 'Sustainability', 'Reliability', 'Operational Excellence'], a: 0,
     e: 'Cost Optimization is about delivering value at the lowest price, for example by right-sizing and turning off idle resources.' },
   { t: 'multi', q: 'Which TWO are benefits of AWS’s global infrastructure?',
-    o: ['Lower latency by running close to users', 'High availability across several Availability Zones', 'Free data transfer between Regions', 'No need to choose where your data is stored'], a: [0, 1],
+    o: ['Lower latency by running close to users', 'High availability across several Availability Zones', 'Free data transfer between Regions', 'No need to choose where your data is stored', 'Every service is available in every Region'], a: [0, 1],
     e: 'Many Regions and AZs let you run close to users and stay available if one data center fails.' },
   { t: 'fill', q: 'Making an existing instance bigger, for example by adding more memory, is called scaling ___.',
     o: ['up', 'out', 'in', 'down'], a: 0,
@@ -210,7 +210,7 @@ addQuestions('clf-2', [
     o: ['Patching the database engine and operating system', 'Creating database users and their permissions', 'Deciding which data to store', 'Configuring security group rules'], a: 0,
     e: 'With managed services AWS takes on more, such as OS and engine patching, but you still manage access and your data.' },
   { t: 'multi', q: 'Which TWO are best practices for securing an AWS account?',
-    o: ['Turn on MFA for the root user and privileged users', 'Grant least-privilege permissions', 'Use the root user for everyday tasks', 'Put access keys in application code'], a: [0, 1],
+    o: ['Turn on MFA for the root user and privileged users', 'Grant least-privilege permissions', 'Use the root user for everyday tasks', 'Put access keys in application code', 'Share one IAM user across the team'], a: [0, 1],
     e: 'Turn on MFA and give each identity only what it needs. Use IAM roles instead of keys written into code.' },
   { t: 'mc', q: 'Which service centrally manages AWS WAF rules and Shield Advanced protections across all accounts in AWS Organizations?',
     o: ['AWS Firewall Manager', 'AWS Security Hub', 'AWS Config', 'Amazon GuardDuty'], a: 0,
@@ -241,7 +241,7 @@ addQuestions('clf-3', [
     o: ['S3 Lifecycle rules', 'S3 Versioning', 'S3 Transfer Acceleration', 'S3 Cross-Region Replication'], a: 0,
     e: 'Lifecycle rules move objects between storage classes or delete them on a schedule.' },
   { t: 'multi', q: 'Which TWO are serverless compute options on AWS?',
-    o: ['AWS Lambda', 'AWS Fargate', 'Amazon EC2', 'Amazon Lightsail'], a: [0, 1],
+    o: ['AWS Lambda', 'AWS Fargate', 'Amazon EC2', 'Amazon Lightsail', 'AWS Outposts'], a: [0, 1],
     e: 'Lambda runs functions and Fargate runs containers without you managing servers.' },
   { t: 'mc', q: 'Which S3 feature keeps earlier versions of an object so you can recover from accidental deletes or overwrites?',
     o: ['S3 Versioning', 'S3 Lifecycle rules', 'S3 Inventory', 'Requester Pays'], a: 0,
@@ -269,7 +269,7 @@ addQuestions('clf-4', [
     o: ['AWS Transit Gateway', 'VPC peering', 'Internet gateway', 'Amazon Route 53'], a: 0,
     e: 'Transit Gateway acts as a hub, so you don’t need a web of peering connections between every pair of networks.' },
   { t: 'multi', q: 'Which TWO are benefits of Amazon RDS compared with running a database on EC2 yourself?',
-    o: ['Automated backups', 'Automatic software patching', 'Full access to the host operating system', 'Storage at no cost'], a: [0, 1],
+    o: ['Automated backups', 'Automatic software patching', 'Full access to the host operating system', 'Storage at no cost', 'Install any database engine you like'], a: [0, 1],
     e: 'RDS handles backups, patching and failover for you; in return you don’t get access to the host.' },
   { t: 'mc', q: 'Which RDS feature keeps a standby copy of the database in another Availability Zone for automatic failover?',
     o: ['Multi-AZ deployment', 'Read replicas', 'Automated backups', 'Provisioned IOPS'], a: 0,
@@ -303,7 +303,7 @@ addQuestions('clf-5', [
     o: ['AWS Control Tower', 'AWS Organizations', 'AWS Config', 'AWS Service Catalog'], a: 0,
     e: 'Control Tower sets up a landing zone with guardrails, built on top of AWS Organizations.' },
   { t: 'multi', q: 'Which TWO factors affect the cost of running an EC2 instance?',
-    o: ['Instance type and size', 'How long the instance runs', 'The number of IAM users in the account', 'The number of security groups attached'], a: [0, 1],
+    o: ['Instance type and size', 'How long the instance runs', 'The number of IAM users in the account', 'The number of security groups attached', 'The number of tags on the instance'], a: [0, 1],
     e: 'You pay for the instance type and size, for the time it runs, plus storage and data transfer.' },
   { t: 'mc', q: 'Which AWS community site lets you ask technical questions and get answers from AWS experts and other users?',
     o: ['AWS re:Post', 'AWS Artifact', 'AWS Marketplace', 'AWS Organizations'], a: 0,
