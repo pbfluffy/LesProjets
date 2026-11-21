@@ -76,7 +76,7 @@ window.TH_GLOSS = {
   'Parameter Store': 'ฟีเจอร์ของ Systems Manager: เก็บค่าการตั้งค่าและความลับ',
   'Trusted Advisor': 'ตรวจบัญชีตามแนวปฏิบัติที่ดีด้านค่าใช้จ่าย ความปลอดภัย ประสิทธิภาพ และขีดจำกัด',
   'AWS Organization': 'จัดการหลายบัญชี AWS ร่วมกัน พร้อมบิลรวมและนโยบายกลาง',
-  'AWS Support': 'แผนซัพพอร์ตของ AWS: Basic, Developer, Business, Enterprise On-Ramp และ Enterprise',
+  'AWS Support': 'แผนซัพพอร์ตของ AWS: Basic, Business Support+, Enterprise Support และ Unified Operations โดย Business Support+ มาแทนแผน Developer และ Business เดิม',
   'Well-Architected Framework': 'แนวปฏิบัติที่ดีของ AWS แบ่งเป็น 6 เสาหลัก',
   'Cloud Adoption Framework': 'AWS CAF: แนวทางย้ายองค์กรสู่คลาวด์ แบ่งเป็น 6 มุมมอง',
   'CAF': 'Cloud Adoption Framework: แนวทางย้ายองค์กรสู่คลาวด์',

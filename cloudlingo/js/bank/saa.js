@@ -66,7 +66,7 @@ addQuestions('saa-2', [
     o: ['A dead-letter queue', 'A FIFO queue', 'Long polling', 'A larger message size'], a: 0,
     e: 'A DLQ receives messages that exceed the maximum receive count.' },
   { t: 'mc', q: 'Orders must be processed exactly once and in order per customer. Which queue type fits?',
-    o: ['SQS FIFO queue with message group IDs', 'SQS standard queue', 'SNS standard topic', 'Kinesis Data Firehose'], a: 0,
+    o: ['SQS FIFO queue with message group IDs', 'SQS standard queue', 'SNS standard topic', 'Amazon Data Firehose'], a: 0,
     e: 'FIFO queues preserve order within a message group and deduplicate messages.' },
   { t: 'mc', q: 'Which service coordinates several Lambda functions into a workflow with retries and error handling?',
     o: ['AWS Step Functions', 'Amazon SQS', 'Amazon SNS', 'AWS Batch'], a: 0,

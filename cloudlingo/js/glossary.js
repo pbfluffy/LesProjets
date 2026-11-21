@@ -89,7 +89,7 @@ window.GLOSSARY = [
   { k: 'Parameter Store', d: 'Systems Manager feature: stores configuration values and secrets.' },
   { k: 'Trusted Advisor', also: ['AWS Trusted Advisor'], d: 'Checks your account against best practices for cost, security, performance, and limits.' },
   { k: 'AWS Organization', also: ['AWS Organizations'], d: 'Manage many AWS accounts together, with central billing and policies.' },
-  { k: 'AWS Support', d: 'AWS\'s support plans: Basic, Developer, Business, Enterprise On-Ramp, and Enterprise.' },
+  { k: 'AWS Support', d: 'AWS\'s support plans: Basic, Business Support+, Enterprise Support, and Unified Operations. Business Support+ replaced the older Developer and Business plans.' },
   { k: 'Well-Architected Framework', also: ['AWS Well-Architected Framework'], d: 'AWS\'s best-practice guide, organized into six pillars.' },
   { k: 'Cloud Adoption Framework', also: ['The AWS Cloud Adoption Framework'], d: 'AWS CAF: guidance for moving an organization to the cloud, organized into six perspectives.' },
   { k: 'CAF', d: 'Cloud Adoption Framework: guidance for moving an organization to the cloud.' },

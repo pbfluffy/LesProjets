@@ -129,8 +129,8 @@ addQuestions('clf-4', [
 
 addQuestions('clf-5', [
   { t: 'mc', q: 'Which Support plan is the lowest-cost plan that includes access to all Trusted Advisor checks?',
-    o: ['Business', 'Developer', 'Basic', 'There is none'], a: 0,
-    e: 'The full set of Trusted Advisor checks starts with the Business Support plan.' },
+    o: ['Business Support+', 'Enterprise Support', 'Basic', 'There is none'], a: 0,
+    e: 'Business Support+ is the lowest-cost plan with the full set of Trusted Advisor checks. It replaced the older Developer and Business plans, so older study material may still say Business.' },
   { t: 'mc', q: 'Which tool shows the status of AWS services and events that may affect your specific resources?',
     o: ['AWS Health Dashboard', 'AWS Cost Explorer', 'AWS Budgets', 'Amazon Inspector'], a: 0,
     e: 'The Health Dashboard reports service health and account-specific events.' },
@@ -146,8 +146,8 @@ addQuestions('clf-5', [
     o: ['AWS Professional Services and AWS Partners', 'AWS Artifact', 'AWS Marketplace', 'AWS Billing Conductor'], a: 0,
     e: 'Professional Services and the AWS Partner Network help customers design and migrate workloads.' },
   { t: 'mc', q: 'Which Support plan includes a designated Technical Account Manager (TAM)?',
-    o: ['Enterprise', 'Business', 'Developer', 'Basic'], a: 0,
-    e: 'Enterprise Support includes a designated TAM; Enterprise On-Ramp provides a pool of TAMs.' },
+    o: ['Enterprise Support', 'Business Support+', 'Basic', 'None of the plans'], a: 0,
+    e: 'Enterprise Support includes a designated Technical Account Manager, and so does Unified Operations above it. The older Enterprise On-Ramp plan shared a pool of TAMs.' },
   { t: 'mc', q: 'Which AWS resource offers free self-paced guides, whitepapers, and best-practice documentation?',
     o: ['AWS Knowledge Center and documentation', 'AWS Marketplace', 'AWS Organizations', 'AWS Budgets'], a: 0,
     e: 'AWS documentation, whitepapers, and Knowledge Center articles are free for everyone.' },
