@@ -9,6 +9,9 @@ Buy (1–3) / Hold (4–7) / Sell (8–10) label, price alerts, holdings, sales 
 - `src/deciles.js` — band maths. `src/stockApi.js` — Worker client. `src/fx.js`, `format.js`, `marketHours.js`.
 - `src/wallet.js` + `components/WalletView.jsx`, `HoldingCard`, `RecordSaleForm`, `SalesLog`, `TargetsEditor`,
   `AllocationChart`, `PortfolioHistoryChart` — the portfolio side. `src/portfolioHistory.js` — history snapshots.
+- `src/gold.js` + `components/GoldView.jsx` — the Gold tab: world gold (`GC=F`) and an *estimated* Thai price per
+  baht-weight of 96.5% gold (spot × `THB=X`, as-of joined), each with the 10-band gauge. No Worker change; the Gold
+  Traders Association's posted price isn't on Yahoo, so the UI labels the Thai figure an estimate.
 - `src/pdfImport.js` — statement import (pdfjs → Worker's Workers-AI import route).
 - `src/hooks/useCloudSync.js` (+ `usePortfolioHistorySync`, `usePriceAlerts`) — sync to Firestore `userStockRanges/{uid}`.
 - `src/sw.js` — custom service worker (`injectManifest`) hosting the Web Push `push` listener. Precaching and the
