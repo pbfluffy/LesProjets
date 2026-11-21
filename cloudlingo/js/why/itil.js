@@ -52,7 +52,7 @@ Object.assign(window.WHY_NOT = window.WHY_NOT || {}, {
   'itil-3-10': ['', 'Four is the number of dimensions.', 'There are six activities, not seven; seven is the number of guiding principles.', 'Five is the number of SVS components.'],
   'itil-3-11': ['', 'Plan creates a shared vision and direction.', 'Improve drives continual improvement across the value chain.', 'Obtain/build makes service components available.'],
   'itil-3-12': ['', 'Deliver and support runs live services as agreed.', 'Design and transition makes sure services meet quality, cost and time-to-market expectations.', 'Plan creates a shared vision and direction.'],
-  'itil-3-13': ['', 'Engage builds understanding and relationships with stakeholders.', 'Obtain/build makes service components available.', 'Improve drives continual improvement across the value chain.'],
+  'itil-3-13': ['', 'Engage builds understanding and relationships with stakeholders.', 'Obtain/build makes service components available.', 'Design and transition makes sure products and services meet expectations for quality, cost and time to market.'],
   'itil-3-14': ['', 'Plan creates a shared vision and direction.', 'Engage builds understanding and relationships with stakeholders.', 'Deliver and support runs live services as agreed.'],
   'itil-3-15': ['', 'Improve drives continual improvement across the value chain.', 'Engage builds understanding and relationships with stakeholders.', 'Design and transition makes sure services meet quality, cost and time-to-market expectations.'],
   'itil-3-16': ['', 'Plan creates a shared vision and direction.', 'Deliver and support runs live services as agreed.', 'Obtain/build makes service components available.'],
