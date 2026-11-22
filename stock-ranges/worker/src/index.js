@@ -353,7 +353,7 @@ async function handleTestPushDevice(env, uid, body) {
 // one AI call per window (see goldNews.js).
 async function handleGoldNews(env, cache, ctx) {
   const windowId = Math.floor(Date.now() / (CACHE_SECONDS * 1000))
-  const cacheKey = new Request(`https://stock-ranges-cache.internal/gold-news/v1/${windowId}`)
+  const cacheKey = new Request(`https://stock-ranges-cache.internal/gold-news/v2/${windowId}`)
   const cached = await cache.match(cacheKey)
   if (cached) return cached
 

@@ -26,8 +26,31 @@ const UA = { 'User-Agent': 'Mozilla/5.0 (compatible; stock-ranges/1.0)' }
 const GOLD_RE = /\b(gold|bullion|xau)\b/i
 // Words that make a gold headline about the price rather than a miner,
 // a royalty company or a drill result.
-const DRIVER_RE = /\b(price|prices|rall(y|ies|ied)|record|high|low|fall|falls|fell|drop|drops|slump|slip|slips|rise|rises|rose|gain|gains|surge|jump|weak(ness)?|strength|demand|fed|rate|rates|dollar|yield|yields|inflation|safe[- ]haven|central bank|ounce|tariff|etf outflow|etf inflow|sell-?off)\b/i
+const DRIVER_RE = /\b(prices?|rall(y|ies|ied)|record|highs?|lows?|falls?|fell|drop(s|ped)?|slump\w*|slips?|slipped|slide\w*|tumble\w*|plunge\w*|sink\w*|sank|rises?|rose|gains?|surge\w*|jump\w*|climb\w*|soar\w*|rebound\w*|retreat\w*|pullback|beating|weak(ness)?|strength|demand|fed|hawkish|dovish|rates?|dollar|yields?|inflation|safe[- ]haven|central banks?|futures|tariffs?|etf (outflows?|inflows?)|sell-?off)\b/i
 const NOISE_RE = /stocks to watch|penny stock|g\/t|drill|resource estimate|royalt|ICYMI|exploration/i
+// "Gold" that isn't the metal's market: company names, medals.
+const NOT_THE_METAL_RE = /\b(gold fields|royal gold|gold medal\w*|olympic)\b/i
+// One person's or family's money story (retirement, inheritance, "should I
+// sell?"). It can quote the gold price, but says nothing about why it moved.
+const PERSONAL_RE = /\b(i|i['’]m|i['’]ve|my|our|he|she|his|her|daughter|son|husband|wife|retire\w*|retiree\w*|medicaid|social security|ira|401\(k\)|inherit\w*|should i)\b/i
+// How close (in words) a price/driver word must be to "gold": a headline
+// that merely mentions gold somewhere and "record" somewhere else isn't
+// about the gold market.
+const DRIVER_WINDOW = 5
+
+function driverNearGold(title) {
+  const words = title.split(/\s+/)
+  return words.some((w, i) => GOLD_RE.test(w)
+    && DRIVER_RE.test(words.slice(Math.max(0, i - DRIVER_WINDOW), i + DRIVER_WINDOW + 1).join(' ')))
+}
+
+export function isGoldMarketHeadline(title) {
+  return GOLD_RE.test(title)
+    && !NOISE_RE.test(title)
+    && !NOT_THE_METAL_RE.test(title)
+    && !PERSONAL_RE.test(title)
+    && driverNearGold(title)
+}
 
 // Keeps recent, de-duplicated, price-related gold headlines, newest first.
 export function pickGoldHeadlines(news, now = Date.now()) {
@@ -39,7 +62,7 @@ export function pickGoldHeadlines(news, now = Date.now()) {
     const ts = Number(n?.providerPublishTime) * 1000
     const link = typeof n?.link === 'string' && /^https:\/\//.test(n.link) ? n.link : null
     if (!title || !Number.isFinite(ts) || now - ts > MAX_AGE_MS) continue
-    if (!GOLD_RE.test(title) || !DRIVER_RE.test(title) || NOISE_RE.test(title)) continue
+    if (!isGoldMarketHeadline(title)) continue
     const key = title.toLowerCase()
     if (seen.has(key)) continue
     seen.add(key)
