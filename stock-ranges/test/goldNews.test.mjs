@@ -25,6 +25,28 @@ test('pickGoldHeadlines keeps recent gold price headlines and drops miner noise'
   assert.deepEqual(pickGoldHeadlines(null, NOW), [])
 })
 
+test('pickGoldHeadlines needs the price word next to "gold" and drops personal-finance stories', () => {
+  const keep = [
+    'UBS flags further gold weakness before Fed rate-cut expectations return',
+    'Goldman favours gold over silver as central bank demand supports prices',
+    "Peter Schiff Says Gold's $2,000 Pullback Could Be A Warning — 'Stocks Will Ultimately Fall Much Further'",
+    'Gold Takes a Beating as Hawkish Fed Sparks Worst Week in Eight Months',
+    'Gold prices slip as dollar firms',
+    'Bullion rebounds after Fed minutes',
+  ]
+  const drop = [
+    // "record" is six words away from "gold": a story about one family, not the market.
+    'He Handed His Daughter 50 Ounces of Gold in January, Worth $265,920 at the Record Close. It’s Down to About $177,000 Now, and if He Needs Medicaid, His Penalty Will Still Be Figured on $265,920',
+    'I’m 62 and hold gold in my IRA — prices fell, should I sell before I retire?',
+    'My husband wants to sell our gold coins now that prices dropped',
+    'Gold Fields CEO steps down after record year', // miner name
+    'Olympic gold medalist sees ticket prices rise', // not the metal
+  ]
+  // The ones to drop are the newest, so the 6-headline cap can't hide a miss.
+  const out = pickGoldHeadlines([...drop, ...keep].map((t, i) => item(t, i + 1)), NOW).map((h) => h.title)
+  assert.deepEqual(out, keep)
+})
+
 test('goldMoves gives day, week and month change from daily closes', () => {
   const prices = Array.from({ length: 30 }, (_, i) => 100 + i) // 100 … 129
   const m = goldMoves({ prices, current: 129, previousClose: 128 })
