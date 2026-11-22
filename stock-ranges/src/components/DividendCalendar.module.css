@@ -30,6 +30,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  list-style: none;
 }
 
 .row {
@@ -87,4 +88,35 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* The tags are buttons (tap for an explanation) — keep the pill look, add a
+   pointer and a dotted underline hint, and show which one is open. */
+button.estimatedTag {
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+button.estimatedTag:hover,
+button.estimatedTag[aria-expanded='true'] {
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+button.estimatedTag[data-kind='declared']:hover,
+button.estimatedTag[data-kind='declared'][aria-expanded='true'] {
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+
+/* The explanation, under its row. Past rows are faded; the text isn't. */
+.help {
+  margin: 4px 0 6px 26px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
