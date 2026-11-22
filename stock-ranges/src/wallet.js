@@ -109,6 +109,73 @@ export function nextDeclaredPayment(payments, nowSec = Date.now() / 1000) {
   return upcoming[0] || null
 }
 
+// Median days between XD and payment in a symbol's Nasdaq history, or null
+// when there's no history (non-Nasdaq symbols).
+export function typicalPayLagSeconds(payments) {
+  if (!Array.isArray(payments) || payments.length === 0) return null
+  const lags = payments.map((p) => p.payDate - p.exDate).filter((l) => l >= 0).sort((a, b) => a - b)
+  return lags.length ? lags[Math.floor(lags.length / 2)] : null
+}
+
+const monthKeyOf = (unixSeconds) => {
+  const d = new Date(unixSeconds * 1000)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+// "Cash coming in": expected dividend cash per calendar month, from now
+// through `months` months ahead (the current month counts as the first).
+//
+// holdings: [{ symbol, qty, dividends: Yahoo events [{date, amount}],
+//              payments: Nasdaq [{exDate, payDate, amount}] | undefined }]
+// Amounts are in each holding's own currency; convert per item afterwards.
+//
+// Per holding:
+// - already XD but not yet paid (Nasdaq): counted on its real pay date;
+// - declared with XD still ahead (Nasdaq): real pay date and amount;
+// - after that, the usual cadence repeats (monthly/quarterly, as
+//   estimateNextDividend infers), each at the last dividend's amount,
+//   placed on XD + the symbol's typical XD→pay gap when Nasdaq history has
+//   one, else on the XD date itself (dateKind 'xd' — the money usually lands
+//   1–4 weeks later, which the UI says).
+// Returns [{ month: 'YYYY-MM', items: [{ symbol, date, amount, dateKind:
+// 'pay'|'xd', kind: 'declared'|'estimated' }] }] — every month in the range,
+// empty ones included, oldest first.
+export function projectDividendCash(holdings, { months = 6, nowSec = Date.now() / 1000 } = {}) {
+  const now = new Date(nowSec * 1000)
+  const keys = Array.from({ length: months }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+  const byMonth = new Map(keys.map((k) => [k, []]))
+  const add = (item) => { if (item.date >= nowSec) byMonth.get(monthKeyOf(item.date))?.push(item) }
+
+  for (const h of holdings || []) {
+    const events = Array.isArray(h.dividends) ? [...h.dividends].sort((a, b) => a.date - b.date) : []
+    if (!events.length || typeof h.qty !== 'number' || h.qty <= 0) continue
+    const payments = Array.isArray(h.payments) ? h.payments : []
+    const lastAmount = events[events.length - 1].amount
+    const gap = (inferDividendCadence(events) === 'month' ? 30 : 91) * 86400
+    const lag = typicalPayLagSeconds(payments)
+
+    // Real, announced dividends whose money hasn't arrived yet.
+    let lastXd = events[events.length - 1].date
+    for (const p of payments) {
+      if (p.payDate < nowSec) continue
+      add({ symbol: h.symbol, date: p.payDate, amount: (p.amount ?? lastAmount) * h.qty, dateKind: 'pay', kind: 'declared' })
+      lastXd = Math.max(lastXd, p.exDate)
+    }
+    for (const p of payments) lastXd = Math.max(lastXd, p.exDate)
+
+    // Then the usual schedule, until past the last month in range.
+    const end = new Date(now.getFullYear(), now.getMonth() + months, 1).getTime() / 1000
+    for (let xd = lastXd + gap; xd < end; xd += gap) {
+      const date = lag != null ? xd + lag : xd
+      add({ symbol: h.symbol, date, amount: lastAmount * h.qty, dateKind: lag != null ? 'pay' : 'xd', kind: 'estimated' })
+    }
+  }
+  return keys.map((month) => ({ month, items: byMonth.get(month).sort((a, b) => a.date - b.date) }))
+}
+
 // Buckets actual dividend events (amount already multiplied by qty held) by
 // calendar month or quarter, oldest first — for a "here's what you actually
 // got, and when" breakdown alongside the projected monthly/quarterly figure.

@@ -1,0 +1,121 @@
+/* Same panel look as the dividend calendar below it. */
+.wrap {
+  background: var(--color-surface-alt);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Month · bar · total, tappable for the breakdown. */
+.row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 2px 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.row:disabled { cursor: default; }
+.month {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+}
+.barTrack {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+.bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-green);
+  opacity: 0.55;
+}
+/* All of the month's cash is announced, not estimated: full strength. */
+.bar[data-declared='true'] { opacity: 1; }
+.total {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--color-green);
+  white-space: nowrap;
+}
+.row:disabled .total { color: var(--color-text-faint); font-weight: 400; }
+.mark { font-size: 9px; margin-left: 1px; color: var(--color-text-muted); }
+
+.symbols {
+  margin: 0 0 2px 62px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail {
+  list-style: none;
+  margin: 4px 0 6px 62px;
+  padding: 6px 10px;
+  background: var(--color-surface);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.detail li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.detailDate {
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  width: 48px;
+  flex-shrink: 0;
+}
+.detailSymbol {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+.detailKind {
+  font-size: 10px;
+  color: var(--color-text-faint);
+}
+.detailAmount {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  color: var(--color-green);
+}
+
+.note {
+  margin-top: 10px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--color-text-faint);
+}
