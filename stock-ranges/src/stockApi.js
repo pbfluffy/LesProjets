@@ -127,6 +127,25 @@ export async function fetchGoldNews({ bypassCache = false } = {}) {
   }
 }
 
+// Gold Traders Association posted price (Worker /thai-gold), cached 10 min
+// like the Worker. null on any failure — the card then just doesn't show.
+const THAI_GOLD_TTL_MS = 10 * 60 * 1000
+export async function fetchThaiGoldPrice({ bypassCache = false } = {}) {
+  const cached = !bypassCache && readCache('thai-gold')
+  if (cached) return cached
+  if (!WORKER_URL) return null
+  try {
+    const res = await fetch(`${WORKER_URL.replace(/\/$/, '')}/thai-gold`)
+    if (!res.ok) return null
+    const data = await res.json()
+    if (!data?.bar || !Number.isFinite(data.bar.sell)) return null
+    writeCache('thai-gold', data, THAI_GOLD_TTL_MS)
+    return data
+  } catch {
+    return null
+  }
+}
+
 // Dividend payment dates for one symbol (Worker /dividends — Nasdaq-listed
 // symbols only; everything else comes back with no payments). Cached 12 h,
 // same as the Worker's edge cache. Returns [] on any failure: the dividend

@@ -15,6 +15,10 @@ Buy (1–3) / Hold (4–7) / Sell (8–10) label, price alerts, holdings, sales 
   is the "Why gold moved" card: Worker `GET /gold-news` (`worker/src/goldNews.js`) filters Yahoo gold headlines to
   price-related ones and has Workers AI summarize them (EN + TH) next to the 1D/1W/1M move, edge-cached 3 h. The
   card hides itself if the route fails, so an app deploy before the Worker deploy is harmless.
+  `components/ThaiGoldOfficial.jsx` (top of the tab) shows the Gold Traders Association's posted price from Worker
+  `GET /thai-gold` (`worker/src/thaiGold.js`): parses the association's server-rendered home page (no API exists;
+  robots.txt allows access), 10 min edge cache. If the site's layout changes the parser returns null → 502 → the
+  card hides; update the regex in `thaiGold.js` and its test.
 - Dividend calendar (`components/DividendCalendar.jsx`): rows are placed by **XD date** (Yahoo only has ex-dates).
   Payment dates come from Worker `GET /dividends?symbol=` (`worker/src/dividends.js`, Nasdaq's public API, 12 h
   edge cache) — **Nasdaq-listed symbols only**; NYSE/ETF-on-Arca/Thai `.BK` holdings show XD alone. A dividend

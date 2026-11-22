@@ -6,6 +6,7 @@ import { GOLD_SYMBOL, USDTHB_SYMBOL, toBahtGoldSeries, thaiGoldUnitPrices, scale
 import { useLang } from '../LangContext.jsx'
 import DecileGauge from './DecileGauge.jsx'
 import GoldNews from './GoldNews.jsx'
+import ThaiGoldOfficial from './ThaiGoldOfficial.jsx'
 import styles from './GoldView.module.css'
 
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
@@ -62,6 +63,10 @@ export default function GoldView({ range, ranges, rangeLabelKey, onRangeChange, 
           </button>
         )}
       </div>
+
+      {/* The real posted Thai price first; it loads on its own, so it shows
+          even while (or if) the Yahoo quotes below are still loading. */}
+      <ThaiGoldOfficial refreshKey={refreshKey} />
 
       {state.status === 'loading' && <div className={styles.card}><div className={styles.muted}>{s.goldLoading}</div></div>}
 
