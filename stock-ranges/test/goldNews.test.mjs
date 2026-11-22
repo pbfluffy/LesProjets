@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { pickGoldHeadlines, goldMoves, parseGoldSummary, buildGoldNews, buildGoldPrompt } from '../worker/src/goldNews.js'
+import { pickGoldHeadlines, goldMoves, parseGoldExplanation, buildGoldNews, buildGoldPrompt, GOLD_MECHANISMS } from '../worker/src/goldNews.js'
 
 const NOW = Date.UTC(2026, 10, 22, 6)
 const item = (title, hoursAgo, extra = {}) => ({ title, publisher: 'Pub', link: 'https://example.com/a', providerPublishTime: Math.floor((NOW - hoursAgo * 3600e3) / 1000), ...extra })
@@ -56,17 +56,34 @@ test('goldMoves gives day, week and month change from daily closes', () => {
   assert.deepEqual(goldMoves(null), { day: null, week: null, month: null })
 })
 
-test('parseGoldSummary accepts an object or JSON inside text, needs both languages', () => {
-  assert.deepEqual(parseGoldSummary({ en: ' A  b ', th: 'ก' }), { en: 'A b', th: 'ก' })
-  assert.deepEqual(parseGoldSummary('Sure!\n```json\n{"en":"x","th":"ย"}\n```'), { en: 'x', th: 'ย' })
-  assert.equal(parseGoldSummary('{"en":"x"}'), null)
-  assert.equal(parseGoldSummary('no json here'), null)
-  assert.equal(parseGoldSummary(undefined), null)
+const driver = (over = {}) => ({ effect: 'down', factor_en: 'Hawkish Fed', why_en: 'Higher rates make gold cost more to hold.', factor_th: 'เฟดเข้มงวด', why_th: 'ดอกเบี้ยสูงทำให้ถือทองมีต้นทุนมากขึ้น', ...over })
+
+test('parseGoldExplanation reads summary + drivers from an object or JSON inside text', () => {
+  const reply = { summary_en: ' Gold  fell. ', summary_th: 'ทองลง', drivers: [driver(), driver({ effect: 'up', factor_en: 'Central banks' })] }
+  const out = parseGoldExplanation(reply)
+  assert.deepEqual(out.summary, { en: 'Gold fell.', th: 'ทองลง' })
+  assert.deepEqual(out.drivers[0], { effect: 'down', en: { factor: 'Hawkish Fed', why: 'Higher rates make gold cost more to hold.' }, th: { factor: 'เฟดเข้มงวด', why: 'ดอกเบี้ยสูงทำให้ถือทองมีต้นทุนมากขึ้น' } })
+  assert.equal(out.drivers[1].effect, 'up')
+  assert.deepEqual(parseGoldExplanation('Sure!\n```json\n' + JSON.stringify(reply) + '\n```').summary, { en: 'Gold fell.', th: 'ทองลง' })
+})
+
+test('parseGoldExplanation drops incomplete drivers, caps at 4, needs both summary languages', () => {
+  const drivers = [driver({ effect: 'sideways' }), driver({ why_th: '' }), driver(), driver(), driver(), driver(), driver()]
+  const out = parseGoldExplanation({ summary_en: 'x', summary_th: 'ย', drivers })
+  assert.equal(out.drivers.length, 4)
+  assert.ok(out.drivers.every((d) => d.effect === 'down' && d.th.why))
+  // Old flat { en, th } replies still give a summary (no drivers).
+  assert.deepEqual(parseGoldExplanation('{"en":"x","th":"ย"}'), { summary: { en: 'x', th: 'ย' }, drivers: [] })
+  assert.deepEqual(parseGoldExplanation({ summary_en: 'x', drivers: [driver()] }), { summary: null, drivers: [] })
+  assert.deepEqual(parseGoldExplanation('no json here'), { summary: null, drivers: [] })
+  assert.deepEqual(parseGoldExplanation(undefined), { summary: null, drivers: [] })
 })
 
 test('buildGoldPrompt passes the move and only the given headlines', () => {
   const msgs = buildGoldPrompt({ day: -4.62, week: 1, month: null }, [{ title: 'Gold falls', publisher: 'P', ts: NOW }])
-  assert.match(msgs[0].content, /ONLY the headlines/)
+  assert.match(msgs[0].content, /ONLY from the headlines/)
+  // The "why" comes from the fixed mechanism list, which is passed in full.
+  for (const m of GOLD_MECHANISMS) assert.ok(msgs[1].content.includes(m))
   assert.match(msgs[1].content, /1 day -4\.62%, 1 week \+1\.00%, 1 month unknown/)
   assert.match(msgs[1].content, /1\. Gold falls \(P, 2026-11-22\)/)
 })
@@ -76,10 +93,11 @@ test('buildGoldNews: summary from AI; degrades without AI, news or a usable repl
   const fetchFn = async () => ({ ok: true, json: async () => news })
   const getGoldQuote = async () => ({ prices: [100, 110], current: 99, previousClose: 110 })
   let sent = null
-  const ai = { run: async (model, input) => { sent = input; return { response: { en: 'Gold fell as the dollar rose.', th: 'ทองลงเพราะดอลลาร์แข็งค่า' } } } }
+  const ai = { run: async (model, input) => { sent = input; return { response: { summary_en: 'Gold fell as the dollar rose.', summary_th: 'ทองลงเพราะดอลลาร์แข็งค่า', drivers: [driver({ factor_en: 'Strong dollar' })] } } } }
 
   const full = await buildGoldNews({ fetchFn, ai, getGoldQuote, now: NOW })
   assert.equal(full.summary.en, 'Gold fell as the dollar rose.')
+  assert.equal(full.drivers[0].en.factor, 'Strong dollar')
   assert.equal(full.headlines.length, 1)
   assert.equal(full.moves.day, -10)
   assert.ok(sent.messages[1].content.includes('Gold prices fall as dollar strengthens'))

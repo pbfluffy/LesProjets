@@ -76,3 +76,50 @@
   color: var(--color-text-faint);
   line-height: 1.4;
 }
+
+/* "What's moving the price": one row per factor, arrow = which way it pushes gold. */
+.drivers { margin-bottom: 10px; }
+.driversTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin: 0 0 6px;
+}
+.drivers ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.driver {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+}
+.effect {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  margin-top: 1px;
+}
+.effect[data-direction='up'] { background: var(--color-green-bg); color: var(--color-green); }
+.effect[data-direction='down'] { background: var(--color-red-bg); color: var(--color-red); }
+.factor {
+  font-size: 13px;
+  font-weight: 700;
+}
+.why {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
