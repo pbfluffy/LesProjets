@@ -23,6 +23,11 @@
 //   -> [{ symbol, name, exchange, type }, ...]  (top matches, pre-filtered
 //      to symbols the quote endpoint above can actually serve)
 //
+// GET /thai-gold   (Gold Traders Association posted price — see thaiGold.js)
+//   -> { announcedAt, round, bar: {buy, sell}, ornament: {taxBase, sell},
+//        changeFromPrevious, changeFromYesterday }   (THB per baht-weight)
+//   -> 502 { error } if the association's page can't be read/parsed
+//
 // GET /dividends?symbol=AAPL   (dividend payment dates — see dividends.js)
 //   -> { symbol, source: 'nasdaq' | null, payments: [{ exDate, payDate, amount }, ...] }
 //      (empty payments for symbols Nasdaq doesn't cover; never a 404)
@@ -82,6 +87,7 @@ import { sendPush } from './push.js'
 import { parseDeviceSubscription } from './pushTarget.js'
 import { buildGoldNews, CACHE_SECONDS } from './goldNews.js'
 import { getDividendDates, DIVIDENDS_CACHE_SECONDS } from './dividends.js'
+import { getThaiGoldPrice, THAI_GOLD_CACHE_SECONDS } from './thaiGold.js'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -358,6 +364,23 @@ async function handleTestPushDevice(env, uid, body) {
 // one AI call per window (see goldNews.js).
 // Payment dates change rarely (a new dividend is declared every month or
 // quarter), so 12 h at the edge keeps Nasdaq calls to a handful per symbol a day.
+// The association posts several times a day on busy days; 10 min at the edge
+// keeps us close to its page while reading it at most ~6 times an hour per
+// location. Only a successful parse is cached.
+async function handleThaiGold(cache, ctx) {
+  const cacheKey = new Request('https://stock-ranges-cache.internal/thai-gold/v1')
+  const cached = await cache.match(cacheKey)
+  if (cached) return cached
+
+  const body = await getThaiGoldPrice()
+  if (!body) return json({ error: 'price unavailable' }, 502)
+  const response = json(body)
+  const cacheable = new Response(response.clone().body, response)
+  cacheable.headers.set('Cache-Control', `public, max-age=${THAI_GOLD_CACHE_SECONDS}`)
+  ctx.waitUntil(cache.put(cacheKey, cacheable))
+  return response
+}
+
 async function handleDividends(url, cache, ctx) {
   const symbol = (url.searchParams.get('symbol') || '').trim().toUpperCase()
   if (!SYMBOL_RE.test(symbol)) return json({ error: 'invalid symbol' }, 400)
@@ -416,6 +439,9 @@ export default {
 
     if (url.pathname === '/gold-news') {
       return handleGoldNews(env, cache, ctx)
+    }
+    if (url.pathname === '/thai-gold') {
+      return handleThaiGold(cache, ctx)
     }
     if (url.pathname === '/dividends') {
       return handleDividends(url, cache, ctx)
