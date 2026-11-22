@@ -24,7 +24,7 @@
 //      to symbols the quote endpoint above can actually serve)
 //
 // GET /gold-news   ("Why gold moved" card on the Gold tab — see goldNews.js)
-//   -> { updatedAt, moves: {day, week, month}, summary: {en, th} | null,
+//   -> { updatedAt, moves: {day, week, month}, summary: {en, th} | null, drivers: [...],
 //        headlines: [{ title, publisher, link, ts }, ...] }
 //
 // POST / (multipart/form-data, repeated `pages` image files — one per
@@ -353,7 +353,7 @@ async function handleTestPushDevice(env, uid, body) {
 // one AI call per window (see goldNews.js).
 async function handleGoldNews(env, cache, ctx) {
   const windowId = Math.floor(Date.now() / (CACHE_SECONDS * 1000))
-  const cacheKey = new Request(`https://stock-ranges-cache.internal/gold-news/v2/${windowId}`)
+  const cacheKey = new Request(`https://stock-ranges-cache.internal/gold-news/v3/${windowId}`)
   const cached = await cache.match(cacheKey)
   if (cached) return cached
 

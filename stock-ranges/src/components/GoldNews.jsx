@@ -54,6 +54,30 @@ export default function GoldNews({ refreshKey }) {
         {summary || (data.headlines.length ? s.goldNewsNoSummary : s.goldNewsNoNews)}
       </p>
 
+      {/* Each factor from the news and how it pushes the price (▲ up / ▼ down).
+          `drivers` is absent from responses cached before it existed. */}
+      {Array.isArray(data.drivers) && data.drivers.length > 0 && (
+        <div className={styles.drivers}>
+          <h3 className={styles.driversTitle}>{s.goldNewsDriversTitle}</h3>
+          <ul>
+            {data.drivers.map((d, i) => {
+              const text = d[lang] || d.en
+              return (
+                <li key={i} className={styles.driver}>
+                  <span className={styles.effect} data-direction={d.effect} aria-label={d.effect === 'up' ? s.goldNewsPushesUp : s.goldNewsPushesDown} title={d.effect === 'up' ? s.goldNewsPushesUp : s.goldNewsPushesDown}>
+                    {d.effect === 'up' ? '▲' : '▼'}
+                  </span>
+                  <div>
+                    <div className={styles.factor}>{text.factor}</div>
+                    <div className={styles.why}>{text.why}</div>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
       {data.headlines.length > 0 && (
         <details className={styles.sources}>
           <summary>{s.goldNewsSources.replace('{n}', data.headlines.length)}</summary>
