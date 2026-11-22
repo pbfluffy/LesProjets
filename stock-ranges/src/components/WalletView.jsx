@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLang } from '../LangContext.jsx'
-import { fetchQuote } from '../stockApi.js'
+import { fetchQuote, fetchDividendDates } from '../stockApi.js'
 import { computeDeciles, sliceByRange } from '../deciles.js'
 
 const RANGE_LABEL_KEY = { '3mo': 'range3mo', '6mo': 'range6mo', ytd: 'rangeYtd', '1y': 'range1y', '2y': 'range2y' }
 import { convert } from '../fx.js'
 import { formatPrice, maskPrice } from '../format.js'
-import { computeHoldingPL, projectedDividendIncome, estimateNextDividend, groupSymbolsByInstrumentType, sortHoldingSymbols, groupAllocationBySector } from '../wallet.js'
+import { computeHoldingPL, projectedDividendIncome, estimateNextDividend, findPayment, nextDeclaredPayment, groupSymbolsByInstrumentType, sortHoldingSymbols, groupAllocationBySector } from '../wallet.js'
 import { summarizeRealized, MAX_SELLS } from '../realized.js'
 import { generateSummaryImage } from '../shareImage.js'
 import { loadPortfolioHistory, recordPortfolioSnapshot, mergePortfolioHistories, savePortfolioHistory } from '../portfolioHistory.js'
@@ -113,6 +113,18 @@ export default function WalletView({
         })))
     })
   }, [symbols, refreshKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Dividend payment dates (Worker /dividends, Nasdaq-listed symbols only) for
+  // holdings that pay dividends; plain US tickers only, since nothing else can
+  // have data. Missing entries just mean the calendar shows XD alone.
+  const [payDates, setPayDates] = useState({})
+  useEffect(() => {
+    symbols.forEach((symbol) => {
+      const q = quotes[symbol]
+      if (payDates[symbol] || !q?.dividends?.length || !/^[A-Z]{1,5}$/.test(symbol)) return
+      fetchDividendDates(symbol).then((payments) => setPayDates((prev) => ({ ...prev, [symbol]: payments })))
+    })
+  }, [symbols, quotes]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Buy/hold/sell band per holding, over the watchlist's chosen lookback —
   // cut from the 2y daily series already loaded for dividends. Ranges that
@@ -294,19 +306,27 @@ export default function WalletView({
       const quote = quotes[symbol]
       if (!quote || !quote.dividends) return
       const qty = holdings[symbol].qty
+      const payments = payDates[symbol]
       quote.dividends.forEach((d) => {
         if (d.date < pastCutoff || d.date > nowSec) return
         const amount = convert(d.amount * qty, quote.currency, currency, rates)
-        if (amount !== null) entries.push({ symbol, date: d.date, amount, kind: 'past' })
+        const payDate = findPayment(payments, d.date)?.payDate ?? null
+        if (amount !== null) entries.push({ symbol, date: d.date, amount, kind: 'past', payDate })
       })
+      // A dividend the company has declared (real XD + pay date) replaces
+      // the cadence guess; otherwise keep the estimate, with no pay date.
+      const declared = nextDeclaredPayment(payments, nowSec)
       const next = estimateNextDividend(quote.dividends, qty)
-      if (next) {
+      if (declared && declared.amount != null) {
+        const amount = convert(declared.amount * qty, quote.currency, currency, rates)
+        if (amount !== null) entries.push({ symbol, date: declared.exDate, amount, kind: 'declared', payDate: declared.payDate })
+      } else if (next) {
         const amount = convert(next.amount, quote.currency, currency, rates)
-        if (amount !== null) entries.push({ symbol, date: next.date, amount, kind: 'estimated' })
+        if (amount !== null) entries.push({ symbol, date: next.date, amount, kind: 'estimated', payDate: null })
       }
     })
     return entries.sort((a, b) => a.date - b.date)
-  }, [symbols, holdings, quotes, currency, rates])
+  }, [symbols, holdings, quotes, currency, rates, payDates])
 
   async function handleShare() {
     if (sharing) return

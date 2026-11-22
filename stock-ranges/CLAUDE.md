@@ -15,6 +15,11 @@ Buy (1–3) / Hold (4–7) / Sell (8–10) label, price alerts, holdings, sales 
   is the "Why gold moved" card: Worker `GET /gold-news` (`worker/src/goldNews.js`) filters Yahoo gold headlines to
   price-related ones and has Workers AI summarize them (EN + TH) next to the 1D/1W/1M move, edge-cached 3 h. The
   card hides itself if the route fails, so an app deploy before the Worker deploy is harmless.
+- Dividend calendar (`components/DividendCalendar.jsx`): rows are placed by **XD date** (Yahoo only has ex-dates).
+  Payment dates come from Worker `GET /dividends?symbol=` (`worker/src/dividends.js`, Nasdaq's public API, 12 h
+  edge cache) — **Nasdaq-listed symbols only**; NYSE/ETF-on-Arca/Thai `.BK` holdings show XD alone. A dividend
+  Nasdaq lists as declared replaces the cadence estimate. Yahoo's calendar endpoint needs a session crumb and
+  SET's site blocks bots, so neither is used.
 - `src/pdfImport.js` — statement import (pdfjs → Worker's Workers-AI import route).
 - `src/hooks/useCloudSync.js` (+ `usePortfolioHistorySync`, `usePriceAlerts`) — sync to Firestore `userStockRanges/{uid}`.
 - `src/sw.js` — custom service worker (`injectManifest`) hosting the Web Push `push` listener. Precaching and the
