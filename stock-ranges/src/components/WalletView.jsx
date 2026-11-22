@@ -7,7 +7,7 @@ import { computeDeciles, sliceByRange } from '../deciles.js'
 const RANGE_LABEL_KEY = { '3mo': 'range3mo', '6mo': 'range6mo', ytd: 'rangeYtd', '1y': 'range1y', '2y': 'range2y' }
 import { convert } from '../fx.js'
 import { formatPrice, maskPrice } from '../format.js'
-import { computeHoldingPL, projectedDividendIncome, estimateNextDividend, findPayment, nextDeclaredPayment, groupSymbolsByInstrumentType, sortHoldingSymbols, groupAllocationBySector } from '../wallet.js'
+import { computeHoldingPL, projectedDividendIncome, estimateNextDividend, findPayment, nextDeclaredPayment, projectDividendCash, groupSymbolsByInstrumentType, sortHoldingSymbols, groupAllocationBySector } from '../wallet.js'
 import { summarizeRealized, MAX_SELLS } from '../realized.js'
 import { generateSummaryImage } from '../shareImage.js'
 import { loadPortfolioHistory, recordPortfolioSnapshot, mergePortfolioHistories, savePortfolioHistory } from '../portfolioHistory.js'
@@ -23,9 +23,11 @@ import ImportPdfModal from './ImportPdfModal.jsx'
 import AllocationChart from './AllocationChart.jsx'
 import PortfolioHistoryChart from './PortfolioHistoryChart.jsx'
 import DividendCalendar from './DividendCalendar.jsx'
+import DividendCashByMonth from './DividendCashByMonth.jsx'
 import styles from './WalletView.module.css'
 
 const DIVIDEND_CALENDAR_PAST_DAYS = 45
+const DIVIDEND_CASH_MONTHS = 6
 
 const GROUP_LABEL_KEY = { EQUITY: 'groupCommonStock', ETF: 'groupETF', CRYPTO: 'groupCrypto', OTHER: 'groupOther' }
 const MASK_KEY = 'stockranges_mask_amounts'
@@ -294,6 +296,23 @@ export default function WalletView({
     [allocationItems, quotes],
   )
 
+  // Expected dividend cash per month for the next 6 months (projectDividendCash
+  // in wallet.js), each amount converted from the holding's own currency.
+  const dividendCashMonths = useMemo(() => {
+    const projected = projectDividendCash(symbols.map((symbol) => ({
+      symbol,
+      qty: holdings[symbol].qty,
+      dividends: quotes[symbol]?.dividends || [],
+      payments: payDates[symbol],
+    })), { months: DIVIDEND_CASH_MONTHS })
+    return projected.map((m) => ({
+      month: m.month,
+      items: m.items
+        .map((i) => ({ ...i, amount: convert(i.amount, quotes[i.symbol]?.currency, currency, rates) }))
+        .filter((i) => i.amount !== null),
+    }))
+  }, [symbols, holdings, quotes, payDates, currency, rates])
+
   // Recent past ex-dividend dates (actual, from Yahoo — its historical
   // endpoint is keyed by ex-date, not pay date) plus one upcoming estimate
   // per holding (guessed from cadence — see estimateNextDividend), merged
@@ -433,6 +452,7 @@ export default function WalletView({
         <AllocationChart items={allocationItems} sectorItems={sectorAllocationItems} total={summary.marketValue} currency={currency} masked={masked} targets={targets} onSaveTargets={onSaveTargets} />
       )}
 
+      <DividendCashByMonth months={dividendCashMonths} currency={currency} masked={masked} />
       <DividendCalendar entries={dividendCalendarEntries} currency={currency} masked={masked} />
 
       <SalesLog sells={sells} currency={currency} rates={rates} masked={masked} onDelete={onDeleteSale} />
