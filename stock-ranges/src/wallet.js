@@ -84,6 +84,31 @@ export function estimateNextDividend(dividendEvents, qty) {
   return { date: nextDate, amount: last.amount * qty }
 }
 
+// Payment dates come from the Worker's /dividends route (Nasdaq, Nasdaq-listed
+// symbols only): [{ exDate, payDate, amount }] in unix seconds at UTC midnight.
+// Yahoo's ex-dates are stamped at the market's open on that day instead, so
+// they're matched within a few days rather than exactly.
+const PAY_MATCH_WINDOW_SECONDS = 4 * 86400
+
+// The payment whose ex-date matches `exDate` (Yahoo's), or null.
+export function findPayment(payments, exDate) {
+  if (!Array.isArray(payments) || typeof exDate !== 'number') return null
+  let best = null
+  for (const p of payments) {
+    const diff = Math.abs(p.exDate - exDate)
+    if (diff <= PAY_MATCH_WINDOW_SECONDS && (!best || diff < Math.abs(best.exDate - exDate))) best = p
+  }
+  return best
+}
+
+// The next dividend the company has actually declared (ex-date still ahead),
+// or null. When present it replaces the cadence-based estimate.
+export function nextDeclaredPayment(payments, nowSec = Date.now() / 1000) {
+  if (!Array.isArray(payments)) return null
+  const upcoming = payments.filter((p) => p.exDate > nowSec).sort((a, b) => a.exDate - b.exDate)
+  return upcoming[0] || null
+}
+
 // Buckets actual dividend events (amount already multiplied by qty held) by
 // calendar month or quarter, oldest first — for a "here's what you actually
 // got, and when" breakdown alongside the projected monthly/quarterly figure.

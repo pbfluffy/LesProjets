@@ -127,6 +127,28 @@ export async function fetchGoldNews({ bypassCache = false } = {}) {
   }
 }
 
+// Dividend payment dates for one symbol (Worker /dividends — Nasdaq-listed
+// symbols only; everything else comes back with no payments). Cached 12 h,
+// same as the Worker's edge cache. Returns [] on any failure: the dividend
+// calendar then shows XD dates only, as before.
+const DIVIDEND_DATES_TTL_MS = 12 * 60 * 60 * 1000
+export async function fetchDividendDates(symbol) {
+  const key = `divdates:${symbol}`
+  const cached = readCache(key)
+  if (cached) return cached
+  if (!WORKER_URL) return []
+  try {
+    const res = await fetch(`${WORKER_URL.replace(/\/$/, '')}/dividends?symbol=${encodeURIComponent(symbol)}`)
+    if (!res.ok) return []
+    const data = await res.json()
+    const payments = Array.isArray(data?.payments) ? data.payments : []
+    writeCache(key, payments, DIVIDEND_DATES_TTL_MS)
+    return payments
+  } catch {
+    return []
+  }
+}
+
 // Returns [{ symbol, name, exchange, type }, ...] for a partial ticker/name
 // query (autocomplete), or [] on any failure — callers should treat that as
 // "no suggestions right now", not an error worth surfacing to the user.

@@ -74,3 +74,17 @@
 /* Ex-dates already behind us — kept for context, faded so the upcoming
    ones stand out. */
 .row[data-past='true'] { opacity: 0.55; }
+
+/* A dividend the company has announced (real XD + pay date, from Nasdaq). */
+.estimatedTag[data-kind='declared'] { color: var(--color-green); border-color: var(--color-green); }
+
+/* Payment date next to the XD date — "Pays 10 Dec" / "Paid 10 Sep". */
+.payDate {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

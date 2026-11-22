@@ -23,6 +23,10 @@
 //   -> [{ symbol, name, exchange, type }, ...]  (top matches, pre-filtered
 //      to symbols the quote endpoint above can actually serve)
 //
+// GET /dividends?symbol=AAPL   (dividend payment dates — see dividends.js)
+//   -> { symbol, source: 'nasdaq' | null, payments: [{ exDate, payDate, amount }, ...] }
+//      (empty payments for symbols Nasdaq doesn't cover; never a 404)
+//
 // GET /gold-news   ("Why gold moved" card on the Gold tab — see goldNews.js)
 //   -> { updatedAt, moves: {day, week, month}, summary: {en, th} | null, drivers: [...],
 //        headlines: [{ title, publisher, link, ts }, ...] }
@@ -77,6 +81,7 @@ import { upsertSubscription, setAlert, getAlerts, pruneSubscription, getHistory,
 import { sendPush } from './push.js'
 import { parseDeviceSubscription } from './pushTarget.js'
 import { buildGoldNews, CACHE_SECONDS } from './goldNews.js'
+import { getDividendDates, DIVIDENDS_CACHE_SECONDS } from './dividends.js'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -351,6 +356,22 @@ async function handleTestPushDevice(env, uid, body) {
 
 // The key changes every CACHE_SECONDS window, so each location makes at most
 // one AI call per window (see goldNews.js).
+// Payment dates change rarely (a new dividend is declared every month or
+// quarter), so 12 h at the edge keeps Nasdaq calls to a handful per symbol a day.
+async function handleDividends(url, cache, ctx) {
+  const symbol = (url.searchParams.get('symbol') || '').trim().toUpperCase()
+  if (!SYMBOL_RE.test(symbol)) return json({ error: 'invalid symbol' }, 400)
+  const cacheKey = new Request(`https://stock-ranges-cache.internal/dividends/v1/${encodeURIComponent(symbol)}`)
+  const cached = await cache.match(cacheKey)
+  if (cached) return cached
+
+  const response = json(await getDividendDates(symbol))
+  const cacheable = new Response(response.clone().body, response)
+  cacheable.headers.set('Cache-Control', `public, max-age=${DIVIDENDS_CACHE_SECONDS}`)
+  ctx.waitUntil(cache.put(cacheKey, cacheable))
+  return response
+}
+
 async function handleGoldNews(env, cache, ctx) {
   const windowId = Math.floor(Date.now() / (CACHE_SECONDS * 1000))
   const cacheKey = new Request(`https://stock-ranges-cache.internal/gold-news/v3/${windowId}`)
@@ -395,6 +416,9 @@ export default {
 
     if (url.pathname === '/gold-news') {
       return handleGoldNews(env, cache, ctx)
+    }
+    if (url.pathname === '/dividends') {
+      return handleDividends(url, cache, ctx)
     }
 
     const query = url.searchParams.get('q')
