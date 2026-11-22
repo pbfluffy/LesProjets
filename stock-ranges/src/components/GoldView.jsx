@@ -5,6 +5,7 @@ import { formatPrice, dayChange } from '../format.js'
 import { GOLD_SYMBOL, USDTHB_SYMBOL, toBahtGoldSeries, thaiGoldUnitPrices, scaleGoldSeries, bahtPerUnit } from '../gold.js'
 import { useLang } from '../LangContext.jsx'
 import DecileGauge from './DecileGauge.jsx'
+import GoldNews from './GoldNews.jsx'
 import styles from './GoldView.module.css'
 
 const SIGNAL_LABEL_KEY = { buy: 'signalBuy', hold: 'signalHold', sell: 'signalSell' }
@@ -87,6 +88,7 @@ export default function GoldView({ range, ranges, rangeLabelKey, onRangeChange, 
               lang={lang}
             />
           )}
+          <GoldNews refreshKey={refreshKey} />
           <GoldCard
             title={s.goldWorldTitle}
             unit={s.goldWorldUnit}

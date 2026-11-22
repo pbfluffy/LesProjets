@@ -106,6 +106,27 @@ export async function fetchQuote(symbol, range, { bypassCache = false } = {}) {
   return data
 }
 
+// "Why gold moved" digest for the Gold tab (Worker's /gold-news: headlines +
+// an AI summary, refreshed every few hours there). Cached here for 30 minutes.
+// Returns null on any failure — the card just doesn't show, which also covers
+// an app build that reaches users before the Worker route is deployed.
+const GOLD_NEWS_TTL_MS = 30 * 60 * 1000
+export async function fetchGoldNews({ bypassCache = false } = {}) {
+  const cached = !bypassCache && readCache('gold-news')
+  if (cached) return cached
+  if (!WORKER_URL) return null
+  try {
+    const res = await fetch(`${WORKER_URL.replace(/\/$/, '')}/gold-news`)
+    if (!res.ok) return null
+    const data = await res.json()
+    if (!data || !Array.isArray(data.headlines)) return null
+    writeCache('gold-news', data, GOLD_NEWS_TTL_MS)
+    return data
+  } catch {
+    return null
+  }
+}
+
 // Returns [{ symbol, name, exchange, type }, ...] for a partial ticker/name
 // query (autocomplete), or [] on any failure — callers should treat that as
 // "no suggestions right now", not an error worth surfacing to the user.

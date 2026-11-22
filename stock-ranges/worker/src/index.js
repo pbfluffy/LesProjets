@@ -23,6 +23,10 @@
 //   -> [{ symbol, name, exchange, type }, ...]  (top matches, pre-filtered
 //      to symbols the quote endpoint above can actually serve)
 //
+// GET /gold-news   ("Why gold moved" card on the Gold tab — see goldNews.js)
+//   -> { updatedAt, moves: {day, week, month}, summary: {en, th} | null,
+//        headlines: [{ title, publisher, link, ts }, ...] }
+//
 // POST / (multipart/form-data, repeated `pages` image files — one per
 // rendered PDF page from the wallet's "Import from PDF" flow)
 //   -> { rows: [{ symbol, shares, avgCost, currency, page }, ...] }
@@ -72,6 +76,7 @@ import { triggerAlertCheck } from './trigger.js'
 import { upsertSubscription, setAlert, getAlerts, pruneSubscription, getHistory, addHistory, getPortfolio, setPortfolio, getPortfolioHistory } from './alerts.js'
 import { sendPush } from './push.js'
 import { parseDeviceSubscription } from './pushTarget.js'
+import { buildGoldNews, CACHE_SECONDS } from './goldNews.js'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -344,6 +349,25 @@ async function handleTestPushDevice(env, uid, body) {
   return json({ result })
 }
 
+// The key changes every CACHE_SECONDS window, so each location makes at most
+// one AI call per window (see goldNews.js).
+async function handleGoldNews(env, cache, ctx) {
+  const windowId = Math.floor(Date.now() / (CACHE_SECONDS * 1000))
+  const cacheKey = new Request(`https://stock-ranges-cache.internal/gold-news/v1/${windowId}`)
+  const cached = await cache.match(cacheKey)
+  if (cached) return cached
+
+  const body = await buildGoldNews({ ai: env.AI, getGoldQuote: () => getQuote('GC=F', '3mo', ctx) })
+  const response = json(body)
+  // Only cache a full answer; without a summary, try again on the next request.
+  if (body.summary) {
+    const cacheable = new Response(response.clone().body, response)
+    cacheable.headers.set('Cache-Control', `public, max-age=${CACHE_SECONDS}`)
+    ctx.waitUntil(cache.put(cacheKey, cacheable))
+  }
+  return response
+}
+
 export default {
   // Cron Trigger (see wrangler.toml): just starts the GitHub Actions alert check.
   async scheduled(event, env, ctx) {
@@ -368,6 +392,10 @@ export default {
     }
 
     const cache = caches.default
+
+    if (url.pathname === '/gold-news') {
+      return handleGoldNews(env, cache, ctx)
+    }
 
     const query = url.searchParams.get('q')
     if (query !== null) {
