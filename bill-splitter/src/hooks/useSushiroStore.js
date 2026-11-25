@@ -28,18 +28,15 @@ export function useSushiroStore(initial) {
   // ── People ─────────────────────────────────────────────────────
   const addPerson = useCallback((name) => {
     const t = name.trim()
-    if (!t) return false
-    let added = false
-    setPeople(prev => {
-      if (prev.includes(t)) return prev
-      added = true
-      return [...prev, t]
-    })
+    // Decided from the current list, not a flag set inside the setPeople
+    // updater (React doesn't promise to run it before setState returns).
+    if (!t || people.includes(t)) return false
+    setPeople(prev => prev.includes(t) ? prev : [...prev, t])
     setPlates(prev => (prev[t] ? prev : { ...prev, [t]: emptyPlates() }))
     setSnacks(prev => (prev[t] ? prev : { ...prev, [t]: [] }))
     setActivePerson(prev => prev ?? t)
-    return added
-  }, [])
+    return true
+  }, [people])
 
   const removePerson = useCallback((name) => {
     setPeople(prev => {

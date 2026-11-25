@@ -100,17 +100,15 @@ export function useBillStore(initial) {
     setBillOwnerState(owner => members.length === 0 ? '' : (members.includes(owner) ? owner : members[0]))
   }, [members])
 
+  // Returns whether the name was new, from the current list. It used to read a
+  // flag set inside the setMembers updater, which React doesn't promise to run
+  // before setState returns — a valid name could then be reported "taken".
   const addMember = useCallback((name) => {
     const trimmed = name.trim()
-    if (!trimmed) return false
-    let added = false
-    setMembers(prev => {
-      if (prev.includes(trimmed)) return prev
-      added = true
-      return [...prev, trimmed]
-    })
-    return added
-  }, [])
+    if (!trimmed || members.includes(trimmed)) return false
+    setMembers(prev => prev.includes(trimmed) ? prev : [...prev, trimmed])
+    return true
+  }, [members])
 
   const removeMember = useCallback((name) => {
     setMembers(prev => prev.filter(m => m !== name))

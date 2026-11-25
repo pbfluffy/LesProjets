@@ -43,6 +43,23 @@ function writeAll(trips) {
   } catch {}
 }
 
+// IDs of trips deleted on this device. Without them, a cloud copy that still
+// has a deleted trip looks like "a trip another device added" and the merge
+// below would bring it back.
+const TRIPS_DELETED_KEY = 'bill_trips_deleted_v1'
+function readDeleted() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(TRIPS_DELETED_KEY) || '[]')
+    return new Set(Array.isArray(arr) ? arr : [])
+  } catch { return new Set() }
+}
+function markDeleted(id) {
+  try {
+    const ids = [...readDeleted(), id].slice(-200)
+    localStorage.setItem(TRIPS_DELETED_KEY, JSON.stringify(ids))
+  } catch {}
+}
+
 // Recompute bill result from saved state (result is never persisted in snapshots)
 export function calcBillResult(entry) {
   if (!entry?.state) return { grandTotal: 0, totals: {} }
@@ -83,14 +100,17 @@ export function calcBillResult(entry) {
       })
       totals[owner] = round2(round2(grand) - othersSum)
     }
-    const currency = s.currency || null
+    const currency = s.currency || 'THB' // Sushiro is always baht
     return { grandTotal: round2(grand), totals, currency }
   }
 
   // Split bill — same calculation as the bill itself, so discounts and the
   // chosen bill owner are honoured and the trip never disagrees with the bill.
   const { grandTotal, totals } = calcSplit(s)
-  return { grandTotal, totals, currency: s.currency || null }
+  // No currency = saved before currency tracking, when every bill was THB.
+  // Defaulting here keeps the trip summary, the conversion and the settle-up
+  // in TripsTab agreeing (they used to fall back to three different currencies).
+  return { grandTotal, totals, currency: s.currency || 'THB' }
 }
 
 // Who pays whom on a trip: everyone pays the person who paid each bill they
@@ -169,18 +189,25 @@ export function useTripsStore() {
         const localTrips = readAll()
         const localIds = new Set(localTrips.map(t => t.id))
         const remoteHasNew = remote.some(t => !localIds.has(t.id))
-        if (remoteTs > localTs || remoteHasNew) {
-          // If remote is strictly newer: trust remote completely (handles deletes)
-          // If same timestamp but remote has new IDs: merge to handle concurrent offline creation
-          let merged = remote
-          if (remoteTs === localTs && remoteHasNew) {
-            const remoteIds = new Set(remote.map(t => t.id))
-            const localOnly = localTrips.filter(t => !remoteIds.has(t.id))
-            merged = localOnly.length > 0 ? [...remote, ...localOnly] : remote
-          }
+        if (remoteTs > localTs) {
+          // Remote is strictly newer: trust it completely (handles deletes)
+          writeAll(remote)
+          localStorage.setItem(TRIPS_TS_KEY, JSON.stringify(remoteTs))
+          setTrips(remote)
+        } else if (remoteHasNew) {
+          // Local is as new or newer, but another device added trips this one
+          // hasn't seen. Keep every local trip as it is and add those. This
+          // used to take the whole remote list whenever its timestamps weren't
+          // exactly equal, wiping edits made here (e.g. offline) since then.
+          // Trips deleted here are left out, so they don't come back.
+          const deleted = readDeleted()
+          const localIds = new Set(localTrips.map(t => t.id))
+          const added = remote.filter(t => !localIds.has(t.id) && !deleted.has(t.id))
+          if (added.length === 0) return
+          const merged = [...localTrips, ...added]
           writeAll(merged)
-          localStorage.setItem(TRIPS_TS_KEY, JSON.stringify(Math.max(remoteTs, localTs)))
           setTrips(merged)
+          pushToCloudRef.current?.(merged) // so the cloud gets this device's newer edits too
         }
       }, () => {}) // silently ignore permission errors (anon users)
     })
@@ -233,6 +260,7 @@ export function useTripsStore() {
   }, [])
 
   const deleteTrip = useCallback((id) => {
+    markDeleted(id)
     let _next
     setTrips(prev => { _next = prev.filter(t => t.id !== id); writeAll(_next); pushToCloud(_next, true); return _next })
   }, [])
@@ -329,8 +357,7 @@ export function useTripsStore() {
       const entry = entries.find(e => e.id === billId)
       if (!entry) return
       const { grandTotal: billTotal, totals, currency: billCurrency } = calcBillResult(entry)
-      // null currency means bill was saved before currency tracking — treat as trip currency
-      billCurrencies.add(billCurrency ?? trip.currency)
+      billCurrencies.add(billCurrency) // always set — see calcBillResult
       grandTotal += billTotal
 
       // Accumulate per-member owed amounts

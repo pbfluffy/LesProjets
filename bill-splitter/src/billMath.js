@@ -42,20 +42,36 @@ export function calcSplit(s) {
   // it applies to, then combined per member. `who` null = everyone; an array
   // is exactly those members (an empty array applies to nobody, matching the
   // "Applies to" chips, which show nobody selected).
-  const discountByMember = Object.fromEntries(members.map(m => [m, 0]))
+  //
+  // A member's discount can't take them below 0. The part they can't use goes
+  // to the others the discount applies to (and what nobody can use is simply
+  // not applied). Before, each member's amount was clamped at 0 while the bill
+  // total still subtracted the full discount, so the amounts didn't add up and
+  // whoever was bill owner silently absorbed the gap — e.g. A ฿100 + B ฿100
+  // with ฿150 off for A only made the bill ฿50 and B's share ฿50 when B owned it.
+  const remaining = Object.fromEntries(members.map(m => [m, Math.max(0, shares[m])]))
   let discAmt = 0
   discounts.forEach(d => {
-    const amt = Math.max(0, parseFloat(d.amount) || 0)
-    if (!amt) return
-    const who = d.who == null ? members : d.who.filter(m => members.includes(m))
-    if (who.length === 0) return
-    const per = amt / who.length
-    who.forEach(m => { discountByMember[m] += per })
-    discAmt += amt
+    let left = Math.max(0, parseFloat(d.amount) || 0)
+    if (!left) return
+    let who = d.who == null ? members : d.who.filter(m => members.includes(m))
+    who = who.filter(m => remaining[m] > 0)
+    // Equal split, re-spreading what a fully-discounted member can't take.
+    while (left > 1e-9 && who.length > 0) {
+      const per = left / who.length
+      const next = []
+      who.forEach(m => {
+        const take = Math.min(per, remaining[m])
+        remaining[m] -= take
+        left -= take
+        discAmt += take
+        if (remaining[m] > 1e-9) next.push(m)
+      })
+      if (next.length === who.length) break // everyone took a full equal part
+      who = next
+    }
   })
-  const preTaxShares = Object.fromEntries(members.map(m => [
-    m, Math.max(0, shares[m] - discountByMember[m])
-  ]))
+  const preTaxShares = remaining
   const effectiveSubtotal = Math.max(0, subtotal - discAmt)
   const scRate = Math.max(0, Math.min(100, parseFloat(s?.serviceChargeRate) || 0))
   const scFraction = s?.serviceChargeEnabled ? scRate / 100 : 0

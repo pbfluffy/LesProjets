@@ -14,8 +14,11 @@ import { CURRENCIES } from './currencies.js'
 
 const CACHE_KEY = 'bill_fx_rates_v1'
 
+// The phone's local date (YYYY-MM-DD). toISOString() gave the UTC date, so in
+// Thailand the "day" only rolled over at 07:00.
 function todayKey() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function readCache() {
