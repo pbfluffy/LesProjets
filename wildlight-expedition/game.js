@@ -166,6 +166,7 @@ function render() {
   $('#view').innerHTML = ({ map: renderMap, party: renderParty, forge: renderForge })[save.tab]();
   paintPortraits();
   tickFarm();
+  startMapLoop();
 }
 
 /* ------------------------------ map --------------------------------- */
@@ -198,7 +199,10 @@ function mapSvg() {
 function renderMap() {
   const fg = farmGain();
   const cur = save.farm ? STAGE[save.farm.stage] : null;
-  let h = mapSvg();
+  // art.js paints the map on a canvas (animated); the SVG is the fallback when drawMap is missing.
+  let h = typeof drawMap === 'function'
+    ? `<canvas id="map-canvas" class="map" width="1080" height="450" role="img" aria-label="Village map"></canvas>`
+    : mapSvg();
 
   h += `<div class="card"><h2>Your party is ${cur ? `farming at ${cur.name}` : 'resting in the village'}</h2>`;
   if (cur) {
@@ -232,6 +236,26 @@ function renderMap() {
   }
   h += `<p class="note">${save.cleared.crossing ? 'The watchtower is lit. The next road will open in a later version.' : 'Beat the boss at Thornback Crossing to relight the watchtower.'}</p>`;
   return h;
+}
+
+/* Animated map: one rAF loop at a time, stops when the canvas leaves the page or a battle opens. */
+let mapRaf = 0;
+function startMapLoop() {
+  cancelAnimationFrame(mapRaf);
+  const cvs = $('#map-canvas');
+  if (!cvs || typeof drawMap !== 'function') return;
+  const c = cvs.getContext('2d');
+  const t0 = performance.now();
+  const frame = now => {
+    if (!cvs.isConnected) return;
+    if (!B) {
+      c.setTransform(cvs.width / 360, 0, 0, cvs.height / 150, 0, 0);
+      c.globalAlpha = 1;
+      drawMap(c, { cleared: save.cleared, farming: save.farm ? save.farm.stage : null }, (now - t0) / 1000);
+    }
+    mapRaf = requestAnimationFrame(frame);
+  };
+  mapRaf = requestAnimationFrame(frame);
 }
 
 function tickFarm() {
@@ -478,7 +502,7 @@ function doHeal(h, st) {
   if (!cand) return false;
   const amt = Math.round(st.heal);
   cand.hp = Math.min(cand.maxHp, cand.hp + amt);
-  floater(cand.x, cand.y - 70, '+' + amt, '#8ff0a4');
+  floater(cand.x, cand.y - unitTop(cand.id, 70), '+' + amt, '#8ff0a4');
   B.fx.push({ k: 'petals', x: cand.x, y: cand.y - 24, t: 0, life: 0.9 });
   h.swing = 1;
   return true;
@@ -507,7 +531,7 @@ function fireHero(h, st, w) {
 function hitEnemy(e, raw, i) {
   const d = Math.max(1, Math.round(raw - MON[e.type].armor));
   e.hp -= d; e.flash = 0.15;
-  floater(e.x + (i || 0) * 8, e.y - 56 * MON[e.type].scale, '-' + d, '#fff');
+  floater(e.x + (i || 0) * 8, e.y - unitTop(e.type, 56 * MON[e.type].scale) - 4, '-' + d, '#fff');
   if (e.hp <= 0) { e.hp = 0; e.dead = true; }
 }
 
@@ -521,10 +545,10 @@ function frontHero() { return aliveH()[0]; }
 
 function hurt(h, dmg) {
   if (h.dead) return;
-  if (B.bar.t > 0) { floater(h.x, h.y - 70, 'Blocked', '#7cc8ff'); return; }
+  if (B.bar.t > 0) { floater(h.x, h.y - unitTop(h.id, 70) - 4, 'Blocked', '#7cc8ff'); return; }
   const d = Math.round(dmg);
   h.hp -= d; h.hit = 0.25;
-  floater(h.x, h.y - 70, '-' + d, '#ff8a7a');
+  floater(h.x, h.y - unitTop(h.id, 70) - 4, '-' + d, '#ff8a7a');
   if (h.hp <= 0) { h.hp = 0; h.dead = true; }
 }
 
@@ -618,6 +642,9 @@ function drawBar(c, x, y, w, frac, col) {
   c.fillStyle = col; c.fillRect(x - w / 2, y, w * Math.max(0, frac), 4);
 }
 
+/* Height of a unit above its feet, so bars and numbers clear the head (sprites.js taller than the vector art). */
+const unitTop = (id, fallback) => (typeof spriteHeight === 'function' && spriteHeight(id)) || fallback;
+
 /* Health bars, effects and the barrier use art.js hooks when present; the plain versions below are fallbacks. */
 function hpBar(c, x, y, w, frac, kind) {
   if (typeof drawHpBar === 'function') drawHpBar(c, x, y, w, frac, kind);
@@ -636,7 +663,7 @@ function draw() {
     const w = save.heroes[h.id].weapon;
     drawHero(c, h.id, h.x, h.y, { weapon: w, t: B.t, swing: h.swing, lean: h.draw > 0 ? 1 - h.draw / 0.25 : 0, dead: h.dead, hit: h.hit,
       brace: h.id === 'bren' && B.bar.t > 0 });
-    if (!h.dead) hpBar(c, h.x, h.y - 78, 34, h.hp / h.maxHp, 'hero');
+    if (!h.dead) hpBar(c, h.x, h.y - unitTop(h.id, 70) - 8, 34, h.hp / h.maxHp, 'hero');
   } });
   for (const e of B.enemies) items.push({ y: e.y, f: () => {
     if (e.dead && e.fade > 0.7) return;
@@ -654,12 +681,12 @@ function draw() {
     drawMon(c, e.type, e.x, e.y, { t: B.t, wind: e.kind === 'charge' ? 0 : wf, scrape, lunge: off, flash: e.flash, dead: e.dead, fade: e.fade });
     if (!e.dead) {
       const sc = MON[e.type].scale;
-      hpBar(c, e.x, e.y - 62 * sc - 4, 36 * Math.min(1.6, sc), e.hp / e.maxHp, 'enemy');
+      hpBar(c, e.x, e.y - unitTop(e.type, 62 * sc) - 6, 36 * Math.min(1.6, sc), e.hp / e.maxHp, 'enemy');
       if (e.state === 'wind') {
         const pulse = 0.6 + 0.4 * Math.sin(B.t * 20);
         c.fillStyle = e.kind === 'charge' ? `rgba(255,70,50,${pulse})` : `rgba(255,210,90,${pulse})`;
         c.font = `bold ${e.kind === 'charge' ? 26 : 16}px sans-serif`; c.textAlign = 'center';
-        c.fillText('!', e.x, e.y - 70 * sc - 8);
+        c.fillText('!', e.x, e.y - unitTop(e.type, 62 * sc) - 14);
       }
     }
   } });
