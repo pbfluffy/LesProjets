@@ -16,6 +16,7 @@ playbooks (run / verify / ship) are project skills in `.claude/skills/`.
 | `cloudlingo/` | AWS/ITIL exam practice, Duolingo-style | **Static JS, no build** | `admin-static` → 5178 | `/cloudlingo/` |
 | `studio/` | Ambient "Pum's Office" page | Static HTML | `admin-static` → 5178 | `/studio/` |
 | `backyard-rampage/` | Browser game | Static HTML | `admin-static` → 5178 | `/backyard-rampage/` |
+| `wildlight-expedition/` | Semi-idle fantasy RPG (3 heroes, boss barrier timing, offline farming) | Static JS, no build | any static server | `/wildlight-expedition/` |
 
 Other root files: `index.html` (landing page with one card per app), `admindepum.html` (admin console: Pumgoda
 catalog editor, Cloudlingo reports…), `montreal-autumn-2026.html` + `montreal-manifest.json` (static trip page),
