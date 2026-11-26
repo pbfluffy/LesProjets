@@ -69,3 +69,62 @@ button.btn:not(.alt):not(:disabled) .cost b.short{color:#8a1d0a}
 .result li{margin:3px 0}
 .toast{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);background:#0f1a15;border:1px solid var(--amber);color:var(--text);padding:10px 16px;border-radius:12px;z-index:40;max-width:90%;text-align:center}
 .toast[hidden]{display:none}
+
+/* Village and battle chrome. Uses the same layouts and control states as the game. */
+:root{
+  --bg:#182320;--card:#24332e;--card2:#2b4037;--line:#46594a;
+  --text:#f6ecda;--dim:#c8c7ae;--amber:#f1ce8b;--amber-d:#be8d56;
+  --red:#ff9279;--green:#a4d8a2;--lilac:#ccb6ed;
+  --heading:Georgia,"Times New Roman",serif;
+  color-scheme:dark;
+}
+html,body{background:#101816}
+#app{background:radial-gradient(ellipse at 50% 1%,#36473a 0,transparent 390px),var(--bg)}
+.top{background:#202e28;border-bottom-color:#677052;box-shadow:0 3px 16px #0e161352}
+.top h1{font:700 clamp(15px,4.6vw,21px)/1.1 var(--heading);letter-spacing:.015em;color:#f1d598}
+.purse{gap:6px}
+.coin{border:1px solid #5c644d;background:linear-gradient(180deg,#3e4938,#29372e);font-size:13px;color:#f3deb0;white-space:nowrap}
+.card{background:linear-gradient(143deg,#2c3f35,#21302b 70%);border-color:#4b5d4d;box-shadow:0 5px 13px #10181554,inset 0 1px #82926523}
+.card h2,.card h3{font:700 17px/1.2 var(--heading);color:#f4dfb2}
+.card .sub{color:#cac7b3}
+.map{border-color:#76674f;box-shadow:0 7px 18px #11181699}
+.tabs{background:linear-gradient(#26382f,#182620);border-color:#57674f;box-shadow:0 -5px 18px #11191680}
+.tabs button{font:700 14px/1.2 system-ui,sans-serif;letter-spacing:.025em}
+.tabs button.on{background:linear-gradient(#b48a4e32,transparent);box-shadow:inset 0 2px #e0bc78;color:#f1d7a1}
+button.btn{background:linear-gradient(#efd599,#c49156);box-shadow:inset 0 1px #fff0c8,0 2px 4px #1019137d;color:#32251e;font:700 13px/1.3 system-ui,sans-serif}
+button.btn:disabled{background:#3b4c42;color:#a5af9e;box-shadow:inset 0 1px #ffffff14}
+button.btn.alt{background:linear-gradient(#3b5143,#2c3d35);box-shadow:inset 0 1px #b9c59d27}
+button.btn.good{background:linear-gradient(#b8d8a0,#78ab86);color:#1c352d;box-shadow:inset 0 1px #dfebaf,0 2px 4px #1019137d}
+button.ghost{background:#2a382f;border-color:#5c6350;color:#e3d3ad;font-size:13px}
+button:focus-visible{outline:2px solid #f6d28d;outline-offset:3px}
+.tag{background:#394a3d;color:#dedcc2}
+.tag.farm{background:#514437;color:#f6d18e}
+.hero-card canvas{background:radial-gradient(ellipse at 58% 47%,#455441,#222e29 73%);border:1px solid #50614c}
+.weapon{background:linear-gradient(#35493f,#293a33)}
+.weapon.on{border-color:#d5aa72;box-shadow:0 0 0 1px #d5aa724e inset}
+#battle{
+  gap:11px;padding:14px 10px 18px;
+  background:radial-gradient(ellipse 460px 340px at 50% 155px,#38483f 0%,#202d2a 61%,#182320 100%) no-repeat,#182320;
+}
+.battle-top{padding:0 2px;min-height:39px}
+#battle-title{font:700 clamp(20px,6.2vw,31px)/1.03 var(--heading);letter-spacing:-.025em;color:#ffdfaa;text-shadow:0 2px 2px #16191b}
+.battle-top .ghost{padding:7px 12px;background:linear-gradient(#3d4840,#263332);border-color:#757360;box-shadow:inset 0 1px #e7d6a31f}
+#stage{border:1px solid #94816a;border-radius:15px;box-shadow:0 0 0 2px #342e2e,0 8px 24px #0b1713a8}
+.warn{width:100%;max-width:480px;min-height:28px;display:grid;place-items:center;border:1px solid transparent;font:700 12px/1.16 system-ui,sans-serif;color:#ffe2a7}
+.warn.on{border-color:#b16b52;border-radius:7px;background:linear-gradient(90deg,#542c38,#763e3a 50%,#542c38);text-shadow:0 1px #361f28}
+.barrier{
+  height:62px;border:1px solid #a5b7a2;border-radius:12px;background:#293d46;color:#f3f7e7;
+  font:700 19px/1.2 var(--heading);letter-spacing:.015em;
+  box-shadow:inset 0 1px #d0e4c27d,0 4px 14px #0f1b18a3;
+}
+.barrier #barrier-fill{background:linear-gradient(180deg,#668f97,#396577 58%,#2f5367);box-shadow:inset 0 1px #d4f0db80,inset 0 -5px #253f5457}
+.barrier #barrier-label{z-index:1;text-shadow:0 1px 3px #1a3c4b}
+.barrier::before,.barrier::after{content:"";position:absolute;z-index:1;top:calc(50% - 4px);width:6px;height:6px;border:1px solid #d0d6b0;transform:rotate(45deg);pointer-events:none}
+.barrier::before{left:16px}
+.barrier::after{right:16px}
+.barrier.cool{border-color:#708584;color:#d5e5dd;background:#263a42}
+.barrier.cool #barrier-fill{background:linear-gradient(#496e76,#385662);box-shadow:inset 0 1px #a3c9c161}
+.hint{color:#c6c6af;font-size:12px;text-align:center}
+.result .box{background:linear-gradient(#36493e,#222f29);border-color:#8d805d;box-shadow:0 12px 45px #0d1311b0}
+.result h2{font-family:var(--heading);color:#f5da9e}
+@media(prefers-reduced-motion:reduce){.warn.on{animation:none}}
