@@ -48,20 +48,21 @@ button.btn:not(.alt):not(:disabled) .cost b.short{color:#8a1d0a}
 .note{color:var(--dim);font-size:13px}
 .big{font-size:19px;font-weight:700;color:var(--amber)}
 
-#battle{position:fixed;inset:0;background:#0b130f;z-index:20;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 10px 18px;overflow:auto}
+#battle{position:fixed;inset:0;background:#0b130f;z-index:20;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 10px calc(18px + env(safe-area-inset-bottom));overflow:auto}
 #battle[hidden]{display:none}
 .battle-top{width:100%;max-width:480px;display:flex;justify-content:space-between;align-items:center;font-weight:700}
 #stage{width:100%;max-width:480px;aspect-ratio:400/260;border-radius:14px;border:1px solid var(--line);background:#102016;touch-action:manipulation}
 .warn{min-height:26px;font-weight:800;color:#ffd26b;text-align:center}
 .warn.on{animation:pulse .5s infinite alternate}
 @keyframes pulse{from{opacity:.55}to{opacity:1}}
-.barrier{position:relative;width:100%;max-width:480px;height:64px;border-radius:16px;border:2px solid #5fa8d8;background:#16324a;color:#e9f6ff;font:800 18px inherit;font-family:inherit;overflow:hidden;cursor:pointer}
+#stage{margin-top:auto}
+.barrier{position:relative;isolation:isolate;margin-top:auto;width:100%;max-width:480px;height:64px;border-radius:16px;border:2px solid #5fa8d8;background:#16324a;color:#e9f6ff;font:800 18px inherit;font-family:inherit;overflow:hidden;cursor:pointer}
 .barrier #barrier-fill{position:absolute;inset:0;background:#2f7fb8;transform-origin:left;transform:scaleX(1);transition:none}
 .barrier #barrier-label{position:relative}
 .barrier.cool{border-color:#3b5568;color:#9fb6c6}
 .barrier.cool #barrier-fill{background:#25465f}
 .hint{color:var(--dim);font-size:13px}
-.result{position:absolute;inset:0;background:rgba(8,14,11,.88);display:flex;align-items:center;justify-content:center;padding:20px}
+.result{position:absolute;inset:0;z-index:30;background:rgba(8,14,11,.88);display:flex;align-items:center;justify-content:center;padding:20px}
 .result[hidden]{display:none}
 .result .box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:360px;width:100%;text-align:center}
 .result h2{margin:0 0 8px;font-size:22px}
