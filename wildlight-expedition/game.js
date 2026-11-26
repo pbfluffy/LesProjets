@@ -618,6 +618,12 @@ function drawBar(c, x, y, w, frac, col) {
   c.fillStyle = col; c.fillRect(x - w / 2, y, w * Math.max(0, frac), 4);
 }
 
+/* Health bars, effects and the barrier use art.js hooks when present; the plain versions below are fallbacks. */
+function hpBar(c, x, y, w, frac, kind) {
+  if (typeof drawHpBar === 'function') drawHpBar(c, x, y, w, frac, kind);
+  else drawBar(c, x, y, w, frac, kind === 'enemy' ? '#e0624a' : '#6cc37c');
+}
+
 function draw() {
   const c = ctx;
   c.setTransform(cv.width / 400, 0, 0, cv.height / 260, 0, 0);
@@ -630,7 +636,7 @@ function draw() {
     const w = save.heroes[h.id].weapon;
     drawHero(c, h.id, h.x, h.y, { weapon: w, t: B.t, swing: h.swing, lean: h.draw > 0 ? 1 - h.draw / 0.25 : 0, dead: h.dead, hit: h.hit,
       brace: h.id === 'bren' && B.bar.t > 0 });
-    if (!h.dead) drawBar(c, h.x, h.y - 78, 34, h.hp / h.maxHp, '#6cc37c');
+    if (!h.dead) hpBar(c, h.x, h.y - 78, 34, h.hp / h.maxHp, 'hero');
   } });
   for (const e of B.enemies) items.push({ y: e.y, f: () => {
     if (e.dead && e.fade > 0.7) return;
@@ -638,7 +644,8 @@ function draw() {
     const lf = e.lunge > 0 ? 1 - e.lunge / e.lungeDur : 0;
     const off = e.lunge > 0 ? e.lungeDist * Math.sin(Math.PI * lf) : 0;
     const scrape = e.state === 'wind' && e.kind === 'charge' ? wf : 0;
-    if (scrape) {
+    // art.js paints its own charge lane, cracks and dust (artBattleGround); this is only the fallback.
+    if (scrape && typeof artBattleGround !== 'function') {
       c.fillStyle = 'rgba(200,170,120,.35)';
       for (let i = 0; i < 4; i++) { const k = (B.t * 3 + i * 0.25) % 1; ell(c, e.x - 56 - k * 22, e.y - 2 - k * 18, 4 + k * 4, 3 + k * 2); c.fill(); }
       c.strokeStyle = `rgba(255,90,60,${0.25 + 0.25 * Math.sin(B.t * 18)})`; c.lineWidth = 3;
@@ -647,7 +654,7 @@ function draw() {
     drawMon(c, e.type, e.x, e.y, { t: B.t, wind: e.kind === 'charge' ? 0 : wf, scrape, lunge: off, flash: e.flash, dead: e.dead, fade: e.fade });
     if (!e.dead) {
       const sc = MON[e.type].scale;
-      drawBar(c, e.x, e.y - 62 * sc - 4, 36 * Math.min(1.6, sc), e.hp / e.maxHp, '#e0624a');
+      hpBar(c, e.x, e.y - 62 * sc - 4, 36 * Math.min(1.6, sc), e.hp / e.maxHp, 'enemy');
       if (e.state === 'wind') {
         const pulse = 0.6 + 0.4 * Math.sin(B.t * 20);
         c.fillStyle = e.kind === 'charge' ? `rgba(255,70,50,${pulse})` : `rgba(255,210,90,${pulse})`;
@@ -658,7 +665,9 @@ function draw() {
   } });
   items.sort((a, b) => a.y - b.y).forEach(i => i.f());
 
-  if (B.bar.t > 0) {
+  if (B.bar.t > 0 && typeof drawBarrier === 'function') {
+    drawBarrier(c, B.t, B.bar.t / BAR_DUR);
+  } else if (B.bar.t > 0) {
     const f = B.bar.t / BAR_DUR, p = 0.5 + 0.5 * Math.sin(B.t * 14);
     const g = c.createRadialGradient(95, 170, 20, 95, 170, 105);
     g.addColorStop(0, 'rgba(124,200,255,0)'); g.addColorStop(1, `rgba(124,200,255,${0.2 + 0.15 * p})`);
@@ -667,6 +676,7 @@ function draw() {
   }
 
   for (const f of B.fx) {
+    if (typeof drawFx === 'function' && drawFx(c, f, B.t)) continue;
     const k = f.t / (f.life || f.dur || 1);
     if (f.k === 'txt') {
       c.globalAlpha = 1 - k * k; c.fillStyle = f.c; c.strokeStyle = 'rgba(0,0,0,.7)'; c.lineWidth = 3;
