@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14211b">
+<title>Wildlight Expedition</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <h1>Wildlight Expedition</h1>
+    <div class="purse">
+      <span class="coin" title="Gold">🪙 <b id="gold">0</b></span>
+      <span class="coin" title="Iron">⛏️ <b id="iron">0</b></span>
+    </div>
+  </header>
+  <main id="view"></main>
+  <nav class="tabs" id="tabs">
+    <button data-act="tab" data-arg="map">Map</button>
+    <button data-act="tab" data-arg="party">Party</button>
+    <button data-act="tab" data-arg="forge">Forge</button>
+  </nav>
+</div>
+
+<section id="battle" hidden>
+  <div class="battle-top">
+    <div id="battle-title">Battle</div>
+    <button class="ghost" data-act="retreat">Retreat</button>
+  </div>
+  <canvas id="stage" width="400" height="260"></canvas>
+  <div id="warn" class="warn" aria-live="polite"></div>
+  <button id="barrier" class="barrier" data-act="barrier">
+    <span id="barrier-fill"></span>
+    <span id="barrier-label">Raise barrier</span>
+  </button>
+  <div class="hint">Tap the barrier (or press Space) to block a heavy hit.</div>
+  <div id="result" class="result" hidden></div>
+</section>
+
+<div id="toast" class="toast" hidden></div>
+<script src="art.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
