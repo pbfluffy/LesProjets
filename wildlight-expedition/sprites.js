@@ -298,6 +298,10 @@
   const monPaths = id => ['idle', 'attack'].map(p => `monsters/${id}-${p}.${(meta.data && meta.data[id] && meta.data[id].ext) || 'png'}`);
   /* Loads a region's monsters and battle backgrounds once; resolves when they are ready (missing pictures fall back to the drawn art). */
   window.monIdleUrl = id => url(monPaths(id)[0]);                 // the picture of a monster for the home cards
+  /* Every picture of the game (used by pwa.js so the installed app can run offline). */
+  window.artUrls = () => Object.values(REGION_ART).flatMap(a => [...a.mon.flatMap(monPaths), ...a.bg.map(b => `bg/${b}.jpg`)])
+    .concat(MAP_PATHS, ['meta.json'], ['sword', 'twin', 'great', 'bow', 'staff'].map(w => `items/${w}.png`),
+      Object.entries(HERO_FILES).flatMap(([id, ws]) => ws.flatMap(w => ['idle', 'attack'].map(p => `heroes/${id}-${w}-${p}.png`)))).map(url);
   window.ensureRegion = id => {
     if (!REGION_ART[id] || !meta.data) return Promise.resolve(false);
     if (window.regionArt[id] === 'ready') return Promise.resolve(true);

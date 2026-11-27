@@ -573,6 +573,7 @@ function renderMap() {
   h += farmStrip();
   h += `<h2 class="sec">${allDone ? 'Farm &amp; replay' : 'Next up'}</h2>` + featuredCard(feat);
   h += dailyCard();
+  if (window.pwaCard) h += window.pwaCard();           // "Install the game" (pwa.js), only where it can be installed
   const nClear = STAGES.filter(s => save.cleared[s.id]).length;
   h += `<h2 class="sec">Roads <small>${nClear} of ${STAGES.length} cleared</small></h2>`;
   for (const r of REGIONS) {

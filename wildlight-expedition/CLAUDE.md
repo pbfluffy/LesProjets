@@ -70,3 +70,9 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - Weapon drops get better with the region (`dropGrade`: see `STAGES`), so merging copies stays useful.
 - Art loads per region and lazily: `window.ensureRegion(id)` in `sprites.js` fetches that region's monsters, backgrounds and map; `regionArt[id]` is idle / loading / ready, and screens show `Loading the area…` until it is ready.
   Monster files can be `.webp` (`ext` in `assets/meta.json`, alongside the alignment data `frameW/frameH/feetX/feetY/figureH`); the figure's on-screen height comes from the `HEIGHT` table in `sprites.js`.
+
+## Installable app (PWA)
+- `manifest.webmanifest` (scope `/wildlight-expedition/`), icons in `assets/pwa/` (`icon-192/512`, `icon-512-maskable`, `apple-touch-icon`, plus `thumbnail.jpg` 1200x630 used for the `og:image` link preview), all painted with Codex.
+- `sw.js`: page = network first (offline: saved copy); `?v=` files = cache first; unversioned files = network first. `VERSION` is stamped with the commit by `deploy.yml` (a new deploy clears the old `wildlight-*` cache). With `VERSION = 'dev'` (local play) nothing is served from the cache while online.
+- `pwa.js`: registers the worker, sends it `window.artUrls()` (every picture, from `sprites.js`) when idle so all areas work offline, and `window.pwaCard()` draws the dismissible "Install the game" card on the Map tab (Install button via `beforeinstallprompt`; "Add to Home Screen" steps on iOS; hidden when already installed).
+- Cloudflare must not edge-cache `sw.js` (the site's existing "/sw.js" bypass rule covers it).
