@@ -568,12 +568,12 @@ function renderMap() {
       ? `<div class="map placeholder" role="img" aria-label="Loading the village map"><span>Loading the village…</span></div>`
       : mapSvg();
 
+  // Groups (.vg) keep the phone order (map, farm strip, next up, daily, roads); on a wide screen CSS puts them in two columns (.vcol).
   const feat = featuredStage(), allDone = !nextStage();
-  h += regionChips();
-  h += farmStrip();
-  h += `<h2 class="sec">${allDone ? 'Farm &amp; replay' : 'Next up'}</h2>` + featuredCard(feat);
-  h += dailyCard();
-  if (window.pwaCard) h += window.pwaCard();           // "Install the game" (pwa.js), only where it can be installed
+  h = `<div class="vgrid"><div class="vcol"><div class="vg o1">${h}${regionChips()}</div>`;
+  const colA2 = `<div class="vg o3"><h2 class="sec">${allDone ? 'Farm &amp; replay' : 'Next up'}</h2>` + featuredCard(feat) + '</div></div>';
+  h += colA2 + `<div class="vcol"><div class="vg o2">${farmStrip()}</div><div class="vg o4">${dailyCard()}${window.pwaCard ? window.pwaCard() : ''}</div>`;   // pwaCard: "Install the game" (pwa.js)
+  h += '<div class="vg o5">';
   const nClear = STAGES.filter(s => save.cleared[s.id]).length;
   h += `<h2 class="sec">Roads <small>${nClear} of ${STAGES.length} cleared</small></h2>`;
   for (const r of REGIONS) {
@@ -592,7 +592,7 @@ function renderMap() {
     <button class="btn danger" data-act="resetask">Reset game data</button>
     <p class="sub" style="margin-top:12px">Testing the new areas? These shortcuts help:</p>
     <div class="row"><button class="btn alt" data-act="testunlock">Unlock all areas</button><button class="btn alt" data-act="testgold">+10,000 gold &amp; 2,000 lumber</button></div></div>`;
-  return h;
+  return h + '</div></div></div>';
 }
 
 /* Animated map: one rAF loop at a time, stops when the canvas leaves the page or a battle opens. */
@@ -696,9 +696,9 @@ function recruitCard(id) {
 
 function renderParty() {
   let h = partyStrip();
-  h += `<h2 class="sec">Heroes</h2>` + party().map(heroCard).join('');
+  h += `<h2 class="sec">Heroes</h2><div class="cgrid">` + party().map(heroCard).join('') + '</div>';
   const rec = HERO_ORDER.filter(id => !inParty(id));
-  if (rec.length) h += `<h2 class="sec">Recruit <small>pay with gold</small></h2>` + rec.map(recruitCard).join('');
+  if (rec.length) h += `<h2 class="sec">Recruit <small>pay with gold</small></h2>` + `<div class="cgrid">` + rec.map(recruitCard).join('') + '</div>';
   return h;
 }
 
@@ -754,7 +754,7 @@ function renderForge() {
     <span>Weapons can't be bought: they drop from fights and farming. Merge ${MERGE_N} copies of the same weapon and grade into one of the next grade (${GRADES.map(x => x.name).join(' → ')}).</span></div></div>`;
   for (const fam of Object.keys(FAMILY)) {
     const ws = Object.keys(WEAPONS).filter(w => WEAPONS[w].fam === fam);
-    h += `<h2 class="sec">${FAMILY_PLURAL[fam]} <small>${HERO[WIELDER[fam]].name}</small></h2>` + ws.map(weaponCard).join('');
+    h += `<h2 class="sec">${FAMILY_PLURAL[fam]} <small>${HERO[WIELDER[fam]].name}</small></h2>` + `<div class="cgrid">${ws.map(weaponCard).join('')}</div>`;
   }
   h += `<p class="note">More weapons (sword and shield, saber, rapier, falchion and bow and staff variants) drop in later areas.</p>`;
   return h;
@@ -924,7 +924,14 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && B) { e.preventDefault(); raiseBarrier(); }
-  if (e.key === 'Escape') { closeResInfo(); closeResetDialog(); }
+  if (e.key === 'Escape') {
+    const dlg = document.getElementById('reset-dialog'), res = document.getElementById('result');
+    if (dlg || document.getElementById('res-info')) { closeResInfo(); closeResetDialog(); }
+    else if (B && res && res.hidden) endBattle('retreat');           // Esc leaves a fight (keyboard players)
+  }
+  else if (!B && !e.ctrlKey && !e.metaKey && !e.altKey && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName || '') && ['1', '2', '3'].includes(e.key) && !document.getElementById('reset-dialog')) {
+    actions.tab(['map', 'party', 'forge'][Number(e.key) - 1]);       // 1 / 2 / 3 switch tabs
+  }
 });
 
 /* Stage wins return a structured result (what was earned) that showResult() turns into the reward screen. */

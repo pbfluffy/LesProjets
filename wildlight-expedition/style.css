@@ -483,3 +483,51 @@ html,body{overscroll-behavior-y:none}
 .pwa-text .btn{margin-top:8px}
 .pwa-x{position:absolute;top:4px;right:6px;width:34px;height:34px;border:0;background:none;color:var(--dim);font-size:22px;line-height:1;border-radius:8px;cursor:pointer}
 .pwa-x:hover{color:var(--text)}
+
+/* ---- bigger screens: tablet and PC (the phone layout above is unchanged) ----
+   Map / Party / Forge content is grouped (.vgrid > .vcol > .vg, .cgrid) in game.js; on a phone those wrappers are invisible. */
+.vgrid,.vcol,.cgrid{display:contents}
+.vg{display:flex;flex-direction:column;gap:12px}
+.vg:empty{display:none}
+.vg.o1{order:1}.vg.o2{order:2}.vg.o3{order:3}.vg.o4{order:4}.vg.o5{order:5}
+.h-key{display:none}
+
+@media (min-width:720px){
+  #app,.tabs{max-width:720px}
+  .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;align-items:start}
+  #battle{--bw:min(960px,100%,max(480px,calc((100vh - 240px)*1.538)))}
+  .battle-top,#stage,.barrier{max-width:var(--bw)}
+  .result .box{max-width:420px}
+}
+
+@media (min-width:1000px){
+  :root{--gut:max(24px,calc((100vw - 1180px)/2))}
+  #app{max-width:none;padding-bottom:32px}
+  .top{height:64px;padding:0 var(--gut)}
+  main{padding:20px var(--gut) 8px;gap:14px}
+  /* the tab bar moves up into the header, centred */
+  .tabs{top:0;bottom:auto;width:auto;max-width:none;height:64px;background:none;border:0;padding:0;z-index:7}
+  .tabs button{flex:none;height:64px;padding:0 30px;font-size:16px;box-shadow:none}
+  .tabs button.on{box-shadow:inset 0 -3px 0 var(--amber)}
+  .ver{bottom:10px}
+  .toast{bottom:28px}
+  .vgrid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:20px;align-items:start}
+  .vcol{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .cgrid{grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
+  .acct-menu{right:var(--gut)}
+}
+
+/* mouse and keyboard devices: hover feedback and the keyboard hint */
+@media (hover:hover) and (pointer:fine){
+  .h-touch{display:none}
+  .h-key{display:inline}
+  button{transition:filter .12s,transform .12s,background-color .12s,border-color .12s}
+  button.btn:not(:disabled):hover{filter:brightness(1.1);transform:translateY(-1px)}
+  button.btn:not(:disabled):active{transform:none;filter:brightness(.95)}
+  button.ghost:hover,.rchip:hover,.coin:hover,.acct:hover{filter:brightness(1.2)}
+  .tabs button:hover:not(.on){color:var(--text)}
+  .weapon:hover,details.region summary:hover,.stagerow:hover,.stagecard:hover{filter:brightness(1.08)}
+  .barrier:hover{filter:brightness(1.12)}
+  .pwa-x:hover{background:rgba(255,255,255,.08)}
+  .coin,.rchip,.weapon,details.region summary,.stagerow,.barrier{cursor:pointer}
+}
