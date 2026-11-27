@@ -34,3 +34,10 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
   Remove it for launch: set `TEST_PERIOD` to false, or delete the `test tools` block, the card in `renderMap` and the three `reset*` actions.
 - **Build label** (test period): a small corner label shows `v <commit id> · <build time>` (`BUILD` / `parseBuild` in `game.js`). `deploy.yml` stamps the commit into the `?v=` of
   the script links and the Bangkok build time into `<meta name="build">`; locally it reads `v dev`. If the label is older than the latest deploy, you are looking at a cached copy.
+
+## Home screen (Map tab) cards
+- Order (`renderMap` in `game.js`): map, farming strip (only when the party is out; loot, glowing Claim), **Next up** = ONE big stage card for the first unlocked,
+  uncleared stage (once everything is cleared: the farmed stage, headed "Farm & replay"), the daily hunt row, then every other stage as a compact row.
+- Stage details that are not needed at a glance, like the possible weapon drops, are folded (`<details class="drops">`). Closed by default; which ones the player opened is
+  kept in `uiOpen` across redraws. Drop tiers (Often / Sometimes / Rarely) come from the stage's drop weights.
+- Stage cards use the painted `bg/<stage>.jpg` and the monsters' idle sprites (via `window.assetUrl` from `sprites.js`); until the art has loaded they show a colour gradient.

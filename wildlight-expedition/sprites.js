@@ -14,6 +14,7 @@
   const script = document.currentScript;
   const ver = script && script.src.includes('?') ? script.src.slice(script.src.indexOf('?')) : '';
   const url = p => 'assets/' + p + ver;
+  window.assetUrl = url;                       // game.js uses the same (versioned) URLs for the stage art on the home cards
 
   const meta = { loaded: false, data: null };
   const imgs = new Map();            // path -> HTMLImageElement (only when fully decoded)
