@@ -495,8 +495,8 @@ html,body{overscroll-behavior-y:none}
 @media (min-width:720px){
   #app,.tabs{max-width:720px}
   .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;align-items:start}
-  #battle{--bw:min(960px,100%,max(480px,calc((100vh - 240px)*1.538)))}
-  .battle-top,.arena,.barrier{max-width:var(--bw)}
+  #battle{--bw:min(960px,100%,max(480px,calc((100vh - 370px)*1.538)))}
+  .battle-top,.arena,.barrier,.runlog{max-width:var(--bw)}
   .result .box{max-width:420px}
 }
 
@@ -667,3 +667,7 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 .wdrow .ico{vertical-align:-3px;margin-right:2px}
 .wdrow b{min-width:0;text-align:left}
 .wdrow .wdgo{justify-self:end}
+/* battle: nothing in the column may shrink (the barrier was squashed on a PC); when the window is too short the battle screen scrolls instead */
+#battle>*{flex:none}
+
+@media(min-width:720px){.runlog{max-width:var(--bw)}}
