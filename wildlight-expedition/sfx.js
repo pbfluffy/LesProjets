@@ -209,6 +209,15 @@
     saber: () => { [0, 0.12, 0.24].forEach((at, i) => { swish(at, 3000 + i * 300, 8200, 0.045, 0.17); swish(at + 0.035, 8200, 1800, 0.08, 0.2); steel(5200 + i * 200, at + 0.04, 0.035, 0.14); }); },
     rapier: () => { swish(0, 5200, 9800, 0.075, 0.15, 'highpass'); tone({ f: 3200, to: 5200, dur: 0.09, vol: 0.05, type: 'sine' }); steel(4000, 0.055, 0.045, 0.28); },
     buckler: () => { swish(0, 1300, 4600, 0.06, 0.2); swish(0.05, 4600, 700, 0.12, 0.22); noise({ at: 0.03, type: 'lowpass', f: 420, dur: 0.08, vol: 0.14 }); wood(260, 0.08, 0.12); },
+    pitchfork: () => { swish(0, 1800, 5000, 0.05, 0.2); swish(0.04, 5000, 1100, 0.09, 0.22); wood(520, 0.05, 0.08); },
+    woodaxe: () => { swish(0, 700, 2600, 0.1, 0.26); swish(0.08, 2600, 350, 0.2, 0.3); wood(180, 0.1, 0.14); tone({ f: 110, to: 60, at: 0.08, dur: 0.22, vol: 0.12, type: 'sine' }); },
+    club: () => { swish(0, 800, 2800, 0.08, 0.24); swish(0.06, 2800, 420, 0.16, 0.28); wood(210, 0.08, 0.12); },
+    dagger: () => { swish(0, 3200, 8000, 0.04, 0.16); steel(5000, 0.03, 0.03, 0.12); },
+    twindaggers: () => { [0, 0.1].forEach(at => { swish(at, 3200, 8000, 0.04, 0.15); steel(5200, at + 0.03, 0.03, 0.12); }); },
+    spear: () => { swish(0, 1600, 5200, 0.07, 0.22); swish(0.05, 5200, 900, 0.13, 0.24); wood(340, 0.06, 0.1); },
+    halberd: () => { swish(0, 600, 2400, 0.1, 0.28); swish(0.09, 2400, 300, 0.24, 0.34); tone({ f: 100, to: 60, at: 0.08, dur: 0.26, vol: 0.12, type: 'sine' }); steel(2400, 0.1, 0.05, 0.14); },
+    wraps: () => { [0, 0.11].forEach(at => { swish(at, 1200, 3600, 0.05, 0.14); noise({ at: at + 0.04, type: 'lowpass', f: 600, dur: 0.05, vol: 0.12 }); }); },
+    gauntlets: () => { swish(0, 900, 3000, 0.07, 0.2); steel(900, 0.07, 0.07, 0.2); thump(0.07, 130, 0.25, 0.12); },
   };
   /* ---- what a weapon does when it lands. arg: { w: weapon id, a: the monster is armored } ---- */
   const slice = (m, bright) => { crack(0, 0.3); thump(0, 165 / m, 0.38 * m, 0.17); crunch(0, 0.2, 1700, 320, 0.13); tone({ f: 62, to: 40, dur: 0.2, vol: 0.2 * m, type: 'sine', punch: true }); steel(bright || 2900, 0.005, 0.05, 0.16); };
@@ -227,6 +236,16 @@
     heartwood: () => { thump(0, 100, 0.3, 0.16); chime(E6, 0, 0.1, 0.6); chime(G6, 0.05, 0.08, 0.6); noise({ type: 'bandpass', f: 3500, q: 1.2, dur: 0.2, vol: 0.07, a: 0.02 }); },
     stormstaff: () => { crack(0, 0.55, 6500); crackle(0.01, 5, 3000, 7000, 0.12); tone({ f: 1800, to: 200, dur: 0.15, vol: 0.12, type: 'sawtooth', lp: 3500, punch: true }); thump(0.02, 70, 0.55, 0.4); noise({ at: 0.03, type: 'lowpass', f: 500, to: 120, dur: 0.35, vol: 0.2 }); },
     frostwand: () => { crack(0, 0.4, 7500); [0, 0.03, 0.06, 0.1, 0.15].forEach(at => chime(rnd(2000, 4500), at, 0.05, 0.25)); thump(0, 140, 0.3, 0.12); noise({ type: 'highpass', f: 8000, dur: 0.18, vol: 0.06 }); },
+    pitchfork: () => { crack(0, 0.22, 3500); thump(0, 190, 0.35, 0.12); wood(420, 0, 0.2); },
+    woodaxe: () => { crack(0, 0.35); thump(0, 120, 0.6, 0.2); wood(200, 0, 0.35); crunch(0, 0.3, 1500, 300, 0.12); },
+    club: () => { thump(0, 130, 0.55, 0.18); wood(240, 0, 0.3); crack(0, 0.22, 2600); },
+    dagger: () => slice(0.6, 4200), twindaggers: () => slice(0.55, 4400),
+    spear: () => { crack(0, 0.28, 4500); thump(0, 170, 0.35, 0.12); wood(360, 0, 0.2); steel(3200, 0.005, 0.05, 0.15); },
+    halberd: () => { crack(0, 0.4); thump(0, 110, 0.65, 0.22); crunch(0, 0.4, 1600, 260, 0.16); steel(2000, 0.005, 0.06, 0.25); },
+    wraps: () => { noise({ type: 'lowpass', f: 800, dur: 0.06, vol: 0.3, punch: true }); thump(0, 150, 0.4, 0.12); },
+    gauntlets: () => { crack(0, 0.35, 3000); thump(0, 100, 0.6, 0.18); steel(900, 0.005, 0.1, 0.35); },
+    tome: () => { crackle(0, 4, 1500, 4500, 0.08); thump(0, 120, 0.3, 0.14); noise({ type: 'bandpass', f: 1800, dur: 0.2, vol: 0.1, a: 0.01 }); },
+    grimoire: () => { crack(0, 0.45, 2600); thump(0, 70, 0.6, 0.3); noise({ type: 'lowpass', f: 900, to: 160, dur: 0.35, vol: 0.2 }); crackle(0.02, 6, 1500, 5000, 0.1); },
   };
   /* ---- bows and staves: the shot or the cast ---- */
   const RELEASE = {
@@ -240,6 +259,8 @@
     heartwood: () => { noise({ type: 'bandpass', f: 3200, q: 1.2, dur: 0.25, vol: 0.07, a: 0.05 }); pluck(G5, 0, 0.12, 0.5); pluck(C6, 0.07, 0.11, 0.55); chime(E6, 0.12, 0.07, 0.7); },
     stormstaff: () => { swish(0, 200, 1600, 0.18, 0.18); crackle(0.01, 5, 3500, 7000, 0.1); tone({ f: 180, to: 1900, dur: 0.2, vol: 0.1, type: 'sawtooth', lp: 3200, punch: true }); },
     frostwand: () => { [0, 0.04, 0.08].forEach((at, i) => chime(2400 + i * 500, at, 0.09, 0.45)); swish(0, 6000, 11000, 0.14, 0.07, 'highpass'); noise({ at: 0.05, type: 'highpass', f: 9000, dur: 0.2, vol: 0.04 }); },
+    tome: () => { noise({ type: 'bandpass', f: 1400, to: 3200, dur: 0.18, vol: 0.1, a: 0.04 }); tone({ f: 300, to: 900, dur: 0.18, vol: 0.06, type: 'sawtooth', lp: 2400 }); crackle(0.05, 3, 1500, 4500, 0.06); },
+    grimoire: () => { noise({ type: 'bandpass', f: 800, to: 2600, dur: 0.3, vol: 0.13, a: 0.1 }); tone({ f: 140, to: 520, dur: 0.3, vol: 0.1, type: 'sawtooth', lp: 1800 }); crackle(0.08, 5, 1200, 4000, 0.08); },
   };
   const HEALFX = {
     staff: () => { chime(E6, 0, 0.12, 0.3); chime(G6, 0.09, 0.1, 0.34); },
@@ -333,6 +354,16 @@
     skill_arrowrain: () => { [0, 0.07, 0.14, 0.21, 0.28, 0.35].forEach((at, i) => swish(at, 2600 + i * 200, 6800, 0.09, 0.1, 'highpass')); pluck(160, 0, 0.2, 0.25); },
     skill_snipe: () => { pluck(95, 0, 0.4, 0.4); swish(0.02, 1800, 7500, 0.2, 0.18, 'highpass'); tone({ f: 1400, to: 3800, at: 0.02, dur: 0.18, vol: 0.06, type: 'sine' }); crack(0.3, 0.3, 4500); },
     skill_bloom: () => { [E5, G5, C6].forEach((f, i) => pluck(f, i * 0.06, 0.11, 0.5)); chime(E6, 0.16, 0.08, 0.5); noise({ type: 'bandpass', f: 3200, q: 1.2, dur: 0.3, vol: 0.05, a: 0.08 }); },
+    skill_hardswing: () => { swish(0, 500, 2200, 0.12, 0.3); swish(0.1, 2200, 260, 0.2, 0.36); thump(0.2, 90, 0.5, 0.3); wood(200, 0.2, 0.3); },
+    skill_rally: () => { [C5, E5, G5, C6].forEach((f, i) => tone({ f, at: i * 0.07, dur: 0.3, vol: 0.07, type: 'triangle', a: 0.02, nojit: true })); thump(0, 120, 0.3, 0.2); },
+    skill_backstab: () => { [0.1, 0.22, 0.34].forEach((at, i) => { swish(at, 3500, 8500, 0.04, 0.17); steel(5000 + i * 300, at + 0.03, 0.04, 0.2); thump(at + 0.03, 200, 0.2, 0.06); }); },
+    skill_smoke: () => { noise({ type: 'bandpass', f: 900, to: 300, dur: 0.7, vol: 0.2, a: 0.06 }); thump(0, 90, 0.4, 0.25); noise({ at: 0.05, type: 'highpass', f: 5000, dur: 0.4, vol: 0.05 }); },
+    skill_fireball: () => { noise({ type: 'bandpass', f: 600, to: 2200, dur: 0.3, vol: 0.14, a: 0.1 }); tone({ f: 120, to: 480, dur: 0.3, vol: 0.1, type: 'sawtooth', lp: 1600 }); thump(0.38, 70, 0.6, 0.32); noise({ at: 0.38, type: 'lowpass', f: 900, to: 150, dur: 0.4, vol: 0.2 }); crack(0.38, 0.4, 3000); },
+    skill_meteor: () => { [0.1, 0.28, 0.46, 0.64, 0.82].forEach(at => { swish(at, 3000, 400, 0.28, 0.14); thump(at + 0.3, 70, 0.5, 0.28); noise({ at: at + 0.3, type: 'lowpass', f: 800, to: 120, dur: 0.3, vol: 0.16 }); }); },
+    skill_lance: () => { swish(0, 1400, 6000, 0.12, 0.26); swish(0.05, 6000, 800, 0.22, 0.28); steel(3600, 0.12, 0.08, 0.25); thump(0.18, 110, 0.4, 0.2); },
+    skill_bulwark: () => { thump(0, 100, 0.4, 0.25); steel(900, 0.01, 0.14, 0.45); [C5, G5, C6].forEach((f, i) => tone({ f, at: 0.04 + i * 0.05, dur: 0.4, vol: 0.07, type: 'sine', a: 0.05, nojit: true })); },
+    skill_ironpalm: () => { swish(0, 900, 3000, 0.08, 0.2); thump(0.12, 85, 0.7, 0.3); crack(0.12, 0.4, 2800); steel(800, 0.12, 0.12, 0.3); },
+    skill_innerpeace: () => { [C5, E5, G5, C6].forEach((f, i) => chime(f, i * 0.1, 0.12, 0.5)); noise({ type: 'bandpass', f: 2400, q: 1, dur: 0.5, vol: 0.05, a: 0.15 }); },
     skill_storm: () => { crackle(0, 5, 3500, 7000, 0.11); crack(0.1, 0.5, 6000); thump(0.1, 80, 0.45, 0.3); noise({ at: 0.1, type: 'lowpass', f: 500, to: 130, dur: 0.3, vol: 0.18 }); },
     herodown: () => { thump(0, 100, 0.5, 0.3); noise({ type: 'lowpass', f: 600, to: 200, dur: 0.25, vol: 0.15 }); chime(G5, 0.08, 0.06, 0.6); chime(C5, 0.2, 0.06, 0.8); },
   });
@@ -383,7 +414,7 @@
     src.start(t0); if (o.dur) src.stop(t0 + o.dur + 0.02);
     return true;
   }
-  const SWG = { sword: 'swing_mid', twin: 'swing_light', great: 'swing_heavy', falchion: 'swing_heavy', saber: 'swing_light', rapier: 'swing_light', buckler: 'swing_mid' };
+  const SWG = { sword: 'swing_mid', twin: 'swing_light', great: 'swing_heavy', falchion: 'swing_heavy', saber: 'swing_light', rapier: 'swing_light', buckler: 'swing_mid', pitchfork: 'swing_light', woodaxe: 'swing_heavy', club: 'swing_mid', dagger: 'swing_light', twindaggers: 'swing_light', spear: 'swing_mid', halberd: 'swing_heavy', wraps: 'swing_light', gauntlets: 'swing_mid' };
   const CONTACT = {                                                              // what the weapon itself sounds like when it lands (staves without an entry use the synthesised impact)
     sword: () => smp('blade_hit', { gain: 0.9 }),
     falchion: () => { smp('blade_hit', { gain: 0.95, rate: 0.88 }); thump(0, 120, 0.2, 0.14); },
@@ -395,6 +426,17 @@
     bow: a => arrowLand(a, 1), shortbow: a => arrowLand(a, 1.15), longbow: a => arrowLand(a, 0.88),
     crossbow: a => { smp('body_thud', { gain: 0.8 }); if (a) smp('clash_knife', { gain: 0.5 }); else smp('mat_wood', { gain: 0.5 }); },
     stormstaff: () => { crack(0, 0.4, 6500); smp('magic_storm', { gain: 0.7, dur: 0.3 }); thump(0.02, 70, 0.3, 0.3); },
+    pitchfork: () => { smp('mat_wood', { gain: 0.8, rate: 1.1 }); thump(0, 190, 0.25, 0.1); },
+    woodaxe: () => { smp('mat_wood', { gain: 1, rate: 0.85 }); smp('body_thud', { gain: 0.7 }); },
+    club: () => { smp('body_thud', { gain: 0.9, rate: 1.05 }); smp('mat_wood', { gain: 0.5, rate: 0.9 }); },
+    dagger: () => smp('clash_knife', { gain: 0.75, rate: 1.25 }),
+    twindaggers: () => smp('clash_knife', { gain: 0.7, rate: 1.15 }),
+    spear: () => { smp('blade_hit', { gain: 0.8, rate: 1.05 }); thump(0, 170, 0.2, 0.1); },
+    halberd: () => { smp('body_thud', { gain: 1 }); smp('blade_hit', { gain: 0.75, rate: 0.82 }); thump(0, 90, 0.25, 0.22); },
+    wraps: () => { smp('body_thud', { gain: 0.8, rate: 1.1 }); },
+    gauntlets: () => { smp('body_thud', { gain: 1 }); smp('clash', { gain: 0.45, dur: 0.2, rate: 0.9 }); },
+    tome: () => { crack(0, 0.25, 3000); smp('magic_nature', { gain: 0.5, dur: 0.25, rate: 1.3 }); thump(0, 120, 0.2, 0.12); },
+    grimoire: () => { crack(0, 0.4, 2600); smp('magic_storm', { gain: 0.6, dur: 0.3, rate: 0.8 }); thump(0.02, 70, 0.35, 0.3); },
     frostwand: () => { crack(0, 0.3, 7500); smp('glass_hit', { gain: 0.6 }); [0, 0.05, 0.1].forEach(at => chime(rnd(2000, 4500), at, 0.05, 0.25)); },
   };
   function arrowLand(armored, rate) { if (armored) smp('clash_knife', { gain: 0.6, rate: 1.2 }); else { smp('mat_wood', { gain: 0.8, rate }); thump(0, 230, 0.25, 0.09); } }
@@ -404,6 +446,9 @@
       const g = SWG[w] || 'swing_mid';
       if (w === 'twin') { smp(g, { gain: 0.8 }); smp(g, { gain: 0.8, at: 0.12, rate: 1.08 }); }
       else if (w === 'saber') [0, 1, 2].forEach(i => smp(g, { gain: 0.75, at: i * 0.12, rate: 1 + i * 0.06 }));
+      else if (w === 'twindaggers' || w === 'wraps') { smp(g, { gain: 0.7, rate: 1.25 }); smp(g, { gain: 0.7, at: 0.11, rate: 1.35 }); }
+      else if (w === 'dagger') smp(g, { gain: 0.65, rate: 1.35 });
+      else if (w === 'woodaxe' || w === 'halberd') { smp(g, { gain: 1, rate: 0.9 }); thump(0.1, 95, 0.1, 0.22); }
       else if (w === 'rapier') smp(g, { gain: 0.7, rate: 1.3 });
       else if (w === 'falchion') smp(g, { gain: 0.95, rate: 0.88 });
       else if (w === 'great') { smp(g, { gain: 1 }); thump(0.1, 95, 0.12, 0.25); }
@@ -416,7 +461,7 @@
       if (w === 'crossbow') smp('lock', { gain: 0.6 });
       return true;
     },
-    cast: w => smp({ staff: 'magic_nature', heartwood: 'magic_heal', stormstaff: 'magic_storm', frostwand: 'magic_frost' }[w] || 'magic_nature', { gain: 0.8, dur: 0.45, rate: w === 'heartwood' ? 1.12 : 1 }),
+    cast: w => smp({ staff: 'magic_nature', heartwood: 'magic_heal', stormstaff: 'magic_storm', frostwand: 'magic_frost', tome: 'magic_nature', grimoire: 'magic_storm' }[w] || 'magic_nature', { gain: 0.8, dur: 0.45, rate: w === 'heartwood' ? 1.12 : w === 'tome' ? 1.35 : w === 'grimoire' ? 0.8 : 1 }),
     healfx: w => smp('magic_heal', { gain: 0.7, dur: 0.45, rate: { staff: 1, heartwood: 0.95, stormstaff: 1.2, frostwand: 1.1 }[w] || 1 }),
     wimpact: p => {
       const w = (p && p.w) || 'sword', a = !!(p && (p.a || p.m === 'armored')), g = (p && p.g) || 1;
@@ -518,6 +563,16 @@
     skill_snipe: () => { pluck(95, 0, 0.4, 0.4); smp('whoosh', { gain: 0.6, dur: 0.3, rate: 1.3 }); smp('body_thud', { gain: 0.9, at: 0.3 }); return true; },
     skill_bloom: () => smp('magic_heal', { gain: 0.9, dur: 0.6 }),
     skill_storm: () => { smp('magic_storm', { gain: 1, dur: 0.45 }); thump(0.08, 80, 0.4, 0.3); return true; },
+    skill_hardswing: () => { smp('swing_heavy', { gain: 1, rate: 0.9 }); smp('body_thud', { gain: 1, at: 0.2 }); smp('mat_wood', { gain: 0.6, at: 0.2 }); return true; },
+    skill_rally: () => { [C5, E5, G5, C6].forEach((f, i) => tone({ f, at: i * 0.07, dur: 0.3, vol: 0.07, type: 'triangle', a: 0.02, nojit: true })); smp('clash', { gain: 0.45, dur: 0.25, at: 0.02 }); return true; },
+    skill_backstab: () => { [0.1, 0.22, 0.34].forEach((at, i) => { smp('swing_light', { gain: 0.6, at, rate: 1.3 + i * 0.05 }); smp('clash_knife', { gain: 0.7, at: at + 0.04, rate: 1.1 + i * 0.1 }); }); return true; },
+    skill_smoke: () => { smp('whoosh', { gain: 0.6, dur: 0.6, rate: 0.7 }); thump(0, 90, 0.3, 0.25); return true; },
+    skill_fireball: () => { smp('magic_storm', { gain: 0.6, dur: 0.3, rate: 0.8 }); thump(0.38, 70, 0.6, 0.32); smp('body_thud', { gain: 0.7, at: 0.38, rate: 0.7 }); crack(0.38, 0.35, 3000); return true; },
+    skill_meteor: () => { [0.1, 0.28, 0.46, 0.64, 0.82].forEach(at => { smp('whoosh', { gain: 0.4, at, rate: 0.7, dur: 0.3 }); thump(at + 0.3, 70, 0.45, 0.28); smp('mat_stone', { gain: 0.5, at: at + 0.3 }); }); return true; },
+    skill_lance: () => { smp('swing_heavy', { gain: 0.8, rate: 1.2 }); smp('blade_hit', { gain: 0.7, at: 0.15, rate: 1.1 }); thump(0.18, 110, 0.4, 0.2); return true; },
+    skill_bulwark: () => { smp('clash', { gain: 0.7, dur: 0.3, rate: 0.8 }); [C5, G5, C6].forEach((f, i) => tone({ f, at: 0.04 + i * 0.05, dur: 0.4, vol: 0.06, type: 'sine', a: 0.05, nojit: true })); return true; },
+    skill_ironpalm: () => { smp('swing_mid', { gain: 0.7, rate: 0.9 }); smp('body_thud', { gain: 1, at: 0.12, rate: 0.85 }); thump(0.12, 85, 0.5, 0.3); return true; },
+    skill_innerpeace: () => { smp('magic_heal', { gain: 0.8, dur: 0.6, rate: 0.95 }); [C5, E5, G5].forEach((f, i) => chime(f, 0.05 + i * 0.1, 0.1, 0.4)); return true; },
   };
 
   /* ---- buses, priorities and the voice budget (see the guide: 12 combat voices, 3 impacts and 2 critical accents at a time) ---- */

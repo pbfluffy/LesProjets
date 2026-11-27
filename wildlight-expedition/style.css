@@ -671,3 +671,8 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 #battle>*{flex:none}
 
 @media(min-width:720px){.runlog{max-width:var(--bw)}}
+
+/* ---- camp: heroes resting or joining ---- */
+.campbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 14px 0}
+.campbar .hint{flex:1 1 100%;text-align:left}
+.vheroes{flex-wrap:wrap}

@@ -13,24 +13,35 @@ const HEAVY_WEAPONS = ['great', 'falchion', 'longbow', 'crossbow', 'buckler'];
 const snd = (n, a) => { try { if (window.sfx) window.sfx.play(n, a); } catch (e) { /* ignore */ } };
 /* =====================================================================
    Wildlight Expedition – first playable version
-   Heroes: Bren, Tavi, Iona · Stages: Pinewood Path, Ironroot Hollow,
+   Heroes: Milo (the starter), Bren, Tavi, Iona, Rook, Elric, Maren, Tobin · Stages: Pinewood Path, Ironroot Hollow,
    Thornback Crossing · Weapons: standard sword, twin swords, greatsword,
    hunting bow, wooden staff.
    ===================================================================== */
 
 /* ---------------------------- data ---------------------------------- */
 const HERO = {
-  bren: { hire: 0, name: 'Bren Alder', role: 'Guardian · Front line', family: 'sword', hp: 120, atk: 8, x: 135, y: 184,
+  milo: { hire: 0, name: 'Milo Dunn', role: 'Villager · Beginner', family: 'tool', start: 'pitchfork', row: 'front', hp: 70, atk: 5.5,
+          blurb: 'A farmhand with a pitchfork and a lot of heart. Not strong yet, but he grows with every level.' },
+  bren: { hire: 200, name: 'Bren Alder', role: 'Guardian · Front line', family: 'sword', start: 'sword', row: 'front', tank: true, hp: 120, atk: 8,
           blurb: 'Stands in front and takes most melee hits. Braces low when the party barrier goes up.' },
-  tavi: { hire: 300, name: 'Tavi Reed', role: 'Archer · Ranged damage', family: 'bow', hp: 70, atk: 7, x: 72, y: 152,
-          blurb: 'Fires from behind Bren. A quick backward lean before each shot.' },
-  iona: { hire: 800, name: 'Iona Moss', role: 'Herbalist · Healing', family: 'staff', hp: 70, atk: 4, x: 62, y: 214,
+  tavi: { hire: 500, name: 'Tavi Reed', role: 'Archer · Ranged damage', family: 'bow', start: 'bow', row: 'back', draws: true, hp: 70, atk: 7,
+          blurb: 'Fires from behind the front line. A quick backward lean before each shot.' },
+  iona: { hire: 1200, name: 'Iona Moss', role: 'Herbalist · Healing', family: 'staff', start: 'staff', row: 'back', hp: 70, atk: 4,
           blurb: 'Casts bolts from the back and heals the weakest ally. A ring of petals shows who was healed.' },
+  rook: { hire: 3000, name: 'Rook', role: 'Rogue · Quick crits', family: 'dagger', start: 'dagger', row: 'front', hp: 80, atk: 8.5,
+          blurb: 'Fast hands and a sharp eye for weak spots: he crits a lot, but a few hits will put him down.' },
+  elric: { hire: 8000, name: 'Elric Vane', role: 'Mage · Spell damage', family: 'tome', start: 'tome', row: 'back', hp: 60, atk: 9,
+          blurb: 'A scholar who burns monsters from the back line. Fragile, but his spells hit hard.' },
+  maren: { hire: 20000, name: 'Maren Ashe', role: 'Lancer · Long reach', family: 'spear', start: 'spear', row: 'front', tank: true, hp: 115, atk: 9,
+          blurb: 'Her spear reaches past the first monster. Steady and hard to move.' },
+  tobin: { hire: 50000, name: 'Brother Tobin', role: 'Monk · Sturdy brawler', family: 'fist', start: 'wraps', row: 'front', hp: 150, atk: 8,
+          blurb: 'Takes a beating and hits back with both fists.' },
 };
-const HERO_ORDER = ['bren', 'tavi', 'iona'];
-const FAMILY = { sword: 'Sword', bow: 'Bow', staff: 'Staff' };
-const FAMILY_PLURAL = { sword: 'Swords', bow: 'Bows', staff: 'Staves' };
-
+const HERO_ORDER = ['milo', 'bren', 'tavi', 'iona', 'rook', 'elric', 'maren', 'tobin'];
+const MAX_PARTY = 4;                                             // heroes in a fight; the others rest in camp
+const SLOTS = [[138, 186], [102, 214], [72, 152], [58, 196]];    // where the party stands, front hero first
+const FAMILY = { tool: 'Tool', sword: 'Sword', dagger: 'Dagger', spear: 'Spear', fist: 'Fist', bow: 'Bow', staff: 'Staff', tome: 'Tome' };
+const FAMILY_PLURAL = { tool: 'Tools', sword: 'Swords', dagger: 'Daggers', spear: 'Spears', fist: 'Fists', bow: 'Bows', staff: 'Staves', tome: 'Tomes' };
 const WEAPONS = {
   sword: { name: 'Standard sword', fam: 'sword', hits: [1], int: 1.0, starter: true,
            desc: 'Steady attacks with balanced speed and damage.' },
@@ -51,7 +62,7 @@ const WEAPONS = {
   rapier:     { name: 'Rapier', fam: 'sword', hits: [0.9], int: 0.9, pierce: 0.6, pose: 'sword',
                 desc: 'A quick thrusting blade that slips past 60% of a monster\'s armor.' },
   buckler:    { name: 'Sword & shield', fam: 'sword', hits: [0.85], int: 1.0, shield: 0.25, pose: 'sword',
-                desc: 'Less damage, but Bren takes 25% less damage from every hit.' },
+                desc: 'Less damage, but the wielder takes 25% less damage from every hit.' },
   shortbow:   { name: 'Hawk bow', fam: 'bow', hits: [0.55], int: 0.55, ranged: true,
                 desc: 'A light bow that fires very fast, weaker arrows.' },
   longbow:    { name: 'Longbow', fam: 'bow', hits: [1.7], int: 1.5, ranged: true,
@@ -62,6 +73,28 @@ const WEAPONS = {
                 desc: 'Weaker bolts, but its heals are 50% stronger.' },
   stormstaff: { name: 'Storm staff', fam: 'staff', hits: [1], int: 1.5, ranged: true, heal: true, splash: 0.5,
                 desc: 'Lightning that also hits every other monster for half damage.' },
+  pitchfork:  { name: 'Pitchfork', fam: 'tool', hits: [1], int: 1.1, starter: true,
+                desc: 'A farm tool: a plain, steady jab.' },
+  woodaxe:    { name: 'Wood axe', fam: 'tool', hits: [1.5], int: 1.7,
+                desc: 'Slow, heavy chops.' },
+  club:       { name: 'Club', fam: 'tool', hits: [1.2], int: 1.2, pose: 'woodaxe',
+                desc: 'A gnarled club that hits a bit harder than a pitchfork.' },
+  dagger:     { name: 'Dagger', fam: 'dagger', hits: [0.7], int: 0.6, starter: true,
+                desc: 'Very quick stabs.' },
+  twindaggers: { name: 'Twin daggers', fam: 'dagger', hits: [0.45, 0.45], int: 0.7,
+                desc: 'Two quick cuts per attack.' },
+  tome:       { name: 'Apprentice tome', fam: 'tome', hits: [1], int: 1.3, ranged: true, starter: true,
+                desc: 'Throws small bursts of fire from its pages.' },
+  grimoire:   { name: 'Grimoire', fam: 'tome', hits: [1.6], int: 1.9, ranged: true, splash: 0.4,
+                desc: 'Slow fireballs that also scorch the monsters beside the target.' },
+  spear:      { name: 'Spear', fam: 'spear', hits: [1.1], int: 1.1, behind: 0.6, starter: true,
+                desc: 'Reaches past the first monster: the one behind it takes 60%.' },
+  halberd:    { name: 'Halberd', fam: 'spear', hits: [1.6], int: 1.7, splash: 0.5,
+                desc: 'A wide sweep that hits every monster for half damage.' },
+  wraps:      { name: 'Hand wraps', fam: 'fist', hits: [0.45, 0.45], int: 0.8, starter: true,
+                desc: 'Two quick punches.' },
+  gauntlets:  { name: 'Iron gauntlets', fam: 'fist', hits: [1.2], int: 1.0, shield: 0.1,
+                desc: 'Heavy punches, and 10% less damage taken.' },
   frostwand:  { name: 'Frost wand', fam: 'staff', hits: [0.5], int: 0.6, ranged: true, heal: true,
                 desc: 'Quick, light bolts of frost, and it still heals.' },
 };
@@ -95,7 +128,8 @@ const MON = {
    a crit does x1.7 (hero hits) or x1.5 (monster hits, never the telegraphed boss charge). */
 const CRIT = { hero: 1.7, mon: 1.5, perGrade: 0.01 };
 const WEAPON_CRIT = { sword: 0.06, twin: 0.08, great: 0.10, falchion: 0.08, saber: 0.10, rapier: 0.15, buckler: 0.04,
-  bow: 0.08, shortbow: 0.12, longbow: 0.14, crossbow: 0.18, staff: 0.05, heartwood: 0.04, stormstaff: 0.07, frostwand: 0.10 };
+  bow: 0.08, shortbow: 0.12, longbow: 0.14, crossbow: 0.18, staff: 0.05, heartwood: 0.04, stormstaff: 0.07, frostwand: 0.10,
+  pitchfork: 0.05, woodaxe: 0.08, club: 0.06, dagger: 0.15, twindaggers: 0.18, tome: 0.08, grimoire: 0.10, spear: 0.07, halberd: 0.09, wraps: 0.08, gauntlets: 0.10 };
 for (const w of Object.keys(WEAPONS)) WEAPONS[w].crit = WEAPON_CRIT[w] || 0.05;
 const MON_CRIT = { brushfang: 0.08, hornet: 0.10, mireadder: 0.08, frostwolf: 0.08, cinderbat: 0.10,
   beetle: 0.04, barkbear: 0.05, mossturtle: 0.04, icegolem: 0.05, snowyeti: 0.06, magmacrab: 0.05, sentinel: 0.05,
@@ -122,57 +156,57 @@ const STAGES = [
   { id: 'path', name: 'Pinewood Path', region: 'vale', req: null, enemies: ['brushfang', 'brushfang', 'hornet', 'hornet'],
     waves: { 1: ['brushfang', 'brushfang'], 2: ['brushfang', 'brushfang', 'brushfang'] },      // fewer monsters for a party of 1 or 2
     blurb: 'A pack of Brushfangs. Best for farming gold.', farm: { gold: 4, lumber: 0.3 }, best: 'Gold',
-    first: { gold: 60, lumber: 5 }, drops: [['sword', 3], ['bow', 3], ['staff', 3], ['twin', 1], ['shortbow', 1], ['falchion', 1]], dropGrade: 0, repeat: { gold: 12, lumber: 0 }, sky: ['#2d5a45', '#14301f'],
+    first: { gold: 60, lumber: 5 }, drops: [['sword', 3], ['bow', 3], ['staff', 3], ['twin', 1], ['shortbow', 1], ['falchion', 1], ['pitchfork', 1], ['club', 1], ['dagger', 1], ['wraps', 1]], dropGrade: 0, repeat: { gold: 12, lumber: 0 }, sky: ['#2d5a45', '#14301f'],
     power: { hp: 1, dmg: 1 }, rec: 1 },
   { id: 'hollow', name: 'Ironroot Hollow', region: 'vale', req: 'path', enemies: ['beetle', 'barkbear', 'spitter'],
     waves: { 1: ['beetle', 'spitter'] },
     blurb: 'Rustshell Beetles screen a Pinecap Spitter. Best for farming lumber.', farm: { gold: 1.5, lumber: 1.5 }, best: 'Lumber',
-    first: { gold: 120, lumber: 10 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5], ['heartwood', 1], ['saber', 1], ['longbow', 1]], dropGrade: 0, repeat: { gold: 15, lumber: 1 }, sky: ['#27495a', '#102430'],
+    first: { gold: 120, lumber: 10 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5], ['heartwood', 1], ['saber', 1], ['longbow', 1], ['woodaxe', 1], ['tome', 1], ['spear', 1]], dropGrade: 0, repeat: { gold: 15, lumber: 1 }, sky: ['#27495a', '#102430'],
     power: { hp: 1, dmg: 1 }, rec: 2 },
   { id: 'crossing', name: 'Thornback Crossing', region: 'vale', req: 'hollow', enemies: ['boar'], boss: true,
     blurb: 'The Thornback Boar fights alone. Defeat it to relight the watchtower and open the next road.',
     farm: { gold: 6, lumber: 2.5 }, best: 'Gold + lumber',
-    first: { gold: 300, lumber: 20, tower: true }, drops: [['twin', 2], ['great', 2], ['sword', 1], ['bow', 1], ['staff', 1], ['buckler', 1.5], ['rapier', 1]], dropGrade: 0, repeat: { gold: 40, lumber: 3 }, sky: ['#5a4a3a', '#2a1f17'],
+    first: { gold: 300, lumber: 20, tower: true }, drops: [['twin', 2], ['great', 2], ['sword', 1], ['bow', 1], ['staff', 1], ['buckler', 1.5], ['rapier', 1], ['twindaggers', 1], ['halberd', 0.5]], dropGrade: 0, repeat: { gold: 40, lumber: 3 }, sky: ['#5a4a3a', '#2a1f17'],
     power: { hp: 1, dmg: 1 }, rec: 4 },
   { id: 'mirewood', name: 'Mirewood Edge', region: 'mire', req: 'crossing', enemies: ['bogtoad', 'mireadder', 'mireadder', 'reedwisp'],
     blurb: 'Bog Toads lurk in the reeds while a Reed Wisp lights their way.', farm: { gold: 7, lumber: 4.4 }, best: 'Lumber',
-    first: { gold: 465, lumber: 30 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5], ['falchion', 1.5], ['shortbow', 1.5], ['heartwood', 1.5]], dropGrade: 1, repeat: { gold: 60, lumber: 4 }, sky: ['#2f5a48','#12281f'],
+    first: { gold: 465, lumber: 30 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5], ['falchion', 1.5], ['shortbow', 1.5], ['heartwood', 1.5], ['pitchfork', 1.5], ['dagger', 1.5], ['wraps', 1.5], ['tome', 1.5]], dropGrade: 1, repeat: { gold: 60, lumber: 4 }, sky: ['#2f5a48','#12281f'],
     power: { hp: 3.18, dmg: 2.3, arm: 1.55 }, rec: 6 },
   { id: 'causeway', name: 'Sunken Causeway', region: 'mire', req: 'mirewood', enemies: ['mossturtle', 'mossturtle', 'reedwisp', 'mistheg'],
     blurb: 'Moss-shell Turtles guard a drowned stone road, with Reed Wisps drifting above it.', farm: { gold: 15.8, lumber: 3.9 }, best: 'Gold',
-    first: { gold: 721, lumber: 45 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 2], ['saber', 1.5], ['longbow', 1.5], ['stormstaff', 1]], dropGrade: 1, repeat: { gold: 90, lumber: 6 }, sky: ['#31584a','#14291f'],
+    first: { gold: 721, lumber: 45 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 2], ['saber', 1.5], ['longbow', 1.5], ['stormstaff', 1], ['club', 1.5], ['spear', 1.5], ['woodaxe', 1.5]], dropGrade: 1, repeat: { gold: 90, lumber: 6 }, sky: ['#31584a','#14291f'],
     power: { hp: 3.27, dmg: 2.1, arm: 2.01 }, rec: 8 },
   { id: 'toadking', name: 'Toadking\'s Hollow', region: 'mire', req: 'causeway', enemies: ['bogking'], boss: true,
     blurb: 'The Bog King squats on his root throne. Defeat him to relight the Mirewood watchtower.', farm: { gold: 18.3, lumber: 6.9 }, best: 'Gold + lumber',
-    first: { gold: 2234, lumber: 135, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 2], ['great', 2.5], ['buckler', 2], ['crossbow', 1.5], ['rapier', 1.5]], dropGrade: 1, repeat: { gold: 135, lumber: 8 }, sky: ['#3a4a2c','#17200f'],
+    first: { gold: 2234, lumber: 135, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 2], ['great', 2.5], ['buckler', 2], ['crossbow', 1.5], ['rapier', 1.5], ['twindaggers', 2], ['grimoire', 1.5], ['gauntlets', 1.5], ['halberd', 1.5]], dropGrade: 1, repeat: { gold: 135, lumber: 8 }, sky: ['#3a4a2c','#17200f'],
     power: { hp: 3.63, dmg: 2.08, arm: 2.27 }, rec: 10 },
   { id: 'frostfall', name: 'Frostfall Pass', region: 'frost', req: 'toadking', enemies: ['frostwolf', 'frostwolf', 'frostwolf', 'rimesprite'],
     blurb: 'A Frost Wolf pack hunts through the snowy mountain pass.', farm: { gold: 33.2, lumber: 7.7 }, best: 'Gold',
-    first: { gold: 1732, lumber: 101 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 2], ['saber', 1.5], ['shortbow', 1.5], ['frostwand', 2]], dropGrade: 2, repeat: { gold: 203, lumber: 12 }, sky: ['#3f5f86','#16243a'],
+    first: { gold: 1732, lumber: 101 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 2], ['saber', 1.5], ['shortbow', 1.5], ['frostwand', 2], ['dagger', 2], ['tome', 2], ['wraps', 2], ['spear', 2]], dropGrade: 2, repeat: { gold: 203, lumber: 12 }, sky: ['#3f5f86','#16243a'],
     power: { hp: 9.37, dmg: 4.45, arm: 3.41 }, rec: 12 },
   { id: 'glimmer', name: 'Glimmer Cavern', region: 'frost', req: 'frostfall', enemies: ['icegolem', 'snowyeti', 'frostwolf'],
     blurb: 'Ice Golems stand guard among glowing crystals, with a Frost Wolf at their heels.', farm: { gold: 30.8, lumber: 16.8 }, best: 'Lumber',
-    first: { gold: 2684, lumber: 152 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2], ['rapier', 1.5], ['crossbow', 1.5], ['frostwand', 2], ['stormstaff', 1.5]], dropGrade: 2, repeat: { gold: 304, lumber: 16 }, sky: ['#2c4e86','#101a3a'],
+    first: { gold: 2684, lumber: 152 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2], ['rapier', 1.5], ['crossbow', 1.5], ['frostwand', 2], ['stormstaff', 1.5], ['woodaxe', 2], ['twindaggers', 2], ['halberd', 1.5]], dropGrade: 2, repeat: { gold: 304, lumber: 16 }, sky: ['#2c4e86','#101a3a'],
     power: { hp: 6.62, dmg: 3.15, arm: 3.77 }, rec: 14 },
   { id: 'rimecrown', name: 'Rimecrown Summit', region: 'frost', req: 'glimmer', enemies: ['frostgiant'], boss: true,
     blurb: 'The Frost Giant rules the frozen peak. Defeat him to relight the Frostpeak watchtower.', farm: { gold: 55.8, lumber: 18.8 }, best: 'Gold + lumber',
-    first: { gold: 8320, lumber: 456, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 2], ['great', 3], ['buckler', 2], ['longbow', 2], ['stormstaff', 2], ['heartwood', 1.5]], dropGrade: 2, repeat: { gold: 456, lumber: 23 }, sky: ['#4a5f86','#1a2038'],
+    first: { gold: 8320, lumber: 456, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 2], ['great', 3], ['buckler', 2], ['longbow', 2], ['stormstaff', 2], ['heartwood', 1.5], ['grimoire', 2], ['gauntlets', 2], ['halberd', 2], ['twindaggers', 2]], dropGrade: 2, repeat: { gold: 456, lumber: 23 }, sky: ['#4a5f86','#1a2038'],
     power: { hp: 5.07, dmg: 2.8, arm: 4.55 }, rec: 16 },
   { id: 'cinder', name: 'Cinder Fields', region: 'ember', req: 'rimecrown', enemies: ['cinderbat', 'cinderbat', 'emberimp', 'magmacrab'],
     blurb: 'Ember Imps hurl fire across the ashen plain while a Magma Crab blocks the road.', farm: { gold: 101.1, lumber: 21.1 }, best: 'Gold',
-    first: { gold: 6448, lumber: 342 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2], ['falchion', 2], ['crossbow', 1.5], ['stormstaff', 2]], dropGrade: 3, repeat: { gold: 683, lumber: 32 }, sky: ['#6a3a2c','#241210'],
+    first: { gold: 6448, lumber: 342 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2], ['falchion', 2], ['crossbow', 1.5], ['stormstaff', 2], ['pitchfork', 2], ['club', 2], ['dagger', 2], ['tome', 2], ['spear', 2], ['wraps', 2]], dropGrade: 3, repeat: { gold: 683, lumber: 32 }, sky: ['#6a3a2c','#241210'],
     power: { hp: 18.04, dmg: 6.26, arm: 6.13 }, rec: 18 },
   { id: 'quarry', name: 'Ashen Quarry', region: 'ember', req: 'cinder', enemies: ['magmacrab', 'sentinel', 'emberimp', 'emberimp'],
     blurb: 'Magma Crabs have claimed the old obsidian quarry, guarded by Ember Imps.', farm: { gold: 93.8, lumber: 46.1 }, best: 'Lumber',
-    first: { gold: 9995, lumber: 513 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2.5], ['buckler', 2], ['longbow', 2], ['heartwood', 2], ['rapier', 1.5]], dropGrade: 3, repeat: { gold: 1025, lumber: 44 }, sky: ['#5a3830','#1c1012'],
+    first: { gold: 9995, lumber: 513 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2.5], ['buckler', 2], ['longbow', 2], ['heartwood', 2], ['rapier', 1.5], ['woodaxe', 2], ['twindaggers', 2], ['gauntlets', 2], ['halberd', 2]], dropGrade: 3, repeat: { gold: 1025, lumber: 44 }, sky: ['#5a3830','#1c1012'],
     power: { hp: 13.84, dmg: 4.4, arm: 7.23 }, rec: 20 },
   { id: 'magmagate', name: 'Magma Gate', region: 'ember', req: 'quarry', enemies: ['sentinel', 'magmacrab', 'magmacrab', 'emberimp'],
     blurb: 'A claw-clacking pack of Magma Crabs holds the ancient gate over the lava.', farm: { gold: 212.5, lumber: 41.3 }, best: 'Gold',
-    first: { gold: 15492, lumber: 769 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 3], ['great', 3], ['saber', 2], ['crossbow', 2], ['frostwand', 2], ['falchion', 2]], dropGrade: 3, repeat: { gold: 1538, lumber: 62 }, sky: ['#7a3a22','#26100a'],
+    first: { gold: 15492, lumber: 769 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 3], ['great', 3], ['saber', 2], ['crossbow', 2], ['frostwand', 2], ['falchion', 2], ['grimoire', 2], ['halberd', 2], ['gauntlets', 2], ['twindaggers', 2], ['woodaxe', 2]], dropGrade: 3, repeat: { gold: 1538, lumber: 62 }, sky: ['#7a3a22','#26100a'],
     power: { hp: 14.86, dmg: 4.72, arm: 7.76 }, rec: 22 },
   { id: 'skyreach', name: 'Skyreach Spire', region: 'ember', req: 'magmagate', enemies: ['stormdrake'], boss: true,
     blurb: 'The Storm Drake circles the last spire. Defeat it to light the final watchtower.', farm: { gold: 246.5, lumber: 72.3 }, best: 'Gold + lumber',
-    first: { gold: 48025, lumber: 2307, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 3], ['great', 3.5], ['rapier', 2], ['buckler', 2.5], ['longbow', 2.5], ['stormstaff', 2.5], ['heartwood', 2]], dropGrade: 3, repeat: { gold: 2307, lumber: 87 }, sky: ['#3a3f5a','#14162a'],
+    first: { gold: 48025, lumber: 2307, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 3], ['great', 3.5], ['rapier', 2], ['buckler', 2.5], ['longbow', 2.5], ['stormstaff', 2.5], ['heartwood', 2], ['grimoire', 3], ['halberd', 3], ['gauntlets', 3], ['twindaggers', 3]], dropGrade: 3, repeat: { gold: 2307, lumber: 87 }, sky: ['#3a3f5a','#14162a'],
     power: { hp: 10.22, dmg: 3.88, arm: 9.29 }, rec: 25 },
 ];
 const STAGE = Object.fromEntries(STAGES.map(s => [s.id, s]));
@@ -208,31 +242,37 @@ const FARM_CAP_MIN = 24 * 60;
 /* ---------------------------- save ---------------------------------- */
 const SAVE_KEY = 'wildlight-expedition-v1';
 function newSave() {
+  const heroes = {}, items = {};
+  for (const id of HERO_ORDER) heroes[id] = { lvl: 1, up: 0, weapon: HERO[id].start };
+  for (const w of Object.keys(WEAPONS)) items[w] = [0, 0, 0, 0, 0];       // items[weapon][grade] = how many copies you own
+  items.pitchfork[0] = 1;                                                  // Milo starts with his pitchfork; every hero gets their basic weapon when hired
   return {
-    gold: 0, lumber: 0, cleared: {}, towers: {}, pity: {}, party: ['bren'],
-    // items[weapon][grade] = how many copies you own; every hero starts with their basic weapon
-    items: { sword: [1, 0, 0, 0, 0], bow: [1, 0, 0, 0, 0], staff: [1, 0, 0, 0, 0] },
-    heroes: {
-      bren: { lvl: 1, up: 0, weapon: 'sword' },
-      tavi: { lvl: 1, up: 0, weapon: 'bow' },
-      iona: { lvl: 1, up: 0, weapon: 'staff' },
-    },
-    farm: null, daily: { date: '', done: false }, tab: 'map',
+    gold: 0, lumber: 0, cleared: {}, towers: {}, pity: {}, party: ['milo'], hired: ['milo'],
+    items, heroes, farm: null, daily: { date: '', done: false }, tab: 'map',
   };
 }
 function hydrate(raw) {
   const base = newSave();
   if (raw && typeof raw === 'object') {
     Object.assign(base, raw);
-    base.party = Array.isArray(raw.party) ? HERO_ORDER.filter(id => raw.party.includes(id)) : HERO_ORDER.slice();   // older saves had everyone
-    if (!base.party.length) base.party = ['bren'];
+    const legacy = ['bren', 'tavi', 'iona'];                                // saves from before the roster: the heroes of the party were hired
+    const oldParty = Array.isArray(raw.party) ? raw.party : legacy;
+    base.hired = HERO_ORDER.filter(id => (Array.isArray(raw.hired) ? raw.hired : oldParty).includes(id));
+    if (!base.hired.length) base.hired = ['bren'];
+    base.party = HERO_ORDER.filter(id => base.hired.includes(id) && oldParty.includes(id)).slice(0, MAX_PARTY);
+    if (!base.party.length) base.party = [base.hired[0]];
     for (const id of HERO_ORDER) base.heroes[id] = Object.assign(newSave().heroes[id], (raw.heroes || {})[id]);
+    base.items = Object.assign(newSave().items, raw.items || {});
     if (!raw.items) {                       // older save: each crafted weapon becomes one Common copy
       base.items = newSave().items;
       for (const w of Object.keys(raw.crafted || {})) if (raw.crafted[w] && WEAPONS[w]) base.items[w] = [1, 0, 0, 0, 0];
     }
     for (const w of Object.keys(raw.recipes || {})) {             // recipes no longer exist: keep the weapon as a copy
       if (WEAPONS[w] && !(base.items[w] || []).some(n => n > 0)) base.items[w] = [1, 0, 0, 0, 0];
+    }
+    for (const id of base.hired) {                                // a hired hero always has something to wield
+      const hw = base.heroes[id].weapon;
+      if (!(base.items[hw] || []).some(n => n > 0)) { base.heroes[id].weapon = HERO[id].start; if (!base.items[HERO[id].start].some(n => n > 0)) base.items[HERO[id].start][0] = 1; }
     }
     delete base.crafted; delete base.recipes;
     if (raw.lumber == null && raw.iron != null) base.lumber = raw.iron;       // Iron was renamed Lumber
@@ -282,12 +322,15 @@ const $ = s => document.querySelector(s);
 const fmt = n => Math.floor(n).toLocaleString();
 const today = () => new Date().toLocaleDateString('sv');
 const isUnlocked = s => !s.req || !!save.cleared[s.req];
-const party = () => HERO_ORDER.filter(id => save.party.includes(id));
+const hired = () => HERO_ORDER.filter(id => save.hired.includes(id));
+const isHired = id => save.hired.includes(id);
+/* the heroes in a fight, front row first (the first one takes the monsters' blows) */
+const party = () => HERO_ORDER.filter(id => save.party.includes(id)).sort((a, b) => (HERO[a].row === 'front' ? 0 : 1) - (HERO[b].row === 'front' ? 0 : 1));
 const inParty = id => save.party.includes(id);
 const partySize = () => save.party.length;
 const sumLevels = () => party().reduce((a, id) => a + save.heroes[id].lvl, 0);
 /* Monsters are weaker (and packs smaller) for a smaller party, so the first fights are fair with one hero. */
-const partyScale = () => [1, 0.55, 0.8, 1][partySize()] || 1;
+const partyScale = () => [1, 0.55, 0.8, 1, 1.7][partySize()] || 1;
 /* A smaller party faces a smaller pack: explicit waves if the stage has them, else half the pack for one hero and all but one for two. Bosses fight alone. */
 const encounterFor = s => {
   const size = partySize(), n = s.enemies.length;
@@ -686,19 +729,26 @@ function tickFarm() {
 setInterval(tickFarm, 1000);
 
 /* ------------------------------ party ------------------------------- */
-// The party starts with one hero (Bren). The others are hired with gold from the Recruit section.
-const HERO_ACCENT = { bren: '#c98a2b', tavi: '#4c9a5c', iona: '#b69ce0' };
+// The party starts with one hero (Milo). The others are hired with gold from the Recruit section; up to four fight at a time and the rest rest in camp.
+const HERO_ACCENT = { milo: '#c9b27a', bren: '#c98a2b', tavi: '#4c9a5c', iona: '#b69ce0', rook: '#4fa6a0', elric: '#7078d8', maren: '#c8504a', tobin: '#e08a2c' };
 const heroDps = id => {
   const w = WEAPONS[save.heroes[id].weapon], st = heroStats(id);
   return st.atk * w.hits.reduce((a, b) => a + b, 0) / w.int;
 };
 
 function partyStrip() {
-  const slots = HERO_ORDER.map(id => `<span class="slot ${inParty(id) ? 'full' : ''}" title="${HERO[id].name}">${inParty(id) ? HERO[id].name[0] : '+'}</span>`).join('');
-  const left = HERO_ORDER.filter(id => !inParty(id)).length;
+  const act = party(), slots = Array.from({ length: MAX_PARTY }, (_, i) => act[i]
+    ? `<span class="slot full" title="${HERO[act[i]].name}">${HERO[act[i]].name[0]}</span>` : '<span class="slot" title="Free place">+</span>').join('');
+  const next = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0], camp = hired().length - act.length;
   return `<div class="strip idle pstrip"><div class="slots">${slots}</div>
-    <div><b>Your party · ${party().length} of ${HERO_ORDER.length}</b>
-    <span>${left ? 'Hire more heroes with gold. A bigger party fights stronger monsters and farms faster.' : 'Your full party is ready.'}</span></div></div>`;
+    <div><b>Your party · ${act.length} of ${MAX_PARTY}</b>
+    <span>${next ? `Hire more heroes with gold: ${HERO[next].name} costs ${fmt(HERO[next].hire)}.` : 'Everyone has joined you.'}${camp > 0 ? ` ${camp} resting in camp.` : ''}</span></div></div>`;
+}
+/* send a hired hero to the party or to camp */
+function campRow(id) {
+  if (inParty(id)) return save.party.length > 1 ? `<div class="campbar"><button class="btn alt small" data-act="torest" data-arg="${id}">Rest in camp</button></div>` : '';
+  const full = save.party.length >= MAX_PARTY;
+  return `<div class="campbar"><span class="tag lock">In camp</span><button class="btn alt small" data-act="toparty" data-arg="${id}" ${full ? 'disabled' : ''}>Join the party</button>${full ? `<span class="hint">The party is full (${MAX_PARTY}): rest someone first.</span>` : ''}</div>`;
 }
 
 function heroCard(id) {
@@ -725,6 +775,7 @@ function heroCard(id) {
       <button class="btn primary sm" data-act="lvl" data-arg="${id}" ${canAfford(lc) ? '' : 'disabled'}>Level up <span class="cost">${costHtml(lc)}</span></button>
       <button class="btn alt" data-act="up" data-arg="${id}" ${canAfford(uc) ? '' : 'disabled'}>Upgrade ${FAMILY_PLURAL[d.family].toLowerCase()} <span class="cost">${costHtml(uc)}</span></button>
     </div>
+    ${campRow(id)}
     ${typeof skillsCardHtml === 'function' ? skillsCardHtml(id) : ''}
     <details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Change weapon</span><em>${owned_.length}</em></summary>
       <div class="weapons">${owned_.map(x => {
@@ -756,10 +807,12 @@ function recruitCard(id) {
 }
 
 function renderParty() {
+  const act = party(), camp = hired().filter(id => !inParty(id));
   let h = partyStrip();
-  h += `<h2 class="sec">Heroes</h2><div class="cgrid">` + party().map(heroCard).join('') + '</div>';
-  const rec = HERO_ORDER.filter(id => !inParty(id));
-  if (rec.length) h += `<h2 class="sec">Recruit <small>pay with gold</small></h2>` + `<div class="cgrid">` + rec.map(recruitCard).join('') + '</div>';
+  h += `<h2 class="sec">Party <small>${act.length} of ${MAX_PARTY}</small></h2><div class="cgrid">` + act.map(heroCard).join('') + '</div>';
+  if (camp.length) h += `<h2 class="sec">In camp <small>resting: they level up and keep their weapons</small></h2><div class="cgrid">` + camp.map(heroCard).join('') + '</div>';
+  const rec = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire);
+  if (rec.length) h += `<h2 class="sec">Recruit <small>pay with gold</small></h2><div class="cgrid">` + rec.map(recruitCard).join('') + '</div>';
   return h;
 }
 
@@ -815,7 +868,7 @@ function weaponCard(w) {
     rows.push(`<div class="mergerow ${can ? 'can' : ''}"><span class="mleft">${gradeTag(gr)}<b>×${n}</b><small>+${Math.round((GRADES[gr].mult - 1) * 100)}%</small></span>${
       last ? '<small>Max grade</small>' : `${pips}<button class="btn ${can ? 'good' : 'alt'} small" data-act="merge" data-arg="${w}:${gr}" ${can ? '' : 'disabled'}>Merge → ${GRADES[gr + 1].name}</button>`}</div>`);
   }
-  const equipped = save.heroes[who].weapon === w, hired = inParty(who);
+  const equipped = save.heroes[who].weapon === w, hired = isHired(who);
   const foot = !hired ? `<span class="hint">${hero.name} isn't in your party yet.</span>`
     : equipped ? `<span class="pill ok"><i class="ico m check sm"></i>${hero.name} wields this</span>`
     : `<button class="btn alt small" data-act="equip" data-arg="${who}:${w}">Equip on ${hero.name}</button>`;
@@ -889,7 +942,7 @@ const RESOURCES = {
       "Finish today's bonus hunt on the Map for extra.",
     ],
     use: () => [
-      `Hire more heroes in the Party tab: Tavi costs ${HERO.tavi.hire} gold and Iona ${HERO.iona.hire}.`,
+      `Hire more heroes in the Party tab: ${(() => { const n = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0]; return n ? `${HERO[n].name} costs ${fmt(HERO[n].hire)} gold` : 'everyone has joined you'; })()}.`,
       `Level up your heroes in the Party tab (${lvlCost(1)} gold at level 1, more for each level).`,
       `Upgrade a weapon family in the Party tab (it also needs lumber): the first upgrade costs ${upCost(0).gold} gold.`,
     ],
@@ -943,26 +996,36 @@ const actions = {
   },
   hire(id) {
     const d = HERO[id];
-    if (!d || inParty(id) || save.gold < d.hire) return;
+    if (!d || isHired(id) || save.gold < d.hire) return;
     save.gold -= d.hire;
-    save.party = HERO_ORDER.filter(x => x === id || inParty(x));
-    snd('hire'); persist(); toast(`${d.name} joins your party!`); render();
+    save.hired = HERO_ORDER.filter(x => x === id || isHired(x));
+    if (save.party.length < MAX_PARTY) save.party = HERO_ORDER.filter(x => x === id || inParty(x));
+    if (!(save.items[d.start] || []).some(n => n > 0)) save.items[d.start][0] = 1;                      // their basic weapon comes with them
+    snd('hire'); persist(); toast(inParty(id) ? `${d.name} joins your party!` : `${d.name} waits in camp: your party is full.`); render();
+  },
+  toparty(id) {
+    if (!isHired(id) || inParty(id) || save.party.length >= MAX_PARTY) { snd('nope'); return; }
+    save.party = HERO_ORDER.filter(x => x === id || inParty(x)); persist(); render();
+  },
+  torest(id) {
+    if (!inParty(id) || save.party.length <= 1) return;
+    save.party = save.party.filter(x => x !== id); persist(); render();
   },
   lvl(id) {
-    if (!inParty(id)) return;
+    if (!isHired(id)) return;
     const c = { gold: lvlCost(save.heroes[id].lvl) };
     if (!canAfford(c)) return;
     pay(c); save.heroes[id].lvl++; snd('levelup'); persist(); render();
   },
   up(id) {
-    if (!inParty(id)) return;
+    if (!isHired(id)) return;
     const c = upCost(save.heroes[id].up);
     if (!canAfford(c)) return;
     pay(c); save.heroes[id].up++; snd('upgrade'); persist(); render();
   },
   equip(arg) {
     const [id, w] = arg.split(':');
-    if (inParty(id) && owned(w) && WEAPONS[w].fam === HERO[id].family) { save.heroes[id].weapon = w; snd('equip'); persist(); render(); }
+    if (isHired(id) && owned(w) && WEAPONS[w].fam === HERO[id].family) { save.heroes[id].weapon = w; snd('equip'); persist(); render(); }
   },
   merge(arg) {
     const [w, gs] = arg.split(':'), gr = Number(gs), items = save.items[w];
@@ -1018,7 +1081,7 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && B) { e.preventDefault(); raiseBarrier(); }
   if (e.key === 'r' && B && !e.ctrlKey && !e.metaKey && !e.altKey) actions.repeat();
-  if (B && /^[1-6]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey && typeof castSkillSlot === 'function') castSkillSlot(Number(e.key) - 1);
+  if (B && /^[1-8]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey && typeof castSkillSlot === 'function') castSkillSlot(Number(e.key) - 1);
   if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName || '')) { const off = window.sfx && window.sfx.toggleMute(); toast(off ? 'Sound off' : 'Sound on'); }
   if (e.key === 'Escape') {
     const dlg = document.getElementById('reset-dialog'), res = document.getElementById('result');
@@ -1065,9 +1128,9 @@ const cv = $('#stage'), ctx = cv.getContext('2d');
 function startBattle(spec) {
   const slots = LAYOUT[spec.enemies.length] || LAYOUT[4];
   B = { spec, t: 0, over: false, result: null, endT: 0, heroes: [], enemies: [], fx: [], later: [], bar: { t: 0, cd: 0 }, last: 0, raf: 0 };
-  party().forEach(id => {
-    const st = heroStats(id);
-    B.heroes.push({ id, hp: st.maxHp, maxHp: st.maxHp, cd: 0.4 + Math.random() * 0.4, draw: 0, swing: 0, heal: 2.5, dead: false, hit: 0, x: party().length === 1 ? 108 : HERO[id].x, y: HERO[id].y });
+  party().forEach((id, i, all) => {
+    const st = heroStats(id), spot = all.length === 1 ? [108, 184] : SLOTS[i];
+    B.heroes.push({ id, hp: st.maxHp, maxHp: st.maxHp, cd: 0.4 + Math.random() * 0.4, draw: 0, swing: 0, heal: 2.5, dead: false, hit: 0, x: spot[0], y: spot[1] });
   });
   spec.enemies.forEach((type, i) => {
     const d = MON[type], pw = spec.power || { hp: 1, dmg: 1 }, hp = Math.round(d.hp * (spec.hpMult || 1) * pw.hp * (typeof skillHp === 'function' ? skillHp(spec.rec) : 1));
@@ -1135,10 +1198,10 @@ function step(dt) {
       if (h.heal <= 0) h.heal = doHeal(h, st) ? 4 : 0.5;
     }
     if (h.draw > 0) { h.draw -= dt; if (h.draw <= 0) fireHero(h, st, w); continue; }
-    h.cd -= dt;
+    h.cd -= dt * (B.haste > 0 ? 1.3 : 1);
     if (h.cd <= 0 && aliveE().length) {
       h.cd = w.int;
-      if (h.id === 'tavi') h.draw = 0.25; else fireHero(h, st, w);
+      if (HERO[h.id].draws && w.ranged) h.draw = 0.25; else fireHero(h, st, w);
     }
   }
 
@@ -1148,7 +1211,7 @@ function step(dt) {
     e.flash = Math.max(0, e.flash - dt);
     e.lunge = Math.max(0, e.lunge - dt);
     if (!aliveH().length) continue;
-    const sp = e.chill > 0 ? 0.55 : 1;                                      // chilled by a frost wand: acts slower
+    const sp = e.stun > 0 ? 0 : e.chill > 0 ? 0.55 : 1;                                      // chilled by a frost wand: acts slower
     if (e.state === 'idle') {
       e.cd -= dt * sp;
       if (d.charge) e.chargeT -= dt * sp;
@@ -1196,19 +1259,20 @@ function fireHero(h, st, w) {
   if (!t) return;
   h.swing = 1;
   const wid = save.heroes[h.id].weapon;
-  snd(w.ranged ? (h.id === 'tavi' ? 'release' : 'cast') : 'swing', wid);                      // every weapon has its own swing, shot or cast
+  snd(w.ranged ? (w.fam === 'bow' ? 'release' : 'cast') : 'swing', wid);                      // every weapon has its own swing, shot or cast
   if (!w.ranged) {
     w.hits.forEach((m, i) => {
       later(i * 0.12, () => {
         if (t.dead) return;
         hitEnemy(t, st.atk * m, i, w.pierce, st.crit, wid);
+        if (w.behind) { const o = aliveE().find(x => x !== t); if (o) { B.mute = true; hitEnemy(o, st.atk * m * w.behind, i, w.pierce, st.crit, wid); B.mute = false; } }       // a spear reaches past the first monster
         if (w.splash) for (const o of aliveE()) if (o !== t) hitEnemy(o, st.atk * m * w.splash, i, w.pierce, st.crit, wid);
         if (aliveE().length === 0 && B && !B.over) endBattle('win');
       });
     });
   } else {
     const dm = st.atk * w.hits[0];
-    B.fx.push({ k: 'proj', x0: h.x + 22, y0: h.y - 30, x1: t.x, y1: t.y - 22, t: 0, dur: h.id === 'tavi' || typeof projDur !== 'function' ? 0.25 : projDur(wid), kind: h.id === 'tavi' ? 'arrow' : (typeof projKind === 'function' ? projKind(wid) : 'bolt'),
+    B.fx.push({ k: 'proj', x0: h.x + 22, y0: h.y - 30, x1: t.x, y1: t.y - 22, t: 0, dur: w.fam === 'bow' || typeof projDur !== 'function' ? 0.25 : projDur(wid), kind: w.fam === 'bow' ? 'arrow' : (typeof projKind === 'function' ? projKind(wid) : 'bolt'),
       cb: () => {
         const tg = t.dead ? firstEnemy() : t;
         if (!tg) return;
@@ -1286,7 +1350,7 @@ function strike(e) {
     e.lungeDur = 0.35; e.lunge = 0.35; e.lungeDist = Math.max(10, e.x - t.x - 36);
     later(0.15, () => monHit(t, e, d));
   } else {
-    const back = aliveH().filter(h => h.id !== 'bren');
+    const back = aliveH().filter(h => HERO[h.id].row === 'back');
     const t = (back.length ? back : aliveH())[Math.floor(Math.random() * (back.length || aliveH().length))];
     if (!t) return;
     snd('mshot', { c: monCat(e.type) });
@@ -1489,7 +1553,7 @@ function winHtml(r) {
 function defeatTips() {
   const tips = [];
   if (B.spec.enemies.includes('boar')) tips.push({ t: 'The Thornback Boar scrapes the ground before it charges. Raise the barrier the moment you see the warning.' });
-  const unhired = HERO_ORDER.filter(id => !inParty(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0];
+  const unhired = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0];
   const lvlId = party().find(id => save.gold >= lvlCost(save.heroes[id].lvl));
   const mergeReady = Object.keys(WEAPONS).some(w => save.items[w].some((n, g) => g < GRADES.length - 1 && n >= MERGE_N));
   if (unhired && save.gold >= HERO[unhired].hire) tips.push({ t: `You have enough gold to hire ${HERO[unhired].name}. A bigger party hits harder.`, btn: ['Open Party', '__party'] });
@@ -1631,7 +1695,7 @@ function draw() {
   for (const h of B.heroes) items.push({ y: h.y, f: () => {
     const w = save.heroes[h.id].weapon;
     drawHero(c, h.id, h.x, h.y, { weapon: w, t: B.t, swing: h.swing, lean: h.draw > 0 ? 1 - h.draw / 0.25 : 0, dead: h.dead, hit: h.hit,
-      brace: h.id === 'bren' && B.bar.t > 0 });
+      brace: !!HERO[h.id].tank && B.bar.t > 0 });
     if (!h.dead) hpBar(c, h.x, h.y - unitTop(h.id, 70) - 8, 34, h.hp / h.maxHp, 'hero');
   } });
   for (const e of B.enemies) items.push({ y: e.y, f: () => {

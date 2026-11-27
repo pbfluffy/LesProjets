@@ -22,7 +22,7 @@
   const vec = { hero: window.drawHero, mon: window.drawMon, bg: window.drawBackground };
 
   /* Logical height (in the 400x260 battle space) of each standing idle figure, feet to head. */
-  const HEIGHT = { bren: 98, tavi: 98, iona: 94, brushfang: 46, beetle: 54, spitter: 66, boar: 130,
+  const HEIGHT = { milo: 90, bren: 98, tavi: 98, iona: 94, rook: 92, elric: 96, maren: 101, tobin: 100, brushfang: 46, beetle: 54, spitter: 66, boar: 130,
     bogtoad: 44, reedwisp: 58, mossturtle: 46, bogking: 130, frostwolf: 48, icegolem: 78, frostgiant: 150, emberimp: 54, magmacrab: 38, stormdrake: 96,
     hornet: 40, barkbear: 62, mireadder: 36, mistheg: 60, rimesprite: 50, snowyeti: 82, cinderbat: 44, sentinel: 80 };
 
@@ -31,7 +31,13 @@
     bren: ['sword', 'twin', 'great', 'falchion', 'saber', 'rapier', 'buckler'],
     tavi: ['bow', 'shortbow', 'longbow', 'crossbow'],
     iona: ['staff', 'heartwood', 'stormstaff', 'frostwand'],
+    milo: ['pitchfork', 'woodaxe'],
+    rook: ['dagger', 'twindaggers'],
+    elric: ['tome', 'grimoire'],
+    maren: ['spear', 'halberd'],
+    tobin: ['wraps', 'gauntlets'],
   };
+  const PHASE = { bren: 0, tavi: 1.3, iona: 2.6, milo: 3.9, rook: 5.2, elric: 6.5, maren: 7.8, tobin: 9.1 };
   const HERO_PNG = ['sword', 'twin', 'great', 'bow', 'staff'];
   const heroPath = (id, w, p) => `heroes/${id}-${w}-${p}.${HERO_PNG.includes(w) ? 'png' : 'webp'}`;
 
@@ -92,7 +98,7 @@
     const near = (typeof WEAPONS !== 'undefined' && WEAPONS[o.weapon] && WEAPONS[o.weapon].pose) || o.weapon;     // the nearest older picture, if a new one is missing
     const im = pick(o.weapon) || pick(near) || pick(files[0]);
     if (!im) return false;
-    const t = o.t || 0, phase = id === 'bren' ? 0 : id === 'tavi' ? 1.3 : 2.6;
+    const t = o.t || 0, phase = PHASE[id] || 0;
 
     shadow(c, x, y + 1, 26, 6.5);
     c.save();

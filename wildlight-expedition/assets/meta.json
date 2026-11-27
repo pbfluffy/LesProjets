@@ -209,5 +209,40 @@
     "feetY": 0.97461,
     "figureH": 0.80859,
     "ext": "webp"
+  },
+  "milo": {
+    "frameW": 560,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.859375
+  },
+  "rook": {
+    "frameW": 620,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.890625
+  },
+  "elric": {
+    "frameW": 640,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.900390625
+  },
+  "maren": {
+    "frameW": 820,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.939453125
+  },
+  "tobin": {
+    "frameW": 600,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.88085938
   }
 }

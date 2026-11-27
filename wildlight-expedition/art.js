@@ -528,6 +528,7 @@ function artDrawIona(c, t, cast) {
 }
 
 function drawHero(c, id, x, y, o) {
+  if (id !== 'bren' && id !== 'tavi' && id !== 'iona') id = id === 'elric' ? 'iona' : 'bren';      // the newer heroes only exist as pictures; this is the plain fallback
   const t = o.t || 0;
   const swing = o.dead ? 0 : o.swing || 0;
   const phase = id === 'bren' ? 0 : id === 'tavi' ? 1.5 : 2.7;
