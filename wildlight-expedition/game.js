@@ -19,15 +19,15 @@ const HERO_ORDER = ['bren', 'tavi', 'iona'];
 const FAMILY = { sword: 'Sword', bow: 'Bow', staff: 'Staff' };
 
 const WEAPONS = {
-  sword: { name: 'Standard sword', fam: 'sword', hits: [1], int: 1.0, starter: true,
+  sword: { name: 'Standard sword', fam: 'sword', hits: [1], int: 1.0, starter: true, cost: { gold: 60, iron: 3 },
            desc: 'Steady attacks with balanced speed and damage.' },
-  twin:  { name: 'Twin swords', fam: 'sword', hits: [0.55, 0.55], int: 0.85, recipe: 'path', cost: { gold: 100, iron: 15 },
+  twin:  { name: 'Twin swords', fam: 'sword', hits: [0.55, 0.55], int: 0.85, cost: { gold: 100, iron: 15 },
            desc: 'Two quick strikes per attack against one monster.' },
-  great: { name: 'Greatsword', fam: 'sword', hits: [1.7], int: 1.9, splash: 0.6, recipe: 'hollow', cost: { gold: 250, iron: 40 },
+  great: { name: 'Greatsword', fam: 'sword', hits: [1.7], int: 1.9, splash: 0.6, cost: { gold: 250, iron: 40 },
            desc: 'Slow, heavy swings that also hit nearby monsters.' },
-  bow:   { name: 'Hunting bow', fam: 'bow', hits: [1], int: 1.0, ranged: true, starter: true,
+  bow:   { name: 'Hunting bow', fam: 'bow', hits: [1], int: 1.0, ranged: true, starter: true, cost: { gold: 60, iron: 3 },
            desc: 'Steady ranged attacks against one monster.' },
-  staff: { name: 'Wooden staff', fam: 'staff', hits: [1], int: 1.2, ranged: true, heal: true, starter: true,
+  staff: { name: 'Wooden staff', fam: 'staff', hits: [1], int: 1.2, ranged: true, heal: true, starter: true, cost: { gold: 60, iron: 3 },
            desc: 'Casts bolts and periodically heals the weakest ally.' },
 };
 
@@ -42,14 +42,14 @@ const MON = {
 const STAGES = [
   { id: 'path', name: 'Pinewood Path', req: null, enemies: ['brushfang', 'brushfang', 'brushfang', 'brushfang'],
     blurb: 'A pack of Brushfangs. Best for farming gold.', farm: { gold: 4, iron: 0.3 }, best: 'Gold',
-    first: { gold: 60, iron: 5, recipe: 'twin' }, repeat: { gold: 12, iron: 0 }, sky: ['#2d5a45', '#14301f'] },
+    first: { gold: 60, iron: 5 }, drops: ['twin'], repeat: { gold: 12, iron: 0 }, sky: ['#2d5a45', '#14301f'] },
   { id: 'hollow', name: 'Ironroot Hollow', req: 'path', enemies: ['beetle', 'beetle', 'spitter'],
     blurb: 'Rustshell Beetles screen a Pinecap Spitter. Best for farming iron.', farm: { gold: 1.5, iron: 1.5 }, best: 'Iron',
-    first: { gold: 120, iron: 10, recipe: 'great' }, repeat: { gold: 15, iron: 1 }, sky: ['#27495a', '#102430'] },
+    first: { gold: 120, iron: 10 }, drops: ['great'], repeat: { gold: 15, iron: 1 }, sky: ['#27495a', '#102430'] },
   { id: 'crossing', name: 'Thornback Crossing', req: 'hollow', enemies: ['boar'], boss: true,
     blurb: 'The Thornback Boar fights alone. Defeat it to relight the watchtower and open the next road.',
     farm: { gold: 6, iron: 2.5 }, best: 'Gold + iron',
-    first: { gold: 300, iron: 20, tower: true }, repeat: { gold: 40, iron: 3 }, sky: ['#5a4a3a', '#2a1f17'] },
+    first: { gold: 300, iron: 20, tower: true }, drops: ['twin', 'great'], repeat: { gold: 40, iron: 3 }, sky: ['#5a4a3a', '#2a1f17'] },
 ];
 const STAGE = Object.fromEntries(STAGES.map(s => [s.id, s]));
 
@@ -60,6 +60,21 @@ const LAYOUT = {
   4: [[250, 190], [295, 160], [300, 216], [348, 186]],
 };
 
+/* Weapons are items. Craft copies, then merge MERGE_N copies of the same weapon and grade into one of the next grade. */
+const GRADES = [
+  { name: 'Common',    mult: 1.00, color: '#c9d3c3' },
+  { name: 'Fine',      mult: 1.20, color: '#7fd18a' },
+  { name: 'Rare',      mult: 1.45, color: '#6db4f2' },
+  { name: 'Epic',      mult: 1.80, color: '#c08af0' },
+  { name: 'Legendary', mult: 2.30, color: '#f6bf4f' },
+];
+const MERGE_N = 3;
+
+/* Recipe drops. Winning a fight by hand is the best way to find one; auto-farming finds them more rarely.
+   manual: chance per won fight; pity: extra chance added per won fight without a drop (bad-luck protection);
+   autoPerHour: chance per hour of farming (applied when you claim). */
+const DROP = { manual: 0.10, pity: 0.15, autoPerHour: 0.06 };
+
 const BAR_DUR = 1.6, BAR_CD = 8;
 const FARM_CAP_MIN = 24 * 60;
 
@@ -67,7 +82,9 @@ const FARM_CAP_MIN = 24 * 60;
 const SAVE_KEY = 'wildlight-expedition-v1';
 function newSave() {
   return {
-    gold: 0, iron: 0, cleared: {}, recipes: {}, crafted: {}, towers: {},
+    gold: 0, iron: 0, cleared: {}, recipes: {}, towers: {}, pity: {},
+    // items[weapon][grade] = how many copies you own; every hero starts with their basic weapon
+    items: { sword: [1, 0, 0, 0, 0], bow: [1, 0, 0, 0, 0], staff: [1, 0, 0, 0, 0] },
     heroes: {
       bren: { lvl: 1, up: 0, weapon: 'sword' },
       tavi: { lvl: 1, up: 0, weapon: 'bow' },
@@ -76,18 +93,38 @@ function newSave() {
     farm: null, daily: { date: '', done: false }, tab: 'map',
   };
 }
-let save = (() => {
+function hydrate(raw) {
   const base = newSave();
-  try {
-    const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
-    if (raw) {
-      Object.assign(base, raw);
-      for (const id of HERO_ORDER) base.heroes[id] = Object.assign(newSave().heroes[id], (raw.heroes || {})[id]);
+  if (raw && typeof raw === 'object') {
+    Object.assign(base, raw);
+    for (const id of HERO_ORDER) base.heroes[id] = Object.assign(newSave().heroes[id], (raw.heroes || {})[id]);
+    if (!raw.items) {                       // older save: each crafted weapon becomes one Common copy
+      base.items = newSave().items;
+      for (const w of Object.keys(raw.crafted || {})) if (raw.crafted[w] && WEAPONS[w]) base.items[w] = [1, 0, 0, 0, 0];
     }
-  } catch (e) { /* start fresh */ }
+    delete base.crafted;
+  }
+  for (const w of Object.keys(WEAPONS)) if (!base.items[w]) base.items[w] = [0, 0, 0, 0, 0];
+  base.pity = base.pity || {};
   return base;
+}
+let save = (() => {
+  try { return hydrate(JSON.parse(localStorage.getItem(SAVE_KEY) || 'null')); } catch (e) { return hydrate(null); }
 })();
-function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* ignore */ } }
+
+/* persist() stamps the save time (cloud sync compares it) and tells cloud.js there is something new to upload.
+   persist(true) saves locally only, for changes that are not progress (like switching tab). */
+function persist(quiet) {
+  if (!quiet) save.updatedAt = Date.now();
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* ignore */ }
+  if (!quiet && window.cloud && cloud.saved) cloud.saved();
+}
+/* Replace the whole save with one from the cloud (cloud.js never does this while a fight is running). */
+function adoptSave(raw) {
+  save = hydrate(raw);
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* ignore */ }
+  render();
+}
 
 /* --------------------------- helpers -------------------------------- */
 const $ = s => document.querySelector(s);
@@ -99,11 +136,15 @@ const lvlCost = l => 40 * l;
 const upCost = u => ({ gold: 80 * (u + 1), iron: 6 * (u + 1) });
 const canAfford = c => save.gold >= (c.gold || 0) && save.iron >= (c.iron || 0);
 const pay = c => { save.gold -= c.gold || 0; save.iron -= c.iron || 0; };
-const owned = w => WEAPONS[w].starter || save.crafted[w];
+const bestGrade = w => { const a = save.items[w] || []; for (let g = GRADES.length - 1; g >= 0; g--) if (a[g] > 0) return g; return -1; };
+const owned = w => bestGrade(w) >= 0;
+const knowsRecipe = w => !!(WEAPONS[w].starter || save.recipes[w]);
+const heroGrade = id => Math.max(0, bestGrade(save.heroes[id].weapon));   // a hero always uses the best copy they own
+const gradeTag = g => `<span class="grade" style="--g:${GRADES[g].color}">${GRADES[g].name}</span>`;
 
 function heroStats(id) {
   const s = save.heroes[id], d = HERO[id];
-  const lm = 1 + 0.12 * (s.lvl - 1), um = 1 + 0.15 * s.up;
+  const lm = 1 + 0.12 * (s.lvl - 1), um = (1 + 0.15 * s.up) * GRADES[heroGrade(id)].mult;
   return { maxHp: Math.round(d.hp * lm), atk: d.atk * lm * um, heal: 14 * lm * um };
 }
 
@@ -116,13 +157,42 @@ function farmGain() {
   const m = farmMult();
   return { mins, full: mins >= FARM_CAP_MIN, gold: Math.floor(mins * st.farm.gold * m), iron: Math.floor(mins * st.farm.iron * m) };
 }
+/* Recipes that can still drop at a stage (ones you do not know yet). */
+const dropPool = s => (s.drops || []).filter(w => !save.recipes[w]);
+function rollManualDrop(s) {
+  const pool = dropPool(s);
+  if (!pool.length) return null;
+  const pity = save.pity[s.id] || 0;
+  if (Math.random() < Math.min(1, DROP.manual + pity * DROP.pity)) {
+    save.pity[s.id] = 0;
+    const w = pool[Math.floor(Math.random() * pool.length)];
+    save.recipes[w] = true;
+    return w;
+  }
+  save.pity[s.id] = pity + 1;
+  return null;
+}
+function rollAutoDrop(s, mins) {
+  const pool = dropPool(s);
+  if (!pool.length || mins <= 0) return null;
+  if (Math.random() < 1 - Math.pow(1 - DROP.autoPerHour, mins / 60)) {
+    const w = pool[Math.floor(Math.random() * pool.length)];
+    save.recipes[w] = true;
+    return w;
+  }
+  return null;
+}
+
+/* Collects farming loot; returns the recipe found (if any) so callers can announce it. */
 function claimFarm(quiet) {
   const g = farmGain();
-  if (!g) return;
+  if (!g) return null;
   save.gold += g.gold; save.iron += g.iron;
+  const found = rollAutoDrop(STAGE[save.farm.stage], g.mins);
   save.farm.since = Date.now();
   persist(); hud();
-  if (!quiet) toast(`Collected ${fmt(g.gold)} gold and ${fmt(g.iron)} iron.`);
+  if (!quiet) toast(`Collected ${fmt(g.gold)} gold and ${fmt(g.iron)} iron.${found ? ` You found the ${WEAPONS[found].name} recipe!` : ''}`);
+  return found;
 }
 
 /* ---------------------------- daily hunt ---------------------------- */
@@ -204,9 +274,10 @@ function renderMap() {
     ? `<canvas id="map-canvas" class="map" width="1080" height="450" role="img" aria-label="Village map"></canvas>`
     : mapSvg();
 
+  if (typeof cloudCard === 'function') h += cloudCard();     // cloud.js: Sign in with Google / account status
   h += `<div class="card"><h2>Your party is ${cur ? `farming at ${cur.name}` : 'resting in the village'}</h2>`;
   if (cur) {
-    h += `<p class="sub">They keep gathering while you're away, for up to 24 hours.</p>
+    h += `<p class="sub">They keep gathering while you're away, for up to 24 hours. They may also find weapon recipes, but much more rarely than when you fight by hand.</p>
       <div class="big" id="farm-gain">${gainText(fg)}</div>
       <div class="bar"><i id="farm-bar" style="width:${(fg.mins / FARM_CAP_MIN * 100).toFixed(1)}%"></i></div>
       <p class="note" id="farm-time"></p>
@@ -228,7 +299,7 @@ function renderMap() {
         !open ? '<span class="tag lock">Locked</span>' : cleared ? '<span class="tag ok">Cleared</span>' : '<span class="tag">New</span>'}</div>
       <p class="sub">${s.blurb}</p>
       <div class="meta">${[...new Set(s.enemies)].map(m => `<span class="tag">${MON[m].name}${s.enemies.filter(x => x === m).length > 1 ? ' ×' + s.enemies.filter(x => x === m).length : ''}</span>`).join('')}
-        ${cleared ? `<span class="tag farm">Farm: ${s.best}</span>` : ''}${s.first.recipe && !cleared ? `<span class="tag">First clear: ${WEAPONS[s.first.recipe].name} recipe</span>` : ''}</div>
+        ${cleared ? `<span class="tag farm">Farm: ${s.best}</span>` : ''}${dropPool(s).map(w => `<span class="tag drop">May drop: ${WEAPONS[w].name} recipe</span>`).join('')}</div>
       <div class="row">
         <button class="btn" data-act="fight" data-arg="${s.id}" ${open ? '' : 'disabled'}>${s.boss ? 'Challenge boss' : 'Fight'}</button>
         <button class="btn alt" data-act="farm" data-arg="${s.id}" ${cleared && !farming ? '' : 'disabled'}>${farming ? 'Farming here' : cleared ? 'Send party to farm' : 'Clear to farm'}</button>
@@ -279,13 +350,19 @@ function renderParty() {
     h += `<div class="card"><div class="hero-card"><canvas data-hero="${id}" width="180" height="200"></canvas>
       <div class="info"><h3>${d.name}</h3><p class="sub">${d.role}</p>
       <p class="note">Level ${s.lvl} · ${st.maxHp} HP · ${FAMILY[d.family]} +${s.up}</p>
+      <p class="note">${WEAPONS[s.weapon].name} ${gradeTag(heroGrade(id))}</p>
       <p class="note">${d.blurb}</p></div></div>
       <div class="row" style="margin-top:10px">
         <button class="btn" data-act="lvl" data-arg="${id}" ${canAfford(lc) ? '' : 'disabled'}>Level up <span class="cost">${costHtml(lc)}</span></button>
         <button class="btn alt" data-act="up" data-arg="${id}" ${canAfford(uc) ? '' : 'disabled'}>Upgrade ${FAMILY[d.family].toLowerCase()}s <span class="cost">${costHtml(uc)}</span></button>
       </div>
-      <div class="weapons">${ws.map(w => `<button class="weapon ${s.weapon === w ? 'on' : ''}" data-act="equip" data-arg="${id}:${w}">
-        <span><b>${WEAPONS[w].name}</b><small>${WEAPONS[w].desc}</small></span></button>`).join('')}</div></div>`;
+      <div class="weapons">${ws.map(w => {
+        const n = save.items[w].reduce((a, b) => a + b, 0);
+        return `<button class="weapon ${s.weapon === w ? 'on' : ''}" data-act="equip" data-arg="${id}:${w}">
+        <span><b>${WEAPONS[w].name}</b><small>${WEAPONS[w].desc}</small></span>
+        <span class="wmeta">${gradeTag(bestGrade(w))}<small>${n > 1 ? `${n} owned` : ''}</small></span></button>`;
+      }).join('')}</div>
+      <p class="note" style="margin-top:8px">A hero always wields the best grade they own. Merge copies in the Forge.</p></div>`;
   }
   return h;
 }
@@ -301,16 +378,30 @@ function paintPortraits() {
 
 /* ------------------------------ forge ------------------------------- */
 function renderForge() {
-  let h = `<p class="note">Clear stages to unlock recipes, then craft each variant once. Swap crafted weapons freely between fights from the Party tab.</p>`;
-  for (const w of Object.keys(WEAPONS).filter(k => WEAPONS[k].recipe)) {
-    const W = WEAPONS[w], unlocked = save.recipes[w], crafted = save.crafted[w];
-    h += `<div class="card"><div class="row between"><h3>${W.name}</h3>${
-      crafted ? '<span class="tag ok">Crafted</span>' : unlocked ? '<span class="tag farm">Recipe known</span>' : '<span class="tag lock">Locked</span>'}</div>
-      <p class="sub">${FAMILY[W.fam]} · ${W.desc}</p>
-      ${crafted ? '<p class="note">Equip it from the Party tab.</p>' :
-        `<div class="row"><button class="btn" data-act="craft" data-arg="${w}" ${unlocked && canAfford(W.cost) ? '' : 'disabled'}>Craft</button>
-         <span class="cost">${costHtml(W.cost)}</span></div>
-         ${unlocked ? '' : `<p class="note">Clear ${STAGE[W.recipe].name} to unlock this recipe.</p>`}`}</div>`;
+  let h = `<p class="note">Recipes drop from stage fights (best chance when you fight by hand) and, more rarely, from farming. Craft copies of any weapon you know. Every ${MERGE_N} copies of the same weapon and grade merge into one of the next grade: ${GRADES.map(x => x.name).join(' → ')}.</p>`;
+  for (const w of Object.keys(WEAPONS)) {
+    const W = WEAPONS[w], known = knowsRecipe(w), items = save.items[w];
+    h += `<div class="card"><div class="row between"><h3>${W.name}</h3>${known ? `<span class="tag">${FAMILY[W.fam]}</span>` : '<span class="tag lock">Recipe not found</span>'}</div>
+      <p class="sub">${W.desc}</p>`;
+    if (!known) {
+      const where = STAGES.filter(s => (s.drops || []).includes(w)).map(s => s.name);
+      h += `<p class="note">Drops at: ${where.join(', ')}. About ${Math.round(DROP.manual * 100)}% per fight you win, and about ${Math.round(DROP.autoPerHour * 100)}% per hour of farming.</p></div>`;
+      continue;
+    }
+    const rows = [];
+    for (let gr = 0; gr < GRADES.length; gr++) {
+      if (!items[gr] && !(gr === 0)) continue;
+      const n = items[gr] || 0;
+      if (!n && gr === 0 && items.some(x => x > 0)) continue;
+      const canMerge = gr < GRADES.length - 1 && n >= MERGE_N;
+      rows.push(`<div class="mergerow"><span>${gradeTag(gr)} <b>×${n}</b> <small>+${Math.round((GRADES[gr].mult - 1) * 100)}% dmg</small></span>${
+        gr < GRADES.length - 1
+          ? `<button class="btn alt small" data-act="merge" data-arg="${w}:${gr}" ${canMerge ? '' : 'disabled'}>Merge ${MERGE_N} → ${GRADES[gr + 1].name}${canMerge ? '' : ` (${n}/${MERGE_N})`}</button>`
+          : '<small>Max grade</small>'}</div>`);
+    }
+    h += `<div class="mergelist">${rows.join('')}</div>
+      <div class="row"><button class="btn" data-act="craft" data-arg="${w}" ${canAfford(W.cost) ? '' : 'disabled'}>Craft a copy</button>
+      <span class="cost">${costHtml(W.cost)}</span></div></div>`;
   }
   h += `<div class="card"><h3>More recipes</h3><p class="sub">Bow and staff variants, plus the sword and shield, saber, rapier and falchion, unlock in later areas.</p></div>`;
   return h;
@@ -318,13 +409,15 @@ function renderForge() {
 
 /* ----------------------------- actions ------------------------------ */
 const actions = {
-  tab(t) { save.tab = t; persist(); render(); },
+  tab(t) { save.tab = t; persist(true); render(); },
   claim() { claimFarm(false); render(); },
   farm(id) {
     if (!save.cleared[id]) return;
-    if (save.farm) claimFarm(true);
+    const found = save.farm ? claimFarm(true) : null;
     save.farm = { stage: id, since: Date.now() };
-    persist(); toast(`Party sent to ${STAGE[id].name}.`); render();
+    persist();
+    toast(`${found ? `You found the ${WEAPONS[found].name} recipe! ` : ''}Party sent to ${STAGE[id].name}.`);
+    render();
   },
   lvl(id) {
     const c = { gold: lvlCost(save.heroes[id].lvl) };
@@ -342,8 +435,14 @@ const actions = {
   },
   craft(w) {
     const W = WEAPONS[w];
-    if (!save.recipes[w] || save.crafted[w] || !canAfford(W.cost)) return;
-    pay(W.cost); save.crafted[w] = true; persist(); toast(`Crafted ${W.name}!`); render();
+    if (!knowsRecipe(w) || !canAfford(W.cost)) return;
+    pay(W.cost); save.items[w][0]++; persist(); toast(`Crafted a ${W.name}!`); render();
+  },
+  merge(arg) {
+    const [w, gs] = arg.split(':'), gr = Number(gs), items = save.items[w];
+    if (!items || !(gr >= 0 && gr < GRADES.length - 1) || items[gr] < MERGE_N) return;
+    items[gr] -= MERGE_N; items[gr + 1]++;
+    persist(); toast(`Merged into a ${GRADES[gr + 1].name} ${WEAPONS[w].name}!`); render();
   },
   fight(id) {
     const s = STAGE[id];
@@ -355,6 +454,10 @@ const actions = {
     const m = dailyMonster(), s = STAGES.filter(isUnlocked).find(x => x.enemies.includes(m));
     startBattle({ title: `Bonus hunt: ${MON[m].name}`, sky: s.sky, enemies: [m], hpMult: m === 'boar' ? 1 : 1.5, onWin: () => bonusWin(m) });
   },
+  signin() { if (window.cloud) cloud.signIn(); },
+  signout() { if (window.cloud) cloud.signOut(); },
+  keepcloud() { if (window.cloud) cloud.choose('cloud'); },
+  keepdevice() { if (window.cloud) cloud.choose('device'); },
   barrier() { raiseBarrier(); },
   retreat() { if (B) endBattle('retreat'); },
 };
@@ -373,7 +476,6 @@ function stageWin(s) {
     save.cleared[s.id] = true;
     save.gold += s.first.gold; save.iron += s.first.iron;
     lines.push(`First clear bonus: ${gainText(s.first)}`);
-    if (s.first.recipe) { save.recipes[s.first.recipe] = true; lines.push(`Recipe unlocked: ${WEAPONS[s.first.recipe].name}`); }
     if (s.first.tower) { save.towers[s.id] = true; lines.push('The watchtower is relit and the next road is opening!'); }
     const nxt = STAGES.find(x => x.req === s.id);
     if (nxt) lines.push(`New area open: ${nxt.name}`);
@@ -381,6 +483,8 @@ function stageWin(s) {
     save.gold += s.repeat.gold; save.iron += s.repeat.iron;
     lines.push(`Loot: ${gainText(s.repeat)}`);
   }
+  const drop = rollManualDrop(s);                       // random recipe drop, on every win (see DROP)
+  if (drop) lines.push(`✦ Recipe dropped: ${WEAPONS[drop].name}!`);
   persist();
   return lines;
 }
