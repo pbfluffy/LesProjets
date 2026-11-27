@@ -50,6 +50,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   const scope = new URL(self.registration.scope);
   const ours = url.origin === scope.origin && url.pathname.startsWith(scope.pathname);
+  if (url.pathname.endsWith('/version.json')) return;     // the update check always goes to the network
 
   // The page: network first so a new deploy shows up right away; the saved copy when offline.
   if (req.mode === 'navigate' && ours) {

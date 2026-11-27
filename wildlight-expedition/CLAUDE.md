@@ -99,3 +99,13 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - **22 monsters**: 8 new (Thicket Hornet, Barkbear, Mire Adder, Mist Hag, Rime Sprite, Snow Yeti, Cinder Bat, Obsidian Sentinel), each a stand-in for an existing role with similar stats, so stage balance is
   unchanged (checked old pack vs new pack by simulation). They replace a monster in the packs of path, hollow, mirewood, causeway, frostfall, glimmer, cinder, quarry and magmagate. New monsters are WebP;
   `monExt()` in `sprites.js` knows that before `meta.json` has loaded. Add a monster: `MON`, `HEIGHT` and `REGION_ART` in `sprites.js`, files in `assets/monsters/`, an entry in `assets/meta.json`.
+
+## Auto-update (like Cloudlingo)
+- Every deploy writes `version.json` (`{"v":"<commit>"}`, see `deploy.yml`). `pwa.js` fetches it (no-store, `?t=`) 3 s after load, every time the app becomes visible again and every 15 minutes. If it names a different build than the
+  `?v=` of the running `pwa.js`, the page shows the "Updating to the newest version…" bar and reloads after 1.2 s. It never reloads during a fight: it waits (checks every 4 s) until the player is back in the village.
+  At most one reload per new version per tab (`sessionStorage` key `wl-update`), in case a stale cache serves the old page. Does nothing on `?v=dev` (local play) or offline. `sw.js` never caches `version.json`.
+- Test locally: copy the game to a folder, replace `?v=dev` in `index.html` with an old id, add a `version.json` with another id and serve it (`node tools/serve.js 8124`).
+
+## Hero pictures per weapon
+- Every weapon has its own picture of its hero: `assets/heroes/<hero>-<weapon>-idle|attack` (the first five are PNG, the 10 newer ones WebP; `HERO_FILES` / `heroPath()` in `sprites.js`). All frames of a hero share one canvas
+  (Bren 812x512, Tavi 526x512, Iona 606x512, feet at 50% / 97.46%), so a new weapon only needs two matching pictures and an entry in `HERO_FILES`. If a picture is missing, the weapon's `pose` (nearest older weapon) is drawn.

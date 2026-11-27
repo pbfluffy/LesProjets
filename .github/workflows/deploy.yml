@@ -100,6 +100,8 @@ jobs:
           sed -i "s/?v=dev/?v=${GITHUB_SHA::8}/g" _site/wildlight-expedition/index.html
           # …and into the installable app's service worker, so each deploy replaces the old offline cache.
           sed -i "s/const VERSION = 'dev'/const VERSION = '${GITHUB_SHA::8}'/" _site/wildlight-expedition/sw.js
+          # version.json: open copies of the game check it and reload onto a new deploy (same idea as Cloudlingo; never mid-fight).
+          echo "{\"v\":\"${GITHUB_SHA::8}\"}" > _site/wildlight-expedition/version.json
           # Build label for testers: commit id is already in the ?v= links; this adds the build time (Bangkok) to <meta name="build">.
           sed -i "s/__BUILD_DATE__/$(TZ=Asia/Bangkok date '+%d %b %H:%M') BKK/" _site/wildlight-expedition/index.html
           mkdir -p _site/cloudlingo && cp -r cloudlingo/index.html cloudlingo/sw.js cloudlingo/manifest.webmanifest cloudlingo/css cloudlingo/js cloudlingo/img cloudlingo/sounds _site/cloudlingo/

@@ -26,9 +26,14 @@
     bogtoad: 44, reedwisp: 58, mossturtle: 46, bogking: 130, frostwolf: 48, icegolem: 78, frostgiant: 150, emberimp: 54, magmacrab: 38, stormdrake: 96,
     hornet: 40, barkbear: 62, mireadder: 36, mistheg: 60, rimesprite: 50, snowyeti: 82, cinderbat: 44, sentinel: 80 };
 
+  // Every weapon has its own picture of the hero (idle + attack). The first five are PNG, the newer ones WebP.
   const HERO_FILES = {
-    bren: ['sword', 'twin', 'great'], tavi: ['bow'], iona: ['staff'],
+    bren: ['sword', 'twin', 'great', 'falchion', 'saber', 'rapier', 'buckler'],
+    tavi: ['bow', 'shortbow', 'longbow', 'crossbow'],
+    iona: ['staff', 'heartwood', 'stormstaff', 'frostwand'],
   };
+  const HERO_PNG = ['sword', 'twin', 'great', 'bow', 'staff'];
+  const heroPath = (id, w, p) => `heroes/${id}-${w}-${p}.${HERO_PNG.includes(w) ? 'png' : 'webp'}`;
 
   function load(path) {
     return new Promise(resolve => {
@@ -81,10 +86,11 @@
   function drawHeroSprite(c, id, x, y, o) {
     const m = meta.data && meta.data[id];
     if (!m) return false;
-    const pose = (typeof WEAPONS !== 'undefined' && WEAPONS[o.weapon] && WEAPONS[o.weapon].pose) || o.weapon;       // new weapons borrow the nearest picture
-    const weapon = (HERO_FILES[id] || []).includes(pose) ? pose : HERO_FILES[id][0];
     const attacking = id === 'tavi' ? ((o.lean || 0) > 0.2 || (o.swing || 0) > 0.7) : (o.swing || 0) > 0.3;
-    const im = get(`heroes/${id}-${weapon}-${attacking ? 'attack' : 'idle'}.png`) || get(`heroes/${id}-${weapon}-idle.png`);
+    const files = HERO_FILES[id] || [], kind = attacking ? 'attack' : 'idle';
+    const pick = w => files.includes(w) && (get(heroPath(id, w, kind)) || get(heroPath(id, w, 'idle')));
+    const near = (typeof WEAPONS !== 'undefined' && WEAPONS[o.weapon] && WEAPONS[o.weapon].pose) || o.weapon;     // the nearest older picture, if a new one is missing
+    const im = pick(o.weapon) || pick(near) || pick(files[0]);
     if (!im) return false;
     const t = o.t || 0, phase = id === 'bren' ? 0 : id === 'tavi' ? 1.3 : 2.6;
 
@@ -305,7 +311,7 @@
   /* Every picture of the game (used by pwa.js so the installed app can run offline). */
   window.artUrls = () => Object.values(REGION_ART).flatMap(a => [...a.mon.flatMap(monPaths), ...a.bg.map(b => `bg/${b}.jpg`)])
     .concat(MAP_PATHS, ['meta.json'], (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff']).map(w => `items/${w}.png`),
-      Object.entries(HERO_FILES).flatMap(([id, ws]) => ws.flatMap(w => ['idle', 'attack'].map(p => `heroes/${id}-${w}-${p}.png`)))).map(url);
+      Object.entries(HERO_FILES).flatMap(([id, ws]) => ws.flatMap(w => ['idle', 'attack'].map(p => heroPath(id, w, p))))).map(url);
   window.ensureRegion = id => {
     if (!REGION_ART[id] || !meta.data) return Promise.resolve(false);
     if (window.regionArt[id] === 'ready') return Promise.resolve(true);
@@ -342,7 +348,7 @@
 
     const paths = [];
     for (const [id, weapons] of Object.entries(HERO_FILES))
-      for (const w of weapons) for (const pose of ['idle', 'attack']) paths.push(`heroes/${id}-${w}-${pose}.png`);
+      for (const w of weapons) for (const pose of ['idle', 'attack']) paths.push(heroPath(id, w, pose));
     for (const w of (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff'])) paths.push(`items/${w}.png`);       // weapon pictures (drop lists, forge, rewards)
     await Promise.all([...paths.map(load), window.ensureRegion('vale')]);
 
