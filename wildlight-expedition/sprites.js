@@ -89,6 +89,49 @@
   }
 
   /* ------------------------------- heroes ------------------------------ */
+  /* How each weapon moves. p = how far the attack is (0 to 1, about a quarter of a second); every weapon returns a small offset, tilt and squash of the figure
+     (dx forward, dy up, rot tilt forward, sx / sy squash) and 'ghost' = how strongly a motion trail is drawn behind a very fast attack. */
+  const pulse = (p, a, b) => (p <= a || p >= b ? 0 : Math.sin((p - a) / (b - a) * Math.PI));
+  const HEAVY = { great: 1, halberd: 1, woodaxe: 0.9, falchion: 0.6, club: 0.7 };
+  const THRUST = { spear: 13, rapier: 11, pitchfork: 9 };
+  const QUICK = { dagger: 1, twindaggers: 2, saber: 3, twin: 2 };
+  function motion(w, p) {
+    const m = { dx: 0, dy: 0, rot: 0, sx: 1, sy: 1, ghost: 0 }, W = (typeof WEAPONS !== 'undefined' && WEAPONS[w]) || {}, fam = W.fam;
+    if (HEAVY[w]) {                                           // wind up and slam
+      const k = HEAVY[w], back = pulse(p, 0, 0.42), slam = pulse(p, 0.3, 0.85);
+      m.dx = -5 * k * back + 11 * k * slam; m.rot = -0.1 * k * back + 0.13 * k * slam; m.dy = 2 * back * k; m.sy = 1 - 0.07 * slam * k; m.sx = 1 + 0.06 * slam * k;
+    } else if (THRUST[w]) {                                   // pull back, then a long jab
+      const back = pulse(p, 0, 0.3), jab = pulse(p, 0.2, 0.7);
+      m.dx = -3.5 * back + THRUST[w] * jab; m.rot = 0.04 * jab; m.sx = 1 + 0.03 * jab;
+    } else if (QUICK[w]) {                                    // fast darting cuts, one hop per hit
+      const n = QUICK[w], hop = Math.abs(Math.sin(p * n * Math.PI));
+      m.dx = 5.5 * hop; m.dy = 2.2 * hop; m.rot = 0.05 * hop; m.ghost = 0.22 * hop;
+    } else if (w === 'wraps') {                               // two jabs
+      const hop = Math.abs(Math.sin(p * 2 * Math.PI));
+      m.dx = 6 * hop; m.rot = 0.04 * hop; m.sy = 1 - 0.02 * hop; m.ghost = 0.16 * hop;
+    } else if (w === 'gauntlets') {                           // a heavy straight punch
+      const back = pulse(p, 0, 0.3), hit = pulse(p, 0.25, 0.75);
+      m.dx = -3 * back + 10 * hit; m.sx = 1 + 0.06 * hit; m.sy = 1 - 0.05 * hit; m.rot = 0.05 * hit;
+    } else if (w === 'buckler') {                             // a shield bash
+      const hit = pulse(p, 0.1, 0.7); m.dx = 6 * hit; m.sx = 1 + 0.05 * hit; m.rot = 0.03 * hit;
+    } else if (fam === 'sword') {                             // a clean forward cut
+      const f = pulse(p, 0, 0.75); m.dx = 8 * f; m.rot = 0.06 * f; m.dy = 0.8 * f;
+    } else if (fam === 'staff' || fam === 'tome') {           // casters rise a little and lean back as they gather the spell
+      const up = pulse(p, 0, 1); m.dy = 3 * up; m.rot = -0.05 * up; m.sy = 1 + 0.02 * up;
+    }
+    return m;
+  }
+  /* each hero idles in their own way: breathing speed and size, a weight shift or a hover */
+  const IDLE = {
+    milo: { sp: 3.2, a: 0.018, sway: 0.7, bob: 0 },       // nervous, shifts his weight
+    bren: { sp: 2.2, a: 0.012, sway: 0, bob: 0 },         // steady
+    tavi: { sp: 2.8, a: 0.014, sway: 0.5, bob: 0 },
+    iona: { sp: 2.4, a: 0.014, sway: 0.4, bob: 0.4 },
+    rook: { sp: 3.6, a: 0.016, sway: 0.9, bob: 0 },       // restless, ready to spring
+    elric: { sp: 2.0, a: 0.01, sway: 0, bob: 1.4 },       // hovers a little
+    maren: { sp: 2.0, a: 0.011, sway: 0, bob: 0 },        // planted
+    tobin: { sp: 1.6, a: 0.02, sway: 0, bob: 0 },         // slow, deep breaths
+  };
   function drawHeroSprite(c, id, x, y, o) {
     const m = meta.data && meta.data[id];
     if (!m) return false;
@@ -103,14 +146,22 @@
     shadow(c, x, y + 1, 26, 6.5);
     c.save();
     c.translate(x, y);
+    let mv = null;
     if (o.dead) { c.globalAlpha = 0.45; c.rotate(-0.9); c.translate(-10, 6); }
     else {
-      const breathe = 1 + 0.014 * Math.sin(t * 2.6 + phase);
+      const I = IDLE[id] || IDLE.bren, breathe = 1 + I.a * Math.sin(t * I.sp + phase);
+      c.translate(I.sway * Math.sin(t * 1.3 + phase), -I.bob * (0.5 + 0.5 * Math.sin(t * 1.7 + phase)));
       c.scale(1 / breathe, breathe);                                   // grows up from the feet
       if (o.brace) c.scale(1.05, 0.93);
-      if (attacking && id !== 'tavi') c.translate((o.swing || 0) * 6, 0);   // lunge into the swing
-      if (id === 'tavi' && (o.lean || 0) > 0) c.translate(-(o.lean) * 2, 0); // lean back while drawing
-      if (o.hit > 0) c.translate((Math.random() - 0.5) * 3, 0);
+      if (id === 'tavi') { if ((o.lean || 0) > 0) c.translate(-(o.lean) * 2.5, 0); c.rotate(-(o.lean || 0) * 0.03); }     // lean back while drawing the bow
+      else if ((o.swing || 0) > 0) {
+        mv = motion(o.weapon, 1 - Math.min(1, o.swing));
+        c.translate(mv.dx, -mv.dy); c.rotate(mv.rot); c.scale(mv.sx, mv.sy);
+      }
+      if (o.hit > 0) c.translate(-Math.min(1, o.hit / 0.25) * 4 + (Math.random() - 0.5) * 2.2, 0);     // knocked back a little
+    }
+    if (mv && mv.ghost > 0.02) {                                      // a motion trail behind very fast attacks
+      c.save(); c.globalAlpha = mv.ghost; c.translate(-9, 0); stand(c, im, m, HEIGHT[id], 0, 0, false); c.restore();
     }
     stand(c, im, m, HEIGHT[id], 0, 0, o.hit > 0.12 && !o.dead);
     c.restore();

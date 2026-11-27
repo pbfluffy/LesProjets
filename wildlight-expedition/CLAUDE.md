@@ -204,3 +204,8 @@ The sound engine follows the guide; the numbers are starting points to tune by e
   Spear Sweep and Bulwark (Maren; `h.guard` for everyone), Iron Palm (stuns the target) and Inner Peace (heal) (Tobin). New sounds: a synth entry and a recorded one for every new weapon and skill in `sfx.js`.
 - Balance (stepped simulations with skills on, up = level / 1.6): Milo alone beats Pinewood Path losing about a quarter of his health; a four-hero party of the older heroes plus Milo is about as hard as the old three-hero
   party at the same level; tank-heavy parties (Maren, Tobin, Iona) are noticeably easier, which is the reward for hiring them. Re-run if `partyScale`, `skillHp` or hero stats change.
+
+## Hero movement per weapon
+- `motion(weapon, p)` in `sprites.js` gives every weapon its own attack movement (p = 0..1 over the quarter-second `swing`): heavy weapons (greatsword, halberd, wood axe, club, falchion) wind up and slam, spears / rapier / pitchfork pull back and jab,
+  daggers, sabers, twin blades and hand wraps dart forward once per hit (with a faint motion trail), gauntlets throw one heavy punch, the buckler bashes, swords cut forward, staves and tomes make the caster rise and lean back. Tavi keeps the bow draw lean.
+- `IDLE` gives each hero their own breathing and posture: Tobin slow and deep, Rook restless, Elric hovers, Maren planted, Milo shifting his weight. A hit knocks the hero back a little.
