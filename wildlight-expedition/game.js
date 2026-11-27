@@ -288,9 +288,114 @@ function mapSvg() {
   </svg>`;
 }
 
-function renderMap() {
-  const fg = farmGain();
+/* ------------------------------ home cards ---------------------------- */
+// Which cards show on the home screen, in this order:
+//   1. farming status (only when the party is out): loot so far and the Claim button
+//   2. "Next up": ONE big card for the stage the player should do now (the first unlocked, uncleared stage;
+//      once everything is cleared, the stage the party farms) with the main Fight button
+//   3. the daily hunt, as a slim row
+//   4. every other stage as a compact row. Details such as the possible weapon drops are folded until tapped.
+const uiOpen = new Set();                       // folded sections the player opened (kept across redraws)
+document.addEventListener('toggle', e => {
+  const k = e.target && e.target.dataset && e.target.dataset.key;
+  if (k) (e.target.open ? uiOpen.add(k) : uiOpen.delete(k));
+}, true);
+
+const assetSrc = p => (typeof window.assetUrl === 'function' ? window.assetUrl(p) : '');
+const artIsReady = () => artState('units') === 'ready';
+const resChip = (kind, n) => `<span class="res"><i class="ico ${kind}"></i><b>${fmt(n)}</b></span>`;
+const nextStage = () => STAGES.find(s => isUnlocked(s) && !save.cleared[s.id]) || null;
+const featuredStage = () => nextStage() || (save.farm && STAGE[save.farm.stage]) || STAGES[STAGES.length - 1];
+const stageNo = s => STAGES.indexOf(s) + 1;
+const foeCounts = s => s.enemies.reduce((m, x) => (m[x] = (m[x] || 0) + 1, m), {});
+const foesText = s => Object.entries(foeCounts(s)).map(([m, n]) => MON[m].name + (n > 1 ? ` ×${n}` : '')).join(' · ');
+
+function stageBg(s) {                           // the painted stage art as a banner (a colour gradient until the art has loaded)
+  const sky = `--sky1:${s.sky[0]};--sky2:${s.sky[1]};`;
+  return artIsReady() ? `${sky}--bg:url('${assetSrc(`bg/${s.id}.jpg`)}')` : sky;
+}
+function foesHtml(s) {
+  if (!artIsReady()) return '';
+  return Object.entries(foeCounts(s)).map(([m, n]) =>
+    `<span class="foe" title="${MON[m].name}"><img src="${assetSrc(`monsters/${m}-idle.png`)}" alt="${MON[m].name}" style="height:${Math.round(46 * MON[m].scale)}px">${n > 1 ? `<i>×${n}</i>` : ''}</span>`).join('');
+}
+function stagePill(s) {
+  if (!isUnlocked(s)) return '<span class="pill lock"><i class="ico m lock sm"></i>Locked</span>';
+  if (save.farm && save.farm.stage === s.id) return '<span class="pill farm"><i class="ico m tent sm"></i>Farming</span>';
+  if (save.cleared[s.id]) return '<span class="pill ok"><i class="ico m check sm"></i>Cleared</span>';
+  return s.boss ? '<span class="pill boss">Boss</span>' : '<span class="pill new">New</span>';
+}
+function dropsHtml(s) {                         // folded by default
+  if (!(s.drops || []).length) return '';
+  const key = 'drops-' + s.id, total = s.drops.reduce((a, [, wt]) => a + wt, 0);
+  const chips = s.drops.map(([w, wt]) => {
+    const share = wt / total, tier = share >= 0.2 ? ['often', 'Often'] : share >= 0.1 ? ['sometimes', 'Sometimes'] : ['rarely', 'Rarely'];
+    return `<div class="dropchip ${tier[0]}"><b>${WEAPONS[w].name}</b><small>${FAMILY[WEAPONS[w].fam]} · ${tier[1]}</small></div>`;
+  }).join('');
+  return `<details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Possible weapon drops</span><em>${s.drops.length}</em></summary>
+    <div class="dropgrid">${chips}</div><p class="fine">Win fights by hand for the best chance. Farming finds weapons more rarely.</p></details>`;
+}
+function stageActions(s, big) {
+  if (!isUnlocked(s)) return '';
+  const cleared = !!save.cleared[s.id], farming = save.farm && save.farm.stage === s.id;
+  const fight = big ? (s.boss && !cleared ? 'Challenge boss' : cleared ? 'Fight again' : 'Fight') : 'Fight';
+  let h = `<button class="btn ${big ? 'primary' : ''}" data-act="fight" data-arg="${s.id}"><i class="ico m swords"></i>${fight}</button>`;
+  if (cleared) h += `<button class="btn alt" data-act="farm" data-arg="${s.id}" ${farming ? 'disabled' : ''}><i class="ico m tent"></i>${farming ? 'Farming here' : big ? 'Send party to farm' : 'Farm'}</button>`;
+  else if (big) h += '<span class="hint">Clear it to send your party farming here.</span>';
+  return h;
+}
+function bestFor(s) {
+  const kinds = [/gold/i.test(s.best) && 'gold', /lumber/i.test(s.best) && 'lumber'].filter(Boolean);
+  return `Best for ${kinds.map(k => `<span class="res"><i class="ico ${k}"></i>${k === 'gold' ? 'Gold' : 'Lumber'}</span>`).join('')}`;
+}
+
+function featuredCard(s) {
+  return `<article class="stagecard">
+    <div class="banner" style="${stageBg(s)}">
+      <div class="bhead"><span class="num">${stageNo(s)}</span>${stagePill(s)}</div>
+      <div class="bfoot"><div><h3>${s.name}</h3><p>${s.blurb}</p></div><div class="foes">${foesHtml(s)}</div></div>
+    </div>
+    <div class="sbody">
+      ${save.cleared[s.id] ? `<div class="bestfor">${bestFor(s)}</div>` : ''}
+      ${dropsHtml(s)}
+      <div class="actions">${stageActions(s, true)}</div>
+    </div></article>`;
+}
+function stageRow(s) {
+  const open = isUnlocked(s), prev = STAGES[stageNo(s) - 2];
+  return `<article class="stagerow ${open ? '' : 'locked'}">
+    <div class="thumb" style="${stageBg(s)}"><span>${stageNo(s)}</span></div>
+    <div class="rinfo">
+      <div class="rtop"><h4>${s.name}</h4>${stagePill(s)}</div>
+      <div class="rsub">${open ? foesText(s) : `Clear ${prev.name} to unlock`}</div>
+      ${open ? `<div class="ractions">${stageActions(s, false)}</div>` : ''}
+    </div>
+    ${open ? dropsHtml(s) : ''}
+  </article>`;
+}
+function dailyCard() {
+  const dm = dailyMonster(), dr = dailyReward(dm), done = dailyDone();
+  return `<div class="daily ${done ? 'done' : ''}">
+    <span class="dthumb">${artIsReady() ? `<img src="${assetSrc(`monsters/${dm}-idle.png`)}" alt="">` : ''}</span>
+    <div class="dinfo"><b>Daily hunt</b><span>${MON[dm].name} ${resChip('gold', dr.gold)}${resChip('lumber', dr.lumber)}</span></div>
+    ${done ? '<span class="pill ok"><i class="ico m check sm"></i>Done today</span>' : '<button class="btn small" data-act="bonus">Hunt</button>'}</div>`;
+}
+function farmStrip() {
   const cur = save.farm ? STAGE[save.farm.stage] : null;
+  if (!cur) {
+    const any = STAGES.some(s => save.cleared[s.id]);
+    return `<div class="strip idle"><i class="ico m tent"></i><div><b>Your party is resting</b><span>${any ? 'Send them to farm a cleared stage and collect the loot later.' : 'Win your first fight to unlock farming.'}</span></div></div>`;
+  }
+  const g = farmGain();
+  return `<div class="strip">
+    <div class="shead"><i class="ico m tent"></i><b>Farming at ${cur.name}</b><span class="muted" id="farm-time"></span></div>
+    <div class="gains" id="farm-gain">${resChip('gold', g.gold)}${resChip('lumber', g.lumber)}</div>
+    <div class="bar"><i id="farm-bar" style="width:${(g.mins / FARM_CAP_MIN * 100).toFixed(1)}%"></i></div>
+    <button class="btn good" data-act="claim" id="claim-btn">Claim</button>
+    <p class="fine">Gathers for up to 24 hours. Weapons can drop too, but rarely, so fight by hand for the best chance.</p></div>`;
+}
+
+function renderMap() {
   // art.js paints the map on a canvas (animated); the SVG is the fallback when drawMap is missing.
   let h = typeof drawMap === 'function'
     ? `<canvas id="map-canvas" class="map" width="1080" height="450" role="img" aria-label="Village map"></canvas>`
@@ -298,35 +403,14 @@ function renderMap() {
       ? `<div class="map placeholder" role="img" aria-label="Loading the village map"><span>Loading the village…</span></div>`
       : mapSvg();
 
-  h += `<div class="card"><h2>Your party is ${cur ? `farming at ${cur.name}` : 'resting in the village'}</h2>`;
-  if (cur) {
-    h += `<p class="sub">They keep gathering while you're away, for up to 24 hours. They may also find weapons, but much more rarely than when you fight by hand.</p>
-      <div class="big" id="farm-gain">${gainText(fg)}</div>
-      <div class="bar"><i id="farm-bar" style="width:${(fg.mins / FARM_CAP_MIN * 100).toFixed(1)}%"></i></div>
-      <p class="note" id="farm-time"></p>
-      <button class="btn good" data-act="claim" id="claim-btn">Claim</button>`;
-  } else {
-    h += `<p class="sub">Clear a stage, then send the party to farm it.</p>`;
-  }
-  h += `</div>`;
-
-  const dm = dailyMonster(), dr = dailyReward(dm), done = dailyDone();
-  h += `<div class="card"><div class="row between"><h2>Today's bonus hunt</h2>${done ? '<span class="tag ok">Done today</span>' : '<span class="tag farm">Bonus</span>'}</div>
-    <p class="sub">${MON[dm].name} · ${MON[dm].role}. Beat it once for extra materials: ${gainText(dr)}.</p>
-    <button class="btn" data-act="bonus" ${done ? 'disabled' : ''}>${done ? 'Come back tomorrow' : 'Hunt'}</button></div>`;
-
-  for (const s of STAGES) {
-    const open = isUnlocked(s), cleared = !!save.cleared[s.id], farming = save.farm && save.farm.stage === s.id;
-    h += `<div class="card stage-card ${open ? '' : 'locked'}">
-      <div class="row between"><h3>${s.name}</h3>${
-        !open ? '<span class="tag lock">Locked</span>' : cleared ? '<span class="tag ok">Cleared</span>' : '<span class="tag">New</span>'}</div>
-      <p class="sub">${s.blurb}</p>
-      <div class="meta">${[...new Set(s.enemies)].map(m => `<span class="tag">${MON[m].name}${s.enemies.filter(x => x === m).length > 1 ? ' ×' + s.enemies.filter(x => x === m).length : ''}</span>`).join('')}
-        ${cleared ? `<span class="tag farm">Farm: ${s.best}</span>` : ''}${(s.drops || []).map(([w]) => `<span class="tag drop">Drops: ${WEAPONS[w].name}</span>`).join('')}</div>
-      <div class="row">
-        <button class="btn" data-act="fight" data-arg="${s.id}" ${open ? '' : 'disabled'}>${s.boss ? 'Challenge boss' : 'Fight'}</button>
-        <button class="btn alt" data-act="farm" data-arg="${s.id}" ${cleared && !farming ? '' : 'disabled'}>${farming ? 'Farming here' : cleared ? 'Send party to farm' : 'Clear to farm'}</button>
-      </div></div>`;
+  const feat = featuredStage(), allDone = !nextStage();
+  h += farmStrip();
+  h += `<h2 class="sec">${allDone ? 'Farm &amp; replay' : 'Next up'}</h2>` + featuredCard(feat);
+  h += dailyCard();
+  const others = STAGES.filter(s => s !== feat);
+  if (others.length) {
+    const n = STAGES.filter(s => save.cleared[s.id]).length;
+    h += `<h2 class="sec">Roads <small>${n} of ${STAGES.length} cleared</small></h2>` + others.map(stageRow).join('');
   }
   h += `<p class="note">${save.cleared.crossing ? 'The watchtower is lit. The next road will open in a later version.' : 'Beat the boss at Thornback Crossing to relight the watchtower.'}</p>`;
   if (TEST_PERIOD) h += `<div class="card testtools"><div class="row between"><h3>Test tools</h3><span class="tag">Test period</span></div>
@@ -359,10 +443,12 @@ function tickFarm() {
   const g = farmGain();
   if (!g || save.tab !== 'map') return;
   const a = $('#farm-gain'); if (!a) return;
-  a.textContent = gainText(g);
+  a.innerHTML = resChip('gold', g.gold) + resChip('lumber', g.lumber);
   $('#farm-bar').style.width = (g.mins / FARM_CAP_MIN * 100).toFixed(1) + '%';
   const m = Math.floor(g.mins), hh = Math.floor(m / 60);
-  $('#farm-time').textContent = g.full ? 'Your party has gathered all it can carry – claim it!' : `Out for ${hh}h ${m % 60}m of 24h.`;
+  $('#farm-time').textContent = g.full ? 'Full: claim it!' : `Out ${hh}h ${m % 60}m`;
+  const cb = $('#claim-btn');
+  if (cb) { const any = g.gold > 0 || g.lumber > 0; cb.disabled = !any; cb.classList.toggle('ready', any); }
 }
 setInterval(tickFarm, 1000);
 
