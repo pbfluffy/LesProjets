@@ -720,6 +720,7 @@ function heroCard(id) {
       <button class="btn primary sm" data-act="lvl" data-arg="${id}" ${canAfford(lc) ? '' : 'disabled'}>Level up <span class="cost">${costHtml(lc)}</span></button>
       <button class="btn alt" data-act="up" data-arg="${id}" ${canAfford(uc) ? '' : 'disabled'}>Upgrade ${FAMILY_PLURAL[d.family].toLowerCase()} <span class="cost">${costHtml(uc)}</span></button>
     </div>
+    ${typeof skillsCardHtml === 'function' ? skillsCardHtml(id) : ''}
     <details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Change weapon</span><em>${owned_.length}</em></summary>
       <div class="weapons">${owned_.map(x => {
         const n = save.items[x].reduce((a, b) => a + b, 0);
@@ -773,13 +774,28 @@ function paintPortraits() {
 // Weapons cannot be bought. The Forge lists every weapon, groups them by hero, and merges copies into higher grades.
 const WIELDER = Object.fromEntries(HERO_ORDER.map(id => [HERO[id].family, id]));
 
+/* Every stage where a weapon can drop, with the grade it drops at and the real chance per won fight (folded). */
+function weaponDropsHtml(w) {
+  const rows = [], rate = dropRatePerWin();
+  for (const r of REGIONS) {
+    const list = r.stages.map(id => STAGE[id]).filter(s => (s.drops || []).some(([x]) => x === w));
+    if (!list.length) continue;
+    rows.push(`<div class="wdregion">${r.name}</div>` + list.map(s => {
+      const total = s.drops.reduce((a, [, wt]) => a + wt, 0), wt = s.drops.find(([x]) => x === w)[1];
+      return `<div class="wdrow"><span>${s.name}${s.boss ? ' <em>boss</em>' : ''}</span>${gradeTag(s.dropGrade || 0)}<b>${pctText(rate * wt / total)}</b></div>`;
+    }).join(''));
+  }
+  const n = STAGES.filter(s => (s.drops || []).some(([x]) => x === w)).length, key = 'wdrop-' + w;
+  return `<details class="drops wdrops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Where it drops</span><em>${n} stage${n === 1 ? '' : 's'}</em></summary>
+    <div class="wdlist">${rows.join('')}</div><p class="fine">Chance per fight you win, on average. Later regions drop better grades.</p></details>`;
+}
 function weaponCard(w) {
   const W = WEAPONS[w], items = save.items[w], total = items.reduce((a, b) => a + b, 0), who = WIELDER[W.fam], hero = HERO[who];
   if (!total) {
     const where = STAGES.filter(s => (s.drops || []).some(([x]) => x === w)).map(s => s.name);
     return `<article class="weaponcard locked"><div class="wport">${itemIcon(w)}</div>
       <div class="winfo"><div class="wtop"><h4>${W.name}</h4><span class="pill lock"><i class="ico m lock sm"></i>Not found</span></div>
-        <p class="wdesc">${W.desc} <span class="wcrit">Crit ${Math.round(W.crit * 100)}%</span></p><p class="fine">Drops at ${where.join(', ')}.</p></div></article>`;
+        <p class="wdesc">${W.desc} <span class="wcrit">Crit ${Math.round(W.crit * 100)}%</span></p><p class="fine">Drops at ${where.join(', ')}.</p>${weaponDropsHtml(w)}</div></article>`;
   }
   const best = bestGrade(w), ready = items.some((n, g) => g < GRADES.length - 1 && n >= MERGE_N);
   const rows = [];
@@ -800,6 +816,7 @@ function weaponCard(w) {
     <div class="winfo"><div class="wtop"><h4>${W.name}</h4>${gradeTag(best)}</div>
       <p class="wdesc">${W.desc} <span class="wcrit">Crit ${Math.round(W.crit * 100)}%</span></p>
       <div class="mergelist">${rows.join('')}</div>
+      ${weaponDropsHtml(w)}
       <div class="wfoot">${foot}</div></div></article>`;
 }
 
@@ -948,12 +965,12 @@ const actions = {
   fight(id) {
     const s = STAGE[id];
     if (!isUnlocked(s)) return;
-    withRegionArt(s.region, () => startBattle({ title: s.name, sky: s.sky, enemies: encounterFor(s), hpMult: partyScale(), power: s.power, bg: s.id, repeatable: true, stageId: s.id, onWin: () => stageWin(s) }));
+    withRegionArt(s.region, () => startBattle({ title: s.name, sky: s.sky, enemies: encounterFor(s), hpMult: partyScale(), power: s.power, bg: s.id, rec: s.rec, repeatable: true, stageId: s.id, onWin: () => stageWin(s) }));
   },
   bonus() {
     if (dailyDone()) return;
     const m = dailyMonster(), s = STAGES.filter(isUnlocked).find(x => x.enemies.includes(m));
-    withRegionArt(s.region, () => startBattle({ title: `Bonus hunt: ${MON[m].name}`, sky: s.sky, enemies: [m], hpMult: (MON[m].boss ? 1 : 1.5) * partyScale(), power: s.power, bg: s.id, onWin: () => bonusWin(m) }));
+    withRegionArt(s.region, () => startBattle({ title: `Bonus hunt: ${MON[m].name}`, sky: s.sky, enemies: [m], hpMult: (MON[m].boss ? 1 : 1.5) * partyScale(), power: s.power, bg: s.id, rec: s.rec, onWin: () => bonusWin(m) }));
   },
   region(id) { if (REGION[id]) { snd('tab'); uiRegion = { id, at: featuredStage().id }; render(); } },
   testunlock() {                                          // test period: open every area (the last one stays to fight for its first-clear reward)
@@ -972,6 +989,8 @@ const actions = {
   keepcloud() { if (window.cloud) cloud.choose('cloud'); },
   keepdevice() { if (window.cloud) cloud.choose('device'); },
   barrier() { raiseBarrier(); },
+  skill(id) { if (typeof castSkill === 'function' && !castSkill(id)) snd('nope'); },
+  autoskill() { if (typeof setAutoSkill === 'function') { setAutoSkill(!autoSkillOn()); snd('toggle'); } },
   retreat() {
     if (!B) return;
     snd('retreat');
@@ -979,7 +998,7 @@ const actions = {
     endBattle('retreat');
   },
 };
-const OWN_SOUND = new Set(['tab', 'region', 'barrier', 'retreat', 'lvl', 'up', 'hire', 'equip', 'merge', 'claim', 'farm', 'fight', 'bonus', 'repeat', 'sound',
+const OWN_SOUND = new Set(['skill', 'autoskill', 'tab', 'region', 'barrier', 'retreat', 'lvl', 'up', 'hire', 'equip', 'merge', 'claim', 'farm', 'fight', 'bonus', 'repeat', 'sound',
   '__again', '__repeat', '__close', 'pwainstall']);          // these play a sound of their own (or the game does it for them)
 document.addEventListener('click', e => {
   if (e.target.closest && e.target.closest('summary')) snd('tick');                  // folding a list open or closed
@@ -991,6 +1010,7 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && B) { e.preventDefault(); raiseBarrier(); }
   if (e.key === 'r' && B && !e.ctrlKey && !e.metaKey && !e.altKey) actions.repeat();
+  if (B && /^[1-6]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey && typeof castSkillSlot === 'function') castSkillSlot(Number(e.key) - 1);
   if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName || '')) actions.sound();
   if (e.key === 'Escape') {
     const dlg = document.getElementById('reset-dialog'), res = document.getElementById('result');
@@ -1042,7 +1062,7 @@ function startBattle(spec) {
     B.heroes.push({ id, hp: st.maxHp, maxHp: st.maxHp, cd: 0.4 + Math.random() * 0.4, draw: 0, swing: 0, heal: 2.5, dead: false, hit: 0, x: party().length === 1 ? 108 : HERO[id].x, y: HERO[id].y });
   });
   spec.enemies.forEach((type, i) => {
-    const d = MON[type], pw = spec.power || { hp: 1, dmg: 1 }, hp = Math.round(d.hp * (spec.hpMult || 1) * pw.hp);
+    const d = MON[type], pw = spec.power || { hp: 1, dmg: 1 }, hp = Math.round(d.hp * (spec.hpMult || 1) * pw.hp * (typeof skillHp === 'function' ? skillHp(spec.rec) : 1));
     B.enemies.push({ type, hp, maxHp: hp, x: slots[i][0], y: slots[i][1], cd: d.cd * (0.35 + 0.5 * Math.random() + i * 0.08),
       state: 'idle', kind: null, wt: 0, wd: 0, lunge: 0, lungeDur: 0.35, lungeDist: 0, flash: 0, dead: false, fade: 0,
       chargeT: d.charge ? d.charge.first : 0, dmgMult: pw.dmg, armMult: pw.arm || pw.dmg });
@@ -1054,6 +1074,7 @@ function startBattle(spec) {
   $('#result').hidden = true;
   $('#battle').hidden = false;
   document.body.style.overflow = 'hidden';
+  if (typeof initSkills === 'function') initSkills();
   if (window.__wlResume && spec.repeatable) { window.__wlResume = false; repeatOn = true; run = null; }      // picking a repeat run up again after an update
   repeatUi();
   if (window.music) window.music.set(spec.enemies.some(e => MON[e] && MON[e].boss) ? 'boss' : 'fight');
@@ -1083,6 +1104,7 @@ function loop(ts) {
   if (B.over && B.t > B.endT && $('#result').hidden) showResult();
   draw();
   barrierUi();
+  if (typeof skillsUi === 'function') skillsUi();
   B.raf = requestAnimationFrame(loop);
 }
 
@@ -1093,6 +1115,7 @@ const heroById = id => B.heroes.find(h => h.id === id);
 function step(dt) {
   if (B.bar.t > 0) B.bar.t = Math.max(0, B.bar.t - dt);
   if (B.bar.cd > 0) B.bar.cd = Math.max(0, B.bar.cd - dt);
+  if (typeof skillsStep === 'function') skillsStep(dt);                  // skill cooldowns, auto-casting (skills.js)
 
   for (const h of B.heroes) {
     if (h.dead) continue;
@@ -1117,13 +1140,14 @@ function step(dt) {
     e.flash = Math.max(0, e.flash - dt);
     e.lunge = Math.max(0, e.lunge - dt);
     if (!aliveH().length) continue;
+    const sp = e.chill > 0 ? 0.55 : 1;                                      // chilled by a frost wand: acts slower
     if (e.state === 'idle') {
-      e.cd -= dt;
-      if (d.charge) e.chargeT -= dt;
+      e.cd -= dt * sp;
+      if (d.charge) e.chargeT -= dt * sp;
       if (d.charge && e.chargeT <= 0) startWind(e, 'charge');
       else if (e.cd <= 0) startWind(e, 'attack');
     } else {
-      e.wt += dt;
+      e.wt += dt * sp;
       if (e.wt >= e.wd) strike(e);
     }
   }
@@ -1176,7 +1200,7 @@ function fireHero(h, st, w) {
     });
   } else {
     const dm = st.atk * w.hits[0];
-    B.fx.push({ k: 'proj', x0: h.x + 22, y0: h.y - 30, x1: t.x, y1: t.y - 22, t: 0, dur: 0.25, kind: h.id === 'tavi' ? 'arrow' : 'bolt',
+    B.fx.push({ k: 'proj', x0: h.x + 22, y0: h.y - 30, x1: t.x, y1: t.y - 22, t: 0, dur: h.id === 'tavi' || typeof projDur !== 'function' ? 0.25 : projDur(wid), kind: h.id === 'tavi' ? 'arrow' : (typeof projKind === 'function' ? projKind(wid) : 'bolt'),
       cb: () => {
         const tg = t.dead ? firstEnemy() : t;
         if (!tg) return;
@@ -1194,7 +1218,9 @@ function hitEnemy(e, raw, i, pierce, critChance, wid) {          // wid: the wea
   const d = Math.max(1, Math.round(Math.max(raw * 0.25, raw - armor)));       // armor can take at most 3/4 of a hit
   e.hp -= d; e.flash = 0.15;
   const fam = wid && WEAPONS[wid] ? WEAPONS[wid].fam : 'sword';
-  snd(crit ? 'crit' : 'wimpact', crit ? (fam === 'bow' ? 'arrow' : fam === 'staff' ? 'magic' : 'blade') : { w: wid || 'sword', a: MON[e.type].armor >= 3 });
+  if (wid === 'frostwand' && e.hp > 0) e.chill = 3;
+  if (typeof fxOnHit === 'function') fxOnHit(e, wid || 'sword', crit);
+  if (!B.mute) snd(crit ? 'crit' : 'wimpact', crit ? (fam === 'bow' ? 'arrow' : fam === 'staff' ? 'magic' : 'blade') : { w: wid || 'sword', a: MON[e.type].armor >= 3 });
   floater(e.x + (i || 0) * 8, e.y - unitTop(e.type, 56 * MON[e.type].scale) - 4, crit ? '-' + d + '!' : '-' + d, crit ? '#ffd24a' : '#fff', crit);
   if (e.hp <= 0) { e.hp = 0; e.dead = true; snd('mdie', { c: monCat(e.type), s: MON[e.type].scale }); }
 }
@@ -1213,7 +1239,7 @@ function hurt(h, dmg, crit) {
   if (h.dead) return;
   if (B.bar.t > 0) { floater(h.x, h.y - unitTop(h.id, 70) - 4, 'Blocked', '#7cc8ff'); snd('block'); return; }
   const sh = (WEAPONS[save.heroes[h.id].weapon] || {}).shield || 0;          // Sword & shield
-  const d = Math.round(dmg * (1 - sh));
+  const d = Math.round(dmg * (1 - sh) * (h.guard > 0 ? 0.6 : 1));          // Iron Guard: 40% less damage
   h.hp -= d; h.hit = 0.25;
   snd(crit ? 'hurtcrit' : 'hurt');
   floater(h.x, h.y - unitTop(h.id, 70) - 4, crit ? '-' + d + '!' : '-' + d, crit ? '#ff5a3c' : '#ff8a7a', crit);
@@ -1535,6 +1561,7 @@ actions.farmreportok = closeFarmReport;
 function closeBattle() {
   if (B) { cancelAnimationFrame(B.raf); clearTimeout(B.autoT); clearTimeout(B.fadeT); }
   fxClear(); curtain(false, true);
+  if (typeof clearSkillBar === 'function') clearSkillBar();
   if (window.music) window.music.set('village');
   repeatOn = false; run = null;
   B = null;
@@ -1610,6 +1637,10 @@ function draw() {
       c.beginPath(); c.moveTo(e.x - 60, e.y + 4); c.lineTo(150, e.y + 4); c.stroke();
     }
     drawMon(c, e.type, e.x, e.y, { t: B.t, wind: e.kind === 'charge' ? 0 : wf, scrape, lunge: off, flash: e.flash, dead: e.dead, fade: e.fade });
+    if (e.chill > 0 && !e.dead) {                                           // frozen: a pale blue glow and a few ice crystals
+      const sc = MON[e.type].scale, hh = unitTop(e.type, 56 * sc);
+      c.save(); c.globalAlpha = Math.min(0.5, e.chill * 0.4); c.fillStyle = '#9fd8ff'; ell(c, e.x, e.y - hh * 0.5, 22 * sc, hh * 0.55); c.fill(); c.restore();
+    }
     if (!e.dead) {
       const sc = MON[e.type].scale;
       hpBar(c, e.x, e.y - unitTop(e.type, 62 * sc) - 6, 36 * Math.min(1.6, sc), e.hp / e.maxHp, 'enemy');
@@ -1634,6 +1665,7 @@ function draw() {
   }
 
   for (const f of B.fx) {
+    if (typeof drawMagicFx === 'function' && drawMagicFx(c, f)) continue;     // skills.js: slash arcs, lightning, ice, leaves, novas...
     if (typeof drawFx === 'function' && drawFx(c, f, B.t)) continue;
     const k = f.t / (f.life || f.dur || 1);
     if (f.k === 'txt') {
