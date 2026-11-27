@@ -329,6 +329,9 @@ function renderMap() {
       </div></div>`;
   }
   h += `<p class="note">${save.cleared.crossing ? 'The watchtower is lit. The next road will open in a later version.' : 'Beat the boss at Thornback Crossing to relight the watchtower.'}</p>`;
+  if (TEST_PERIOD) h += `<div class="card testtools"><div class="row between"><h3>Test tools</h3><span class="tag">Test period</span></div>
+    <p class="sub">Want to start over? This wipes your progress and begins a brand-new game.</p>
+    <button class="btn danger" data-act="resetask">Reset game data</button></div>`;
   return h;
 }
 
@@ -427,6 +430,32 @@ function renderForge() {
   return h;
 }
 
+/* ------------------------------ test tools --------------------------------- */
+// While the game is being tested, the Map tab has a "Reset game data" button. Set TEST_PERIOD to false (or delete this block,
+// the card in renderMap and the three reset actions) when the game launches.
+const TEST_PERIOD = true;
+
+function closeResetDialog() { const d = document.getElementById('reset-dialog'); if (d) d.remove(); }
+function showResetDialog() {
+  closeResetDialog();
+  const signedIn = !!(window.cloud && cloud.isSignedIn && cloud.isSignedIn());
+  const d = document.createElement('div');
+  d.className = 'result dialog'; d.id = 'reset-dialog';
+  d.innerHTML = `<div class="box"><h2>Reset game data?</h2>
+    <p class="note">This erases everything: your hero levels, weapons, gold, lumber and cleared stages${signedIn ? ', on this device and in your account' : ' on this device'}. You can't undo it.</p>
+    <div class="stack"><button class="btn danger" data-act="resetdo">Yes, reset everything</button><button class="btn alt" data-act="resetcancel">Cancel</button></div></div>`;
+  d.addEventListener('click', e => { if (e.target === d) closeResetDialog(); });   // tap outside to cancel
+  document.body.appendChild(d);
+}
+function resetGame() {
+  closeResetDialog(); closeResInfo();
+  save = hydrate(null);                 // a brand-new save: starter weapons, level 1 heroes, nothing cleared
+  persist();                            // stamps the time, so a signed-in account is reset as well (cloud.js uploads it)
+  toast('Game reset. A fresh start!');
+  render();
+  window.scrollTo(0, 0);
+}
+
 /* ------------------------- resource information ---------------------------- */
 const perHour = (s, k) => fmt(s.farm[k] * 60 * farmMult());
 const RESOURCES = {
@@ -516,6 +545,9 @@ const actions = {
     const m = dailyMonster(), s = STAGES.filter(isUnlocked).find(x => x.enemies.includes(m));
     startBattle({ title: `Bonus hunt: ${MON[m].name}`, sky: s.sky, enemies: [m], hpMult: m === 'boar' ? 1 : 1.5, onWin: () => bonusWin(m) });
   },
+  resetask() { if (TEST_PERIOD) showResetDialog(); },
+  resetdo() { if (TEST_PERIOD) resetGame(); },
+  resetcancel() { closeResetDialog(); },
   resinfo(kind) { showResInfo(kind); },
   closeinfo() { closeResInfo(); },
   account() { if (window.cloud) cloud.account(); },
@@ -532,7 +564,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && B) { e.preventDefault(); raiseBarrier(); }
-  if (e.key === 'Escape') closeResInfo();
+  if (e.key === 'Escape') { closeResInfo(); closeResetDialog(); }
 });
 
 function stageWin(s) {

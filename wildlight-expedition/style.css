@@ -200,3 +200,8 @@ button.coin:focus-visible,.acct:focus-visible{outline:2px solid var(--amber);out
 .resinfo .btn{width:100%;margin-top:16px}
 .result .resinfo{text-align:left}
 .result .resinfo .head{justify-content:flex-start}
+
+/* ---- test tools: reset button ---- */
+button.btn.danger{background:linear-gradient(180deg,#e2765f,#c4482f);color:#fff;border:1px solid #8f2f1d;text-shadow:0 1px 1px #0005}
+.testtools{border-style:dashed;border-color:#6b5a4a;background:linear-gradient(180deg,#2f2a26,#262320)}
+.testtools h3{margin:0}
