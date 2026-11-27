@@ -205,3 +205,7 @@ button.coin:focus-visible,.acct:focus-visible{outline:2px solid var(--amber);out
 button.btn.danger{background:linear-gradient(180deg,#e2765f,#c4482f);color:#fff;border:1px solid #8f2f1d;text-shadow:0 1px 1px #0005}
 .testtools{border-style:dashed;border-color:#6b5a4a;background:linear-gradient(180deg,#2f2a26,#262320)}
 .testtools h3{margin:0}
+
+/* ---- test period: build/version label (see BUILD in game.js) ---- */
+.ver{position:fixed;left:8px;bottom:calc(62px + env(safe-area-inset-bottom));z-index:7;font:600 10px/1 system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.04em;color:#d6cfae;background:rgba(10,16,13,.6);padding:4px 7px;border-radius:6px;pointer-events:none;opacity:.85}
+.ver:empty{display:none}

@@ -98,6 +98,8 @@ jobs:
           mkdir -p _site/wildlight-expedition && cp -r wildlight-expedition/. _site/wildlight-expedition/
           # Static game, no build: stamp the commit into its ?v= links so Cloudflare/browsers fetch fresh JS/CSS after each deploy.
           sed -i "s/?v=dev/?v=${GITHUB_SHA::8}/g" _site/wildlight-expedition/index.html
+          # Build label for testers: commit id is already in the ?v= links; this adds the build time (Bangkok) to <meta name="build">.
+          sed -i "s/__BUILD_DATE__/$(TZ=Asia/Bangkok date '+%d %b %H:%M') BKK/" _site/wildlight-expedition/index.html
           mkdir -p _site/cloudlingo && cp -r cloudlingo/index.html cloudlingo/sw.js cloudlingo/manifest.webmanifest cloudlingo/css cloudlingo/js cloudlingo/img cloudlingo/sounds _site/cloudlingo/
           # Cloudlingo has no build step: stamp the commit into its ?v= links so
           # browsers fetch fresh JS/CSS after each deploy instead of a cached copy.
