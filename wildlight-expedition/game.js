@@ -928,7 +928,7 @@ function showResInfo(kind) {
 
 /* ----------------------------- actions ------------------------------ */
 const actions = {
-  tab(t) { snd('tab'); save.tab = t; persist(true); render(); },
+  tab(t) { save.tab = t; persist(true); render(); },
   sound() { if (window.sfx) window.sfx.togglePanel(); },
   claim() { claimFarm(false); render(); },
   farm(id) {
@@ -980,7 +980,7 @@ const actions = {
     const m = dailyMonster(), s = STAGES.filter(isUnlocked).find(x => x.enemies.includes(m));
     withRegionArt(s.region, () => startBattle({ title: `Bonus hunt: ${MON[m].name}`, sky: s.sky, enemies: [m], hpMult: (MON[m].boss ? 1 : 1.5) * partyScale(), power: s.power, bg: s.id, rec: s.rec, onWin: () => bonusWin(m) }));
   },
-  region(id) { if (REGION[id]) { snd('tab'); uiRegion = { id, at: featuredStage().id }; render(); } },
+  region(id) { if (REGION[id]) { uiRegion = { id, at: featuredStage().id }; render(); } },
   testunlock() {                                          // test period: open every area (the last one stays to fight for its first-clear reward)
     if (!TEST_PERIOD) return;
     STAGES.slice(0, -1).forEach(s => { save.cleared[s.id] = true; if (s.first.tower) save.towers[s.id] = true; });
