@@ -531,3 +531,33 @@ html,body{overscroll-behavior-y:none}
   .pwa-x:hover{background:rgba(255,255,255,.08)}
   .coin,.rchip,.weapon,details.region summary,.stagerow,.barrier{cursor:pointer}
 }
+
+/* ---- repeat fights and farm log ---- */
+.bt-btns{display:flex;gap:8px}
+#repeat-btn[hidden]{display:none}
+#repeat-btn.on{background:#2f5d3a;border-color:#6cc37c;color:#e6ffe9;box-shadow:0 0 0 2px #6cc37c33}
+.runlog{width:100%;max-width:480px;padding:8px 12px;border-radius:12px;background:#16271e;border:1px solid #3f5a46;font-size:13px;color:#d8d0b4}
+.runlog[hidden]{display:none}
+.rl-now{font-weight:700;color:#f3deb0;margin-bottom:4px}
+.rl-tot{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.rl-tot b{color:#fff1cf}
+.fl-find{color:#d2bff6;font-weight:600}
+.runsum{padding:10px 12px;border-radius:12px;background:#1b2c23;border:1px solid #44604b;text-align:left;font-size:13px}
+.runsum small{display:block;font:700 10.5px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#c4ae72;margin-bottom:4px}
+details.farmlog{padding:0}
+details.farmlog summary{list-style:none;display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;font:700 15px var(--heading);color:#f3deb0;user-select:none}
+details.farmlog summary::-webkit-details-marker{display:none}
+details.farmlog summary em{font:600 11px system-ui,sans-serif;font-style:normal;background:#33402f;border-radius:8px;padding:2px 8px;color:var(--dim)}
+details.farmlog summary::after{content:"";margin-left:auto;width:7px;height:7px;border-right:2px solid #c4ae72;border-bottom:2px solid #c4ae72;transform:rotate(45deg);margin-right:3px;transition:transform .2s}
+details.farmlog[open] summary::after{transform:rotate(-135deg)}
+details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0;padding:0 14px 8px}
+.fl-list{list-style:none;margin:0;padding:0 14px 12px;display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto}
+.fl-list li{padding:8px 10px;border-radius:10px;background:#18241d;border:1px solid #3a4e3f}
+.fl-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.fl-top b{font-size:13.5px;color:#f3deb0}
+.fl-top small{color:var(--dim);font-size:11.5px;text-align:right}
+.fl-got{display:flex;flex-wrap:wrap;align-items:center;gap:2px 12px;margin-top:4px;font-size:13px}
+#farm-report .rtiles{margin:12px 0}
+#farm-report .unlockbar{margin-top:8px}
+.rbtns{flex-wrap:wrap}
+.bt-btns .ghost{white-space:nowrap}

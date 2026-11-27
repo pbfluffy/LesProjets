@@ -187,6 +187,7 @@ function hydrate(raw) {
   base.lumber = base.lumber || 0;
   for (const w of Object.keys(WEAPONS)) if (!base.items[w]) base.items[w] = [0, 0, 0, 0, 0];
   base.pity = base.pity || {};
+  base.farmLog = Array.isArray(base.farmLog) ? base.farmLog.slice(0, 30) : [];
   return base;
 }
 let save = (() => {
@@ -296,10 +297,12 @@ function claimFarm(quiet) {
   const g = farmGain();
   if (!g) return [];
   save.gold += g.gold; save.lumber += g.lumber;
-  const found = rollAutoDrops(STAGE[save.farm.stage], g.mins);
+  const st = STAGE[save.farm.stage], found = rollAutoDrops(st, g.mins);
+  const entry = { at: Date.now(), stage: st.id, mins: Math.floor(g.mins), gold: g.gold, lumber: g.lumber, found, grade: st.dropGrade || 0 };
+  const logged = logFarm(entry);
   save.farm.since = Date.now();
   persist(); hud();
-  if (!quiet) toast(`Collected ${fmt(g.gold)} gold and ${fmt(g.lumber)} lumber.${found.length ? ` Your party found: ${dropNames(found, STAGE[save.farm.stage].dropGrade || 0)}!` : ''}`);
+  if (!quiet) { if (logged) showFarmReport(entry); else toast('Nothing to collect yet. Give your party a little longer.'); }
   return found;
 }
 
@@ -572,7 +575,7 @@ function renderMap() {
   const feat = featuredStage(), allDone = !nextStage();
   h = `<div class="vgrid"><div class="vcol"><div class="vg o1">${h}${regionChips()}</div>`;
   const colA2 = `<div class="vg o3"><h2 class="sec">${allDone ? 'Farm &amp; replay' : 'Next up'}</h2>` + featuredCard(feat) + '</div></div>';
-  h += colA2 + `<div class="vcol"><div class="vg o2">${farmStrip()}</div><div class="vg o4">${dailyCard()}${window.pwaCard ? window.pwaCard() : ''}</div>`;   // pwaCard: "Install the game" (pwa.js)
+  h += colA2 + `<div class="vcol"><div class="vg o2">${farmStrip()}${farmLogCard()}</div><div class="vg o4">${dailyCard()}${window.pwaCard ? window.pwaCard() : ''}</div>`;   // pwaCard: "Install the game" (pwa.js)
   h += '<div class="vg o5">';
   const nClear = STAGES.filter(s => save.cleared[s.id]).length;
   h += `<h2 class="sec">Roads <small>${nClear} of ${STAGES.length} cleared</small></h2>`;
@@ -891,7 +894,7 @@ const actions = {
   fight(id) {
     const s = STAGE[id];
     if (!isUnlocked(s)) return;
-    withRegionArt(s.region, () => startBattle({ title: s.name, sky: s.sky, enemies: encounterFor(s), hpMult: partyScale(), power: s.power, bg: s.id, onWin: () => stageWin(s) }));
+    withRegionArt(s.region, () => startBattle({ title: s.name, sky: s.sky, enemies: encounterFor(s), hpMult: partyScale(), power: s.power, bg: s.id, repeatable: true, onWin: () => stageWin(s) }));
   },
   bonus() {
     if (dailyDone()) return;
@@ -915,7 +918,11 @@ const actions = {
   keepcloud() { if (window.cloud) cloud.choose('cloud'); },
   keepdevice() { if (window.cloud) cloud.choose('device'); },
   barrier() { raiseBarrier(); },
-  retreat() { if (B) endBattle('retreat'); },
+  retreat() {
+    if (!B) return;
+    if (B.over) { if (run && run.wins && $('#result').hidden) showRunSummary(); return; }       // between two repeated fights
+    endBattle('retreat');
+  },
 };
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
@@ -924,10 +931,11 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && B) { e.preventDefault(); raiseBarrier(); }
+  if (e.key === 'r' && B && !e.ctrlKey && !e.metaKey && !e.altKey) actions.repeat();
   if (e.key === 'Escape') {
     const dlg = document.getElementById('reset-dialog'), res = document.getElementById('result');
-    if (dlg || document.getElementById('res-info')) { closeResInfo(); closeResetDialog(); }
-    else if (B && res && res.hidden) endBattle('retreat');           // Esc leaves a fight (keyboard players)
+    if (dlg || document.getElementById('res-info') || document.getElementById('farm-report')) { closeResInfo(); closeResetDialog(); closeFarmReport(); }
+    else if (B && res && res.hidden) actions.retreat();           // Esc leaves a fight (keyboard players)
   }
   else if (!B && !e.ctrlKey && !e.metaKey && !e.altKey && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName || '') && ['1', '2', '3'].includes(e.key) && !document.getElementById('reset-dialog')) {
     actions.tab(['map', 'party', 'forge'][Number(e.key) - 1]);       // 1 / 2 / 3 switch tabs
@@ -983,6 +991,7 @@ function startBattle(spec) {
   $('#result').hidden = true;
   $('#battle').hidden = false;
   document.body.style.overflow = 'hidden';
+  repeatUi();
   B.raf = requestAnimationFrame(loop);
 }
 
@@ -1153,7 +1162,87 @@ function endBattle(result) {
   if (!B || B.over) return;
   B.over = true; B.result = result;
   B.endT = B.t + (result === 'retreat' ? 0 : 0.9);
-  if (result === 'retreat') { closeBattle(); }
+  if (result === 'retreat') { if (run && run.wins) showRunSummary(); else closeBattle(); }
+}
+
+/* ------------------------- repeat fights (manual) ------------------------- */
+// "∞ Repeat" keeps fighting the same stage by hand: after each win the rewards are paid and the next fight starts by itself.
+// It stops on a defeat, on Retreat / switching it off, and after a first clear, a relit watchtower or a new area (those get the full screen).
+let repeatOn = false, run = null;                     // run = what this streak of fights has earned
+const newRun = () => ({ wins: 0, gold: 0, lumber: 0, drops: [] });
+function addRun(r) {
+  if (!run) run = newRun();
+  run.wins++; run.gold += r.gold; run.lumber += r.lumber;
+  if (r.drop) run.drops.push([r.drop, r.dropGrade]);
+}
+function dropsText(list) {
+  const m = {};
+  for (const [w, g] of list) m[g + ':' + w] = (m[g + ':' + w] || 0) + 1;
+  return Object.entries(m).map(([k, n]) => { const [g, w] = k.split(':'); return (Number(g) ? GRADES[g].name + ' ' : '') + WEAPONS[w].name + (n > 1 ? ` ×${n}` : ''); }).join(', ');
+}
+function runLogHtml(now) {
+  const t = run;
+  return `${now ? `<div class="rl-now">${now}</div>` : ''}<div class="rl-tot"><b>${t.wins}</b> win${t.wins > 1 ? 's' : ''} so far ${resChip('gold', t.gold)}${resChip('lumber', t.lumber)}${t.drops.length ? `<span class="fl-find">Found: ${dropsText(t.drops)}</span>` : ''}</div>`;
+}
+function repeatUi() {
+  const b = $('#repeat-btn'), L = $('#runlog');
+  if (b) {
+    b.hidden = !(B && B.spec.repeatable);
+    b.classList.toggle('on', repeatOn);
+    b.textContent = repeatOn ? '∞ Repeat on' : '∞ Repeat';
+    b.setAttribute('aria-pressed', String(repeatOn));
+  }
+  if (L) { L.hidden = !(B && B.spec.repeatable && run && run.wins); if (!L.hidden) L.innerHTML = runLogHtml(B.nowMsg); }
+}
+function restartBattle() { const s = B.spec; clearTimeout(B.autoT); cancelAnimationFrame(B.raf); B = null; startBattle(s); }
+/* The end-of-run screen (Retreat, or Repeat switched off while waiting for the next fight). */
+function showRunSummary() {
+  if (!B) return;
+  clearTimeout(B.autoT);
+  if (B.result === 'win' && !B.resolved) addRun(B.spec.onWin());          // a win that was still counting down is paid, not lost
+  B.resolved = true; B.over = true; repeatOn = false;
+  const t = run || newRun(), r = $('#result');
+  r.innerHTML = `<div class="box rescard win"><div class="rhead"><h2 class="rtitle">Repeat run</h2><p class="rsub2">${B.spec.title} · ${t.wins} fight${t.wins === 1 ? '' : 's'} won</p></div>
+    <div class="rbody"><div class="rtiles"><div class="rtile"><i class="ico gold"></i><b class="count" data-to="${t.gold}">+0</b><small>Gold</small></div>
+      <div class="rtile"><i class="ico lumber"></i><b class="count" data-to="${t.lumber}">+0</b><small>Lumber</small></div></div>
+      ${t.drops.length ? `<div class="unlockbar"><i class="ico m swords"></i><span><b>Weapons found:</b> ${dropsText(t.drops)}</span></div>` : '<p class="note">No weapons dropped this run.</p>'}
+      <div class="rbtns"><button class="btn primary" data-act="__close">Back to the village</button><button class="btn alt" data-act="__again"><i class="ico m swords"></i>Fight again</button></div></div></div>`;
+  r.hidden = false; repeatUi(); animateCounts(r);
+}
+const runSumHtml = (min = 2) => (run && run.wins >= min ? `<div class="runsum"><small>Repeat run</small>${runLogHtml()}</div>` : '');
+
+/* ------------------------------ farm log ------------------------------ */
+const fmtDur = m => (m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`);
+/* Keeps the last 30 trips; returns false when there was nothing to log. */
+function logFarm(e) {
+  if (!(e.gold || e.lumber || e.found.length)) return false;
+  save.farmLog = [e].concat(save.farmLog || []).slice(0, 30);
+  return true;
+}
+function farmLogCard() {
+  const L = save.farmLog || [];
+  if (!L.length) return '';
+  const tot = L.reduce((a, e) => (a.gold += e.gold, a.lumber += e.lumber, a.n += e.found.length, a), { gold: 0, lumber: 0, n: 0 });
+  const rows = L.map(e => {
+    const s = STAGE[e.stage] || { name: e.stage };
+    const when = new Date(e.at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return `<li><div class="fl-top"><b>${s.name}</b><small>${when} · out ${fmtDur(e.mins)}</small></div>
+      <div class="fl-got">${resChip('gold', e.gold)}${resChip('lumber', e.lumber)}${e.found.length ? `<span class="fl-find">Found: ${dropNames(e.found, e.grade)}</span>` : ''}</div></li>`;
+  }).join('');
+  return `<details class="card farmlog" data-key="farmlog" ${uiOpen.has('farmlog') ? 'open' : ''}><summary><span>Farm log</span><em>${L.length} trip${L.length > 1 ? 's' : ''}</em></summary>
+    <p class="sub">All trips in this log: ${resChip('gold', tot.gold)}${resChip('lumber', tot.lumber)}${tot.n ? `<span class="fl-find">${tot.n} weapon${tot.n > 1 ? 's' : ''}</span>` : ''}</p><ul class="fl-list">${rows}</ul></details>`;
+}
+function closeFarmReport() { const d = document.getElementById('farm-report'); if (d) d.remove(); }
+function showFarmReport(e) {
+  closeFarmReport();
+  const d = document.createElement('div');
+  d.className = 'result dialog'; d.id = 'farm-report';
+  d.innerHTML = `<div class="box"><h2>Farm report</h2><p class="note">${STAGE[e.stage].name} · out for ${fmtDur(e.mins)}</p>
+    <div class="rtiles"><div class="rtile"><i class="ico gold"></i><b>+${fmt(e.gold)}</b><small>Gold</small></div><div class="rtile"><i class="ico lumber"></i><b>+${fmt(e.lumber)}</b><small>Lumber</small></div></div>
+    ${e.found.length ? `<div class="unlockbar"><i class="ico m swords"></i><span><b>Weapons found:</b> ${dropNames(e.found, e.grade)}</span></div>` : '<p class="note">No weapons this time. Long trips have a better chance, and fighting by hand has the best.</p>'}
+    <div class="stack"><button class="btn primary" data-act="farmreportok">Nice!</button></div></div>`;
+  d.addEventListener('click', ev => { if (ev.target === d) closeFarmReport(); });
+  document.body.appendChild(d);
 }
 
 /* ------------------------------ result screens ------------------------------ */
@@ -1194,7 +1283,8 @@ function winHtml(r) {
       ${r.drop ? dropCardHtml(r.drop, r.dropGrade) : ''}
       ${r.tower ? `<div class="unlockbar"><i class="ico m flame"></i><span><b>The ${r.regionName} watchtower is relit!</b> ${r.unlock ? '' : "That's every watchtower: more areas will open in a later version."}</span></div>` : ''}
       ${r.unlock ? `<div class="unlockbar"><i class="ico m unlock"></i><span><b>New area open:</b> ${r.unlock}</span></div>` : ''}
-      <div class="rbtns"><button class="btn primary" data-act="__close">Back to the village</button>${r.again ? '<button class="btn alt" data-act="__again"><i class="ico m swords"></i>Fight again</button>' : ''}</div>
+      ${runSumHtml()}
+      <div class="rbtns"><button class="btn primary" data-act="__close">Back to the village</button>${r.again ? '<button class="btn alt" data-act="__again"><i class="ico m swords"></i>Fight again</button>' : ''}${r.again && B.spec.repeatable ? '<button class="btn alt" data-act="__repeat">∞ Repeat</button>' : ''}</div>
     </div></div>`;
 }
 function defeatTips() {
@@ -1215,6 +1305,7 @@ function loseHtml() {
     <div class="rhead"><h2 class="rtitle">Your party fell back</h2><p class="rsub2">${B.spec.title}</p></div>
     <div class="rbody">
       ${heroesRow()}
+      ${runSumHtml(1)}
       <div class="tipcard">${tips.map(x => `<p>${x.t}${x.btn ? ` <button class="btn alt small" data-act="${x.btn[1]}">${x.btn[0]}</button>` : ''}</p>`).join('')}</div>
       <div class="rbtns"><button class="btn primary" data-act="__again"><i class="ico m swords"></i>Try again</button><button class="btn alt" data-act="__close">Back to the village</button></div>
     </div></div>`;
@@ -1235,8 +1326,25 @@ function animateCounts(root) {
 }
 function showResult() {
   const r = $('#result');
-  if (!r.hidden || !B) return;
-  r.innerHTML = B.result === 'win' ? winHtml(B.spec.onWin()) : loseHtml();
+  if (!r.hidden || !B || B.resolved) return;
+  B.resolved = true;
+  if (B.result === 'win') {
+    const w = B.spec.onWin();
+    B.lastR = w;
+    if (repeatOn && B.spec.repeatable) {
+      addRun(w);
+      if (!(w.first || w.tower || w.unlock)) {                       // a plain win: pay it, show a line in the log and go again
+        B.nowMsg = `Victory! +${fmt(w.gold)} gold, +${fmt(w.lumber)} lumber${w.drop ? ` · Found ${dropsText([[w.drop, w.dropGrade]])}` : ''}. Next fight starting…`;
+        repeatUi();
+        const cur = B;
+        B.autoT = setTimeout(() => { if (B === cur && repeatOn) restartBattle(); }, 1500);
+        return;
+      }
+      repeatOn = false;                                              // a first clear, a watchtower or a new area gets the full screen
+    }
+    r.innerHTML = winHtml(w);
+  } else { repeatOn = false; r.innerHTML = loseHtml(); }
+  repeatUi();
   r.hidden = false;
   paintPortraits();
   animateCounts(r);
@@ -1244,10 +1352,19 @@ function showResult() {
 actions.__party = () => { closeBattle(); actions.tab('party'); };
 actions.__forge = () => { closeBattle(); actions.tab('forge'); };
 actions.__close = () => closeBattle();
-actions.__again = () => { const s = B.spec; cancelAnimationFrame(B.raf); B = null; startBattle(s); };
+actions.__again = () => { if (!repeatOn) run = null; restartBattle(); };
+actions.__repeat = () => { run = newRun(); if (B.lastR) addRun(B.lastR); repeatOn = true; restartBattle(); };
+actions.repeat = () => {
+  if (!B || !B.spec.repeatable) return;
+  repeatOn = !repeatOn;
+  if (!repeatOn) { clearTimeout(B.autoT); if (B.resolved && B.result === 'win' && $('#result').hidden) { showRunSummary(); return; } }
+  repeatUi();
+};
+actions.farmreportok = closeFarmReport;
 
 function closeBattle() {
-  if (B) cancelAnimationFrame(B.raf);
+  if (B) { cancelAnimationFrame(B.raf); clearTimeout(B.autoT); }
+  repeatOn = false; run = null;
   B = null;
   $('#battle').hidden = true;
   $('#result').hidden = true;

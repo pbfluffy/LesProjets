@@ -47,7 +47,8 @@
 <section id="battle" hidden>
   <div class="battle-top">
     <div id="battle-title">Battle</div>
-    <button class="ghost" data-act="retreat">Retreat</button>
+    <div class="bt-btns"><button class="ghost" id="repeat-btn" data-act="repeat" aria-pressed="false" hidden>∞ Repeat</button>
+    <button class="ghost" data-act="retreat">Retreat</button></div>
   </div>
   <canvas id="stage" width="800" height="520"></canvas>
   <div id="warn" class="warn" aria-live="polite"></div>
@@ -56,6 +57,7 @@
     <span id="barrier-label">Raise barrier</span>
   </button>
   <div class="hint"><span class="h-touch">Tap the barrier (or press Space) to block a heavy hit.</span><span class="h-key">Click the barrier or press Space to block a heavy hit. Esc retreats.</span></div>
+  <div id="runlog" class="runlog" hidden></div>
   <div id="result" class="result" hidden></div>
 </section>
 

@@ -84,3 +84,10 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - 1000px and up (PC): the tab bar moves into the header (centered), the Map becomes two columns (map, chips and Next up on the left; farm strip, daily hunt, install card and Roads on the right), card lists use 3 columns.
 - Mouse devices (`hover:hover` and `pointer:fine`): hover feedback on buttons/cards and the keyboard hint in battle. Keys: Space = barrier, Esc = retreat (or close a dialog), 1 / 2 / 3 = Map / Party / Forge.
 - Check changes at 320, 375, 768, 1000 and 1280 px wide.
+
+## Repeat fights and the farm log
+- **∞ Repeat** (button in the battle header, or the R key): for stage fights only (`spec.repeatable`; not the daily hunt). After a win the rewards are paid (`stageWin`), a line in `#runlog` shows what the streak has earned
+  (`run` = wins, gold, lumber, weapons) and the next fight starts after 1.5 s (`restartBattle`). It stops on a defeat, on Retreat / switching it off, and on a first clear, a relit watchtower or a new area (full result screen).
+  Retreat or switching off shows the "Repeat run" summary (`showRunSummary`). `B.resolved` makes sure a fight pays out only once. Wins also get a "∞ Repeat" button on the normal victory screen.
+- **Farm log**: every claim or switch of the farming spot with something to collect is saved in `save.farmLog` (last 30: time, stage, minutes out, gold, lumber, weapons found + their grade; `logFarm`, synced with the save).
+  The Map tab shows it as a folded "Farm log" card under the farm strip (`farmLogCard`), and Claim opens a "Farm report" dialog (`showFarmReport`).
