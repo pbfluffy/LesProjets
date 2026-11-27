@@ -1,28 +1,49 @@
 /* Wildlight Expedition – sound effects.
  * Every sound is synthesised with the Web Audio API (oscillators + filtered noise): no audio files to download, they work offline.
- * window.sfx.play('name') plays one; sfx.toggle() mutes / unmutes (remembered in localStorage 'wl-sound'); the header button #sound-btn shows the state.
+ * Built after the combat audio guide (rpg-combat-audio-design.md): attacks are layers (weapon movement, contact material, critical accent), sounds go through
+ * separate buses with relative gains (player combat 0 dB, enemy combat -6 dB, interface -5 dB, music below), a high-pass and a limiter, with a voice budget,
+ * retrigger intervals and shuffled pitch variants so a long fight stays comfortable.
+ * window.sfx.play('name', arg) plays one; the header speaker button opens the Music / Effects / Interface volume panel; sfx.toggleMute() (key M) mutes everything.
  * Browsers only allow audio after a tap or key press, so the audio engine starts on the first one; before that play() does nothing. */
 (function () {
   'use strict';
-  const KEY = 'wl-sound';
-  let ctx = null, master = null, analyser = null, noiseBuf = null, enabled = true;
-  const VOLUME = 0.7;
-  /* mode: 'all' = music + effects, 'fx' = effects only, 'off' = silent. `enabled` means "effects are on". */
-  let mode = 'all';
-  try { const v = localStorage.getItem(KEY); mode = (v === '0' || v === 'off') ? 'off' : v === 'fx' ? 'fx' : 'all'; } catch (e) { /* ignore */ }
-  enabled = mode !== 'off';
+  const KEY = 'wl-sound', VKEY = 'wl-vol';
+  let ctx = null, analyser = null, noiseBuf = null, limiter = null, sfxSum = null, uiSum = null, musicBus = null;
+  const BUS = {};                                   // 'player' | 'enemy' | 'alert' | 'ui' -> GainNode
+  const vol = { music: 1, fx: 1, ui: 1 };           // the three volume sliders (0..1)
+  let muted = false;
+  try {
+    const v = localStorage.getItem(KEY);
+    muted = v === '0' || v === 'off';
+    if (v === 'fx') { vol.music = 0; localStorage.setItem(VKEY, JSON.stringify(vol)); localStorage.setItem(KEY, '1'); }       // the old "effects only" mode
+    const s = JSON.parse(localStorage.getItem(VKEY) || 'null');
+    if (s) for (const k of ['music', 'fx', 'ui']) if (typeof s[k] === 'number') vol[k] = Math.max(0, Math.min(1, s[k]));
+  } catch (e) { /* ignore */ }
   const syncMusic = () => { try { if (window.music) window.music.sync(); } catch (e) { /* ignore */ } };
+  const MASTER = 0.7;                               // overall level; the relative bus gains below are what the guide asks for
+  const BUS_GAIN = { player: 1, enemy: 0.5, alert: 1, ui: 0.56 };      // 0 dB, -6 dB, 0 dB (boss warnings, fanfares), -5 dB
 
+  function applyGains() {
+    if (!ctx) return;
+    const t = ctx.currentTime, set = (g, v) => { g.gain.cancelScheduledValues(t); g.gain.setTargetAtTime(v, t, 0.03); };
+    set(sfxSum, muted ? 0 : MASTER * vol.fx); set(uiSum, muted ? 0 : MASTER * vol.ui); set(musicBus, muted ? 0 : MASTER * vol.music);
+  }
   function ensure() {
     if (ctx) return ctx;
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
     ctx = new AC();
-    const comp = ctx.createDynamicsCompressor();          // keeps a busy fight (many hits at once) from clipping
-    comp.threshold.value = -16; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.18;
-    master = ctx.createGain(); master.gain.value = VOLUME;
+    limiter = ctx.createDynamicsCompressor();       // a brick-wall-ish limiter at the end of everything
+    limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.001; limiter.release.value = 0.1;
     analyser = ctx.createAnalyser(); analyser.fftSize = 256;
-    master.connect(comp); comp.connect(analyser); comp.connect(ctx.destination);
+    limiter.connect(analyser); limiter.connect(ctx.destination);
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 80; hp.Q.value = 0.7;           // no rumble below ~80 Hz
+    const shelf = ctx.createBiquadFilter(); shelf.type = 'highshelf'; shelf.frequency.value = 7000; shelf.gain.value = -2.5;   // tame the harsh top
+    hp.connect(shelf); shelf.connect(limiter);
+    sfxSum = ctx.createGain(); uiSum = ctx.createGain(); sfxSum.connect(hp); uiSum.connect(hp);
+    for (const [name, g] of Object.entries(BUS_GAIN)) { const n = ctx.createGain(); n.gain.value = g; n.connect(name === 'ui' ? uiSum : sfxSum); BUS[name] = n; }
+    musicBus = ctx.createGain(); musicBus.connect(limiter);
+    applyGains();
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -30,48 +51,48 @@
   }
   function unlock() {
     const c = ensure();
-    if (c && c.state === 'suspended' && enabled && !document.hidden) c.resume().then(syncMusic, () => { /* ignore */ });
+    if (c && c.state === 'suspended' && !muted && !document.hidden) c.resume().then(syncMusic, () => { /* ignore */ });
     else syncMusic();
   }
   ['pointerdown', 'keydown', 'touchend'].forEach(ev => window.addEventListener(ev, unlock, { passive: true, capture: true }));
-  document.addEventListener('visibilitychange', () => {   // silent in the background
+  document.addEventListener('visibilitychange', () => {   // silent in the background: nothing is played or replayed while the tab is hidden
     if (!ctx) return;
-    if (document.hidden) ctx.suspend(); else if (enabled) ctx.resume().then(syncMusic, () => { /* ignore */ });
+    if (document.hidden) ctx.suspend(); else if (!muted) ctx.resume().then(syncMusic, () => { /* ignore */ });
   });
 
-  /* ---- voices ----
-   * The palette matches the painted storybook look of the game: wooden taps, plucked harp and lute strings, glass and bronze bells,
-   * steel and leather for gear and fights, a taiko drum and a brass horn for drama, a breathy flute for the sad and the quiet. */
-  const jit = () => 1 + (Math.random() - 0.5) * 0.05;     // a little random pitch so repeated hits do not sound identical
+  /* ---- per-play settings: which bus, how much random pitch / gain ---- */
+  let curName = 'player', curBus = null, span = 1, gv = 1, vmul = 1, bias = 1;
+  const drives = {};
+  const jit = () => bias * Math.pow(2, (Math.random() * 2 - 1) * span / 12);            // pitch: +-1 semitone normally, +-0.4 for critical accents
   /* "punch": a soft-clipping saturator the impacts go through, so they hit hard instead of just being loud */
-  let driveNode = null;
   function drive() {
-    if (driveNode) return driveNode;
+    if (drives[curName]) return drives[curName];
     const ws = ctx.createWaveShaper(), n = 1024, curve = new Float32Array(n);
     for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; curve[i] = Math.tanh(3.2 * x) / Math.tanh(3.2); }
     ws.curve = curve; ws.oversample = '2x';
     const out = ctx.createGain(); out.gain.value = 0.85;
-    ws.connect(out); out.connect(master);
-    driveNode = ws;
+    ws.connect(out); out.connect(curBus);
+    drives[curName] = ws;
     return ws;
   }
+  const dst = o => (o.punch ? drive() : curBus);
   function tone(o) {
-    const t0 = ctx.currentTime + (o.at || 0), dur = o.dur || 0.15, v = o.vol == null ? 0.22 : o.vol, j = o.nojit ? 1 : jit();
+    const t0 = ctx.currentTime + (o.at || 0), dur = o.dur || 0.15, v = (o.vol == null ? 0.22 : o.vol) * gv * vmul, j = o.nojit ? 1 : jit();
     const osc = ctx.createOscillator(), g = ctx.createGain();
     osc.type = o.type || 'sine';
     osc.frequency.setValueAtTime(o.f * j, t0);
     if (o.to) osc.frequency.exponentialRampToValueAtTime(Math.max(20, o.to * j), t0 + dur);
     const a = o.a || 0.004;
     g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(v, t0 + a);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, v), t0 + a);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     let out = g; osc.connect(g);
     if (o.lp) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = o.lp; g.connect(f); out = f; }
-    out.connect(o.punch ? drive() : master);
+    out.connect(dst(o));
     osc.start(t0); osc.stop(t0 + dur + 0.05);
   }
   function noise(o) {
-    const t0 = ctx.currentTime + (o.at || 0), dur = o.dur || 0.1, v = o.vol == null ? 0.2 : o.vol;
+    const t0 = ctx.currentTime + (o.at || 0), dur = o.dur || 0.1, v = (o.vol == null ? 0.2 : o.vol) * gv * vmul;
     const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
     src.buffer = noiseBuf; src.loop = true;
     f.type = o.type || 'bandpass'; f.Q.value = o.q || 1;
@@ -79,24 +100,26 @@
     if (o.to) f.frequency.exponentialRampToValueAtTime(Math.max(40, o.to), t0 + dur);
     const a = o.a || 0.004;
     g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(v, t0 + a);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, v), t0 + a);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    src.connect(f); f.connect(g); g.connect(o.punch ? drive() : master);
+    src.connect(f); f.connect(g); g.connect(dst(o));
     src.start(t0, Math.random() * 0.5); src.stop(t0 + dur + 0.05);
   }
   /* additive voices: a set of sine partials [ratio, loudness, decay factor], each fading at its own speed (strings, bells, metal) */
   function partials(f, list, o) {
-    const t0 = ctx.currentTime + (o.at || 0), dur = o.dur || 0.6, v = o.vol == null ? 0.2 : o.vol, j = o.nojit ? 1 : jit();
+    const t0 = ctx.currentTime + (o.at || 0), dur = o.dur || 0.6, v = (o.vol == null ? 0.2 : o.vol) * gv * vmul, j = o.nojit ? 1 : jit();
     list.forEach(([r, a, dk]) => {
       const osc = ctx.createOscillator(), g = ctx.createGain(), d = Math.max(0.04, dur * (dk || 1));
       osc.type = 'sine'; osc.frequency.value = f * r * j;
       g.gain.setValueAtTime(0.0001, t0);
       g.gain.exponentialRampToValueAtTime(Math.max(0.0002, v * a), t0 + (o.a || 0.003));
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
-      osc.connect(g); g.connect(master);
+      osc.connect(g); g.connect(dst(o));
       osc.start(t0); osc.stop(t0 + d + 0.05);
     });
   }
+  /* run a recipe with a different loudness (the crit-reduced contact, the quieter material layer) */
+  const quiet = (m, fn) => { const p = vmul; vmul = p * m; try { fn(); } finally { vmul = p; } };
   const PLUCK = [[1, 1, 1], [2, 0.45, 0.6], [3, 0.25, 0.4], [4, 0.14, 0.28], [5, 0.08, 0.2]];                 // harp / lute string
   const BELL = [[1, 1, 1], [2.76, 0.55, 0.7], [5.4, 0.3, 0.45], [8.93, 0.18, 0.3]];                            // bronze bell
   const GLASS = [[1, 1, 1], [2.32, 0.4, 0.6], [4.25, 0.25, 0.4], [6.63, 0.14, 0.3]];                           // crystal chime
@@ -119,8 +142,9 @@
     const osc = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter(), lfo = ctx.createOscillator(), lg = ctx.createGain();
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(f, t0); osc.frequency.exponentialRampToValueAtTime(Math.max(30, f * 0.7), t0 + dur);
-    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    lfo.frequency.value = 24; lg.gain.value = vol * 0.45; lfo.connect(lg); lg.connect(g.gain);                  // the rattle in the throat
+    const v0 = vol * gv * vmul;
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, v0), t0 + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    lfo.frequency.value = 24; lg.gain.value = v0 * 0.45; lfo.connect(lg); lg.connect(g.gain);                  // the rattle in the throat
     lp.type = 'lowpass'; lp.frequency.setValueAtTime(1000, t0); lp.frequency.exponentialRampToValueAtTime(320, t0 + dur);
     osc.connect(g); g.connect(lp); lp.connect(drive());
     osc.start(t0); lfo.start(t0); osc.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
@@ -138,7 +162,7 @@
     toggle: () => { wood(620, 0, 0.15); wood(820, 0.07, 0.15); },
     nope: () => { wood(230, 0, 0.22); tone({ f: 170, to: 120, at: 0.02, dur: 0.14, vol: 0.12, type: 'sine' }); },
     coins: () => { steel(2500, 0, 0.07, 0.16); steel(3200, 0.07, 0.06, 0.22); chime(C7, 0.1, 0.07, 0.55); noise({ at: 0.04, type: 'highpass', f: 7000, dur: 0.14, vol: 0.04 }); },
-    levelup: () => { [C5, E5, G5, C6, E6].forEach((f, i) => pluck(f, i * 0.07, 0.15, 0.6)); bell(C6, 0.3, 0.12, 1.3); noise({ at: 0.28, type: 'highpass', f: 7500, dur: 0.5, vol: 0.04 }); },
+    levelup: () => { [C5, E5, G5, C6, E6].forEach((f, i) => pluck(f, i * 0.07, 0.15, 0.6)); bell(C6, 0.3, 0.12, 0.8); noise({ at: 0.28, type: 'highpass', f: 7500, dur: 0.4, vol: 0.04 }); },
     upgrade: () => { noise({ type: 'highpass', f: 3000, dur: 0.05, vol: 0.16 }); steel(1400, 0, 0.14, 0.55); pluck(G5, 0.14, 0.13, 0.5); pluck(C6, 0.21, 0.14, 0.6); },
     hire: () => { pluck(C5, 0, 0.15, 0.6); pluck(E5, 0.03, 0.14, 0.6); pluck(G5, 0.06, 0.14, 0.6); chime(C6, 0.14, 0.1, 0.8); SOUNDS.coins(); },
     equip: () => { noise({ type: 'bandpass', f: 900, to: 420, dur: 0.1, vol: 0.16 }); swish(0.05, 4200, 7500, 0.1, 0.13, 'highpass'); steel(2100, 0.06, 0.09, 0.32); },
@@ -150,19 +174,19 @@
     retreat: () => { swish(0, 1700, 260, 0.35, 0.18); taiko(0.02, 0.18); },
     /* fights: steel, leather, drums, magic */
     horn: () => { taiko(0, 0.32); horn(196, 0.02, 0.5, 0.11); horn(294, 0.02, 0.5, 0.09); horn(392, 0.3, 0.5, 0.11); horn(587, 0.3, 0.5, 0.06); },
-    hurt: () => { crack(0, 0.26); crunch(0, 0.36, 1100, 280, 0.13); thump(0, 150, 0.45, 0.16); tone({ f: 230, to: 95, dur: 0.14, vol: 0.2, type: 'sine' }); },
-    hurtcrit: () => { crack(0, 0.4, 3000); crunch(0, 0.45, 1300, 220, 0.2); thump(0, 140, 0.6, 0.22); thump(0, 52, 0.6, 0.45); steel(420, 0, 0.1, 0.55); },
-    block: () => { thump(0, 130, 0.45, 0.17); crack(0, 0.2, 4500); steel(1500, 0, 0.08, 0.45); chime(1760, 0.01, 0.13, 0.7); chime(1175, 0.03, 0.1, 0.8); },
+    hurt: () => { thump(0, 130, 0.3, 0.15); noise({ type: 'lowpass', f: 500, to: 220, dur: 0.1, vol: 0.1 }); },                     // player damage: a soft low warning thud, unlike an enemy impact
+    hurtcrit: () => { thump(0, 115, 0.45, 0.2); thump(0, 55, 0.35, 0.25); noise({ type: 'lowpass', f: 600, to: 200, dur: 0.14, vol: 0.12 }); },
+    block: () => { thump(0, 160, 0.3, 0.1); crack(0, 0.12, 2500); steel(900, 0, 0.16, 0.16); },                                          // a compact hollow metal clank
     barrier: () => { thump(0, 95, 0.28, 0.3); [C5, G5, C6, E6].forEach((f, i) => tone({ f, at: i * 0.045, dur: 0.5, vol: 0.075, type: 'sine', a: 0.12, nojit: true })); swish(0, 300, 2300, 0.3, 0.14); },
-    warn: () => { growl(58, 0, 0.85, 0.34); growl(92, 0.05, 0.75, 0.22); taiko(0, 0.36); taiko(0.3, 0.42); tone({ f: 87, dur: 0.8, vol: 0.12, type: 'sawtooth', lp: 320, a: 0.2, nojit: true }); },
+    warn: () => { growl(58, 0, 0.5, 0.3); taiko(0, 0.34); taiko(0.25, 0.4); },                                                           // boss telegraph: a distinct pulse before the hit, 300-600 ms
     /* results */
     victory: () => {
       horn(C5, 0, 0.14, 0.12); horn(E5, 0.13, 0.14, 0.12); horn(G5, 0.26, 0.14, 0.12); horn(C6, 0.4, 0.7, 0.13); taiko(0.4, 0.28);
       [C6, E6, G6, C7].forEach((f, i) => pluck(f, 0.5 + i * 0.07, 0.12, 0.7)); bell(C7, 0.55, 0.1, 1.5);
     },
     defeat: () => { taiko(0, 0.2); [G4, E4, D4, C4].forEach((f, i) => flute(f, 0.08 + i * 0.36, 0.5, 0.15)); },
-    star: () => { chime(G6, 0, 0.12, 0.6); bell(C7, 0.03, 0.07, 0.85); },
-    drop: () => { [C6, E6, G6, C7].forEach((f, i) => chime(f, i * 0.06, 0.11, 0.6)); bell(C7, 0.22, 0.1, 1.3); noise({ at: 0.1, type: 'highpass', f: 7000, dur: 0.4, vol: 0.04 }); },
+    star: () => { chime(G6, 0, 0.12, 0.5); bell(C7, 0.03, 0.07, 0.5); },
+    drop: () => { [C6, E6, G6].forEach((f, i) => chime(f, i * 0.07, 0.1, 0.4)); bell(C7, 0.2, 0.08, 0.5); },                              // rare loot: a short rising chime
     fanfare: () => {
       [[C5, 0, 0.18], [C5, 0.2, 0.12], [C5, 0.34, 0.12], [G5, 0.48, 0.4], [E5, 0.94, 0.14], [G5, 1.08, 0.14], [C6, 1.22, 0.8]].forEach(([f, at, d]) => horn(f, at, d, 0.11));
       [C6, E6, G6].forEach(f => horn(f, 1.22, 0.8, 0.06));
@@ -186,7 +210,7 @@
     buckler: () => { swish(0, 1300, 4600, 0.06, 0.2); swish(0.05, 4600, 700, 0.12, 0.22); noise({ at: 0.03, type: 'lowpass', f: 420, dur: 0.08, vol: 0.14 }); wood(260, 0.08, 0.12); },
   };
   /* ---- what a weapon does when it lands. arg: { w: weapon id, a: the monster is armored } ---- */
-  const slice = (m, bright) => { crack(0, 0.3); thump(0, 165 / m, 0.5 * m, 0.17); crunch(0, 0.3, 1700, 320, 0.13); tone({ f: 62, to: 40, dur: 0.2, vol: 0.2 * m, type: 'sine', punch: true }); steel(bright || 2900, 0.005, 0.05, 0.16); };
+  const slice = (m, bright) => { crack(0, 0.3); thump(0, 165 / m, 0.38 * m, 0.17); crunch(0, 0.2, 1700, 320, 0.13); tone({ f: 62, to: 40, dur: 0.2, vol: 0.2 * m, type: 'sine', punch: true }); steel(bright || 2900, 0.005, 0.05, 0.16); };
   const arrowHit = (armored, m) => {
     if (armored) { crack(0, 0.3, 6000); steel(3600, 0, 0.12, 0.35); thump(0, 260, 0.25 * m, 0.08); }      // the arrow pings off the shell
     else { crack(0, 0.26, 5000); thump(0, 240 / m, 0.4 * m, 0.1); wood(360, 0, 0.3); crunch(0, 0.18, 2000, 500, 0.08); }   // it sinks in with a thwack
@@ -217,16 +241,28 @@
     frostwand: () => { [0, 0.04, 0.08].forEach((at, i) => chime(2400 + i * 500, at, 0.09, 0.45)); swish(0, 6000, 11000, 0.14, 0.07, 'highpass'); noise({ at: 0.05, type: 'highpass', f: 9000, dur: 0.2, vol: 0.04 }); },
   };
   const HEALFX = {
-    staff: () => { pluck(E5, 0, 0.12, 0.5); pluck(G5, 0.07, 0.12, 0.5); pluck(C6, 0.14, 0.12, 0.6); chime(E6, 0.2, 0.07, 0.7); },
-    heartwood: () => { [C5, E5, G5, C6].forEach((f, i) => pluck(f, i * 0.07, 0.1, 0.8)); chime(E6, 0.22, 0.08, 0.9); noise({ type: 'bandpass', f: 3000, q: 1, dur: 0.4, vol: 0.05, a: 0.1 }); },
-    stormstaff: () => { tone({ f: 330, to: 440, dur: 0.3, vol: 0.09, type: 'sine', a: 0.08 }); crackle(0.05, 3, 3000, 5000, 0.05); chime(G6, 0.12, 0.08, 0.7); chime(C7, 0.18, 0.06, 0.7); },
-    frostwand: () => { [E6, G6, C7].forEach((f, i) => chime(f, i * 0.07, 0.09, 0.8)); noise({ type: 'highpass', f: 9000, dur: 0.3, vol: 0.04, a: 0.05 }); },
+    staff: () => { chime(E6, 0, 0.12, 0.3); chime(G6, 0.09, 0.1, 0.34); },
+    heartwood: () => { pluck(E5, 0, 0.1, 0.3); chime(C6, 0.08, 0.1, 0.34); noise({ type: 'bandpass', f: 3000, q: 1, dur: 0.25, vol: 0.04, a: 0.08 }); },
+    stormstaff: () => { tone({ f: 330, to: 440, dur: 0.2, vol: 0.08, type: 'sine', a: 0.06 }); chime(G6, 0.08, 0.09, 0.3); chime(C7, 0.15, 0.07, 0.3); },
+    frostwand: () => { chime(G6, 0, 0.1, 0.3); chime(C7, 0.08, 0.09, 0.34); noise({ type: 'highpass', f: 8000, dur: 0.2, vol: 0.03, a: 0.04 }); },
   };
-  /* critical hit by weapon kind: the whack, then a ting that fits what hit */
+  /* critical accents, layered on top of the normal contact (150-320 ms): light = a sharp metallic crack and a tiny bright descending sparkle,
+     heavy = a dense crack with a low punch, magic = a crystal snap with a short shimmer */
   const CRITFX = {
-    blade: () => { crack(0, 0.4, 3200); thump(0, 135, 0.5, 0.2); thump(0, 60, 0.4, 0.32); crunch(0, 0.32, 2200, 300, 0.14); swish(0, 2500, 9500, 0.09, 0.22, 'highpass'); tone({ f: 1400, to: 3600, dur: 0.08, vol: 0.1, type: 'sawtooth', lp: 5000, punch: true }); steel(2700, 0.015, 0.16, 0.5); steel(4100, 0.02, 0.09, 0.42); bell(C7, 0.03, 0.07, 0.8); [[0.1, 0.1, 2500], [0.2, 0.06, 2350], [0.3, 0.035, 2200]].forEach(([at, v, f]) => steel(f, at, v, 0.3)); },
-    arrow: () => { crack(0, 0.42, 4500); thump(0, 190, 0.5, 0.16); thump(0, 70, 0.35, 0.28); wood(340, 0, 0.3); tone({ f: 1800, to: 3800, dur: 0.08, vol: 0.09, type: 'sawtooth', lp: 5000, punch: true }); steel(3300, 0.015, 0.14, 0.5); [[0.1, 0.08, 3000], [0.2, 0.05, 2850]].forEach(([at, v, f]) => steel(f, at, v, 0.3)); },
-    magic: () => { crack(0, 0.45, 5000); thump(0, 110, 0.55, 0.22); thump(0, 52, 0.45, 0.4); swish(0, 2500, 10000, 0.1, 0.18, 'highpass'); crackle(0.01, 4, 3500, 7000, 0.12); chime(C7, 0.02, 0.14, 1.0); chime(G6, 0.06, 0.1, 0.9); bell(C7, 0.05, 0.08, 1.2); },
+    light: () => { crack(0, 0.3, 3500); steel(3000, 0.005, 0.12, 0.2); chime(C7, 0.04, 0.07, 0.2); chime(G6, 0.09, 0.05, 0.2); },
+    heavy: () => { crack(0, 0.4, 2500); thump(0, 140, 0.45, 0.2); steel(2200, 0.005, 0.12, 0.25); chime(G6, 0.05, 0.06, 0.22); },
+    magic: () => { crack(0, 0.3, 6000); chime(E6, 0, 0.12, 0.25); chime(C7, 0.04, 0.09, 0.3); noise({ type: 'bandpass', f: 3500, q: 1.5, dur: 0.2, vol: 0.05, a: 0.02 }); },
+  };
+  /* ---- target material layers: one surface layer per kind of target, about 6 dB under the weapon contact ---- */
+  const MATERIAL = {
+    slime: () => { noise({ type: 'bandpass', f: 700, to: 260, q: 1.2, dur: 0.12, vol: 0.22 }); tone({ f: 300, to: 170, dur: 0.12, vol: 0.14, type: 'sine' }); tone({ f: 900, to: 600, at: 0.1, dur: 0.04, vol: 0.08, type: 'sine' }); },
+    beast: () => { thump(0, 140, 0.3, 0.12); noise({ type: 'lowpass', f: 700, to: 250, dur: 0.1, vol: 0.2 }); },
+    skeleton: () => { wood(520, 0, 0.25); wood(700, 0.04, 0.18); noise({ type: 'bandpass', f: 2500, q: 2, dur: 0.06, vol: 0.1, at: 0.02 }); },
+    armored: () => { steel(1500, 0, 0.1, 0.18); crack(0, 0.15, 3500); },
+    golem: () => { thump(0, 90, 0.3, 0.2); noise({ type: 'lowpass', f: 1200, to: 250, dur: 0.15, vol: 0.22 }); crack(0, 0.1, 1500); },
+    plant: () => { noise({ type: 'bandpass', f: 3200, q: 1.5, dur: 0.07, vol: 0.18 }); wood(380, 0.01, 0.2); },
+    ghost: () => { noise({ type: 'bandpass', f: 1500, q: 2, dur: 0.14, vol: 0.14, a: 0.03 }); tone({ f: 520, to: 380, dur: 0.14, vol: 0.06, type: 'sine', a: 0.03 }); },
+    shield: () => { steel(800, 0, 0.1, 0.18); thump(0, 150, 0.25, 0.1); },
   };
 
   /* ---- monsters: every kind of monster growls, strikes and dies in its own way. arg: { c: kind, s: size } ---- */
@@ -281,11 +317,12 @@
 
   Object.assign(SOUNDS, {
     swing: w => (SWING[w] || SWING.sword)(),
-    wimpact: p => (IMPACT[(p && p.w) || 'sword'] || IMPACT.sword)(p && p.a),
+    /* contact (-1.5 dB when it is a crit) + the surface of the target, 6 dB under it */
+    wimpact: p => { const gain = (p && p.g) || 1; quiet(gain, () => (IMPACT[(p && p.w) || 'sword'] || IMPACT.sword)(p && (p.a || p.m === 'armored'))); if (p && MATERIAL[p.m]) quiet(0.5 * gain, MATERIAL[p.m]); },
     release: w => (RELEASE[w] || RELEASE.bow)(),
     cast: w => (CAST[w] || CAST.staff)(),
     healfx: w => (HEALFX[w] || HEALFX.staff)(),
-    crit: f => (CRITFX[f] || CRITFX.blade)(),
+    crit: k => (CRITFX[k] || CRITFX.light)(),
     mwind: p => { const c = (p && p.c) || 'beast'; (MWIND[c] || MWIND.beast)((p && p.s) || 1); },
     mhit: p => (MHIT[(p && p.c) || 'beast'] || MHIT.beast)(),
     mshot: p => (MSHOT[(p && p.c) || 'spirit'] || MSHOT.spirit)(),
@@ -299,40 +336,84 @@
     herodown: () => { thump(0, 100, 0.5, 0.3); noise({ type: 'lowpass', f: 600, to: 200, dur: 0.25, vol: 0.15 }); chime(G5, 0.08, 0.06, 0.6); chime(C5, 0.2, 0.06, 0.8); },
   });
 
-  /* sounds that tend to come in bursts: at most one per this many milliseconds */
-  const GAP = { swing: 70, wimpact: 45, release: 70, cast: 70, healfx: 200, mwind: 220, mhit: 60, mshot: 120, mdie: 70, herodown: 250, crit: 80, hurt: 70, hurtcrit: 90, block: 90, tap: 40, tick: 30, star: 120, coins: 80, warn: 400 };
-  const last = {};
+  /* ---- buses, priorities and the voice budget (see the guide: 12 combat voices, 3 impacts and 2 critical accents at a time) ---- */
+  const UI_SOUNDS = ['tap', 'tick', 'tab', 'toggle', 'nope', 'coins', 'levelup', 'upgrade', 'hire', 'equip', 'merge', 'farm', 'retreat', 'star'];
+  const ENEMY_SOUNDS = ['mwind', 'mhit', 'mshot', 'mdie'];
+  const ALERT_SOUNDS = ['warn', 'victory', 'defeat', 'fanfare', 'drop', 'herodown', 'horn'];      // always audible: boss warnings, fanfares, rare loot
+  const busOf = n => (UI_SOUNDS.includes(n) ? 'ui' : ENEMY_SOUNDS.includes(n) ? 'enemy' : ALERT_SOUNDS.includes(n) ? 'alert' : 'player');
+  const PRI = { warn: 100, crit: 90, herodown: 90, victory: 80, defeat: 80, fanfare: 80, drop: 70, horn: 60 };
+  const priOf = n => PRI[n] || (n.startsWith('skill_') ? 75 : busOf(n) === 'enemy' ? 30 : busOf(n) === 'ui' ? 40 : 50);
+  const DUR = { warn: 600, victory: 1400, defeat: 1500, fanfare: 2000, levelup: 1000, merge: 1000, drop: 600, horn: 800, mdie: 400, crit: 300, wimpact: 250 };
+  const CAP = { wimpact: [3, 160], crit: [2, 300], mhit: [2, 200] };           // [how many, within how many ms]
+  /* sounds that tend to come in bursts: at most one per this many milliseconds (45 ms for an impact family, 80 ms for crit accents, 100 ms for incidental enemy attacks) */
+  const GAP = { swing: 70, wimpact: 45, release: 70, cast: 70, healfx: 200, mwind: 100, mhit: 100, mshot: 100, mdie: 70, herodown: 250, crit: 80, hurt: 70, hurtcrit: 90, block: 90, tap: 40, tick: 30, star: 120, coins: 80, warn: 400 };
+  const BIAS = [0.944, 1, 1.059];                    // three pitch variants a semitone apart, shuffled so one never repeats straight away
+  const last = {}, recent = {}, variants = {};
+  let live = [];
 
   function play(name, arg) {
-    if (!enabled || !ctx || ctx.state !== 'running' || !SOUNDS[name]) return;
-    const now = performance.now(), gap = GAP[name] || 25;
+    if (muted || !ctx || ctx.state !== 'running' || !SOUNDS[name]) return;
+    const now = performance.now(), bus = busOf(name), pri = priOf(name), gap = GAP[name] || 25;
     if (last[name] && now - last[name] < gap) return;
+    if (CAP[name]) {
+      const [n, w] = CAP[name], r = (recent[name] = (recent[name] || []).filter(t => now - t < w));
+      if (r.length >= n && pri < 90) return;
+      r.push(now);
+    }
+    live = live.filter(v => v.end > now);
+    if (bus !== 'ui' && pri < 70 && live.filter(v => v.bus === 'player' || v.bus === 'enemy').length >= 12) return;      // too many voices: routine sounds yield
+    live.push({ end: now + (DUR[name] || 300), bus });
     last[name] = now;
+    let i = Math.floor(Math.random() * 3);
+    if (i === variants[name]) i = (i + 1 + Math.floor(Math.random() * 2)) % 3;
+    variants[name] = i;
+    curName = bus; curBus = BUS[bus]; span = name === 'crit' ? 0.4 : 1; bias = name === 'crit' ? 1 : BIAS[i];
+    gv = Math.pow(10, (Math.random() * 2 - 1) / 20); vmul = 1;                                  // +-1 dB
     try { SOUNDS[name](arg); } catch (e) { /* a sound must never break the game */ }
   }
 
-  /* ---- mute button ---- */
-  const MODE_TEXT = { all: 'Music and sound effects', fx: 'Sound effects only', off: 'Sound off' };
-  const NEXT = { all: 'fx', fx: 'off', off: 'all' };
+  /* ---- volumes, mute and the panel under the speaker button ---- */
+  function save() { try { localStorage.setItem(VKEY, JSON.stringify(vol)); localStorage.setItem(KEY, muted ? '0' : '1'); } catch (e) { /* ignore */ } }
+  const NAMES = { music: 'Music', fx: 'Sound effects', ui: 'Interface' };
   function paint() {
     const b = document.getElementById('sound-btn');
-    if (!b) return;
-    b.classList.toggle('muted', mode === 'off');
-    b.classList.toggle('fx', mode === 'fx');
-    b.dataset.mode = mode;
-    b.setAttribute('aria-label', `${MODE_TEXT[mode]}: tap to change`);
-    b.title = MODE_TEXT[mode];
+    if (b) {
+      b.classList.toggle('muted', muted); b.dataset.mode = muted ? 'off' : 'all';
+      b.setAttribute('aria-label', muted ? 'Sound is off: tap for the sound settings' : 'Sound settings'); b.title = muted ? 'Sound off' : 'Sound settings';
+    }
+    const p = document.getElementById('sound-pop');
+    if (p) {
+      for (const k of ['music', 'fx', 'ui']) { const r = p.querySelector('#vol-' + k); if (r && +r.value !== Math.round(vol[k] * 100)) r.value = Math.round(vol[k] * 100); }
+      const m = p.querySelector('#sp-mute'); if (m) m.textContent = muted ? 'Turn sound on' : 'Mute all';
+    }
   }
-  function setMode(m) {
-    mode = MODE_TEXT[m] ? m : 'all';
-    enabled = mode !== 'off';
-    try { localStorage.setItem(KEY, mode); } catch (e) { /* ignore */ }
-    if (enabled) { const c = ensure(); if (c && c.state === 'suspended' && !document.hidden) c.resume().then(syncMusic, () => { /* ignore */ }); }
+  function setVolume(kind, v) { if (!(kind in vol)) return; vol[kind] = Math.max(0, Math.min(1, v)); save(); applyGains(); if (kind === 'music') syncMusic(); paint(); }
+  function setMuted(m) {
+    muted = !!m; save();
+    if (!muted) { const c = ensure(); if (c && c.state === 'suspended' && !document.hidden) c.resume().then(syncMusic, () => { /* ignore */ }); }
+    applyGains(); paint(); syncMusic();
+    if (!muted) play('toggle');
+    return muted;
+  }
+  function buildPanel() {
+    if (document.getElementById('sound-pop') || !document.body) return;
+    const d = document.createElement('div');
+    d.id = 'sound-pop'; d.className = 'soundpop'; d.hidden = true; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', 'Sound settings');
+    d.innerHTML = '<h3>Sound</h3>' + ['music', 'fx', 'ui'].map(k => `<label class="sp-row" for="vol-${k}"><span>${NAMES[k]}</span><input id="vol-${k}" type="range" min="0" max="100" step="5" value="${Math.round(vol[k] * 100)}"></label>`).join('')
+      + '<button type="button" class="btn alt small" id="sp-mute">Mute all</button>';
+    document.body.appendChild(d);
+    d.addEventListener('input', e => { const k = e.target.id && e.target.id.replace('vol-', ''); if (k in vol) setVolume(k, e.target.value / 100); });
+    d.addEventListener('change', e => {                                       // let go of a slider: hear what it controls
+      const k = e.target.id && e.target.id.replace('vol-', '');
+      if (k === 'fx') play('wimpact', { w: 'sword', m: 'beast' }); else if (k === 'ui') play('tab');
+    });
+    d.querySelector('#sp-mute').addEventListener('click', () => setMuted(!muted));
+    document.addEventListener('click', e => { if (!d.hidden && !e.target.closest('#sound-pop, #sound-btn')) d.hidden = true; });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') d.hidden = true; });
     paint();
-    syncMusic();                                    // starts or fades out the music
-    if (enabled) play('toggle');
   }
-  document.addEventListener('DOMContentLoaded', paint);
+  function togglePanel() { buildPanel(); const d = document.getElementById('sound-pop'); if (d) { d.hidden = !d.hidden; paint(); } }
+  document.addEventListener('DOMContentLoaded', () => { buildPanel(); paint(); });
   paint();
 
   /* level() is for tests: the loudness (0..1) of what is playing right now */
@@ -343,9 +424,9 @@
     return m;
   }
   window.sfx = {
-    play, setMode, toggle: () => { setMode(NEXT[mode]); return mode; }, mode: () => mode, modeText: () => MODE_TEXT[mode],
-    isEnabled: () => enabled, musicOn: () => mode === 'all',
-    audio: () => (ensure() ? { ctx, out: master, noiseBuf } : null),         // the shared audio graph, used by music.js
-    names: () => Object.keys(SOUNDS), level, state: () => (ctx ? ctx.state : 'none'),
+    play, setVolume, getVolume: k => vol[k], setMuted, toggleMute: () => setMuted(!muted), isMuted: () => muted, togglePanel,
+    isEnabled: () => !muted, musicOn: () => !muted && vol.music > 0.01,
+    audio: () => (ensure() ? { ctx, out: musicBus, noiseBuf } : null),         // the shared audio graph, used by music.js
+    names: () => Object.keys(SOUNDS), level, state: () => (ctx ? ctx.state : 'none'), voices: () => live.filter(v => v.end > performance.now()).length,
   };
 })();

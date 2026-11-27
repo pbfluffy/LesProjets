@@ -5,6 +5,11 @@ const MON_CAT = { brushfang: 'beast', frostwolf: 'beast', barkbear: 'beast', boa
   hornet: 'insect', beetle: 'insect', bogtoad: 'frog', bogking: 'frog', mireadder: 'snake', mossturtle: 'crab', magmacrab: 'crab',
   icegolem: 'golem', sentinel: 'golem', cinderbat: 'bat', spitter: 'plant', reedwisp: 'spirit', mistheg: 'hag', rimesprite: 'ice', emberimp: 'fire' };
 const monCat = type => MON_CAT[type] || 'beast';
+/* what a monster is made of, for the sound of the weapon landing on it */
+const MON_MAT = { hornet: 'armored', beetle: 'armored', mossturtle: 'armored', magmacrab: 'armored', stormdrake: 'armored', bogtoad: 'slime', bogking: 'slime',
+  icegolem: 'golem', sentinel: 'golem', spitter: 'plant', reedwisp: 'ghost', mistheg: 'ghost', rimesprite: 'ghost', emberimp: 'ghost' };
+const monMat = type => MON_MAT[type] || 'beast';
+const HEAVY_WEAPONS = ['great', 'falchion', 'longbow', 'crossbow', 'buckler'];
 const snd = (n, a) => { try { if (window.sfx) window.sfx.play(n, a); } catch (e) { /* ignore */ } };
 /* =====================================================================
    Wildlight Expedition – first playable version
@@ -921,7 +926,7 @@ function showResInfo(kind) {
 /* ----------------------------- actions ------------------------------ */
 const actions = {
   tab(t) { snd('tab'); save.tab = t; persist(true); render(); },
-  sound() { if (!window.sfx) return; window.sfx.toggle(); toast(window.sfx.modeText()); },
+  sound() { if (window.sfx) window.sfx.togglePanel(); },
   claim() { claimFarm(false); render(); },
   farm(id) {
     if (!save.cleared[id]) return;
@@ -1011,7 +1016,7 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Space' && B) { e.preventDefault(); raiseBarrier(); }
   if (e.key === 'r' && B && !e.ctrlKey && !e.metaKey && !e.altKey) actions.repeat();
   if (B && /^[1-6]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey && typeof castSkillSlot === 'function') castSkillSlot(Number(e.key) - 1);
-  if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName || '')) actions.sound();
+  if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName || '')) { const off = window.sfx && window.sfx.toggleMute(); toast(off ? 'Sound off' : 'Sound on'); }
   if (e.key === 'Escape') {
     const dlg = document.getElementById('reset-dialog'), res = document.getElementById('result');
     if (dlg || document.getElementById('res-info') || document.getElementById('farm-report')) { closeResInfo(); closeResetDialog(); closeFarmReport(); }
@@ -1220,7 +1225,10 @@ function hitEnemy(e, raw, i, pierce, critChance, wid) {          // wid: the wea
   const fam = wid && WEAPONS[wid] ? WEAPONS[wid].fam : 'sword';
   if (wid === 'frostwand' && e.hp > 0) e.chill = 3;
   if (typeof fxOnHit === 'function') fxOnHit(e, wid || 'sword', crit);
-  if (!B.mute) snd(crit ? 'crit' : 'wimpact', crit ? (fam === 'bow' ? 'arrow' : fam === 'staff' ? 'magic' : 'blade') : { w: wid || 'sword', a: MON[e.type].armor >= 3 });
+  if (!B.mute) {                                                    // contact + material; a crit adds one accent on top and softens the contact by about 1.5 dB
+    snd('wimpact', { w: wid || 'sword', m: monMat(e.type), g: crit ? 0.84 : 1 });
+    if (crit) snd('crit', fam === 'staff' ? 'magic' : HEAVY_WEAPONS.includes(wid) ? 'heavy' : 'light');
+  }
   floater(e.x + (i || 0) * 8, e.y - unitTop(e.type, 56 * MON[e.type].scale) - 4, crit ? '-' + d + '!' : '-' + d, crit ? '#ffd24a' : '#fff', crit);
   if (e.hp <= 0) { e.hp = 0; e.dead = true; snd('mdie', { c: monCat(e.type), s: MON[e.type].scale }); }
 }

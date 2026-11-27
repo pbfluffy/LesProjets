@@ -170,3 +170,13 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - **Effects** (`drawMagicFx`, called before the art.js effects in `draw()`): slash arcs per blade (thin arc for saber, big for greatsword, a thrust line for the rapier, a ring for the shield bash), lightning jags for the storm staff (instant arc + chained zaps), ice shards that chill the monster
   (a frost wand hit slows it for 3 s with a pale blue glow), drifting leaves for heartwood, sparks for the plain staff, dust and sparks for arrows, a gold nova + flash on crits, plus skill effects (whirl, rain arrows, beam, dome, novas, lightning strikes).
 - **Weapon card**: a folded "Where it drops" list shows every stage that drops the weapon, grouped by region, with the grade it drops at and the real chance per won fight (`weaponDropsHtml`). Hero cards have a folded Skills list.
+
+## Combat audio guide (`rpg-combat-audio-design.md`)
+The sound engine follows the guide; the numbers are starting points to tune by ear.
+- **Buses and volumes** (`sfx.js`): player combat 0 dB, enemy combat -6 dB (`mwind`/`mhit`/`mshot`/`mdie`), interface -5 dB (taps, tabs, village actions), `alert` 0 dB (boss warning, fanfares, rare loot, fight start), music below. Everything goes through a 80 Hz high-pass, a -2.5 dB shelf over 7 kHz and a limiter (-3 dB, ratio 20).
+  The header speaker button opens a panel with **Music / Sound effects / Interface** sliders and Mute all (`wl-vol` = the three volumes, `wl-sound` = muted); key M mutes. The old "effects only" mode became music volume 0.
+- **Layers**: a melee or ranged hit is *swing / release* (weapon identity) + *contact* (`IMPACT`, the weapon) + *material* (`MATERIAL`, 6 dB under it: slime, beast, skeleton, armored, golem, plant, ghost, shield; `MON_MAT` in `game.js` says what each monster is made of)
+  + for a crit a short *accent* (`CRITFX`: light, heavy, magic, 150-320 ms) on top of the contact, which is then 1.5 dB softer. Player damage (`hurt`) is a soft low thud, unlike an enemy impact; a block is a compact hollow metal clank; the boss warning is a 300-600 ms pulse.
+- **Budget**: at most 12 combat voices (routine sounds yield, priority >= 70 such as crits and boss warnings always play), 3 impacts per 160 ms, 2 crit accents per 300 ms, retrigger gaps 45 ms (impacts), 80 ms (crit accents), 100 ms (enemy attacks).
+  Pitch varies +-1 semitone (+-0.4 for crit accents) with three shuffled variants that never repeat straight away, gain +-1 dB. AoE skills play one contact; the other targets are muted (`B.mute`). Nothing is queued or replayed while the tab is hidden.
+- Not in the game yet, so no sounds: miss, dodge, parry, immune, skeleton targets (the recipes exist for `skeleton` and `shield`).
