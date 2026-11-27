@@ -39,8 +39,10 @@
     if (document.hidden) ctx.suspend(); else if (enabled) ctx.resume().then(syncMusic, () => { /* ignore */ });
   });
 
-  /* ---- voices ---- */
-  const jit = () => 1 + (Math.random() - 0.5) * 0.06;     // a little random pitch so repeated hits do not sound identical
+  /* ---- voices ----
+   * The palette matches the painted storybook look of the game: wooden taps, plucked harp and lute strings, glass and bronze bells,
+   * steel and leather for gear and fights, a taiko drum and a brass horn for drama, a breathy flute for the sad and the quiet. */
+  const jit = () => 1 + (Math.random() - 0.5) * 0.05;     // a little random pitch so repeated hits do not sound identical
   function tone(o) {
     const t0 = ctx.currentTime + (o.at || 0), dur = o.dur || 0.15, v = o.vol == null ? 0.22 : o.vol, j = o.nojit ? 1 : jit();
     const osc = ctx.createOscillator(), g = ctx.createGain();
@@ -70,53 +72,84 @@
     src.connect(f); f.connect(g); g.connect(master);
     src.start(t0, Math.random() * 0.5); src.stop(t0 + dur + 0.05);
   }
-  /* a run of notes: [freq, start, duration] */
-  const notes = (list, type, vol, lp) => list.forEach(([f, at, dur]) => tone({ f, at, dur, type: type || 'triangle', vol: vol == null ? 0.2 : vol, lp, nojit: true }));
-  const C5 = 523.25, D5 = 587.33, E5 = 659.25, F5 = 698.46, G5 = 783.99, A5 = 880, B5 = 987.77, C6 = 1046.5, E6 = 1318.5, G6 = 1568, C7 = 2093;
+  /* additive voices: a set of sine partials [ratio, loudness, decay factor], each fading at its own speed (strings, bells, metal) */
+  function partials(f, list, o) {
+    const t0 = ctx.currentTime + (o.at || 0), dur = o.dur || 0.6, v = o.vol == null ? 0.2 : o.vol, j = o.nojit ? 1 : jit();
+    list.forEach(([r, a, dk]) => {
+      const osc = ctx.createOscillator(), g = ctx.createGain(), d = Math.max(0.04, dur * (dk || 1));
+      osc.type = 'sine'; osc.frequency.value = f * r * j;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002, v * a), t0 + (o.a || 0.003));
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+      osc.connect(g); g.connect(master);
+      osc.start(t0); osc.stop(t0 + d + 0.05);
+    });
+  }
+  const PLUCK = [[1, 1, 1], [2, 0.45, 0.6], [3, 0.25, 0.4], [4, 0.14, 0.28], [5, 0.08, 0.2]];                 // harp / lute string
+  const BELL = [[1, 1, 1], [2.76, 0.55, 0.7], [5.4, 0.3, 0.45], [8.93, 0.18, 0.3]];                            // bronze bell
+  const GLASS = [[1, 1, 1], [2.32, 0.4, 0.6], [4.25, 0.25, 0.4], [6.63, 0.14, 0.3]];                           // crystal chime
+  const METAL = [[1, 1, 1], [2.4, 0.7, 0.8], [3.9, 0.5, 0.6], [5.6, 0.35, 0.45], [7.8, 0.2, 0.3]];            // steel / anvil
+  const pluck = (f, at, vol, dur) => partials(f, PLUCK, { at, vol, dur: dur || 0.55 });
+  const bell = (f, at, vol, dur) => partials(f, BELL, { at, vol, dur: dur || 1.1, a: 0.002 });
+  const chime = (f, at, vol, dur) => partials(f, GLASS, { at, vol, dur: dur || 0.8, a: 0.002 });
+  const steel = (f, at, vol, dur) => partials(f, METAL, { at, vol, dur: dur || 0.5, a: 0.001 });
+  const wood = (f, at, vol) => { tone({ f, to: f * 0.62, at, dur: 0.07, vol: vol || 0.16, type: 'sine', a: 0.002 }); noise({ at, type: 'bandpass', f: f * 2.2, q: 2, dur: 0.035, vol: (vol || 0.16) * 0.7, a: 0.001 }); };
+  const taiko = (at, vol) => { tone({ f: 118, to: 48, at, dur: 0.5, vol: vol || 0.35, type: 'sine', a: 0.003, nojit: true }); noise({ at, type: 'lowpass', f: 600, to: 120, dur: 0.22, vol: (vol || 0.35) * 0.7 }); };
+  const swish = (at, f0, f1, dur, vol, type) => noise({ at, type: type || 'bandpass', f: f0, to: f1, q: 0.8, dur, vol });
+  const horn = (f, at, dur, vol) => { tone({ f, at, dur, vol, type: 'sawtooth', lp: 1500, a: 0.04, nojit: true }); tone({ f: f * 1.003, at, dur, vol: vol * 0.7, type: 'sawtooth', lp: 1200, a: 0.05, nojit: true }); };
+  const flute = (f, at, dur, vol) => { tone({ f, at, dur, vol, type: 'sine', a: 0.07, nojit: true }); tone({ f: f * 2, at, dur, vol: vol * 0.16, type: 'sine', a: 0.09, nojit: true }); noise({ at, type: 'bandpass', f: f * 2, q: 5, dur, vol: vol * 0.22, a: 0.07 }); };
+  /* C major pentatonic, the same scale as the village music */
+  const C5 = 523.25, D5 = 587.33, E5 = 659.25, G5 = 783.99, A5 = 880, C6 = 1046.5, D6 = 1174.7, E6 = 1318.5, G6 = 1568, C7 = 2093;
+  const C4 = 261.63, D4 = 293.66, E4 = 329.63, G4 = 392, A4 = 440;
 
   const SOUNDS = {
-    /* interface */
-    tap: () => tone({ f: 900, to: 640, dur: 0.05, vol: 0.12, type: 'triangle' }),
-    tick: () => tone({ f: 1200, to: 1000, dur: 0.03, vol: 0.07, type: 'square', lp: 3000 }),
-    tab: () => { tone({ f: C5, dur: 0.07, vol: 0.14, type: 'triangle' }); tone({ f: E5, at: 0.05, dur: 0.09, vol: 0.14, type: 'triangle' }); },
-    toggle: () => { tone({ f: 600, dur: 0.05, vol: 0.14, type: 'square', lp: 2500 }); tone({ f: 900, at: 0.05, dur: 0.07, vol: 0.14, type: 'square', lp: 2500 }); },
-    nope: () => { tone({ f: 200, to: 140, dur: 0.12, vol: 0.18, type: 'square', lp: 900 }); },
-    coins: () => { tone({ f: G6, dur: 0.1, vol: 0.16, type: 'triangle', nojit: true }); tone({ f: C7, at: 0.07, dur: 0.2, vol: 0.14, type: 'triangle', nojit: true }); noise({ type: 'highpass', f: 6000, dur: 0.12, vol: 0.05, at: 0.05 }); },
-    levelup: () => { notes([[C5, 0, 0.12], [E5, 0.09, 0.12], [G5, 0.18, 0.12], [C6, 0.27, 0.35]], 'triangle', 0.2); tone({ f: E6, at: 0.3, dur: 0.4, vol: 0.08, type: 'sine', nojit: true }); },
-    upgrade: () => { noise({ type: 'highpass', f: 3000, dur: 0.05, vol: 0.16 }); tone({ f: 1500, to: 1480, dur: 0.18, vol: 0.14, type: 'square', lp: 4000, nojit: true }); notes([[G5, 0.12, 0.1], [C6, 0.2, 0.25]], 'triangle', 0.17); },
-    hire: () => { notes([[G5 / 2, 0, 0.12], [C5, 0.1, 0.12], [E5, 0.2, 0.3]], 'triangle', 0.2); SOUNDS.coins(); },
-    equip: () => { noise({ type: 'highpass', f: 4500, to: 7000, dur: 0.12, vol: 0.14 }); tone({ f: 1800, to: 2400, dur: 0.1, vol: 0.1, type: 'triangle' }); tone({ f: 600, to: 400, dur: 0.08, vol: 0.12, type: 'square', lp: 1200 }); },
+    /* interface: wood and strings */
+    tap: () => wood(520, 0, 0.24),
+    tick: () => wood(950, 0, 0.13),
+    tab: () => { pluck(G5, 0, 0.16, 0.4); pluck(C6, 0.06, 0.13, 0.4); },
+    toggle: () => { wood(620, 0, 0.15); wood(820, 0.07, 0.15); },
+    nope: () => { wood(230, 0, 0.22); tone({ f: 170, to: 120, at: 0.02, dur: 0.14, vol: 0.12, type: 'sine' }); },
+    coins: () => { steel(2500, 0, 0.07, 0.16); steel(3200, 0.07, 0.06, 0.22); chime(C7, 0.1, 0.07, 0.55); noise({ at: 0.04, type: 'highpass', f: 7000, dur: 0.14, vol: 0.04 }); },
+    levelup: () => { [C5, E5, G5, C6, E6].forEach((f, i) => pluck(f, i * 0.07, 0.15, 0.6)); bell(C6, 0.3, 0.12, 1.3); noise({ at: 0.28, type: 'highpass', f: 7500, dur: 0.5, vol: 0.04 }); },
+    upgrade: () => { noise({ type: 'highpass', f: 3000, dur: 0.05, vol: 0.16 }); steel(1400, 0, 0.14, 0.55); pluck(G5, 0.14, 0.13, 0.5); pluck(C6, 0.21, 0.14, 0.6); },
+    hire: () => { pluck(C5, 0, 0.15, 0.6); pluck(E5, 0.03, 0.14, 0.6); pluck(G5, 0.06, 0.14, 0.6); chime(C6, 0.14, 0.1, 0.8); SOUNDS.coins(); },
+    equip: () => { noise({ type: 'bandpass', f: 900, to: 420, dur: 0.1, vol: 0.16 }); swish(0.05, 4200, 7500, 0.1, 0.13, 'highpass'); steel(2100, 0.06, 0.09, 0.32); },
     merge: () => {
-      [0, 0.2].forEach((at, i) => { noise({ type: 'highpass', f: 2500, dur: 0.06, vol: 0.2, at }); [880, 1320, 1900, 2750].forEach((f, k) => tone({ f: f * (i ? 1.12 : 1), at, dur: 0.35 - k * 0.04, vol: 0.1, type: 'sine', nojit: true })); });
-      notes([[C6, 0.45, 0.12], [E6, 0.54, 0.12], [G6, 0.63, 0.4]], 'triangle', 0.16);
+      [0, 0.24].forEach((at, i) => { taiko(at, 0.16); noise({ at, type: 'highpass', f: 2600, dur: 0.06, vol: 0.14 }); steel(i ? 600 : 520, at, 0.11, 1.1); steel(i ? 930 : 780, at + 0.01, 0.06, 0.9); });
+      bell(C6, 0.5, 0.11, 1.3); chime(E6, 0.58, 0.09, 0.9); chime(G6, 0.66, 0.09, 1.1);
     },
-    farm: () => { [0, 0.11, 0.22].forEach(at => noise({ type: 'lowpass', f: 500, dur: 0.07, vol: 0.2, at })); notes([[E5, 0.34, 0.1], [G5, 0.42, 0.2]], 'triangle', 0.14); },
-    retreat: () => { noise({ type: 'bandpass', f: 1800, to: 300, q: 1.2, dur: 0.35, vol: 0.2 }); tone({ f: 330, to: 140, dur: 0.3, vol: 0.14, type: 'triangle' }); },
-    /* fights */
-    horn: () => { tone({ f: 196, dur: 0.32, vol: 0.14, type: 'sawtooth', lp: 800, nojit: true }); tone({ f: 294, dur: 0.32, vol: 0.12, type: 'sawtooth', lp: 900, nojit: true }); tone({ f: 392, at: 0.26, dur: 0.45, vol: 0.14, type: 'sawtooth', lp: 1100, nojit: true }); tone({ f: 587, at: 0.26, dur: 0.45, vol: 0.09, type: 'sawtooth', lp: 1300, nojit: true }); },
-    slash: () => { noise({ type: 'bandpass', f: 3200, to: 700, q: 0.9, dur: 0.14, vol: 0.2 }); tone({ f: 320, to: 120, dur: 0.1, vol: 0.08, type: 'sawtooth', lp: 1200 }); },
-    arrow: () => { noise({ type: 'highpass', f: 2500, to: 5500, dur: 0.1, vol: 0.14 }); tone({ f: 500, to: 900, dur: 0.08, vol: 0.08, type: 'triangle' }); },
-    bolt: () => { tone({ f: 380, to: 1100, dur: 0.18, vol: 0.12, type: 'sawtooth', lp: 2400 }); tone({ f: 1500, to: 2400, dur: 0.14, vol: 0.06, type: 'sine' }); },
-    hit: () => { noise({ type: 'lowpass', f: 1400, to: 300, dur: 0.11, vol: 0.28 }); tone({ f: 170, to: 55, dur: 0.12, vol: 0.28, type: 'sine' }); },
-    crit: () => { noise({ type: 'lowpass', f: 2200, to: 300, dur: 0.14, vol: 0.32 }); tone({ f: 200, to: 50, dur: 0.16, vol: 0.3, type: 'sine' }); tone({ f: 1760, to: 1500, dur: 0.18, vol: 0.14, type: 'square', lp: 5000 }); tone({ f: 2637, at: 0.03, dur: 0.22, vol: 0.09, type: 'triangle' }); },
-    pop: () => { tone({ f: 520, to: 110, dur: 0.14, vol: 0.2, type: 'sine' }); noise({ type: 'bandpass', f: 1500, to: 400, dur: 0.1, vol: 0.1 }); },
-    hurt: () => { tone({ f: 210, to: 80, dur: 0.16, vol: 0.2, type: 'sawtooth', lp: 900 }); noise({ type: 'lowpass', f: 900, dur: 0.1, vol: 0.18 }); },
-    hurtcrit: () => { SOUNDS.hurt(); tone({ f: 120, to: 40, dur: 0.25, vol: 0.28, type: 'sine' }); noise({ type: 'highpass', f: 3000, dur: 0.08, vol: 0.12 }); },
-    block: () => { noise({ type: 'highpass', f: 3500, dur: 0.05, vol: 0.2 }); [740, 1110, 1660, 2300].forEach((f, k) => tone({ f, dur: 0.32 - k * 0.05, vol: 0.12, type: 'sine', nojit: true })); },
-    barrier: () => { noise({ type: 'bandpass', f: 400, to: 2200, q: 1.1, dur: 0.28, vol: 0.18 }); tone({ f: 330, to: 700, dur: 0.28, vol: 0.14, type: 'triangle' }); tone({ f: 990, at: 0.18, dur: 0.2, vol: 0.07, type: 'sine' }); },
-    heal: () => notes([[E5, 0, 0.14], [G5, 0.07, 0.14], [B5, 0.14, 0.3]], 'sine', 0.16),
-    warn: () => { [0, 0.22].forEach(at => tone({ f: 880, to: 700, at, dur: 0.18, vol: 0.14, type: 'square', lp: 1800, nojit: true })); tone({ f: 70, dur: 0.6, vol: 0.2, type: 'sine', a: 0.1, nojit: true }); },
+    farm: () => { [0, 0.12, 0.24].forEach(at => noise({ at, type: 'lowpass', f: 480, dur: 0.08, vol: 0.24 })); noise({ at: 0.02, type: 'bandpass', f: 3000, q: 1.5, dur: 0.3, vol: 0.035 }); flute(E5, 0.36, 0.3, 0.11); flute(G5, 0.46, 0.4, 0.11); },
+    retreat: () => { swish(0, 1700, 260, 0.35, 0.18); taiko(0.02, 0.18); },
+    /* fights: steel, leather, drums, magic */
+    horn: () => { taiko(0, 0.32); horn(196, 0.02, 0.5, 0.11); horn(294, 0.02, 0.5, 0.09); horn(392, 0.3, 0.5, 0.11); horn(587, 0.3, 0.5, 0.06); },
+    slash: () => { swish(0, 3600, 900, 0.14, 0.3); steel(3400, 0.015, 0.035, 0.12); },
+    arrow: () => { pluck(150, 0, 0.22, 0.28); swish(0.01, 2600, 5800, 0.1, 0.12, 'highpass'); },
+    bolt: () => { chime(C6, 0, 0.1, 0.5); chime(E6, 0.05, 0.09, 0.5); chime(G6, 0.1, 0.08, 0.6); tone({ f: 600, to: 1500, dur: 0.16, vol: 0.05, type: 'sine' }); noise({ type: 'highpass', f: 6500, dur: 0.18, vol: 0.04 }); },
+    hit: () => { noise({ type: 'lowpass', f: 1300, to: 280, dur: 0.11, vol: 0.26 }); tone({ f: 165, to: 55, dur: 0.13, vol: 0.28, type: 'sine' }); },
+    crit: () => { steel(880, 0, 0.11, 0.6); noise({ type: 'lowpass', f: 2200, to: 300, dur: 0.14, vol: 0.3 }); tone({ f: 190, to: 50, dur: 0.16, vol: 0.28, type: 'sine' }); bell(C7, 0.03, 0.09, 0.7); },
+    pop: () => { noise({ type: 'lowpass', f: 2000, to: 280, dur: 0.18, vol: 0.13 }); chime(G6, 0.02, 0.08, 0.36); chime(E6, 0.09, 0.07, 0.36); chime(C6, 0.16, 0.07, 0.42); },
+    hurt: () => { tone({ f: 190, to: 78, dur: 0.14, vol: 0.24, type: 'sine' }); noise({ type: 'lowpass', f: 750, to: 300, dur: 0.1, vol: 0.18 }); },
+    hurtcrit: () => { SOUNDS.hurt(); tone({ f: 110, to: 38, dur: 0.26, vol: 0.3, type: 'sine' }); noise({ type: 'highpass', f: 2600, dur: 0.07, vol: 0.1 }); },
+    block: () => { chime(1760, 0, 0.14, 0.7); chime(1175, 0.02, 0.1, 0.8); noise({ type: 'highpass', f: 6000, dur: 0.08, vol: 0.06 }); },
+    barrier: () => { [C5, G5, C6, E6].forEach((f, i) => tone({ f, at: i * 0.045, dur: 0.5, vol: 0.075, type: 'sine', a: 0.12, nojit: true })); swish(0, 300, 2300, 0.3, 0.12); },
+    heal: () => { pluck(E5, 0, 0.12, 0.5); pluck(G5, 0.07, 0.12, 0.5); pluck(C6, 0.14, 0.12, 0.6); chime(E6, 0.2, 0.07, 0.7); },
+    warn: () => { taiko(0, 0.3); taiko(0.28, 0.36); tone({ f: 87, dur: 0.75, vol: 0.14, type: 'sawtooth', lp: 320, a: 0.2, nojit: true }); },
     /* results */
-    victory: () => { notes([[C5, 0, 0.14], [E5, 0.11, 0.14], [G5, 0.22, 0.14], [C6, 0.33, 0.3]], 'triangle', 0.2); notes([[C5, 0.33, 0.7], [E5, 0.33, 0.7], [G5, 0.33, 0.7]], 'sawtooth', 0.07, 1400); tone({ f: E6, at: 0.5, dur: 0.5, vol: 0.09, type: 'sine', nojit: true }); },
-    defeat: () => notes([[392, 0, 0.32], [349, 0.3, 0.32], [311, 0.6, 0.32], [262, 0.9, 0.6]], 'sawtooth', 0.12, 900),
-    star: () => { tone({ f: C6, dur: 0.14, vol: 0.13, type: 'triangle', nojit: true }); tone({ f: C7, at: 0.03, dur: 0.22, vol: 0.09, type: 'sine', nojit: true }); },
-    drop: () => { notes([[C6, 0, 0.1], [E6, 0.07, 0.1], [G6, 0.14, 0.1], [C7, 0.21, 0.3]], 'triangle', 0.14); noise({ type: 'highpass', f: 7000, dur: 0.4, vol: 0.05, at: 0.1 }); },
+    victory: () => {
+      horn(C5, 0, 0.14, 0.12); horn(E5, 0.13, 0.14, 0.12); horn(G5, 0.26, 0.14, 0.12); horn(C6, 0.4, 0.7, 0.13); taiko(0.4, 0.28);
+      [C6, E6, G6, C7].forEach((f, i) => pluck(f, 0.5 + i * 0.07, 0.12, 0.7)); bell(C7, 0.55, 0.1, 1.5);
+    },
+    defeat: () => { taiko(0, 0.2); [G4, E4, D4, C4].forEach((f, i) => flute(f, 0.08 + i * 0.36, 0.5, 0.15)); },
+    star: () => { chime(G6, 0, 0.12, 0.6); bell(C7, 0.03, 0.07, 0.85); },
+    drop: () => { [C6, E6, G6, C7].forEach((f, i) => chime(f, i * 0.06, 0.11, 0.6)); bell(C7, 0.22, 0.1, 1.3); noise({ at: 0.1, type: 'highpass', f: 7000, dur: 0.4, vol: 0.04 }); },
     fanfare: () => {
-      notes([[C5, 0, 0.18], [C5, 0.2, 0.12], [C5, 0.34, 0.12], [G5, 0.48, 0.4], [E5, 0.94, 0.14], [G5, 1.08, 0.14], [C6, 1.22, 0.7]], 'sawtooth', 0.11, 1800);
-      notes([[C6, 1.22, 0.8], [E6, 1.22, 0.8], [G6, 1.22, 0.8]], 'triangle', 0.08);
-      noise({ type: 'highpass', f: 6000, dur: 0.6, vol: 0.05, at: 1.22 });
+      [[C5, 0, 0.18], [C5, 0.2, 0.12], [C5, 0.34, 0.12], [G5, 0.48, 0.4], [E5, 0.94, 0.14], [G5, 1.08, 0.14], [C6, 1.22, 0.8]].forEach(([f, at, d]) => horn(f, at, d, 0.11));
+      [C6, E6, G6].forEach(f => horn(f, 1.22, 0.8, 0.06));
+      taiko(0, 0.3); taiko(0.48, 0.3); taiko(1.22, 0.36);
+      [C6, E6, G6, C7].forEach((f, i) => pluck(f, 1.3 + i * 0.07, 0.12, 0.8)); bell(C7, 1.36, 0.11, 1.8);
     },
   };
+
   /* sounds that tend to come in bursts: at most one per this many milliseconds */
   const GAP = { hit: 45, crit: 80, slash: 70, arrow: 70, bolt: 70, pop: 60, hurt: 70, hurtcrit: 90, block: 90, heal: 200, tap: 40, tick: 30, star: 120, coins: 80, warn: 400 };
   const last = {};
