@@ -52,17 +52,36 @@
   const script = document.currentScript;
   const APP_VERSION = (script && /[?&]v=([^&#]+)/.exec(script.src) || [])[1] || 'dev';
   let updatePending = false;
-  const busy = () => { try { return typeof B !== 'undefined' && !!B; } catch (e) { return false; } };
-  function applyUpdate() {
-    if (busy()) { updatePending = true; return; }
+  // Busy = in the middle of a fight. Safe moments: between two fights of a Repeat run, and a result screen that has been sitting there for 45 s (everything is already paid and saved).
+  const busy = () => {
+    try {
+      if (typeof B === 'undefined' || !B) return false;
+      if (B.resolved && typeof repeatOn !== 'undefined' && repeatOn && B.result === 'win') return false;
+      if (B.resolved && Date.now() - (B.resolvedAt || 0) > 45000) return false;
+      return true;
+    } catch (e) { return false; }
+  };
+  function showPill() {
+    if (document.querySelector('.update-pill')) return;
+    const b = document.createElement('button');
+    b.className = 'update-pill'; b.type = 'button';
+    b.innerHTML = 'New version ready <b>Update now</b>';
+    b.addEventListener('click', () => applyUpdate(true));            // only the fight in progress is lost; everything won so far is saved
+    document.body.appendChild(b);
+  }
+  function applyUpdate(force) {
+    if (!force && busy()) { updatePending = true; showPill(); return; }
     updatePending = false;
+    const pill = document.querySelector('.update-pill'); if (pill) pill.remove();
     if (document.querySelector('.update-bar')) return;
+    try { if (typeof repeatOn !== 'undefined' && repeatOn && B && B.spec && B.spec.stageId) sessionStorage.setItem('wl-resume', B.spec.stageId); } catch (e) { /* ignore */ }
     const bar = document.createElement('div');
     bar.className = 'update-bar'; bar.setAttribute('role', 'status');
     bar.textContent = 'Updating to the newest version…';
     document.body.appendChild(bar);
-    setTimeout(() => location.reload(), 1200);
+    setTimeout(() => location.reload(), force ? 700 : 1200);
   }
+  window.wlOnSafePoint = () => { if (updatePending) applyUpdate(true); };
   async function checkForUpdate() {
     if (APP_VERSION === 'dev' || !navigator.onLine) return;
     try {
@@ -78,13 +97,14 @@
   }
   window.addEventListener('load', () => setTimeout(checkForUpdate, 3000));
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
-  setInterval(checkForUpdate, 15 * 60 * 1000);
+  setInterval(checkForUpdate, 5 * 60 * 1000);
   setInterval(() => { if (updatePending && !busy()) applyUpdate(); }, 4000);          // the fight is over: now it is safe
   window.wlCheckForUpdate = checkForUpdate;
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
-      try { await navigator.serviceWorker.register('sw.js'); } catch (e) { return; }
+      // The worker's address carries the version, so a cached copy of sw.js at the CDN can never hide a new deploy.
+      try { await navigator.serviceWorker.register(APP_VERSION === 'dev' ? 'sw.js' : 'sw.js?v=' + APP_VERSION); } catch (e) { return; }
       // Once the game is idle, hand the worker every picture to keep (skipped on data saver).
       const warm = async () => {
         const c = navigator.connection;
