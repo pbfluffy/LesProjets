@@ -56,7 +56,7 @@ self.addEventListener('fetch', event => {
   if (req.mode === 'navigate' && ours) {
     event.respondWith((async () => {
       try {
-        const res = await fetch(req);
+        const res = await fetch(req.url, { cache: 'no-cache' });          // revalidate: never an hour-old copy from the browser cache
         if (res.ok) (await caches.open(CACHE)).put('./', res.clone());
         return res;
       } catch (e) {

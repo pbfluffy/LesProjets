@@ -123,3 +123,12 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
   (`step()` is skipped until `B.t >= B.intro`; the sims call `step()` directly so they are not affected).
 - End of a fight: a "VICTORY!" banner with the 1-3 stars and a spark burst (or "Defeated"). In a repeat run the win then shows reward chips (gold, lumber, a new weapon with its picture), fades to black at ~1 s and the next fight
   starts at ~1.4 s. Normal results (first clear, defeat, Repeat off) clear the overlay and show the result screen as before. `.arena` has the same width rules as the barrier (`--bw` on tablet / PC).
+
+## Why an installed copy might not update (and what is done about it)
+- An open copy that is "busy" never reloads. Busy = in a fight. Between two fights of a Repeat run and a result screen that has been open 45 s are safe moments (`busy()` in `pwa.js`): everything won is already paid and saved.
+  `showResult()` calls `window.wlOnSafePoint()` in the repeat pause, so a waiting update installs there; the run is picked up again after the reload (`sessionStorage` `wl-resume` = stage id,
+  `window.__wlResume`, boot code at the end of `game.js`). While a fight is in progress a "New version ready · Update now" pill shows (`.update-pill`); tapping it reloads at once (only the fight in progress is lost).
+- The version check runs every 5 minutes (and 3 s after load, and whenever the app becomes visible).
+- `sw.js` is registered as `sw.js?v=<commit>` (not on `?v=dev`), so a CDN copy of `sw.js` (Cloudflare caches it for up to 4 h unless the "bypass /sw.js" Cache Rule exists) can never hide a new deploy.
+  A page load always revalidates `index.html` (`fetch(url, {cache:'no-cache'})` in the worker), never an up-to-10-minute-old browser cache copy.
+- Copies from before the auto-update (PR with `version.json`) have no checker: close and reopen the installed app once.

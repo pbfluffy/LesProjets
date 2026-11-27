@@ -939,7 +939,7 @@ const actions = {
   fight(id) {
     const s = STAGE[id];
     if (!isUnlocked(s)) return;
-    withRegionArt(s.region, () => startBattle({ title: s.name, sky: s.sky, enemies: encounterFor(s), hpMult: partyScale(), power: s.power, bg: s.id, repeatable: true, onWin: () => stageWin(s) }));
+    withRegionArt(s.region, () => startBattle({ title: s.name, sky: s.sky, enemies: encounterFor(s), hpMult: partyScale(), power: s.power, bg: s.id, repeatable: true, stageId: s.id, onWin: () => stageWin(s) }));
   },
   bonus() {
     if (dailyDone()) return;
@@ -1039,6 +1039,7 @@ function startBattle(spec) {
   $('#result').hidden = true;
   $('#battle').hidden = false;
   document.body.style.overflow = 'hidden';
+  if (window.__wlResume && spec.repeatable) { window.__wlResume = false; repeatOn = true; run = null; }      // picking a repeat run up again after an update
   repeatUi();
   introUi();
   B.raf = requestAnimationFrame(loop);
@@ -1325,7 +1326,7 @@ function showRunSummary() {
   if (!B) return;
   clearTimeout(B.autoT); clearTimeout(B.fadeT); fxClear(); curtain(false, true);
   if (B.result === 'win' && !B.resolved) addRun(B.spec.onWin());          // a win that was still counting down is paid, not lost
-  B.resolved = true; B.over = true; repeatOn = false;
+  B.resolved = true; B.resolvedAt = Date.now(); B.over = true; repeatOn = false;
   const t = run || newRun(), r = $('#result');
   r.innerHTML = `<div class="box rescard win"><div class="rhead"><h2 class="rtitle">Repeat run</h2><p class="rsub2">${B.spec.title} · ${t.wins} fight${t.wins === 1 ? '' : 's'} won</p></div>
     <div class="rbody"><div class="rtiles"><div class="rtile"><i class="ico gold"></i><b class="count" data-to="${t.gold}">+0</b><small>Gold</small></div>
@@ -1453,7 +1454,7 @@ function animateCounts(root) {
 function showResult() {
   const r = $('#result');
   if (!r.hidden || !B || B.resolved) return;
-  B.resolved = true;
+  B.resolved = true; B.resolvedAt = Date.now();
   if (B.result === 'win') {
     const w = B.spec.onWin();
     B.lastR = w;
@@ -1463,6 +1464,7 @@ function showResult() {
         B.nowMsg = `Victory! +${fmt(w.gold)} gold, +${fmt(w.lumber)} lumber${w.drop ? ` · Found ${dropsText([[w.drop, w.dropGrade]])}` : ''}. Next fight starting…`;
         repeatUi();
         rewardsUi(w);
+        if (window.wlOnSafePoint) window.wlOnSafePoint();                   // a waiting update can be installed now: the win is paid and saved
         const cur = B;
         B.fadeT = setTimeout(() => { if (B === cur && repeatOn) curtain(true); }, 1000);          // fade to black, then the next fight
         B.autoT = setTimeout(() => { if (B === cur && repeatOn) restartBattle(); }, 1380);
@@ -1629,5 +1631,12 @@ function draw() {
   const g = farmGain();
   render();
   if (g && g.mins >= 1) toast(`Your party gathered ${gainText(g)} while you were away.`);
+  try {                                                                  // an update reloaded the game in the middle of a repeat run: carry on
+    const rid = sessionStorage.getItem('wl-resume');
+    if (rid) {
+      sessionStorage.removeItem('wl-resume');
+      if (STAGE[rid] && isUnlocked(STAGE[rid])) { window.__wlResume = true; setTimeout(() => { actions.fight(rid); toast('Updated. Your repeat run carries on.'); }, 700); }
+    }
+  } catch (e) { /* ignore */ }
   window.__wl = { get save() { return save; }, persist, render, actions, startBattle, get B() { return B; } };
 })();

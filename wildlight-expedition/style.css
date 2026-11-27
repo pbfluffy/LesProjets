@@ -603,3 +603,6 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 @media(prefers-reduced-motion:reduce){.vbanner,.ibanner,.vrewards>div{animation:none}.spark{display:none}.curtain{transition:none}}
 
 @media(min-width:720px){.arena{max-width:var(--bw)}}
+
+.update-pill{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top));transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:8px;padding:7px 8px 7px 14px;border-radius:999px;background:#0f1a15;border:1px solid var(--amber);color:#f3deb0;font:600 13px system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 18px #000a;white-space:nowrap}
+.update-pill b{background:var(--amber);color:#2a1d05;border-radius:999px;padding:4px 11px;font-weight:800}
