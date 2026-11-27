@@ -140,3 +140,11 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
   fights (horn at the start, slash / arrow / bolt, hit, crit, monster death pop, hurt, hurt crit, barrier, block, heal, boss-charge warning), results (victory fanfare + a ding per star, defeat, first-clear / watchtower fanfare).
 - The header speaker button (`#sound-btn`, key `M`) mutes everything; the choice is kept in `localStorage` `wl-sound`. `sfx.level()` returns the current loudness (used to test that a sound really plays).
 - Add a sound: a function in `SOUNDS` (`tone()` / `noise()` / `notes()` helpers), then `snd('name')` where it happens.
+
+## Background music
+- `music.js`: three themes composed in code and played with Web Audio (no audio files), one step sequencer per theme that schedules ~0.3 s ahead (`pump`): **village** (A minor pentatonic, plucked arpeggios, warm pad, a wandering melody),
+  **fight** (142 bpm, drums, pumping bass, riffs in A minor) and **boss** (112 bpm, D minor, brass stabs, toms, tense strings). Add a theme: an object with `bpm`, `spb` (steps per beat), `gain` and `step(state, n, time, stepDur)` in `THEMES`.
+- API: `music.set('village'|'fight'|'boss'|null)` crossfades, `music.duck(seconds)` lowers it under a fanfare, `music.sync()` applies the sound mode. `game.js` sets village at boot and on leaving a fight, fight / boss in `startBattle`
+  (boss = a boss monster in the pack), ducks on victory, stops on defeat. A repeat run keeps the fight theme going between fights.
+- The header speaker button now cycles three modes (`sfx.toggle()`, key `M`, saved in `localStorage` `wl-sound` as `all` / `fx` / `off`): music + effects, effects only, off. Music only starts after the first tap (autoplay rule)
+  and pauses while the tab is hidden.

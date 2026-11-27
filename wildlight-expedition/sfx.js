@@ -7,7 +7,11 @@
   const KEY = 'wl-sound';
   let ctx = null, master = null, analyser = null, noiseBuf = null, enabled = true;
   const VOLUME = 0.7;
-  try { enabled = localStorage.getItem(KEY) !== '0'; } catch (e) { /* ignore */ }
+  /* mode: 'all' = music + effects, 'fx' = effects only, 'off' = silent. `enabled` means "effects are on". */
+  let mode = 'all';
+  try { const v = localStorage.getItem(KEY); mode = (v === '0' || v === 'off') ? 'off' : v === 'fx' ? 'fx' : 'all'; } catch (e) { /* ignore */ }
+  enabled = mode !== 'off';
+  const syncMusic = () => { try { if (window.music) window.music.sync(); } catch (e) { /* ignore */ } };
 
   function ensure() {
     if (ctx) return ctx;
@@ -24,11 +28,15 @@
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     return ctx;
   }
-  function unlock() { const c = ensure(); if (c && c.state === 'suspended' && enabled && !document.hidden) c.resume(); }
+  function unlock() {
+    const c = ensure();
+    if (c && c.state === 'suspended' && enabled && !document.hidden) c.resume().then(syncMusic, () => { /* ignore */ });
+    else syncMusic();
+  }
   ['pointerdown', 'keydown', 'touchend'].forEach(ev => window.addEventListener(ev, unlock, { passive: true, capture: true }));
   document.addEventListener('visibilitychange', () => {   // silent in the background
     if (!ctx) return;
-    if (document.hidden) ctx.suspend(); else if (enabled) ctx.resume();
+    if (document.hidden) ctx.suspend(); else if (enabled) ctx.resume().then(syncMusic, () => { /* ignore */ });
   });
 
   /* ---- voices ---- */
@@ -122,19 +130,24 @@
   }
 
   /* ---- mute button ---- */
+  const MODE_TEXT = { all: 'Music and sound effects', fx: 'Sound effects only', off: 'Sound off' };
+  const NEXT = { all: 'fx', fx: 'off', off: 'all' };
   function paint() {
     const b = document.getElementById('sound-btn');
     if (!b) return;
-    b.classList.toggle('muted', !enabled);
-    b.setAttribute('aria-pressed', String(enabled));
-    b.setAttribute('aria-label', enabled ? 'Sound on: tap to mute' : 'Sound off: tap to turn on');
-    b.title = enabled ? 'Sound on' : 'Sound off';
+    b.classList.toggle('muted', mode === 'off');
+    b.classList.toggle('fx', mode === 'fx');
+    b.dataset.mode = mode;
+    b.setAttribute('aria-label', `${MODE_TEXT[mode]}: tap to change`);
+    b.title = MODE_TEXT[mode];
   }
-  function setEnabled(on) {
-    enabled = !!on;
-    try { localStorage.setItem(KEY, enabled ? '1' : '0'); } catch (e) { /* ignore */ }
-    if (enabled) { const c = ensure(); if (c && c.state === 'suspended' && !document.hidden) c.resume(); } else if (ctx) { /* stays quiet: play() checks the flag */ }
+  function setMode(m) {
+    mode = MODE_TEXT[m] ? m : 'all';
+    enabled = mode !== 'off';
+    try { localStorage.setItem(KEY, mode); } catch (e) { /* ignore */ }
+    if (enabled) { const c = ensure(); if (c && c.state === 'suspended' && !document.hidden) c.resume().then(syncMusic, () => { /* ignore */ }); }
     paint();
+    syncMusic();                                    // starts or fades out the music
     if (enabled) play('toggle');
   }
   document.addEventListener('DOMContentLoaded', paint);
@@ -147,5 +160,10 @@
     let m = 0; for (let i = 0; i < d.length; i++) m = Math.max(m, Math.abs(d[i] - 128) / 128);
     return m;
   }
-  window.sfx = { play, setEnabled, toggle: () => setEnabled(!enabled), isEnabled: () => enabled, names: () => Object.keys(SOUNDS), level, state: () => (ctx ? ctx.state : 'none') };
+  window.sfx = {
+    play, setMode, toggle: () => { setMode(NEXT[mode]); return mode; }, mode: () => mode, modeText: () => MODE_TEXT[mode],
+    isEnabled: () => enabled, musicOn: () => mode === 'all',
+    audio: () => (ensure() ? { ctx, out: master, noiseBuf } : null),         // the shared audio graph, used by music.js
+    names: () => Object.keys(SOUNDS), level, state: () => (ctx ? ctx.state : 'none'),
+  };
 })();
