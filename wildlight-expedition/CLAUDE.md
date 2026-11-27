@@ -154,3 +154,9 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - Fight sounds are layered like real impacts: a sharp transient (`crack`), a low body (`thump`), a gritty `crunch` and, for big hits, a sub boom, all routed through a soft-clipping saturator (`punch: true` -> `drive()`) so they hit hard.
   Hits differ by weapon (`hitEnemy(..., kind)`: `hit` = blade, `hitarrow`, `hitmagic`); melee monsters snarl as they wind up (`growl`, deeper for bigger monsters: the argument is the monster scale), monsters die with a thud and a groan (`pop`, also sized),
   the boss charge warning is a roar plus taiko (`warn`). `snd(name, arg)` forwards one argument to the sound.
+
+## Sound families (weapons, spells, monsters)
+- Fight sounds are keyed by what is happening, not just generic: `swing` / `wimpact` (per melee weapon: sword, twin, great, falchion, saber, rapier, shield bash...), `release` (bows: hawk, bow, longbow, crossbow: trigger click) and
+  `cast` (staves: nature, heartwood leaves, storm lightning, frost glass), `healfx` per staff, `crit` per weapon kind (blade / arrow / magic), arrows ping off armored monsters (`wimpact` arg `a`).
+- Monsters have a kind (`MON_CAT` in `game.js`: beast, giant, dragon, insect, frog, snake, golem, crab, bat, spirit, hag, ice, fire, plant) with its own wind-up (`mwind`: snarl, buzz, croak, hiss, grinding stone, claws clacking...), strike (`mhit`),
+  ranged shot (`mshot`) and death (`mdie`). `snd(name, arg)` passes the weapon id or `{ c: kind, s: size }`. A fallen hero plays `herodown`. Add a weapon or monster: one entry in the matching table in `sfx.js` (it falls back to the sword / beast sound).

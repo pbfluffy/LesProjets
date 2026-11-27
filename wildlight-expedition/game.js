@@ -1,5 +1,10 @@
 'use strict';
 /* Sound effects live in sfx.js (synthesised, no files). snd() never throws and does nothing until the first tap. */
+/* what a monster is, for its sounds (growl, strike, death) */
+const MON_CAT = { brushfang: 'beast', frostwolf: 'beast', barkbear: 'beast', boar: 'giant', snowyeti: 'giant', frostgiant: 'giant', stormdrake: 'dragon',
+  hornet: 'insect', beetle: 'insect', bogtoad: 'frog', bogking: 'frog', mireadder: 'snake', mossturtle: 'crab', magmacrab: 'crab',
+  icegolem: 'golem', sentinel: 'golem', cinderbat: 'bat', spitter: 'plant', reedwisp: 'spirit', mistheg: 'hag', rimesprite: 'ice', emberimp: 'fire' };
+const monCat = type => MON_CAT[type] || 'beast';
 const snd = (n, a) => { try { if (window.sfx) window.sfx.play(n, a); } catch (e) { /* ignore */ } };
 /* =====================================================================
    Wildlight Expedition – first playable version
@@ -1147,7 +1152,7 @@ function doHeal(h, st) {
   if (!cand) return false;
   const amt = Math.round(st.heal * ((WEAPONS[save.heroes[h.id].weapon] || {}).healMult || 1));
   cand.hp = Math.min(cand.maxHp, cand.hp + amt);
-  snd('heal');
+  snd('healfx', save.heroes[h.id].weapon);
   floater(cand.x, cand.y - unitTop(cand.id, 70), '+' + amt, '#8ff0a4');
   B.fx.push({ k: 'petals', x: cand.x, y: cand.y - 24, t: 0, life: 0.9 });
   h.swing = 1;
@@ -1158,13 +1163,14 @@ function fireHero(h, st, w) {
   const t = firstEnemy();
   if (!t) return;
   h.swing = 1;
-  snd(w.ranged ? (h.id === 'tavi' ? 'arrow' : 'bolt') : 'slash');
+  const wid = save.heroes[h.id].weapon;
+  snd(w.ranged ? (h.id === 'tavi' ? 'release' : 'cast') : 'swing', wid);                      // every weapon has its own swing, shot or cast
   if (!w.ranged) {
     w.hits.forEach((m, i) => {
       later(i * 0.12, () => {
         if (t.dead) return;
-        hitEnemy(t, st.atk * m, i, w.pierce, st.crit, 'blade');
-        if (w.splash) for (const o of aliveE()) if (o !== t) hitEnemy(o, st.atk * m * w.splash, i, w.pierce, st.crit, 'blade');
+        hitEnemy(t, st.atk * m, i, w.pierce, st.crit, wid);
+        if (w.splash) for (const o of aliveE()) if (o !== t) hitEnemy(o, st.atk * m * w.splash, i, w.pierce, st.crit, wid);
         if (aliveE().length === 0 && B && !B.over) endBattle('win');
       });
     });
@@ -1174,30 +1180,30 @@ function fireHero(h, st, w) {
       cb: () => {
         const tg = t.dead ? firstEnemy() : t;
         if (!tg) return;
-        const kind = h.id === 'tavi' ? 'arrow' : 'magic';
-        hitEnemy(tg, dm, 0, w.pierce, st.crit, kind);
-        if (w.splash) for (const o of aliveE()) if (o !== tg) hitEnemy(o, dm * w.splash, 0, w.pierce, st.crit, kind);
+        hitEnemy(tg, dm, 0, w.pierce, st.crit, wid);
+        if (w.splash) for (const o of aliveE()) if (o !== tg) hitEnemy(o, dm * w.splash, 0, w.pierce, st.crit, wid);
         if (aliveE().length === 0 && B && !B.over) endBattle('win');
       } });
   }
 }
 
-function hitEnemy(e, raw, i, pierce, critChance, kind) {          // kind: 'blade' (default), 'arrow' or 'magic': what the hit sounds like
+function hitEnemy(e, raw, i, pierce, critChance, wid) {          // wid: the weapon that hit (for the sound)
   const crit = critChance > 0 && Math.random() < critChance;
   if (crit) raw *= CRIT.hero;
   const armor = MON[e.type].armor * (e.armMult || 1) * (1 - (pierce || 0));
   const d = Math.max(1, Math.round(Math.max(raw * 0.25, raw - armor)));       // armor can take at most 3/4 of a hit
   e.hp -= d; e.flash = 0.15;
-  snd(crit ? 'crit' : kind === 'arrow' ? 'hitarrow' : kind === 'magic' ? 'hitmagic' : 'hit');
+  const fam = wid && WEAPONS[wid] ? WEAPONS[wid].fam : 'sword';
+  snd(crit ? 'crit' : 'wimpact', crit ? (fam === 'bow' ? 'arrow' : fam === 'staff' ? 'magic' : 'blade') : { w: wid || 'sword', a: MON[e.type].armor >= 3 });
   floater(e.x + (i || 0) * 8, e.y - unitTop(e.type, 56 * MON[e.type].scale) - 4, crit ? '-' + d + '!' : '-' + d, crit ? '#ffd24a' : '#fff', crit);
-  if (e.hp <= 0) { e.hp = 0; e.dead = true; snd('pop', MON[e.type].scale); }
+  if (e.hp <= 0) { e.hp = 0; e.dead = true; snd('mdie', { c: monCat(e.type), s: MON[e.type].scale }); }
 }
 
 function startWind(e, kind) {
   const d = MON[e.type];
   e.state = 'wind'; e.kind = kind; e.wt = 0;
   if (kind === 'charge') snd('warn');                                  // the boss is about to charge: raise the barrier
-  else if (d.tgt === 'front') snd('growl', d.scale);                   // a melee monster winds up with a snarl (deeper for the big ones)
+  else if (d.tgt === 'front') snd('mwind', { c: monCat(e.type), s: d.scale });          // a melee monster winds up in its own way (snarl, buzz, croak, grinding stone...)
   e.wd = kind === 'charge' ? d.charge.wind : d.wind;
 }
 
@@ -1212,12 +1218,13 @@ function hurt(h, dmg, crit) {
   snd(crit ? 'hurtcrit' : 'hurt');
   floater(h.x, h.y - unitTop(h.id, 70) - 4, crit ? '-' + d + '!' : '-' + d, crit ? '#ff5a3c' : '#ff8a7a', crit);
   if (crit) h.hit = 0.4;
-  if (h.hp <= 0) { h.hp = 0; h.dead = true; }
+  if (h.hp <= 0) { h.hp = 0; h.dead = true; snd('herodown'); }
 }
 
 /* A normal monster hit: it may crit (the boss charge below never does). */
 function monHit(t, e, d) {
   const crit = Math.random() < (d.crit || 0);
+  if (B.bar.t <= 0) snd('mhit', { c: monCat(e.type), s: d.scale });                 // the strike itself, in the monster's own way (the hero's reaction follows in hurt())
   hurt(t, d.dmg * e.dmgMult * (crit ? CRIT.mon : 1), crit);
 }
 
@@ -1229,7 +1236,7 @@ function strike(e) {
     e.lungeDur = 0.55; e.lunge = 0.55; e.lungeDist = e.x - 150;
     later(0.2, () => {
       if (B.bar.t > 0) { snd('block'); floater(95, 110, 'Blocked!', '#7cc8ff'); B.fx.push({ k: 'ring', x: 95, y: 178, t: 0, life: 0.5, c: '#7cc8ff' }); }
-      else for (const h of aliveH()) hurt(h, d.charge.dmg * e.dmgMult);
+      else { snd('mhit', { c: monCat(e.type), s: d.scale * 1.4 }); for (const h of aliveH()) hurt(h, d.charge.dmg * e.dmgMult); }
     });
     e.chargeT = d.charge.every;
     e.cd = Math.max(d.cd, 1.6);
@@ -1245,6 +1252,7 @@ function strike(e) {
     const back = aliveH().filter(h => h.id !== 'bren');
     const t = (back.length ? back : aliveH())[Math.floor(Math.random() * (back.length || aliveH().length))];
     if (!t) return;
+    snd('mshot', { c: monCat(e.type) });
     B.fx.push({ k: 'proj', x0: e.x - 10, y0: e.y - 28, x1: t.x, y1: t.y - 28, t: 0, dur: 0.45, kind: 'seed', cb: () => monHit(t, e, d) });
   }
 }
