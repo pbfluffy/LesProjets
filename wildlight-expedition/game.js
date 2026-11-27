@@ -899,7 +899,7 @@ function showResInfo(kind) {
 /* ----------------------------- actions ------------------------------ */
 const actions = {
   tab(t) { snd('tab'); save.tab = t; persist(true); render(); },
-  sound() { if (window.sfx) window.sfx.toggle(); },
+  sound() { if (!window.sfx) return; window.sfx.toggle(); toast(window.sfx.modeText()); },
   claim() { claimFarm(false); render(); },
   farm(id) {
     if (!save.cleared[id]) return;
@@ -1051,6 +1051,7 @@ function startBattle(spec) {
   document.body.style.overflow = 'hidden';
   if (window.__wlResume && spec.repeatable) { window.__wlResume = false; repeatOn = true; run = null; }      // picking a repeat run up again after an update
   repeatUi();
+  if (window.music) window.music.set(spec.enemies.some(e => MON[e] && MON[e].boss) ? 'boss' : 'fight');
   introUi();
   B.raf = requestAnimationFrame(loop);
 }
@@ -1296,10 +1297,12 @@ function outroUi(result) {
     fxAdd(`<div class="vbanner"><b>VICTORY!</b><div class="stars">${[1, 2, 3].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</div></div>`, 1900);
     fxAdd(`<div class="sparks">${sparkHtml(26)}</div>`, 1300);
     snd('victory');
+    if (window.music) window.music.duck(2.6);                                  // let the fanfare be heard
     [350, 620, 890].slice(0, n).forEach(ms => setTimeout(() => { if (B) snd('star'); }, ms));
   } else {
     fxAdd('<div class="vbanner defeat"><b>Defeated</b></div>', 1900);
     snd('defeat');
+    if (window.music) window.music.set(null);                                  // the fight music stops
   }
 }
 /* Repeat mode: what the win paid, as chips over the arena. */
@@ -1346,7 +1349,7 @@ function restartBattle() { const s = B.spec; clearTimeout(B.autoT); clearTimeout
 /* The end-of-run screen (Retreat, or Repeat switched off while waiting for the next fight). */
 function showRunSummary() {
   if (!B) return;
-  clearTimeout(B.autoT); clearTimeout(B.fadeT); fxClear(); curtain(false, true);
+  clearTimeout(B.autoT); clearTimeout(B.fadeT); fxClear(); curtain(false, true); if (window.music) window.music.set('village');
   if (B.result === 'win' && !B.resolved) addRun(B.spec.onWin());          // a win that was still counting down is paid, not lost
   B.resolved = true; B.resolvedAt = Date.now(); B.over = true; repeatOn = false;
   const t = run || newRun(), r = $('#result');
@@ -1497,8 +1500,9 @@ function showResult() {
     }
     fxClear();
     r.innerHTML = winHtml(w);
-    if (w.first || w.tower) setTimeout(() => snd('fanfare'), 500); else if (w.drop) snd('drop'); else snd('coins');
-  } else { B.repeatStopped = repeatOn; repeatOn = false; fxClear(); r.innerHTML = loseHtml(); }          // losing a fight always ends a repeat run
+    if (window.music) window.music.set('village');
+    if (w.first || w.tower) { setTimeout(() => snd('fanfare'), 500); if (window.music) window.music.duck(3.6); } else if (w.drop) snd('drop'); else snd('coins');
+  } else { B.repeatStopped = repeatOn; repeatOn = false; fxClear(); r.innerHTML = loseHtml(); if (window.music) window.music.set('village'); }          // losing a fight always ends a repeat run
   repeatUi();
   r.hidden = false;
   paintPortraits();
@@ -1521,6 +1525,7 @@ actions.farmreportok = closeFarmReport;
 function closeBattle() {
   if (B) { cancelAnimationFrame(B.raf); clearTimeout(B.autoT); clearTimeout(B.fadeT); }
   fxClear(); curtain(false, true);
+  if (window.music) window.music.set('village');
   repeatOn = false; run = null;
   B = null;
   $('#battle').hidden = true;
@@ -1655,6 +1660,7 @@ function draw() {
   // Welcome back message if the party has been out a while.
   const g = farmGain();
   render();
+  if (window.music) window.music.set('village');                                          // background music: the village theme (it starts after the first tap)
   if (g && g.mins >= 1) toast(`Your party gathered ${gainText(g)} while you were away.`);
   try {                                                                  // an update reloaded the game in the middle of a repeat run: carry on
     const rid = sessionStorage.getItem('wl-resume');

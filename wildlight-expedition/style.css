@@ -609,8 +609,9 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 
 /* ---- sound button ---- */
 .acct.snd{display:grid;place-items:center;color:#f3deb0;background:linear-gradient(#3d4840,#263332);border:1px solid #757360;cursor:pointer}
-.acct.snd .cross{display:none}
+.acct.snd .cross,.acct.snd .note,.acct.snd .waves{display:none}
+.acct.snd[data-mode="all"] .note{display:inline}
+.acct.snd[data-mode="fx"] .waves{display:inline}
+.acct.snd[data-mode="off"] .cross{display:inline}
 .acct.snd.muted{color:#8a9188}
-.acct.snd.muted .waves{display:none}
-.acct.snd.muted .cross{display:inline}
 @media(max-width:359px){.top{padding-left:10px;padding-right:10px}.purse{gap:6px}.coin{padding:4px 8px}}
