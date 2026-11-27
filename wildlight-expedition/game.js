@@ -1,6 +1,6 @@
 'use strict';
 /* Sound effects live in sfx.js (synthesised, no files). snd() never throws and does nothing until the first tap. */
-const snd = n => { try { if (window.sfx) window.sfx.play(n); } catch (e) { /* ignore */ } };
+const snd = (n, a) => { try { if (window.sfx) window.sfx.play(n, a); } catch (e) { /* ignore */ } };
 /* =====================================================================
    Wildlight Expedition – first playable version
    Heroes: Bren, Tavi, Iona · Stages: Pinewood Path, Ironroot Hollow,
@@ -1163,8 +1163,8 @@ function fireHero(h, st, w) {
     w.hits.forEach((m, i) => {
       later(i * 0.12, () => {
         if (t.dead) return;
-        hitEnemy(t, st.atk * m, i, w.pierce, st.crit);
-        if (w.splash) for (const o of aliveE()) if (o !== t) hitEnemy(o, st.atk * m * w.splash, i, w.pierce, st.crit);
+        hitEnemy(t, st.atk * m, i, w.pierce, st.crit, 'blade');
+        if (w.splash) for (const o of aliveE()) if (o !== t) hitEnemy(o, st.atk * m * w.splash, i, w.pierce, st.crit, 'blade');
         if (aliveE().length === 0 && B && !B.over) endBattle('win');
       });
     });
@@ -1174,28 +1174,30 @@ function fireHero(h, st, w) {
       cb: () => {
         const tg = t.dead ? firstEnemy() : t;
         if (!tg) return;
-        hitEnemy(tg, dm, 0, w.pierce, st.crit);
-        if (w.splash) for (const o of aliveE()) if (o !== tg) hitEnemy(o, dm * w.splash, 0, w.pierce, st.crit);
+        const kind = h.id === 'tavi' ? 'arrow' : 'magic';
+        hitEnemy(tg, dm, 0, w.pierce, st.crit, kind);
+        if (w.splash) for (const o of aliveE()) if (o !== tg) hitEnemy(o, dm * w.splash, 0, w.pierce, st.crit, kind);
         if (aliveE().length === 0 && B && !B.over) endBattle('win');
       } });
   }
 }
 
-function hitEnemy(e, raw, i, pierce, critChance) {
+function hitEnemy(e, raw, i, pierce, critChance, kind) {          // kind: 'blade' (default), 'arrow' or 'magic': what the hit sounds like
   const crit = critChance > 0 && Math.random() < critChance;
   if (crit) raw *= CRIT.hero;
   const armor = MON[e.type].armor * (e.armMult || 1) * (1 - (pierce || 0));
   const d = Math.max(1, Math.round(Math.max(raw * 0.25, raw - armor)));       // armor can take at most 3/4 of a hit
   e.hp -= d; e.flash = 0.15;
-  snd(crit ? 'crit' : 'hit');
+  snd(crit ? 'crit' : kind === 'arrow' ? 'hitarrow' : kind === 'magic' ? 'hitmagic' : 'hit');
   floater(e.x + (i || 0) * 8, e.y - unitTop(e.type, 56 * MON[e.type].scale) - 4, crit ? '-' + d + '!' : '-' + d, crit ? '#ffd24a' : '#fff', crit);
-  if (e.hp <= 0) { e.hp = 0; e.dead = true; snd('pop'); }
+  if (e.hp <= 0) { e.hp = 0; e.dead = true; snd('pop', MON[e.type].scale); }
 }
 
 function startWind(e, kind) {
   const d = MON[e.type];
   e.state = 'wind'; e.kind = kind; e.wt = 0;
   if (kind === 'charge') snd('warn');                                  // the boss is about to charge: raise the barrier
+  else if (d.tgt === 'front') snd('growl', d.scale);                   // a melee monster winds up with a snarl (deeper for the big ones)
   e.wd = kind === 'charge' ? d.charge.wind : d.wind;
 }
 
