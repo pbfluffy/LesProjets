@@ -132,3 +132,11 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - `sw.js` is registered as `sw.js?v=<commit>` (not on `?v=dev`), so a CDN copy of `sw.js` (Cloudflare caches it for up to 4 h unless the "bypass /sw.js" Cache Rule exists) can never hide a new deploy.
   A page load always revalidates `index.html` (`fetch(url, {cache:'no-cache'})` in the worker), never an up-to-10-minute-old browser cache copy.
 - Copies from before the auto-update (PR with `version.json`) have no checker: close and reopen the installed app once.
+
+## Sound effects
+- `sfx.js` synthesises every sound with the Web Audio API (oscillators + filtered noise through a compressor): no audio files, works offline, ~31 sounds (`SOUNDS` table). `snd('name')` in `game.js` plays one and never throws;
+  nothing plays until the first tap or key press (browser autoplay rule), and the engine is suspended while the tab is hidden. Fast bursts are throttled per sound (`GAP`).
+- Hooks: UI (every button taps unless its action has its own sound: `OWN_SOUND`), tabs, hire, level up, weapon upgrade, equip, merge (anvil), farm, claim / reward chips (coins), weapon drop, folding lists (tick),
+  fights (horn at the start, slash / arrow / bolt, hit, crit, monster death pop, hurt, hurt crit, barrier, block, heal, boss-charge warning), results (victory fanfare + a ding per star, defeat, first-clear / watchtower fanfare).
+- The header speaker button (`#sound-btn`, key `M`) mutes everything; the choice is kept in `localStorage` `wl-sound`. `sfx.level()` returns the current loudness (used to test that a sound really plays).
+- Add a sound: a function in `SOUNDS` (`tone()` / `noise()` / `notes()` helpers), then `snd('name')` where it happens.

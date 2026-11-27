@@ -1,4 +1,6 @@
 'use strict';
+/* Sound effects live in sfx.js (synthesised, no files). snd() never throws and does nothing until the first tap. */
+const snd = n => { try { if (window.sfx) window.sfx.play(n); } catch (e) { /* ignore */ } };
 /* =====================================================================
    Wildlight Expedition – first playable version
    Heroes: Bren, Tavi, Iona · Stages: Pinewood Path, Ironroot Hollow,
@@ -896,13 +898,15 @@ function showResInfo(kind) {
 
 /* ----------------------------- actions ------------------------------ */
 const actions = {
-  tab(t) { save.tab = t; persist(true); render(); },
+  tab(t) { snd('tab'); save.tab = t; persist(true); render(); },
+  sound() { if (window.sfx) window.sfx.toggle(); },
   claim() { claimFarm(false); render(); },
   farm(id) {
     if (!save.cleared[id]) return;
     const prevGrade = save.farm ? (STAGE[save.farm.stage].dropGrade || 0) : 0;
     const found = save.farm ? claimFarm(true) : [];
     save.farm = { stage: id, since: Date.now() };
+    snd('farm');
     persist();
     toast(`${found.length ? `Your party found: ${dropNames(found, prevGrade)}! ` : ''}Party sent to ${STAGE[id].name}.`);
     render();
@@ -912,29 +916,29 @@ const actions = {
     if (!d || inParty(id) || save.gold < d.hire) return;
     save.gold -= d.hire;
     save.party = HERO_ORDER.filter(x => x === id || inParty(x));
-    persist(); toast(`${d.name} joins your party!`); render();
+    snd('hire'); persist(); toast(`${d.name} joins your party!`); render();
   },
   lvl(id) {
     if (!inParty(id)) return;
     const c = { gold: lvlCost(save.heroes[id].lvl) };
     if (!canAfford(c)) return;
-    pay(c); save.heroes[id].lvl++; persist(); render();
+    pay(c); save.heroes[id].lvl++; snd('levelup'); persist(); render();
   },
   up(id) {
     if (!inParty(id)) return;
     const c = upCost(save.heroes[id].up);
     if (!canAfford(c)) return;
-    pay(c); save.heroes[id].up++; persist(); render();
+    pay(c); save.heroes[id].up++; snd('upgrade'); persist(); render();
   },
   equip(arg) {
     const [id, w] = arg.split(':');
-    if (inParty(id) && owned(w) && WEAPONS[w].fam === HERO[id].family) { save.heroes[id].weapon = w; persist(); render(); }
+    if (inParty(id) && owned(w) && WEAPONS[w].fam === HERO[id].family) { save.heroes[id].weapon = w; snd('equip'); persist(); render(); }
   },
   merge(arg) {
     const [w, gs] = arg.split(':'), gr = Number(gs), items = save.items[w];
     if (!items || !(gr >= 0 && gr < GRADES.length - 1) || items[gr] < MERGE_N) return;
     items[gr] -= MERGE_N; items[gr + 1]++;
-    persist(); toast(`Merged into a ${GRADES[gr + 1].name} ${WEAPONS[w].name}!`); render();
+    snd('merge'); persist(); toast(`Merged into a ${GRADES[gr + 1].name} ${WEAPONS[w].name}!`); render();
   },
   fight(id) {
     const s = STAGE[id];
@@ -946,7 +950,7 @@ const actions = {
     const m = dailyMonster(), s = STAGES.filter(isUnlocked).find(x => x.enemies.includes(m));
     withRegionArt(s.region, () => startBattle({ title: `Bonus hunt: ${MON[m].name}`, sky: s.sky, enemies: [m], hpMult: (MON[m].boss ? 1 : 1.5) * partyScale(), power: s.power, bg: s.id, onWin: () => bonusWin(m) }));
   },
-  region(id) { if (REGION[id]) { uiRegion = { id, at: featuredStage().id }; render(); } },
+  region(id) { if (REGION[id]) { snd('tab'); uiRegion = { id, at: featuredStage().id }; render(); } },
   testunlock() {                                          // test period: open every area (the last one stays to fight for its first-clear reward)
     if (!TEST_PERIOD) return;
     STAGES.slice(0, -1).forEach(s => { save.cleared[s.id] = true; if (s.first.tower) save.towers[s.id] = true; });
@@ -965,18 +969,24 @@ const actions = {
   barrier() { raiseBarrier(); },
   retreat() {
     if (!B) return;
+    snd('retreat');
     if (B.over) { if (run && run.wins && $('#result').hidden) showRunSummary(); return; }       // between two repeated fights
     endBattle('retreat');
   },
 };
+const OWN_SOUND = new Set(['tab', 'region', 'barrier', 'retreat', 'lvl', 'up', 'hire', 'equip', 'merge', 'claim', 'farm', 'fight', 'bonus', 'repeat', 'sound',
+  '__again', '__repeat', '__close', 'pwainstall']);          // these play a sound of their own (or the game does it for them)
 document.addEventListener('click', e => {
+  if (e.target.closest && e.target.closest('summary')) snd('tick');                  // folding a list open or closed
   const b = e.target.closest('[data-act]');
   if (!b || b.disabled || !actions[b.dataset.act]) return;
+  if (!OWN_SOUND.has(b.dataset.act)) snd('tap');
   actions[b.dataset.act](b.dataset.arg);
 });
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && B) { e.preventDefault(); raiseBarrier(); }
   if (e.key === 'r' && B && !e.ctrlKey && !e.metaKey && !e.altKey) actions.repeat();
+  if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName || '')) actions.sound();
   if (e.key === 'Escape') {
     const dlg = document.getElementById('reset-dialog'), res = document.getElementById('result');
     if (dlg || document.getElementById('res-info') || document.getElementById('farm-report')) { closeResInfo(); closeResetDialog(); closeFarmReport(); }
@@ -1048,6 +1058,7 @@ function startBattle(spec) {
 function raiseBarrier() {
   if (!B || B.over || B.bar.t > 0 || B.bar.cd > 0) return;
   B.bar.t = BAR_DUR; B.bar.cd = BAR_CD;
+  snd('barrier');
   B.fx.push({ k: 'ring', x: 95, y: 178, t: 0, life: 0.5, c: '#7cc8ff' });
 }
 
@@ -1135,6 +1146,7 @@ function doHeal(h, st) {
   if (!cand) return false;
   const amt = Math.round(st.heal * ((WEAPONS[save.heroes[h.id].weapon] || {}).healMult || 1));
   cand.hp = Math.min(cand.maxHp, cand.hp + amt);
+  snd('heal');
   floater(cand.x, cand.y - unitTop(cand.id, 70), '+' + amt, '#8ff0a4');
   B.fx.push({ k: 'petals', x: cand.x, y: cand.y - 24, t: 0, life: 0.9 });
   h.swing = 1;
@@ -1145,6 +1157,7 @@ function fireHero(h, st, w) {
   const t = firstEnemy();
   if (!t) return;
   h.swing = 1;
+  snd(w.ranged ? (h.id === 'tavi' ? 'arrow' : 'bolt') : 'slash');
   if (!w.ranged) {
     w.hits.forEach((m, i) => {
       later(i * 0.12, () => {
@@ -1173,13 +1186,15 @@ function hitEnemy(e, raw, i, pierce, critChance) {
   const armor = MON[e.type].armor * (e.armMult || 1) * (1 - (pierce || 0));
   const d = Math.max(1, Math.round(Math.max(raw * 0.25, raw - armor)));       // armor can take at most 3/4 of a hit
   e.hp -= d; e.flash = 0.15;
+  snd(crit ? 'crit' : 'hit');
   floater(e.x + (i || 0) * 8, e.y - unitTop(e.type, 56 * MON[e.type].scale) - 4, crit ? '-' + d + '!' : '-' + d, crit ? '#ffd24a' : '#fff', crit);
-  if (e.hp <= 0) { e.hp = 0; e.dead = true; }
+  if (e.hp <= 0) { e.hp = 0; e.dead = true; snd('pop'); }
 }
 
 function startWind(e, kind) {
   const d = MON[e.type];
   e.state = 'wind'; e.kind = kind; e.wt = 0;
+  if (kind === 'charge') snd('warn');                                  // the boss is about to charge: raise the barrier
   e.wd = kind === 'charge' ? d.charge.wind : d.wind;
 }
 
@@ -1187,10 +1202,11 @@ function frontHero() { return aliveH()[0]; }
 
 function hurt(h, dmg, crit) {
   if (h.dead) return;
-  if (B.bar.t > 0) { floater(h.x, h.y - unitTop(h.id, 70) - 4, 'Blocked', '#7cc8ff'); return; }
+  if (B.bar.t > 0) { floater(h.x, h.y - unitTop(h.id, 70) - 4, 'Blocked', '#7cc8ff'); snd('block'); return; }
   const sh = (WEAPONS[save.heroes[h.id].weapon] || {}).shield || 0;          // Sword & shield
   const d = Math.round(dmg * (1 - sh));
   h.hp -= d; h.hit = 0.25;
+  snd(crit ? 'hurtcrit' : 'hurt');
   floater(h.x, h.y - unitTop(h.id, 70) - 4, crit ? '-' + d + '!' : '-' + d, crit ? '#ff5a3c' : '#ff8a7a', crit);
   if (crit) h.hit = 0.4;
   if (h.hp <= 0) { h.hp = 0; h.dead = true; }
@@ -1209,7 +1225,7 @@ function strike(e) {
   if (kind === 'charge') {
     e.lungeDur = 0.55; e.lunge = 0.55; e.lungeDist = e.x - 150;
     later(0.2, () => {
-      if (B.bar.t > 0) { floater(95, 110, 'Blocked!', '#7cc8ff'); B.fx.push({ k: 'ring', x: 95, y: 178, t: 0, life: 0.5, c: '#7cc8ff' }); }
+      if (B.bar.t > 0) { snd('block'); floater(95, 110, 'Blocked!', '#7cc8ff'); B.fx.push({ k: 'ring', x: 95, y: 178, t: 0, life: 0.5, c: '#7cc8ff' }); }
       else for (const h of aliveH()) hurt(h, d.charge.dmg * e.dmgMult);
     });
     e.chargeT = d.charge.every;
@@ -1261,6 +1277,7 @@ const sparkHtml = n => Array.from({ length: n }, (_, i) => {
 /* A new fight: fade in from black, a "Fight N" / "Fight!" banner, the heroes and monsters walk in. */
 function introUi() {
   fxClear(); curtain(true, true);
+  snd('horn');
   setTimeout(() => curtain(false), 40);
   const n = repeatOn && run ? run.wins + 1 : 0;
   fxAdd(`<div class="ibanner"><b>${n ? 'Fight ' + n : 'Fight!'}</b><small>${B.spec.title}</small></div>`, 1500);
@@ -1278,8 +1295,11 @@ function outroUi(result) {
     const n = starRating();
     fxAdd(`<div class="vbanner"><b>VICTORY!</b><div class="stars">${[1, 2, 3].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</div></div>`, 1900);
     fxAdd(`<div class="sparks">${sparkHtml(26)}</div>`, 1300);
+    snd('victory');
+    [350, 620, 890].slice(0, n).forEach(ms => setTimeout(() => { if (B) snd('star'); }, ms));
   } else {
     fxAdd('<div class="vbanner defeat"><b>Defeated</b></div>', 1900);
+    snd('defeat');
   }
 }
 /* Repeat mode: what the win paid, as chips over the arena. */
@@ -1289,6 +1309,8 @@ function rewardsUi(w) {
   if (w.lumber) chips.push(`<div style="animation-delay:.12s,0s"><i class="ico lumber"></i>+${fmt(w.lumber)}</div>`);
   if (w.drop) chips.push(`<div class="vdrop" style="animation-delay:.25s,0s">${itemIcon(w.drop, 'sm')}<span><small>New weapon!</small><b>${(w.dropGrade ? GRADES[w.dropGrade].name + ' ' : '') + WEAPONS[w.drop].name}</b></span></div>`);
   if (chips.length) fxAdd(`<div class="vrewards">${chips.join('')}</div>`, 1500);
+  if (w.gold || w.lumber) snd('coins');
+  if (w.drop) setTimeout(() => snd('drop'), 250);
 }
 
 /* ------------------------- repeat fights (manual) ------------------------- */
@@ -1361,6 +1383,7 @@ function farmLogCard() {
 function closeFarmReport() { const d = document.getElementById('farm-report'); if (d) d.remove(); }
 function showFarmReport(e) {
   closeFarmReport();
+  snd(e.found.length ? 'drop' : 'coins');
   const d = document.createElement('div');
   d.className = 'result dialog'; d.id = 'farm-report';
   d.innerHTML = `<div class="box"><h2>Farm report</h2><p class="note">${STAGE[e.stage].name} · out for ${fmtDur(e.mins)}</p>
@@ -1474,6 +1497,7 @@ function showResult() {
     }
     fxClear();
     r.innerHTML = winHtml(w);
+    if (w.first || w.tower) setTimeout(() => snd('fanfare'), 500); else if (w.drop) snd('drop'); else snd('coins');
   } else { B.repeatStopped = repeatOn; repeatOn = false; fxClear(); r.innerHTML = loseHtml(); }          // losing a fight always ends a repeat run
   repeatUi();
   r.hidden = false;
@@ -1482,11 +1506,12 @@ function showResult() {
 }
 actions.__party = () => { closeBattle(); actions.tab('party'); };
 actions.__forge = () => { closeBattle(); actions.tab('forge'); };
-actions.__close = () => closeBattle();
-actions.__again = () => { if (!repeatOn) run = null; restartBattle(); };
-actions.__repeat = () => { run = newRun(); if (B.lastR) addRun(B.lastR); repeatOn = true; restartBattle(); };
+actions.__close = () => { snd('tap'); closeBattle(); };
+actions.__again = () => { snd('tap'); if (!repeatOn) run = null; restartBattle(); };
+actions.__repeat = () => { snd('toggle'); run = newRun(); if (B.lastR) addRun(B.lastR); repeatOn = true; restartBattle(); };
 actions.repeat = () => {
   if (!B || !B.spec.repeatable) return;
+  snd('toggle');
   repeatOn = !repeatOn;
   if (!repeatOn) { clearTimeout(B.autoT); if (B.resolved && B.result === 'win' && $('#result').hidden) { showRunSummary(); return; } }
   repeatUi();
