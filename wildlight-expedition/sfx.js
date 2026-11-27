@@ -157,7 +157,14 @@
     hitarrow: () => { crack(0, 0.26, 5000); thump(0, 240, 0.4, 0.1); wood(360, 0, 0.3); crunch(0, 0.18, 2000, 500, 0.08); },
     hitmagic: () => { swish(0, 2500, 8500, 0.12, 0.16, 'highpass'); tone({ f: 900, to: 170, dur: 0.14, vol: 0.2, type: 'sine', punch: true }); thump(0, 115, 0.4, 0.15); crack(0.005, 0.18, 4000); chime(G6, 0.02, 0.06, 0.3); },
     growl: (size) => { growl(165 / (size || 1), 0, 0.3, 0.16); },
-    crit: () => { crack(0, 0.45, 3000); thump(0, 125, 0.65, 0.26); thump(0, 58, 0.55, 0.42); crunch(0, 0.4, 2300, 260, 0.2); steel(900, 0, 0.14, 0.7); steel(1350, 0.01, 0.07, 0.5); bell(C7, 0.04, 0.07, 0.8); },
+    /* the critical hit: a hard whack, then a bright steel "shing" with a ringing ting that echoes away, in the spirit of classic MMORPG crits */
+    crit: () => {
+      crack(0, 0.4, 3200); thump(0, 135, 0.5, 0.2); thump(0, 60, 0.4, 0.32); crunch(0, 0.32, 2200, 300, 0.14);
+      swish(0, 2500, 9500, 0.09, 0.22, 'highpass');
+      tone({ f: 1400, to: 3600, dur: 0.08, vol: 0.1, type: 'sawtooth', lp: 5000, punch: true });
+      steel(2700, 0.015, 0.16, 0.5); steel(4100, 0.02, 0.09, 0.42); bell(C7, 0.03, 0.07, 0.8);
+      [[0.1, 0.1, 2500], [0.2, 0.06, 2350], [0.3, 0.035, 2200]].forEach(([at, v, f]) => steel(f, at, v, 0.3));          // the echoes of the ting
+    },
     pop: (size) => { const z = size || 1; thump(0, 150 / z, 0.5, 0.22); tone({ f: 280 / z, to: 70 / z, dur: 0.32, vol: 0.18, type: 'sawtooth', lp: 700, punch: true }); noise({ type: 'lowpass', f: 2000, to: 260, dur: 0.2, vol: 0.18 }); crack(0, 0.18); },
     hurt: () => { crack(0, 0.26); crunch(0, 0.36, 1100, 280, 0.13); thump(0, 150, 0.45, 0.16); tone({ f: 230, to: 95, dur: 0.14, vol: 0.2, type: 'sine' }); },
     hurtcrit: () => { crack(0, 0.4, 3000); crunch(0, 0.45, 1300, 220, 0.2); thump(0, 140, 0.6, 0.22); thump(0, 52, 0.6, 0.45); steel(420, 0, 0.1, 0.55); },
