@@ -610,8 +610,7 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 /* ---- sound button ---- */
 .acct.snd{display:grid;place-items:center;color:#f3deb0;background:linear-gradient(#3d4840,#263332);border:1px solid #757360;cursor:pointer}
 .acct.snd .cross,.acct.snd .note,.acct.snd .waves{display:none}
-.acct.snd[data-mode="all"] .note{display:inline}
-.acct.snd[data-mode="fx"] .waves{display:inline}
+.acct.snd[data-mode="all"] .waves{display:inline}
 .acct.snd[data-mode="off"] .cross{display:inline}
 .acct.snd.muted{color:#8a9188}
 @media(max-width:359px){.top{padding-left:10px;padding-right:10px}.purse{gap:6px}.coin{padding:4px 8px}}
@@ -647,3 +646,11 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 .wdrow em{font-style:normal;font-size:10px;margin-left:4px;padding:0 6px;border-radius:6px;background:#4a2a22;color:#f2b8a8}
 .wdrow b{color:#fff1cf;min-width:38px;text-align:right}
 @media(max-width:420px){.skill{width:48px;height:48px;border-radius:13px}.skills{gap:6px}}
+
+/* ---- sound settings panel ---- */
+.soundpop{position:fixed;top:60px;right:10px;z-index:80;width:min(290px,calc(100vw - 20px));padding:12px 14px 14px;border-radius:14px;background:var(--card);border:1px solid var(--line);box-shadow:0 12px 30px #000b}
+.soundpop[hidden]{display:none}
+.soundpop h3{margin:0 0 8px;font:700 16px var(--heading,Georgia,serif);color:#f4dfb2}
+.sp-row{display:grid;grid-template-columns:104px 1fr;align-items:center;gap:10px;margin:8px 0;font-size:13.5px;color:var(--text)}
+.sp-row input[type=range]{width:100%;accent-color:var(--amber);height:28px}
+.soundpop .btn{width:100%;margin-top:6px}
