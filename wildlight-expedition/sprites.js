@@ -321,6 +321,7 @@
       for (const w of weapons) for (const pose of ['idle', 'attack']) paths.push(`heroes/${id}-${w}-${pose}.png`);
     for (const id of MON_IDS) for (const pose of ['idle', 'attack']) paths.push(`monsters/${id}-${pose}.png`);
     paths.push('bg/path.jpg', 'bg/hollow.jpg', 'bg/crossing.jpg');
+    for (const w of ['sword', 'twin', 'great', 'bow', 'staff']) paths.push(`items/${w}.png`);       // weapon pictures (drop lists, forge, rewards)
     await Promise.all(paths.map(load));
 
     window.drawHero = drawHero;

@@ -55,3 +55,8 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - Win: 1-3 stars from how the party finished (`starRating`: someone fell = 1, all alive = 2, all alive and 60%+ HP = 3), the heroes with their remaining HP, reward tiles that count up (`animateCounts`),
   a highlighted new-weapon card with copy pips (and Open Forge when 3 copies can merge), unlock / watchtower banners, Back to the village and Fight again. Defeat: fallen heroes and up to two tips (`defeatTips`) with shortcut buttons.
 - Animations respect `prefers-reduced-motion`. On short screens the card scrolls and its buttons stay pinned to the bottom.
+
+## Item pictures and drop chances
+- `assets/items/<weapon>.png` (256x256, transparent) are the weapon pictures, drawn by `itemIcon(w)` in the drop lists, Forge cards, party weapon list and the reward card. They load with the units art (`sprites.js`).
+- The drop lists show the real chance per won fight: `dropRatePerWin()` (1 / expected wins until a drop, with the bad-luck bonus) x the weapon's weight in the stage table. Do not call these "often" / "rarely":
+  a weapon with 30% of the drops still only drops about once in ten wins. Checked by simulating 100,000 wins per stage.
