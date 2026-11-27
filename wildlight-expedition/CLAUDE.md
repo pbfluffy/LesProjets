@@ -149,3 +149,8 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
   (boss = a boss monster in the pack), ducks on victory, stops on defeat. A repeat run keeps the fight theme going between fights.
 - The header speaker button now cycles three modes (`sfx.toggle()`, key `M`, saved in `localStorage` `wl-sound` as `all` / `fx` / `off`): music + effects, effects only, off. Music only starts after the first tap (autoplay rule)
   and pauses while the tab is hidden.
+
+## Fight sound layers
+- Fight sounds are layered like real impacts: a sharp transient (`crack`), a low body (`thump`), a gritty `crunch` and, for big hits, a sub boom, all routed through a soft-clipping saturator (`punch: true` -> `drive()`) so they hit hard.
+  Hits differ by weapon (`hitEnemy(..., kind)`: `hit` = blade, `hitarrow`, `hitmagic`); melee monsters snarl as they wind up (`growl`, deeper for bigger monsters: the argument is the monster scale), monsters die with a thud and a groan (`pop`, also sized),
+  the boss charge warning is a roar plus taiko (`warn`). `snd(name, arg)` forwards one argument to the sound.

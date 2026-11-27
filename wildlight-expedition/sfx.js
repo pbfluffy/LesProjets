@@ -43,6 +43,18 @@
    * The palette matches the painted storybook look of the game: wooden taps, plucked harp and lute strings, glass and bronze bells,
    * steel and leather for gear and fights, a taiko drum and a brass horn for drama, a breathy flute for the sad and the quiet. */
   const jit = () => 1 + (Math.random() - 0.5) * 0.05;     // a little random pitch so repeated hits do not sound identical
+  /* "punch": a soft-clipping saturator the impacts go through, so they hit hard instead of just being loud */
+  let driveNode = null;
+  function drive() {
+    if (driveNode) return driveNode;
+    const ws = ctx.createWaveShaper(), n = 1024, curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; curve[i] = Math.tanh(3.2 * x) / Math.tanh(3.2); }
+    ws.curve = curve; ws.oversample = '2x';
+    const out = ctx.createGain(); out.gain.value = 0.85;
+    ws.connect(out); out.connect(master);
+    driveNode = ws;
+    return ws;
+  }
   function tone(o) {
     const t0 = ctx.currentTime + (o.at || 0), dur = o.dur || 0.15, v = o.vol == null ? 0.22 : o.vol, j = o.nojit ? 1 : jit();
     const osc = ctx.createOscillator(), g = ctx.createGain();
@@ -55,7 +67,7 @@
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     let out = g; osc.connect(g);
     if (o.lp) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = o.lp; g.connect(f); out = f; }
-    out.connect(master);
+    out.connect(o.punch ? drive() : master);
     osc.start(t0); osc.stop(t0 + dur + 0.05);
   }
   function noise(o) {
@@ -69,7 +81,7 @@
     g.gain.setValueAtTime(0.0001, t0);
     g.gain.exponentialRampToValueAtTime(v, t0 + a);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    src.connect(f); f.connect(g); g.connect(master);
+    src.connect(f); f.connect(g); g.connect(o.punch ? drive() : master);
     src.start(t0, Math.random() * 0.5); src.stop(t0 + dur + 0.05);
   }
   /* additive voices: a set of sine partials [ratio, loudness, decay factor], each fading at its own speed (strings, bells, metal) */
@@ -98,6 +110,22 @@
   const swish = (at, f0, f1, dur, vol, type) => noise({ at, type: type || 'bandpass', f: f0, to: f1, q: 0.8, dur, vol });
   const horn = (f, at, dur, vol) => { tone({ f, at, dur, vol, type: 'sawtooth', lp: 1500, a: 0.04, nojit: true }); tone({ f: f * 1.003, at, dur, vol: vol * 0.7, type: 'sawtooth', lp: 1200, a: 0.05, nojit: true }); };
   const flute = (f, at, dur, vol) => { tone({ f, at, dur, vol, type: 'sine', a: 0.07, nojit: true }); tone({ f: f * 2, at, dur, vol: vol * 0.16, type: 'sine', a: 0.09, nojit: true }); noise({ at, type: 'bandpass', f: f * 2, q: 5, dur, vol: vol * 0.22, a: 0.07 }); };
+  /* fight primitives: a sharp transient, a low body, a gritty crunch, a growl */
+  const crack = (at, vol, f) => noise({ at, type: 'highpass', f: f || 3500, dur: 0.035, vol, a: 0.0005, punch: true });
+  const thump = (at, f, vol, dur) => tone({ f, to: f * 0.3, at, dur: dur || 0.16, vol, type: 'sine', a: 0.002, punch: true });
+  const crunch = (at, vol, f0, f1, dur) => noise({ at, type: 'bandpass', f: f0 || 1400, to: f1 || 350, q: 1.1, dur: dur || 0.12, vol, a: 0.001, punch: true });
+  function growl(f, at, dur, vol) {
+    const t0 = ctx.currentTime + (at || 0);
+    const osc = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(f, t0); osc.frequency.exponentialRampToValueAtTime(Math.max(30, f * 0.7), t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    lfo.frequency.value = 24; lg.gain.value = vol * 0.45; lfo.connect(lg); lg.connect(g.gain);                  // the rattle in the throat
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(1000, t0); lp.frequency.exponentialRampToValueAtTime(320, t0 + dur);
+    osc.connect(g); g.connect(lp); lp.connect(drive());
+    osc.start(t0); lfo.start(t0); osc.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
+    noise({ at, type: 'bandpass', f: f * 3.2, q: 3, dur, vol: vol * 0.45, punch: true });
+  }
   /* C major pentatonic, the same scale as the village music */
   const C5 = 523.25, D5 = 587.33, E5 = 659.25, G5 = 783.99, A5 = 880, C6 = 1046.5, D6 = 1174.7, E6 = 1318.5, G6 = 1568, C7 = 2093;
   const C4 = 261.63, D4 = 293.66, E4 = 329.63, G4 = 392, A4 = 440;
@@ -122,18 +150,21 @@
     retreat: () => { swish(0, 1700, 260, 0.35, 0.18); taiko(0.02, 0.18); },
     /* fights: steel, leather, drums, magic */
     horn: () => { taiko(0, 0.32); horn(196, 0.02, 0.5, 0.11); horn(294, 0.02, 0.5, 0.09); horn(392, 0.3, 0.5, 0.11); horn(587, 0.3, 0.5, 0.06); },
-    slash: () => { swish(0, 3600, 900, 0.14, 0.3); steel(3400, 0.015, 0.035, 0.12); },
-    arrow: () => { pluck(150, 0, 0.22, 0.28); swish(0.01, 2600, 5800, 0.1, 0.12, 'highpass'); },
-    bolt: () => { chime(C6, 0, 0.1, 0.5); chime(E6, 0.05, 0.09, 0.5); chime(G6, 0.1, 0.08, 0.6); tone({ f: 600, to: 1500, dur: 0.16, vol: 0.05, type: 'sine' }); noise({ type: 'highpass', f: 6500, dur: 0.18, vol: 0.04 }); },
-    hit: () => { noise({ type: 'lowpass', f: 1300, to: 280, dur: 0.11, vol: 0.26 }); tone({ f: 165, to: 55, dur: 0.13, vol: 0.28, type: 'sine' }); },
-    crit: () => { steel(880, 0, 0.11, 0.6); noise({ type: 'lowpass', f: 2200, to: 300, dur: 0.14, vol: 0.3 }); tone({ f: 190, to: 50, dur: 0.16, vol: 0.28, type: 'sine' }); bell(C7, 0.03, 0.09, 0.7); },
-    pop: () => { noise({ type: 'lowpass', f: 2000, to: 280, dur: 0.18, vol: 0.13 }); chime(G6, 0.02, 0.08, 0.36); chime(E6, 0.09, 0.07, 0.36); chime(C6, 0.16, 0.07, 0.42); },
-    hurt: () => { tone({ f: 190, to: 78, dur: 0.14, vol: 0.24, type: 'sine' }); noise({ type: 'lowpass', f: 750, to: 300, dur: 0.1, vol: 0.18 }); },
-    hurtcrit: () => { SOUNDS.hurt(); tone({ f: 110, to: 38, dur: 0.26, vol: 0.3, type: 'sine' }); noise({ type: 'highpass', f: 2600, dur: 0.07, vol: 0.1 }); },
-    block: () => { chime(1760, 0, 0.14, 0.7); chime(1175, 0.02, 0.1, 0.8); noise({ type: 'highpass', f: 6000, dur: 0.08, vol: 0.06 }); },
-    barrier: () => { [C5, G5, C6, E6].forEach((f, i) => tone({ f, at: i * 0.045, dur: 0.5, vol: 0.075, type: 'sine', a: 0.12, nojit: true })); swish(0, 300, 2300, 0.3, 0.12); },
+    slash: () => { swish(0, 1500, 5200, 0.06, 0.26); swish(0.05, 5200, 700, 0.13, 0.3); steel(4300, 0.045, 0.06, 0.2); crack(0.025, 0.1, 5000); },
+    arrow: () => { pluck(135, 0, 0.34, 0.32); swish(0.005, 2400, 6800, 0.1, 0.18, 'highpass'); tone({ f: 1700, to: 2700, at: 0.01, dur: 0.12, vol: 0.05, type: 'sine' }); crack(0, 0.08, 4500); },
+    bolt: () => { swish(0, 3000, 9000, 0.16, 0.14, 'highpass'); [0.02, 0.06, 0.09, 0.13].forEach(at => crack(at, 0.09, 3000 + Math.random() * 3000)); tone({ f: 300, to: 1500, dur: 0.18, vol: 0.09, type: 'sawtooth', lp: 3200, punch: true }); chime(C6, 0.02, 0.09, 0.5); chime(G6, 0.08, 0.08, 0.6); },
+    hit: () => { crack(0, 0.32); thump(0, 170, 0.5, 0.17); crunch(0, 0.32, 1700, 320, 0.13); tone({ f: 62, to: 40, dur: 0.2, vol: 0.2, type: 'sine', punch: true }); steel(2900, 0.005, 0.05, 0.16); },
+    hitarrow: () => { crack(0, 0.26, 5000); thump(0, 240, 0.4, 0.1); wood(360, 0, 0.3); crunch(0, 0.18, 2000, 500, 0.08); },
+    hitmagic: () => { swish(0, 2500, 8500, 0.12, 0.16, 'highpass'); tone({ f: 900, to: 170, dur: 0.14, vol: 0.2, type: 'sine', punch: true }); thump(0, 115, 0.4, 0.15); crack(0.005, 0.18, 4000); chime(G6, 0.02, 0.06, 0.3); },
+    growl: (size) => { growl(165 / (size || 1), 0, 0.3, 0.16); },
+    crit: () => { crack(0, 0.45, 3000); thump(0, 125, 0.65, 0.26); thump(0, 58, 0.55, 0.42); crunch(0, 0.4, 2300, 260, 0.2); steel(900, 0, 0.14, 0.7); steel(1350, 0.01, 0.07, 0.5); bell(C7, 0.04, 0.07, 0.8); },
+    pop: (size) => { const z = size || 1; thump(0, 150 / z, 0.5, 0.22); tone({ f: 280 / z, to: 70 / z, dur: 0.32, vol: 0.18, type: 'sawtooth', lp: 700, punch: true }); noise({ type: 'lowpass', f: 2000, to: 260, dur: 0.2, vol: 0.18 }); crack(0, 0.18); },
+    hurt: () => { crack(0, 0.26); crunch(0, 0.36, 1100, 280, 0.13); thump(0, 150, 0.45, 0.16); tone({ f: 230, to: 95, dur: 0.14, vol: 0.2, type: 'sine' }); },
+    hurtcrit: () => { crack(0, 0.4, 3000); crunch(0, 0.45, 1300, 220, 0.2); thump(0, 140, 0.6, 0.22); thump(0, 52, 0.6, 0.45); steel(420, 0, 0.1, 0.55); },
+    block: () => { thump(0, 130, 0.45, 0.17); crack(0, 0.2, 4500); steel(1500, 0, 0.08, 0.45); chime(1760, 0.01, 0.13, 0.7); chime(1175, 0.03, 0.1, 0.8); },
+    barrier: () => { thump(0, 95, 0.28, 0.3); [C5, G5, C6, E6].forEach((f, i) => tone({ f, at: i * 0.045, dur: 0.5, vol: 0.075, type: 'sine', a: 0.12, nojit: true })); swish(0, 300, 2300, 0.3, 0.14); },
     heal: () => { pluck(E5, 0, 0.12, 0.5); pluck(G5, 0.07, 0.12, 0.5); pluck(C6, 0.14, 0.12, 0.6); chime(E6, 0.2, 0.07, 0.7); },
-    warn: () => { taiko(0, 0.3); taiko(0.28, 0.36); tone({ f: 87, dur: 0.75, vol: 0.14, type: 'sawtooth', lp: 320, a: 0.2, nojit: true }); },
+    warn: () => { growl(58, 0, 0.85, 0.34); growl(92, 0.05, 0.75, 0.22); taiko(0, 0.36); taiko(0.3, 0.42); tone({ f: 87, dur: 0.8, vol: 0.12, type: 'sawtooth', lp: 320, a: 0.2, nojit: true }); },
     /* results */
     victory: () => {
       horn(C5, 0, 0.14, 0.12); horn(E5, 0.13, 0.14, 0.12); horn(G5, 0.26, 0.14, 0.12); horn(C6, 0.4, 0.7, 0.13); taiko(0.4, 0.28);
@@ -151,15 +182,15 @@
   };
 
   /* sounds that tend to come in bursts: at most one per this many milliseconds */
-  const GAP = { hit: 45, crit: 80, slash: 70, arrow: 70, bolt: 70, pop: 60, hurt: 70, hurtcrit: 90, block: 90, heal: 200, tap: 40, tick: 30, star: 120, coins: 80, warn: 400 };
+  const GAP = { growl: 260, hitarrow: 45, hitmagic: 45, hit: 45, crit: 80, slash: 70, arrow: 70, bolt: 70, pop: 60, hurt: 70, hurtcrit: 90, block: 90, heal: 200, tap: 40, tick: 30, star: 120, coins: 80, warn: 400 };
   const last = {};
 
-  function play(name) {
+  function play(name, arg) {
     if (!enabled || !ctx || ctx.state !== 'running' || !SOUNDS[name]) return;
     const now = performance.now(), gap = GAP[name] || 25;
     if (last[name] && now - last[name] < gap) return;
     last[name] = now;
-    try { SOUNDS[name](); } catch (e) { /* a sound must never break the game */ }
+    try { SOUNDS[name](arg); } catch (e) { /* a sound must never break the game */ }
   }
 
   /* ---- mute button ---- */
