@@ -1770,7 +1770,7 @@ function drawFx(c, f, t) {
   c.lineCap=c.lineJoin='round';
   if (f.k === 'txt') {
     c.translate(f.x,f.y - q*25);
-    const bounce=1+.17*Math.sin(artClamp(q*4)*Math.PI);
+    const bounce=(1+.17*Math.sin(artClamp(q*4)*Math.PI))*(f.big?1.45:1);
     c.scale(bounce,bounce);
     c.globalAlpha *= 1-q*q;
     artPlace(c,artFxLabel(c,f.text,f.c||'#fff4dc'));

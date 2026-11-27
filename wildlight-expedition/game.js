@@ -79,6 +79,18 @@ const MON = {
   stormdrake: { name: 'Storm Drake', role: 'Stage boss', hp: 1200, armor: 1, cd: 2.4, wind: 0.45, dmg: 16, tgt: 'front', scale: 1.8, boss: true, charge: { first: 6, every: 8, wind: 1.3, dmg: 58 } },
 };
 
+/* Critical hits. A weapon's crit chance (plus 1% per grade of the best copy) and the monsters' crit chance are rolled on every hit;
+   a crit does x1.7 (hero hits) or x1.5 (monster hits, never the telegraphed boss charge). */
+const CRIT = { hero: 1.7, mon: 1.5, perGrade: 0.01 };
+const WEAPON_CRIT = { sword: 0.06, twin: 0.08, great: 0.10, falchion: 0.08, saber: 0.10, rapier: 0.15, buckler: 0.04,
+  bow: 0.08, shortbow: 0.12, longbow: 0.14, crossbow: 0.18, staff: 0.05, heartwood: 0.04, stormstaff: 0.07, frostwand: 0.10 };
+for (const w of Object.keys(WEAPONS)) WEAPONS[w].crit = WEAPON_CRIT[w] || 0.05;
+const MON_CRIT = { brushfang: 0.08, hornet: 0.10, mireadder: 0.08, frostwolf: 0.08, cinderbat: 0.10,
+  beetle: 0.04, barkbear: 0.05, mossturtle: 0.04, icegolem: 0.05, snowyeti: 0.06, magmacrab: 0.05, sentinel: 0.05,
+  spitter: 0.07, reedwisp: 0.07, mistheg: 0.08, rimesprite: 0.08, emberimp: 0.08,
+  boar: 0.08, bogking: 0.08, frostgiant: 0.08, stormdrake: 0.10 };
+for (const m of Object.keys(MON)) MON[m].crit = MON_CRIT[m] || 0.05;
+
 /* Regions: each has its own painted map. pins are the stage signposts (x, y as fractions of the map), towerPos is where
    the boss's watchtower stands. A region opens when the previous region's boss is beaten. */
 const REGIONS = [
@@ -283,7 +295,7 @@ const gradeTag = g => `<span class="grade" style="--g:${GRADES[g].color}">${GRAD
 function heroStats(id) {
   const s = save.heroes[id], d = HERO[id];
   const lm = 1 + 0.12 * (s.lvl - 1), um = (1 + 0.15 * s.up) * GRADES[heroGrade(id)].mult;
-  return { maxHp: Math.round(d.hp * lm), atk: d.atk * lm * um, heal: 14 * lm * um };
+  return { maxHp: Math.round(d.hp * lm), atk: d.atk * lm * um, heal: 14 * lm * um, crit: Math.min(0.6, WEAPONS[s.weapon].crit + CRIT.perGrade * heroGrade(id)) };
 }
 
 /* ---------------------------- farming ------------------------------- */
@@ -683,6 +695,7 @@ function heroCard(id) {
   const key = 'weapons-' + id, owned_ = Object.keys(WEAPONS).filter(x => WEAPONS[x].fam === d.family && owned(x));
   const stats = [['HP', st.maxHp], ['Damage/s', heroDps(id).toFixed(1)]];
   if (w.heal) stats.push(['Heal', Math.round(st.heal * (w.healMult || 1))]);
+  stats.push(['Crit', Math.round(st.crit * 100) + '%']);
   if (w.pierce) stats.push(['Pierce', Math.round(w.pierce * 100) + '%']);
   if (w.shield) stats.push(['Guard', '-' + Math.round(w.shield * 100) + '%']);
   return `<article class="herocard" style="--hc:${HERO_ACCENT[id]}">
@@ -704,7 +717,7 @@ function heroCard(id) {
       <div class="weapons">${owned_.map(x => {
         const n = save.items[x].reduce((a, b) => a + b, 0);
         return `<button class="weapon ${s.weapon === x ? 'on' : ''}" data-act="equip" data-arg="${id}:${x}">
-          ${itemIcon(x, 'sm')}<span><b>${WEAPONS[x].name}</b><small>${WEAPONS[x].desc}</small></span>
+          ${itemIcon(x, 'sm')}<span><b>${WEAPONS[x].name}</b><small>${WEAPONS[x].desc} Crit ${Math.round(WEAPONS[x].crit * 100)}%.</small></span>
           <span class="wmeta">${gradeTag(bestGrade(x))}<small>${n > 1 ? `${n} owned` : ''}</small></span></button>`;
       }).join('')}</div>
       <p class="fine">A hero always wields the best grade they own. Merge copies in the Forge.</p></details>
@@ -759,7 +772,7 @@ function weaponCard(w) {
     const where = STAGES.filter(s => (s.drops || []).some(([x]) => x === w)).map(s => s.name);
     return `<article class="weaponcard locked"><div class="wport">${itemIcon(w)}</div>
       <div class="winfo"><div class="wtop"><h4>${W.name}</h4><span class="pill lock"><i class="ico m lock sm"></i>Not found</span></div>
-        <p class="wdesc">${W.desc}</p><p class="fine">Drops at ${where.join(', ')}.</p></div></article>`;
+        <p class="wdesc">${W.desc} <span class="wcrit">Crit ${Math.round(W.crit * 100)}%</span></p><p class="fine">Drops at ${where.join(', ')}.</p></div></article>`;
   }
   const best = bestGrade(w), ready = items.some((n, g) => g < GRADES.length - 1 && n >= MERGE_N);
   const rows = [];
@@ -778,7 +791,7 @@ function weaponCard(w) {
   return `<article class="weaponcard ${ready ? 'ready' : ''}" style="--g:${GRADES[best].color}">
     <div class="wport">${itemIcon(w)}</div>
     <div class="winfo"><div class="wtop"><h4>${W.name}</h4>${gradeTag(best)}</div>
-      <p class="wdesc">${W.desc}</p>
+      <p class="wdesc">${W.desc} <span class="wcrit">Crit ${Math.round(W.crit * 100)}%</span></p>
       <div class="mergelist">${rows.join('')}</div>
       <div class="wfoot">${foot}</div></div></article>`;
 }
@@ -1102,7 +1115,7 @@ function fxStep(dt) {
   });
 }
 const later = (t, cb) => B.later.push({ t, cb });
-const floater = (x, y, text, c) => B.fx.push({ k: 'txt', x, y, text, c: c || '#fff', t: 0, life: 0.9 });
+const floater = (x, y, text, c, big) => B.fx.push({ k: 'txt', x, y, text, c: c || '#fff', t: 0, life: big ? 1.1 : 0.9, big: !!big });
 
 function firstEnemy() { return aliveE()[0]; }
 
@@ -1125,8 +1138,8 @@ function fireHero(h, st, w) {
     w.hits.forEach((m, i) => {
       later(i * 0.12, () => {
         if (t.dead) return;
-        hitEnemy(t, st.atk * m, i, w.pierce);
-        if (w.splash) for (const o of aliveE()) if (o !== t) hitEnemy(o, st.atk * m * w.splash, i, w.pierce);
+        hitEnemy(t, st.atk * m, i, w.pierce, st.crit);
+        if (w.splash) for (const o of aliveE()) if (o !== t) hitEnemy(o, st.atk * m * w.splash, i, w.pierce, st.crit);
         if (aliveE().length === 0 && B && !B.over) endBattle('win');
       });
     });
@@ -1136,18 +1149,20 @@ function fireHero(h, st, w) {
       cb: () => {
         const tg = t.dead ? firstEnemy() : t;
         if (!tg) return;
-        hitEnemy(tg, dm, 0, w.pierce);
-        if (w.splash) for (const o of aliveE()) if (o !== tg) hitEnemy(o, dm * w.splash, 0, w.pierce);
+        hitEnemy(tg, dm, 0, w.pierce, st.crit);
+        if (w.splash) for (const o of aliveE()) if (o !== tg) hitEnemy(o, dm * w.splash, 0, w.pierce, st.crit);
         if (aliveE().length === 0 && B && !B.over) endBattle('win');
       } });
   }
 }
 
-function hitEnemy(e, raw, i, pierce) {
+function hitEnemy(e, raw, i, pierce, critChance) {
+  const crit = critChance > 0 && Math.random() < critChance;
+  if (crit) raw *= CRIT.hero;
   const armor = MON[e.type].armor * (e.armMult || 1) * (1 - (pierce || 0));
   const d = Math.max(1, Math.round(Math.max(raw * 0.25, raw - armor)));       // armor can take at most 3/4 of a hit
   e.hp -= d; e.flash = 0.15;
-  floater(e.x + (i || 0) * 8, e.y - unitTop(e.type, 56 * MON[e.type].scale) - 4, '-' + d, '#fff');
+  floater(e.x + (i || 0) * 8, e.y - unitTop(e.type, 56 * MON[e.type].scale) - 4, crit ? '-' + d + '!' : '-' + d, crit ? '#ffd24a' : '#fff', crit);
   if (e.hp <= 0) { e.hp = 0; e.dead = true; }
 }
 
@@ -1159,14 +1174,21 @@ function startWind(e, kind) {
 
 function frontHero() { return aliveH()[0]; }
 
-function hurt(h, dmg) {
+function hurt(h, dmg, crit) {
   if (h.dead) return;
   if (B.bar.t > 0) { floater(h.x, h.y - unitTop(h.id, 70) - 4, 'Blocked', '#7cc8ff'); return; }
   const sh = (WEAPONS[save.heroes[h.id].weapon] || {}).shield || 0;          // Sword & shield
   const d = Math.round(dmg * (1 - sh));
   h.hp -= d; h.hit = 0.25;
-  floater(h.x, h.y - unitTop(h.id, 70) - 4, '-' + d, '#ff8a7a');
+  floater(h.x, h.y - unitTop(h.id, 70) - 4, crit ? '-' + d + '!' : '-' + d, crit ? '#ff5a3c' : '#ff8a7a', crit);
+  if (crit) h.hit = 0.4;
   if (h.hp <= 0) { h.hp = 0; h.dead = true; }
+}
+
+/* A normal monster hit: it may crit (the boss charge below never does). */
+function monHit(t, e, d) {
+  const crit = Math.random() < (d.crit || 0);
+  hurt(t, d.dmg * e.dmgMult * (crit ? CRIT.mon : 1), crit);
 }
 
 function strike(e) {
@@ -1188,12 +1210,12 @@ function strike(e) {
     const t = frontHero();
     if (!t) return;
     e.lungeDur = 0.35; e.lunge = 0.35; e.lungeDist = Math.max(10, e.x - t.x - 36);
-    later(0.15, () => hurt(t, d.dmg * e.dmgMult));
+    later(0.15, () => monHit(t, e, d));
   } else {
     const back = aliveH().filter(h => h.id !== 'bren');
     const t = (back.length ? back : aliveH())[Math.floor(Math.random() * (back.length || aliveH().length))];
     if (!t) return;
-    B.fx.push({ k: 'proj', x0: e.x - 10, y0: e.y - 28, x1: t.x, y1: t.y - 28, t: 0, dur: 0.45, kind: 'seed', cb: () => hurt(t, d.dmg * e.dmgMult) });
+    B.fx.push({ k: 'proj', x0: e.x - 10, y0: e.y - 28, x1: t.x, y1: t.y - 28, t: 0, dur: 0.45, kind: 'seed', cb: () => monHit(t, e, d) });
   }
 }
 
@@ -1344,6 +1366,7 @@ function loseHtml() {
     <div class="rhead"><h2 class="rtitle">Your party fell back</h2><p class="rsub2">${B.spec.title}</p></div>
     <div class="rbody">
       ${heroesRow()}
+      ${B.repeatStopped ? '<p class="note repeatstop"><b>∞ Repeat stopped</b> because your party fell.</p>' : ''}
       ${runSumHtml(1)}
       <div class="tipcard">${tips.map(x => `<p>${x.t}${x.btn ? ` <button class="btn alt small" data-act="${x.btn[1]}">${x.btn[0]}</button>` : ''}</p>`).join('')}</div>
       <div class="rbtns"><button class="btn primary" data-act="__again"><i class="ico m swords"></i>Try again</button><button class="btn alt" data-act="__close">Back to the village</button></div>
@@ -1382,7 +1405,7 @@ function showResult() {
       repeatOn = false;                                              // a first clear, a watchtower or a new area gets the full screen
     }
     r.innerHTML = winHtml(w);
-  } else { repeatOn = false; r.innerHTML = loseHtml(); }
+  } else { B.repeatStopped = repeatOn; repeatOn = false; r.innerHTML = loseHtml(); }          // losing a fight always ends a repeat run
   repeatUi();
   r.hidden = false;
   paintPortraits();
@@ -1505,7 +1528,7 @@ function draw() {
     const k = f.t / (f.life || f.dur || 1);
     if (f.k === 'txt') {
       c.globalAlpha = 1 - k * k; c.fillStyle = f.c; c.strokeStyle = 'rgba(0,0,0,.7)'; c.lineWidth = 3;
-      c.font = 'bold 15px sans-serif'; c.textAlign = 'center';
+      c.font = (f.big ? 'bold 21px' : 'bold 15px') + ' sans-serif'; c.textAlign = 'center';
       c.strokeText(f.text, f.x, f.y - k * 24); c.fillText(f.text, f.x, f.y - k * 24); c.globalAlpha = 1;
     } else if (f.k === 'proj') {
       const q = Math.min(1, f.t / f.dur), x = f.x0 + (f.x1 - f.x0) * q, y = f.y0 + (f.y1 - f.y0) * q - Math.sin(q * Math.PI) * 14;
