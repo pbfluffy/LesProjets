@@ -115,3 +115,11 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
   hero card and in the weapon lists), damage x1.7; monsters crit 4-10% for x1.5, never on a boss's telegraphed charge. Rolled per hit (each slash of a saber, splash hits too). Crits show a big gold (hero) or red (monster) number
   with a "!" (`floater(..., big)`, `art.js` bounce). Checked by simulation: balance is unchanged (HP left within a few points with crits on or off).
 - Losing a fight always ends a Repeat run (`showResult`): the defeat screen says "∞ Repeat stopped" and shows the run's totals.
+
+## Fight intro and end graphics
+- `#arena` wraps the battle canvas with two overlays: `#arena-fx` (banners, sparks, reward chips) and `#curtain` (fade to / from black). Code: `introUi`, `introStep`, `outroUi`, `rewardsUi`, `fxAdd`, `fxClear`, `curtain` in `game.js`
+  (block "fight intro / end graphics"); CSS at the end of `style.css`. They are plain DOM + CSS animations; `prefers-reduced-motion` turns the motion off.
+- Start of every fight: fade in from black, a "Fight!" banner (in a repeat run "Fight N" + the stage name), the heroes walk in from the left and the monsters from the right for `INTRO` = 0.85 s while nobody attacks
+  (`step()` is skipped until `B.t >= B.intro`; the sims call `step()` directly so they are not affected).
+- End of a fight: a "VICTORY!" banner with the 1-3 stars and a spark burst (or "Defeated"). In a repeat run the win then shows reward chips (gold, lumber, a new weapon with its picture), fades to black at ~1 s and the next fight
+  starts at ~1.4 s. Normal results (first clear, defeat, Repeat off) clear the overlay and show the result screen as before. `.arena` has the same width rules as the barrier (`--bw` on tablet / PC).
