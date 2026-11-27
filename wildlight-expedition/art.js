@@ -1589,7 +1589,7 @@ function artBattleCharge(x,y) {
 function artBattleGround(c,battle) {
   if (!battle || !battle.enemies) return;
   for (const e of battle.enemies) {
-    if (e.type !== 'boar' || e.dead) continue;
+    if (!(typeof MON !== 'undefined' && MON[e.type] && MON[e.type].charge) || e.dead) continue;
     const scrape = e.kind === 'charge' && e.state === 'wind';
     const rush = e.lunge > 0 && e.lungeDur > .4;
     if (!scrape && !rush) continue;

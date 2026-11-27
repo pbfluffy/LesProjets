@@ -34,27 +34,96 @@ const WEAPONS = {
 
 const MON = {
   brushfang: { name: 'Brushfang', role: 'Pack melee', hp: 28, armor: 0, cd: 2.2, wind: 0.6, dmg: 6, tgt: 'front', scale: 1 },
-  beetle:    { name: 'Rustshell Beetle', role: 'Armored melee', hp: 80, armor: 3, cd: 2.4, wind: 0.5, dmg: 9, tgt: 'front', scale: 1 },
-  spitter:   { name: 'Pinecap Spitter', role: 'Ranged attacker', hp: 45, armor: 0, cd: 3.0, wind: 0.8, dmg: 10, tgt: 'back', scale: 1 },
-  boar:      { name: 'Thornback Boar', role: 'Stage boss', hp: 650, armor: 0, cd: 2.6, wind: 0.4, dmg: 7, tgt: 'front', scale: 1.5,
-               charge: { first: 6, every: 8, wind: 1.4, dmg: 55 } },
+  beetle: { name: 'Rustshell Beetle', role: 'Armored melee', hp: 80, armor: 3, cd: 2.4, wind: 0.5, dmg: 9, tgt: 'front', scale: 1 },
+  spitter: { name: 'Pinecap Spitter', role: 'Ranged attacker', hp: 45, armor: 0, cd: 3, wind: 0.8, dmg: 10, tgt: 'back', scale: 1 },
+  boar: { name: 'Thornback Boar', role: 'Stage boss', hp: 650, armor: 0, cd: 2.6, wind: 0.4, dmg: 7, tgt: 'front', scale: 1.5, boss: true, charge: { first: 6, every: 8, wind: 1.4, dmg: 55 } },
+  bogtoad: { name: 'Bog Toad', role: 'Pack melee', hp: 70, armor: 1, cd: 2.5, wind: 0.55, dmg: 8, tgt: 'front', scale: 1.05 },
+  reedwisp: { name: 'Reed Wisp', role: 'Ranged attacker', hp: 40, armor: 0, cd: 3, wind: 0.8, dmg: 9, tgt: 'back', scale: 1 },
+  mossturtle: { name: 'Moss-shell Turtle', role: 'Armored melee', hp: 110, armor: 3, cd: 2.8, wind: 0.6, dmg: 10, tgt: 'front', scale: 1.1 },
+  bogking: { name: 'Bog King', role: 'Stage boss', hp: 800, armor: 1, cd: 2.6, wind: 0.45, dmg: 12, tgt: 'front', scale: 1.6, boss: true, charge: { first: 6, every: 8, wind: 1.4, dmg: 55 } },
+  frostwolf: { name: 'Frost Wolf', role: 'Pack melee', hp: 36, armor: 0, cd: 2, wind: 0.55, dmg: 7, tgt: 'front', scale: 1 },
+  icegolem: { name: 'Ice Golem', role: 'Armored melee', hp: 160, armor: 4, cd: 3.2, wind: 0.7, dmg: 13, tgt: 'front', scale: 1.3 },
+  frostgiant: { name: 'Frost Giant', role: 'Stage boss', hp: 1000, armor: 2, cd: 2.8, wind: 0.5, dmg: 14, tgt: 'front', scale: 1.75, boss: true, charge: { first: 6, every: 8, wind: 1.3, dmg: 60 } },
+  emberimp: { name: 'Ember Imp', role: 'Ranged attacker', hp: 42, armor: 0, cd: 2.8, wind: 0.8, dmg: 10, tgt: 'back', scale: 0.95 },
+  magmacrab: { name: 'Magma Crab', role: 'Armored melee', hp: 120, armor: 4, cd: 2.6, wind: 0.6, dmg: 11, tgt: 'front', scale: 1.15 },
+  stormdrake: { name: 'Storm Drake', role: 'Stage boss', hp: 1200, armor: 1, cd: 2.4, wind: 0.45, dmg: 16, tgt: 'front', scale: 1.8, boss: true, charge: { first: 6, every: 8, wind: 1.3, dmg: 58 } },
 };
 
+/* Regions: each has its own painted map. pins are the stage signposts (x, y as fractions of the map), towerPos is where
+   the boss's watchtower stands. A region opens when the previous region's boss is beaten. */
+const REGIONS = [
+  { id: 'vale', name: 'Pinewood Vale', stages: ['path', 'hollow', 'crossing'], tower: 'crossing', map: 'map/map.jpg',
+    pins: [[0.25, 0.72], [0.458, 0.667], [0.661, 0.6]], towerPos: [0.889, 0.367], home: 'Village' },
+  { id: 'mire', name: 'Mirewood', stages: ['mirewood', 'causeway', 'toadking'], tower: 'toadking', map: 'map/mire.jpg',
+    pins: [[0.22, 0.72], [0.47, 0.63], [0.70, 0.55]], towerPos: [0.90, 0.38] },
+  { id: 'frost', name: 'Frostpeak', stages: ['frostfall', 'glimmer', 'rimecrown'], tower: 'rimecrown', map: 'map/frost.jpg',
+    pins: [[0.20, 0.70], [0.45, 0.62], [0.70, 0.50]], towerPos: [0.90, 0.32] },
+  { id: 'ember', name: 'Emberwaste', stages: ['cinder', 'quarry', 'magmagate', 'skyreach'], tower: 'skyreach', map: 'map/ember.jpg',
+    pins: [[0.14, 0.74], [0.34, 0.64], [0.55, 0.56], [0.76, 0.46]], towerPos: [0.92, 0.34] },
+];
+
+/* Stage power = monster HP and damage multipliers (armor scales with damage); rec = the hero level the area is balanced for
+   (a party with that level, a weapon grade that fits the region, and good barrier timing wins comfortably). */
 const STAGES = [
-  { id: 'path', name: 'Pinewood Path', req: null, enemies: ['brushfang', 'brushfang', 'brushfang', 'brushfang'],
+  { id: 'path', name: 'Pinewood Path', region: 'vale', req: null, enemies: ['brushfang', 'brushfang', 'brushfang', 'brushfang'],
     waves: { 1: ['brushfang', 'brushfang'], 2: ['brushfang', 'brushfang', 'brushfang'] },      // fewer monsters for a party of 1 or 2
     blurb: 'A pack of Brushfangs. Best for farming gold.', farm: { gold: 4, lumber: 0.3 }, best: 'Gold',
-    first: { gold: 60, lumber: 5 }, drops: [['sword', 3], ['bow', 3], ['staff', 3], ['twin', 1]], repeat: { gold: 12, lumber: 0 }, sky: ['#2d5a45', '#14301f'] },
-  { id: 'hollow', name: 'Ironroot Hollow', req: 'path', enemies: ['beetle', 'beetle', 'spitter'],
+    first: { gold: 60, lumber: 5 }, drops: [['sword', 3], ['bow', 3], ['staff', 3], ['twin', 1]], dropGrade: 0, repeat: { gold: 12, lumber: 0 }, sky: ['#2d5a45', '#14301f'],
+    power: { hp: 1, dmg: 1 }, rec: 1 },
+  { id: 'hollow', name: 'Ironroot Hollow', region: 'vale', req: 'path', enemies: ['beetle', 'beetle', 'spitter'],
     waves: { 1: ['beetle', 'spitter'] },
     blurb: 'Rustshell Beetles screen a Pinecap Spitter. Best for farming lumber.', farm: { gold: 1.5, lumber: 1.5 }, best: 'Lumber',
-    first: { gold: 120, lumber: 10 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5]], repeat: { gold: 15, lumber: 1 }, sky: ['#27495a', '#102430'] },
-  { id: 'crossing', name: 'Thornback Crossing', req: 'hollow', enemies: ['boar'], boss: true,
+    first: { gold: 120, lumber: 10 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5]], dropGrade: 0, repeat: { gold: 15, lumber: 1 }, sky: ['#27495a', '#102430'],
+    power: { hp: 1, dmg: 1 }, rec: 2 },
+  { id: 'crossing', name: 'Thornback Crossing', region: 'vale', req: 'hollow', enemies: ['boar'], boss: true,
     blurb: 'The Thornback Boar fights alone. Defeat it to relight the watchtower and open the next road.',
     farm: { gold: 6, lumber: 2.5 }, best: 'Gold + lumber',
-    first: { gold: 300, lumber: 20, tower: true }, drops: [['twin', 2], ['great', 2], ['sword', 1], ['bow', 1], ['staff', 1]], repeat: { gold: 40, lumber: 3 }, sky: ['#5a4a3a', '#2a1f17'] },
+    first: { gold: 300, lumber: 20, tower: true }, drops: [['twin', 2], ['great', 2], ['sword', 1], ['bow', 1], ['staff', 1]], dropGrade: 0, repeat: { gold: 40, lumber: 3 }, sky: ['#5a4a3a', '#2a1f17'],
+    power: { hp: 1, dmg: 1 }, rec: 4 },
+  { id: 'mirewood', name: 'Mirewood Edge', region: 'mire', req: 'crossing', enemies: ['bogtoad','bogtoad','bogtoad','reedwisp'],
+    blurb: 'Bog Toads lurk in the reeds while a Reed Wisp lights their way.', farm: { gold: 7, lumber: 4.4 }, best: 'Lumber',
+    first: { gold: 465, lumber: 30 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5]], dropGrade: 1, repeat: { gold: 60, lumber: 4 }, sky: ['#2f5a48','#12281f'],
+    power: { hp: 3.18, dmg: 2.3, arm: 1.55 }, rec: 6 },
+  { id: 'causeway', name: 'Sunken Causeway', region: 'mire', req: 'mirewood', enemies: ['mossturtle','mossturtle','reedwisp','reedwisp'],
+    blurb: 'Moss-shell Turtles guard a drowned stone road, with Reed Wisps drifting above it.', farm: { gold: 15.8, lumber: 3.9 }, best: 'Gold',
+    first: { gold: 721, lumber: 45 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 2]], dropGrade: 1, repeat: { gold: 90, lumber: 6 }, sky: ['#31584a','#14291f'],
+    power: { hp: 3.27, dmg: 2.1, arm: 2.01 }, rec: 8 },
+  { id: 'toadking', name: 'Toadking\'s Hollow', region: 'mire', req: 'causeway', enemies: ['bogking'], boss: true,
+    blurb: 'The Bog King squats on his root throne. Defeat him to relight the Mirewood watchtower.', farm: { gold: 18.3, lumber: 6.9 }, best: 'Gold + lumber',
+    first: { gold: 2234, lumber: 135, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 2], ['great', 2.5]], dropGrade: 1, repeat: { gold: 135, lumber: 8 }, sky: ['#3a4a2c','#17200f'],
+    power: { hp: 3.63, dmg: 2.08, arm: 2.27 }, rec: 10 },
+  { id: 'frostfall', name: 'Frostfall Pass', region: 'frost', req: 'toadking', enemies: ['frostwolf','frostwolf','frostwolf','frostwolf'],
+    blurb: 'A Frost Wolf pack hunts through the snowy mountain pass.', farm: { gold: 33.2, lumber: 7.7 }, best: 'Gold',
+    first: { gold: 1732, lumber: 101 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 2]], dropGrade: 2, repeat: { gold: 203, lumber: 12 }, sky: ['#3f5f86','#16243a'],
+    power: { hp: 9.37, dmg: 4.45, arm: 3.41 }, rec: 12 },
+  { id: 'glimmer', name: 'Glimmer Cavern', region: 'frost', req: 'frostfall', enemies: ['icegolem','icegolem','frostwolf'],
+    blurb: 'Ice Golems stand guard among glowing crystals, with a Frost Wolf at their heels.', farm: { gold: 30.8, lumber: 16.8 }, best: 'Lumber',
+    first: { gold: 2684, lumber: 152 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2]], dropGrade: 2, repeat: { gold: 304, lumber: 16 }, sky: ['#2c4e86','#101a3a'],
+    power: { hp: 6.62, dmg: 3.15, arm: 3.77 }, rec: 14 },
+  { id: 'rimecrown', name: 'Rimecrown Summit', region: 'frost', req: 'glimmer', enemies: ['frostgiant'], boss: true,
+    blurb: 'The Frost Giant rules the frozen peak. Defeat him to relight the Frostpeak watchtower.', farm: { gold: 55.8, lumber: 18.8 }, best: 'Gold + lumber',
+    first: { gold: 8320, lumber: 456, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 2], ['great', 3]], dropGrade: 2, repeat: { gold: 456, lumber: 23 }, sky: ['#4a5f86','#1a2038'],
+    power: { hp: 5.07, dmg: 2.8, arm: 4.55 }, rec: 16 },
+  { id: 'cinder', name: 'Cinder Fields', region: 'ember', req: 'rimecrown', enemies: ['emberimp','emberimp','emberimp','magmacrab'],
+    blurb: 'Ember Imps hurl fire across the ashen plain while a Magma Crab blocks the road.', farm: { gold: 101.1, lumber: 21.1 }, best: 'Gold',
+    first: { gold: 6448, lumber: 342 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2]], dropGrade: 3, repeat: { gold: 683, lumber: 32 }, sky: ['#6a3a2c','#241210'],
+    power: { hp: 18.04, dmg: 6.26, arm: 6.13 }, rec: 18 },
+  { id: 'quarry', name: 'Ashen Quarry', region: 'ember', req: 'cinder', enemies: ['magmacrab','magmacrab','emberimp','emberimp'],
+    blurb: 'Magma Crabs have claimed the old obsidian quarry, guarded by Ember Imps.', farm: { gold: 93.8, lumber: 46.1 }, best: 'Lumber',
+    first: { gold: 9995, lumber: 513 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2.5]], dropGrade: 3, repeat: { gold: 1025, lumber: 44 }, sky: ['#5a3830','#1c1012'],
+    power: { hp: 13.84, dmg: 4.4, arm: 7.23 }, rec: 20 },
+  { id: 'magmagate', name: 'Magma Gate', region: 'ember', req: 'quarry', enemies: ['magmacrab','magmacrab','magmacrab','emberimp'],
+    blurb: 'A claw-clacking pack of Magma Crabs holds the ancient gate over the lava.', farm: { gold: 212.5, lumber: 41.3 }, best: 'Gold',
+    first: { gold: 15492, lumber: 769 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 3], ['great', 3]], dropGrade: 3, repeat: { gold: 1538, lumber: 62 }, sky: ['#7a3a22','#26100a'],
+    power: { hp: 14.86, dmg: 4.72, arm: 7.76 }, rec: 22 },
+  { id: 'skyreach', name: 'Skyreach Spire', region: 'ember', req: 'magmagate', enemies: ['stormdrake'], boss: true,
+    blurb: 'The Storm Drake circles the last spire. Defeat it to light the final watchtower.', farm: { gold: 246.5, lumber: 72.3 }, best: 'Gold + lumber',
+    first: { gold: 48025, lumber: 2307, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 3], ['great', 3.5]], dropGrade: 3, repeat: { gold: 2307, lumber: 87 }, sky: ['#3a3f5a','#14162a'],
+    power: { hp: 10.22, dmg: 3.88, arm: 9.29 }, rec: 25 },
 ];
 const STAGE = Object.fromEntries(STAGES.map(s => [s.id, s]));
+const REGION = Object.fromEntries(REGIONS.map(r => [r.id, r]));
+const regionOf = s => REGION[s.region];
 
 const LAYOUT = {
   1: [[290, 192]],
@@ -140,6 +209,13 @@ function adoptSave(raw) {
 
 /* sprites.js reports whether the illustrated art is 'loading', 'ready' or 'failed' (then we use the drawn fallback). */
 const artState = k => (window.spriteState ? window.spriteState[k] : 'failed');
+/* Runs go() once the region's monsters and backgrounds have downloaded (they load on demand, and ahead of time for the next area). */
+function withRegionArt(region, go) {
+  if (!artReady()) return;
+  if (regionReady(region)) { go(); return; }
+  toast('Loading the area…');
+  if (typeof window.ensureRegion === 'function') window.ensureRegion(region).then(ok => { if (ok) go(); });
+}
 const artReady = () => {
   if (artState('units') !== 'loading') return true;
   toast('Loading the art, one moment…');
@@ -157,7 +233,13 @@ const partySize = () => save.party.length;
 const sumLevels = () => party().reduce((a, id) => a + save.heroes[id].lvl, 0);
 /* Monsters are weaker (and packs smaller) for a smaller party, so the first fights are fair with one hero. */
 const partyScale = () => [1, 0.55, 0.8, 1][partySize()] || 1;
-const encounterFor = s => (s.waves && s.waves[partySize()]) || s.enemies;
+/* A smaller party faces a smaller pack: explicit waves if the stage has them, else half the pack for one hero and all but one for two. Bosses fight alone. */
+const encounterFor = s => {
+  const size = partySize(), n = s.enemies.length;
+  if (s.waves && s.waves[size]) return s.waves[size];
+  if (n < 3 || size >= 3) return s.enemies;
+  return s.enemies.slice(0, size === 1 ? Math.ceil(n / 2) : n - 1);
+};
 const lvlCost = l => 40 * l;
 const upCost = u => ({ gold: 80 * (u + 1), lumber: 6 * (u + 1) });
 const canAfford = c => save.gold >= (c.gold || 0) && save.lumber >= (c.lumber || 0);
@@ -187,7 +269,7 @@ function dropWeapon(s) {
   const table = s.drops || [], total = table.reduce((a, [, wt]) => a + wt, 0);
   let r = Math.random() * total, pick = table[table.length - 1][0];
   for (const [w, wt] of table) { if ((r -= wt) < 0) { pick = w; break; } }
-  save.items[pick][0]++;
+  save.items[pick][s.dropGrade || 0]++;
   return pick;
 }
 function rollManualDrop(s) {
@@ -206,8 +288,8 @@ function rollAutoDrops(s, mins) {
   if (part > 0 && Math.random() < DROP.autoPerHour * part) found.push(dropWeapon(s));
   return found;
 }
-const dropNames = list => Object.entries(list.reduce((m, w) => (m[w] = (m[w] || 0) + 1, m), {}))
-  .map(([w, n]) => WEAPONS[w].name + (n > 1 ? ` ×${n}` : '')).join(', ');
+const dropNames = (list, grade = 0) => Object.entries(list.reduce((m, w) => (m[w] = (m[w] || 0) + 1, m), {}))
+  .map(([w, n]) => (grade ? GRADES[grade].name + ' ' : '') + WEAPONS[w].name + (n > 1 ? ` ×${n}` : '')).join(', ');
 
 /* Collects farming loot; returns the weapons found (an array) so callers can announce them. */
 function claimFarm(quiet) {
@@ -217,7 +299,7 @@ function claimFarm(quiet) {
   const found = rollAutoDrops(STAGE[save.farm.stage], g.mins);
   save.farm.since = Date.now();
   persist(); hud();
-  if (!quiet) toast(`Collected ${fmt(g.gold)} gold and ${fmt(g.lumber)} lumber.${found.length ? ` Your party found: ${dropNames(found)}!` : ''}`);
+  if (!quiet) toast(`Collected ${fmt(g.gold)} gold and ${fmt(g.lumber)} lumber.${found.length ? ` Your party found: ${dropNames(found, STAGE[save.farm.stage].dropGrade || 0)}!` : ''}`);
   return found;
 }
 
@@ -234,7 +316,12 @@ function dailyMonster() {
   return pool[h % pool.length];
 }
 function dailyDone() { return save.daily.date === today() && save.daily.done; }
-function dailyReward(m) { return m === 'boar' ? { gold: 150, lumber: 25 } : m === 'beetle' || m === 'spitter' ? { gold: 60, lumber: 15 } : { gold: 50, lumber: 8 }; }
+function dailyReward(m) {
+  const legacy = { brushfang: { gold: 50, lumber: 8 }, beetle: { gold: 60, lumber: 15 }, spitter: { gold: 60, lumber: 15 }, boar: { gold: 150, lumber: 25 } };
+  if (legacy[m]) return legacy[m];
+  const s = STAGES.find(x => x.enemies.includes(m));                   // newer monsters pay a few minutes of their area's farming
+  return { gold: Math.round(s.farm.gold * 14), lumber: Math.round(s.farm.lumber * 10) };
+}
 
 /* ---------------------------- UI shell ------------------------------ */
 /* Header chips stay narrow: 12,345 -> 12.3k, 1,234,567 -> 1.2M (the info sheet shows the exact amount). */
@@ -270,6 +357,9 @@ function render() {
   paintPortraits();
   tickFarm();
   startMapLoop();
+  const chipRow = $('.regions'), chipOn = chipRow && chipRow.querySelector('.on');      // keep the active region chip in view
+  if (chipOn) chipRow.scrollLeft = chipOn.offsetLeft - (chipRow.clientWidth - chipOn.offsetWidth) / 2;
+  if (typeof window.ensureRegion === 'function') window.ensureRegion(featuredStage().region);        // the next fight's art, ahead of time
 }
 
 /* ------------------------------ map --------------------------------- */
@@ -307,13 +397,18 @@ function mapSvg() {
 //   3. the daily hunt, as a slim row
 //   4. every other stage as a compact row. Details such as the possible weapon drops are folded until tapped.
 const uiOpen = new Set();                       // folded sections the player opened (kept across redraws)
+const uiClosed = new Set();                     // sections that start open but the player closed
 document.addEventListener('toggle', e => {
-  const k = e.target && e.target.dataset && e.target.dataset.key;
-  if (k) (e.target.open ? uiOpen.add(k) : uiOpen.delete(k));
+  const el = e.target, k = el && el.dataset && el.dataset.key;
+  if (!k) return;
+  if (el.dataset.defopen === '1') (el.open ? uiClosed.delete(k) : uiClosed.add(k));
+  else (el.open ? uiOpen.add(k) : uiOpen.delete(k));
 }, true);
 
 const assetSrc = p => (typeof window.assetUrl === 'function' ? window.assetUrl(p) : '');
 const artIsReady = () => artState('units') === 'ready';
+const monSrc = m => (typeof window.monIdleUrl === 'function' ? window.monIdleUrl(m) : assetSrc(`monsters/${m}-idle.png`));
+const monArtReady = m => { const s = STAGES.find(x => x.enemies.includes(m)); return !s || (window.regionArt && window.regionArt[s.region] === 'ready'); };
 const resChip = (kind, n) => `<span class="res"><i class="ico ${kind}"></i><b>${fmt(n)}</b></span>`;
 const nextStage = () => STAGES.find(s => isUnlocked(s) && !save.cleared[s.id]) || null;
 const featuredStage = () => nextStage() || (save.farm && STAGE[save.farm.stage]) || STAGES[STAGES.length - 1];
@@ -323,12 +418,12 @@ const foesText = s => Object.entries(foeCounts(s)).map(([m, n]) => MON[m].name +
 
 function stageBg(s) {                           // the painted stage art as a banner (a colour gradient until the art has loaded)
   const sky = `--sky1:${s.sky[0]};--sky2:${s.sky[1]};`;
-  return artIsReady() ? `${sky}--bg:url('${assetSrc(`bg/${s.id}.jpg`)}')` : sky;
+  return stageArt(s) ? `${sky}--bg:url('${assetSrc(`bg/${s.id}.jpg`)}')` : sky;
 }
 function foesHtml(s) {
-  if (!artIsReady()) return '';
+  if (!stageArt(s)) return '';
   return Object.entries(foeCounts(s)).map(([m, n]) =>
-    `<span class="foe" title="${MON[m].name}"><img src="${assetSrc(`monsters/${m}-idle.png`)}" alt="${MON[m].name}" style="height:${Math.round(46 * MON[m].scale)}px">${n > 1 ? `<i>×${n}</i>` : ''}</span>`).join('');
+    `<span class="foe" title="${MON[m].name}"><img src="${monSrc(m)}" alt="${MON[m].name}" onerror="this.remove()" style="height:${Math.round(46 * MON[m].scale)}px">${n > 1 ? `<i>×${n}</i>` : ''}</span>`).join('');
 }
 function stagePill(s) {
   if (!isUnlocked(s)) return '<span class="pill lock"><i class="ico m lock sm"></i>Locked</span>';
@@ -357,7 +452,7 @@ function dropsHtml(s) {                         // folded by default
   const chips = s.drops.map(([w, wt]) => {
     const chance = rate * wt / total;                                   // the real chance, per fight you win
     const tier = chance >= 0.08 ? 'often' : chance >= 0.04 ? 'sometimes' : 'rarely';   // only used to colour the chip
-    return `<div class="dropchip ${tier}">${itemIcon(w, 'sm')}<div><b>${WEAPONS[w].name}</b><small>${FAMILY[WEAPONS[w].fam]} · about ${pctText(chance)} per win</small></div></div>`;
+    return `<div class="dropchip ${tier}">${itemIcon(w, 'sm')}<div><b>${WEAPONS[w].name}${s.dropGrade ? ' ' + gradeTag(s.dropGrade) : ''}</b><small>${FAMILY[WEAPONS[w].fam]} · about ${pctText(chance)} per win</small></div></div>`;
   }).join('');
   return `<details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Possible weapon drops</span><em>${s.drops.length}</em></summary>
     <div class="dropgrid">${chips}</div>
@@ -384,6 +479,7 @@ function featuredCard(s) {
       <div class="bfoot"><div><h3>${s.name}</h3><p>${s.blurb}</p></div><div class="foes">${foesHtml(s)}</div></div>
     </div>
     <div class="sbody">
+      ${recBadge(s)}
       ${save.cleared[s.id] ? `<div class="bestfor">${bestFor(s)}</div>` : ''}
       ${dropsHtml(s)}
       <div class="actions">${stageActions(s, true)}</div>
@@ -395,7 +491,7 @@ function stageRow(s) {
     <div class="thumb" style="${stageBg(s)}"><span>${stageNo(s)}</span></div>
     <div class="rinfo">
       <div class="rtop"><h4>${s.name}</h4>${stagePill(s)}</div>
-      <div class="rsub">${open ? foesText(s) : `Clear ${prev.name} to unlock`}</div>
+      <div class="rsub">${open ? `${foesText(s)} · Lv ${s.rec}` : `Clear ${prev.name} to unlock`}</div>
       ${open ? `<div class="ractions">${stageActions(s, false)}</div>` : ''}
     </div>
     ${open ? dropsHtml(s) : ''}
@@ -404,7 +500,7 @@ function stageRow(s) {
 function dailyCard() {
   const dm = dailyMonster(), dr = dailyReward(dm), done = dailyDone();
   return `<div class="daily ${done ? 'done' : ''}">
-    <span class="dthumb">${artIsReady() ? `<img src="${assetSrc(`monsters/${dm}-idle.png`)}" alt="">` : ''}</span>
+    <span class="dthumb">${artIsReady() && monArtReady(dm) ? `<img src="${monSrc(dm)}" alt="" onerror="this.remove()">` : ''}</span>
     <div class="dinfo"><b>Daily hunt</b><span>${MON[dm].name} ${resChip('gold', dr.gold)}${resChip('lumber', dr.lumber)}</span></div>
     ${done ? '<span class="pill ok"><i class="ico m check sm"></i>Done today</span>' : '<button class="btn small" data-act="bonus">Hunt</button>'}</div>`;
 }
@@ -423,6 +519,47 @@ function farmStrip() {
     <p class="fine">Gathers for up to 24 hours. Weapons can drop too, but rarely, so fight by hand for the best chance.</p></div>`;
 }
 
+/* ------------------------------- regions ------------------------------ */
+// The map shows one region at a time (a painted map per region). Which one: the region of the stage the player should do next,
+// unless they tapped another region's chip (remembered until that "next stage" changes).
+let uiRegion = null;
+const regionUnlocked = r => isUnlocked(STAGE[r.stages[0]]);
+const regionCleared = r => r.stages.filter(id => save.cleared[id]).length;
+function currentRegion() {
+  const f = featuredStage();
+  return uiRegion && uiRegion.at === f.id ? REGION[uiRegion.id] : REGION[f.region];
+}
+function regionChips() {
+  const cur = currentRegion();
+  return `<div class="regions" role="tablist">${REGIONS.map(r => {
+    const locked = !regionUnlocked(r), done = regionCleared(r) === r.stages.length;
+    return `<button class="rchip ${r === cur ? 'on' : ''} ${locked ? 'lock' : ''}" role="tab" aria-selected="${r === cur}" data-act="region" data-arg="${r.id}">
+      ${locked ? '<i class="ico m lock sm"></i>' : done ? '<i class="ico m check sm"></i>' : ''}<span>${r.name}</span><small>${regionCleared(r)}/${r.stages.length}</small></button>`;
+  }).join('')}</div>`;
+}
+/* What the map canvas draws for a region (see drawMap in sprites.js). */
+function mapState(r) {
+  return {
+    map: r.map,
+    pins: r.stages.map((id, i) => ({ id, x: r.pins[i][0], y: r.pins[i][1], n: stageNo(STAGE[id]),
+      state: save.cleared[id] ? 'cleared' : isUnlocked(STAGE[id]) ? 'open' : 'locked' })),
+    tower: { x: r.towerPos[0], y: r.towerPos[1], lit: !!save.cleared[r.tower] },
+    farming: save.farm ? save.farm.stage : null,
+    home: r.home,
+    more: r !== REGIONS[REGIONS.length - 1],
+  };
+}
+const regionReady = id => !!(window.regionArt && window.regionArt[id] === 'ready');
+const stageArt = s => artIsReady() && regionReady(s.region);        // this stage's pictures have downloaded
+
+/* A hint about how the party compares with the area (recommended level is what the area was balanced for). */
+function partyLevel() { return party().reduce((a, id) => a + save.heroes[id].lvl, 0) / partySize(); }
+function recBadge(s) {
+  const lv = partyLevel(), gap = s.rec - lv;
+  const [cls, txt] = gap <= 0 ? ['ok', 'Ready'] : gap <= 2 ? ['mid', 'Close'] : ['hard', 'Too strong: level up first'];
+  return `<span class="rec ${cls}">Recommended Lv <b>${s.rec}</b><i>·</i>Your party Lv <b>${Math.floor(lv)}</b><em>${txt}</em></span>`;
+}
+
 function renderMap() {
   // art.js paints the map on a canvas (animated); the SVG is the fallback when drawMap is missing.
   let h = typeof drawMap === 'function'
@@ -432,18 +569,28 @@ function renderMap() {
       : mapSvg();
 
   const feat = featuredStage(), allDone = !nextStage();
+  h += regionChips();
   h += farmStrip();
   h += `<h2 class="sec">${allDone ? 'Farm &amp; replay' : 'Next up'}</h2>` + featuredCard(feat);
   h += dailyCard();
-  const others = STAGES.filter(s => s !== feat);
-  if (others.length) {
-    const n = STAGES.filter(s => save.cleared[s.id]).length;
-    h += `<h2 class="sec">Roads <small>${n} of ${STAGES.length} cleared</small></h2>` + others.map(stageRow).join('');
+  const nClear = STAGES.filter(s => save.cleared[s.id]).length;
+  h += `<h2 class="sec">Roads <small>${nClear} of ${STAGES.length} cleared</small></h2>`;
+  for (const r of REGIONS) {
+    const rows = r.stages.map(id => STAGE[id]).filter(s => s !== feat);
+    if (!rows.length) continue;
+    const key = 'region-' + r.id, locked = !regionUnlocked(r), defOpen = !locked && REGION[feat.region] === r;
+    const open = defOpen ? !uiClosed.has(key) : uiOpen.has(key);
+    h += `<details class="region ${locked ? 'locked' : ''}" data-key="${key}" data-defopen="${defOpen ? 1 : 0}" ${open ? 'open' : ''}>
+      <summary><span class="rname">${locked ? '<i class="ico m lock sm"></i>' : ''}${r.name}</span><em>${regionCleared(r)} of ${r.stages.length}</em></summary>
+      <div class="rlist">${rows.map(stageRow).join('')}</div></details>`;
   }
-  h += `<p class="note">${save.cleared.crossing ? 'The watchtower is lit. The next road will open in a later version.' : 'Beat the boss at Thornback Crossing to relight the watchtower.'}</p>`;
+  const nextBoss = STAGES.find(s => s.boss && !save.cleared[s.id]);
+  h += `<p class="note">${nextBoss ? `Beat the boss at ${nextBoss.name} to relight the ${REGION[nextBoss.region].name} watchtower.` : 'Every watchtower is lit. More areas will open in a later version.'}</p>`;
   if (TEST_PERIOD) h += `<div class="card testtools"><div class="row between"><h3>Test tools</h3><span class="tag">Test period</span></div>
     <p class="sub">Want to start over? This wipes your progress and begins a brand-new game.</p>
-    <button class="btn danger" data-act="resetask">Reset game data</button></div>`;
+    <button class="btn danger" data-act="resetask">Reset game data</button>
+    <p class="sub" style="margin-top:12px">Testing the new areas? These shortcuts help:</p>
+    <div class="row"><button class="btn alt" data-act="testunlock">Unlock all areas</button><button class="btn alt" data-act="testgold">+10,000 gold &amp; 2,000 lumber</button></div></div>`;
   return h;
 }
 
@@ -460,7 +607,7 @@ function startMapLoop() {
     if (!B) {
       c.setTransform(cvs.width / 360, 0, 0, cvs.height / 150, 0, 0);
       c.globalAlpha = 1;
-      drawMap(c, { cleared: save.cleared, farming: save.farm ? save.farm.stage : null }, (now - t0) / 1000);
+      drawMap(c, mapState(currentRegion()), (now - t0) / 1000);
     }
     mapRaf = requestAnimationFrame(frame);
   };
@@ -657,7 +804,7 @@ const RESOURCES = {
     name: 'Gold', what: 'The expedition\'s coin.',
     get: () => [
       'Win fights by hand: every win pays a little, and the first time you clear a stage it pays a big bonus.',
-      `Send your party to farm a cleared stage and claim it later (up to 24 hours): ${STAGES.map(s => `${s.name} about ${perHour(s, 'gold')} per hour`).join(', ')}.`,
+      (() => { const open = STAGES.filter(s => save.cleared[s.id]), best = (open.length ? open : [STAGES[0]]).reduce((a, b) => (b.farm.gold > a.farm.gold ? b : a)); return `Send your party to farm a cleared stage and claim it later (up to 24 hours). Your best right now is ${best.name}: about ${perHour(best, 'gold')} per hour. Later areas pay much more.`; })(),
       "Finish today's bonus hunt on the Map for extra.",
     ],
     use: () => [
@@ -669,9 +816,9 @@ const RESOURCES = {
   lumber: {
     name: 'Lumber', what: 'Strong timber from the old roads, what weapon upgrades are built from.',
     get: () => {
-      const best = STAGES.slice().sort((a, b) => b.farm.lumber - a.farm.lumber)[0];
+      const cleared = STAGES.filter(s => save.cleared[s.id]), best = (cleared.length ? cleared : [STAGES[0]]).reduce((a, b) => (b.farm.lumber > a.farm.lumber ? b : a));
       return [
-        `Send your party to farm a cleared stage: ${best.name} is best, about ${perHour(best, 'lumber')} per hour (up to 24 hours while you're away).`,
+        `Send your party to farm a cleared stage: your best right now is ${best.name}, about ${perHour(best, 'lumber')} per hour (up to 24 hours while you're away). Later areas pay much more.`,
         'Winning fights and finishing the daily bonus hunt pay a little too.',
       ];
     },
@@ -704,10 +851,11 @@ const actions = {
   claim() { claimFarm(false); render(); },
   farm(id) {
     if (!save.cleared[id]) return;
+    const prevGrade = save.farm ? (STAGE[save.farm.stage].dropGrade || 0) : 0;
     const found = save.farm ? claimFarm(true) : [];
     save.farm = { stage: id, since: Date.now() };
     persist();
-    toast(`${found.length ? `Your party found: ${dropNames(found)}! ` : ''}Party sent to ${STAGE[id].name}.`);
+    toast(`${found.length ? `Your party found: ${dropNames(found, prevGrade)}! ` : ''}Party sent to ${STAGE[id].name}.`);
     render();
   },
   hire(id) {
@@ -741,14 +889,21 @@ const actions = {
   },
   fight(id) {
     const s = STAGE[id];
-    if (!isUnlocked(s) || !artReady()) return;
-    startBattle({ title: s.name, sky: s.sky, enemies: encounterFor(s), hpMult: partyScale(), onWin: () => stageWin(s) });
+    if (!isUnlocked(s)) return;
+    withRegionArt(s.region, () => startBattle({ title: s.name, sky: s.sky, enemies: encounterFor(s), hpMult: partyScale(), power: s.power, bg: s.id, onWin: () => stageWin(s) }));
   },
   bonus() {
-    if (dailyDone() || !artReady()) return;
+    if (dailyDone()) return;
     const m = dailyMonster(), s = STAGES.filter(isUnlocked).find(x => x.enemies.includes(m));
-    startBattle({ title: `Bonus hunt: ${MON[m].name}`, sky: s.sky, enemies: [m], hpMult: (m === 'boar' ? 1 : 1.5) * partyScale(), onWin: () => bonusWin(m) });
+    withRegionArt(s.region, () => startBattle({ title: `Bonus hunt: ${MON[m].name}`, sky: s.sky, enemies: [m], hpMult: (MON[m].boss ? 1 : 1.5) * partyScale(), power: s.power, bg: s.id, onWin: () => bonusWin(m) }));
   },
+  region(id) { if (REGION[id]) { uiRegion = { id, at: featuredStage().id }; render(); } },
+  testunlock() {                                          // test period: open every area (the last one stays to fight for its first-clear reward)
+    if (!TEST_PERIOD) return;
+    STAGES.slice(0, -1).forEach(s => { save.cleared[s.id] = true; if (s.first.tower) save.towers[s.id] = true; });
+    persist(); toast('All areas unlocked.'); render();
+  },
+  testgold() { if (!TEST_PERIOD) return; save.gold += 10000; save.lumber += 2000; persist(); toast('Added 10,000 gold and 2,000 lumber.'); render(); },
   resetask() { if (TEST_PERIOD) showResetDialog(); },
   resetdo() { if (TEST_PERIOD) resetGame(); },
   resetcancel() { closeResetDialog(); },
@@ -778,14 +933,14 @@ function stageWin(s) {
     save.cleared[s.id] = true;
     r.first = true; r.sub = 'First clear!';
     r.gold = s.first.gold; r.lumber = s.first.lumber;
-    if (s.first.tower) { save.towers[s.id] = true; r.tower = true; }
+    if (s.first.tower) { save.towers[s.id] = true; r.tower = true; r.regionName = regionOf(s).name; }
     const nxt = STAGES.find(x => x.req === s.id);
     if (nxt) r.unlock = nxt.name;
   } else {
     r.gold = s.repeat.gold; r.lumber = s.repeat.lumber;
   }
   save.gold += r.gold; save.lumber += r.lumber;
-  r.drop = rollManualDrop(s);                           // random weapon drop, on every win (see DROP)
+  r.drop = rollManualDrop(s); r.dropGrade = s.dropGrade || 0;                           // random weapon drop, on every win (see DROP)
   persist();
   return r;
 }
@@ -811,10 +966,10 @@ function startBattle(spec) {
     B.heroes.push({ id, hp: st.maxHp, maxHp: st.maxHp, cd: 0.4 + Math.random() * 0.4, draw: 0, swing: 0, heal: 2.5, dead: false, hit: 0, x: party().length === 1 ? 108 : HERO[id].x, y: HERO[id].y });
   });
   spec.enemies.forEach((type, i) => {
-    const d = MON[type], hp = Math.round(d.hp * (spec.hpMult || 1));
+    const d = MON[type], pw = spec.power || { hp: 1, dmg: 1 }, hp = Math.round(d.hp * (spec.hpMult || 1) * pw.hp);
     B.enemies.push({ type, hp, maxHp: hp, x: slots[i][0], y: slots[i][1], cd: d.cd * (0.35 + 0.5 * Math.random() + i * 0.08),
       state: 'idle', kind: null, wt: 0, wd: 0, lunge: 0, lungeDur: 0.35, lungeDist: 0, flash: 0, dead: false, fade: 0,
-      chargeT: d.charge ? d.charge.first : 0 });
+      chargeT: d.charge ? d.charge.first : 0, dmgMult: pw.dmg, armMult: pw.arm || pw.dmg });
   });
   $('#battle-title').textContent = spec.title;
   $('#result').hidden = true;
@@ -934,7 +1089,8 @@ function fireHero(h, st, w) {
 }
 
 function hitEnemy(e, raw, i) {
-  const d = Math.max(1, Math.round(raw - MON[e.type].armor));
+  const armor = MON[e.type].armor * (e.armMult || 1);
+  const d = Math.max(1, Math.round(Math.max(raw * 0.25, raw - armor)));       // armor can take at most 3/4 of a hit
   e.hp -= d; e.flash = 0.15;
   floater(e.x + (i || 0) * 8, e.y - unitTop(e.type, 56 * MON[e.type].scale) - 4, '-' + d, '#fff');
   if (e.hp <= 0) { e.hp = 0; e.dead = true; }
@@ -965,7 +1121,7 @@ function strike(e) {
     e.lungeDur = 0.55; e.lunge = 0.55; e.lungeDist = e.x - 150;
     later(0.2, () => {
       if (B.bar.t > 0) { floater(95, 110, 'Blocked!', '#7cc8ff'); B.fx.push({ k: 'ring', x: 95, y: 178, t: 0, life: 0.5, c: '#7cc8ff' }); }
-      else for (const h of aliveH()) hurt(h, d.charge.dmg);
+      else for (const h of aliveH()) hurt(h, d.charge.dmg * e.dmgMult);
     });
     e.chargeT = d.charge.every;
     e.cd = Math.max(d.cd, 1.6);
@@ -976,12 +1132,12 @@ function strike(e) {
     const t = frontHero();
     if (!t) return;
     e.lungeDur = 0.35; e.lunge = 0.35; e.lungeDist = Math.max(10, e.x - t.x - 36);
-    later(0.15, () => hurt(t, d.dmg));
+    later(0.15, () => hurt(t, d.dmg * e.dmgMult));
   } else {
     const back = aliveH().filter(h => h.id !== 'bren');
     const t = (back.length ? back : aliveH())[Math.floor(Math.random() * (back.length || aliveH().length))];
     if (!t) return;
-    B.fx.push({ k: 'proj', x0: e.x - 10, y0: e.y - 28, x1: t.x, y1: t.y - 28, t: 0, dur: 0.45, kind: 'seed', cb: () => hurt(t, d.dmg) });
+    B.fx.push({ k: 'proj', x0: e.x - 10, y0: e.y - 28, x1: t.x, y1: t.y - 28, t: 0, dur: 0.45, kind: 'seed', cb: () => hurt(t, d.dmg * e.dmgMult) });
   }
 }
 
@@ -1006,14 +1162,14 @@ function heroesRow() {
       <div class="vbar"><i class="${pct < 35 ? 'low' : ''}" style="width:${pct}%"></i></div></div>`;
   }).join('')}</div>`;
 }
-function dropCardHtml(w) {
-  const W = WEAPONS[w], n = save.items[w][0], who = WIELDER[W.fam], ready = n >= MERGE_N;
+function dropCardHtml(w, g) {
+  const W = WEAPONS[w], n = save.items[w][g], ready = g < GRADES.length - 1 && n >= MERGE_N, next = GRADES[g + 1] && GRADES[g + 1].name;
   const pips = Array.from({ length: MERGE_N }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
-  return `<div class="dropcard" style="--g:${GRADES[0].color}">
+  return `<div class="dropcard" style="--g:${GRADES[g].color}">
     <div class="vport big">${itemIcon(w)}</div>
     <div class="dinfo2"><small>New weapon!</small><b>${W.name}</b>
-      <div class="dline">${gradeTag(0)}<span class="pips">${pips}</span></div>
-      <p>${ready ? `You have ${n} Common copies: merge them into a Fine ${W.name}.` : `${n} of ${MERGE_N} copies toward a Fine ${W.name}.`}</p>
+      <div class="dline">${gradeTag(g)}<span class="pips">${pips}</span></div>
+      <p>${next ? (ready ? `You have ${n} ${GRADES[g].name} copies: merge them into a ${next} ${W.name}.` : `${n} of ${MERGE_N} copies toward a ${next} ${W.name}.`) : `A ${GRADES[g].name} ${W.name}!`}</p>
       ${ready ? '<button class="btn good small" data-act="__forge">Open Forge</button>' : ''}</div></div>`;
 }
 function winHtml(r) {
@@ -1027,8 +1183,8 @@ function winHtml(r) {
     <div class="rbody">
       ${heroesRow()}
       ${tiles ? `<div class="rtiles">${tiles}</div>` : ''}
-      ${r.drop ? dropCardHtml(r.drop) : ''}
-      ${r.tower ? '<div class="unlockbar"><i class="ico m flame"></i><span><b>The watchtower is relit!</b> The next road will open in a later version.</span></div>' : ''}
+      ${r.drop ? dropCardHtml(r.drop, r.dropGrade) : ''}
+      ${r.tower ? `<div class="unlockbar"><i class="ico m flame"></i><span><b>The ${r.regionName} watchtower is relit!</b> ${r.unlock ? '' : "That's every watchtower: more areas will open in a later version."}</span></div>` : ''}
       ${r.unlock ? `<div class="unlockbar"><i class="ico m unlock"></i><span><b>New area open:</b> ${r.unlock}</span></div>` : ''}
       <div class="rbtns"><button class="btn primary" data-act="__close">Back to the village</button>${r.again ? '<button class="btn alt" data-act="__again"><i class="ico m swords"></i>Fight again</button>' : ''}</div>
     </div></div>`;
