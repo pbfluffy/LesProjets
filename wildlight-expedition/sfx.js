@@ -290,6 +290,12 @@
     mhit: p => (MHIT[(p && p.c) || 'beast'] || MHIT.beast)(),
     mshot: p => (MSHOT[(p && p.c) || 'spirit'] || MSHOT.spirit)(),
     mdie: p => { const k = MDIE_KIND[(p && p.c) || 'beast'] || 'flesh'; MDIE[k]((p && p.s) || 1); },
+    skill_whirlwind: () => { [0, 0.11, 0.22].forEach((at, i) => { swish(at, 1200 + i * 300, 5200, 0.07, 0.2); swish(at + 0.05, 5200, 900, 0.1, 0.22); }); steel(3800, 0.05, 0.06, 0.25); thump(0.2, 120, 0.3, 0.14); },
+    skill_ironguard: () => { thump(0, 110, 0.32, 0.2); steel(1100, 0.01, 0.12, 0.4); [C5, G5, C6].forEach((f, i) => tone({ f, at: 0.05 + i * 0.04, dur: 0.35, vol: 0.07, type: 'sine', a: 0.05, nojit: true })); },
+    skill_arrowrain: () => { [0, 0.07, 0.14, 0.21, 0.28, 0.35].forEach((at, i) => swish(at, 2600 + i * 200, 6800, 0.09, 0.1, 'highpass')); pluck(160, 0, 0.2, 0.25); },
+    skill_snipe: () => { pluck(95, 0, 0.4, 0.4); swish(0.02, 1800, 7500, 0.2, 0.18, 'highpass'); tone({ f: 1400, to: 3800, at: 0.02, dur: 0.18, vol: 0.06, type: 'sine' }); crack(0.3, 0.3, 4500); },
+    skill_bloom: () => { [E5, G5, C6].forEach((f, i) => pluck(f, i * 0.06, 0.11, 0.5)); chime(E6, 0.16, 0.08, 0.5); noise({ type: 'bandpass', f: 3200, q: 1.2, dur: 0.3, vol: 0.05, a: 0.08 }); },
+    skill_storm: () => { crackle(0, 5, 3500, 7000, 0.11); crack(0.1, 0.5, 6000); thump(0.1, 80, 0.45, 0.3); noise({ at: 0.1, type: 'lowpass', f: 500, to: 130, dur: 0.3, vol: 0.18 }); },
     herodown: () => { thump(0, 100, 0.5, 0.3); noise({ type: 'lowpass', f: 600, to: 200, dur: 0.25, vol: 0.15 }); chime(G5, 0.08, 0.06, 0.6); chime(C5, 0.2, 0.06, 0.8); },
   });
 

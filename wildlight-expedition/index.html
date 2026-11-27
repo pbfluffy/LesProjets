@@ -48,11 +48,12 @@
 <section id="battle" hidden>
   <div class="battle-top">
     <div id="battle-title">Battle</div>
-    <div class="bt-btns"><button class="ghost" id="repeat-btn" data-act="repeat" aria-pressed="false" hidden>∞ Repeat</button>
+    <div class="bt-btns"><button class="ghost" id="auto-skill" data-act="autoskill" aria-pressed="true" hidden>Auto on</button><button class="ghost" id="repeat-btn" data-act="repeat" aria-pressed="false" hidden>∞ Repeat</button>
     <button class="ghost" data-act="retreat">Retreat</button></div>
   </div>
   <div id="arena" class="arena"><canvas id="stage" width="800" height="520"></canvas><div id="arena-fx" class="arena-fx" aria-hidden="true"></div><div id="curtain" class="curtain"></div></div>
   <div id="warn" class="warn" aria-live="polite"></div>
+  <div id="skills" class="skills" hidden></div>
   <button id="barrier" class="barrier" data-act="barrier">
     <span id="barrier-fill"></span>
     <span id="barrier-label">Raise barrier</span>
@@ -68,6 +69,7 @@
 <script src="sprites.js?v=dev"></script>
 <script src="sfx.js?v=dev"></script>
 <script src="music.js?v=dev"></script>
+<script src="skills.js?v=dev"></script>
 <script src="game.js?v=dev"></script>
 <script src="cloud.js?v=dev"></script>
 <script src="pwa.js?v=dev"></script>
