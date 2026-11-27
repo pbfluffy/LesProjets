@@ -286,6 +286,22 @@ service cloud.firestore {
                    && request.resource.data.lessons is number;
     }
 
+    // ── Wildlight Expedition — cross-device progress ──────────────────────────
+    // The whole save is one JSON string (it holds nested arrays, which Firestore fields
+    // can't); level / cleared are small copies for the "which progress should we keep?" prompt.
+    // Owner-only: a player can read, write and delete just their own save.
+    match /userWildlight/{uid} {
+      allow read:   if isUser(uid) || isAdmin();
+      allow delete: if isUser(uid) || isAdmin();
+      allow write:  if isUser(uid)
+                    && request.resource.data.keys().hasOnly(['state', 'updatedAt', 'level', 'cleared'])
+                    && request.resource.data.state is string
+                    && request.resource.data.state.size() <= 100000
+                    && request.resource.data.updatedAt is number
+                    && request.resource.data.level is number
+                    && request.resource.data.cleared is number;
+    }
+
     // ── Cloudlingo — problem reports from learners (🚩 in the app) ──────────────
     // Anyone may file one (signed in or not); only admins read and manage them
     // (admindepum ☁️ Cloudlingo tab). uid, if set, must be the reporter's own.
