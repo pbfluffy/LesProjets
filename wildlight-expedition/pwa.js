@@ -46,6 +46,42 @@
     }
   });
 
+  /* ---- Auto-update (same idea as Cloudlingo) ----
+   * Every deploy writes version.json ({"v": "<commit>"}). When it names a newer build than the one running (the ?v= of this script),
+   * the page reloads onto the new version. Never in the middle of a fight: then it waits until the player is back in the village. */
+  const script = document.currentScript;
+  const APP_VERSION = (script && /[?&]v=([^&#]+)/.exec(script.src) || [])[1] || 'dev';
+  let updatePending = false;
+  const busy = () => { try { return typeof B !== 'undefined' && !!B; } catch (e) { return false; } };
+  function applyUpdate() {
+    if (busy()) { updatePending = true; return; }
+    updatePending = false;
+    if (document.querySelector('.update-bar')) return;
+    const bar = document.createElement('div');
+    bar.className = 'update-bar'; bar.setAttribute('role', 'status');
+    bar.textContent = 'Updating to the newest version…';
+    document.body.appendChild(bar);
+    setTimeout(() => location.reload(), 1200);
+  }
+  async function checkForUpdate() {
+    if (APP_VERSION === 'dev' || !navigator.onLine) return;
+    try {
+      const res = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return;
+      const v = (await res.json()).v;
+      if (!v || v === APP_VERSION) return;
+      let tried = null; try { tried = sessionStorage.getItem('wl-update'); } catch (e) { /* ignore */ }
+      if (tried === v) return;                                   // reload at most once per new version (a stale cache could serve the old page again)
+      try { sessionStorage.setItem('wl-update', v); } catch (e) { /* ignore */ }
+      applyUpdate();
+    } catch (e) { /* offline: try again later */ }
+  }
+  window.addEventListener('load', () => setTimeout(checkForUpdate, 3000));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
+  setInterval(checkForUpdate, 15 * 60 * 1000);
+  setInterval(() => { if (updatePending && !busy()) applyUpdate(); }, 4000);          // the fight is over: now it is safe
+  window.wlCheckForUpdate = checkForUpdate;
+
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try { await navigator.serviceWorker.register('sw.js'); } catch (e) { return; }
