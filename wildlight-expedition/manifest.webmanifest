@@ -1,0 +1,19 @@
+{
+  "name": "Wildlight Expedition",
+  "short_name": "Wildlight",
+  "description": "A cozy idle fantasy RPG: lead a small party across wild lands and relight the watchtowers.",
+  "id": "/wildlight-expedition/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14211b",
+  "theme_color": "#14211b",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["games"],
+  "icons": [
+    { "src": "assets/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pwa/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -473,3 +473,13 @@ details.region.locked{opacity:.7}
 .rec.ok em{background:#25502f;color:#b8f0c2}
 .rec.mid em{background:#5f4a14;color:#ffdc8a}
 .rec.hard em{background:#642c25;color:#ffb8a8}
+
+/* ---- installable app card (pwa.js) ---- */
+html,body{overscroll-behavior-y:none}
+.pwa-card{display:flex;align-items:flex-start;gap:12px;position:relative;padding-right:34px}
+.pwa-card>img{border-radius:12px;flex:none;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.pwa-text{min-width:0;flex:1}
+.pwa-text h3{margin:0 0 2px}
+.pwa-text .btn{margin-top:8px}
+.pwa-x{position:absolute;top:4px;right:6px;width:34px;height:34px;border:0;background:none;color:var(--dim);font-size:22px;line-height:1;border-radius:8px;cursor:pointer}
+.pwa-x:hover{color:var(--text)}
