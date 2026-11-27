@@ -22,13 +22,12 @@
   const vec = { hero: window.drawHero, mon: window.drawMon, bg: window.drawBackground };
 
   /* Logical height (in the 400x260 battle space) of each standing idle figure, feet to head. */
-  const HEIGHT = { bren: 98, tavi: 98, iona: 94, brushfang: 46, beetle: 54, spitter: 66, boar: 130 };
-  const SKY_STAGE = { '#2d5a45': 'path', '#27495a': 'hollow', '#5a4a3a': 'crossing' };
+  const HEIGHT = { bren: 98, tavi: 98, iona: 94, brushfang: 46, beetle: 54, spitter: 66, boar: 130,
+    bogtoad: 44, reedwisp: 58, mossturtle: 46, bogking: 130, frostwolf: 48, icegolem: 78, frostgiant: 150, emberimp: 54, magmacrab: 38, stormdrake: 96 };
 
   const HERO_FILES = {
     bren: ['sword', 'twin', 'great'], tavi: ['bow'], iona: ['staff'],
   };
-  const MON_IDS = ['brushfang', 'beetle', 'spitter', 'boar'];
 
   function load(path) {
     return new Promise(resolve => {
@@ -113,20 +112,20 @@
     const m = meta.data && meta.data[type];
     if (!m) return false;
     const lunge = o.lunge || 0, wind = o.dead ? 0 : (o.wind || 0), scrape = o.dead ? 0 : (o.scrape || 0);
-    const boss = type === 'boar';
+    const info = (typeof MON !== 'undefined' && MON[type]) || {}, boss = !!info.boss, ranged = info.tgt === 'back', ext = m.ext || 'png';
     let pose = 'idle';
     if (!o.dead) {
       if (boss) pose = (scrape > 0.05 || lunge > 4) ? 'attack' : 'idle';
-      else if (type === 'brushfang' || type === 'beetle') pose = (wind > 0.3 || lunge > 2) ? 'attack' : 'idle';
-      else pose = wind > 0.35 ? 'attack' : 'idle';
+      else if (ranged) pose = wind > 0.35 ? 'attack' : 'idle';
+      else pose = (wind > 0.3 || lunge > 2) ? 'attack' : 'idle';
     }
-    const im = get(`monsters/${type}-${pose}.png`) || get(`monsters/${type}-idle.png`);
+    const im = get(`monsters/${type}-${pose}.${ext}`) || get(`monsters/${type}-idle.${ext}`);
     if (!im) return false;
     const fade = o.dead ? Math.max(0, 1 - (o.fade || 0) * 1.5) : 1;
     if (!fade) return true;
     const t = o.t || 0;
 
-    shadow(c, x - lunge, y + 1, boss ? 52 : type === 'brushfang' ? 26 : 22, boss ? 11 : 6, 0.45 * fade);
+    shadow(c, x - lunge, y + 1, boss ? 52 : Math.max(20, HEIGHT[type] * 0.5), boss ? 11 : 6, 0.45 * fade);
     c.save();
     c.translate(x - lunge, y);
     c.globalAlpha *= fade;
@@ -134,8 +133,8 @@
     else {
       const bob = Math.sin(t * 4 + x) * (boss ? 0.5 : 0.9);
       c.translate(0, bob);
-      if (type === 'spitter') { const s = 1 + 0.16 * wind; c.scale(s, s); }
-      if (type === 'brushfang') c.scale(1 + wind * 0.05, 1 - wind * 0.08);
+      if (type === 'spitter' || type === 'reedwisp' || type === 'emberimp') { const s = 1 + 0.16 * wind; c.scale(s, s); }
+      if (type === 'brushfang' || type === 'frostwolf') c.scale(1 + wind * 0.05, 1 - wind * 0.08);
       if (boss && scrape > 0) c.translate((Math.random() - 0.5) * 1.4 * scrape, 0);   // trembling before the charge
     }
     stand(c, im, m, HEIGHT[type], 0, 0, o.flash > 0.06 && !o.dead);
@@ -161,8 +160,7 @@
 
   function drawBackground(c) {
     const battle = typeof B === 'undefined' ? null : B;
-    const stage = SKY_STAGE[battle && battle.spec && battle.spec.sky && battle.spec.sky[0]] || 'path';
-    const im = get(`bg/${stage}.jpg`);
+    const im = get(`bg/${(battle && battle.spec && battle.spec.bg) || 'path'}.jpg`) || get('bg/path.jpg');
     if (!im) { if (vec.bg) vec.bg(c); return; }
     cover(c, im, 400, 260, 1);
     const t = battle ? battle.t : 0;
@@ -179,13 +177,6 @@
   }
 
   /* --------------------------------- map ------------------------------- */
-  const PINS = [
-    { id: 'path', x: 90, y: 108, n: '1' },
-    { id: 'hollow', x: 165, y: 100, n: '2' },
-    { id: 'crossing', x: 238, y: 90, n: '3' },
-  ];
-  const TOWER = { x: 320, y: 55 };
-
   /* Draw a map overlay so its ground point (baseX/baseY fractions) lands on (x,y); targetH is the whole frame's height. */
   function place(c, im, m, x, y, targetH) {
     const s = targetH / im.naturalHeight;
@@ -209,77 +200,76 @@
     c.restore();
   }
 
+  /* Draws one region's map on a 360 x 150 canvas.
+     st = { map: 'map/mire.jpg', pins: [{ x, y, n, state: 'locked' | 'open' | 'cleared', id }], tower: { x, y, lit },
+            farming: stage id | null, home: 'Village' | undefined, more: bool (dim distant towers: the road goes on) }
+     x / y are fractions of the map. */
   function drawMap(c, st, t) {
-    const bg = get('map/map.jpg');
-    if (!bg) return;
+    const bg = get(st.map);
     t = t || 0;
-    const cl = st.cleared || {};
     c.clearRect(0, 0, 360, 150);
+    if (!bg) {                                       // this region's map has not arrived yet
+      const g = c.createLinearGradient(0, 0, 0, 150); g.addColorStop(0, '#1c2e24'); g.addColorStop(1, '#101a15');
+      c.fillStyle = g; c.fillRect(0, 0, 360, 150);
+      label(c, 'Unrolling the map…', 180, 78, 10);
+      return;
+    }
     cover(c, bg, 360, 150, 0.5);
+    const mm = meta.data, X = f => f * 360, Y = f => f * 150;
+    const tw = { x: X(st.tower.x), y: Y(st.tower.y) }, lit = !!st.tower.lit;
 
-    const lit = !!cl.crossing;
-    const mm = meta.data;
-    // dim distant towers beyond the watchtower ("later roads")
-    const tu = get('map/tower-unlit.png');
-    if (tu && mm.tower) {
-      c.save(); c.globalAlpha = 0.32;
-      place(c, tu, mm.tower, 352, 36, 28);
-      place(c, tu, mm.tower, 340, 22, 18);
-      c.restore();
+    if (st.more) {                                   // dim distant towers beyond: "later roads"
+      const tu = get('map/tower-unlit.png');
+      if (tu && mm.tower) { c.save(); c.globalAlpha = 0.3; place(c, tu, mm.tower, 352, 36, 28); place(c, tu, mm.tower, 340, 22, 18); c.restore(); }
     }
     const tower = get(lit ? 'map/tower-lit.png' : 'map/tower-unlit.png');
     if (tower && mm.tower) {
+      if (lit) { c.save(); c.globalCompositeOperation = 'lighter'; glow(c, tw.x, tw.y - 46, 70 + 4 * Math.sin(t * 5), '255,190,90', 0.22 + 0.05 * Math.sin(t * 7)); c.restore(); }
+      place(c, tower, mm.tower, tw.x, tw.y + 4, 66);
       if (lit) {
         c.save(); c.globalCompositeOperation = 'lighter';
-        glow(c, TOWER.x, TOWER.y - 46, 70 + 4 * Math.sin(t * 5), '255,190,90', 0.22 + 0.05 * Math.sin(t * 7));
-        c.restore();
-      }
-      place(c, tower, mm.tower, TOWER.x, TOWER.y + 4, 66);
-      if (lit) {
-        c.save(); c.globalCompositeOperation = 'lighter';
-        glow(c, TOWER.x, TOWER.y - 52, 18 + 2 * Math.sin(t * 9), '255,214,120', 0.5);
+        glow(c, tw.x, tw.y - 52, 18 + 2 * Math.sin(t * 9), '255,214,120', 0.5);
         for (let i = 0; i < 6; i++) {
           const u = (t * 0.8 + i * 0.17) % 1;
           c.fillStyle = `rgba(255,200,110,${(1 - u) * 0.8})`;
-          c.fillRect(TOWER.x - 3 + Math.sin(i * 5 + t * 3) * 6, TOWER.y - 54 - u * 24, 1.2, 1.2);
+          c.fillRect(tw.x - 3 + Math.sin(i * 5 + t * 3) * 6, tw.y - 54 - u * 24, 1.2, 1.2);
         }
         c.restore();
       }
     }
 
     // stage markers
-    PINS.forEach((p, i) => {
-      const open = i === 0 || (i === 1 && cl.path) || (i === 2 && cl.hollow);
-      const done = !!cl[p.id];
-      const key = done ? 'cleared' : open ? 'open' : 'locked';
-      const im = get(`map/marker-${key}.png`);
-      if (open && !done) {
+    for (const p of st.pins) {
+      const px = X(p.x), py = Y(p.y), open = p.state === 'open', done = p.state === 'cleared';
+      const im = get(`map/marker-${p.state}.png`);
+      if (open) {
         c.save(); c.globalCompositeOperation = 'lighter';
-        glow(c, p.x, p.y - 6, 22 + 3 * Math.sin(t * 3), '255,200,90', 0.30 + 0.12 * Math.sin(t * 3));
+        glow(c, px, py - 6, 22 + 3 * Math.sin(t * 3), '255,200,90', 0.30 + 0.12 * Math.sin(t * 3));
         c.restore();
       }
-      const MH = 42, baseY = p.y + 6;
-      if (im && mm.marker) place(c, im, mm.marker, p.x, baseY, MH);
+      const MH = 42, baseY = py + 6;
+      if (im && mm.marker) place(c, im, mm.marker, px, baseY, MH);
       else {
         c.fillStyle = done ? '#6cc37c' : open ? '#f2b84b' : '#53635a';
-        c.beginPath(); c.arc(p.x, p.y - 6, 8, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.arc(px, py - 6, 8, 0, Math.PI * 2); c.fill();
       }
-      label(c, p.n, p.x, baseY - 0.665 * MH + 4, 12);   // number sits on the signpost plaque
-    });
+      label(c, String(p.n), px, baseY - 0.665 * MH + 4, 12);   // the number sits on the signpost plaque
+    }
 
     // the party's camp where they are farming
     if (st.farming) {
-      const p = PINS.find(q => q.id === st.farming), im = get('map/camp.png');
+      const p = st.pins.find(q => q.id === st.farming), im = get('map/camp.png');
       if (p && im && mm.camp) {
+        const px = X(p.x), py = Y(p.y);
         c.save(); c.globalCompositeOperation = 'lighter';
-        glow(c, p.x + 24, p.y + 4, 18 + 2 * Math.sin(t * 8), '255,170,70', 0.28 + 0.08 * Math.sin(t * 11));
+        glow(c, px + 24, py + 4, 18 + 2 * Math.sin(t * 8), '255,170,70', 0.28 + 0.08 * Math.sin(t * 11));
         c.restore();
-        place(c, im, mm.camp, p.x + 26, p.y + 12, 36);
+        place(c, im, mm.camp, px + 26, py + 12, 36);
       }
     }
 
-    label(c, 'Village', 34, 140, 9);
-    label(c, lit ? 'Relit!' : 'Watchtower', TOWER.x - 6, TOWER.y + 18, 9);
+    if (st.home) label(c, st.home, 34, 140, 9);
+    label(c, lit ? 'Relit!' : 'Watchtower', tw.x - 6, tw.y + 18, 9);
 
     // soft vignette
     const v = c.createRadialGradient(180, 75, 70, 180, 75, 230);
@@ -289,12 +279,38 @@
 
   /* -------------------------------- boot ------------------------------- */
   // game.js shows a loading placeholder (never the drawn fallback art) while a state is 'loading'.
-  //   map:   the village map and its pieces      units: heroes, monsters and battle backgrounds
+  //   map:   the region maps and their pieces      units: heroes, weapon pictures, and the first region's monsters and backgrounds
+  // Every other region's monsters and backgrounds load on demand (ensureRegion), so a new player does not download them all.
   window.spriteState = { map: 'loading', units: 'loading' };
   const refresh = () => { if (typeof render === 'function') render(); };
 
-  const MAP_PATHS = ['map/map.jpg', 'map/tower-unlit.png', 'map/tower-lit.png', 'map/marker-locked.png', 'map/marker-open.png',
-    'map/marker-cleared.png', 'map/camp.png'];
+  const REGION_ART = {
+    vale:  { mon: ['brushfang', 'beetle', 'spitter', 'boar'], bg: ['path', 'hollow', 'crossing'] },
+    mire:  { mon: ['bogtoad', 'reedwisp', 'mossturtle', 'bogking'], bg: ['mirewood', 'causeway', 'toadking'] },
+    frost: { mon: ['frostwolf', 'icegolem', 'frostgiant'], bg: ['frostfall', 'glimmer', 'rimecrown'] },
+    ember: { mon: ['emberimp', 'magmacrab', 'stormdrake'], bg: ['cinder', 'quarry', 'magmagate', 'skyreach'] },
+  };
+  const MAP_PATHS = ['map/map.jpg', 'map/mire.jpg', 'map/frost.jpg', 'map/ember.jpg', 'map/tower-unlit.png', 'map/tower-lit.png',
+    'map/marker-locked.png', 'map/marker-open.png', 'map/marker-cleared.png', 'map/camp.png'];
+  window.regionArt = { vale: 'loading', mire: 'idle', frost: 'idle', ember: 'idle' };       // idle | loading | ready
+  const regionLoads = {};
+
+  const monPaths = id => ['idle', 'attack'].map(p => `monsters/${id}-${p}.${(meta.data && meta.data[id] && meta.data[id].ext) || 'png'}`);
+  /* Loads a region's monsters and battle backgrounds once; resolves when they are ready (missing pictures fall back to the drawn art). */
+  window.monIdleUrl = id => url(monPaths(id)[0]);                 // the picture of a monster for the home cards
+  window.ensureRegion = id => {
+    if (!REGION_ART[id] || !meta.data) return Promise.resolve(false);
+    if (window.regionArt[id] === 'ready') return Promise.resolve(true);
+    if (regionLoads[id]) return regionLoads[id];
+    window.regionArt[id] = 'loading';
+    const a = REGION_ART[id];
+    regionLoads[id] = Promise.all([...a.mon.flatMap(monPaths), ...a.bg.map(b => `bg/${b}.jpg`)].map(load)).then(() => {
+      window.regionArt[id] = 'ready';
+      refresh();                                   // the home cards can show this region's pictures now
+      return true;
+    });
+    return regionLoads[id];
+  };
 
   async function boot() {
     // The first screen is the map, so fetch its pictures straight away, alongside meta.json.
@@ -319,10 +335,8 @@
     const paths = [];
     for (const [id, weapons] of Object.entries(HERO_FILES))
       for (const w of weapons) for (const pose of ['idle', 'attack']) paths.push(`heroes/${id}-${w}-${pose}.png`);
-    for (const id of MON_IDS) for (const pose of ['idle', 'attack']) paths.push(`monsters/${id}-${pose}.png`);
-    paths.push('bg/path.jpg', 'bg/hollow.jpg', 'bg/crossing.jpg');
     for (const w of ['sword', 'twin', 'great', 'bow', 'staff']) paths.push(`items/${w}.png`);       // weapon pictures (drop lists, forge, rewards)
-    await Promise.all(paths.map(load));
+    await Promise.all([...paths.map(load), window.ensureRegion('vale')]);
 
     window.drawHero = drawHero;
     window.drawMon = drawMon;

@@ -1,69 +1,149 @@
 {
-    "bren":  {
-                 "frameW":  812,
-                 "frameH":  512,
-                 "feetX":  0.5,
-                 "feetY":  0.97461,
-                 "figureH":  0.93853
-             },
-    "tavi":  {
-                 "frameW":  526,
-                 "frameH":  512,
-                 "feetX":  0.5,
-                 "feetY":  0.97461,
-                 "figureH":  0.94922
-             },
-    "iona":  {
-                 "frameW":  606,
-                 "frameH":  512,
-                 "feetX":  0.5,
-                 "feetY":  0.97461,
-                 "figureH":  0.89707
-             },
-    "brushfang":  {
-                      "frameW":  982,
-                      "frameH":  512,
-                      "feetX":  0.5,
-                      "feetY":  0.97461,
-                      "figureH":  0.80216
-                  },
-    "beetle":  {
-                   "frameW":  828,
-                   "frameH":  512,
-                   "feetX":  0.5,
-                   "feetY":  0.97461,
-                   "figureH":  0.78362
-               },
-    "spitter":  {
-                    "frameW":  556,
-                    "frameH":  512,
-                    "feetX":  0.5,
-                    "feetY":  0.97461,
-                    "figureH":  0.88104
-                },
-    "boar":  {
-                 "frameW":  1076,
-                 "frameH":  640,
-                 "feetX":  0.5,
-                 "feetY":  0.975,
-                 "figureH":  0.73574
-             },
-    "tower":  {
-                  "frameW":  186,
-                  "frameH":  400,
-                  "baseX":  0.5,
-                  "baseY":  0.975
-              },
-    "marker":  {
-                   "frameW":  228,
-                   "frameH":  240,
-                   "baseX":  0.5,
-                   "baseY":  0.975
-               },
-    "camp":  {
-                 "frameW":  336,
-                 "frameH":  320,
-                 "baseX":  0.5,
-                 "baseY":  0.975
-             }
+  "bren": {
+    "frameW": 812,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.93853
+  },
+  "tavi": {
+    "frameW": 526,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.94922
+  },
+  "iona": {
+    "frameW": 606,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.89707
+  },
+  "brushfang": {
+    "frameW": 982,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.80216
+  },
+  "beetle": {
+    "frameW": 828,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.78362
+  },
+  "spitter": {
+    "frameW": 556,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.88104
+  },
+  "boar": {
+    "frameW": 1076,
+    "frameH": 640,
+    "feetX": 0.5,
+    "feetY": 0.975,
+    "figureH": 0.73574
+  },
+  "tower": {
+    "frameW": 186,
+    "frameH": 400,
+    "baseX": 0.5,
+    "baseY": 0.975
+  },
+  "marker": {
+    "frameW": 228,
+    "frameH": 240,
+    "baseX": 0.5,
+    "baseY": 0.975
+  },
+  "camp": {
+    "frameW": 336,
+    "frameH": 320,
+    "baseX": 0.5,
+    "baseY": 0.975
+  },
+  "bogtoad": {
+    "frameW": 812,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.81055,
+    "ext": "webp"
+  },
+  "reedwisp": {
+    "frameW": 448,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.81836,
+    "ext": "webp"
+  },
+  "mossturtle": {
+    "frameW": 810,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.80469,
+    "ext": "webp"
+  },
+  "bogking": {
+    "frameW": 956,
+    "frameH": 640,
+    "feetX": 0.5,
+    "feetY": 0.975,
+    "figureH": 0.88906,
+    "ext": "webp"
+  },
+  "frostwolf": {
+    "frameW": 846,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.84961,
+    "ext": "webp"
+  },
+  "icegolem": {
+    "frameW": 476,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.80664,
+    "ext": "webp"
+  },
+  "frostgiant": {
+    "frameW": 716,
+    "frameH": 640,
+    "feetX": 0.5,
+    "feetY": 0.975,
+    "figureH": 0.76406,
+    "ext": "webp"
+  },
+  "emberimp": {
+    "frameW": 574,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.76758,
+    "ext": "webp"
+  },
+  "magmacrab": {
+    "frameW": 768,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.53711,
+    "ext": "webp"
+  },
+  "stormdrake": {
+    "frameW": 1222,
+    "frameH": 640,
+    "feetX": 0.5,
+    "feetY": 0.975,
+    "figureH": 0.77969,
+    "ext": "webp"
+  }
 }
