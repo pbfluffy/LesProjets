@@ -47,6 +47,7 @@
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    if (typeof buildPack === 'function') buildPack();
     return ctx;
   }
   function unlock() {
@@ -336,6 +337,189 @@
     herodown: () => { thump(0, 100, 0.5, 0.3); noise({ type: 'lowpass', f: 600, to: 200, dur: 0.25, vol: 0.15 }); chime(G5, 0.08, 0.06, 0.6); chime(C5, 0.2, 0.06, 0.8); },
   });
 
+  /* ======================= recorded samples (free CC0 packs, see assets/sfx/CREDITS.md) =======================
+   * assets/sfx/pack.bin holds ~170 short clips (mono 16-bit PCM, 22050 Hz) in ~40 groups, index.json says where. Once it has loaded, the sounds below play recorded
+   * swishes, steel, bodies, monsters and spells (a random variant each time, never the same twice in a row, with the guide's pitch and gain variation);
+   * until then, or if the files are missing, the synthesised sounds above play instead. Some sounds layer a little synthesis (a thump, a chime) on top of a recording. */
+  let packRaw = null, pack = null;
+  function buildPack() {
+    if (pack || !packRaw || !ctx) return;
+    const { idx, pcm } = packRaw, groups = {};
+    for (const [name, list] of Object.entries(idx.groups)) {
+      groups[name] = list.map(([off, len]) => {
+        const buf = ctx.createBuffer(1, len, idx.rate), d = buf.getChannelData(0);
+        let pk = 0, ss = 0;
+        for (let i = 0; i < len; i++) { const v = pcm[off + i] / 32768; d[i] = v; const a = Math.abs(v); if (a > pk) pk = a; ss += v * v; }
+        const rms = Math.sqrt(ss / len) || 1e-4;
+        return { buf, gain: Math.max(0.4, Math.min(0.9 / (pk || 1), 0.1 / rms)) };               // even out clips that were recorded loudly or quietly
+      });
+    }
+    pack = groups;
+  }
+  function loadPack() {
+    if (packRaw || loadPack.started) return;
+    loadPack.started = true;
+    const url = f => (typeof window.assetUrl === 'function' ? window.assetUrl('sfx/' + f) : 'assets/sfx/' + f);
+    Promise.all([fetch(url('index.json')).then(r => r.json()), fetch(url('pack.bin')).then(r => r.arrayBuffer())])
+      .then(([idx, bin]) => { packRaw = { idx, pcm: new Int16Array(bin) }; buildPack(); })
+      .catch(() => { /* no recordings: the synthesised sounds are used */ });
+  }
+  const lastPick = {}, SMP_LEVEL = 0.7;                 // recordings are normalised hotter than the synthesised sounds
+  /* play one recorded clip of a group: o = { gain, rate, at, dur (cut it short with a fade) } */
+  function smp(group, o) {
+    o = o || {};
+    const list = pack && pack[group];
+    if (!list || !list.length) return false;
+    let i = Math.floor(Math.random() * list.length);
+    if (list.length > 1 && i === lastPick[group]) i = (i + 1) % list.length;
+    lastPick[group] = i;
+    const c = list[i], t0 = ctx.currentTime + (o.at || 0);
+    const src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = c.buf; src.playbackRate.value = (o.rate || 1) * jit();
+    const lv = c.gain * (o.gain == null ? 1 : o.gain) * gv * vmul * SMP_LEVEL;
+    g.gain.setValueAtTime(lv, t0);
+    if (o.dur) { g.gain.setValueAtTime(lv, t0 + Math.max(0, o.dur - 0.04)); g.gain.linearRampToValueAtTime(0.0001, t0 + o.dur); }
+    src.connect(g); g.connect(curBus);
+    src.start(t0); if (o.dur) src.stop(t0 + o.dur + 0.02);
+    return true;
+  }
+  const SWG = { sword: 'swing_mid', twin: 'swing_light', great: 'swing_heavy', falchion: 'swing_heavy', saber: 'swing_light', rapier: 'swing_light', buckler: 'swing_mid' };
+  const CONTACT = {                                                              // what the weapon itself sounds like when it lands (staves without an entry use the synthesised impact)
+    sword: () => smp('blade_hit', { gain: 0.9 }),
+    falchion: () => { smp('blade_hit', { gain: 0.95, rate: 0.88 }); thump(0, 120, 0.2, 0.14); },
+    saber: () => smp('blade_hit', { gain: 0.8, rate: 1.15 }),
+    twin: () => smp('blade_hit', { gain: 0.75, rate: 1.08 }),
+    great: () => { smp('body_thud', { gain: 1 }); smp('blade_hit', { gain: 0.7, rate: 0.8 }); thump(0, 90, 0.25, 0.22); },
+    rapier: () => smp('clash_knife', { gain: 0.9 }),
+    buckler: () => { smp('body_thud', { gain: 0.9 }); smp('clash_knife', { gain: 0.5, rate: 0.8 }); wood(300, 0, 0.18); },
+    bow: a => arrowLand(a, 1), shortbow: a => arrowLand(a, 1.15), longbow: a => arrowLand(a, 0.88),
+    crossbow: a => { smp('body_thud', { gain: 0.8 }); if (a) smp('clash_knife', { gain: 0.5 }); else smp('mat_wood', { gain: 0.5 }); },
+    stormstaff: () => { crack(0, 0.4, 6500); smp('magic_storm', { gain: 0.7, dur: 0.3 }); thump(0.02, 70, 0.3, 0.3); },
+    frostwand: () => { crack(0, 0.3, 7500); smp('glass_hit', { gain: 0.6 }); [0, 0.05, 0.1].forEach(at => chime(rnd(2000, 4500), at, 0.05, 0.25)); },
+  };
+  function arrowLand(armored, rate) { if (armored) smp('clash_knife', { gain: 0.6, rate: 1.2 }); else { smp('mat_wood', { gain: 0.8, rate }); thump(0, 230, 0.25, 0.09); } }
+  const MAT_SMP = { slime: ['mat_slime', 1], beast: ['body_thud', 0.7], armored: ['mat_armored', 0.9], golem: ['mat_stone', 0.9], plant: ['mat_wood', 0.8], ghost: ['spirit_voice', 0.35, 0.16], shield: ['body_thud', 0.8] };
+  const SMP = {
+    swing: w => {
+      const g = SWG[w] || 'swing_mid';
+      if (w === 'twin') { smp(g, { gain: 0.8 }); smp(g, { gain: 0.8, at: 0.12, rate: 1.08 }); }
+      else if (w === 'saber') [0, 1, 2].forEach(i => smp(g, { gain: 0.75, at: i * 0.12, rate: 1 + i * 0.06 }));
+      else if (w === 'rapier') smp(g, { gain: 0.7, rate: 1.3 });
+      else if (w === 'falchion') smp(g, { gain: 0.95, rate: 0.88 });
+      else if (w === 'great') { smp(g, { gain: 1 }); thump(0.1, 95, 0.12, 0.25); }
+      else smp(g, { gain: 0.9 });
+      return true;
+    },
+    release: w => {
+      pluck({ bow: 135, shortbow: 210, longbow: 92, crossbow: 120 }[w] || 135, 0, 0.3, 0.28);                       // the string
+      smp('whoosh', { gain: 0.35, rate: w === 'longbow' ? 0.9 : 1.1, at: 0.01, dur: 0.22 });                          // the arrow in the air
+      if (w === 'crossbow') smp('lock', { gain: 0.6 });
+      return true;
+    },
+    cast: w => smp({ staff: 'magic_nature', heartwood: 'magic_heal', stormstaff: 'magic_storm', frostwand: 'magic_frost' }[w] || 'magic_nature', { gain: 0.8, dur: 0.45, rate: w === 'heartwood' ? 1.12 : 1 }),
+    healfx: w => smp('magic_heal', { gain: 0.7, dur: 0.45, rate: { staff: 1, heartwood: 0.95, stormstaff: 1.2, frostwand: 1.1 }[w] || 1 }),
+    wimpact: p => {
+      const w = (p && p.w) || 'sword', a = !!(p && (p.a || p.m === 'armored')), g = (p && p.g) || 1;
+      quiet(g, () => { const f = CONTACT[w]; if (f) f(a); else (IMPACT[w] || IMPACT.sword)(a); });
+      const m = p && MAT_SMP[p.m];
+      if (m) quiet(0.45 * g, () => { smp(m[0], { gain: m[1], dur: m[2] }); });               // the surface, 6 dB under the contact
+      else if (p && MATERIAL[p.m]) quiet(0.5 * g, MATERIAL[p.m]);
+      return true;
+    },
+    crit: k => {
+      if (k === 'magic') { smp('glass_hit', { gain: 0.7, dur: 0.25 }); chime(E6, 0, 0.1, 0.25); chime(C7, 0.04, 0.08, 0.3); }
+      else if (k === 'heavy') { smp('clash', { gain: 0.7, dur: 0.28 }); thump(0, 140, 0.3, 0.2); }
+      else { smp('clash_knife', { gain: 0.85, dur: 0.2 }); chime(C7, 0.04, 0.06, 0.2); chime(G6, 0.09, 0.05, 0.2); }
+      return true;
+    },
+    block: () => { smp('body_thud', { gain: 0.9 }); smp('clash_knife', { gain: 0.6, rate: 0.85 }); return true; },
+    hurt: () => { smp('cloth', { gain: 0.6 }); thump(0, 130, 0.25, 0.14); return true; },
+    hurtcrit: () => { smp('cloth', { gain: 0.8, rate: 0.9 }); thump(0, 115, 0.4, 0.2); thump(0, 55, 0.3, 0.25); return true; },
+    herodown: () => { smp('cloth', { gain: 0.9, rate: 0.8 }); thump(0, 100, 0.4, 0.3); chime(G5, 0.08, 0.06, 0.6); chime(C5, 0.2, 0.06, 0.8); return true; },
+    barrier: () => { smp('magic_tele', { gain: 0.5, dur: 0.4, rate: 1.1 }); thump(0, 95, 0.25, 0.3); swish(0, 300, 2300, 0.3, 0.1); return true; },
+    warn: () => { smp('roar', { gain: 0.9, dur: 0.5, rate: 0.9 }); taiko(0, 0.34); taiko(0.25, 0.4); return true; },
+    mwind: p => {
+      const c = (p && p.c) || 'beast', r = 1 / Math.sqrt((p && p.s) || 1);
+      switch (c) {
+        case 'beast': return smp('beast_voice', { gain: 0.9, rate: r, dur: 0.35 });
+        case 'giant': return smp('giant_voice', { gain: 0.95, rate: r, dur: 0.5 });
+        case 'dragon': return smp('roar', { gain: 0.9, dur: 0.55, rate: 0.95 });
+        case 'frog': return smp('slime_voice', { gain: 0.9, rate: 0.8 * r, dur: 0.3 });
+        case 'snake': return smp('hiss', { gain: 0.7, dur: 0.35 });
+        case 'bat': return smp('creature_misc', { gain: 0.8, rate: 1.15, dur: 0.3 });
+        case 'spirit': case 'hag': return smp('spirit_voice', { gain: 0.85, dur: 0.4 });
+        case 'ice': return smp('spirit_voice', { gain: 0.85, dur: 0.4, rate: 1.2 });
+        case 'fire': return smp('magic_fire', { gain: 0.6, dur: 0.35 });
+        case 'plant': return smp('mat_wood', { gain: 0.7, rate: 0.8 });
+        case 'crab': [0, 0.07, 0.14].forEach(at => smp('mat_wood', { gain: 0.6, at, rate: 1.3 })); return true;
+        default: return false;                                                      // insects (a buzz) and golems (a rumble) stay synthesised
+      }
+    },
+    mhit: p => {
+      const c = (p && p.c) || 'beast';
+      const bite = g => smp('bite', { gain: g });
+      switch (c) {
+        case 'beast': case 'bat': bite(0.9); smp('body_thud', { gain: 0.35 }); return true;
+        case 'insect': return bite(1);
+        case 'snake': bite(0.8); smp('hiss', { gain: 0.4, dur: 0.2 }); return true;
+        case 'giant': smp('body_thud', { gain: 1 }); thump(0, 85, 0.45, 0.3); return true;
+        case 'dragon': bite(0.9); smp('roar', { gain: 0.3, dur: 0.3 }); thump(0, 100, 0.3, 0.2); return true;
+        case 'frog': smp('slime_voice', { gain: 0.8, dur: 0.2 }); smp('body_thud', { gain: 0.5 }); return true;
+        case 'golem': smp('mat_stone', { gain: 1 }); smp('body_thud', { gain: 0.7 }); return true;
+        case 'crab': smp('clash_knife', { gain: 0.5, dur: 0.12 }); bite(0.6); return true;
+        case 'plant': smp('mat_wood', { gain: 0.9 }); smp('body_thud', { gain: 0.4 }); return true;
+        case 'ice': smp('glass_hit', { gain: 0.6, dur: 0.2 }); smp('body_thud', { gain: 0.5 }); return true;
+        case 'fire': smp('magic_fire', { gain: 0.6, dur: 0.25 }); smp('body_thud', { gain: 0.5 }); return true;
+        default: smp('magic_nature', { gain: 0.6, dur: 0.25 }); smp('body_thud', { gain: 0.5 }); return true;      // spirits and hags: a magical movement
+      }
+    },
+    mshot: p => {
+      switch ((p && p.c) || 'spirit') {
+        case 'plant': return smp('bubble', { gain: 0.9 });
+        case 'hag': return smp('spirit_voice', { gain: 0.6, dur: 0.3 });
+        case 'ice': return smp('magic_frost', { gain: 0.5, dur: 0.3 });
+        case 'fire': return smp('magic_fire', { gain: 0.8, dur: 0.4 });
+        default: smp('whoosh', { gain: 0.4, dur: 0.25 }); smp('magic_nature', { gain: 0.5, dur: 0.3 }); return true;
+      }
+    },
+    mdie: p => {
+      const c = (p && p.c) || 'beast', s = (p && p.s) || 1, k = MDIE_KIND[c] || 'flesh';
+      switch (k) {
+        case 'flesh': return smp('creature_die', { gain: 0.9, rate: 1 / Math.sqrt(s), dur: 0.5 });
+        case 'dragon': return smp('roar', { gain: 0.9, rate: 0.8, dur: 0.7 });
+        case 'bug': smp('mat_wood', { gain: 0.9 }); smp('bite', { gain: 0.5 }); return true;
+        case 'golem': return smp('crumble', { gain: 0.9, dur: 0.55 });
+        case 'spirit': smp('spirit_voice', { gain: 0.6, dur: 0.4 }); smp('magic_tele', { gain: 0.3, dur: 0.4 }); return true;
+        case 'plant': smp('mat_wood', { gain: 0.8 }); smp('bubble', { gain: 0.6 }); return true;
+        case 'ice': smp('glass_hit', { gain: 0.9 }); return true;
+        case 'fire': return smp('magic_fire', { gain: 0.7, dur: 0.4 });
+        default: return false;
+      }
+    },
+    /* interface and village */
+    tap: () => smp('ui_click', { gain: 0.55 }),
+    tick: () => smp('ui_click', { gain: 0.3, rate: 1.5, dur: 0.08 }),
+    toggle: () => { smp('ui_click', { gain: 0.5 }); smp('ui_click', { gain: 0.5, at: 0.07, rate: 1.2 }); return true; },
+    nope: () => smp('lock', { gain: 0.7 }),
+    coins: () => smp('coins', { gain: 0.8 }),
+    star: () => smp('gems', { gain: 0.7, dur: 0.4 }),
+    drop: () => { smp('gems', { gain: 0.8 }); smp('magic_btn', { gain: 0.4, dur: 0.4, at: 0.05 }); return true; },
+    levelup: () => { SOUNDS.levelup(); smp('gems', { gain: 0.5, at: 0.15 }); return true; },
+    upgrade: () => { smp('anvil', { gain: 0.8, dur: 0.4 }); pluck(G5, 0.14, 0.13, 0.5); pluck(C6, 0.21, 0.14, 0.6); return true; },
+    hire: () => { smp('chain', { gain: 0.6 }); smp('coins', { gain: 0.7, at: 0.05 }); pluck(C5, 0, 0.1, 0.6); pluck(E5, 0.03, 0.1, 0.6); pluck(G5, 0.06, 0.1, 0.6); return true; },
+    equip: () => { smp('unsheathe', { gain: 0.8, dur: 0.35 }); smp('cloth', { gain: 0.4, at: 0.05 }); return true; },
+    merge: () => { smp('anvil', { gain: 0.9, dur: 0.45 }); smp('anvil', { gain: 0.9, at: 0.24, dur: 0.45, rate: 1.1 }); smp('gems', { gain: 0.7, at: 0.5 }); chime(E6, 0.58, 0.07, 0.9); chime(G6, 0.66, 0.07, 1.1); return true; },
+    farm: () => { [0, 0.12, 0.24].forEach(at => smp('steps', { gain: 0.8, at })); flute(E5, 0.36, 0.3, 0.1); flute(G5, 0.46, 0.4, 0.1); return true; },
+    retreat: () => { smp('cloth', { gain: 0.7, rate: 0.9 }); [0, 0.1].forEach(at => smp('steps', { gain: 0.6, at })); return true; },
+    /* skills */
+    skill_whirlwind: () => { smp('swing_heavy', { gain: 1 }); smp('swing_heavy', { gain: 0.9, at: 0.12, rate: 1.1 }); smp('clash', { gain: 0.5, at: 0.2, dur: 0.25 }); return true; },
+    skill_ironguard: () => { smp('clash', { gain: 0.7, dur: 0.3, rate: 0.8 }); smp('magic_heal', { gain: 0.5, dur: 0.4, at: 0.05 }); return true; },
+    skill_arrowrain: () => { [0, 0.08, 0.16, 0.24, 0.32, 0.4].forEach(at => smp('whoosh', { gain: 0.35, at, rate: 1.1 + at })); return true; },
+    skill_snipe: () => { pluck(95, 0, 0.4, 0.4); smp('whoosh', { gain: 0.6, dur: 0.3, rate: 1.3 }); smp('body_thud', { gain: 0.9, at: 0.3 }); return true; },
+    skill_bloom: () => smp('magic_heal', { gain: 0.9, dur: 0.6 }),
+    skill_storm: () => { smp('magic_storm', { gain: 1, dur: 0.45 }); thump(0.08, 80, 0.4, 0.3); return true; },
+  };
+
   /* ---- buses, priorities and the voice budget (see the guide: 12 combat voices, 3 impacts and 2 critical accents at a time) ---- */
   const UI_SOUNDS = ['tap', 'tick', 'tab', 'toggle', 'nope', 'coins', 'levelup', 'upgrade', 'hire', 'equip', 'merge', 'farm', 'retreat', 'star'];
   const ENEMY_SOUNDS = ['mwind', 'mhit', 'mshot', 'mdie'];
@@ -369,6 +553,7 @@
     variants[name] = i;
     curName = bus; curBus = BUS[bus]; span = name === 'crit' ? 0.4 : 1; bias = name === 'crit' ? 1 : BIAS[i];
     gv = Math.pow(10, (Math.random() * 2 - 1) / 20); vmul = 1;                                  // +-1 dB
+    if (pack && SMP[name]) { try { if (SMP[name](arg) !== false) return; } catch (e) { /* fall back to the synthesised sound */ } }
     try { SOUNDS[name](arg); } catch (e) { /* a sound must never break the game */ }
   }
 
@@ -413,7 +598,7 @@
     paint();
   }
   function togglePanel() { buildPanel(); const d = document.getElementById('sound-pop'); if (d) { d.hidden = !d.hidden; paint(); } }
-  document.addEventListener('DOMContentLoaded', () => { buildPanel(); paint(); });
+  document.addEventListener('DOMContentLoaded', () => { buildPanel(); paint(); loadPack(); });
   paint();
 
   /* level() is for tests: the loudness (0..1) of what is playing right now */
@@ -427,6 +612,6 @@
     play, setVolume, getVolume: k => vol[k], setMuted, toggleMute: () => setMuted(!muted), isMuted: () => muted, togglePanel,
     isEnabled: () => !muted, musicOn: () => !muted && vol.music > 0.01,
     audio: () => (ensure() ? { ctx, out: musicBus, noiseBuf } : null),         // the shared audio graph, used by music.js
-    names: () => Object.keys(SOUNDS), level, state: () => (ctx ? ctx.state : 'none'), voices: () => live.filter(v => v.end > performance.now()).length,
+    names: () => Object.keys(SOUNDS), recorded: () => !!pack, level, state: () => (ctx ? ctx.state : 'none'), voices: () => live.filter(v => v.end > performance.now()).length,
   };
 })();

@@ -310,7 +310,7 @@
   window.monIdleUrl = id => url(monPaths(id)[0]);                 // the picture of a monster for the home cards
   /* Every picture of the game (used by pwa.js so the installed app can run offline). */
   window.artUrls = () => Object.values(REGION_ART).flatMap(a => [...a.mon.flatMap(monPaths), ...a.bg.map(b => `bg/${b}.jpg`)])
-    .concat(MAP_PATHS, ['meta.json'], (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff']).map(w => `items/${w}.png`),
+    .concat(MAP_PATHS, ['meta.json', 'sfx/index.json', 'sfx/pack.bin'], (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff']).map(w => `items/${w}.png`),
       Object.entries(HERO_FILES).flatMap(([id, ws]) => ws.flatMap(w => ['idle', 'attack'].map(p => heroPath(id, w, p))))).map(url);
   window.ensureRegion = id => {
     if (!REGION_ART[id] || !meta.data) return Promise.resolve(false);
