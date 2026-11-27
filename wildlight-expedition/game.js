@@ -754,30 +754,30 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeResInfo(); closeResetDialog(); }
 });
 
+/* Stage wins return a structured result (what was earned) that showResult() turns into the reward screen. */
 function stageWin(s) {
-  const lines = [];
+  const r = { title: s.name, sub: 'Stage cleared', gold: 0, lumber: 0, first: false, tower: false, unlock: null, drop: null, again: true };
   if (!save.cleared[s.id]) {
     save.cleared[s.id] = true;
-    save.gold += s.first.gold; save.lumber += s.first.lumber;
-    lines.push(`First clear bonus: ${gainText(s.first)}`);
-    if (s.first.tower) { save.towers[s.id] = true; lines.push('The watchtower is relit and the next road is opening!'); }
+    r.first = true; r.sub = 'First clear!';
+    r.gold = s.first.gold; r.lumber = s.first.lumber;
+    if (s.first.tower) { save.towers[s.id] = true; r.tower = true; }
     const nxt = STAGES.find(x => x.req === s.id);
-    if (nxt) lines.push(`New area open: ${nxt.name}`);
+    if (nxt) r.unlock = nxt.name;
   } else {
-    save.gold += s.repeat.gold; save.lumber += s.repeat.lumber;
-    lines.push(`Loot: ${gainText(s.repeat)}`);
+    r.gold = s.repeat.gold; r.lumber = s.repeat.lumber;
   }
-  const drop = rollManualDrop(s);                       // random weapon drop, on every win (see DROP)
-  if (drop) lines.push(`✦ Weapon dropped: ${WEAPONS[drop].name}!`);
+  save.gold += r.gold; save.lumber += r.lumber;
+  r.drop = rollManualDrop(s);                           // random weapon drop, on every win (see DROP)
   persist();
-  return lines;
+  return r;
 }
 function bonusWin(m) {
-  const r = dailyReward(m);
-  save.gold += r.gold; save.lumber += r.lumber;
+  const d = dailyReward(m);
+  save.gold += d.gold; save.lumber += d.lumber;
   save.daily = { date: today(), done: true };
   persist();
-  return [`Bonus hunt loot: ${gainText(r)}`];
+  return { title: 'Daily hunt', sub: MON[m].name + ' defeated', gold: d.gold, lumber: d.lumber, first: false, tower: false, unlock: null, drop: null, again: false };
 }
 
 /* ===================================================================
@@ -975,20 +975,93 @@ function endBattle(result) {
   if (result === 'retreat') { closeBattle(); }
 }
 
+/* ------------------------------ result screens ------------------------------ */
+const STAR_RATINGS = ['', 'Narrow win', 'Well fought', 'Flawless'];
+function starRating() {
+  const hs = B.heroes, fallen = hs.filter(h => h.dead).length;
+  const ratio = hs.reduce((a, h) => a + h.hp, 0) / hs.reduce((a, h) => a + h.maxHp, 0);
+  return fallen ? 1 : ratio >= 0.6 ? 3 : 2;
+}
+function heroesRow() {
+  return `<div class="vheroes">${B.heroes.map(h => {
+    const pct = Math.round(100 * h.hp / h.maxHp);
+    return `<div class="vhero ${h.dead ? 'down' : ''}"><canvas class="vport" data-hero="${h.id}" data-scale="1.05" width="112" height="122"></canvas>
+      <div class="vbar"><i class="${pct < 35 ? 'low' : ''}" style="width:${pct}%"></i></div></div>`;
+  }).join('')}</div>`;
+}
+function dropCardHtml(w) {
+  const W = WEAPONS[w], n = save.items[w][0], who = WIELDER[W.fam], ready = n >= MERGE_N;
+  const pips = Array.from({ length: MERGE_N }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
+  return `<div class="dropcard" style="--g:${GRADES[0].color}">
+    <canvas class="vport big" data-hero="${who}" data-weapon="${w}" data-scale="1.05" width="120" height="130"></canvas>
+    <div class="dinfo2"><small>New weapon!</small><b>${W.name}</b>
+      <div class="dline">${gradeTag(0)}<span class="pips">${pips}</span></div>
+      <p>${ready ? `You have ${n} Common copies: merge them into a Fine ${W.name}.` : `${n} of ${MERGE_N} copies toward a Fine ${W.name}.`}</p>
+      ${ready ? '<button class="btn good small" data-act="__forge">Open Forge</button>' : ''}</div></div>`;
+}
+function winHtml(r) {
+  const stars = starRating();
+  const tiles = [['gold', 'Gold', r.gold], ['lumber', 'Lumber', r.lumber]].filter(t => t[2] > 0)
+    .map(([k, label, n]) => `<div class="rtile"><i class="ico ${k}"></i><b class="count" data-to="${n}">+0</b><small>${label}</small></div>`).join('');
+  return `<div class="box rescard win">
+    <div class="rhead"><h2 class="rtitle">Victory!</h2><p class="rsub2">${r.title} · ${r.sub}</p>
+      <div class="stars">${[1, 2, 3].map(i => `<i class="${i <= stars ? 'on' : ''}"></i>`).join('')}</div>
+      <p class="rrating">${STAR_RATINGS[stars]}</p></div>
+    <div class="rbody">
+      ${heroesRow()}
+      ${tiles ? `<div class="rtiles">${tiles}</div>` : ''}
+      ${r.drop ? dropCardHtml(r.drop) : ''}
+      ${r.tower ? '<div class="unlockbar"><i class="ico m flame"></i><span><b>The watchtower is relit!</b> The next road will open in a later version.</span></div>' : ''}
+      ${r.unlock ? `<div class="unlockbar"><i class="ico m unlock"></i><span><b>New area open:</b> ${r.unlock}</span></div>` : ''}
+      <div class="rbtns"><button class="btn primary" data-act="__close">Back to the village</button>${r.again ? '<button class="btn alt" data-act="__again"><i class="ico m swords"></i>Fight again</button>' : ''}</div>
+    </div></div>`;
+}
+function defeatTips() {
+  const tips = [];
+  if (B.spec.enemies.includes('boar')) tips.push({ t: 'The Thornback Boar scrapes the ground before it charges. Raise the barrier the moment you see the warning.' });
+  const unhired = HERO_ORDER.filter(id => !inParty(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0];
+  const lvlId = party().find(id => save.gold >= lvlCost(save.heroes[id].lvl));
+  const mergeReady = Object.keys(WEAPONS).some(w => save.items[w].some((n, g) => g < GRADES.length - 1 && n >= MERGE_N));
+  if (unhired && save.gold >= HERO[unhired].hire) tips.push({ t: `You have enough gold to hire ${HERO[unhired].name}. A bigger party hits harder.`, btn: ['Open Party', '__party'] });
+  else if (lvlId) tips.push({ t: `You can afford to level up ${HERO[lvlId].name}.`, btn: ['Open Party', '__party'] });
+  else if (mergeReady) tips.push({ t: 'Some of your weapons can be merged into a stronger grade.', btn: ['Open Forge', '__forge'] });
+  if (!tips.length) tips.push({ t: 'Heroes recover fully in the village. Raise the barrier sooner, or farm some gold and level up.' });
+  return tips.slice(0, 2);
+}
+function loseHtml() {
+  const tips = defeatTips();
+  return `<div class="box rescard lose">
+    <div class="rhead"><h2 class="rtitle">Your party fell back</h2><p class="rsub2">${B.spec.title}</p></div>
+    <div class="rbody">
+      ${heroesRow()}
+      <div class="tipcard">${tips.map(x => `<p>${x.t}${x.btn ? ` <button class="btn alt small" data-act="${x.btn[1]}">${x.btn[0]}</button>` : ''}</p>`).join('')}</div>
+      <div class="rbtns"><button class="btn primary" data-act="__again"><i class="ico m swords"></i>Try again</button><button class="btn alt" data-act="__close">Back to the village</button></div>
+    </div></div>`;
+}
+/* Numbers count up from 0 so rewards feel earned (instantly for people who prefer reduced motion). */
+function animateCounts(root) {
+  const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  root.querySelectorAll('.count').forEach((el, i) => {
+    const to = Number(el.dataset.to), t0 = performance.now() + 350 + i * 150, dur = 700;
+    if (still) { el.textContent = '+' + fmt(to); return; }
+    const tick = now => {
+      const k = Math.max(0, Math.min(1, (now - t0) / dur));
+      el.textContent = '+' + fmt(to * (1 - Math.pow(1 - k, 3)));
+      if (k < 1 && el.isConnected) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
 function showResult() {
   const r = $('#result');
   if (!r.hidden || !B) return;
-  let html;
-  if (B.result === 'win') {
-    const lines = B.spec.onWin();
-    html = `<div class="box"><h2>Victory!</h2><ul>${lines.map(l => `<li>${l}</li>`).join('')}</ul>
-      <button class="btn good" data-act="__close">Back to the village</button></div>`;
-  } else {
-    html = `<div class="box"><h2>Your party fell back</h2><p class="note">Heroes recover fully in the village. Level up, merge your weapons, or try raising the barrier sooner.</p>
-      <div class="row" style="justify-content:center"><button class="btn" data-act="__again">Try again</button><button class="btn alt" data-act="__close">Village</button></div></div>`;
-  }
-  r.innerHTML = html; r.hidden = false;
+  r.innerHTML = B.result === 'win' ? winHtml(B.spec.onWin()) : loseHtml();
+  r.hidden = false;
+  paintPortraits();
+  animateCounts(r);
 }
+actions.__party = () => { closeBattle(); actions.tab('party'); };
+actions.__forge = () => { closeBattle(); actions.tab('forge'); };
 actions.__close = () => closeBattle();
 actions.__again = () => { const s = B.spec; cancelAnimationFrame(B.raf); B = null; startBattle(s); };
 
