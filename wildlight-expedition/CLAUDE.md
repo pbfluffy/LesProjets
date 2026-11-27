@@ -180,3 +180,12 @@ The sound engine follows the guide; the numbers are starting points to tune by e
 - **Budget**: at most 12 combat voices (routine sounds yield, priority >= 70 such as crits and boss warnings always play), 3 impacts per 160 ms, 2 crit accents per 300 ms, retrigger gaps 45 ms (impacts), 80 ms (crit accents), 100 ms (enemy attacks).
   Pitch varies +-1 semitone (+-0.4 for crit accents) with three shuffled variants that never repeat straight away, gain +-1 dB. AoE skills play one contact; the other targets are muted (`B.mute`). Nothing is queued or replayed while the tab is hidden.
 - Not in the game yet, so no sounds: miss, dodge, parry, immune, skeleton targets (the recipes exist for `skeleton` and `shield`).
+
+## Recorded sound effects
+- Real recordings (free CC0 packs from OpenGameArt, credited in `assets/sfx/CREDITS.md`) now play for swings, steel, bodies, monster voices, spells and village sounds. `assets/sfx/pack.bin` holds ~170 clips (mono 16-bit PCM, 22.05 kHz, 2.7 MB) in ~40 groups,
+  `index.json` says where each is. `sfx.js` fetches both after load, builds `AudioBuffer`s (each clip's loudness evened out) and `smp(group, {gain, rate, at, dur})` plays a random variant, never the same twice in a row.
+  `SMP` maps every event (`swing`, `wimpact`, `crit`, `mwind`, `mhit`, `mdie`, `cast`, `healfx`, coins, hire, merge...) to groups and sometimes layers a little synthesis (a thump, a chime) on top; any event not in `SMP`, or everything while the pack has not loaded
+  (or is missing), plays the synthesised sound as before. The pack is in the offline list (`artUrls`).
+- Rebuild or change the pack: unpack the source packs into one folder and run `node tools/build-sfx.js <folder> assets/sfx` (needs ffmpeg). The group table at the top of that script says which source file feeds which group and how long each clip may be;
+  `node tools/sfx-analyze.js <file or folder>` prints length, brightness and decay of sound files (the clips were chosen by name and by those measurements, not by ear: re-listen when tuning).
+- Recorded sounds are normalised hotter than the synthesised ones, so `SMP_LEVEL` (0.7) and the per-call `gain` values balance them; the buses, limiter and budget described in the audio guide section apply to both.
