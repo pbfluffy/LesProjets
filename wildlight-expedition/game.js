@@ -336,15 +336,32 @@ function stagePill(s) {
   if (save.cleared[s.id]) return '<span class="pill ok"><i class="ico m check sm"></i>Cleared</span>';
   return s.boss ? '<span class="pill boss">Boss</span>' : '<span class="pill new">New</span>';
 }
+/* The average share of won fights that drop a weapon. Every win without a drop makes the next drop more likely
+   (DROP.pity), so this is 1 / (average number of wins until a drop) and a bit above the plain DROP.manual. */
+function dropRatePerWin() {
+  let expected = 0, survive = 1;
+  for (let k = 0; k < 40 && survive > 1e-9; k++) {
+    expected += survive;
+    survive *= 1 - Math.min(1, DROP.manual + DROP.pity * k);
+  }
+  return 1 / expected;
+}
+const pctText = x => (x < 0.01 ? '<1%' : Math.round(x * 100) + '%');
+/* A picture of a weapon (the item art), or nothing while the art loads or if the file is missing. */
+const itemIcon = (w, cls = '') => artIsReady()
+  ? `<img class="itemicon ${cls}" src="${assetSrc(`items/${w}.png`)}" alt="" onerror="this.remove()">` : '';
+
 function dropsHtml(s) {                         // folded by default
   if (!(s.drops || []).length) return '';
-  const key = 'drops-' + s.id, total = s.drops.reduce((a, [, wt]) => a + wt, 0);
+  const key = 'drops-' + s.id, total = s.drops.reduce((a, [, wt]) => a + wt, 0), rate = dropRatePerWin();
   const chips = s.drops.map(([w, wt]) => {
-    const share = wt / total, tier = share >= 0.2 ? ['often', 'Often'] : share >= 0.1 ? ['sometimes', 'Sometimes'] : ['rarely', 'Rarely'];
-    return `<div class="dropchip ${tier[0]}"><b>${WEAPONS[w].name}</b><small>${FAMILY[WEAPONS[w].fam]} · ${tier[1]}</small></div>`;
+    const chance = rate * wt / total;                                   // the real chance, per fight you win
+    const tier = chance >= 0.08 ? 'often' : chance >= 0.04 ? 'sometimes' : 'rarely';   // only used to colour the chip
+    return `<div class="dropchip ${tier}">${itemIcon(w, 'sm')}<div><b>${WEAPONS[w].name}</b><small>${FAMILY[WEAPONS[w].fam]} · about ${pctText(chance)} per win</small></div></div>`;
   }).join('');
   return `<details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Possible weapon drops</span><em>${s.drops.length}</em></summary>
-    <div class="dropgrid">${chips}</div><p class="fine">Win fights by hand for the best chance. Farming finds weapons more rarely.</p></details>`;
+    <div class="dropgrid">${chips}</div>
+    <p class="fine">Chances are per fight you win, on average (every win without a drop makes the next one more likely). Farming finds weapons more rarely, about ${pctText(DROP.autoPerHour)} per hour.</p></details>`;
 }
 function stageActions(s, big) {
   if (!isUnlocked(s)) return '';
@@ -504,7 +521,7 @@ function heroCard(id) {
       <div class="weapons">${owned_.map(x => {
         const n = save.items[x].reduce((a, b) => a + b, 0);
         return `<button class="weapon ${s.weapon === x ? 'on' : ''}" data-act="equip" data-arg="${id}:${x}">
-          <span><b>${WEAPONS[x].name}</b><small>${WEAPONS[x].desc}</small></span>
+          ${itemIcon(x, 'sm')}<span><b>${WEAPONS[x].name}</b><small>${WEAPONS[x].desc}</small></span>
           <span class="wmeta">${gradeTag(bestGrade(x))}<small>${n > 1 ? `${n} owned` : ''}</small></span></button>`;
       }).join('')}</div>
       <p class="fine">A hero always wields the best grade they own. Merge copies in the Forge.</p></details>
@@ -557,7 +574,7 @@ function weaponCard(w) {
   const W = WEAPONS[w], items = save.items[w], total = items.reduce((a, b) => a + b, 0), who = WIELDER[W.fam], hero = HERO[who];
   if (!total) {
     const where = STAGES.filter(s => (s.drops || []).some(([x]) => x === w)).map(s => s.name);
-    return `<article class="weaponcard locked"><canvas class="wport" data-hero="${who}" data-weapon="${w}" data-scale="1.5" width="168" height="180"></canvas>
+    return `<article class="weaponcard locked"><div class="wport">${itemIcon(w)}</div>
       <div class="winfo"><div class="wtop"><h4>${W.name}</h4><span class="pill lock"><i class="ico m lock sm"></i>Not found</span></div>
         <p class="wdesc">${W.desc}</p><p class="fine">Drops at ${where.join(', ')}.</p></div></article>`;
   }
@@ -576,7 +593,7 @@ function weaponCard(w) {
     : equipped ? `<span class="pill ok"><i class="ico m check sm"></i>${hero.name} wields this</span>`
     : `<button class="btn alt small" data-act="equip" data-arg="${who}:${w}">Equip on ${hero.name}</button>`;
   return `<article class="weaponcard ${ready ? 'ready' : ''}" style="--g:${GRADES[best].color}">
-    <canvas class="wport" data-hero="${who}" data-weapon="${w}" data-scale="1.5" width="168" height="180"></canvas>
+    <div class="wport">${itemIcon(w)}</div>
     <div class="winfo"><div class="wtop"><h4>${W.name}</h4>${gradeTag(best)}</div>
       <p class="wdesc">${W.desc}</p>
       <div class="mergelist">${rows.join('')}</div>
@@ -993,7 +1010,7 @@ function dropCardHtml(w) {
   const W = WEAPONS[w], n = save.items[w][0], who = WIELDER[W.fam], ready = n >= MERGE_N;
   const pips = Array.from({ length: MERGE_N }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
   return `<div class="dropcard" style="--g:${GRADES[0].color}">
-    <canvas class="vport big" data-hero="${who}" data-weapon="${w}" data-scale="1.05" width="120" height="130"></canvas>
+    <div class="vport big">${itemIcon(w)}</div>
     <div class="dinfo2"><small>New weapon!</small><b>${W.name}</b>
       <div class="dline">${gradeTag(0)}<span class="pips">${pips}</span></div>
       <p>${ready ? `You have ${n} Common copies: merge them into a Fine ${W.name}.` : `${n} of ${MERGE_N} copies toward a Fine ${W.name}.`}</p>
