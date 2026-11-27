@@ -654,3 +654,16 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 .sp-row{display:grid;grid-template-columns:104px 1fr;align-items:center;gap:10px;margin:8px 0;font-size:13.5px;color:var(--text)}
 .sp-row input[type=range]{width:100%;accent-color:var(--amber);height:28px}
 .soundpop .btn{width:100%;margin-top:6px}
+
+.wdrow.go{width:100%;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.wdrow.go:active{transform:scale(.99)}
+.wdgo{flex:none;font-style:normal;font-weight:800;font-size:11.5px;padding:3px 9px;border-radius:999px;background:var(--amber);color:#2a1d05}
+.wdrow.locked{opacity:.55}
+.wdrow.locked .ico{flex:none;margin-right:-2px}
+@media (hover:hover) and (pointer:fine){.wdrow.go:hover{filter:brightness(1.15)}}
+/* the drop-list rows: the stage name on its own line, then the grade, the chance and (for a stage you can reach) the Fight pill */
+.wdrow{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:4px 10px}
+.wdrow>span:first-child{grid-column:1 / -1;overflow-wrap:anywhere}
+.wdrow .ico{vertical-align:-3px;margin-right:2px}
+.wdrow b{min-width:0;text-align:left}
+.wdrow .wdgo{justify-self:end}

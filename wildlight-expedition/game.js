@@ -787,12 +787,15 @@ function weaponDropsHtml(w) {
     if (!list.length) continue;
     rows.push(`<div class="wdregion">${r.name}</div>` + list.map(s => {
       const total = s.drops.reduce((a, [, wt]) => a + wt, 0), wt = s.drops.find(([x]) => x === w)[1];
-      return `<div class="wdrow"><span>${s.name}${s.boss ? ' <em>boss</em>' : ''}</span>${gradeTag(s.dropGrade || 0)}<b>${pctText(rate * wt / total)}</b></div>`;
+      const label = `<span>${s.name}${s.boss ? ' <em>boss</em>' : ''}</span>${gradeTag(s.dropGrade || 0)}<b>${pctText(rate * wt / total)}</b>`;
+      return isUnlocked(s)                                   // a stage you can already reach: tap to fight there
+        ? `<button type="button" class="wdrow go" data-act="fight" data-arg="${s.id}" title="Fight at ${s.name}">${label}<i class="wdgo">Fight ›</i></button>`
+        : `<div class="wdrow locked" title="Clear ${s.req && STAGE[s.req] ? STAGE[s.req].name : 'the stage before'} first">${label.replace('<span>', '<span><i class="ico m lock sm"></i> ')}</div>`;
     }).join(''));
   }
   const n = STAGES.filter(s => (s.drops || []).some(([x]) => x === w)).length, key = 'wdrop-' + w;
   return `<details class="drops wdrops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Where it drops</span><em>${n} stage${n === 1 ? '' : 's'}</em></summary>
-    <div class="wdlist">${rows.join('')}</div><p class="fine">Chance per fight you win, on average. Later regions drop better grades.</p></details>`;
+    <div class="wdlist">${rows.join('')}</div><p class="fine">Chance per fight you win, on average. Later regions drop better grades. Tap a stage you have reached to fight there.</p></details>`;
 }
 function weaponCard(w) {
   const W = WEAPONS[w], items = save.items[w], total = items.reduce((a, b) => a + b, 0), who = WIELDER[W.fam], hero = HERO[who];
