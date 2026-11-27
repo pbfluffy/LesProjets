@@ -496,7 +496,7 @@ html,body{overscroll-behavior-y:none}
   #app,.tabs{max-width:720px}
   .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;align-items:start}
   #battle{--bw:min(960px,100%,max(480px,calc((100vh - 240px)*1.538)))}
-  .battle-top,#stage,.barrier{max-width:var(--bw)}
+  .battle-top,.arena,.barrier{max-width:var(--bw)}
   .result .box{max-width:420px}
 }
 
@@ -569,3 +569,37 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 /* ---- crits ---- */
 .wcrit{display:inline-block;margin-left:4px;padding:0 6px;border-radius:6px;background:#4a3a12;color:#ffd24a;font-size:11px;font-weight:700;white-space:nowrap}
 .note.repeatstop{margin:0;padding:8px 12px;border-radius:10px;background:#3a2a1a;border:1px solid #7a5a2a;color:#f3deb0;text-align:left}
+
+/* ---- fight intro / end graphics ---- */
+.arena{position:relative;width:100%;max-width:480px;margin-top:auto}
+.arena #stage{display:block;max-width:none;margin-top:0}
+.arena-fx,.curtain{position:absolute;inset:0;border-radius:15px;pointer-events:none}
+.arena-fx{overflow:hidden}
+.curtain{background:#06100b;opacity:0;transition:opacity .35s ease}
+.curtain.black{opacity:1}
+.vbanner,.ibanner{position:absolute;left:50%;text-align:center;white-space:nowrap}
+.vbanner{top:36%;transform:translate(-50%,-50%);animation:vpop .6s cubic-bezier(.2,1.5,.4,1) both,vout .4s 1.35s ease-in forwards}
+.vbanner b,.ibanner b{display:block;font:800 clamp(30px,9.5vw,54px)/1 Georgia,serif;letter-spacing:.07em;color:#ffe9a8;text-shadow:0 2px 0 #7a4a10,0 0 16px #f2b84b,0 4px 16px #000}
+.vbanner.defeat b{color:#ffc2b6;text-shadow:0 2px 0 #5a1a12,0 0 14px #e0624a,0 4px 16px #000}
+.vbanner .stars{margin:8px 0 0;gap:6px}
+.vbanner .stars i{width:28px;height:28px}
+.ibanner{top:26%;transform:translate(-50%,-50%);animation:ibin .5s cubic-bezier(.2,1.1,.3,1) both,vout .35s 1s ease-in forwards}
+.ibanner b{font-size:clamp(24px,7.5vw,42px)}
+.ibanner small{display:block;margin-top:4px;font:700 13px system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#f3deb0;text-shadow:0 2px 6px #000}
+@keyframes vpop{from{opacity:0;transform:translate(-50%,-50%) scale(.4)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes ibin{from{opacity:0;transform:translate(-90%,-50%)}to{opacity:1;transform:translate(-50%,-50%)}}
+@keyframes vout{to{opacity:0}}
+.spark{position:absolute;left:50%;top:36%;width:9px;height:9px;margin:-4px;background:#ffe58a;border-radius:2px;box-shadow:0 0 8px #f2b84b;opacity:0;animation:spark .9s ease-out forwards}
+.spark:nth-child(3n){background:#fff;width:6px;height:6px}
+.spark:nth-child(4n){background:#8fe3a0}
+@keyframes spark{0%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(260deg) scale(.2)}}
+.vrewards{position:absolute;left:0;right:0;bottom:9%;display:flex;flex-direction:column;align-items:center;gap:6px}
+.vrewards>div{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:999px;background:#0f1a15ec;border:1px solid #c4ae72;color:#fff1cf;font:800 15px system-ui,sans-serif;box-shadow:0 4px 14px #0009;animation:chip .45s cubic-bezier(.2,1.4,.4,1) both,vout .3s 1.05s ease-in forwards}
+.vrewards .ico{width:20px;height:20px}
+.vrewards .vdrop{border-color:#9d7ed4;background:linear-gradient(90deg,#2d2346ee,#0f1a15ec);padding:4px 14px 4px 6px}
+.vrewards .vdrop small{display:block;font:700 9.5px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#d2bff6}
+.vrewards .vdrop b{font-size:14px}
+@keyframes chip{from{opacity:0;transform:translateY(14px) scale(.85)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.vbanner,.ibanner,.vrewards>div{animation:none}.spark{display:none}.curtain{transition:none}}
+
+@media(min-width:720px){.arena{max-width:var(--bw)}}

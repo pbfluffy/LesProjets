@@ -1032,11 +1032,15 @@ function startBattle(spec) {
       state: 'idle', kind: null, wt: 0, wd: 0, lunge: 0, lungeDur: 0.35, lungeDist: 0, flash: 0, dead: false, fade: 0,
       chargeT: d.charge ? d.charge.first : 0, dmgMult: pw.dmg, armMult: pw.arm || pw.dmg });
   });
+  B.intro = INTRO; B.introDone = false;
+  B.heroes.forEach(h => { h.hx = h.x; });
+  B.enemies.forEach(e => { e.hx = e.x; });
   $('#battle-title').textContent = spec.title;
   $('#result').hidden = true;
   $('#battle').hidden = false;
   document.body.style.overflow = 'hidden';
   repeatUi();
+  introUi();
   B.raf = requestAnimationFrame(loop);
 }
 
@@ -1051,7 +1055,13 @@ function loop(ts) {
   const dt = Math.min(0.05, ((ts - B.last) / 1000) || 0);
   B.last = ts;
   B.t += dt;
-  if (!B.over) step(dt); else fxStep(dt);
+  if (!B.over) {
+    if (B.t < B.intro) introStep(dt);
+    else {
+      if (!B.introDone) { B.introDone = true; for (const en of B.enemies) en.x = en.hx; for (const h of B.heroes) h.x = h.hx; }
+      step(dt);
+    }
+  } else fxStep(dt);
   if (B.over && B.t > B.endT && $('#result').hidden) showResult();
   draw();
   barrierUi();
@@ -1223,7 +1233,61 @@ function endBattle(result) {
   if (!B || B.over) return;
   B.over = true; B.result = result;
   B.endT = B.t + (result === 'retreat' ? 0 : 0.9);
+  if (result === 'win' || result === 'lose') outroUi(result);
   if (result === 'retreat') { if (run && run.wins) showRunSummary(); else closeBattle(); }
+}
+
+/* ------------------- fight intro / end graphics (DOM overlay on the arena) ------------------- */
+const INTRO = 0.85;                                   // seconds: the units walk in and nobody attacks yet
+const arenaFx = () => document.getElementById('arena-fx');
+function fxAdd(html, ms) {
+  const L = arenaFx(); if (!L) return null;
+  const d = document.createElement('div'); d.innerHTML = html;
+  const el = d.firstElementChild; L.appendChild(el);
+  if (ms) setTimeout(() => el.remove(), ms);
+  return el;
+}
+function fxClear() { const L = arenaFx(); if (L) L.innerHTML = ''; }
+function curtain(black, instant) {
+  const c = $('#curtain'); if (!c) return;
+  if (instant) { c.style.transition = 'none'; c.classList.toggle('black', black); void c.offsetWidth; c.style.transition = ''; }
+  else c.classList.toggle('black', black);
+}
+const sparkHtml = n => Array.from({ length: n }, (_, i) => {
+  const a = (i / n) * 6.283 + Math.random() * 0.5, d = 70 + Math.random() * 90;
+  return `<i class="spark" style="--dx:${Math.round(Math.cos(a) * d * 1.4)}px;--dy:${Math.round(Math.sin(a) * d * 0.8 - 20)}px;animation-delay:${(Math.random() * 0.12).toFixed(2)}s"></i>`;
+}).join('');
+/* A new fight: fade in from black, a "Fight N" / "Fight!" banner, the heroes and monsters walk in. */
+function introUi() {
+  fxClear(); curtain(true, true);
+  setTimeout(() => curtain(false), 40);
+  const n = repeatOn && run ? run.wins + 1 : 0;
+  fxAdd(`<div class="ibanner"><b>${n ? 'Fight ' + n : 'Fight!'}</b><small>${B.spec.title}</small></div>`, 1500);
+}
+function introStep(dt) {
+  const k = Math.min(1, B.t / B.intro), e = 1 - Math.pow(1 - k, 3);
+  for (const en of B.enemies) en.x = en.hx + 150 * (1 - e);
+  for (const h of B.heroes) h.x = h.hx - 70 * (1 - e);
+  fxStep(dt);
+}
+/* The moment a fight is won or lost. */
+function outroUi(result) {
+  fxClear();
+  if (result === 'win') {
+    const n = starRating();
+    fxAdd(`<div class="vbanner"><b>VICTORY!</b><div class="stars">${[1, 2, 3].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</div></div>`, 1900);
+    fxAdd(`<div class="sparks">${sparkHtml(26)}</div>`, 1300);
+  } else {
+    fxAdd('<div class="vbanner defeat"><b>Defeated</b></div>', 1900);
+  }
+}
+/* Repeat mode: what the win paid, as chips over the arena. */
+function rewardsUi(w) {
+  const chips = [];
+  if (w.gold) chips.push(`<div style="animation-delay:0s,0s"><i class="ico gold"></i>+${fmt(w.gold)}</div>`);
+  if (w.lumber) chips.push(`<div style="animation-delay:.12s,0s"><i class="ico lumber"></i>+${fmt(w.lumber)}</div>`);
+  if (w.drop) chips.push(`<div class="vdrop" style="animation-delay:.25s,0s">${itemIcon(w.drop, 'sm')}<span><small>New weapon!</small><b>${(w.dropGrade ? GRADES[w.dropGrade].name + ' ' : '') + WEAPONS[w.drop].name}</b></span></div>`);
+  if (chips.length) fxAdd(`<div class="vrewards">${chips.join('')}</div>`, 1500);
 }
 
 /* ------------------------- repeat fights (manual) ------------------------- */
@@ -1255,11 +1319,11 @@ function repeatUi() {
   }
   if (L) { L.hidden = !(B && B.spec.repeatable && run && run.wins); if (!L.hidden) L.innerHTML = runLogHtml(B.nowMsg); }
 }
-function restartBattle() { const s = B.spec; clearTimeout(B.autoT); cancelAnimationFrame(B.raf); B = null; startBattle(s); }
+function restartBattle() { const s = B.spec; clearTimeout(B.autoT); clearTimeout(B.fadeT); cancelAnimationFrame(B.raf); B = null; startBattle(s); }
 /* The end-of-run screen (Retreat, or Repeat switched off while waiting for the next fight). */
 function showRunSummary() {
   if (!B) return;
-  clearTimeout(B.autoT);
+  clearTimeout(B.autoT); clearTimeout(B.fadeT); fxClear(); curtain(false, true);
   if (B.result === 'win' && !B.resolved) addRun(B.spec.onWin());          // a win that was still counting down is paid, not lost
   B.resolved = true; B.over = true; repeatOn = false;
   const t = run || newRun(), r = $('#result');
@@ -1398,14 +1462,17 @@ function showResult() {
       if (!(w.first || w.tower || w.unlock)) {                       // a plain win: pay it, show a line in the log and go again
         B.nowMsg = `Victory! +${fmt(w.gold)} gold, +${fmt(w.lumber)} lumber${w.drop ? ` · Found ${dropsText([[w.drop, w.dropGrade]])}` : ''}. Next fight starting…`;
         repeatUi();
+        rewardsUi(w);
         const cur = B;
-        B.autoT = setTimeout(() => { if (B === cur && repeatOn) restartBattle(); }, 1500);
+        B.fadeT = setTimeout(() => { if (B === cur && repeatOn) curtain(true); }, 1000);          // fade to black, then the next fight
+        B.autoT = setTimeout(() => { if (B === cur && repeatOn) restartBattle(); }, 1380);
         return;
       }
       repeatOn = false;                                              // a first clear, a watchtower or a new area gets the full screen
     }
+    fxClear();
     r.innerHTML = winHtml(w);
-  } else { B.repeatStopped = repeatOn; repeatOn = false; r.innerHTML = loseHtml(); }          // losing a fight always ends a repeat run
+  } else { B.repeatStopped = repeatOn; repeatOn = false; fxClear(); r.innerHTML = loseHtml(); }          // losing a fight always ends a repeat run
   repeatUi();
   r.hidden = false;
   paintPortraits();
@@ -1425,7 +1492,8 @@ actions.repeat = () => {
 actions.farmreportok = closeFarmReport;
 
 function closeBattle() {
-  if (B) { cancelAnimationFrame(B.raf); clearTimeout(B.autoT); }
+  if (B) { cancelAnimationFrame(B.raf); clearTimeout(B.autoT); clearTimeout(B.fadeT); }
+  fxClear(); curtain(false, true);
   repeatOn = false; run = null;
   B = null;
   $('#battle').hidden = true;
