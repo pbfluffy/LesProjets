@@ -150,27 +150,10 @@
     retreat: () => { swish(0, 1700, 260, 0.35, 0.18); taiko(0.02, 0.18); },
     /* fights: steel, leather, drums, magic */
     horn: () => { taiko(0, 0.32); horn(196, 0.02, 0.5, 0.11); horn(294, 0.02, 0.5, 0.09); horn(392, 0.3, 0.5, 0.11); horn(587, 0.3, 0.5, 0.06); },
-    slash: () => { swish(0, 1500, 5200, 0.06, 0.26); swish(0.05, 5200, 700, 0.13, 0.3); steel(4300, 0.045, 0.06, 0.2); crack(0.025, 0.1, 5000); },
-    arrow: () => { pluck(135, 0, 0.34, 0.32); swish(0.005, 2400, 6800, 0.1, 0.18, 'highpass'); tone({ f: 1700, to: 2700, at: 0.01, dur: 0.12, vol: 0.05, type: 'sine' }); crack(0, 0.08, 4500); },
-    bolt: () => { swish(0, 3000, 9000, 0.16, 0.14, 'highpass'); [0.02, 0.06, 0.09, 0.13].forEach(at => crack(at, 0.09, 3000 + Math.random() * 3000)); tone({ f: 300, to: 1500, dur: 0.18, vol: 0.09, type: 'sawtooth', lp: 3200, punch: true }); chime(C6, 0.02, 0.09, 0.5); chime(G6, 0.08, 0.08, 0.6); },
-    hit: () => { crack(0, 0.32); thump(0, 170, 0.5, 0.17); crunch(0, 0.32, 1700, 320, 0.13); tone({ f: 62, to: 40, dur: 0.2, vol: 0.2, type: 'sine', punch: true }); steel(2900, 0.005, 0.05, 0.16); },
-    hitarrow: () => { crack(0, 0.26, 5000); thump(0, 240, 0.4, 0.1); wood(360, 0, 0.3); crunch(0, 0.18, 2000, 500, 0.08); },
-    hitmagic: () => { swish(0, 2500, 8500, 0.12, 0.16, 'highpass'); tone({ f: 900, to: 170, dur: 0.14, vol: 0.2, type: 'sine', punch: true }); thump(0, 115, 0.4, 0.15); crack(0.005, 0.18, 4000); chime(G6, 0.02, 0.06, 0.3); },
-    growl: (size) => { growl(165 / (size || 1), 0, 0.3, 0.16); },
-    /* the critical hit: a hard whack, then a bright steel "shing" with a ringing ting that echoes away, in the spirit of classic MMORPG crits */
-    crit: () => {
-      crack(0, 0.4, 3200); thump(0, 135, 0.5, 0.2); thump(0, 60, 0.4, 0.32); crunch(0, 0.32, 2200, 300, 0.14);
-      swish(0, 2500, 9500, 0.09, 0.22, 'highpass');
-      tone({ f: 1400, to: 3600, dur: 0.08, vol: 0.1, type: 'sawtooth', lp: 5000, punch: true });
-      steel(2700, 0.015, 0.16, 0.5); steel(4100, 0.02, 0.09, 0.42); bell(C7, 0.03, 0.07, 0.8);
-      [[0.1, 0.1, 2500], [0.2, 0.06, 2350], [0.3, 0.035, 2200]].forEach(([at, v, f]) => steel(f, at, v, 0.3));          // the echoes of the ting
-    },
-    pop: (size) => { const z = size || 1; thump(0, 150 / z, 0.5, 0.22); tone({ f: 280 / z, to: 70 / z, dur: 0.32, vol: 0.18, type: 'sawtooth', lp: 700, punch: true }); noise({ type: 'lowpass', f: 2000, to: 260, dur: 0.2, vol: 0.18 }); crack(0, 0.18); },
     hurt: () => { crack(0, 0.26); crunch(0, 0.36, 1100, 280, 0.13); thump(0, 150, 0.45, 0.16); tone({ f: 230, to: 95, dur: 0.14, vol: 0.2, type: 'sine' }); },
     hurtcrit: () => { crack(0, 0.4, 3000); crunch(0, 0.45, 1300, 220, 0.2); thump(0, 140, 0.6, 0.22); thump(0, 52, 0.6, 0.45); steel(420, 0, 0.1, 0.55); },
     block: () => { thump(0, 130, 0.45, 0.17); crack(0, 0.2, 4500); steel(1500, 0, 0.08, 0.45); chime(1760, 0.01, 0.13, 0.7); chime(1175, 0.03, 0.1, 0.8); },
     barrier: () => { thump(0, 95, 0.28, 0.3); [C5, G5, C6, E6].forEach((f, i) => tone({ f, at: i * 0.045, dur: 0.5, vol: 0.075, type: 'sine', a: 0.12, nojit: true })); swish(0, 300, 2300, 0.3, 0.14); },
-    heal: () => { pluck(E5, 0, 0.12, 0.5); pluck(G5, 0.07, 0.12, 0.5); pluck(C6, 0.14, 0.12, 0.6); chime(E6, 0.2, 0.07, 0.7); },
     warn: () => { growl(58, 0, 0.85, 0.34); growl(92, 0.05, 0.75, 0.22); taiko(0, 0.36); taiko(0.3, 0.42); tone({ f: 87, dur: 0.8, vol: 0.12, type: 'sawtooth', lp: 320, a: 0.2, nojit: true }); },
     /* results */
     victory: () => {
@@ -188,8 +171,130 @@
     },
   };
 
+  /* ======================= sound families: every weapon, monster and spell sounds different ======================= */
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const crackle = (at, n, f0, f1, vol) => { for (let i = 0; i < n; i++) crack(at + i * 0.03 + Math.random() * 0.015, vol, rnd(f0, f1)); };
+
+  /* ---- blades: how each sword moves through the air (played as the swing starts; the hits come 0.12 s apart for multi-hit weapons) ---- */
+  const SWING = {
+    sword: () => { swish(0, 1500, 5200, 0.06, 0.24); swish(0.05, 5200, 700, 0.13, 0.28); steel(4300, 0.045, 0.05, 0.2); crack(0.025, 0.08, 5000); },
+    twin: () => { [0, 0.12].forEach(at => { swish(at, 2600, 6500, 0.05, 0.17); swish(at + 0.04, 6500, 1300, 0.09, 0.2); steel(4800, at + 0.04, 0.04, 0.15); }); },
+    great: () => { swish(0, 500, 2200, 0.12, 0.28); swish(0.1, 2200, 260, 0.26, 0.36); tone({ f: 95, to: 55, dur: 0.32, vol: 0.14, type: 'sine' }); noise({ at: 0.05, type: 'lowpass', f: 700, to: 200, dur: 0.3, vol: 0.14 }); },
+    falchion: () => { swish(0, 900, 3600, 0.05, 0.26); swish(0.05, 3600, 450, 0.16, 0.36); tone({ f: 120, to: 70, at: 0.06, dur: 0.2, vol: 0.12, type: 'sine' }); steel(3000, 0.05, 0.04, 0.16); },
+    saber: () => { [0, 0.12, 0.24].forEach((at, i) => { swish(at, 3000 + i * 300, 8200, 0.045, 0.17); swish(at + 0.035, 8200, 1800, 0.08, 0.2); steel(5200 + i * 200, at + 0.04, 0.035, 0.14); }); },
+    rapier: () => { swish(0, 5200, 9800, 0.075, 0.15, 'highpass'); tone({ f: 3200, to: 5200, dur: 0.09, vol: 0.05, type: 'sine' }); steel(4000, 0.055, 0.045, 0.28); },
+    buckler: () => { swish(0, 1300, 4600, 0.06, 0.2); swish(0.05, 4600, 700, 0.12, 0.22); noise({ at: 0.03, type: 'lowpass', f: 420, dur: 0.08, vol: 0.14 }); wood(260, 0.08, 0.12); },
+  };
+  /* ---- what a weapon does when it lands. arg: { w: weapon id, a: the monster is armored } ---- */
+  const slice = (m, bright) => { crack(0, 0.3); thump(0, 165 / m, 0.5 * m, 0.17); crunch(0, 0.3, 1700, 320, 0.13); tone({ f: 62, to: 40, dur: 0.2, vol: 0.2 * m, type: 'sine', punch: true }); steel(bright || 2900, 0.005, 0.05, 0.16); };
+  const arrowHit = (armored, m) => {
+    if (armored) { crack(0, 0.3, 6000); steel(3600, 0, 0.12, 0.35); thump(0, 260, 0.25 * m, 0.08); }      // the arrow pings off the shell
+    else { crack(0, 0.26, 5000); thump(0, 240 / m, 0.4 * m, 0.1); wood(360, 0, 0.3); crunch(0, 0.18, 2000, 500, 0.08); }   // it sinks in with a thwack
+  };
+  const IMPACT = {
+    sword: () => slice(1), falchion: () => slice(1.25, 2400), saber: () => slice(0.8, 3600), twin: () => slice(0.75, 3300),
+    great: () => { crack(0, 0.4); thump(0, 105, 0.7, 0.26); thump(0, 52, 0.55, 0.4); crunch(0, 0.45, 1500, 220, 0.2); steel(1800, 0.005, 0.06, 0.3); },
+    rapier: () => { crack(0, 0.3, 5500); noise({ type: 'bandpass', f: 2600, to: 1400, dur: 0.05, vol: 0.3, punch: true }); thump(0, 210, 0.3, 0.1); steel(3300, 0.005, 0.06, 0.22); },
+    buckler: () => { thump(0, 150, 0.5, 0.18); wood(300, 0, 0.3); steel(950, 0.005, 0.1, 0.5); crack(0, 0.2, 2500); },
+    bow: a => arrowHit(a, 1), shortbow: a => arrowHit(a, 0.8), longbow: a => arrowHit(a, 1.25),
+    crossbow: a => { crack(0, 0.35, 3500); thump(0, 130, 0.55, 0.16); if (a) steel(3400, 0.005, 0.1, 0.35); else wood(300, 0, 0.25); },
+    staff: () => { swish(0, 2500, 8500, 0.12, 0.16, 'highpass'); tone({ f: 900, to: 170, dur: 0.14, vol: 0.2, type: 'sine', punch: true }); thump(0, 115, 0.4, 0.15); crack(0.005, 0.18, 4000); chime(G6, 0.02, 0.06, 0.3); },
+    heartwood: () => { thump(0, 100, 0.3, 0.16); chime(E6, 0, 0.1, 0.6); chime(G6, 0.05, 0.08, 0.6); noise({ type: 'bandpass', f: 3500, q: 1.2, dur: 0.2, vol: 0.07, a: 0.02 }); },
+    stormstaff: () => { crack(0, 0.55, 6500); crackle(0.01, 5, 3000, 7000, 0.12); tone({ f: 1800, to: 200, dur: 0.15, vol: 0.12, type: 'sawtooth', lp: 3500, punch: true }); thump(0.02, 70, 0.55, 0.4); noise({ at: 0.03, type: 'lowpass', f: 500, to: 120, dur: 0.35, vol: 0.2 }); },
+    frostwand: () => { crack(0, 0.4, 7500); [0, 0.03, 0.06, 0.1, 0.15].forEach(at => chime(rnd(2000, 4500), at, 0.05, 0.25)); thump(0, 140, 0.3, 0.12); noise({ type: 'highpass', f: 8000, dur: 0.18, vol: 0.06 }); },
+  };
+  /* ---- bows and staves: the shot or the cast ---- */
+  const RELEASE = {
+    bow: () => { pluck(135, 0, 0.34, 0.32); swish(0.005, 2400, 6800, 0.1, 0.18, 'highpass'); tone({ f: 1700, to: 2700, at: 0.01, dur: 0.12, vol: 0.05, type: 'sine' }); crack(0, 0.08, 4500); },
+    shortbow: () => { pluck(210, 0, 0.28, 0.22); swish(0, 3200, 8000, 0.07, 0.14, 'highpass'); tone({ f: 2200, to: 3400, dur: 0.08, vol: 0.04, type: 'sine' }); },
+    longbow: () => { pluck(92, 0, 0.44, 0.5); pluck(184, 0, 0.12, 0.3); swish(0.01, 2200, 5500, 0.15, 0.16, 'highpass'); tone({ f: 1500, to: 2600, dur: 0.16, vol: 0.05, type: 'sine' }); },
+    crossbow: () => { crack(0, 0.18, 1800); wood(760, 0, 0.2); thump(0.02, 110, 0.4, 0.12); pluck(120, 0.02, 0.3, 0.25); swish(0.03, 2400, 6200, 0.09, 0.14, 'highpass'); },
+  };
+  const CAST = {
+    staff: () => { swish(0, 3000, 9000, 0.14, 0.12, 'highpass'); chime(C6, 0.02, 0.09, 0.5); chime(G6, 0.08, 0.08, 0.6); tone({ f: 600, to: 1500, dur: 0.16, vol: 0.05, type: 'sine' }); },
+    heartwood: () => { noise({ type: 'bandpass', f: 3200, q: 1.2, dur: 0.25, vol: 0.07, a: 0.05 }); pluck(G5, 0, 0.12, 0.5); pluck(C6, 0.07, 0.11, 0.55); chime(E6, 0.12, 0.07, 0.7); },
+    stormstaff: () => { swish(0, 200, 1600, 0.18, 0.18); crackle(0.01, 5, 3500, 7000, 0.1); tone({ f: 180, to: 1900, dur: 0.2, vol: 0.1, type: 'sawtooth', lp: 3200, punch: true }); },
+    frostwand: () => { [0, 0.04, 0.08].forEach((at, i) => chime(2400 + i * 500, at, 0.09, 0.45)); swish(0, 6000, 11000, 0.14, 0.07, 'highpass'); noise({ at: 0.05, type: 'highpass', f: 9000, dur: 0.2, vol: 0.04 }); },
+  };
+  const HEALFX = {
+    staff: () => { pluck(E5, 0, 0.12, 0.5); pluck(G5, 0.07, 0.12, 0.5); pluck(C6, 0.14, 0.12, 0.6); chime(E6, 0.2, 0.07, 0.7); },
+    heartwood: () => { [C5, E5, G5, C6].forEach((f, i) => pluck(f, i * 0.07, 0.1, 0.8)); chime(E6, 0.22, 0.08, 0.9); noise({ type: 'bandpass', f: 3000, q: 1, dur: 0.4, vol: 0.05, a: 0.1 }); },
+    stormstaff: () => { tone({ f: 330, to: 440, dur: 0.3, vol: 0.09, type: 'sine', a: 0.08 }); crackle(0.05, 3, 3000, 5000, 0.05); chime(G6, 0.12, 0.08, 0.7); chime(C7, 0.18, 0.06, 0.7); },
+    frostwand: () => { [E6, G6, C7].forEach((f, i) => chime(f, i * 0.07, 0.09, 0.8)); noise({ type: 'highpass', f: 9000, dur: 0.3, vol: 0.04, a: 0.05 }); },
+  };
+  /* critical hit by weapon kind: the whack, then a ting that fits what hit */
+  const CRITFX = {
+    blade: () => { crack(0, 0.4, 3200); thump(0, 135, 0.5, 0.2); thump(0, 60, 0.4, 0.32); crunch(0, 0.32, 2200, 300, 0.14); swish(0, 2500, 9500, 0.09, 0.22, 'highpass'); tone({ f: 1400, to: 3600, dur: 0.08, vol: 0.1, type: 'sawtooth', lp: 5000, punch: true }); steel(2700, 0.015, 0.16, 0.5); steel(4100, 0.02, 0.09, 0.42); bell(C7, 0.03, 0.07, 0.8); [[0.1, 0.1, 2500], [0.2, 0.06, 2350], [0.3, 0.035, 2200]].forEach(([at, v, f]) => steel(f, at, v, 0.3)); },
+    arrow: () => { crack(0, 0.42, 4500); thump(0, 190, 0.5, 0.16); thump(0, 70, 0.35, 0.28); wood(340, 0, 0.3); tone({ f: 1800, to: 3800, dur: 0.08, vol: 0.09, type: 'sawtooth', lp: 5000, punch: true }); steel(3300, 0.015, 0.14, 0.5); [[0.1, 0.08, 3000], [0.2, 0.05, 2850]].forEach(([at, v, f]) => steel(f, at, v, 0.3)); },
+    magic: () => { crack(0, 0.45, 5000); thump(0, 110, 0.55, 0.22); thump(0, 52, 0.45, 0.4); swish(0, 2500, 10000, 0.1, 0.18, 'highpass'); crackle(0.01, 4, 3500, 7000, 0.12); chime(C7, 0.02, 0.14, 1.0); chime(G6, 0.06, 0.1, 0.9); bell(C7, 0.05, 0.08, 1.2); },
+  };
+
+  /* ---- monsters: every kind of monster growls, strikes and dies in its own way. arg: { c: kind, s: size } ---- */
+  const MWIND = {
+    beast: s => growl(165 / s, 0, 0.3, 0.16),
+    giant: s => { growl(95 / s, 0, 0.5, 0.22); thump(0.05, 70, 0.2, 0.2); },
+    dragon: () => { growl(78, 0, 0.55, 0.24); noise({ type: 'highpass', f: 5000, dur: 0.4, vol: 0.08, a: 0.1 }); },
+    insect: () => { tone({ f: 230, dur: 0.3, vol: 0.07, type: 'sawtooth', lp: 1800, a: 0.03, nojit: true }); tone({ f: 238, dur: 0.3, vol: 0.07, type: 'sawtooth', lp: 1800, a: 0.03, nojit: true }); noise({ type: 'bandpass', f: 3000, q: 2, dur: 0.28, vol: 0.05 }); },
+    frog: () => { tone({ f: 100, to: 165, dur: 0.12, vol: 0.2, type: 'sine', a: 0.01 }); tone({ f: 92, to: 150, at: 0.13, dur: 0.14, vol: 0.2, type: 'sine', a: 0.01 }); noise({ type: 'bandpass', f: 320, q: 2, dur: 0.25, vol: 0.1 }); },
+    snake: () => { noise({ type: 'highpass', f: 5500, dur: 0.35, vol: 0.14, a: 0.08 }); noise({ type: 'bandpass', f: 8000, q: 1.5, dur: 0.3, vol: 0.08, a: 0.08 }); },
+    golem: () => { noise({ type: 'lowpass', f: 280, dur: 0.4, vol: 0.2, a: 0.08 }); tone({ f: 55, to: 48, dur: 0.4, vol: 0.15, type: 'sine' }); crack(0.1, 0.1, 1200); crack(0.2, 0.1, 1000); },
+    crab: () => { wood(1800, 0, 0.12); wood(1500, 0.07, 0.12); wood(1900, 0.14, 0.12); },
+    bat: () => { tone({ f: 3200, to: 1900, dur: 0.18, vol: 0.06, type: 'sine' }); tone({ f: 3300, to: 2000, at: 0.02, dur: 0.16, vol: 0.04, type: 'sine' }); noise({ type: 'bandpass', f: 500, dur: 0.07, vol: 0.1 }); noise({ at: 0.08, type: 'bandpass', f: 500, dur: 0.07, vol: 0.1 }); },
+    spirit: () => { noise({ type: 'bandpass', f: 1500, q: 2, dur: 0.3, vol: 0.1, a: 0.1 }); tone({ f: 440, to: 520, dur: 0.3, vol: 0.04, type: 'sine', a: 0.1 }); },
+    plant: () => { noise({ type: 'bandpass', f: 2500, q: 1, dur: 0.3, vol: 0.12, a: 0.06 }); wood(300, 0.15, 0.1); },
+  };
+  MWIND.hag = MWIND.spirit; MWIND.ice = MWIND.spirit; MWIND.fire = MWIND.spirit;
+  const claw = () => { swish(0, 3500, 1200, 0.08, 0.2); crunch(0.02, 0.32, 1500, 300, 0.12); thump(0.02, 160, 0.42, 0.15); };
+  const MHIT = {
+    beast: claw,
+    giant: () => { thump(0, 85, 0.7, 0.3); thump(0, 45, 0.55, 0.4); crack(0, 0.3, 2500); crunch(0, 0.4, 1400, 200, 0.2); },
+    dragon: () => { claw(); noise({ type: 'bandpass', f: 900, to: 300, dur: 0.2, vol: 0.14, punch: true }); },
+    insect: () => { crack(0, 0.3, 5000); tone({ f: 1800, to: 900, dur: 0.06, vol: 0.1, type: 'sine' }); thump(0, 220, 0.25, 0.08); },
+    frog: () => { noise({ type: 'lowpass', f: 900, to: 250, dur: 0.1, vol: 0.3, punch: true }); thump(0, 150, 0.4, 0.14); noise({ at: 0.03, type: 'bandpass', f: 400, dur: 0.06, vol: 0.12 }); },
+    snake: () => { crack(0, 0.28, 4500); noise({ type: 'highpass', f: 6000, dur: 0.1, vol: 0.12 }); thump(0, 200, 0.3, 0.1); },
+    golem: () => { thump(0, 90, 0.65, 0.28); crack(0, 0.3, 2500); noise({ type: 'lowpass', f: 1100, to: 200, dur: 0.22, vol: 0.28, punch: true }); },
+    crab: () => { wood(1700, 0, 0.2); steel(1500, 0.01, 0.08, 0.2); crack(0, 0.22, 3500); thump(0, 200, 0.3, 0.1); },
+    bat: () => { swish(0, 5000, 2000, 0.07, 0.15); crunch(0.02, 0.25, 1800, 400, 0.1); thump(0.02, 190, 0.3, 0.12); },
+    spirit: () => { tone({ f: 700, to: 150, dur: 0.12, vol: 0.15, type: 'sawtooth', lp: 2500, punch: true }); crack(0, 0.2, 4500); thump(0, 120, 0.35, 0.14); chime(C6, 0.02, 0.05, 0.3); },
+    plant: () => { wood(330, 0, 0.35); crunch(0, 0.2, 1800, 500, 0.08); thump(0, 230, 0.3, 0.1); },
+  };
+  MHIT.hag = MHIT.spirit; MHIT.ice = () => { crack(0, 0.3, 7000); chime(rnd(2500, 3500), 0, 0.07, 0.3); thump(0, 130, 0.35, 0.12); }; MHIT.fire = () => { crack(0, 0.25, 4000); noise({ type: 'bandpass', f: 1200, to: 300, dur: 0.15, vol: 0.2, punch: true }); thump(0, 120, 0.4, 0.15); };
+  /* a ranged monster fires: spit, wisp, ember, ice shard, mist */
+  const MSHOT = {
+    plant: () => { noise({ type: 'bandpass', f: 900, to: 450, dur: 0.1, vol: 0.2 }); wood(500, 0.02, 0.15); },
+    spirit: () => { swish(0, 500, 2500, 0.2, 0.14); chime(E6, 0.05, 0.06, 0.4); },
+    hag: () => { tone({ f: 220, to: 260, dur: 0.3, vol: 0.08, type: 'sine', a: 0.08 }); noise({ type: 'bandpass', f: 1200, q: 2, dur: 0.3, vol: 0.08, a: 0.1 }); chime(A5, 0.1, 0.05, 0.5); },
+    ice: () => { [0, 0.04].forEach((at, i) => chime(2800 + i * 600, at, 0.07, 0.4)); swish(0, 6500, 10500, 0.12, 0.06, 'highpass'); },
+    fire: () => { swish(0, 300, 900, 0.25, 0.2); crackle(0.02, 4, 1500, 4000, 0.07); },
+  };
+  const MDIE_KIND = { beast: 'flesh', giant: 'flesh', frog: 'flesh', snake: 'flesh', bat: 'flesh', dragon: 'dragon', insect: 'bug', crab: 'bug', golem: 'golem', spirit: 'spirit', hag: 'spirit', plant: 'plant', ice: 'ice', fire: 'fire' };
+  const MDIE = {
+    flesh: s => { thump(0, 150 / s, 0.5, 0.22); tone({ f: 280 / s, to: 70 / s, dur: 0.32, vol: 0.18, type: 'sawtooth', lp: 700, punch: true }); noise({ type: 'lowpass', f: 2000, to: 260, dur: 0.2, vol: 0.18 }); crack(0, 0.18); },
+    dragon: () => { growl(80, 0, 0.7, 0.26); thump(0.1, 70, 0.5, 0.4); noise({ at: 0.1, type: 'lowpass', f: 1500, to: 150, dur: 0.5, vol: 0.2 }); },
+    bug: () => { crunch(0, 0.35, 2500, 500, 0.1); noise({ at: 0.03, type: 'lowpass', f: 800, to: 250, dur: 0.15, vol: 0.2 }); wood(420, 0.02, 0.25); },
+    golem: () => { thump(0, 80, 0.5, 0.3); noise({ type: 'lowpass', f: 1500, to: 150, dur: 0.5, vol: 0.3, punch: true }); [0.08, 0.16, 0.26].forEach(at => crack(at, 0.12, rnd(900, 1800))); },
+    spirit: () => { swish(0, 2500, 300, 0.3, 0.14); chime(G6, 0.02, 0.06, 0.5); chime(E6, 0.1, 0.05, 0.5); chime(C6, 0.18, 0.05, 0.6); },
+    plant: () => { noise({ type: 'lowpass', f: 1800, to: 300, dur: 0.2, vol: 0.16 }); noise({ type: 'bandpass', f: 2500, q: 1, dur: 0.25, vol: 0.1 }); wood(320, 0, 0.2); },
+    ice: () => { crack(0, 0.35, 7500); [0, 0.04, 0.09, 0.14].forEach(at => chime(rnd(2000, 4500), at, 0.05, 0.3)); thump(0, 120, 0.3, 0.14); },
+    fire: () => { noise({ type: 'bandpass', f: 1500, to: 300, dur: 0.3, vol: 0.18 }); noise({ type: 'highpass', f: 6000, dur: 0.3, vol: 0.06 }); thump(0, 120, 0.3, 0.14); },
+  };
+
+  Object.assign(SOUNDS, {
+    swing: w => (SWING[w] || SWING.sword)(),
+    wimpact: p => (IMPACT[(p && p.w) || 'sword'] || IMPACT.sword)(p && p.a),
+    release: w => (RELEASE[w] || RELEASE.bow)(),
+    cast: w => (CAST[w] || CAST.staff)(),
+    healfx: w => (HEALFX[w] || HEALFX.staff)(),
+    crit: f => (CRITFX[f] || CRITFX.blade)(),
+    mwind: p => { const c = (p && p.c) || 'beast'; (MWIND[c] || MWIND.beast)((p && p.s) || 1); },
+    mhit: p => (MHIT[(p && p.c) || 'beast'] || MHIT.beast)(),
+    mshot: p => (MSHOT[(p && p.c) || 'spirit'] || MSHOT.spirit)(),
+    mdie: p => { const k = MDIE_KIND[(p && p.c) || 'beast'] || 'flesh'; MDIE[k]((p && p.s) || 1); },
+    herodown: () => { thump(0, 100, 0.5, 0.3); noise({ type: 'lowpass', f: 600, to: 200, dur: 0.25, vol: 0.15 }); chime(G5, 0.08, 0.06, 0.6); chime(C5, 0.2, 0.06, 0.8); },
+  });
+
   /* sounds that tend to come in bursts: at most one per this many milliseconds */
-  const GAP = { growl: 260, hitarrow: 45, hitmagic: 45, hit: 45, crit: 80, slash: 70, arrow: 70, bolt: 70, pop: 60, hurt: 70, hurtcrit: 90, block: 90, heal: 200, tap: 40, tick: 30, star: 120, coins: 80, warn: 400 };
+  const GAP = { swing: 70, wimpact: 45, release: 70, cast: 70, healfx: 200, mwind: 220, mhit: 60, mshot: 120, mdie: 70, herodown: 250, crit: 80, hurt: 70, hurtcrit: 90, block: 90, tap: 40, tick: 30, star: 120, coins: 80, warn: 400 };
   const last = {};
 
   function play(name, arg) {
