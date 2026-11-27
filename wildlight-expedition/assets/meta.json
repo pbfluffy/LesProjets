@@ -145,5 +145,69 @@
     "feetY": 0.975,
     "figureH": 0.77969,
     "ext": "webp"
+  },
+  "hornet": {
+    "frameW": 780,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.80078,
+    "ext": "webp"
+  },
+  "barkbear": {
+    "frameW": 568,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.81836,
+    "ext": "webp"
+  },
+  "mireadder": {
+    "frameW": 706,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.80078,
+    "ext": "webp"
+  },
+  "mistheg": {
+    "frameW": 596,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.85547,
+    "ext": "webp"
+  },
+  "rimesprite": {
+    "frameW": 640,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.86523,
+    "ext": "webp"
+  },
+  "snowyeti": {
+    "frameW": 506,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.81055,
+    "ext": "webp"
+  },
+  "cinderbat": {
+    "frameW": 1006,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.77734,
+    "ext": "webp"
+  },
+  "sentinel": {
+    "frameW": 482,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.80859,
+    "ext": "webp"
   }
 }

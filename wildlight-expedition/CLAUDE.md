@@ -91,3 +91,11 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
   Retreat or switching off shows the "Repeat run" summary (`showRunSummary`). `B.resolved` makes sure a fight pays out only once. Wins also get a "∞ Repeat" button on the normal victory screen.
 - **Farm log**: every claim or switch of the farming spot with something to collect is saved in `save.farmLog` (last 30: time, stage, minutes out, gold, lumber, weapons found + their grade; `logFarm`, synced with the save).
   The Map tab shows it as a folded "Farm log" card under the farm strip (`farmLogCard`), and Claim opens a "Farm report" dialog (`showFarmReport`).
+
+## Weapons and monsters (round 2)
+- **15 weapons** (`WEAPONS` in `game.js`): the 5 first ones plus 10 that only drop: falchion, saber, rapier (ignores 60% armor), sword & shield (`buckler`, wielder takes 25% less damage), hawk bow, longbow,
+  crossbow (ignores 70% armor), heartwood staff (heals x1.5), storm staff (bolts splash 50%), frost wand. Flags: `pierce`, `shield`, `healMult`, `splash` (also for ranged), plus `pose` = which existing hero picture
+  is drawn in battle (new weapons borrow the sword / twin-swords pose; Tavi and Iona have one pose each). Drop tables per stage are in `STAGES` (`drops`). Icons: `assets/items/<id>.png`.
+- **22 monsters**: 8 new (Thicket Hornet, Barkbear, Mire Adder, Mist Hag, Rime Sprite, Snow Yeti, Cinder Bat, Obsidian Sentinel), each a stand-in for an existing role with similar stats, so stage balance is
+  unchanged (checked old pack vs new pack by simulation). They replace a monster in the packs of path, hollow, mirewood, causeway, frostfall, glimmer, cinder, quarry and magmagate. New monsters are WebP;
+  `monExt()` in `sprites.js` knows that before `meta.json` has loaded. Add a monster: `MON`, `HEIGHT` and `REGION_ART` in `sprites.js`, files in `assets/monsters/`, an entry in `assets/meta.json`.
