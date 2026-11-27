@@ -76,3 +76,11 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - `sw.js`: page = network first (offline: saved copy); `?v=` files = cache first; unversioned files = network first. `VERSION` is stamped with the commit by `deploy.yml` (a new deploy clears the old `wildlight-*` cache). With `VERSION = 'dev'` (local play) nothing is served from the cache while online.
 - `pwa.js`: registers the worker, sends it `window.artUrls()` (every picture, from `sprites.js`) when idle so all areas work offline, and `window.pwaCard()` draws the dismissible "Install the game" card on the Map tab (Install button via `beforeinstallprompt`; "Add to Home Screen" steps on iOS; hidden when already installed).
 - Cloudflare must not edge-cache `sw.js` (the site's existing "/sw.js" bypass rule covers it).
+
+## Screen sizes (phone, tablet, PC)
+- The phone layout is the base; everything else is `@media` at the end of `style.css`. Map / Party / Forge markup is grouped for it: `.vgrid > .vcol > .vg.oN` (Map) and `.cgrid` (card lists). On a phone those wrappers are `display:contents`
+  (and `.vg.oN` keep the phone order with `order`), so the phone layout is unchanged.
+- 720px and up (tablet): the column grows to 720px, card lists become 2 columns, the battle arena grows (`--bw`, limited by the window height so the barrier stays on screen).
+- 1000px and up (PC): the tab bar moves into the header (centered), the Map becomes two columns (map, chips and Next up on the left; farm strip, daily hunt, install card and Roads on the right), card lists use 3 columns.
+- Mouse devices (`hover:hover` and `pointer:fine`): hover feedback on buttons/cards and the keyboard hint in battle. Keys: Space = barrier, Esc = retreat (or close a dialog), 1 / 2 / 3 = Map / Party / Forge.
+- Check changes at 320, 375, 768, 1000 and 1280 px wide.
