@@ -49,3 +49,9 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
   (`waves` on the stage, used for 1 or 2 heroes), and `farmMult()` gathers 0.6x / 0.8x / 1x. Checked by simulation: the first two stages are winnable at every size and the boss needs the barrier at every size.
 - Party tab: party strip with slots, a card per hero (stats, level up, weapon family upgrade, folded "Change weapon"), then Recruit cards. Forge tab: weapons grouped by hero, merge-ready banner,
   copy pips, Equip button; weapons the player has not found are dimmed with where they drop.
+
+## Result screens
+- `stageWin()` / `bonusWin()` return a structured result (`gold`, `lumber`, `first`, `tower`, `unlock`, `drop`, `again`); `showResult()` turns it into the reward screen (`winHtml`) or the defeat screen (`loseHtml`).
+- Win: 1-3 stars from how the party finished (`starRating`: someone fell = 1, all alive = 2, all alive and 60%+ HP = 3), the heroes with their remaining HP, reward tiles that count up (`animateCounts`),
+  a highlighted new-weapon card with copy pips (and Open Forge when 3 copies can merge), unlock / watchtower banners, Back to the village and Fight again. Defeat: fallen heroes and up to two tips (`defeatTips`) with shortcut buttons.
+- Animations respect `prefers-reduced-motion`. On short screens the card scrolls and its buttons stay pinned to the bottom.
