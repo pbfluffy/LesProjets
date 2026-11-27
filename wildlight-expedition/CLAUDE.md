@@ -32,3 +32,5 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - `TEST_PERIOD` in `game.js` shows a "Test tools" card at the bottom of the Map tab with **Reset game data** (confirm dialog, then `resetGame()`).
   It replaces the save with a brand-new one and persists it, so a signed-in account is reset too (the newer timestamp wins on every device).
   Remove it for launch: set `TEST_PERIOD` to false, or delete the `test tools` block, the card in `renderMap` and the three `reset*` actions.
+- **Build label** (test period): a small corner label shows `v <commit id> · <build time>` (`BUILD` / `parseBuild` in `game.js`). `deploy.yml` stamps the commit into the `?v=` of
+  the script links and the Bangkok build time into `<meta name="build">`; locally it reads `v dev`. If the label is older than the latest deploy, you are looking at a cached copy.

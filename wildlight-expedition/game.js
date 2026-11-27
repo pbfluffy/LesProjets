@@ -435,6 +435,18 @@ function renderForge() {
 // the card in renderMap and the three reset actions) when the game launches.
 const TEST_PERIOD = true;
 
+/* Which build is this? deploy.yml stamps the commit into the ?v= of the script links and the build time into <meta name="build">.
+   During the test period a small corner label shows both, so a stale cached copy is easy to tell from the new one. */
+function parseBuild(src, stamp) {
+  const m = /[?&]v=([^&#]+)/.exec(src || '');
+  return { sha: m ? m[1] : 'dev', time: stamp && !stamp.startsWith('__') ? stamp : '' };
+}
+const BUILD = parseBuild(document.currentScript && document.currentScript.src, (document.querySelector('meta[name=build]') || {}).content);
+if (TEST_PERIOD) {
+  const verEl = $('#ver');
+  if (verEl) verEl.textContent = `v ${BUILD.sha}${BUILD.time ? ' · ' + BUILD.time : ''}`;
+}
+
 function closeResetDialog() { const d = document.getElementById('reset-dialog'); if (d) d.remove(); }
 function showResetDialog() {
   closeResetDialog();
