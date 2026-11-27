@@ -36,13 +36,14 @@
   const parse = s => { try { const o = JSON.parse(s); return o && typeof o === 'object' ? o : null; } catch (e) { return null; } };
   const busy = () => typeof B !== 'undefined' && !!B;                    // a fight is running
   const stageCount = s => Object.keys((s && s.cleared) || {}).length;
-  const levelSum = s => ['bren', 'tavi', 'iona'].reduce((a, id) => a + (((s && s.heroes) || {})[id] || { lvl: 1 }).lvl, 0);
+  const partyOf = s => (s && Array.isArray(s.party) ? s.party : ['bren', 'tavi', 'iona']);   // saves from before hiring had the full party
+  const levelSum = s => partyOf(s).reduce((a, id) => a + (((s && s.heroes) || {})[id] || { lvl: 1 }).lvl, 0);
 
   /* "Has this save been played?" A brand-new save has nothing to lose. */
   function hasProgress(s) {
     if (!s) return false;
     const items = Object.values(s.items || {}).reduce((a, arr) => a + (arr || []).reduce((x, y) => x + y, 0), 0);
-    return stageCount(s) > 0 || levelSum(s) > 3 || (s.gold || 0) > 0 || (s.lumber || 0) + (s.iron || 0) > 0 || items > 3;
+    return stageCount(s) > 0 || levelSum(s) > partyOf(s).length || (Array.isArray(s.party) && s.party.length > 1) || (s.gold || 0) > 0 || (s.lumber || 0) + (s.iron || 0) > 0 || items > 3;
   }
 
   /* ------------------------------ cloud I/O ------------------------------ */
@@ -132,7 +133,7 @@
   }
 
   function summary(s) {
-    return `Level ${levelSum(s)} total · ${stageCount(s)} stage${stageCount(s) === 1 ? '' : 's'} cleared`;
+    return `${partyOf(s).length} hero${partyOf(s).length === 1 ? '' : 'es'} · level ${levelSum(s)} · ${stageCount(s)} stage${stageCount(s) === 1 ? '' : 's'} cleared`;
   }
 
   function askChoice() {

@@ -41,3 +41,11 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - Stage details that are not needed at a glance, like the possible weapon drops, are folded (`<details class="drops">`). Closed by default; which ones the player opened is
   kept in `uiOpen` across redraws. Drop tiers (Often / Sometimes / Rarely) come from the stage's drop weights.
 - Stage cards use the painted `bg/<stage>.jpg` and the monsters' idle sprites (via `window.assetUrl` from `sprites.js`); until the art has loaded they show a colour gradient.
+
+## Party and hiring
+- A new game starts with ONE hero (Bren). Tavi and Iona are hired with gold in the Party tab (`HERO[id].hire`: 300 and 800). `save.party` lists the hired heroes; `party()` / `inParty()` /
+  `partySize()` are the helpers. Saves from before hiring have no `party` and keep all three heroes (`hydrate()`); Reset game data starts a new solo game.
+- Fights and farming scale with the party size so a small party is not punished: `partyScale()` multiplies monster HP (0.55 / 0.8 / 1), `encounterFor(stage)` picks smaller packs
+  (`waves` on the stage, used for 1 or 2 heroes), and `farmMult()` gathers 0.6x / 0.8x / 1x. Checked by simulation: the first two stages are winnable at every size and the boss needs the barrier at every size.
+- Party tab: party strip with slots, a card per hero (stats, level up, weapon family upgrade, folded "Change weapon"), then Recruit cards. Forge tab: weapons grouped by hero, merge-ready banner,
+  copy pips, Equip button; weapons the player has not found are dimmed with where they drop.

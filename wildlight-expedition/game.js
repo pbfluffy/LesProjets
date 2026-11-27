@@ -8,15 +8,16 @@
 
 /* ---------------------------- data ---------------------------------- */
 const HERO = {
-  bren: { name: 'Bren Alder', role: 'Guardian · Front line', family: 'sword', hp: 120, atk: 8, x: 135, y: 184,
+  bren: { hire: 0, name: 'Bren Alder', role: 'Guardian · Front line', family: 'sword', hp: 120, atk: 8, x: 135, y: 184,
           blurb: 'Stands in front and takes most melee hits. Braces low when the party barrier goes up.' },
-  tavi: { name: 'Tavi Reed', role: 'Archer · Ranged damage', family: 'bow', hp: 70, atk: 7, x: 72, y: 152,
+  tavi: { hire: 300, name: 'Tavi Reed', role: 'Archer · Ranged damage', family: 'bow', hp: 70, atk: 7, x: 72, y: 152,
           blurb: 'Fires from behind Bren. A quick backward lean before each shot.' },
-  iona: { name: 'Iona Moss', role: 'Herbalist · Healing', family: 'staff', hp: 70, atk: 4, x: 62, y: 214,
+  iona: { hire: 800, name: 'Iona Moss', role: 'Herbalist · Healing', family: 'staff', hp: 70, atk: 4, x: 62, y: 214,
           blurb: 'Casts bolts from the back and heals the weakest ally. A ring of petals shows who was healed.' },
 };
 const HERO_ORDER = ['bren', 'tavi', 'iona'];
 const FAMILY = { sword: 'Sword', bow: 'Bow', staff: 'Staff' };
+const FAMILY_PLURAL = { sword: 'Swords', bow: 'Bows', staff: 'Staves' };
 
 const WEAPONS = {
   sword: { name: 'Standard sword', fam: 'sword', hits: [1], int: 1.0, starter: true,
@@ -41,9 +42,11 @@ const MON = {
 
 const STAGES = [
   { id: 'path', name: 'Pinewood Path', req: null, enemies: ['brushfang', 'brushfang', 'brushfang', 'brushfang'],
+    waves: { 1: ['brushfang', 'brushfang'], 2: ['brushfang', 'brushfang', 'brushfang'] },      // fewer monsters for a party of 1 or 2
     blurb: 'A pack of Brushfangs. Best for farming gold.', farm: { gold: 4, lumber: 0.3 }, best: 'Gold',
     first: { gold: 60, lumber: 5 }, drops: [['sword', 3], ['bow', 3], ['staff', 3], ['twin', 1]], repeat: { gold: 12, lumber: 0 }, sky: ['#2d5a45', '#14301f'] },
   { id: 'hollow', name: 'Ironroot Hollow', req: 'path', enemies: ['beetle', 'beetle', 'spitter'],
+    waves: { 1: ['beetle', 'spitter'] },
     blurb: 'Rustshell Beetles screen a Pinecap Spitter. Best for farming lumber.', farm: { gold: 1.5, lumber: 1.5 }, best: 'Lumber',
     first: { gold: 120, lumber: 10 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5]], repeat: { gold: 15, lumber: 1 }, sky: ['#27495a', '#102430'] },
   { id: 'crossing', name: 'Thornback Crossing', req: 'hollow', enemies: ['boar'], boss: true,
@@ -55,7 +58,7 @@ const STAGE = Object.fromEntries(STAGES.map(s => [s.id, s]));
 
 const LAYOUT = {
   1: [[290, 192]],
-  2: [[270, 172], [275, 214]],
+  2: [[262, 176], [318, 206]],
   3: [[255, 170], [262, 214], [352, 190]],
   4: [[250, 190], [295, 160], [300, 216], [348, 186]],
 };
@@ -83,7 +86,7 @@ const FARM_CAP_MIN = 24 * 60;
 const SAVE_KEY = 'wildlight-expedition-v1';
 function newSave() {
   return {
-    gold: 0, lumber: 0, cleared: {}, towers: {}, pity: {},
+    gold: 0, lumber: 0, cleared: {}, towers: {}, pity: {}, party: ['bren'],
     // items[weapon][grade] = how many copies you own; every hero starts with their basic weapon
     items: { sword: [1, 0, 0, 0, 0], bow: [1, 0, 0, 0, 0], staff: [1, 0, 0, 0, 0] },
     heroes: {
@@ -98,6 +101,8 @@ function hydrate(raw) {
   const base = newSave();
   if (raw && typeof raw === 'object') {
     Object.assign(base, raw);
+    base.party = Array.isArray(raw.party) ? HERO_ORDER.filter(id => raw.party.includes(id)) : HERO_ORDER.slice();   // older saves had everyone
+    if (!base.party.length) base.party = ['bren'];
     for (const id of HERO_ORDER) base.heroes[id] = Object.assign(newSave().heroes[id], (raw.heroes || {})[id]);
     if (!raw.items) {                       // older save: each crafted weapon becomes one Common copy
       base.items = newSave().items;
@@ -146,7 +151,13 @@ const $ = s => document.querySelector(s);
 const fmt = n => Math.floor(n).toLocaleString();
 const today = () => new Date().toLocaleDateString('sv');
 const isUnlocked = s => !s.req || !!save.cleared[s.req];
-const sumLevels = () => HERO_ORDER.reduce((a, id) => a + save.heroes[id].lvl, 0);
+const party = () => HERO_ORDER.filter(id => save.party.includes(id));
+const inParty = id => save.party.includes(id);
+const partySize = () => save.party.length;
+const sumLevels = () => party().reduce((a, id) => a + save.heroes[id].lvl, 0);
+/* Monsters are weaker (and packs smaller) for a smaller party, so the first fights are fair with one hero. */
+const partyScale = () => [1, 0.55, 0.8, 1][partySize()] || 1;
+const encounterFor = s => (s.waves && s.waves[partySize()]) || s.enemies;
 const lvlCost = l => 40 * l;
 const upCost = u => ({ gold: 80 * (u + 1), lumber: 6 * (u + 1) });
 const canAfford = c => save.gold >= (c.gold || 0) && save.lumber >= (c.lumber || 0);
@@ -163,7 +174,7 @@ function heroStats(id) {
 }
 
 /* ---------------------------- farming ------------------------------- */
-const farmMult = () => 1 + 0.06 * (sumLevels() - 3);
+const farmMult = () => (1 + 0.06 * (sumLevels() - partySize())) * (0.4 + 0.2 * partySize());     // a bigger party gathers more
 function farmGain() {
   if (!save.farm) return null;
   const st = STAGE[save.farm.stage];
@@ -307,7 +318,7 @@ const resChip = (kind, n) => `<span class="res"><i class="ico ${kind}"></i><b>${
 const nextStage = () => STAGES.find(s => isUnlocked(s) && !save.cleared[s.id]) || null;
 const featuredStage = () => nextStage() || (save.farm && STAGE[save.farm.stage]) || STAGES[STAGES.length - 1];
 const stageNo = s => STAGES.indexOf(s) + 1;
-const foeCounts = s => s.enemies.reduce((m, x) => (m[x] = (m[x] || 0) + 1, m), {});
+const foeCounts = s => encounterFor(s).reduce((m, x) => (m[x] = (m[x] || 0) + 1, m), {});
 const foesText = s => Object.entries(foeCounts(s)).map(([m, n]) => MON[m].name + (n > 1 ? ` ×${n}` : '')).join(' · ');
 
 function stageBg(s) {                           // the painted stage art as a banner (a colour gradient until the art has loaded)
@@ -453,66 +464,134 @@ function tickFarm() {
 setInterval(tickFarm, 1000);
 
 /* ------------------------------ party ------------------------------- */
-function renderParty() {
-  let h = `<p class="note">Spend gold to level heroes. Upgrading a weapon family improves every variant for that hero.</p>`;
-  for (const id of HERO_ORDER) {
-    const d = HERO[id], s = save.heroes[id], st = heroStats(id);
-    const lc = { gold: lvlCost(s.lvl) }, uc = upCost(s.up);
-    const ws = Object.keys(WEAPONS).filter(w => WEAPONS[w].fam === d.family && owned(w));
-    h += `<div class="card"><div class="hero-card"><canvas data-hero="${id}" width="180" height="200"></canvas>
-      <div class="info"><h3>${d.name}</h3><p class="sub">${d.role}</p>
-      <p class="note">Level ${s.lvl} · ${st.maxHp} HP · ${FAMILY[d.family]} +${s.up}</p>
-      <p class="note">${WEAPONS[s.weapon].name} ${gradeTag(heroGrade(id))}</p>
-      <p class="note">${d.blurb}</p></div></div>
-      <div class="row" style="margin-top:10px">
-        <button class="btn" data-act="lvl" data-arg="${id}" ${canAfford(lc) ? '' : 'disabled'}>Level up <span class="cost">${costHtml(lc)}</span></button>
-        <button class="btn alt" data-act="up" data-arg="${id}" ${canAfford(uc) ? '' : 'disabled'}>Upgrade ${FAMILY[d.family].toLowerCase()}s <span class="cost">${costHtml(uc)}</span></button>
+// The party starts with one hero (Bren). The others are hired with gold from the Recruit section.
+const HERO_ACCENT = { bren: '#c98a2b', tavi: '#4c9a5c', iona: '#b69ce0' };
+const heroDps = id => {
+  const w = WEAPONS[save.heroes[id].weapon], st = heroStats(id);
+  return st.atk * w.hits.reduce((a, b) => a + b, 0) / w.int;
+};
+
+function partyStrip() {
+  const slots = HERO_ORDER.map(id => `<span class="slot ${inParty(id) ? 'full' : ''}" title="${HERO[id].name}">${inParty(id) ? HERO[id].name[0] : '+'}</span>`).join('');
+  const left = HERO_ORDER.filter(id => !inParty(id)).length;
+  return `<div class="strip idle pstrip"><div class="slots">${slots}</div>
+    <div><b>Your party · ${party().length} of ${HERO_ORDER.length}</b>
+    <span>${left ? 'Hire more heroes with gold. A bigger party fights stronger monsters and farms faster.' : 'Your full party is ready.'}</span></div></div>`;
+}
+
+function heroCard(id) {
+  const d = HERO[id], s = save.heroes[id], st = heroStats(id), w = WEAPONS[s.weapon];
+  const lc = { gold: lvlCost(s.lvl) }, uc = upCost(s.up);
+  const key = 'weapons-' + id, owned_ = Object.keys(WEAPONS).filter(x => WEAPONS[x].fam === d.family && owned(x));
+  const stats = [['HP', st.maxHp], ['Damage/s', heroDps(id).toFixed(1)]];
+  if (w.heal) stats.push(['Heal', Math.round(st.heal)]);
+  return `<article class="herocard" style="--hc:${HERO_ACCENT[id]}">
+    <div class="hhead">
+      <canvas class="hport" data-hero="${id}" width="240" height="260"></canvas>
+      <div class="hinfo">
+        <div class="hname"><h3>${d.name}</h3><span class="lvl">Lv ${s.lvl}</span></div>
+        <p class="hrole">${d.role}</p>
+        <div class="stats">${stats.map(([k, v]) => `<span class="stat"><em>${k}</em><b>${v}</b></span>`).join('')}</div>
       </div>
-      <div class="weapons">${ws.map(w => {
-        const n = save.items[w].reduce((a, b) => a + b, 0);
-        return `<button class="weapon ${s.weapon === w ? 'on' : ''}" data-act="equip" data-arg="${id}:${w}">
-        <span><b>${WEAPONS[w].name}</b><small>${WEAPONS[w].desc}</small></span>
-        <span class="wmeta">${gradeTag(bestGrade(w))}<small>${n > 1 ? `${n} owned` : ''}</small></span></button>`;
+    </div>
+    <p class="hblurb">${d.blurb}</p>
+    <div class="wnow"><span class="wlabel">Weapon</span><b>${w.name}</b>${gradeTag(heroGrade(id))}<span class="wup">${FAMILY[d.family]} +${s.up}</span></div>
+    <div class="hactions">
+      <button class="btn primary sm" data-act="lvl" data-arg="${id}" ${canAfford(lc) ? '' : 'disabled'}>Level up <span class="cost">${costHtml(lc)}</span></button>
+      <button class="btn alt" data-act="up" data-arg="${id}" ${canAfford(uc) ? '' : 'disabled'}>Upgrade ${FAMILY_PLURAL[d.family].toLowerCase()} <span class="cost">${costHtml(uc)}</span></button>
+    </div>
+    <details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Change weapon</span><em>${owned_.length}</em></summary>
+      <div class="weapons">${owned_.map(x => {
+        const n = save.items[x].reduce((a, b) => a + b, 0);
+        return `<button class="weapon ${s.weapon === x ? 'on' : ''}" data-act="equip" data-arg="${id}:${x}">
+          <span><b>${WEAPONS[x].name}</b><small>${WEAPONS[x].desc}</small></span>
+          <span class="wmeta">${gradeTag(bestGrade(x))}<small>${n > 1 ? `${n} owned` : ''}</small></span></button>`;
       }).join('')}</div>
-      <p class="note" style="margin-top:8px">A hero always wields the best grade they own. Merge copies in the Forge.</p></div>`;
-  }
+      <p class="fine">A hero always wields the best grade they own. Merge copies in the Forge.</p></details>
+  </article>`;
+}
+
+function recruitCard(id) {
+  const d = HERO[id], short = d.hire - save.gold, can = short <= 0;
+  return `<article class="herocard recruit" style="--hc:${HERO_ACCENT[id]}">
+    <div class="hhead">
+      <canvas class="hport" data-hero="${id}" width="240" height="260"></canvas>
+      <div class="hinfo">
+        <div class="hname"><h3>${d.name}</h3><span class="lvl hire">For hire</span></div>
+        <p class="hrole">${d.role}</p>
+        <p class="hblurb">${d.blurb}</p>
+      </div>
+    </div>
+    <div class="hactions">
+      <button class="btn primary sm" data-act="hire" data-arg="${id}" ${can ? '' : 'disabled'}>Hire <span class="cost">${costHtml({ gold: d.hire })}</span></button>
+      ${can ? '' : `<span class="hint">Need ${fmt(short)} more gold</span>`}
+    </div>
+  </article>`;
+}
+
+function renderParty() {
+  let h = partyStrip();
+  h += `<h2 class="sec">Heroes</h2>` + party().map(heroCard).join('');
+  const rec = HERO_ORDER.filter(id => !inParty(id));
+  if (rec.length) h += `<h2 class="sec">Recruit <small>pay with gold</small></h2>` + rec.map(recruitCard).join('');
   return h;
 }
+
+/* Draws every portrait canvas: the hero with the given weapon (data-weapon, default: what they wield). data-scale sizes the hero. */
 function paintPortraits() {
   if (artState('units') === 'loading') return;      // wait for the illustrated heroes instead of flashing the drawn ones
   document.querySelectorAll('canvas[data-hero]').forEach(cv => {
-    const id = cv.dataset.hero, c = cv.getContext('2d');
+    const id = cv.dataset.hero, c = cv.getContext('2d'), k = Number(cv.dataset.scale || 2);
     c.clearRect(0, 0, cv.width, cv.height);
-    c.save(); c.scale(2, 2);
-    drawHero(c, id, 40, 92, { weapon: save.heroes[id].weapon, t: 0 });
+    c.save(); c.scale(k, k);
+    drawHero(c, id, cv.width / (2 * k), (cv.height - 10) / k, { weapon: cv.dataset.weapon || save.heroes[id].weapon, t: 0 });
     c.restore();
   });
 }
 
 /* ------------------------------ forge ------------------------------- */
-function renderForge() {
-  let h = `<p class="note">Weapons can't be bought. They drop from fights (best chance when you fight by hand) and, more rarely, while your party farms. Every ${MERGE_N} copies of the same weapon and grade merge into one of the next grade: ${GRADES.map(x => x.name).join(' → ')}.</p>`;
-  for (const w of Object.keys(WEAPONS)) {
-    const W = WEAPONS[w], items = save.items[w], total = items.reduce((a, b) => a + b, 0);
-    h += `<div class="card"><div class="row between"><h3>${W.name}</h3>${total ? `<span class="tag">${FAMILY[W.fam]}</span>` : '<span class="tag lock">Not found yet</span>'}</div>
-      <p class="sub">${W.desc}</p>`;
-    if (!total) {
-      const where = STAGES.filter(s => (s.drops || []).some(([x]) => x === w)).map(s => s.name);
-      h += `<p class="note">Drops at: ${where.join(', ')}.</p></div>`;
-      continue;
-    }
-    const rows = [];
-    for (let gr = 0; gr < GRADES.length; gr++) {
-      const n = items[gr] || 0;
-      if (!n) continue;
-      rows.push(`<div class="mergerow"><span>${gradeTag(gr)} <b>×${n}</b> <small>+${Math.round((GRADES[gr].mult - 1) * 100)}% dmg</small></span>${
-        gr < GRADES.length - 1
-          ? `<button class="btn alt small" data-act="merge" data-arg="${w}:${gr}" ${n >= MERGE_N ? '' : 'disabled'}>Merge ${MERGE_N} → ${GRADES[gr + 1].name}${n >= MERGE_N ? '' : ` (${n}/${MERGE_N})`}</button>`
-          : '<small>Max grade</small>'}</div>`);
-    }
-    h += `<div class="mergelist">${rows.join('')}</div></div>`;
+// Weapons cannot be bought. The Forge lists every weapon, groups them by hero, and merges copies into higher grades.
+const WIELDER = Object.fromEntries(HERO_ORDER.map(id => [HERO[id].family, id]));
+
+function weaponCard(w) {
+  const W = WEAPONS[w], items = save.items[w], total = items.reduce((a, b) => a + b, 0), who = WIELDER[W.fam], hero = HERO[who];
+  if (!total) {
+    const where = STAGES.filter(s => (s.drops || []).some(([x]) => x === w)).map(s => s.name);
+    return `<article class="weaponcard locked"><canvas class="wport" data-hero="${who}" data-weapon="${w}" data-scale="1.5" width="168" height="180"></canvas>
+      <div class="winfo"><div class="wtop"><h4>${W.name}</h4><span class="pill lock"><i class="ico m lock sm"></i>Not found</span></div>
+        <p class="wdesc">${W.desc}</p><p class="fine">Drops at ${where.join(', ')}.</p></div></article>`;
   }
-  h += `<div class="card"><h3>More weapons</h3><p class="sub">Bow and staff variants, plus the sword and shield, saber, rapier and falchion, drop in later areas.</p></div>`;
+  const best = bestGrade(w), ready = items.some((n, g) => g < GRADES.length - 1 && n >= MERGE_N);
+  const rows = [];
+  for (let gr = 0; gr < GRADES.length; gr++) {
+    const n = items[gr] || 0;
+    if (!n) continue;
+    const last = gr === GRADES.length - 1, can = !last && n >= MERGE_N;
+    const pips = last ? '' : `<span class="pips" aria-label="${Math.min(n, MERGE_N)} of ${MERGE_N}">${Array.from({ length: MERGE_N }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
+    rows.push(`<div class="mergerow ${can ? 'can' : ''}"><span class="mleft">${gradeTag(gr)}<b>×${n}</b><small>+${Math.round((GRADES[gr].mult - 1) * 100)}%</small></span>${
+      last ? '<small>Max grade</small>' : `${pips}<button class="btn ${can ? 'good' : 'alt'} small" data-act="merge" data-arg="${w}:${gr}" ${can ? '' : 'disabled'}>Merge → ${GRADES[gr + 1].name}</button>`}</div>`);
+  }
+  const equipped = save.heroes[who].weapon === w, hired = inParty(who);
+  const foot = !hired ? `<span class="hint">${hero.name} isn't in your party yet.</span>`
+    : equipped ? `<span class="pill ok"><i class="ico m check sm"></i>${hero.name} wields this</span>`
+    : `<button class="btn alt small" data-act="equip" data-arg="${who}:${w}">Equip on ${hero.name}</button>`;
+  return `<article class="weaponcard ${ready ? 'ready' : ''}" style="--g:${GRADES[best].color}">
+    <canvas class="wport" data-hero="${who}" data-weapon="${w}" data-scale="1.5" width="168" height="180"></canvas>
+    <div class="winfo"><div class="wtop"><h4>${W.name}</h4>${gradeTag(best)}</div>
+      <p class="wdesc">${W.desc}</p>
+      <div class="mergelist">${rows.join('')}</div>
+      <div class="wfoot">${foot}</div></div></article>`;
+}
+
+function renderForge() {
+  const readyCount = Object.keys(WEAPONS).reduce((a, w) => a + save.items[w].filter((n, g) => g < GRADES.length - 1 && n >= MERGE_N).length, 0);
+  let h = `<div class="strip idle fstrip"><i class="ico m swords"></i><div><b>${readyCount ? `${readyCount} merge${readyCount > 1 ? 's' : ''} ready!` : 'The Forge'}</b>
+    <span>Weapons can't be bought: they drop from fights and farming. Merge ${MERGE_N} copies of the same weapon and grade into one of the next grade (${GRADES.map(x => x.name).join(' → ')}).</span></div></div>`;
+  for (const fam of Object.keys(FAMILY)) {
+    const ws = Object.keys(WEAPONS).filter(w => WEAPONS[w].fam === fam);
+    h += `<h2 class="sec">${FAMILY_PLURAL[fam]} <small>${HERO[WIELDER[fam]].name}</small></h2>` + ws.map(weaponCard).join('');
+  }
+  h += `<p class="note">More weapons (sword and shield, saber, rapier, falchion and bow and staff variants) drop in later areas.</p>`;
   return h;
 }
 
@@ -565,6 +644,7 @@ const RESOURCES = {
       "Finish today's bonus hunt on the Map for extra.",
     ],
     use: () => [
+      `Hire more heroes in the Party tab: Tavi costs ${HERO.tavi.hire} gold and Iona ${HERO.iona.hire}.`,
       `Level up your heroes in the Party tab (${lvlCost(1)} gold at level 1, more for each level).`,
       `Upgrade a weapon family in the Party tab (it also needs lumber): the first upgrade costs ${upCost(0).gold} gold.`,
     ],
@@ -613,19 +693,28 @@ const actions = {
     toast(`${found.length ? `Your party found: ${dropNames(found)}! ` : ''}Party sent to ${STAGE[id].name}.`);
     render();
   },
+  hire(id) {
+    const d = HERO[id];
+    if (!d || inParty(id) || save.gold < d.hire) return;
+    save.gold -= d.hire;
+    save.party = HERO_ORDER.filter(x => x === id || inParty(x));
+    persist(); toast(`${d.name} joins your party!`); render();
+  },
   lvl(id) {
+    if (!inParty(id)) return;
     const c = { gold: lvlCost(save.heroes[id].lvl) };
     if (!canAfford(c)) return;
     pay(c); save.heroes[id].lvl++; persist(); render();
   },
   up(id) {
+    if (!inParty(id)) return;
     const c = upCost(save.heroes[id].up);
     if (!canAfford(c)) return;
     pay(c); save.heroes[id].up++; persist(); render();
   },
   equip(arg) {
     const [id, w] = arg.split(':');
-    if (owned(w) && WEAPONS[w].fam === HERO[id].family) { save.heroes[id].weapon = w; persist(); render(); }
+    if (inParty(id) && owned(w) && WEAPONS[w].fam === HERO[id].family) { save.heroes[id].weapon = w; persist(); render(); }
   },
   merge(arg) {
     const [w, gs] = arg.split(':'), gr = Number(gs), items = save.items[w];
@@ -636,12 +725,12 @@ const actions = {
   fight(id) {
     const s = STAGE[id];
     if (!isUnlocked(s) || !artReady()) return;
-    startBattle({ title: s.name, sky: s.sky, enemies: s.enemies, onWin: () => stageWin(s) });
+    startBattle({ title: s.name, sky: s.sky, enemies: encounterFor(s), hpMult: partyScale(), onWin: () => stageWin(s) });
   },
   bonus() {
     if (dailyDone() || !artReady()) return;
     const m = dailyMonster(), s = STAGES.filter(isUnlocked).find(x => x.enemies.includes(m));
-    startBattle({ title: `Bonus hunt: ${MON[m].name}`, sky: s.sky, enemies: [m], hpMult: m === 'boar' ? 1 : 1.5, onWin: () => bonusWin(m) });
+    startBattle({ title: `Bonus hunt: ${MON[m].name}`, sky: s.sky, enemies: [m], hpMult: (m === 'boar' ? 1 : 1.5) * partyScale(), onWin: () => bonusWin(m) });
   },
   resetask() { if (TEST_PERIOD) showResetDialog(); },
   resetdo() { if (TEST_PERIOD) resetGame(); },
@@ -700,9 +789,9 @@ const cv = $('#stage'), ctx = cv.getContext('2d');
 function startBattle(spec) {
   const slots = LAYOUT[spec.enemies.length] || LAYOUT[4];
   B = { spec, t: 0, over: false, result: null, endT: 0, heroes: [], enemies: [], fx: [], later: [], bar: { t: 0, cd: 0 }, last: 0, raf: 0 };
-  HERO_ORDER.forEach(id => {
+  party().forEach(id => {
     const st = heroStats(id);
-    B.heroes.push({ id, hp: st.maxHp, maxHp: st.maxHp, cd: 0.4 + Math.random() * 0.4, draw: 0, swing: 0, heal: 2.5, dead: false, hit: 0, x: HERO[id].x, y: HERO[id].y });
+    B.heroes.push({ id, hp: st.maxHp, maxHp: st.maxHp, cd: 0.4 + Math.random() * 0.4, draw: 0, swing: 0, heal: 2.5, dead: false, hit: 0, x: party().length === 1 ? 108 : HERO[id].x, y: HERO[id].y });
   });
   spec.enemies.forEach((type, i) => {
     const d = MON[type], hp = Math.round(d.hp * (spec.hpMult || 1));
