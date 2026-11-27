@@ -23,7 +23,8 @@
 
   /* Logical height (in the 400x260 battle space) of each standing idle figure, feet to head. */
   const HEIGHT = { bren: 98, tavi: 98, iona: 94, brushfang: 46, beetle: 54, spitter: 66, boar: 130,
-    bogtoad: 44, reedwisp: 58, mossturtle: 46, bogking: 130, frostwolf: 48, icegolem: 78, frostgiant: 150, emberimp: 54, magmacrab: 38, stormdrake: 96 };
+    bogtoad: 44, reedwisp: 58, mossturtle: 46, bogking: 130, frostwolf: 48, icegolem: 78, frostgiant: 150, emberimp: 54, magmacrab: 38, stormdrake: 96,
+    hornet: 40, barkbear: 62, mireadder: 36, mistheg: 60, rimesprite: 50, snowyeti: 82, cinderbat: 44, sentinel: 80 };
 
   const HERO_FILES = {
     bren: ['sword', 'twin', 'great'], tavi: ['bow'], iona: ['staff'],
@@ -80,7 +81,8 @@
   function drawHeroSprite(c, id, x, y, o) {
     const m = meta.data && meta.data[id];
     if (!m) return false;
-    const weapon = (HERO_FILES[id] || []).includes(o.weapon) ? o.weapon : HERO_FILES[id][0];
+    const pose = (typeof WEAPONS !== 'undefined' && WEAPONS[o.weapon] && WEAPONS[o.weapon].pose) || o.weapon;       // new weapons borrow the nearest picture
+    const weapon = (HERO_FILES[id] || []).includes(pose) ? pose : HERO_FILES[id][0];
     const attacking = id === 'tavi' ? ((o.lean || 0) > 0.2 || (o.swing || 0) > 0.7) : (o.swing || 0) > 0.3;
     const im = get(`heroes/${id}-${weapon}-${attacking ? 'attack' : 'idle'}.png`) || get(`heroes/${id}-${weapon}-idle.png`);
     if (!im) return false;
@@ -133,8 +135,8 @@
     else {
       const bob = Math.sin(t * 4 + x) * (boss ? 0.5 : 0.9);
       c.translate(0, bob);
-      if (type === 'spitter' || type === 'reedwisp' || type === 'emberimp') { const s = 1 + 0.16 * wind; c.scale(s, s); }
-      if (type === 'brushfang' || type === 'frostwolf') c.scale(1 + wind * 0.05, 1 - wind * 0.08);
+      if (type === 'spitter' || type === 'reedwisp' || type === 'emberimp' || type === 'mistheg' || type === 'rimesprite') { const s = 1 + 0.16 * wind; c.scale(s, s); }
+      if (type === 'brushfang' || type === 'frostwolf' || type === 'mireadder' || type === 'hornet' || type === 'cinderbat') c.scale(1 + wind * 0.05, 1 - wind * 0.08);
       if (boss && scrape > 0) c.translate((Math.random() - 0.5) * 1.4 * scrape, 0);   // trembling before the charge
     }
     stand(c, im, m, HEIGHT[type], 0, 0, o.flash > 0.06 && !o.dead);
@@ -285,22 +287,24 @@
   const refresh = () => { if (typeof render === 'function') render(); };
 
   const REGION_ART = {
-    vale:  { mon: ['brushfang', 'beetle', 'spitter', 'boar'], bg: ['path', 'hollow', 'crossing'] },
-    mire:  { mon: ['bogtoad', 'reedwisp', 'mossturtle', 'bogking'], bg: ['mirewood', 'causeway', 'toadking'] },
-    frost: { mon: ['frostwolf', 'icegolem', 'frostgiant'], bg: ['frostfall', 'glimmer', 'rimecrown'] },
-    ember: { mon: ['emberimp', 'magmacrab', 'stormdrake'], bg: ['cinder', 'quarry', 'magmagate', 'skyreach'] },
+    vale:  { mon: ['brushfang', 'beetle', 'spitter', 'boar', 'hornet', 'barkbear'], bg: ['path', 'hollow', 'crossing'] },
+    mire:  { mon: ['bogtoad', 'reedwisp', 'mossturtle', 'bogking', 'mireadder', 'mistheg'], bg: ['mirewood', 'causeway', 'toadking'] },
+    frost: { mon: ['frostwolf', 'icegolem', 'frostgiant', 'rimesprite', 'snowyeti'], bg: ['frostfall', 'glimmer', 'rimecrown'] },
+    ember: { mon: ['emberimp', 'magmacrab', 'stormdrake', 'cinderbat', 'sentinel'], bg: ['cinder', 'quarry', 'magmagate', 'skyreach'] },
   };
   const MAP_PATHS = ['map/map.jpg', 'map/mire.jpg', 'map/frost.jpg', 'map/ember.jpg', 'map/tower-unlit.png', 'map/tower-lit.png',
     'map/marker-locked.png', 'map/marker-open.png', 'map/marker-cleared.png', 'map/camp.png'];
   window.regionArt = { vale: 'loading', mire: 'idle', frost: 'idle', ember: 'idle' };       // idle | loading | ready
   const regionLoads = {};
 
-  const monPaths = id => ['idle', 'attack'].map(p => `monsters/${id}-${p}.${(meta.data && meta.data[id] && meta.data[id].ext) || 'png'}`);
+  // Only the first four monsters are PNG; every newer one is WebP (meta.json says so too, but it may not have loaded yet on the first screen).
+  const monExt = id => (meta.data && meta.data[id] && meta.data[id].ext) || (['brushfang', 'beetle', 'spitter', 'boar'].includes(id) ? 'png' : 'webp');
+  const monPaths = id => ['idle', 'attack'].map(p => `monsters/${id}-${p}.${monExt(id)}`);
   /* Loads a region's monsters and battle backgrounds once; resolves when they are ready (missing pictures fall back to the drawn art). */
   window.monIdleUrl = id => url(monPaths(id)[0]);                 // the picture of a monster for the home cards
   /* Every picture of the game (used by pwa.js so the installed app can run offline). */
   window.artUrls = () => Object.values(REGION_ART).flatMap(a => [...a.mon.flatMap(monPaths), ...a.bg.map(b => `bg/${b}.jpg`)])
-    .concat(MAP_PATHS, ['meta.json'], ['sword', 'twin', 'great', 'bow', 'staff'].map(w => `items/${w}.png`),
+    .concat(MAP_PATHS, ['meta.json'], (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff']).map(w => `items/${w}.png`),
       Object.entries(HERO_FILES).flatMap(([id, ws]) => ws.flatMap(w => ['idle', 'attack'].map(p => `heroes/${id}-${w}-${p}.png`)))).map(url);
   window.ensureRegion = id => {
     if (!REGION_ART[id] || !meta.data) return Promise.resolve(false);
@@ -339,7 +343,7 @@
     const paths = [];
     for (const [id, weapons] of Object.entries(HERO_FILES))
       for (const w of weapons) for (const pose of ['idle', 'attack']) paths.push(`heroes/${id}-${w}-${pose}.png`);
-    for (const w of ['sword', 'twin', 'great', 'bow', 'staff']) paths.push(`items/${w}.png`);       // weapon pictures (drop lists, forge, rewards)
+    for (const w of (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff'])) paths.push(`items/${w}.png`);       // weapon pictures (drop lists, forge, rewards)
     await Promise.all([...paths.map(load), window.ensureRegion('vale')]);
 
     window.drawHero = drawHero;

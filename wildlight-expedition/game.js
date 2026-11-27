@@ -30,6 +30,28 @@ const WEAPONS = {
            desc: 'Steady ranged attacks against one monster.' },
   staff: { name: 'Wooden staff', fam: 'staff', hits: [1], int: 1.2, ranged: true, heal: true, starter: true,
            desc: 'Casts bolts and periodically heals the weakest ally.' },
+  // Weapons that only drop. pose = which hero picture is drawn in battle; pierce = share of armor ignored; shield = damage the wielder avoids;
+  // healMult = stronger heals; splash on a ranged weapon hits every other monster for that share.
+  falchion:   { name: 'Falchion', fam: 'sword', hits: [1.3], int: 1.1, pose: 'sword',
+                desc: 'A heavy curved blade. Hits harder than the standard sword, a little slower.' },
+  saber:      { name: 'Saber', fam: 'sword', hits: [0.4, 0.4, 0.4], int: 1.0, pose: 'twin',
+                desc: 'Three fast slashes per attack. Great against unarmored monsters.' },
+  rapier:     { name: 'Rapier', fam: 'sword', hits: [0.9], int: 0.9, pierce: 0.6, pose: 'sword',
+                desc: 'A quick thrusting blade that slips past 60% of a monster\'s armor.' },
+  buckler:    { name: 'Sword & shield', fam: 'sword', hits: [0.85], int: 1.0, shield: 0.25, pose: 'sword',
+                desc: 'Less damage, but Bren takes 25% less damage from every hit.' },
+  shortbow:   { name: 'Hawk bow', fam: 'bow', hits: [0.55], int: 0.55, ranged: true,
+                desc: 'A light bow that fires very fast, weaker arrows.' },
+  longbow:    { name: 'Longbow', fam: 'bow', hits: [1.7], int: 1.5, ranged: true,
+                desc: 'Slow, powerful shots that hit hard.' },
+  crossbow:   { name: 'Crossbow', fam: 'bow', hits: [1.4], int: 1.4, ranged: true, pierce: 0.7,
+                desc: 'Heavy bolts that ignore 70% of a monster\'s armor.' },
+  heartwood:  { name: 'Heartwood staff', fam: 'staff', hits: [0.7], int: 1.2, ranged: true, heal: true, healMult: 1.5,
+                desc: 'Weaker bolts, but its heals are 50% stronger.' },
+  stormstaff: { name: 'Storm staff', fam: 'staff', hits: [1], int: 1.5, ranged: true, heal: true, splash: 0.5,
+                desc: 'Lightning that also hits every other monster for half damage.' },
+  frostwand:  { name: 'Frost wand', fam: 'staff', hits: [0.5], int: 0.6, ranged: true, heal: true,
+                desc: 'Quick, light bolts of frost, and it still heals.' },
 };
 
 const MON = {
@@ -46,6 +68,14 @@ const MON = {
   frostgiant: { name: 'Frost Giant', role: 'Stage boss', hp: 1000, armor: 2, cd: 2.8, wind: 0.5, dmg: 14, tgt: 'front', scale: 1.75, boss: true, charge: { first: 6, every: 8, wind: 1.3, dmg: 60 } },
   emberimp: { name: 'Ember Imp', role: 'Ranged attacker', hp: 42, armor: 0, cd: 2.8, wind: 0.8, dmg: 10, tgt: 'back', scale: 0.95 },
   magmacrab: { name: 'Magma Crab', role: 'Armored melee', hp: 120, armor: 4, cd: 2.6, wind: 0.6, dmg: 11, tgt: 'front', scale: 1.15 },
+  hornet: { name: 'Thicket Hornet', role: 'Pack melee', hp: 24, armor: 0, cd: 1.8, wind: 0.5, dmg: 6, tgt: 'front', scale: 0.95 },
+  barkbear: { name: 'Barkbear', role: 'Armored melee', hp: 88, armor: 3, cd: 2.6, wind: 0.55, dmg: 9, tgt: 'front', scale: 1.1 },
+  mireadder: { name: 'Mire Adder', role: 'Pack melee', hp: 52, armor: 0, cd: 2.0, wind: 0.5, dmg: 8, tgt: 'front', scale: 1 },
+  mistheg: { name: 'Mist Hag', role: 'Ranged attacker', hp: 44, armor: 0, cd: 3, wind: 0.8, dmg: 9, tgt: 'back', scale: 1 },
+  rimesprite: { name: 'Rime Sprite', role: 'Ranged attacker', hp: 34, armor: 0, cd: 2.8, wind: 0.75, dmg: 8, tgt: 'back', scale: 0.95 },
+  snowyeti: { name: 'Snow Yeti', role: 'Armored melee', hp: 150, armor: 3, cd: 3.0, wind: 0.65, dmg: 13, tgt: 'front', scale: 1.25 },
+  cinderbat: { name: 'Cinder Bat', role: 'Pack melee', hp: 36, armor: 0, cd: 1.9, wind: 0.5, dmg: 10, tgt: 'front', scale: 0.95 },
+  sentinel: { name: 'Obsidian Sentinel', role: 'Armored melee', hp: 130, armor: 4, cd: 2.8, wind: 0.65, dmg: 12, tgt: 'front', scale: 1.25 },
   stormdrake: { name: 'Storm Drake', role: 'Stage boss', hp: 1200, armor: 1, cd: 2.4, wind: 0.45, dmg: 16, tgt: 'front', scale: 1.8, boss: true, charge: { first: 6, every: 8, wind: 1.3, dmg: 58 } },
 };
 
@@ -65,60 +95,60 @@ const REGIONS = [
 /* Stage power = monster HP and damage multipliers (armor scales with damage); rec = the hero level the area is balanced for
    (a party with that level, a weapon grade that fits the region, and good barrier timing wins comfortably). */
 const STAGES = [
-  { id: 'path', name: 'Pinewood Path', region: 'vale', req: null, enemies: ['brushfang', 'brushfang', 'brushfang', 'brushfang'],
+  { id: 'path', name: 'Pinewood Path', region: 'vale', req: null, enemies: ['brushfang', 'brushfang', 'hornet', 'hornet'],
     waves: { 1: ['brushfang', 'brushfang'], 2: ['brushfang', 'brushfang', 'brushfang'] },      // fewer monsters for a party of 1 or 2
     blurb: 'A pack of Brushfangs. Best for farming gold.', farm: { gold: 4, lumber: 0.3 }, best: 'Gold',
-    first: { gold: 60, lumber: 5 }, drops: [['sword', 3], ['bow', 3], ['staff', 3], ['twin', 1]], dropGrade: 0, repeat: { gold: 12, lumber: 0 }, sky: ['#2d5a45', '#14301f'],
+    first: { gold: 60, lumber: 5 }, drops: [['sword', 3], ['bow', 3], ['staff', 3], ['twin', 1], ['shortbow', 1], ['falchion', 1]], dropGrade: 0, repeat: { gold: 12, lumber: 0 }, sky: ['#2d5a45', '#14301f'],
     power: { hp: 1, dmg: 1 }, rec: 1 },
-  { id: 'hollow', name: 'Ironroot Hollow', region: 'vale', req: 'path', enemies: ['beetle', 'beetle', 'spitter'],
+  { id: 'hollow', name: 'Ironroot Hollow', region: 'vale', req: 'path', enemies: ['beetle', 'barkbear', 'spitter'],
     waves: { 1: ['beetle', 'spitter'] },
     blurb: 'Rustshell Beetles screen a Pinecap Spitter. Best for farming lumber.', farm: { gold: 1.5, lumber: 1.5 }, best: 'Lumber',
-    first: { gold: 120, lumber: 10 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5]], dropGrade: 0, repeat: { gold: 15, lumber: 1 }, sky: ['#27495a', '#102430'],
+    first: { gold: 120, lumber: 10 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5], ['heartwood', 1], ['saber', 1], ['longbow', 1]], dropGrade: 0, repeat: { gold: 15, lumber: 1 }, sky: ['#27495a', '#102430'],
     power: { hp: 1, dmg: 1 }, rec: 2 },
   { id: 'crossing', name: 'Thornback Crossing', region: 'vale', req: 'hollow', enemies: ['boar'], boss: true,
     blurb: 'The Thornback Boar fights alone. Defeat it to relight the watchtower and open the next road.',
     farm: { gold: 6, lumber: 2.5 }, best: 'Gold + lumber',
-    first: { gold: 300, lumber: 20, tower: true }, drops: [['twin', 2], ['great', 2], ['sword', 1], ['bow', 1], ['staff', 1]], dropGrade: 0, repeat: { gold: 40, lumber: 3 }, sky: ['#5a4a3a', '#2a1f17'],
+    first: { gold: 300, lumber: 20, tower: true }, drops: [['twin', 2], ['great', 2], ['sword', 1], ['bow', 1], ['staff', 1], ['buckler', 1.5], ['rapier', 1]], dropGrade: 0, repeat: { gold: 40, lumber: 3 }, sky: ['#5a4a3a', '#2a1f17'],
     power: { hp: 1, dmg: 1 }, rec: 4 },
-  { id: 'mirewood', name: 'Mirewood Edge', region: 'mire', req: 'crossing', enemies: ['bogtoad','bogtoad','bogtoad','reedwisp'],
+  { id: 'mirewood', name: 'Mirewood Edge', region: 'mire', req: 'crossing', enemies: ['bogtoad', 'mireadder', 'mireadder', 'reedwisp'],
     blurb: 'Bog Toads lurk in the reeds while a Reed Wisp lights their way.', farm: { gold: 7, lumber: 4.4 }, best: 'Lumber',
-    first: { gold: 465, lumber: 30 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5]], dropGrade: 1, repeat: { gold: 60, lumber: 4 }, sky: ['#2f5a48','#12281f'],
+    first: { gold: 465, lumber: 30 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5], ['falchion', 1.5], ['shortbow', 1.5], ['heartwood', 1.5]], dropGrade: 1, repeat: { gold: 60, lumber: 4 }, sky: ['#2f5a48','#12281f'],
     power: { hp: 3.18, dmg: 2.3, arm: 1.55 }, rec: 6 },
-  { id: 'causeway', name: 'Sunken Causeway', region: 'mire', req: 'mirewood', enemies: ['mossturtle','mossturtle','reedwisp','reedwisp'],
+  { id: 'causeway', name: 'Sunken Causeway', region: 'mire', req: 'mirewood', enemies: ['mossturtle', 'mossturtle', 'reedwisp', 'mistheg'],
     blurb: 'Moss-shell Turtles guard a drowned stone road, with Reed Wisps drifting above it.', farm: { gold: 15.8, lumber: 3.9 }, best: 'Gold',
-    first: { gold: 721, lumber: 45 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 2]], dropGrade: 1, repeat: { gold: 90, lumber: 6 }, sky: ['#31584a','#14291f'],
+    first: { gold: 721, lumber: 45 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 2], ['saber', 1.5], ['longbow', 1.5], ['stormstaff', 1]], dropGrade: 1, repeat: { gold: 90, lumber: 6 }, sky: ['#31584a','#14291f'],
     power: { hp: 3.27, dmg: 2.1, arm: 2.01 }, rec: 8 },
   { id: 'toadking', name: 'Toadking\'s Hollow', region: 'mire', req: 'causeway', enemies: ['bogking'], boss: true,
     blurb: 'The Bog King squats on his root throne. Defeat him to relight the Mirewood watchtower.', farm: { gold: 18.3, lumber: 6.9 }, best: 'Gold + lumber',
-    first: { gold: 2234, lumber: 135, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 2], ['great', 2.5]], dropGrade: 1, repeat: { gold: 135, lumber: 8 }, sky: ['#3a4a2c','#17200f'],
+    first: { gold: 2234, lumber: 135, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 2], ['great', 2.5], ['buckler', 2], ['crossbow', 1.5], ['rapier', 1.5]], dropGrade: 1, repeat: { gold: 135, lumber: 8 }, sky: ['#3a4a2c','#17200f'],
     power: { hp: 3.63, dmg: 2.08, arm: 2.27 }, rec: 10 },
-  { id: 'frostfall', name: 'Frostfall Pass', region: 'frost', req: 'toadking', enemies: ['frostwolf','frostwolf','frostwolf','frostwolf'],
+  { id: 'frostfall', name: 'Frostfall Pass', region: 'frost', req: 'toadking', enemies: ['frostwolf', 'frostwolf', 'frostwolf', 'rimesprite'],
     blurb: 'A Frost Wolf pack hunts through the snowy mountain pass.', farm: { gold: 33.2, lumber: 7.7 }, best: 'Gold',
-    first: { gold: 1732, lumber: 101 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 2]], dropGrade: 2, repeat: { gold: 203, lumber: 12 }, sky: ['#3f5f86','#16243a'],
+    first: { gold: 1732, lumber: 101 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 2], ['saber', 1.5], ['shortbow', 1.5], ['frostwand', 2]], dropGrade: 2, repeat: { gold: 203, lumber: 12 }, sky: ['#3f5f86','#16243a'],
     power: { hp: 9.37, dmg: 4.45, arm: 3.41 }, rec: 12 },
-  { id: 'glimmer', name: 'Glimmer Cavern', region: 'frost', req: 'frostfall', enemies: ['icegolem','icegolem','frostwolf'],
+  { id: 'glimmer', name: 'Glimmer Cavern', region: 'frost', req: 'frostfall', enemies: ['icegolem', 'snowyeti', 'frostwolf'],
     blurb: 'Ice Golems stand guard among glowing crystals, with a Frost Wolf at their heels.', farm: { gold: 30.8, lumber: 16.8 }, best: 'Lumber',
-    first: { gold: 2684, lumber: 152 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2]], dropGrade: 2, repeat: { gold: 304, lumber: 16 }, sky: ['#2c4e86','#101a3a'],
+    first: { gold: 2684, lumber: 152 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2], ['rapier', 1.5], ['crossbow', 1.5], ['frostwand', 2], ['stormstaff', 1.5]], dropGrade: 2, repeat: { gold: 304, lumber: 16 }, sky: ['#2c4e86','#101a3a'],
     power: { hp: 6.62, dmg: 3.15, arm: 3.77 }, rec: 14 },
   { id: 'rimecrown', name: 'Rimecrown Summit', region: 'frost', req: 'glimmer', enemies: ['frostgiant'], boss: true,
     blurb: 'The Frost Giant rules the frozen peak. Defeat him to relight the Frostpeak watchtower.', farm: { gold: 55.8, lumber: 18.8 }, best: 'Gold + lumber',
-    first: { gold: 8320, lumber: 456, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 2], ['great', 3]], dropGrade: 2, repeat: { gold: 456, lumber: 23 }, sky: ['#4a5f86','#1a2038'],
+    first: { gold: 8320, lumber: 456, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 2], ['great', 3], ['buckler', 2], ['longbow', 2], ['stormstaff', 2], ['heartwood', 1.5]], dropGrade: 2, repeat: { gold: 456, lumber: 23 }, sky: ['#4a5f86','#1a2038'],
     power: { hp: 5.07, dmg: 2.8, arm: 4.55 }, rec: 16 },
-  { id: 'cinder', name: 'Cinder Fields', region: 'ember', req: 'rimecrown', enemies: ['emberimp','emberimp','emberimp','magmacrab'],
+  { id: 'cinder', name: 'Cinder Fields', region: 'ember', req: 'rimecrown', enemies: ['cinderbat', 'cinderbat', 'emberimp', 'magmacrab'],
     blurb: 'Ember Imps hurl fire across the ashen plain while a Magma Crab blocks the road.', farm: { gold: 101.1, lumber: 21.1 }, best: 'Gold',
-    first: { gold: 6448, lumber: 342 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2]], dropGrade: 3, repeat: { gold: 683, lumber: 32 }, sky: ['#6a3a2c','#241210'],
+    first: { gold: 6448, lumber: 342 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2], ['falchion', 2], ['crossbow', 1.5], ['stormstaff', 2]], dropGrade: 3, repeat: { gold: 683, lumber: 32 }, sky: ['#6a3a2c','#241210'],
     power: { hp: 18.04, dmg: 6.26, arm: 6.13 }, rec: 18 },
-  { id: 'quarry', name: 'Ashen Quarry', region: 'ember', req: 'cinder', enemies: ['magmacrab','magmacrab','emberimp','emberimp'],
+  { id: 'quarry', name: 'Ashen Quarry', region: 'ember', req: 'cinder', enemies: ['magmacrab', 'sentinel', 'emberimp', 'emberimp'],
     blurb: 'Magma Crabs have claimed the old obsidian quarry, guarded by Ember Imps.', farm: { gold: 93.8, lumber: 46.1 }, best: 'Lumber',
-    first: { gold: 9995, lumber: 513 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2.5]], dropGrade: 3, repeat: { gold: 1025, lumber: 44 }, sky: ['#5a3830','#1c1012'],
+    first: { gold: 9995, lumber: 513 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2.5], ['great', 2.5], ['buckler', 2], ['longbow', 2], ['heartwood', 2], ['rapier', 1.5]], dropGrade: 3, repeat: { gold: 1025, lumber: 44 }, sky: ['#5a3830','#1c1012'],
     power: { hp: 13.84, dmg: 4.4, arm: 7.23 }, rec: 20 },
-  { id: 'magmagate', name: 'Magma Gate', region: 'ember', req: 'quarry', enemies: ['magmacrab','magmacrab','magmacrab','emberimp'],
+  { id: 'magmagate', name: 'Magma Gate', region: 'ember', req: 'quarry', enemies: ['sentinel', 'magmacrab', 'magmacrab', 'emberimp'],
     blurb: 'A claw-clacking pack of Magma Crabs holds the ancient gate over the lava.', farm: { gold: 212.5, lumber: 41.3 }, best: 'Gold',
-    first: { gold: 15492, lumber: 769 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 3], ['great', 3]], dropGrade: 3, repeat: { gold: 1538, lumber: 62 }, sky: ['#7a3a22','#26100a'],
+    first: { gold: 15492, lumber: 769 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 3], ['great', 3], ['saber', 2], ['crossbow', 2], ['frostwand', 2], ['falchion', 2]], dropGrade: 3, repeat: { gold: 1538, lumber: 62 }, sky: ['#7a3a22','#26100a'],
     power: { hp: 14.86, dmg: 4.72, arm: 7.76 }, rec: 22 },
   { id: 'skyreach', name: 'Skyreach Spire', region: 'ember', req: 'magmagate', enemies: ['stormdrake'], boss: true,
     blurb: 'The Storm Drake circles the last spire. Defeat it to light the final watchtower.', farm: { gold: 246.5, lumber: 72.3 }, best: 'Gold + lumber',
-    first: { gold: 48025, lumber: 2307, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 3], ['great', 3.5]], dropGrade: 3, repeat: { gold: 2307, lumber: 87 }, sky: ['#3a3f5a','#14162a'],
+    first: { gold: 48025, lumber: 2307, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 3], ['great', 3.5], ['rapier', 2], ['buckler', 2.5], ['longbow', 2.5], ['stormstaff', 2.5], ['heartwood', 2]], dropGrade: 3, repeat: { gold: 2307, lumber: 87 }, sky: ['#3a3f5a','#14162a'],
     power: { hp: 10.22, dmg: 3.88, arm: 9.29 }, rec: 25 },
 ];
 const STAGE = Object.fromEntries(STAGES.map(s => [s.id, s]));
@@ -652,7 +682,9 @@ function heroCard(id) {
   const lc = { gold: lvlCost(s.lvl) }, uc = upCost(s.up);
   const key = 'weapons-' + id, owned_ = Object.keys(WEAPONS).filter(x => WEAPONS[x].fam === d.family && owned(x));
   const stats = [['HP', st.maxHp], ['Damage/s', heroDps(id).toFixed(1)]];
-  if (w.heal) stats.push(['Heal', Math.round(st.heal)]);
+  if (w.heal) stats.push(['Heal', Math.round(st.heal * (w.healMult || 1))]);
+  if (w.pierce) stats.push(['Pierce', Math.round(w.pierce * 100) + '%']);
+  if (w.shield) stats.push(['Guard', '-' + Math.round(w.shield * 100) + '%']);
   return `<article class="herocard" style="--hc:${HERO_ACCENT[id]}">
     <div class="hhead">
       <canvas class="hport" data-hero="${id}" width="240" height="260"></canvas>
@@ -759,7 +791,7 @@ function renderForge() {
     const ws = Object.keys(WEAPONS).filter(w => WEAPONS[w].fam === fam);
     h += `<h2 class="sec">${FAMILY_PLURAL[fam]} <small>${HERO[WIELDER[fam]].name}</small></h2>` + `<div class="cgrid">${ws.map(weaponCard).join('')}</div>`;
   }
-  h += `<p class="note">More weapons (sword and shield, saber, rapier, falchion and bow and staff variants) drop in later areas.</p>`;
+  h += `<p class="note">Later areas drop better grades of every weapon, so keep merging.</p>`;
   return h;
 }
 
@@ -1077,7 +1109,7 @@ function firstEnemy() { return aliveE()[0]; }
 function doHeal(h, st) {
   const cand = aliveH().filter(a => a.hp < a.maxHp).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
   if (!cand) return false;
-  const amt = Math.round(st.heal);
+  const amt = Math.round(st.heal * ((WEAPONS[save.heroes[h.id].weapon] || {}).healMult || 1));
   cand.hp = Math.min(cand.maxHp, cand.hp + amt);
   floater(cand.x, cand.y - unitTop(cand.id, 70), '+' + amt, '#8ff0a4');
   B.fx.push({ k: 'petals', x: cand.x, y: cand.y - 24, t: 0, life: 0.9 });
@@ -1093,20 +1125,26 @@ function fireHero(h, st, w) {
     w.hits.forEach((m, i) => {
       later(i * 0.12, () => {
         if (t.dead) return;
-        hitEnemy(t, st.atk * m, i);
-        if (w.splash) for (const o of aliveE()) if (o !== t) hitEnemy(o, st.atk * m * w.splash, i);
+        hitEnemy(t, st.atk * m, i, w.pierce);
+        if (w.splash) for (const o of aliveE()) if (o !== t) hitEnemy(o, st.atk * m * w.splash, i, w.pierce);
         if (aliveE().length === 0 && B && !B.over) endBattle('win');
       });
     });
   } else {
     const dm = st.atk * w.hits[0];
     B.fx.push({ k: 'proj', x0: h.x + 22, y0: h.y - 30, x1: t.x, y1: t.y - 22, t: 0, dur: 0.25, kind: h.id === 'tavi' ? 'arrow' : 'bolt',
-      cb: () => { const tg = t.dead ? firstEnemy() : t; if (tg) hitEnemy(tg, dm, 0); } });
+      cb: () => {
+        const tg = t.dead ? firstEnemy() : t;
+        if (!tg) return;
+        hitEnemy(tg, dm, 0, w.pierce);
+        if (w.splash) for (const o of aliveE()) if (o !== tg) hitEnemy(o, dm * w.splash, 0, w.pierce);
+        if (aliveE().length === 0 && B && !B.over) endBattle('win');
+      } });
   }
 }
 
-function hitEnemy(e, raw, i) {
-  const armor = MON[e.type].armor * (e.armMult || 1);
+function hitEnemy(e, raw, i, pierce) {
+  const armor = MON[e.type].armor * (e.armMult || 1) * (1 - (pierce || 0));
   const d = Math.max(1, Math.round(Math.max(raw * 0.25, raw - armor)));       // armor can take at most 3/4 of a hit
   e.hp -= d; e.flash = 0.15;
   floater(e.x + (i || 0) * 8, e.y - unitTop(e.type, 56 * MON[e.type].scale) - 4, '-' + d, '#fff');
@@ -1124,7 +1162,8 @@ function frontHero() { return aliveH()[0]; }
 function hurt(h, dmg) {
   if (h.dead) return;
   if (B.bar.t > 0) { floater(h.x, h.y - unitTop(h.id, 70) - 4, 'Blocked', '#7cc8ff'); return; }
-  const d = Math.round(dmg);
+  const sh = (WEAPONS[save.heroes[h.id].weapon] || {}).shield || 0;          // Sword & shield
+  const d = Math.round(dmg * (1 - sh));
   h.hp -= d; h.hit = 0.25;
   floater(h.x, h.y - unitTop(h.id, 70) - 4, '-' + d, '#ff8a7a');
   if (h.hp <= 0) { h.hp = 0; h.dead = true; }
