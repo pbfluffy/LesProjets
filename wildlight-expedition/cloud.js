@@ -42,7 +42,7 @@
   function hasProgress(s) {
     if (!s) return false;
     const items = Object.values(s.items || {}).reduce((a, arr) => a + (arr || []).reduce((x, y) => x + y, 0), 0);
-    return stageCount(s) > 0 || levelSum(s) > 3 || (s.gold || 0) > 0 || (s.iron || 0) > 0 || items > 3;
+    return stageCount(s) > 0 || levelSum(s) > 3 || (s.gold || 0) > 0 || (s.lumber || 0) + (s.iron || 0) > 0 || items > 3;
   }
 
   /* ------------------------------ cloud I/O ------------------------------ */
@@ -150,8 +150,10 @@
   }
   function closeDialog() { const d = document.getElementById('cloud-dialog'); if (d) d.remove(); }
 
-  /* ----------------------------- account card ----------------------------- */
-  const gLogo = '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.5 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>';
+  /* ----------------------------- header button ---------------------------- */
+  // One round button in the top right. Signed out: tap to sign in with Google. Signed in: your picture, with a ring that shows
+  // whether the save is up to date; tap it for a small menu with the status and Sign out.
+  const gLogo = '<svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.5 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>';
 
   function ago(t) {
     const s = Math.max(0, Math.round((Date.now() - t) / 1000));
@@ -160,36 +162,44 @@
     if (s < 3600) return `${Math.floor(s / 60)}m ago`;
     return `${Math.floor(s / 3600)}h ago`;
   }
-
-  function accountRow(user, status) {
-    return `<div class="account">
-      ${user.photo ? `<img class="avatar" src="${esc(user.photo)}" alt="" referrerpolicy="no-referrer">` : '<span class="avatar ph">★</span>'}
-      <div class="who"><b>${esc(user.name)}</b><div class="note">${status}</div></div>
-      <button class="ghost small" data-act="signout">Sign out</button></div>`;
-  }
-  const signInCard = disabled => `<h2>Save your progress</h2>
-      <p class="sub">Sign in with Google to keep your progress safe and play on any device. Your fights, weapons and farming are saved to your account.</p>
-      <button class="gbtn" data-act="signin" ${disabled ? 'disabled' : ''}>${gLogo}<span>Sign in with Google</span></button>`;
   function cachedProfile() {
     try { return localStorage.getItem(UID_KEY) ? JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null') : null; } catch (e) { return null; }
   }
+  const avatar = u => u.photo
+    ? `<img src="${esc(u.photo)}" alt="" referrerpolicy="no-referrer">`
+    : `<span class="init">${esc((String(u.name).trim()[0] || '★').toUpperCase())}</span>`;
+  const menuEl = () => document.getElementById('acct-menu');
 
-  function cardInner() {
-    // While Firebase is still answering, draw the card the player will most likely get (so nothing jumps around).
-    if (st.auth === 'loading') { const p = cachedProfile(); return p ? accountRow(p, '☁ Connecting…') : signInCard(true); }
-    if (st.auth === 'unavailable') return `<h2>Save your progress</h2><p class="note">Cloud save isn't available right now (offline?). Your progress is still saved on this device.</p>`;
-    if (st.auth === 'in' && st.user) {
-      const status = st.sync === 'saving' ? '☁ Saving…'
-        : st.sync === 'error' ? '⚠ Couldn’t reach the cloud, will retry'
-        : st.sync === 'synced' ? `☁ Saved to your account · ${ago(st.syncedAt)}`
-        : '☁ Connecting…';
-      return accountRow(st.user, status);
-    }
-    return signInCard(false);
+  function menuInner() {
+    const status = st.sync === 'saving' ? 'Saving…'
+      : st.sync === 'error' ? 'Couldn’t reach the cloud, will retry'
+      : st.sync === 'synced' ? `Saved to your account · ${ago(st.syncedAt)}`
+      : 'Connecting…';
+    return `<b>${esc(st.user.name)}</b><div class="note">☁ ${status}</div><button class="ghost" data-act="signout">Sign out</button>`;
   }
-  function cardHtml() { return `<div class="card" id="account-card">${cardInner()}</div>`; }
-  function paint() { const el = document.getElementById('account-card'); if (el) el.innerHTML = cardInner(); }
-  setInterval(() => { if (st.auth === 'in' && st.sync === 'synced') paint(); }, 30000);     // keeps "2m ago" fresh
+
+  function paint() {
+    const btn = document.getElementById('account-btn');
+    if (!btn) return;
+    const shown = st.auth === 'in' ? st.user : st.auth === 'loading' ? cachedProfile() : null;
+    const ring = st.auth === 'in' ? (st.sync === 'idle' ? 'saving' : st.sync) : '';
+    btn.className = 'acct' + (shown ? ' in' : '') + (ring ? ' ' + ring : '');
+    btn.disabled = st.auth === 'loading';
+    btn.innerHTML = shown ? avatar(shown) : gLogo;
+    const label = st.auth === 'in' ? `Account: ${st.user.name}` : st.auth === 'loading' ? 'Checking your account' : 'Sign in with Google to save your progress';
+    btn.setAttribute('aria-label', label); btn.title = label;
+    const m = menuEl();
+    if (m) { if (st.auth !== 'in') m.hidden = true; else if (!m.hidden) m.innerHTML = menuInner(); }
+  }
+  function account() {
+    if (st.auth === 'in') { const m = menuEl(); m.hidden = !m.hidden; if (!m.hidden) m.innerHTML = menuInner(); }
+    else if (st.auth === 'out') signIn();
+    else if (st.auth === 'unavailable') toast('Cloud save is not available right now (offline?). Your progress is still saved on this device.');
+  }
+  function closeMenu() { const m = menuEl(); if (m) m.hidden = true; }
+  document.addEventListener('click', e => { if (!e.target.closest('#acct-menu, #account-btn')) closeMenu(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+  setInterval(() => { if (st.auth === 'in') paint(); }, 30000);     // keeps "2m ago" fresh
 
   /* ------------------------------- auth ---------------------------------- */
   function onUser(user) {
@@ -223,6 +233,7 @@
   }
 
   async function signOut() {
+    closeMenu();
     if (!fb) return;
     if (linked && st.sync !== 'synced') await pushNow();      // do not lose the last changes
     fb.au.signOut(fb.auth);
@@ -262,11 +273,10 @@
   }
 
   window.cloud = {
-    saved, signIn, signOut, choose,
+    saved, signIn, signOut, choose, account,
     // for tests and debugging: swap in a fake backend and drive the sign-in flow without Google
     _test: { st, setBackend: b => { backend = b; }, onUser, hasProgress, pushNow },
   };
-  window.cloudCard = cardHtml;
-  if (typeof render === 'function' && !busy()) render();       // show the account card now that it exists
+  paint();
   init();
 })();

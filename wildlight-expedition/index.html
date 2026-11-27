@@ -11,11 +11,13 @@
 <body>
 <div id="app">
   <header class="top">
-    <h1>Wildlight Expedition</h1>
+    <h1 class="brand"><span>Wildlight</span><small>Expedition</small></h1>
     <div class="purse">
-      <span class="coin" title="Gold">🪙 <b id="gold">0</b></span>
-      <span class="coin" title="Iron">⛏️ <b id="iron">0</b></span>
+      <button class="coin" data-act="resinfo" data-arg="gold" aria-label="Gold: tap to see what it is"><i class="ico gold"></i><b id="gold">0</b></button>
+      <button class="coin" data-act="resinfo" data-arg="lumber" aria-label="Lumber: tap to see what it is"><i class="ico lumber"></i><b id="lumber">0</b></button>
     </div>
+    <button class="acct" id="account-btn" data-act="account" aria-label="Account" disabled></button>
+    <div class="acct-menu" id="acct-menu" hidden></div>
   </header>
   <main id="view"></main>
   <nav class="tabs" id="tabs">

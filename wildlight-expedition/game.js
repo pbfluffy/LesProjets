@@ -41,15 +41,15 @@ const MON = {
 
 const STAGES = [
   { id: 'path', name: 'Pinewood Path', req: null, enemies: ['brushfang', 'brushfang', 'brushfang', 'brushfang'],
-    blurb: 'A pack of Brushfangs. Best for farming gold.', farm: { gold: 4, iron: 0.3 }, best: 'Gold',
-    first: { gold: 60, iron: 5 }, drops: [['sword', 3], ['bow', 3], ['staff', 3], ['twin', 1]], repeat: { gold: 12, iron: 0 }, sky: ['#2d5a45', '#14301f'] },
+    blurb: 'A pack of Brushfangs. Best for farming gold.', farm: { gold: 4, lumber: 0.3 }, best: 'Gold',
+    first: { gold: 60, lumber: 5 }, drops: [['sword', 3], ['bow', 3], ['staff', 3], ['twin', 1]], repeat: { gold: 12, lumber: 0 }, sky: ['#2d5a45', '#14301f'] },
   { id: 'hollow', name: 'Ironroot Hollow', req: 'path', enemies: ['beetle', 'beetle', 'spitter'],
-    blurb: 'Rustshell Beetles screen a Pinecap Spitter. Best for farming iron.', farm: { gold: 1.5, iron: 1.5 }, best: 'Iron',
-    first: { gold: 120, iron: 10 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5]], repeat: { gold: 15, iron: 1 }, sky: ['#27495a', '#102430'] },
+    blurb: 'Rustshell Beetles screen a Pinecap Spitter. Best for farming lumber.', farm: { gold: 1.5, lumber: 1.5 }, best: 'Lumber',
+    first: { gold: 120, lumber: 10 }, drops: [['sword', 2], ['bow', 2], ['staff', 2], ['twin', 2], ['great', 1.5]], repeat: { gold: 15, lumber: 1 }, sky: ['#27495a', '#102430'] },
   { id: 'crossing', name: 'Thornback Crossing', req: 'hollow', enemies: ['boar'], boss: true,
     blurb: 'The Thornback Boar fights alone. Defeat it to relight the watchtower and open the next road.',
-    farm: { gold: 6, iron: 2.5 }, best: 'Gold + iron',
-    first: { gold: 300, iron: 20, tower: true }, drops: [['twin', 2], ['great', 2], ['sword', 1], ['bow', 1], ['staff', 1]], repeat: { gold: 40, iron: 3 }, sky: ['#5a4a3a', '#2a1f17'] },
+    farm: { gold: 6, lumber: 2.5 }, best: 'Gold + lumber',
+    first: { gold: 300, lumber: 20, tower: true }, drops: [['twin', 2], ['great', 2], ['sword', 1], ['bow', 1], ['staff', 1]], repeat: { gold: 40, lumber: 3 }, sky: ['#5a4a3a', '#2a1f17'] },
 ];
 const STAGE = Object.fromEntries(STAGES.map(s => [s.id, s]));
 
@@ -83,7 +83,7 @@ const FARM_CAP_MIN = 24 * 60;
 const SAVE_KEY = 'wildlight-expedition-v1';
 function newSave() {
   return {
-    gold: 0, iron: 0, cleared: {}, towers: {}, pity: {},
+    gold: 0, lumber: 0, cleared: {}, towers: {}, pity: {},
     // items[weapon][grade] = how many copies you own; every hero starts with their basic weapon
     items: { sword: [1, 0, 0, 0, 0], bow: [1, 0, 0, 0, 0], staff: [1, 0, 0, 0, 0] },
     heroes: {
@@ -107,7 +107,10 @@ function hydrate(raw) {
       if (WEAPONS[w] && !(base.items[w] || []).some(n => n > 0)) base.items[w] = [1, 0, 0, 0, 0];
     }
     delete base.crafted; delete base.recipes;
+    if (raw.lumber == null && raw.iron != null) base.lumber = raw.iron;       // Iron was renamed Lumber
+    delete base.iron;
   }
+  base.lumber = base.lumber || 0;
   for (const w of Object.keys(WEAPONS)) if (!base.items[w]) base.items[w] = [0, 0, 0, 0, 0];
   base.pity = base.pity || {};
   return base;
@@ -145,9 +148,9 @@ const today = () => new Date().toLocaleDateString('sv');
 const isUnlocked = s => !s.req || !!save.cleared[s.req];
 const sumLevels = () => HERO_ORDER.reduce((a, id) => a + save.heroes[id].lvl, 0);
 const lvlCost = l => 40 * l;
-const upCost = u => ({ gold: 80 * (u + 1), iron: 6 * (u + 1) });
-const canAfford = c => save.gold >= (c.gold || 0) && save.iron >= (c.iron || 0);
-const pay = c => { save.gold -= c.gold || 0; save.iron -= c.iron || 0; };
+const upCost = u => ({ gold: 80 * (u + 1), lumber: 6 * (u + 1) });
+const canAfford = c => save.gold >= (c.gold || 0) && save.lumber >= (c.lumber || 0);
+const pay = c => { save.gold -= c.gold || 0; save.lumber -= c.lumber || 0; };
 const bestGrade = w => { const a = save.items[w] || []; for (let g = GRADES.length - 1; g >= 0; g--) if (a[g] > 0) return g; return -1; };
 const owned = w => bestGrade(w) >= 0;
 const heroGrade = id => Math.max(0, bestGrade(save.heroes[id].weapon));   // a hero always uses the best copy they own
@@ -166,7 +169,7 @@ function farmGain() {
   const st = STAGE[save.farm.stage];
   const mins = Math.max(0, Math.min(FARM_CAP_MIN, (Date.now() - save.farm.since) / 60000));
   const m = farmMult();
-  return { mins, full: mins >= FARM_CAP_MIN, gold: Math.floor(mins * st.farm.gold * m), iron: Math.floor(mins * st.farm.iron * m) };
+  return { mins, full: mins >= FARM_CAP_MIN, gold: Math.floor(mins * st.farm.gold * m), lumber: Math.floor(mins * st.farm.lumber * m) };
 }
 /* Pick one weapon from a stage's weighted drop table and add a Common copy of it. */
 function dropWeapon(s) {
@@ -199,11 +202,11 @@ const dropNames = list => Object.entries(list.reduce((m, w) => (m[w] = (m[w] || 
 function claimFarm(quiet) {
   const g = farmGain();
   if (!g) return [];
-  save.gold += g.gold; save.iron += g.iron;
+  save.gold += g.gold; save.lumber += g.lumber;
   const found = rollAutoDrops(STAGE[save.farm.stage], g.mins);
   save.farm.since = Date.now();
   persist(); hud();
-  if (!quiet) toast(`Collected ${fmt(g.gold)} gold and ${fmt(g.iron)} iron.${found.length ? ` Your party found: ${dropNames(found)}!` : ''}`);
+  if (!quiet) toast(`Collected ${fmt(g.gold)} gold and ${fmt(g.lumber)} lumber.${found.length ? ` Your party found: ${dropNames(found)}!` : ''}`);
   return found;
 }
 
@@ -220,12 +223,19 @@ function dailyMonster() {
   return pool[h % pool.length];
 }
 function dailyDone() { return save.daily.date === today() && save.daily.done; }
-function dailyReward(m) { return m === 'boar' ? { gold: 150, iron: 25 } : m === 'beetle' || m === 'spitter' ? { gold: 60, iron: 15 } : { gold: 50, iron: 8 }; }
+function dailyReward(m) { return m === 'boar' ? { gold: 150, lumber: 25 } : m === 'beetle' || m === 'spitter' ? { gold: 60, lumber: 15 } : { gold: 50, lumber: 8 }; }
 
 /* ---------------------------- UI shell ------------------------------ */
+/* Header chips stay narrow: 12,345 -> 12.3k, 1,234,567 -> 1.2M (the info sheet shows the exact amount). */
+function fmtShort(n) {
+  n = Math.floor(n);
+  if (n < 10000) return n.toLocaleString();
+  const trim = x => x.replace(/\.0$/, '');
+  return n < 999500 ? trim((n / 1e3).toFixed(n < 99950 ? 1 : 0)) + 'k' : trim((n / 1e6).toFixed(1)) + 'M';
+}
 function hud() {
-  $('#gold').textContent = fmt(save.gold);
-  $('#iron').textContent = fmt(save.iron);
+  $('#gold').textContent = fmtShort(save.gold);
+  $('#lumber').textContent = fmtShort(save.lumber);
 }
 let toastTimer = 0;
 function toast(msg) {
@@ -236,11 +246,11 @@ function toast(msg) {
 }
 const costHtml = c => {
   const parts = [];
-  if (c.gold) parts.push(`<b class="${save.gold >= c.gold ? '' : 'short'}">🪙 ${fmt(c.gold)}</b>`);
-  if (c.iron) parts.push(`<b class="${save.iron >= c.iron ? '' : 'short'}">⛏️ ${fmt(c.iron)}</b>`);
+  if (c.gold) parts.push(`<b class="${save.gold >= c.gold ? '' : 'short'}"><i class="ico gold"></i>${fmt(c.gold)}</b>`);
+  if (c.lumber) parts.push(`<b class="${save.lumber >= c.lumber ? '' : 'short'}"><i class="ico lumber"></i>${fmt(c.lumber)}</b>`);
   return parts.join(' ');
 };
-const gainText = g => [g.gold ? `${fmt(g.gold)} gold` : '', g.iron ? `${fmt(g.iron)} iron` : ''].filter(Boolean).join(' · ') || 'nothing yet';
+const gainText = g => [g.gold ? `${fmt(g.gold)} gold` : '', g.lumber ? `${fmt(g.lumber)} lumber` : ''].filter(Boolean).join(' · ') || 'nothing yet';
 
 function render() {
   hud();
@@ -288,7 +298,6 @@ function renderMap() {
       ? `<div class="map placeholder" role="img" aria-label="Loading the village map"><span>Loading the village…</span></div>`
       : mapSvg();
 
-  if (typeof cloudCard === 'function') h += cloudCard();     // cloud.js: Sign in with Google / account status
   h += `<div class="card"><h2>Your party is ${cur ? `farming at ${cur.name}` : 'resting in the village'}</h2>`;
   if (cur) {
     h += `<p class="sub">They keep gathering while you're away, for up to 24 hours. They may also find weapons, but much more rarely than when you fight by hand.</p>
@@ -418,6 +427,53 @@ function renderForge() {
   return h;
 }
 
+/* ------------------------- resource information ---------------------------- */
+const perHour = (s, k) => fmt(s.farm[k] * 60 * farmMult());
+const RESOURCES = {
+  gold: {
+    name: 'Gold', what: 'The expedition\'s coin.',
+    get: () => [
+      'Win fights by hand: every win pays a little, and the first time you clear a stage it pays a big bonus.',
+      `Send your party to farm a cleared stage and claim it later (up to 24 hours): ${STAGES.map(s => `${s.name} about ${perHour(s, 'gold')} per hour`).join(', ')}.`,
+      "Finish today's bonus hunt on the Map for extra.",
+    ],
+    use: () => [
+      `Level up your heroes in the Party tab (${lvlCost(1)} gold at level 1, more for each level).`,
+      `Upgrade a weapon family in the Party tab (it also needs lumber): the first upgrade costs ${upCost(0).gold} gold.`,
+    ],
+  },
+  lumber: {
+    name: 'Lumber', what: 'Strong timber from the old roads, what weapon upgrades are built from.',
+    get: () => {
+      const best = STAGES.slice().sort((a, b) => b.farm.lumber - a.farm.lumber)[0];
+      return [
+        `Send your party to farm a cleared stage: ${best.name} is best, about ${perHour(best, 'lumber')} per hour (up to 24 hours while you're away).`,
+        'Winning fights and finishing the daily bonus hunt pay a little too.',
+      ];
+    },
+    use: () => [
+      `Upgrade a weapon family in the Party tab. Every upgrade makes all of that hero's weapons stronger. The first costs ${upCost(0).lumber} lumber (and ${upCost(0).gold} gold).`,
+      "Weapons themselves can't be bought: they drop from fights, and you merge copies in the Forge.",
+    ],
+  },
+};
+function closeResInfo() { const d = document.getElementById('res-info'); if (d) d.remove(); }
+function showResInfo(kind) {
+  const R = RESOURCES[kind];
+  if (!R) return;
+  closeResInfo();
+  const d = document.createElement('div');
+  d.className = 'result dialog'; d.id = 'res-info';
+  d.innerHTML = `<div class="box resinfo">
+    <div class="head"><i class="ico big ${kind}"></i><div><h2>${R.name}</h2><div class="note">You have <b>${fmt(save[kind])}</b></div></div></div>
+    <p class="note">${R.what}</p>
+    <h3>How to get it</h3><ul>${R.get().map(l => `<li>${l}</li>`).join('')}</ul>
+    <h3>What it's for</h3><ul>${R.use().map(l => `<li>${l}</li>`).join('')}</ul>
+    <button class="btn" data-act="closeinfo">Got it</button></div>`;
+  d.addEventListener('click', e => { if (e.target === d) closeResInfo(); });   // tap outside to close
+  document.body.appendChild(d);
+}
+
 /* ----------------------------- actions ------------------------------ */
 const actions = {
   tab(t) { save.tab = t; persist(true); render(); },
@@ -460,7 +516,9 @@ const actions = {
     const m = dailyMonster(), s = STAGES.filter(isUnlocked).find(x => x.enemies.includes(m));
     startBattle({ title: `Bonus hunt: ${MON[m].name}`, sky: s.sky, enemies: [m], hpMult: m === 'boar' ? 1 : 1.5, onWin: () => bonusWin(m) });
   },
-  signin() { if (window.cloud) cloud.signIn(); },
+  resinfo(kind) { showResInfo(kind); },
+  closeinfo() { closeResInfo(); },
+  account() { if (window.cloud) cloud.account(); },
   signout() { if (window.cloud) cloud.signOut(); },
   keepcloud() { if (window.cloud) cloud.choose('cloud'); },
   keepdevice() { if (window.cloud) cloud.choose('device'); },
@@ -474,19 +532,20 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && B) { e.preventDefault(); raiseBarrier(); }
+  if (e.key === 'Escape') closeResInfo();
 });
 
 function stageWin(s) {
   const lines = [];
   if (!save.cleared[s.id]) {
     save.cleared[s.id] = true;
-    save.gold += s.first.gold; save.iron += s.first.iron;
+    save.gold += s.first.gold; save.lumber += s.first.lumber;
     lines.push(`First clear bonus: ${gainText(s.first)}`);
     if (s.first.tower) { save.towers[s.id] = true; lines.push('The watchtower is relit and the next road is opening!'); }
     const nxt = STAGES.find(x => x.req === s.id);
     if (nxt) lines.push(`New area open: ${nxt.name}`);
   } else {
-    save.gold += s.repeat.gold; save.iron += s.repeat.iron;
+    save.gold += s.repeat.gold; save.lumber += s.repeat.lumber;
     lines.push(`Loot: ${gainText(s.repeat)}`);
   }
   const drop = rollManualDrop(s);                       // random weapon drop, on every win (see DROP)
@@ -496,7 +555,7 @@ function stageWin(s) {
 }
 function bonusWin(m) {
   const r = dailyReward(m);
-  save.gold += r.gold; save.iron += r.iron;
+  save.gold += r.gold; save.lumber += r.lumber;
   save.daily = { date: today(), done: true };
   persist();
   return [`Bonus hunt loot: ${gainText(r)}`];
