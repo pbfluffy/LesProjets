@@ -8,7 +8,7 @@
   'use strict';
   const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
   const pick = a => a[Math.floor(Math.random() * a.length)];
-  const LEVEL = 0.5;                       // music sits under the sound effects
+  const LEVEL = 0.22;                      // music sits well under the sound effects
 
   let A = null, out = null, desired = null, cur = null, duckTimer = 0;
 
