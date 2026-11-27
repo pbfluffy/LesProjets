@@ -274,6 +274,7 @@
 
   window.cloud = {
     saved, signIn, signOut, choose, account,
+    isSignedIn: () => st.auth === 'in',
     // for tests and debugging: swap in a fake backend and drive the sign-in flow without Google
     _test: { st, setBackend: b => { backend = b; }, onUser, hasProgress, pushNow },
   };

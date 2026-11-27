@@ -27,3 +27,8 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
   the numbers come from the stage tables, so the sheet stays correct when rates change. Big amounts are abbreviated in the chip (`fmtShort`).
 - The account is a round button in the top right (`#account-btn`, painted by `cloud.js`): signed out = tap to sign in with Google; signed in = your picture
   with a ring (green saved, amber saving, red error) and a small menu with the status and Sign out.
+
+## Test period tools
+- `TEST_PERIOD` in `game.js` shows a "Test tools" card at the bottom of the Map tab with **Reset game data** (confirm dialog, then `resetGame()`).
+  It replaces the save with a brand-new one and persists it, so a signed-in account is reset too (the newer timestamp wins on every device).
+  Remove it for launch: set `TEST_PERIOD` to false, or delete the `test tools` block, the card in `renderMap` and the three `reset*` actions.
