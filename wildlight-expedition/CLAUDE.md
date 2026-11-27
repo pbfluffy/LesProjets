@@ -43,10 +43,10 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - Stage cards use the painted `bg/<stage>.jpg` and the monsters' idle sprites (via `window.assetUrl` from `sprites.js`); until the art has loaded they show a colour gradient.
 
 ## Party and hiring
-- A new game starts with ONE hero (Bren). Tavi and Iona are hired with gold in the Party tab (`HERO[id].hire`: 300 and 800). `save.party` lists the hired heroes; `party()` / `inParty()` /
+- A new game starts with ONE hero: Milo Dunn, an ordinary villager with a pitchfork (weak on purpose). The other seven are hired with gold in the Party tab (`HERO[id].hire`, see "Roster and camp" below). `save.hired` lists the hired heroes and `save.party` the (up to four) who fight; `party()` / `inParty()` /
   `partySize()` are the helpers. Saves from before hiring have no `party` and keep all three heroes (`hydrate()`); Reset game data starts a new solo game.
-- Fights and farming scale with the party size so a small party is not punished: `partyScale()` multiplies monster HP (0.55 / 0.8 / 1), `encounterFor(stage)` picks smaller packs
-  (`waves` on the stage, used for 1 or 2 heroes), and `farmMult()` gathers 0.6x / 0.8x / 1x. Checked by simulation: the first two stages are winnable at every size and the boss needs the barrier at every size.
+- Fights and farming scale with the party size so a small party is not punished: `partyScale()` multiplies monster HP (0.55 / 0.8 / 1 / 1.7 for four heroes), `encounterFor(stage)` picks smaller packs
+  (`waves` on the stage, used for 1 or 2 heroes), and `farmMult()` gathers 0.6x / 0.8x / 1x / 1.2x. Checked by simulation: the first two stages are winnable at every size and the boss needs the barrier at every size.
 - Party tab: party strip with slots, a card per hero (stats, level up, weapon family upgrade, folded "Change weapon"), then Recruit cards. Forge tab: weapons grouped by hero, merge-ready banner,
   copy pips, Equip button; weapons the player has not found are dimmed with where they drop.
 
@@ -162,9 +162,9 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
   ranged shot (`mshot`) and death (`mdie`). `snd(name, arg)` passes the weapon id or `{ c: kind, s: size }`. A fallen hero plays `herodown`. Add a weapon or monster: one entry in the matching table in `sfx.js` (it falls back to the sword / beast sound).
 
 ## Hero skills and magic effects
-- `skills.js` (loaded before `game.js`; it only touches game globals inside functions): 6 skills, two per hero, the first unlocked at hero level 3 and the second at level 10 (`SKILLS`): Whirlwind (Bren, hits every monster),
+- `skills.js` (loaded before `game.js`; it only touches game globals inside functions): 16 skills, two per hero, the first unlocked at hero level 3 and the second at level 10 (`SKILLS`): Whirlwind (Bren, hits every monster),
   Iron Guard (Bren, -40% damage for 6 s + a little health), Arrow Rain (Tavi, 6 arrows), Piercing Shot (Tavi, one huge always-critical arrow that ignores armor), Radiant Bloom (Iona, heals everyone), Storm Call (Iona, lightning on every monster).
-  Each has a cooldown and a `mult` (power); cooldowns start at 30% when a fight starts. In a stage fight they sit in a button row above the barrier (keys 1-6; `#skills`), and "Auto" (header button, `wl-autoskill`, default on) casts them when
+  Each has a cooldown and a `mult` (power); cooldowns start at 30% when a fight starts. In a stage fight they sit in a button row above the barrier (keys 1-8; `#skills`), and "Auto" (header button, `wl-autoskill`, default on) casts them when
   `wants()` says it would help, which is what Repeat runs rely on. Skill hits use `hitEnemy` (so crits, armor and sounds work); AoE secondary hits are muted (`B.mute`) so one burst sounds, not ten. Do not call `later()` from inside a `later()` callback (the list is rebuilt after each pass).
 - **Balance**: skills make heroes faster and safer, so stage monsters have more HP (`skillHp(rec)`: x1.4 from recommended level 3, x1.65 from 10; early areas below level 3 are unchanged). By simulation, fight lengths match the old ones (e.g. Quarry 35 s -> 36 s) and the party ends with 5-20 points more HP left. Re-run the stage simulations if skill power changes.
 - **Effects** (`drawMagicFx`, called before the art.js effects in `draw()`): slash arcs per blade (thin arc for saber, big for greatsword, a thrust line for the rapier, a ring for the shield bash), lightning jags for the storm staff (instant arc + chained zaps), ice shards that chill the monster
@@ -189,3 +189,18 @@ The sound engine follows the guide; the numbers are starting points to tune by e
 - Rebuild or change the pack: unpack the source packs into one folder and run `node tools/build-sfx.js <folder> assets/sfx` (needs ffmpeg). The group table at the top of that script says which source file feeds which group and how long each clip may be;
   `node tools/sfx-analyze.js <file or folder>` prints length, brightness and decay of sound files (the clips were chosen by name and by those measurements, not by ear: re-listen when tuning).
 - Recorded sounds are normalised hotter than the synthesised ones, so `SMP_LEVEL` (0.7) and the per-call `gain` values balance them; the buses, limiter and budget described in the audio guide section apply to both.
+
+## Roster and camp (8 heroes)
+- `HERO` in `game.js`: Milo Dunn (starter, free; pitchfork / wood axe / club = `tool` family), Bren (200; sword), Tavi (500; bow), Iona (1,200; staff), Rook (3,000; rogue, `dagger`: dagger / twin daggers),
+  Elric Vane (8,000; mage, `tome`: apprentice tome / grimoire, ranged), Maren Ashe (20,000; lancer, `spear`: spear / halberd), Brother Tobin (50,000; monk, `fist`: hand wraps / iron gauntlets).
+  Each has `row` ('front' / 'back'), `tank` (braces behind the barrier), `draws` (Tavi leans back before a shot), `start` (the basic weapon that comes with the hero) and `family`. A hero wields only weapons of their family.
+- `save.hired` = everyone you own, `save.party` = who fights (`MAX_PARTY` = 4, `party()` sorts front row first, the first hero takes the monsters' melee hits, back-row heroes are the ranged targets).
+  Hiring puts a hero in the party when there is room, otherwise in camp. Camp heroes rest ("Rest in camp" / "Join the party" on their card), keep their level and weapon and can be levelled; only party heroes
+  count for `farmMult()`, skills and fights. Saves from before the roster: the old `party` list becomes `hired`. `SLOTS` are the battle positions for 1-4 heroes.
+- 11 new weapons (all drop-only, dropped from the same stages as the older ones; `WEAPONS` + each stage's `drops`): pitchfork, wood axe, club, dagger, twin daggers, apprentice tome, grimoire (splash), spear (`behind`: also
+  hits the monster behind the target for 60%), halberd (splash 50%), hand wraps, iron gauntlets (`shield` 10%). Pictures: `assets/items/<id>.png` and `assets/heroes/<hero>-<weapon>-idle|attack.webp` (`HERO_FILES`).
+  The five new heroes' frames: Milo 560x512, Rook 620, Elric 640, Maren 820, Tobin 600 (all 512 high, feet at 50% / 97.46%); meta in `assets/meta.json`. `art.js drawHero` falls back to the Bren / Iona drawing for them.
+- 10 new skills (`skills.js`): Hard Swing and Rally Cry (Milo; `B.haste` = the party attacks 30% faster), Backstab and Smoke Bomb (Rook; `e.stun` stops a monster's clock), Fireball and Meteor Shower (Elric),
+  Spear Sweep and Bulwark (Maren; `h.guard` for everyone), Iron Palm (stuns the target) and Inner Peace (heal) (Tobin). New sounds: a synth entry and a recorded one for every new weapon and skill in `sfx.js`.
+- Balance (stepped simulations with skills on, up = level / 1.6): Milo alone beats Pinewood Path losing about a quarter of his health; a four-hero party of the older heroes plus Milo is about as hard as the old three-hero
+  party at the same level; tank-heavy parties (Maren, Tobin, Iona) are noticeably easier, which is the reward for hiring them. Re-run if `partyScale`, `skillHp` or hero stats change.
