@@ -109,3 +109,9 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 ## Hero pictures per weapon
 - Every weapon has its own picture of its hero: `assets/heroes/<hero>-<weapon>-idle|attack` (the first five are PNG, the 10 newer ones WebP; `HERO_FILES` / `heroPath()` in `sprites.js`). All frames of a hero share one canvas
   (Bren 812x512, Tavi 526x512, Iona 606x512, feet at 50% / 97.46%), so a new weapon only needs two matching pictures and an entry in `HERO_FILES`. If a picture is missing, the weapon's `pose` (nearest older weapon) is drawn.
+
+## Critical hits
+- Every hero hit and every normal monster hit can crit (`CRIT`, `WEAPON_CRIT`, `MON_CRIT` near `MON` in `game.js`). Hero crit chance = the weapon's `crit` + 1% per grade of the best copy (`heroStats().crit`, shown on the
+  hero card and in the weapon lists), damage x1.7; monsters crit 4-10% for x1.5, never on a boss's telegraphed charge. Rolled per hit (each slash of a saber, splash hits too). Crits show a big gold (hero) or red (monster) number
+  with a "!" (`floater(..., big)`, `art.js` bounce). Checked by simulation: balance is unchanged (HP left within a few points with crits on or off).
+- Losing a fight always ends a Repeat run (`showResult`): the defeat screen says "∞ Repeat stopped" and shows the run's totals.

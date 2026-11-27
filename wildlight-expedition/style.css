@@ -565,3 +565,7 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 /* ---- "updating" bar (pwa.js auto-update) ---- */
 .update-bar{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:90;max-width:calc(100% - 24px);padding:10px 18px;border-radius:999px;background:#0f1a15;border:1px solid var(--amber);color:#f3deb0;font:700 14px system-ui,sans-serif;box-shadow:0 8px 24px #000a;animation:upd .25s ease-out}
 @keyframes upd{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ---- crits ---- */
+.wcrit{display:inline-block;margin-left:4px;padding:0 6px;border-radius:6px;background:#4a3a12;color:#ffd24a;font-size:11px;font-weight:700;white-space:nowrap}
+.note.repeatstop{margin:0;padding:8px 12px;border-radius:10px;background:#3a2a1a;border:1px solid #7a5a2a;color:#f3deb0;text-align:left}
