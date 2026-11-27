@@ -169,7 +169,7 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - **Balance**: skills make heroes faster and safer, so stage monsters have more HP (`skillHp(rec)`: x1.4 from recommended level 3, x1.65 from 10; early areas below level 3 are unchanged). By simulation, fight lengths match the old ones (e.g. Quarry 35 s -> 36 s) and the party ends with 5-20 points more HP left. Re-run the stage simulations if skill power changes.
 - **Effects** (`drawMagicFx`, called before the art.js effects in `draw()`): slash arcs per blade (thin arc for saber, big for greatsword, a thrust line for the rapier, a ring for the shield bash), lightning jags for the storm staff (instant arc + chained zaps), ice shards that chill the monster
   (a frost wand hit slows it for 3 s with a pale blue glow), drifting leaves for heartwood, sparks for the plain staff, dust and sparks for arrows, a gold nova + flash on crits, plus skill effects (whirl, rain arrows, beam, dome, novas, lightning strikes).
-- **Weapon card**: a folded "Where it drops" list shows every stage that drops the weapon, grouped by region, with the grade it drops at and the real chance per won fight (`weaponDropsHtml`). Hero cards have a folded Skills list.
+- **Weapon card** (tap a stage to fight): a folded "Where it drops" list shows every stage that drops the weapon, grouped by region, with the grade it drops at and the real chance per won fight (`weaponDropsHtml`). Hero cards have a folded Skills list.
 
 ## Combat audio guide (`rpg-combat-audio-design.md`)
 The sound engine follows the guide; the numbers are starting points to tune by ear.
