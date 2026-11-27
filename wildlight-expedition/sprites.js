@@ -287,29 +287,47 @@
   }
 
   /* -------------------------------- boot ------------------------------- */
+  // game.js shows a loading placeholder (never the drawn fallback art) while a state is 'loading'.
+  //   map:   the village map and its pieces      units: heroes, monsters and battle backgrounds
+  window.spriteState = { map: 'loading', units: 'loading' };
+  const refresh = () => { if (typeof render === 'function') render(); };
+
+  const MAP_PATHS = ['map/map.jpg', 'map/tower-unlit.png', 'map/tower-lit.png', 'map/marker-locked.png', 'map/marker-open.png',
+    'map/marker-cleared.png', 'map/camp.png'];
+
   async function boot() {
+    // The first screen is the map, so fetch its pictures straight away, alongside meta.json.
+    const mapLoads = Promise.all(MAP_PATHS.map(load));
     let data;
     try {
       const r = await fetch(url('meta.json'));
-      if (!r.ok) return;
+      if (!r.ok) throw new Error('meta.json ' + r.status);
       data = await r.json();
-    } catch (e) { return; }                       // no assets yet: keep the vector art
+    } catch (e) {                                  // no assets: fall back to the drawn art
+      window.spriteState.map = window.spriteState.units = 'failed';
+      refresh();
+      return;
+    }
     meta.data = data; meta.loaded = true;
+
+    await mapLoads;
+    if (get('map/map.jpg') && data.tower && data.marker) { window.drawMap = drawMap; window.spriteState.map = 'ready'; }
+    else window.spriteState.map = 'failed';
+    refresh();                                     // the map can show now; the rest keeps loading
 
     const paths = [];
     for (const [id, weapons] of Object.entries(HERO_FILES))
       for (const w of weapons) for (const pose of ['idle', 'attack']) paths.push(`heroes/${id}-${w}-${pose}.png`);
     for (const id of MON_IDS) for (const pose of ['idle', 'attack']) paths.push(`monsters/${id}-${pose}.png`);
-    paths.push('bg/path.jpg', 'bg/hollow.jpg', 'bg/crossing.jpg', 'map/map.jpg', 'map/tower-unlit.png', 'map/tower-lit.png',
-      'map/marker-locked.png', 'map/marker-open.png', 'map/marker-cleared.png', 'map/camp.png');
+    paths.push('bg/path.jpg', 'bg/hollow.jpg', 'bg/crossing.jpg');
     await Promise.all(paths.map(load));
 
     window.drawHero = drawHero;
     window.drawMon = drawMon;
     window.drawBackground = drawBackground;
     window.spriteHeight = id => HEIGHT[id] || 0;       // lets game.js put health bars and numbers above the sprite
-    if (get('map/map.jpg') && data.tower && data.marker) window.drawMap = drawMap;
-    if (typeof render === 'function') render();   // repaint portraits / switch the map to the canvas
+    window.spriteState.units = 'ready';
+    refresh();                                     // repaint the hero portraits
   }
   boot();
 })();

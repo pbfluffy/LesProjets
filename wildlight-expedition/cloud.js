@@ -24,6 +24,7 @@
   };
   const COLLECTION = 'userWildlight';
   const UID_KEY = 'wildlight:uid';        // the account this device last synced with
+  const PROFILE_KEY = 'wildlight:profile';  // its name and photo, so the card looks right before Firebase answers
   const PUSH_DELAY = 1500;                // wait for a burst of changes to settle before uploading
   const RETRY_DELAY = 20000;
 
@@ -41,7 +42,7 @@
   function hasProgress(s) {
     if (!s) return false;
     const items = Object.values(s.items || {}).reduce((a, arr) => a + (arr || []).reduce((x, y) => x + y, 0), 0);
-    return stageCount(s) > 0 || levelSum(s) > 3 || (s.gold || 0) > 0 || (s.iron || 0) > 0 || items > 3 || Object.keys(s.recipes || {}).length > 0;
+    return stageCount(s) > 0 || levelSum(s) > 3 || (s.gold || 0) > 0 || (s.iron || 0) > 0 || items > 3;
   }
 
   /* ------------------------------ cloud I/O ------------------------------ */
@@ -160,22 +161,31 @@
     return `${Math.floor(s / 3600)}h ago`;
   }
 
+  function accountRow(user, status) {
+    return `<div class="account">
+      ${user.photo ? `<img class="avatar" src="${esc(user.photo)}" alt="" referrerpolicy="no-referrer">` : '<span class="avatar ph">★</span>'}
+      <div class="who"><b>${esc(user.name)}</b><div class="note">${status}</div></div>
+      <button class="ghost small" data-act="signout">Sign out</button></div>`;
+  }
+  const signInCard = disabled => `<h2>Save your progress</h2>
+      <p class="sub">Sign in with Google to keep your progress safe and play on any device. Your fights, weapons and farming are saved to your account.</p>
+      <button class="gbtn" data-act="signin" ${disabled ? 'disabled' : ''}>${gLogo}<span>Sign in with Google</span></button>`;
+  function cachedProfile() {
+    try { return localStorage.getItem(UID_KEY) ? JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null') : null; } catch (e) { return null; }
+  }
+
   function cardInner() {
-    if (st.auth === 'loading') return `<p class="note">Checking your account…</p>`;
+    // While Firebase is still answering, draw the card the player will most likely get (so nothing jumps around).
+    if (st.auth === 'loading') { const p = cachedProfile(); return p ? accountRow(p, '☁ Connecting…') : signInCard(true); }
     if (st.auth === 'unavailable') return `<h2>Save your progress</h2><p class="note">Cloud save isn't available right now (offline?). Your progress is still saved on this device.</p>`;
     if (st.auth === 'in' && st.user) {
       const status = st.sync === 'saving' ? '☁ Saving…'
         : st.sync === 'error' ? '⚠ Couldn’t reach the cloud, will retry'
         : st.sync === 'synced' ? `☁ Saved to your account · ${ago(st.syncedAt)}`
         : '☁ Connecting…';
-      return `<div class="account">
-        ${st.user.photo ? `<img class="avatar" src="${esc(st.user.photo)}" alt="" referrerpolicy="no-referrer">` : '<span class="avatar ph">★</span>'}
-        <div class="who"><b>${esc(st.user.name)}</b><div class="note">${status}</div></div>
-        <button class="ghost small" data-act="signout">Sign out</button></div>`;
+      return accountRow(st.user, status);
     }
-    return `<h2>Save your progress</h2>
-      <p class="sub">Sign in with Google to keep your progress safe and play on any device. Your fights, weapons and farming are saved to your account.</p>
-      <button class="gbtn" data-act="signin">${gLogo}<span>Sign in with Google</span></button>`;
+    return signInCard(false);
   }
   function cardHtml() { return `<div class="card" id="account-card">${cardInner()}</div>`; }
   function paint() { const el = document.getElementById('account-card'); if (el) el.innerHTML = cardInner(); }
@@ -187,11 +197,12 @@
     linked = false; st.choice = null; closeDialog();
     if (!user) {
       st.user = null; st.auth = 'out'; st.sync = 'idle';
-      try { localStorage.removeItem(UID_KEY); } catch (e) { /* ignore */ }
+      try { localStorage.removeItem(UID_KEY); localStorage.removeItem(PROFILE_KEY); } catch (e) { /* ignore */ }
       paint();
       return;
     }
     st.user = { uid: user.uid, name: user.displayName || user.email || 'Signed in', photo: user.photoURL || '' };
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ name: st.user.name, photo: st.user.photo })); } catch (e) { /* ignore */ }
     st.auth = 'in'; st.sync = 'idle';
     paint();
     reconcile(user.uid);
