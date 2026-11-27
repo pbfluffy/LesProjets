@@ -134,6 +134,7 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - Copies from before the auto-update (PR with `version.json`) have no checker: close and reopen the installed app once.
 
 ## Sound effects
+- Sound palette (matches the painted storybook style, not 8-bit beeps): wooden taps, plucked harp / lute strings (`pluck`), bronze and crystal bells (`bell`, `chime`), steel and leather for gear and fights (`steel`, `swish`), a taiko drum and a brass horn for drama (`taiko`, `horn`) and a breathy flute (`flute`); the notes use the C major pentatonic scale like the village music. Strings, bells and metal are additive voices: sine partials with their own decay (`partials`).
 - `sfx.js` synthesises every sound with the Web Audio API (oscillators + filtered noise through a compressor): no audio files, works offline, ~31 sounds (`SOUNDS` table). `snd('name')` in `game.js` plays one and never throws;
   nothing plays until the first tap or key press (browser autoplay rule), and the engine is suspended while the tab is hidden. Fast bursts are throttled per sound (`GAP`).
 - Hooks: UI (every button taps unless its action has its own sound: `OWN_SOUND`), tabs, hire, level up, weapon upgrade, equip, merge (anvil), farm, claim / reward chips (coins), weapon drop, folding lists (tick),
