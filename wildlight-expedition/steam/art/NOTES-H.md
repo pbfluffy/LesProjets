@@ -1,0 +1,5 @@
+# Section H — Wildlight Expedition capsules
+
+- **Header.** The built-in image generator worked well with a prompt for quiet violet-peach sky above a five-person, right-facing lineup, with a lit watchtower on the far hill. I regenerated the first pass with the four rear heroes lower and Bren still prominent to clear the two-line logo. The unresized master is 1832 × 858. All five faces read at 460 × 215. The waist-up framing leaves Bren’s sword and Rook’s dagger below the frame.
+- **Small.** The prompt that worked called for a quiet plum dusk sky and tightly overlapped busts of Bren and Tavi at the far right. I regenerated the first pass to move Tavi’s face clear of the logo and turn both heroes to the right. The unresized master is 2168 × 725. Both words and both faces read at 231 × 87. Tavi’s quiver is close to the lettering.
+- I cropped and resampled with high-quality bicubic filtering, composited the shared `library-logo-1280.png` at about 56% of the header width and 68% of the small capsule width, and inspected both exports at 1×. The title and faces fit their safe areas.
