@@ -100,6 +100,68 @@ const WEAPONS = {
                 desc: 'Heavy punches, and 10% less damage taken.' },
   frostwand:  { name: 'Frost wand', fam: 'staff', hits: [0.5], int: 0.6, ranged: true, heal: true,
                 desc: 'Quick, light bolts of frost, and it still heals.' },
+  // The second wave (every hero has 7 weapons). like = the older weapon whose sound, hit effect and movement it borrows; pose = the older weapon whose hero picture is drawn
+  // (until its own picture exists); chill slows the target.
+  recurve: { name: 'Recurve bow', fam: 'bow', hits: [0.9], int: 0.85, ranged: true, pierce: 0.15, like: 'bow', pose: 'bow',
+    desc: 'A springy bow: faster than the hunting bow, sharper aim, and it slips past 15% of armor.' },
+  repeater: { name: 'Repeating crossbow', fam: 'bow', hits: [0.4, 0.4, 0.4], int: 1.1, ranged: true, pierce: 0.3, like: 'crossbow', pose: 'crossbow',
+    desc: 'Three bolts per volley, each ignoring 30% of a monster\'s armor.' },
+  stormbow: { name: 'Storm bow', fam: 'bow', hits: [1.1], int: 1.3, ranged: true, splash: 0.4, like: 'longbow', pose: 'longbow',
+    desc: 'Arrows that crackle on impact and also hit every other monster for 40%.' },
+  moonstaff: { name: 'Moon staff', fam: 'staff', hits: [0.8], int: 0.9, ranged: true, heal: true, healMult: 1.2, like: 'staff', pose: 'staff',
+    desc: 'Quick silver bolts and heals 20% stronger than the wooden staff.' },
+  bloomstaff: { name: 'Bloom staff', fam: 'staff', hits: [0.4], int: 1.2, ranged: true, heal: true, healMult: 2.2, like: 'heartwood', pose: 'heartwood',
+    desc: 'Almost no attack, but its heals are more than twice as strong.' },
+  emberstaff: { name: 'Ember staff', fam: 'staff', hits: [1.2], int: 1.5, ranged: true, heal: true, splash: 0.35, like: 'stormstaff', pose: 'stormstaff',
+    desc: 'Burning bolts that also scorch the other monsters for 35%, and it still heals.' },
+  shovel: { name: 'Shovel', fam: 'tool', hits: [1], int: 0.9, shield: 0.12, like: 'pitchfork', pose: 'pitchfork',
+    desc: 'A sturdy digger: a quick swing, and the wielder takes 12% less damage.' },
+  hoe: { name: 'Garden hoe', fam: 'tool', hits: [0.55, 0.55], int: 1, like: 'club', pose: 'club',
+    desc: 'Two quick chops per swing.' },
+  scythe: { name: 'Scythe', fam: 'tool', hits: [0.9], int: 1, splash: 0.4, like: 'club', pose: 'club',
+    desc: 'A wide harvest cut that also hits the other monsters for 40%.' },
+  mallet: { name: 'Maul', fam: 'tool', hits: [2.2], int: 2.1, like: 'woodaxe', pose: 'woodaxe',
+    desc: 'A huge, slow hammer blow that hits very hard.' },
+  maingauche: { name: 'Main-gauche', fam: 'dagger', hits: [0.6], int: 0.7, dash: true, shield: 0.2, like: 'dagger', pose: 'dagger',
+    desc: 'A parrying dagger: lighter hits, and the wielder takes 20% less damage.' },
+  stiletto: { name: 'Stiletto', fam: 'dagger', hits: [0.7], int: 0.65, dash: true, pierce: 0.7, like: 'dagger', pose: 'dagger',
+    desc: 'A thin blade that slips past 70% of a monster\'s armor.' },
+  kukri: { name: 'Kukri', fam: 'dagger', hits: [0.95], int: 0.8, dash: true, like: 'dagger', pose: 'dagger',
+    desc: 'A curved knife with a very high chance to crit.' },
+  triple: { name: 'Triple dirks', fam: 'dagger', hits: [0.28, 0.28, 0.28], int: 0.7, dash: true, like: 'twindaggers', pose: 'twindaggers',
+    desc: 'Three flicking cuts per attack.' },
+  assassin: { name: 'Assassin\'s dirk', fam: 'dagger', hits: [1.5], int: 1.4, dash: true, like: 'dagger', pose: 'dagger',
+    desc: 'A slow, deadly stab that crits almost one time in three.' },
+  spark: { name: 'Spark scroll', fam: 'tome', hits: [0.6], int: 0.8, ranged: true, like: 'tome', pose: 'tome',
+    desc: 'Quick little sparks with a good chance to crit.' },
+  frosttome: { name: 'Frost tome', fam: 'tome', hits: [0.8], int: 1.2, ranged: true, chill: true, like: 'tome', pose: 'tome',
+    desc: 'Icy bolts that chill the target and slow it down.' },
+  missile: { name: 'Missile tome', fam: 'tome', hits: [0.35, 0.35, 0.35], int: 1.2, ranged: true, like: 'tome', pose: 'tome',
+    desc: 'Three arcane missiles per cast.' },
+  tempest: { name: 'Tempest codex', fam: 'tome', hits: [1.2], int: 1.7, ranged: true, splash: 0.5, like: 'grimoire', pose: 'grimoire',
+    desc: 'A storm of fire: the other monsters take 50% too.' },
+  solar: { name: 'Solar tome', fam: 'tome', hits: [2.4], int: 2.5, ranged: true, like: 'grimoire', pose: 'grimoire',
+    desc: 'A slow, blazing nova on one monster.' },
+  banner: { name: 'Banner spear', fam: 'spear', hits: [0.9], int: 1, behind: 0.4, shield: 0.15, like: 'spear', pose: 'spear',
+    desc: 'A spear with a war banner: the monster behind takes 40%, and the wielder takes 15% less damage.' },
+  pike: { name: 'Pike', fam: 'spear', hits: [1.5], int: 1.5, behind: 0.8, like: 'spear', pose: 'spear',
+    desc: 'Very long: the monster behind the first takes 80%.' },
+  trident: { name: 'Trident', fam: 'spear', hits: [1.1], int: 1.1, behind: 0.5, pierce: 0.35, like: 'spear', pose: 'spear',
+    desc: 'Three prongs that ignore 35% of armor; the monster behind takes 50%.' },
+  glaive: { name: 'Glaive', fam: 'spear', hits: [1.2], int: 1.3, splash: 0.35, like: 'halberd', pose: 'halberd',
+    desc: 'A curved blade on a pole that sweeps every monster for 35%.' },
+  lance: { name: 'Cavalry lance', fam: 'spear', hits: [1.9], int: 1.8, pierce: 0.5, like: 'spear', pose: 'spear',
+    desc: 'A heavy charging thrust that ignores half of a monster\'s armor.' },
+  knuckles: { name: 'Iron knuckles', fam: 'fist', hits: [0.5, 0.5], int: 0.9, dash: true, pierce: 0.3, like: 'wraps', pose: 'wraps',
+    desc: 'Two hard punches that ignore 30% of armor.' },
+  beads: { name: 'Prayer beads', fam: 'fist', hits: [0.8], int: 0.9, shield: 0.2, like: 'gauntlets', pose: 'gauntlets',
+    desc: 'Calm, steady punches, and the wielder takes 20% less damage.' },
+  claws: { name: 'Tiger claws', fam: 'fist', hits: [0.25, 0.25, 0.25, 0.25], int: 0.9, dash: true, like: 'wraps', pose: 'wraps',
+    desc: 'Four raking strikes per attack with a good chance to crit.' },
+  thunder: { name: 'Thunder fists', fam: 'fist', hits: [0.9, 0.9], int: 1.7, like: 'gauntlets', pose: 'gauntlets',
+    desc: 'Two crushing blows per attack.' },
+  sunfist: { name: 'Sunfist gloves', fam: 'fist', hits: [1.8], int: 1.8, splash: 0.3, like: 'gauntlets', pose: 'gauntlets',
+    desc: 'A shining punch whose shockwave hits the other monsters for 30%.' },
 };
 
 const MON = {
@@ -142,7 +204,8 @@ const MON = {
 const CRIT = { hero: 1.7, mon: 1.5, perGrade: 0.01 };
 const WEAPON_CRIT = { sword: 0.06, twin: 0.08, great: 0.10, falchion: 0.08, saber: 0.10, rapier: 0.15, buckler: 0.04,
   bow: 0.08, shortbow: 0.12, longbow: 0.14, crossbow: 0.18, staff: 0.05, heartwood: 0.04, stormstaff: 0.07, frostwand: 0.10,
-  pitchfork: 0.05, woodaxe: 0.08, club: 0.06, dagger: 0.15, twindaggers: 0.18, tome: 0.08, grimoire: 0.10, spear: 0.07, halberd: 0.09, wraps: 0.08, gauntlets: 0.10 };
+  pitchfork: 0.05, woodaxe: 0.08, club: 0.06, dagger: 0.15, twindaggers: 0.18, tome: 0.08, grimoire: 0.10, spear: 0.07, halberd: 0.09, wraps: 0.08, gauntlets: 0.10,
+  recurve: 0.16, repeater: 0.14, stormbow: 0.12, moonstaff: 0.1, bloomstaff: 0.04, emberstaff: 0.08, shovel: 0.05, hoe: 0.06, scythe: 0.08, mallet: 0.12, maingauche: 0.1, stiletto: 0.17, kukri: 0.22, triple: 0.18, assassin: 0.3, spark: 0.15, frosttome: 0.08, missile: 0.1, tempest: 0.1, solar: 0.12, banner: 0.07, pike: 0.07, trident: 0.09, glaive: 0.09, lance: 0.1, knuckles: 0.08, beads: 0.08, claws: 0.16, thunder: 0.1, sunfist: 0.1 };
 for (const w of Object.keys(WEAPONS)) WEAPONS[w].crit = WEAPON_CRIT[w] || 0.05;
 const MON_CRIT = { brushfang: 0.08, hornet: 0.10, mireadder: 0.08, frostwolf: 0.08, cinderbat: 0.10,
   beetle: 0.04, barkbear: 0.05, mossturtle: 0.04, icegolem: 0.05, snowyeti: 0.06, magmacrab: 0.05, sentinel: 0.05,
@@ -261,7 +324,21 @@ const ARMOR_DROPS = {
   scrapheap: [['chainmail', 4], ['platearmor', 5]], gobmines: [['chainmail', 3], ['platearmor', 6]], kinghall: [['chainmail', 2], ['platearmor', 9]],
   ridge: [['chainmail', 2], ['platearmor', 8]], warcamp: [['chainmail', 1.5], ['platearmor', 9]], throne: [['chainmail', 1], ['platearmor', 11]], quarry: [['chainmail', 3], ['platearmor', 5]], magmagate: [['chainmail', 3], ['platearmor', 6]], skyreach: [['chainmail', 2], ['platearmor', 8]],
 };
-for (const s of STAGES) s.drops = (s.drops || []).concat(ARMOR_DROPS[s.id] || []);
+/* Second-wave weapons (7 per hero): they start dropping one after another, spread over the road from Hollow Run to Warcamp Gate (each hero's list goes from the plainer to the stronger),
+   with weight 1 in every stage from there on. The armor weights are scaled by the same factor so armor stays about a third of the drops. */
+const WAVE2 = {
+  tavi: ['recurve', 'repeater', 'stormbow'], iona: ['moonstaff', 'bloomstaff', 'emberstaff'], milo: ['shovel', 'hoe', 'scythe', 'mallet'],
+  rook: ['maingauche', 'stiletto', 'kukri', 'triple', 'assassin'], elric: ['spark', 'frosttome', 'missile', 'tempest', 'solar'],
+  maren: ['banner', 'pike', 'trident', 'glaive', 'lance'], tobin: ['knuckles', 'beads', 'claws', 'thunder', 'sunfist'],
+};
+(() => {
+  const heroes = Object.keys(WAVE2), most = Math.max(...heroes.map(h => WAVE2[h].length)), order = [];
+  for (let k = 0; k < most; k++) for (const h of heroes) if (WAVE2[h][k]) order.push(WAVE2[h][k]);
+  const lastIdx = STAGES.length - 2, base = STAGES.map(st => (st.drops || []).reduce((a, [, wt]) => a + wt, 0));
+  order.forEach((w, i) => { const from = 1 + Math.floor(i * (lastIdx - 1) / order.length); STAGES.forEach((st, k) => { if (k >= from) (st.drops = st.drops || []).push([w, 1]); }); });
+  STAGES.forEach((st, k) => { st.waveScale = base[k] ? (st.drops || []).reduce((a, [, wt]) => a + wt, 0) / base[k] : 1; });
+})();
+for (const s of STAGES) s.drops = (s.drops || []).concat((ARMOR_DROPS[s.id] || []).map(([a, wt]) => [a, Math.round(wt * (s.waveScale || 1) * 100) / 100]));
 const STAGE = Object.fromEntries(STAGES.map(s => [s.id, s]));
 const REGION = Object.fromEntries(REGIONS.map(r => [r.id, r]));
 const regionOf = s => REGION[s.region];
@@ -686,8 +763,12 @@ function dropRatePerWin() {
 }
 const pctText = x => (x < 0.01 ? '<1%' : Math.round(x * 100) + '%');
 /* A picture of a weapon (the item art), or nothing while the art loads or if the file is missing. */
-const itemIcon = (w, cls = '') => artIsReady()
-  ? `<img class="itemicon ${cls}" src="${assetSrc(`items/${w}.png`)}" alt="" onerror="this.remove()">` : '';
+/* A weapon without its own icon yet shows the icon of the older weapon it is modelled on (data-fb), tinted so the two are told apart. */
+const itemIcon = (w, cls = '') => {
+  if (!artIsReady()) return '';
+  const fb = WEAPONS[w] && WEAPONS[w].pose && WEAPONS[w].pose !== w ? WEAPONS[w].pose : '', hue = [...w].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 300, 0) + 30;
+  return `<img class="itemicon ${cls}" src="${assetSrc(`items/${w}.png`)}" alt="" ${fb ? `data-fb="${assetSrc(`items/${fb}.png`)}" data-hue="${hue}"` : ''} onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.style.filter='hue-rotate('+this.dataset.hue+'deg) saturate(1.2)';delete this.dataset.fb}else this.remove()">`;
+};
 
 function dropsHtml(s) {                         // folded by default
   if (!(s.drops || []).length) return '';
@@ -1843,11 +1924,11 @@ function hitEnemy(e, raw, i, pierce, critChance, wid) {          // wid: the wea
   const d = Math.max(1, Math.round(Math.max(raw * 0.25, raw - armor)));       // armor can take at most 3/4 of a hit
   e.hp -= d; e.flash = 0.15;
   const fam = wid && WEAPONS[wid] ? WEAPONS[wid].fam : 'sword';
-  if (wid === 'frostwand' && e.hp > 0) e.chill = 3;
+  if ((wid === 'frostwand' || (WEAPONS[wid] && WEAPONS[wid].chill)) && e.hp > 0) e.chill = 3;
   if (typeof fxOnHit === 'function') fxOnHit(e, wid || 'sword', crit);
   if (!B.mute) {                                                    // contact + material; a crit adds one accent on top and softens the contact by about 1.5 dB
     snd('wimpact', { w: wid || 'sword', m: monMat(e.type), g: crit ? 0.84 : 1 });
-    if (crit) snd('crit', fam === 'staff' ? 'magic' : HEAVY_WEAPONS.includes(wid) ? 'heavy' : 'light');
+    if (crit) snd('crit', fam === 'staff' ? 'magic' : HEAVY_WEAPONS.includes((WEAPONS[wid] && WEAPONS[wid].like) || wid) ? 'heavy' : 'light');
   }
   floater(e.x + (i || 0) * 8, e.y - unitTop(e.type, 56 * MON[e.type].scale) - 4, crit ? '-' + d + '!' : '-' + d, crit ? '#ffd24a' : '#fff', crit);
   if (e.hp <= 0) { if (!e.dead && window.ach) { ach.count('kills'); if (MON[e.type].boss) ach.count('bosses'); } e.hp = 0; e.dead = true; snd('mdie', { c: monCat(e.type), s: MON[e.type].scale }); }

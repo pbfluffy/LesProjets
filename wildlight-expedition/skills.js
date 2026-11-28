@@ -265,11 +265,13 @@
   };
 
   /* ------------------------------ effects of weapon hits ------------------------------ */
-  window.projKind = wid => ({ stormstaff: 'zap', frostwand: 'shard', heartwood: 'leaf', tome: 'fire', grimoire: 'fire' }[wid] || 'bolt');
-  window.projDur = wid => ({ stormstaff: 0.1, frostwand: 0.28, heartwood: 0.3, tome: 0.26, grimoire: 0.4 }[wid] || 0.25);
+  const likeW = wid => (typeof WEAPONS !== 'undefined' && WEAPONS[wid] && WEAPONS[wid].like) || wid;          // a newer weapon shows the effects of the older one it is modelled on
+  window.projKind = wid => ({ stormstaff: 'zap', frostwand: 'shard', heartwood: 'leaf', tome: 'fire', grimoire: 'fire' }[likeW(wid)] || 'bolt');
+  window.projDur = wid => ({ stormstaff: 0.1, frostwand: 0.28, heartwood: 0.3, tome: 0.26, grimoire: 0.4 }[likeW(wid)] || 0.25);
   window.fxOnHit = function (e, wid, crit) {
     if (!B) return;
     const p = centerOf(e), W = WEAPONS[wid] || WEAPONS.sword;
+    wid = likeW(wid);
     if (W.fam === 'sword') {
       if (wid === 'rapier') fx({ k: 'thrust', x: p.x, y: p.y, life: 0.18 });
       else if (wid === 'buckler') fx({ k: 'nova', x: p.x, y: p.y, r0: 4, r1: 22, c: '255,230,170', life: 0.22 });

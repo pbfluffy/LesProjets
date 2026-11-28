@@ -594,6 +594,10 @@
   let live = [];
 
   function play(name, arg) {
+    if (arg && typeof WEAPONS !== 'undefined') {                      // a newer weapon sounds like the older one it is modelled on (WEAPONS[w].like)
+      if (typeof arg === 'string') { const L = WEAPONS[arg] && WEAPONS[arg].like; if (L) arg = L; }
+      else if (arg.w && WEAPONS[arg.w] && WEAPONS[arg.w].like) arg = Object.assign({}, arg, { w: WEAPONS[arg.w].like });
+    }
     if (muted || !ctx || ctx.state !== 'running' || !SOUNDS[name]) return;
     const now = performance.now(), bus = busOf(name), pri = priOf(name), gap = GAP[name] || 25;
     if (last[name] && now - last[name] < gap) return;
