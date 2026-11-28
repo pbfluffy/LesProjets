@@ -96,6 +96,8 @@ jobs:
           cp montreal-autumn-2026.html _site/montreal-autumn-2026.html
           mkdir -p _site/backyard-rampage && cp -r backyard-rampage/. _site/backyard-rampage/
           mkdir -p _site/wildlight-expedition && cp -r wildlight-expedition/. _site/wildlight-expedition/
+          # The Steam store kit (briefs, store art, screenshots) is not part of the web game: keep it out of the site.
+          rm -rf _site/wildlight-expedition/steam
           # Static game, no build: stamp the commit into its ?v= links so Cloudflare/browsers fetch fresh JS/CSS after each deploy.
           sed -i "s/?v=dev/?v=${GITHUB_SHA::8}/g" _site/wildlight-expedition/index.html
           # …and into the installable app's service worker, so each deploy replaces the old offline cache.
