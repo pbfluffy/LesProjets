@@ -667,3 +667,34 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 #battle.cam .bt-btns{flex:none;display:flex;gap:6px}
 #battle.cam .battle-top .ghost{padding:7px 10px}
 .skill .sk-name.long{font-size:10px;letter-spacing:-.01em}
+
+/* ---- forge: filter chips, item tiles and the detail sheet ---- */
+.fchips{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
+.fchips::-webkit-scrollbar{display:none}
+.fchip{flex:none;display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid #5b6a52;background:#243229;color:#e9dfc2;font:700 13px system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.fchip small{color:#b9b39a;font-weight:600;font-size:11px}
+.fchip .dot{width:8px;height:8px;border-radius:50%;background:var(--hc,#c4ae72)}
+.fchip.on{background:#3d4f2f;border-color:#c4ae72;color:#fff3cf}
+.fchip.ready{border-color:#6cc37c;color:#d9ffe0}
+.ftiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ftile{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 5px;border-radius:14px;border:2px solid color-mix(in srgb,var(--g) 55%,#2c3a31);background:linear-gradient(180deg,#223029,#1b2822);color:#f1e6c6;font:inherit;cursor:pointer;min-width:0}
+.ftile:active{transform:scale(.97)}
+.ftile .ficon{width:64px;height:64px;display:grid;place-items:center;border-radius:12px;background:radial-gradient(circle at 50% 70%,color-mix(in srgb,var(--g) 30%,transparent),transparent 70%)}
+.ftile .ficon .itemicon{width:100%;height:100%;object-fit:contain}
+.ftile .fname{max-width:100%;font:700 12px/1.25 system-ui,sans-serif;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ftile .fmeta{display:flex;align-items:center;gap:4px;min-height:20px;font-size:11px;color:#b9b39a}
+.ftile .fcount{position:absolute;top:5px;right:5px;padding:1px 6px;border-radius:8px;background:#0e1713cc;border:1px solid #4d5b48;font:800 11px system-ui,sans-serif;font-style:normal;color:#f3e7c4}
+.ftile .fbadge{position:absolute;top:5px;left:5px;padding:1px 6px;border-radius:8px;background:#2e6a3f;border:1px solid #6cc37c;font:800 10px system-ui,sans-serif;font-style:normal;color:#eaffee}
+.ftile.ready{box-shadow:0 0 0 1px #6cc37c66,0 0 16px #6cc37c44}
+.ftile.locked{opacity:.55}
+.ftile.locked .ficon{filter:grayscale(1) brightness(.5);width:48px;height:48px}
+.fworn{color:#8ff0a4;font-style:normal;font-weight:800}
+body.sheet-open{overflow:hidden}
+.fsheet-wrap{position:fixed;inset:0;z-index:45;display:flex;align-items:flex-end;justify-content:center}
+.fsheet-back{position:absolute;inset:0;background:rgba(5,10,8,.74)}
+.fsheet{position:relative;width:100%;max-width:520px;max-height:88vh;max-height:88dvh;overflow:auto;padding:46px 12px calc(16px + env(safe-area-inset-bottom));border-radius:20px 20px 0 0;background:#1b2822;border:1px solid #5b6a52;box-shadow:0 -10px 30px #0009}
+.fsheet-x{position:absolute;top:8px;right:10px;width:36px;height:36px;border-radius:50%;border:1px solid #5b6a52;background:#243229;color:#f1e6c6;font:400 22px/1 system-ui,sans-serif;cursor:pointer}
+.fsheet .weaponcard{border:0;box-shadow:none;background:none;padding:0}
+.wearrow{margin-top:12px;padding-top:10px;border-top:1px solid #3a4a3f}
+.wearbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+@media(min-width:720px){.ftiles{grid-template-columns:repeat(auto-fill,minmax(124px,1fr))}.fsheet-wrap{align-items:center}.fsheet{border-radius:20px}}

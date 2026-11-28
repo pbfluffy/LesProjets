@@ -47,7 +47,7 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, telegr
   `partySize()` are the helpers. Saves from before hiring have no `party` and keep all three heroes (`hydrate()`); Reset game data starts a new solo game.
 - Fights and farming scale with the party size so a small party is not punished: `partyScale()` multiplies monster HP (0.55 / 0.8 / 1 / 1.7 for four heroes), `encounterFor(stage)` picks smaller packs
   (`waves` on the stage, used for 1 or 2 heroes), and `farmMult()` gathers 0.6x / 0.8x / 1x / 1.2x. Checked by simulation: the first two stages are winnable at every size and the boss is beatable at every size at its recommended level.
-- Party tab: party strip with slots, a card per hero (stats, level up, weapon family upgrade, folded "Change weapon"), then Recruit cards. Forge tab: weapons grouped by hero, merge-ready banner,
+- Party tab: party strip with slots, a card per hero (stats, level up, weapon family upgrade, folded "Change weapon"), then Recruit cards. Forge tab (see "Forge layout" below): item tiles grouped by hero, merge-ready banner,
   copy pips, Equip button; weapons the player has not found are dimmed with where they drop.
 
 ## Result screens
@@ -226,8 +226,13 @@ The sound engine follows the guide; the numbers are starting points to tune by e
 - Armor is drop-only like weapons: it sits in the stage `drops` tables (`ARMOR_DROPS` is added to each stage after `STAGES`; about a third of all drops: leather in the early areas, chain in the middle, plate late), uses the stage's `dropGrade`,
   and shares the weapon drop roll (`DROP.manual` is 13%, farming rolls it too). `itemInfo(id)` reads a weapon or an armor. Merging works in the Forge like weapons (3 copies of the same grade -> next grade; only copies nobody wears can be merged).
 - Save: `save.armors[armor][grade]` = copies owned (worn ones included), `save.heroes[id].armor` + `.armorG` = what a hero wears. A copy is worn by one hero at a time (`wearers`, `freeArmor`); `sanitizeArmor` repairs the save on load.
-  UI: each hero card shows an Armor row and a folded "Change armor" list (`armorPicker`, action `equiparmor` "hero:armor:grade"); the Forge has an Armor section (`armorCard`, with merge buttons and where it drops).
+  UI: each hero card shows an Armor row and a folded "Change armor" list (`armorPicker`, action `equiparmor` "hero:armor:grade"); the Forge has an Armor group (`armorCard`, with merge buttons and where it drops) and its sheet has a "Put on" row with a button per hired hero (the best free copy).
 - Looks: armor is a transparent layer drawn over the hero picture with the SAME canvas (`assets/armor/<hero>-<armor>-<idle|attack>.webp`, 3 armors x 2 poses per hero, made for the hero's first weapon and reused over their other weapons).
   `sprites.js drawHeroSprite` draws the layer placed like the base picture (hit flash included); `o.armor` is passed by the battle, the hero cards and the portraits. Item icons: `assets/items/garb|leatherarmor|chainmail|platearmor.png`.
   Art briefs: `codex-art-brief-v11-outfits.md` (base outfits + icons), `codex-art-brief-v12-armor-layers.md` (layers).
 - Balance (stepped simulation, 4 heroes at `rec`): armor of the area's tier raises the health left after a win by about 10 points and lets a party survive a few levels under `rec`, but does not raise damage, so fights still last as long.
+
+## Forge layout
+- The Forge is a grid of small tiles, not a list of cards (it was ~6,800 px tall on a phone, now ~2,400): `forgeItems()` lists every weapon (grouped by the hero who wields the family) and armor with its owned count, best grade, merge-ready flag and in-use flag; `forgeTile(it)` draws one (icon, name, best grade, `×n`, a green "Merge" badge when 3 copies of a grade can merge, ✓ when a hero uses it, dimmed "Not found" when missing).
+- Filter chips on top (`uiForge.filter`, not saved): Ready (only when something can merge), All, Armor, and one per hero with owned/total counts. Inside a group the order is ready to merge, then owned, then missing.
+- Tapping a tile opens `forgeSheet(id)`: a bottom sheet (a centred dialog from 720 px) with the full card (`weaponCard` / `armorCard`: grades, merge buttons, equip, where it drops) and, for armor, the "Put on" row (`armorWearRow`). Actions `forgeopen`, `forgeclose`, `forgefilter`; Esc closes; `body.sheet-open` stops the page scrolling behind it. Merging or equipping re-renders the Forge with the sheet still open.
