@@ -23,7 +23,7 @@ const HERO = {
   milo: { hire: 0, name: 'Milo Dunn', role: 'Villager · Beginner', family: 'tool', start: 'pitchfork', row: 'front', hp: 70, atk: 5.5,
           blurb: 'A farmhand with a pitchfork and a lot of heart. Not strong yet, but he grows with every level.' },
   bren: { hire: 200, name: 'Bren Alder', role: 'Guardian · Front line', family: 'sword', start: 'sword', row: 'front', tank: true, hp: 120, atk: 8,
-          blurb: 'Stands in front and takes most melee hits. Braces low when the party barrier goes up.' },
+          blurb: 'Stands in front and takes most melee hits.' },
   tavi: { hire: 500, name: 'Tavi Reed', role: 'Archer · Ranged damage', family: 'bow', start: 'bow', row: 'back', draws: true, hp: 70, atk: 7,
           blurb: 'Fires from behind the front line. A quick backward lean before each shot.' },
   iona: { hire: 1200, name: 'Iona Moss', role: 'Herbalist · Healing', family: 'staff', start: 'staff', row: 'back', hp: 70, atk: 4,
@@ -151,7 +151,7 @@ const REGIONS = [
 ];
 
 /* Stage power = monster HP and damage multipliers (armor scales with damage); rec = the hero level the area is balanced for
-   (a party with that level, a weapon grade that fits the region, and good barrier timing wins comfortably). */
+   (a party with that level, a weapon grade that fits the region, and its skills win comfortably). */
 const STAGES = [
   { id: 'path', name: 'Pinewood Path', region: 'vale', req: null, enemies: ['brushfang', 'brushfang', 'hornet', 'hornet'],
     waves: { 1: ['brushfang', 'brushfang'], 2: ['brushfang', 'brushfang', 'brushfang'] },      // fewer monsters for a party of 1 or 2
@@ -236,7 +236,7 @@ const MERGE_N = 3;
    autoPerHour: chance per hour of farming, rolled when you claim. */
 const DROP = { manual: 0.10, pity: 0.15, autoPerHour: 0.06 };
 
-const BAR_DUR = 1.6, BAR_CD = 8;
+const CHARGE_SOFT = 0.15;                              // a boss charge hits the whole party for this share of its damage (no barrier any more; simulated: the Bog King is beaten at the recommended level with about 75% health left)
 const FARM_CAP_MIN = 24 * 60;
 
 /* ---------------------------- save ---------------------------------- */
@@ -1059,7 +1059,6 @@ const actions = {
   signout() { if (window.cloud) cloud.signOut(); },
   keepcloud() { if (window.cloud) cloud.choose('cloud'); },
   keepdevice() { if (window.cloud) cloud.choose('device'); },
-  barrier() { raiseBarrier(); },
   skill(id) { if (typeof castSkill === 'function' && !castSkill(id)) snd('nope'); },
   autoskill() { if (typeof setAutoSkill === 'function') { setAutoSkill(!autoSkillOn()); snd('toggle'); } },
   retreat() {
@@ -1069,7 +1068,7 @@ const actions = {
     endBattle('retreat');
   },
 };
-const OWN_SOUND = new Set(['skill', 'autoskill', 'tab', 'region', 'barrier', 'retreat', 'lvl', 'up', 'hire', 'equip', 'merge', 'claim', 'farm', 'fight', 'bonus', 'repeat', 'sound',
+const OWN_SOUND = new Set(['skill', 'autoskill', 'tab', 'region', 'retreat', 'lvl', 'up', 'hire', 'equip', 'merge', 'claim', 'farm', 'fight', 'bonus', 'repeat', 'sound',
   '__again', '__repeat', '__close', 'pwainstall']);          // these play a sound of their own (or the game does it for them)
 document.addEventListener('click', e => {
   if (e.target.closest && e.target.closest('summary')) snd('tick');                  // folding a list open or closed
@@ -1079,7 +1078,6 @@ document.addEventListener('click', e => {
   actions[b.dataset.act](b.dataset.arg);
 });
 document.addEventListener('keydown', e => {
-  if (e.code === 'Space' && B) { e.preventDefault(); raiseBarrier(); }
   if (e.key === 'r' && B && !e.ctrlKey && !e.metaKey && !e.altKey) actions.repeat();
   if (B && /^[1-8]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey && typeof castSkillSlot === 'function') castSkillSlot(Number(e.key) - 1);
   if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName || '')) { const off = window.sfx && window.sfx.toggleMute(); toast(off ? 'Sound off' : 'Sound on'); }
@@ -1130,8 +1128,8 @@ const cv = $('#stage'), ctx = cv.getContext('2d');
 const CAM_W = 340, CAM_BOTTOM = 272, CAM_SCALE = 3.6;
 function makeCam() {
   const iw = window.innerWidth, ih = window.innerHeight;
-  if (iw >= 720 || ih < iw * 1.2) return null;
-  const sw = Math.min(480, iw - 20), avail = ih - 345, ratio = Math.max(0.86, Math.min(1.25, avail / sw)), h = Math.round(CAM_W * ratio);
+  if (!iw || !ih || iw >= 720 || ih < iw * 1.2) return null;
+  const sw = Math.min(480, iw - 20), avail = ih - 330, ratio = Math.max(0.86, Math.min(1.35, avail / sw)), h = Math.round(CAM_W * ratio);
   return { x: 0, y: CAM_BOTTOM - h, w: CAM_W, h };
 }
 const camPt = (x, y, foe) => [foe ? 205 + (x - 250) * 0.8 : 52 + (x - 58), 208 + (y - 195) * 1.8];      // heroes keep their spacing, monsters are packed a little closer
@@ -1141,12 +1139,11 @@ function camSet(c) {
   if (m) { const k = cv.width / m.w; c.setTransform(k, 0, 0, k, -m.x * k, -m.y * k); }
   else c.setTransform(cv.width / 400, 0, 0, cv.height / 260, 0, 0);
 }
-const barPos = () => (B && B.cam ? camPt(95, 168) : [95, 168]);               // where the barrier stands (round the heroes)
 
 function startBattle(spec) {
   const cam = makeCam(), mp = p => (cam ? camPt(p[0], p[1]) : p), mpf = p => (cam ? camPt(p[0], p[1], true) : p);
   const slots = (LAYOUT[spec.enemies.length] || LAYOUT[4]).map(mpf);
-  B = { spec, cam, t: 0, over: false, result: null, endT: 0, heroes: [], enemies: [], fx: [], later: [], bar: { t: 0, cd: 0 }, last: 0, raf: 0 };
+  B = { spec, cam, t: 0, over: false, result: null, endT: 0, heroes: [], enemies: [], fx: [], later: [], last: 0, raf: 0 };
   party().forEach((id, i, all) => {
     const st = heroStats(id), spot = mp(all.length === 1 ? [108, 184] : SLOTS[i]);
     B.heroes.push({ id, hp: st.maxHp, maxHp: st.maxHp, cd: 0.4 + Math.random() * 0.4, draw: 0, swing: 0, heal: 2.5, dead: false, hit: 0, x: spot[0], y: spot[1] });
@@ -1175,14 +1172,6 @@ function startBattle(spec) {
   B.raf = requestAnimationFrame(loop);
 }
 
-function raiseBarrier() {
-  if (!B || B.over || B.bar.t > 0 || B.bar.cd > 0) return;
-  B.bar.t = BAR_DUR; B.bar.cd = BAR_CD;
-  snd('barrier');
-  const bp = barPos();
-  B.fx.push({ k: 'ring', x: bp[0], y: bp[1] + 10, t: 0, life: 0.5, c: '#7cc8ff' });
-}
-
 function loop(ts) {
   if (!B) return;
   const dt = Math.min(0.05, ((ts - B.last) / 1000) || 0);
@@ -1197,7 +1186,7 @@ function loop(ts) {
   } else fxStep(dt);
   if (B.over && B.t > B.endT && $('#result').hidden) showResult();
   draw();
-  barrierUi();
+  warnUi();
   if (typeof skillsUi === 'function') skillsUi();
   B.raf = requestAnimationFrame(loop);
 }
@@ -1207,8 +1196,6 @@ const aliveE = () => B.enemies.filter(e => !e.dead);
 const heroById = id => B.heroes.find(h => h.id === id);
 
 function step(dt) {
-  if (B.bar.t > 0) B.bar.t = Math.max(0, B.bar.t - dt);
-  if (B.bar.cd > 0) B.bar.cd = Math.max(0, B.bar.cd - dt);
   if (typeof skillsStep === 'function') skillsStep(dt);                  // skill cooldowns, auto-casting (skills.js)
 
   for (const h of B.heroes) {
@@ -1326,7 +1313,7 @@ function hitEnemy(e, raw, i, pierce, critChance, wid) {          // wid: the wea
 function startWind(e, kind) {
   const d = MON[e.type];
   e.state = 'wind'; e.kind = kind; e.wt = 0;
-  if (kind === 'charge') snd('warn');                                  // the boss is about to charge: raise the barrier
+  if (kind === 'charge') snd('warn');                                  // the boss is about to charge
   else if (d.tgt === 'front') snd('mwind', { c: monCat(e.type), s: d.scale });          // a melee monster winds up in its own way (snarl, buzz, croak, grinding stone...)
   e.wd = kind === 'charge' ? d.charge.wind : d.wind;
 }
@@ -1335,7 +1322,6 @@ function frontHero() { return aliveH()[0]; }
 
 function hurt(h, dmg, crit) {
   if (h.dead) return;
-  if (B.bar.t > 0) { floater(h.x, h.y - unitTop(h.id, 70) - 4, 'Blocked', '#7cc8ff'); snd('block'); return; }
   const sh = (WEAPONS[save.heroes[h.id].weapon] || {}).shield || 0;          // Sword & shield
   const d = Math.round(dmg * (1 - sh) * (h.guard > 0 ? 0.6 : 1));          // Iron Guard: 40% less damage
   h.hp -= d; h.hit = 0.25;
@@ -1348,7 +1334,7 @@ function hurt(h, dmg, crit) {
 /* A normal monster hit: it may crit (the boss charge below never does). */
 function monHit(t, e, d) {
   const crit = Math.random() < (d.crit || 0);
-  if (B.bar.t <= 0) snd('mhit', { c: monCat(e.type), s: d.scale });                 // the strike itself, in the monster's own way (the hero's reaction follows in hurt())
+  snd('mhit', { c: monCat(e.type), s: d.scale });                 // the strike itself, in the monster's own way (the hero's reaction follows in hurt())
   hurt(t, d.dmg * e.dmgMult * (crit ? CRIT.mon : 1), crit);
 }
 
@@ -1359,8 +1345,7 @@ function strike(e) {
   if (kind === 'charge') {
     e.lungeDur = 0.55; e.lunge = 0.55; e.lungeDist = e.x - 150;
     later(0.2, () => {
-      if (B.bar.t > 0) { snd('block'); const bp = barPos(); floater(bp[0], bp[1] - 58, 'Blocked!', '#7cc8ff'); B.fx.push({ k: 'ring', x: bp[0], y: bp[1] + 10, t: 0, life: 0.5, c: '#7cc8ff' }); }
-      else { snd('mhit', { c: monCat(e.type), s: d.scale * 1.4 }); for (const h of aliveH()) hurt(h, d.charge.dmg * e.dmgMult); }
+      snd('mhit', { c: monCat(e.type), s: d.scale * 1.4 }); for (const h of aliveH()) hurt(h, d.charge.dmg * e.dmgMult * CHARGE_SOFT);
     });
     e.chargeT = d.charge.every;
     e.cd = Math.max(d.cd, 1.6);
@@ -1575,14 +1560,14 @@ function winHtml(r) {
 }
 function defeatTips() {
   const tips = [];
-  if (B.spec.enemies.includes('boar')) tips.push({ t: 'The Thornback Boar scrapes the ground before it charges. Raise the barrier the moment you see the warning.' });
+  if (B.spec.enemies.includes('boar')) tips.push({ t: 'The Thornback Boar scrapes the ground before it charges the whole party. Heal up, or use Iron Guard or Bulwark when you see the warning.' });
   const unhired = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0];
   const lvlId = party().find(id => save.gold >= lvlCost(save.heroes[id].lvl));
   const mergeReady = Object.keys(WEAPONS).some(w => save.items[w].some((n, g) => g < GRADES.length - 1 && n >= MERGE_N));
   if (unhired && save.gold >= HERO[unhired].hire) tips.push({ t: `You have enough gold to hire ${HERO[unhired].name}. A bigger party hits harder.`, btn: ['Open Party', '__party'] });
   else if (lvlId) tips.push({ t: `You can afford to level up ${HERO[lvlId].name}.`, btn: ['Open Party', '__party'] });
   else if (mergeReady) tips.push({ t: 'Some of your weapons can be merged into a stronger grade.', btn: ['Open Forge', '__forge'] });
-  if (!tips.length) tips.push({ t: 'Heroes recover fully in the village. Raise the barrier sooner, or farm some gold and level up.' });
+  if (!tips.length) tips.push({ t: 'Heroes recover fully in the village. Use your skills sooner, or farm some gold and level up.' });
   return tips.slice(0, 2);
 }
 function loseHtml() {
@@ -1669,21 +1654,12 @@ function closeBattle() {
   render();
 }
 
-function barrierUi() {
-  const btn = $('#barrier'), fill = $('#barrier-fill'), lab = $('#barrier-label');
-  const w = $('#warn');
-  if (B.bar.t > 0) {
-    btn.classList.remove('cool'); fill.style.transform = `scaleX(${B.bar.t / BAR_DUR})`; lab.textContent = 'Barrier up!';
-  } else if (B.bar.cd > 0) {
-    btn.classList.add('cool'); fill.style.transform = `scaleX(${1 - B.bar.cd / BAR_CD})`; lab.textContent = `Recharging ${B.bar.cd.toFixed(1)}s`;
-  } else {
-    btn.classList.remove('cool'); fill.style.transform = 'scaleX(1)'; lab.textContent = 'Raise barrier';
-  }
-  const warn = B.enemies.some(e => !e.dead && e.state === 'wind' && e.kind === 'charge');
-  w.textContent = warn ? '⚠ The boar is scraping the ground – raise the barrier!' : '';
-  w.classList.toggle('on', warn);
+/* the warning line above the skills while a boss is winding up its charge */
+function warnUi() {
+  const w = $('#warn'), boss = B.enemies.find(e => !e.dead && e.state === 'wind' && e.kind === 'charge');
+  w.textContent = boss ? `⚠ ${MON[boss.type].name} is about to charge!` : '';
+  w.classList.toggle('on', !!boss);
 }
-cv.addEventListener('pointerdown', () => { if (B) raiseBarrier(); });
 
 /* ===================================================================
    DRAWING
@@ -1701,7 +1677,7 @@ function drawBar(c, x, y, w, frac, col) {
 /* Height of a unit above its feet, so bars and numbers clear the head (sprites.js taller than the vector art). */
 const unitTop = (id, fallback) => (typeof spriteHeight === 'function' && spriteHeight(id)) || fallback;
 
-/* Health bars, effects and the barrier use art.js hooks when present; the plain versions below are fallbacks. */
+/* Health bars and effects use art.js hooks when present; the plain versions below are fallbacks. */
 function hpBar(c, x, y, w, frac, kind) {
   if (typeof drawHpBar === 'function') drawHpBar(c, x, y, w, frac, kind);
   else drawBar(c, x, y, w, frac, kind === 'enemy' ? '#e0624a' : '#6cc37c');
@@ -1717,8 +1693,7 @@ function draw() {
   const items = [];
   for (const h of B.heroes) items.push({ y: h.y, f: () => {
     const w = save.heroes[h.id].weapon;
-    drawHero(c, h.id, h.x, h.y, { weapon: w, t: B.t, swing: h.swing, lean: h.draw > 0 ? 1 - h.draw / 0.25 : 0, dead: h.dead, hit: h.hit,
-      brace: !!HERO[h.id].tank && B.bar.t > 0 });
+    drawHero(c, h.id, h.x, h.y, { weapon: w, t: B.t, swing: h.swing, lean: h.draw > 0 ? 1 - h.draw / 0.25 : 0, dead: h.dead, hit: h.hit, });
     if (!h.dead) hpBar(c, h.x, h.y - unitTop(h.id, 70) - 8, 34, h.hp / h.maxHp, 'hero');
   } });
   for (const e of B.enemies) items.push({ y: e.y, f: () => {
@@ -1751,16 +1726,6 @@ function draw() {
     }
   } });
   items.sort((a, b) => a.y - b.y).forEach(i => i.f());
-
-  if (B.bar.t > 0 && typeof drawBarrier === 'function') {
-    drawBarrier(c, B.t, B.bar.t / BAR_DUR);
-  } else if (B.bar.t > 0) {
-    const f = B.bar.t / BAR_DUR, p = 0.5 + 0.5 * Math.sin(B.t * 14);
-    const g = c.createRadialGradient(95, 170, 20, 95, 170, 105);
-    g.addColorStop(0, 'rgba(124,200,255,0)'); g.addColorStop(1, `rgba(124,200,255,${0.2 + 0.15 * p})`);
-    c.fillStyle = g; ell(c, 95, 168, 100 * (0.9 + 0.1 * f), 82); c.fill();
-    c.strokeStyle = `rgba(160,220,255,${0.6 + 0.3 * p})`; c.lineWidth = 3; ell(c, 95, 168, 100 * (0.9 + 0.1 * f), 82); c.stroke();
-  }
 
   for (const f of B.fx) {
     if (typeof drawMagicFx === 'function' && drawMagicFx(c, f)) continue;     // skills.js: slash arcs, lightning, ice, leaves, novas...

@@ -1,5 +1,5 @@
 /* Wildlight Expedition – hero skills and the magic / weapon effects of a fight.
- * Each hero has two skills (the first at hero level 3, the second at level 10) with a cooldown. In a fight they sit in a row of buttons above the barrier
+ * Each hero has two skills (the first at hero level 3, the second at level 10) with a cooldown. In a fight they sit in a grid of buttons under the battle scene
  * (keys 1-8); with "Auto" on they are cast by themselves when they would help, which is what a Repeat run uses.
  * Also here: the drawn effects (slash arcs, lightning, ice shards, leaves, novas...) for weapon hits and spells. Loaded before game.js; everything it needs from
  * the game (B, save, hitEnemy, ...) is only used when a function is called, so the load order does not matter. */
@@ -24,6 +24,9 @@
     ironpalm: { hero: 'tobin', name: 'Iron Palm', lvl: 3, cd: 12, mult: 2.6, desc: 'A crushing palm: 260% damage to one monster, and it is stunned for 2 seconds.' },
     innerpeace: { hero: 'tobin', name: 'Inner Peace', lvl: 10, cd: 26, desc: 'Tobin and his friends recover 30% of their health.' },
   };
+  /* the short line on a button: what the skill does */
+  const TAG = { whirlwind: 'Hits all', ironguard: 'Defend', arrowrain: 'Hits all', snipe: 'Big hit', bloom: 'Heals all', storm: 'Hits all', hardswing: 'Big hit', rally: 'Faster', backstab: 'Weakest foe',
+    smoke: 'Stuns all', fireball: 'Fire', meteor: 'Hits all', lance: 'Hits all', bulwark: 'Defend all', ironpalm: 'Stun', innerpeace: 'Heals all' };
   const ICON = {
     whirlwind: '<path d="M12 4a8 8 0 0 1 8 8M12 20a8 8 0 0 1-8-8M8 5.2 4.5 5 5.4 8.4M16 18.8l3.5.2-.9-3.4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/>',
     ironguard: '<path d="M12 3l7 3v6c0 4.4-3 7.4-7 9-4-1.6-7-4.6-7-9V6z" fill="currentColor"/><path d="M12 7v10M8 11h8" stroke="#1a2a22" stroke-width="1.8" stroke-linecap="round"/>',
@@ -208,7 +211,7 @@
     if (!bar) return;
     const col = typeof HERO_ACCENT !== 'undefined' ? HERO_ACCENT : {};
     bar.innerHTML = slots().map((id, i) => `<button class="skill" data-act="skill" data-arg="${id}" data-id="${id}" style="--hc:${col[SKILLS[id].hero]}" title="${SKILLS[id].name}: ${SKILLS[id].desc}" aria-label="${SKILLS[id].name}">
-      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">${ICON[id]}</svg><i class="cd"></i><small>${i + 1}</small><em class="lv">Lv ${SKILLS[id].lvl}</em></button>`).join('');
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">${ICON[id]}</svg><b class="sk-name${SKILLS[id].name.length > 12 ? ' long' : ''}">${SKILLS[id].name}</b><span class="sk-st"></span><i class="cd"></i><small>${i + 1}</small></button>`).join('');
     bar.hidden = !bar.children.length || !B.spec.repeatable;
   }
   window.clearSkillBar = () => { const bar = document.getElementById('skills'); if (bar) { bar.innerHTML = ''; bar.hidden = true; } };
@@ -220,6 +223,10 @@
       b.classList.toggle('locked', !ok); b.classList.toggle('dead', ok && dead);
       b.classList.toggle('ready', ok && !dead && cd <= 0 && !B.over);
       b.style.setProperty('--cd', ok ? (cd / S.cd).toFixed(3) : '1');
+      const cool = ok && !dead && cd > 0;
+      b.classList.toggle('cooling', cool);
+      const st = !ok ? 'Unlocks Lv ' + S.lvl : dead ? 'Fallen' : cool ? Math.ceil(cd) + 's' : TAG[id];
+      if (b.lastSt !== st) { b.lastSt = st; b.querySelector('.sk-st').textContent = st; }
     }
   };
   function paintAuto() {
@@ -238,7 +245,7 @@
     return `<details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Skills</span><em>${ids.filter(id => lv >= SKILLS[id].lvl).length} of ${ids.length}</em></summary>
       <div class="skilllist">${ids.map(id => { const S = SKILLS[id], on = lv >= S.lvl;
         return `<div class="skillrow ${on ? '' : 'off'}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">${ICON[id]}</svg><div><b>${S.name}</b>${on ? '' : `<span class="tag lock">Level ${S.lvl}</span>`}<p>${S.desc} Ready again after ${S.cd} seconds.</p></div></div>`; }).join('')}</div>
-      <p class="fine">In a fight your skills sit above the barrier button (keys 1 to 8). "Auto" casts them for you.</p></details>`;
+      <p class="fine">In a fight your skills sit under the scene (keys 1 to 8): each button shows the skill name, what it does and when it is ready. "Auto" casts them for you.</p></details>`;
   };
 
   /* ------------------------------ effects of weapon hits ------------------------------ */

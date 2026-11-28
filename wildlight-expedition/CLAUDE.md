@@ -1,6 +1,6 @@
 # Wildlight Expedition
 
-Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrier-timed boss, 24 h offline farming).
+Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, telegraphed boss charges, 24 h offline farming).
 **Static JS, no build step**: `index.html`, `style.css`, `game.js` (data, save, farming, battle sim, UI), `art.js`
 (canvas art: `drawHero`, `drawMon`, `drawSword`, `drawBackground`; loaded before `game.js`, helpers prefixed `art`).
 
@@ -46,7 +46,7 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - A new game starts with ONE hero: Milo Dunn, an ordinary villager with a pitchfork (weak on purpose). The other seven are hired with gold in the Party tab (`HERO[id].hire`, see "Roster and camp" below). `save.hired` lists the hired heroes and `save.party` the (up to four) who fight; `party()` / `inParty()` /
   `partySize()` are the helpers. Saves from before hiring have no `party` and keep all three heroes (`hydrate()`); Reset game data starts a new solo game.
 - Fights and farming scale with the party size so a small party is not punished: `partyScale()` multiplies monster HP (0.55 / 0.8 / 1 / 1.7 for four heroes), `encounterFor(stage)` picks smaller packs
-  (`waves` on the stage, used for 1 or 2 heroes), and `farmMult()` gathers 0.6x / 0.8x / 1x / 1.2x. Checked by simulation: the first two stages are winnable at every size and the boss needs the barrier at every size.
+  (`waves` on the stage, used for 1 or 2 heroes), and `farmMult()` gathers 0.6x / 0.8x / 1x / 1.2x. Checked by simulation: the first two stages are winnable at every size and the boss is beatable at every size at its recommended level.
 - Party tab: party strip with slots, a card per hero (stats, level up, weapon family upgrade, folded "Change weapon"), then Recruit cards. Forge tab: weapons grouped by hero, merge-ready banner,
   copy pips, Equip button; weapons the player has not found are dimmed with where they drop.
 
@@ -66,7 +66,7 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
   map (`assets/map/`), its own watchtower (lit by the region's boss) and unlocks when the previous region's boss is cleared. The home screen shows one region at a time: chips switch regions, the Roads list is grouped per region (folded `<details class="region">`).
 - The block between `const MON = {` and `const LAYOUT = {` (monsters, regions, stages) was generated from a table; edit it by hand or regenerate, but keep the shape (`stage.power = {hp, dmg, arm}`, `rec`, `first`, `drops`, `dropGrade`, `farm`, `bg`).
 - Difficulty: monster HP x `power.hp` x `partyScale()`, damage x `power.dmg`, armor x `power.arm` (a hit is never below 25% of raw). `rec` is the recommended party level; the stage card shows it next to the party's level (`recBadge`).
-  Balanced by simulation: a regular area leaves about 60% party HP at `rec`, bosses are about 60 s fights; 2+ levels under `rec` usually loses. Bosses use `charge` telegraphs that the barrier answers.
+  Balanced by simulation: a regular area leaves about 60% party HP at `rec`, bosses are about 60 s fights; 2+ levels under `rec` usually loses. Bosses use `charge` telegraphs (a warning line and a red lane); the charge hits the whole party for `CHARGE_SOFT` (15%) of its damage. There is no barrier any more (removed on request): it was a button that blocked the charge. Simulated with the party at `rec`: the Bog King is won with about 75% health left, one level under `rec` it often loses.
 - Weapon drops get better with the region (`dropGrade`: see `STAGES`), so merging copies stays useful.
 - Art loads per region and lazily: `window.ensureRegion(id)` in `sprites.js` fetches that region's monsters, backgrounds and map; `regionArt[id]` is idle / loading / ready, and screens show `Loading the area…` until it is ready.
   Monster files can be `.webp` (`ext` in `assets/meta.json`, alongside the alignment data `frameW/frameH/feetX/feetY/figureH`); the figure's on-screen height comes from the `HEIGHT` table in `sprites.js`.
@@ -80,9 +80,9 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 ## Screen sizes (phone, tablet, PC)
 - The phone layout is the base; everything else is `@media` at the end of `style.css`. Map / Party / Forge markup is grouped for it: `.vgrid > .vcol > .vg.oN` (Map) and `.cgrid` (card lists). On a phone those wrappers are `display:contents`
   (and `.vg.oN` keep the phone order with `order`), so the phone layout is unchanged.
-- 720px and up (tablet): the column grows to 720px, card lists become 2 columns, the battle arena grows (`--bw`, limited by the window height so the barrier stays on screen).
+- 720px and up (tablet): the column grows to 720px, card lists become 2 columns, the battle arena grows (`--bw`, limited by the window height so the skills stay on screen).
 - 1000px and up (PC): the tab bar moves into the header (centered), the Map becomes two columns (map, chips and Next up on the left; farm strip, daily hunt, install card and Roads on the right), card lists use 3 columns.
-- Mouse devices (`hover:hover` and `pointer:fine`): hover feedback on buttons/cards and the keyboard hint in battle. Keys: Space = barrier, Esc = retreat (or close a dialog), 1 / 2 / 3 = Map / Party / Forge.
+- Mouse devices (`hover:hover` and `pointer:fine`): hover feedback on buttons/cards and the keyboard hint in battle. Keys: 1-8 = skills, Esc = retreat (or close a dialog), 1 / 2 / 3 = Map / Party / Forge.
 - Check changes at 320, 375, 768, 1000 and 1280 px wide.
 
 ## Repeat fights and the farm log
@@ -122,7 +122,7 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - Start of every fight: fade in from black, a "Fight!" banner (in a repeat run "Fight N" + the stage name), the heroes walk in from the left and the monsters from the right for `INTRO` = 0.85 s while nobody attacks
   (`step()` is skipped until `B.t >= B.intro`; the sims call `step()` directly so they are not affected).
 - End of a fight: a "VICTORY!" banner with the 1-3 stars and a spark burst (or "Defeated"). In a repeat run the win then shows reward chips (gold, lumber, a new weapon with its picture), fades to black at ~1 s and the next fight
-  starts at ~1.4 s. Normal results (first clear, defeat, Repeat off) clear the overlay and show the result screen as before. `.arena` has the same width rules as the barrier (`--bw` on tablet / PC).
+  starts at ~1.4 s. Normal results (first clear, defeat, Repeat off) clear the overlay and show the result screen as before. `.arena` and the skill grid share the width rule `--bw` on tablet / PC.
 
 ## Why an installed copy might not update (and what is done about it)
 - An open copy that is "busy" never reloads. Busy = in a fight. Between two fights of a Repeat run and a result screen that has been open 45 s are safe moments (`busy()` in `pwa.js`): everything won is already paid and saved.
@@ -138,7 +138,7 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 - `sfx.js` synthesises every sound with the Web Audio API (oscillators + filtered noise through a compressor): no audio files, works offline, ~31 sounds (`SOUNDS` table). `snd('name')` in `game.js` plays one and never throws;
   nothing plays until the first tap or key press (browser autoplay rule), and the engine is suspended while the tab is hidden. Fast bursts are throttled per sound (`GAP`).
 - Hooks: UI (every button taps unless its action has its own sound: `OWN_SOUND`), tabs, hire, level up, weapon upgrade, equip, merge (anvil), farm, claim / reward chips (coins), weapon drop, folding lists (tick),
-  fights (horn at the start, slash / arrow / bolt, hit, crit, monster death pop, hurt, hurt crit, barrier, block, heal, boss-charge warning), results (victory fanfare + a ding per star, defeat, first-clear / watchtower fanfare).
+  fights (horn at the start, slash / arrow / bolt, hit, crit, monster death pop, hurt, hurt crit, heal, boss-charge warning), results (victory fanfare + a ding per star, defeat, first-clear / watchtower fanfare).
 - The header speaker button (`#sound-btn`, key `M`) mutes everything; the choice is kept in `localStorage` `wl-sound`. `sfx.level()` returns the current loudness (used to test that a sound really plays).
 - Add a sound: a function in `SOUNDS` (`tone()` / `noise()` / `notes()` helpers), then `snd('name')` where it happens.
 
@@ -164,7 +164,7 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, barrie
 ## Hero skills and magic effects
 - `skills.js` (loaded before `game.js`; it only touches game globals inside functions): 16 skills, two per hero, the first unlocked at hero level 3 and the second at level 10 (`SKILLS`): Whirlwind (Bren, hits every monster),
   Iron Guard (Bren, -40% damage for 6 s + a little health), Arrow Rain (Tavi, 6 arrows), Piercing Shot (Tavi, one huge always-critical arrow that ignores armor), Radiant Bloom (Iona, heals everyone), Storm Call (Iona, lightning on every monster).
-  Each has a cooldown and a `mult` (power); cooldowns start at 30% when a fight starts. In a stage fight they sit in a button row above the barrier (keys 1-8; `#skills`), and "Auto" (header button, `wl-autoskill`, default on) casts them when
+  Each has a cooldown and a `mult` (power); cooldowns start at 30% when a fight starts. In a stage fight they sit in a 4-column grid of buttons under the scene (keys 1-8; `#skills`): each button shows the skill name, a one-line effect (`TAG` in `skills.js`: Hits all, Big hit, Heals all, Stuns all...), then the cooldown in seconds, 'Unlocks Lv N' or 'Fallen'; a ready skill glows in its hero's colour, and "Auto" (header button, `wl-autoskill`, default on) casts them when
   `wants()` says it would help, which is what Repeat runs rely on. Skill hits use `hitEnemy` (so crits, armor and sounds work); AoE secondary hits are muted (`B.mute`) so one burst sounds, not ten. Do not call `later()` from inside a `later()` callback (the list is rebuilt after each pass).
 - **Balance**: skills make heroes faster and safer, so stage monsters have more HP (`skillHp(rec)`: x1.4 from recommended level 3, x1.65 from 10; early areas below level 3 are unchanged). By simulation, fight lengths match the old ones (e.g. Quarry 35 s -> 36 s) and the party ends with 5-20 points more HP left. Re-run the stage simulations if skill power changes.
 - **Effects** (`drawMagicFx`, called before the art.js effects in `draw()`): slash arcs per blade (thin arc for saber, big for greatsword, a thrust line for the rapier, a ring for the shield bash), lightning jags for the storm staff (instant arc + chained zaps), ice shards that chill the monster
@@ -193,7 +193,7 @@ The sound engine follows the guide; the numbers are starting points to tune by e
 ## Roster and camp (8 heroes)
 - `HERO` in `game.js`: Milo Dunn (starter, free; pitchfork / wood axe / club = `tool` family), Bren (200; sword), Tavi (500; bow), Iona (1,200; staff), Rook (3,000; rogue, `dagger`: dagger / twin daggers),
   Elric Vane (8,000; mage, `tome`: apprentice tome / grimoire, ranged), Maren Ashe (20,000; lancer, `spear`: spear / halberd), Brother Tobin (50,000; monk, `fist`: hand wraps / iron gauntlets).
-  Each has `row` ('front' / 'back'), `tank` (braces behind the barrier), `draws` (Tavi leans back before a shot), `start` (the basic weapon that comes with the hero) and `family`. A hero wields only weapons of their family.
+  Each has `row` ('front' / 'back'), `tank` (takes the monsters' melee hits first), `draws` (Tavi leans back before a shot), `start` (the basic weapon that comes with the hero) and `family`. A hero wields only weapons of their family.
 - `save.hired` = everyone you own, `save.party` = who fights (`MAX_PARTY` = 4, `party()` sorts front row first, the first hero takes the monsters' melee hits, back-row heroes are the ranged targets).
   Hiring puts a hero in the party when there is room, otherwise in camp. Camp heroes rest ("Rest in camp" / "Join the party" on their card), keep their level and weapon and can be levelled; only party heroes
   count for `farmMult()`, skills and fights. Saves from before the roster: the old `party` list becomes `hired`. `SLOTS` are the battle positions for 1-4 heroes.
@@ -212,7 +212,7 @@ The sound engine follows the guide; the numbers are starting points to tune by e
 
 ## Phone battle view (portrait)
 - On a phone in portrait (`innerWidth < 720`, height > 1.2 x width) `startBattle` builds `B.cam = { x, y, w, h }` (`makeCam` in `game.js`): a tall window of the 400 x 260 battle space, 340 wide, bottom at y 272, height from the free screen height
-  (ratio 0.86 to 1.25). The canvas is then 3.6 pixels per unit, `#stage` gets that `aspect-ratio` inline and `#battle` the class `cam` (the skills sit under the scene, the barrier stays at the bottom).
+  (ratio 0.86 to 1.35). The canvas is then 3.6 pixels per unit, `#stage` gets that `aspect-ratio` inline and `#battle` the class `cam` (the skills sit right under the scene).
   Units are placed with `camPt(x, y, foe)` (heroes keep their spacing, monsters pack closer, rows are spread vertically). `camSet(c)` sets the canvas transform, `viewRect()` is the shown rectangle (full screen flashes),
-  `barPos()` is the barrier centre (art.js `drawBarrier`, the block ring and text). `sprites.js drawBackground` draws the picture to cover the window, bottom anchored. PC / wide screens keep `B.cam = null` and the old view.
+  `sprites.js drawBackground` draws the picture to cover the window, bottom anchored. PC / wide screens keep `B.cam = null` and the old view.
   Any new fixed coordinate in a battle effect should go through `camPt` / `barPos` / `viewRect`.
