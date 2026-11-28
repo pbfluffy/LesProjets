@@ -29,9 +29,9 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, telegr
   with a ring (green saved, amber saving, red error) and a small menu with the status and Sign out.
 
 ## Test period tools
-- `TEST_PERIOD` in `game.js` shows a "Test tools" card at the bottom of the Map tab with **Reset game data** (confirm dialog, then `resetGame()`).
+- `TEST_PERIOD` in `game.js` enables a "Test tools" card at the bottom of the Map tab (Reset game data with a confirm dialog and `resetGame()`, Unlock all areas, +10,000 gold) **only in developer mode** (`devMode()`): players never see it. The owner turns it on with `?dev=1` at the end of the game's address (`?dev=0` turns it off; the parameter is removed from the address) or by tapping the "Wildlight" title 7 times within 3.5 seconds (again to turn it off, with a toast). It is a `wl-dev` flag in localStorage, per browser and device: it keeps the card away from players but is not a security feature. The four test actions refuse to run without it.
   It replaces the save with a brand-new one and persists it, so a signed-in account is reset too (the newer timestamp wins on every device).
-  Remove it for launch: set `TEST_PERIOD` to false, or delete the `test tools` block, the card in `renderMap` and the three `reset*` actions.
+  Remove it for launch: set `TEST_PERIOD` to false, or delete the `test tools` block (incl. developer mode), the card in `renderMap` and the four test actions.
 - **Build label** (test period): a small corner label shows `v <commit id> · <build time>` (`BUILD` / `parseBuild` in `game.js`). `deploy.yml` stamps the commit into the `?v=` of
   the script links and the Bangkok build time into `<meta name="build">`; locally it reads `v dev`. If the label is older than the latest deploy, you are looking at a cached copy.
 
