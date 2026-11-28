@@ -40,6 +40,7 @@ const HERO = {
           blurb: 'Takes a beating and hits back with both fists.' },
 };
 const HERO_ORDER = ['milo', 'bren', 'tavi', 'iona', 'rook', 'elric', 'maren', 'tobin'];
+const TRAIN_MAX = 10;                                            // levels per training stat (hydrate needs it while the save loads, so it lives up here)
 const MAX_PARTY = 4;                                             // heroes in a fight; the others rest in camp
 const SLOTS = [[138, 186], [102, 214], [72, 152], [58, 196]];    // where the party stands, front hero first
 const FAMILY = { tool: 'Tool', sword: 'Sword', dagger: 'Dagger', spear: 'Spear', fist: 'Fist', bow: 'Bow', staff: 'Staff', tome: 'Tome' };
@@ -383,7 +384,17 @@ function hydrate(rawIn) {
   return base;
 }
 let save = (() => {
-  try { return hydrate(JSON.parse(localStorage.getItem(SAVE_KEY) || 'null')); } catch (e) {
+  try {
+    let raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    /* Recovery: build 3dced340 could not read saves and put them under "-damaged" (and started a new game). Bring that save back when it has more progress than the current one. */
+    try {
+      const bak = JSON.parse(localStorage.getItem(SAVE_KEY + '-damaged') || 'null');
+      const prog = r => (r && typeof r === 'object' ? Object.keys(r.cleared || {}).length * 1000 + Object.values(r.heroes || {}).reduce((a, h) => a + ((h && Number(h.lvl)) || 0), 0) : -1);
+      if (bak && typeof bak === 'object' && prog(bak) > prog(raw)) { hydrate(bak); raw = bak; localStorage.setItem(SAVE_KEY, JSON.stringify(bak)); localStorage.removeItem(SAVE_KEY + '-damaged'); }
+      else if (bak && typeof bak === 'object') localStorage.removeItem(SAVE_KEY + '-damaged');       // the current save is at least as far along: the backup is stale and must not come back later
+    } catch (e) { /* keep the backup */ }
+    return hydrate(raw);
+  } catch (e) {
     try { const bad = localStorage.getItem(SAVE_KEY); if (bad) localStorage.setItem(SAVE_KEY + '-damaged', bad); } catch (e2) { /* ignore */ }   // keep what could not be read before a new game overwrites it
     return hydrate(null);
   }
@@ -453,7 +464,6 @@ const TRAIN = {
   crit: { name: 'Precision', per: 0.02, what: pc => `+${pc}% critical chance` },
   spd:  { name: 'Haste', per: 0.04, what: pc => `+${pc}% attack speed` },
 };
-const TRAIN_MAX = 10;
 const trLv = (id, k) => (k === 'atk' ? save.heroes[id].up : ((save.heroes[id].tr || {})[k] || 0));
 const trTotal = id => TRAIN_KEYS.reduce((a, k) => a + trLv(id, k), 0);
 const trPer = (id, k) => TRAIN[k].per * (HERO[id].spec === k ? 1.5 : 1);
@@ -1358,6 +1368,7 @@ function showResetDialog() {
 }
 function resetGame() {
   closeResetDialog(); closeResInfo();
+  try { localStorage.removeItem(SAVE_KEY + '-damaged'); } catch (e) { /* ignore */ }      // a deliberate reset: no backup may bring the old game back
   save = hydrate(null);                 // a brand-new save: starter weapons, level 1 heroes, nothing cleared
   persist();                            // stamps the time, so a signed-in account is reset as well (cloud.js uploads it)
   toast('Game reset. A fresh start!');
@@ -2036,6 +2047,32 @@ function farmLogCard() {
     <p class="sub">All trips in this log: ${resChip('gold', tot.gold)}${resChip('lumber', tot.lumber)}${tot.n ? `<span class="fl-find">${tot.n} weapon${tot.n > 1 ? 's' : ''}</span>` : ''}</p><ul class="fl-list">${rows}</ul></details>`;
 }
 function closeFarmReport() { const d = document.getElementById('farm-report'); if (d) d.remove(); }
+
+/* Away report: coming back after a while with the party out farming, a "Welcome back" card shows what is waiting and lets you collect it.
+   The time you were last in the game is kept on this device (wl-seen), refreshed every minute and when the tab is hidden. */
+const SEEN_KEY = 'wl-seen', AWAY_MIN = 15, AWAY_FARM_MIN = 10;
+const markSeen = () => { try { localStorage.setItem(SEEN_KEY, String(Date.now())); } catch (e) { /* ignore */ } };
+function closeAway() { const d = document.getElementById('away-report'); if (d) d.remove(); }
+function awayReport(force) {
+  const g = farmGain();
+  if (!g || B || document.getElementById('away-report') || document.getElementById('farm-report') || document.querySelector('.tut')) return;
+  let seen = 0; try { seen = Number(localStorage.getItem(SEEN_KEY)) || 0; } catch (e) { /* ignore */ }
+  const away = seen ? (Date.now() - seen) / 60000 : 0;
+  if (!force && (away < AWAY_MIN || g.mins < AWAY_FARM_MIN)) return;
+  const st = STAGE[save.farm.stage], m = Math.floor(g.mins), rolls = Math.floor(Math.min(24, g.mins / 60));
+  const d = document.createElement('div');
+  d.className = 'result dialog'; d.id = 'away-report';
+  d.innerHTML = `<div class="box"><h2>Welcome back!</h2><p class="note">Your party has been farming at <b>${st.name}</b> for ${fmtDur(m)}.</p>
+    <div class="rtiles"><div class="rtile"><i class="ico gold"></i><b>+${fmt(g.gold)}</b><small>Gold waiting</small></div><div class="rtile"><i class="ico lumber"></i><b>+${fmt(g.lumber)}</b><small>Lumber waiting</small></div></div>
+    <p class="note">${rolls > 0 ? `That is ${rolls} roll${rolls > 1 ? 's' : ''} to find a weapon or armor (one per full hour away).` : 'Weapon and armor rolls come with every full hour away.'}${g.full ? ' Your camp is full: collect it and send the party out again.' : ''}</p>
+    <div class="stack"><button class="btn primary" data-act="awaycollect">Collect</button><button class="btn alt" data-act="awaylater">Later</button></div></div>`;
+  d.addEventListener('click', ev => { if (ev.target === d) closeAway(); });
+  document.body.appendChild(d);
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) markSeen(); else { awayReport(); markSeen(); } });
+window.addEventListener('pagehide', markSeen);
+setInterval(() => { if (!document.hidden) markSeen(); }, 60000);
+setTimeout(() => { awayReport(); markSeen(); }, 1500);                              // when the game opens
 function showFarmReport(e) {
   closeFarmReport();
   snd(e.found.length ? 'drop' : 'coins');
@@ -2173,6 +2210,9 @@ actions.repeat = () => {
   repeatUi();
 };
 actions.farmreportok = closeFarmReport;
+actions.awaycollect = () => { closeAway(); claimFarm(false); render(); };
+actions.awaylater = closeAway;
+actions.__away = () => awayReport(true);                  // for testing
 
 function closeBattle() {
   if (B) { cancelAnimationFrame(B.raf); clearTimeout(B.autoT); clearTimeout(B.fadeT); }
