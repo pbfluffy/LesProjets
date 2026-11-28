@@ -330,9 +330,15 @@ function sanitizeArmor(sv) {
     if (a !== 'garb') used[key] = (used[key] || 0) + 1;
   }
 }
-function hydrate(raw) {
+function hydrate(rawIn) {
   const base = newSave();
+  let raw = rawIn;
   if (raw && typeof raw === 'object') {
+    /* a damaged or hand-edited save (cloud or local) must not crash the game: these fields have to be plain objects and the money a number */
+    const obj = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+    raw = Object.assign({}, raw, { heroes: obj(raw.heroes), cleared: obj(raw.cleared) });
+    for (const k of ['items', 'armors', 'crafted', 'recipes', 'pity']) if (raw[k] != null) raw[k] = obj(raw[k]);
+    for (const k of ['gold', 'lumber', 'iron']) if (raw[k] != null && !Number.isFinite(Number(raw[k]))) delete raw[k]; else if (raw[k] != null) raw[k] = Number(raw[k]);
     Object.assign(base, raw);
     const legacy = ['bren', 'tavi', 'iona'];                                // saves from before the roster: the heroes of the party were hired
     const oldParty = Array.isArray(raw.party) ? raw.party : legacy;
@@ -367,7 +373,10 @@ function hydrate(raw) {
   return base;
 }
 let save = (() => {
-  try { return hydrate(JSON.parse(localStorage.getItem(SAVE_KEY) || 'null')); } catch (e) { return hydrate(null); }
+  try { return hydrate(JSON.parse(localStorage.getItem(SAVE_KEY) || 'null')); } catch (e) {
+    try { const bad = localStorage.getItem(SAVE_KEY); if (bad) localStorage.setItem(SAVE_KEY + '-damaged', bad); } catch (e2) { /* ignore */ }   // keep what could not be read before a new game overwrites it
+    return hydrate(null);
+  }
 })();
 
 /* persist() stamps the save time (cloud sync compares it) and tells cloud.js there is something new to upload.
