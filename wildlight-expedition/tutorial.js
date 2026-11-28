@@ -9,7 +9,7 @@
     { title: 'Welcome, adventurer', text: 'Lead a party of heroes through the wild. Fights play out on their own: you choose where to go, who to train and what they wear.' },
     { title: 'Pick an adventure', text: 'The Map tab shows your next adventure. Check the Danger meter, then tap Fight. Your heroes attack by themselves.', hl: '#view [data-act="fight"]', go: 'map' },
     { title: 'Use skills in battle', text: 'Each hero has two skill buttons under the battlefield. Tap one for a strong move, or leave Auto on and they fire when ready.' },
-    { title: 'Train your party', text: 'In the Party tab, spend gold to level heroes up and to hire new ones. Stronger heroes make harder adventures safe.', hl: tab('party'), go: 'party' },
+    { title: 'Train your party', text: 'In the Party tab, spend gold to level heroes up and to hire new ones. Use Positions to put your sturdiest hero in the front line: it takes the melee hits.', hl: tab('party'), go: 'party' },
     { title: 'Gear from the Forge', text: 'Weapons and armor drop from your wins. Equip them in the Party tab. In the Forge, merge 3 copies of the same grade into a better one.', hl: tab('forge'), go: 'forge' },
     { title: 'Farm while you are away', text: 'Clear an adventure, then send your party to farm it. They gather gold and lumber while you are gone, and rare drops can turn up.', hl: tab('map'), go: 'map' },
   ];

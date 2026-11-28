@@ -344,9 +344,12 @@ function hydrate(rawIn) {
     const oldParty = Array.isArray(raw.party) ? raw.party : legacy;
     base.hired = HERO_ORDER.filter(id => (Array.isArray(raw.hired) ? raw.hired : oldParty).includes(id));
     if (!base.hired.length) base.hired = ['bren'];
-    base.party = HERO_ORDER.filter(id => base.hired.includes(id) && oldParty.includes(id)).slice(0, MAX_PARTY);
+    base.party = oldParty.filter((id, i, a) => HERO[id] && base.hired.includes(id) && a.indexOf(id) === i).slice(0, MAX_PARTY);   // keeps the player's order (Positions menu)
     if (!base.party.length) base.party = [base.hired[0]];
-    for (const id of HERO_ORDER) base.heroes[id] = Object.assign(newSave().heroes[id], (raw.heroes || {})[id]);
+    for (const id of HERO_ORDER) {
+      base.heroes[id] = Object.assign(newSave().heroes[id], (raw.heroes || {})[id]);
+      if (base.heroes[id].row !== 'front' && base.heroes[id].row !== 'back') delete base.heroes[id].row;      // the chosen line, else the hero's own
+    }
     base.items = Object.assign(newSave().items, raw.items || {});
     base.armors = Object.assign(newSave().armors, raw.armors || {});
     if (!raw.items) {                       // older save: each crafted weapon becomes one Common copy
@@ -416,7 +419,10 @@ const isUnlocked = s => !s.req || !!save.cleared[s.req];
 const hired = () => HERO_ORDER.filter(id => save.hired.includes(id));
 const isHired = id => save.hired.includes(id);
 /* the heroes in a fight, front row first (the first one takes the monsters' blows) */
-const party = () => HERO_ORDER.filter(id => save.party.includes(id)).sort((a, b) => (HERO[a].row === 'front' ? 0 : 1) - (HERO[b].row === 'front' ? 0 : 1));
+/* A hero's line: the player's choice (Positions menu), else the hero's own. The party is stored in the player's order; the front line goes first, in that order. */
+const rowOf = id => { const r = save.heroes[id] && save.heroes[id].row; return r === 'front' || r === 'back' ? r : HERO[id].row; };
+const party = () => save.party.filter((id, i, a) => HERO[id] && a.indexOf(id) === i).map((id, i) => [id, i])
+  .sort((a, b) => (rowOf(a[0]) === 'front' ? 0 : 1) - (rowOf(b[0]) === 'front' ? 0 : 1) || a[1] - b[1]).map(x => x[0]);
 const inParty = id => save.party.includes(id);
 const partySize = () => save.party.length;
 const sumLevels = () => party().reduce((a, id) => a + save.heroes[id].lvl, 0);
@@ -923,8 +929,34 @@ function partyStrip() {
   const next = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0], camp = hired().length - act.length;
   return `<div class="strip idle pstrip"><div class="slots">${slots}</div>
     <div><b>Your party · ${act.length} of ${MAX_PARTY}</b>
-    <span>${next ? `Hire more heroes with gold: ${HERO[next].name} costs ${fmt(HERO[next].hire)}.` : 'Everyone has joined you.'}${camp > 0 ? ` ${camp} resting in camp.` : ''}</span></div></div>`;
+    <span>${next ? `Hire more heroes with gold: ${HERO[next].name} costs ${fmt(HERO[next].hire)}.` : 'Everyone has joined you.'}${camp > 0 ? ` ${camp} resting in camp.` : ''}</span>${act.length > 1 ? '<button type="button" class="btn alt small posbtn" data-act="formation">Positions</button>' : ''}</div></div>`;
 }
+/* Positions menu: who stands in the front line (monsters' melee attacks hit the first hero there) and who in the back line (ranged monsters aim there). */
+function formHtml() {
+  const act = party(), front = act.filter(id => rowOf(id) === 'front'), back = act.filter(id => rowOf(id) === 'back');
+  const hp = id => heroStats(id).maxHp, best = act.reduce((m, id) => (hp(id) > hp(m) ? id : m), act[0]);
+  const lead = front[0] || act[0], risky = lead && lead !== best && hp(lead) < 0.8 * hp(best);
+  const card = (id, lane, i, n) => `<div class="fcard ${lane}" style="--hc:${HERO_ACCENT[id]}">${heroFace(id)}
+      <div class="finfo"><b>${HERO[id].name}${HERO[id].tank ? ' <i class="tag">Tank</i>' : ''}</b><small>HP ${fmt(hp(id))} · ${HERO[id].role.split(' · ')[1] || ''}</small>${lane === 'front' && i === 0 ? '<em>Takes the first hit</em>' : ''}</div>
+      <div class="fbtns"><button type="button" class="btn alt small" data-act="formmove" data-arg="${id}:-1" aria-label="Move ${HERO[id].name} up" ${i === 0 ? 'disabled' : ''}>▲</button><button type="button" class="btn alt small" data-act="formmove" data-arg="${id}:1" aria-label="Move ${HERO[id].name} down" ${i === n - 1 ? 'disabled' : ''}>▼</button>
+      <button type="button" class="btn alt small" data-act="formrow" data-arg="${id}">${lane === 'front' ? 'To back' : 'To front'}</button></div></div>`;
+  const lane = (cls, title, sub, ids) => `<section class="flane ${cls}"><h3>${title}<small>${sub}</small></h3>${ids.length ? ids.map((id, i) => card(id, cls, i, ids.length)).join('') : '<p class="fempty">Nobody here.</p>'}</section>`;
+  return `<div class="box formbox"><div class="sethead"><h2>Positions</h2><button type="button" class="setx" data-act="formclose" aria-label="Close">×</button></div>
+    <p class="note">Monsters that fight up close hit the first hero in the front line. Archers, wisps and other ranged monsters aim at the back line. Put your sturdiest hero first.</p>
+    ${risky ? `<p class="fwarn">⚠ ${HERO[lead].name} (HP ${fmt(hp(lead))}) is first in line and will take most melee hits. ${HERO[best].name} has ${fmt(hp(best))} HP: try moving them to the front.</p>` : ''}
+    ${lane('front', 'Front line', 'melee monsters hit here', front)}${lane('back', 'Back line', 'ranged monsters aim here', back)}
+    <button type="button" class="btn primary small" data-act="formclose">Done</button></div>`;
+}
+function showFormation() {
+  closeFormation();
+  const d = document.createElement('div');
+  d.className = 'result dialog formdlg'; d.id = 'form-dialog'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', 'Positions');
+  d.innerHTML = formHtml();
+  d.addEventListener('click', e => { if (e.target === d) closeFormation(); });
+  document.body.appendChild(d);
+}
+function closeFormation() { const d = document.getElementById('form-dialog'); if (d) d.remove(); }
+function refreshFormation() { const d = document.getElementById('form-dialog'); if (d) { const sc = d.querySelector('.formbox'); const top = sc ? sc.scrollTop : 0; d.innerHTML = formHtml(); const nb = d.querySelector('.formbox'); if (nb) nb.scrollTop = top; } }
 /* send a hired hero to the party or to camp */
 function campRow(id) {
   if (inParty(id)) return save.party.length > 1 ? `<div class="campbar"><button class="btn alt small" data-act="torest" data-arg="${id}">Rest in camp</button></div>` : '';
@@ -1351,13 +1383,29 @@ const actions = {
     if (!d || isHired(id) || save.gold < d.hire) return;
     save.gold -= d.hire;
     save.hired = HERO_ORDER.filter(x => x === id || isHired(x));
-    if (save.party.length < MAX_PARTY) save.party = HERO_ORDER.filter(x => x === id || inParty(x));
+    if (save.party.length < MAX_PARTY) save.party = [...save.party, id];
     if (!(save.items[d.start] || []).some(n => n > 0)) save.items[d.start][0] = 1;                      // their basic weapon comes with them
     snd('hire'); persist(); toast(inParty(id) ? `${d.name} joins your party!` : `${d.name} waits in camp: your party is full.`); render();
   },
+  formation() { if (!B) showFormation(); },
+  formclose() { closeFormation(); },
+  formrow(id) {                                              // change line: front <-> back
+    if (!inParty(id)) return;
+    save.heroes[id].row = rowOf(id) === 'front' ? 'back' : 'front';
+    persist(); render(); refreshFormation();
+  },
+  formmove(arg) {                                            // swap with the neighbour in the same line
+    const [id, dir] = String(arg).split(':'), d = Number(dir) < 0 ? -1 : 1;
+    const line = party().filter(x => rowOf(x) === rowOf(id)), i = line.indexOf(id), o = line[i + d];
+    if (!o) return;
+    const p = save.party.slice(), a = p.indexOf(id), b = p.indexOf(o);
+    if (a < 0 || b < 0) return;
+    p[a] = o; p[b] = id; save.party = p;
+    persist(); render(); refreshFormation();
+  },
   toparty(id) {
     if (!isHired(id) || inParty(id) || save.party.length >= MAX_PARTY) { snd('nope'); return; }
-    save.party = HERO_ORDER.filter(x => x === id || inParty(x)); persist(); render();
+    save.party = [...save.party, id]; persist(); render();
   },
   torest(id) {
     if (!inParty(id) || save.party.length <= 1) return;
@@ -1754,7 +1802,7 @@ function strike(e) {
     e.lungeDur = 0.35; e.lunge = 0.35; e.lungeDist = Math.max(10, e.x - t.x - 36);
     later(0.15, () => monHit(t, e, d));
   } else {
-    const back = aliveH().filter(h => HERO[h.id].row === 'back');
+    const back = aliveH().filter(h => rowOf(h.id) === 'back');
     const t = (back.length ? back : aliveH())[Math.floor(Math.random() * (back.length || aliveH().length))];
     if (!t) return;
     snd('mshot', { c: monCat(e.type) });
