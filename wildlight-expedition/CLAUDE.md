@@ -143,8 +143,11 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, telegr
 - Add a sound: a function in `SOUNDS` (`tone()` / `noise()` / `notes()` helpers), then `snd('name')` where it happens.
 
 ## Background music
-- `music.js`: three themes composed in code and played with Web Audio (no audio files), one step sequencer per theme that schedules ~0.3 s ahead (`pump`): **village** (A minor pentatonic, plucked arpeggios, warm pad, a wandering melody),
-  **fight** (142 bpm, drums, pumping bass, riffs in A minor) and **boss** (112 bpm, D minor, brass stabs, toms, tense strings). Add a theme: an object with `bpm`, `spb` (steps per beat), `gain` and `step(state, n, time, stepDur)` in `THEMES`.
+- `music.js`: real recorded tracks (`assets/music/*.mp3`, all CC0, credited in `assets/music/CREDITS.md`, built from the downloads by `tools/build-music.js`: levelled to -20 LUFS, MP3 VBR q5, ~4 MB in all) played with Web Audio.
+  The synthesized themes were replaced because they sounded artificial. **village** = `village1` (Medieval: The Bard's Tale) then `village2` (The Old Tower Inn), each played once with a 2.5 s crossfade into the next, then over again;
+  **fight** = `fight` (Medieval: Battle) and **boss** = `boss` (Battle Theme A), single files that loop (`loop = true`; the build made them seamless by fading the last seconds into the first). `THEMES` maps a theme to its files.
+  A track is fetched and decoded when first needed (the others 4 s after the first theme starts); the next village track is planned 10 s before it is needed (`schedule`; never schedule recursively without a timer, that hangs the page). A track that fails to load stays silent.
+  To change a track: download it, add it to `TRACKS` in `tools/build-music.js`, run the tool, and update the credits. Music files are also in `artUrls` (offline cache).
 - API: `music.set('village'|'fight'|'boss'|null)` crossfades, `music.duck(seconds)` lowers it under a fanfare, `music.sync()` applies the sound mode. `game.js` sets village at boot and on leaving a fight, fight / boss in `startBattle`
   (boss = a boss monster in the pack), ducks on victory, stops on defeat. A repeat run keeps the fight theme going between fights.
 - The header speaker button now cycles three modes (`sfx.toggle()`, key `M`, saved in `localStorage` `wl-sound` as `all` / `fx` / `off`): music + effects, effects only, off. Music only starts after the first tap (autoplay rule)
@@ -216,3 +219,15 @@ The sound engine follows the guide; the numbers are starting points to tune by e
   Units are placed with `camPt(x, y, foe)` (heroes keep their spacing, monsters pack closer, rows are spread vertically). `camSet(c)` sets the canvas transform, `viewRect()` is the shown rectangle (full screen flashes),
   `sprites.js drawBackground` draws the picture to cover the window, bottom anchored. PC / wide screens keep `B.cam = null` and the old view.
   Any new fixed coordinate in a battle effect should go through `camPt` / `barPos` / `viewRect`.
+
+## Armor and outfits
+- Heroes wear a simple base outfit (the plain "Traveler's garb"; pictures in `assets/heroes/`, redrawn in v11: no armor, cape or ornaments) and can wear ONE armor: `ARMORS` in `game.js` = garb (starter, no bonus, never runs out),
+  `leatherarmor` (+15% HP, -4% damage), `chainmail` (+30%, -9%), `platearmor` (+50%, -15%) at Common; the grade multiplies both (`GRADES[g].mult`, damage reduction capped at 50%). `armorBonus(id)` feeds `heroStats` (max HP) and `hurt()` (damage taken).
+- Armor is drop-only like weapons: it sits in the stage `drops` tables (`ARMOR_DROPS` is added to each stage after `STAGES`; about a third of all drops: leather in the early areas, chain in the middle, plate late), uses the stage's `dropGrade`,
+  and shares the weapon drop roll (`DROP.manual` is 13%, farming rolls it too). `itemInfo(id)` reads a weapon or an armor. Merging works in the Forge like weapons (3 copies of the same grade -> next grade; only copies nobody wears can be merged).
+- Save: `save.armors[armor][grade]` = copies owned (worn ones included), `save.heroes[id].armor` + `.armorG` = what a hero wears. A copy is worn by one hero at a time (`wearers`, `freeArmor`); `sanitizeArmor` repairs the save on load.
+  UI: each hero card shows an Armor row and a folded "Change armor" list (`armorPicker`, action `equiparmor` "hero:armor:grade"); the Forge has an Armor section (`armorCard`, with merge buttons and where it drops).
+- Looks: armor is a transparent layer drawn over the hero picture with the SAME canvas (`assets/armor/<hero>-<armor>-<idle|attack>.webp`, 3 armors x 2 poses per hero, made for the hero's first weapon and reused over their other weapons).
+  `sprites.js drawHeroSprite` draws the layer placed like the base picture (hit flash included); `o.armor` is passed by the battle, the hero cards and the portraits. Item icons: `assets/items/garb|leatherarmor|chainmail|platearmor.png`.
+  Art briefs: `codex-art-brief-v11-outfits.md` (base outfits + icons), `codex-art-brief-v12-armor-layers.md` (layers).
+- Balance (stepped simulation, 4 heroes at `rec`): armor of the area's tier raises the health left after a win by about 10 points and lets a party survive a few levels under `rec`, but does not raise damage, so fights still last as long.

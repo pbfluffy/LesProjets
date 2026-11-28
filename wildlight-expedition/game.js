@@ -209,6 +209,14 @@ const STAGES = [
     first: { gold: 48025, lumber: 2307, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 3], ['great', 3.5], ['rapier', 2], ['buckler', 2.5], ['longbow', 2.5], ['stormstaff', 2.5], ['heartwood', 2], ['grimoire', 3], ['halberd', 3], ['gauntlets', 3], ['twindaggers', 3]], dropGrade: 3, repeat: { gold: 2307, lumber: 87 }, sky: ['#3a3f5a','#14162a'],
     power: { hp: 10.22, dmg: 3.88, arm: 9.29 }, rec: 25 },
 ];
+/* Armor drops from the same table as weapons (about a third of all drops): the early areas give leather, the middle ones chainmail, the last ones plate. */
+const ARMOR_DROPS = {
+  path: [['leatherarmor', 4]], hollow: [['leatherarmor', 5]], crossing: [['leatherarmor', 6]],
+  mirewood: [['leatherarmor', 4], ['chainmail', 2]], causeway: [['leatherarmor', 3], ['chainmail', 3]], toadking: [['leatherarmor', 2], ['chainmail', 5]],
+  frostfall: [['leatherarmor', 2], ['chainmail', 5]], glimmer: [['chainmail', 6], ['platearmor', 1.5]], rimecrown: [['chainmail', 5], ['platearmor', 3]],
+  cinder: [['chainmail', 4], ['platearmor', 4]], quarry: [['chainmail', 3], ['platearmor', 5]], magmagate: [['chainmail', 3], ['platearmor', 6]], skyreach: [['chainmail', 2], ['platearmor', 8]],
+};
+for (const s of STAGES) s.drops = (s.drops || []).concat(ARMOR_DROPS[s.id] || []);
 const STAGE = Object.fromEntries(STAGES.map(s => [s.id, s]));
 const REGION = Object.fromEntries(REGIONS.map(r => [r.id, r]));
 const regionOf = s => REGION[s.region];
@@ -220,7 +228,7 @@ const LAYOUT = {
   4: [[250, 190], [295, 160], [300, 216], [348, 186]],
 };
 
-/* Weapons are items. Craft copies, then merge MERGE_N copies of the same weapon and grade into one of the next grade. */
+/* Weapons are items. Craft copies, then merge MERGE_N copies of the same weapon or armor and grade into one of the next grade. */
 const GRADES = [
   { name: 'Common',    mult: 1.00, color: '#c9d3c3' },
   { name: 'Fine',      mult: 1.20, color: '#7fd18a' },
@@ -230,11 +238,25 @@ const GRADES = [
 ];
 const MERGE_N = 3;
 
-/* Weapons cannot be bought: they only drop (each drop is one Common copy of a weapon from the stage's table).
+/* Armor: one piece per hero (the hero's outfit changes with it, see sprites.js). It drops like a weapon (the same stage tables, the same grade) and merges in the Forge.
+   Any hero can wear any armor, but a copy is worn by one hero at a time. hp / dr are the bonus of a Common copy (more health, less damage taken);
+   better grades multiply them by GRADES[g].mult. 'garb' is the plain outfit every hero starts with (no bonus, never runs out). */
+const ARMORS = {
+  garb:         { name: "Traveler's garb", tier: 0, hp: 0, dr: 0, starter: true, desc: 'Plain travelling clothes. Every hero starts with them.' },
+  leatherarmor: { name: 'Leather armor', tier: 1, hp: 0.15, dr: 0.04, desc: 'Light and quiet: a little more health and a little less damage.' },
+  chainmail:    { name: 'Chainmail', tier: 2, hp: 0.30, dr: 0.09, desc: 'Steel rings over the chest: much tougher than leather.' },
+  platearmor:   { name: 'Plate armor', tier: 3, hp: 0.50, dr: 0.15, desc: 'Heavy plates and pauldrons: the best protection there is.' },
+};
+const ARMOR_IDS = Object.keys(ARMORS).filter(a => !ARMORS[a].starter);          // the pieces that drop and merge
+const isArmor = id => !!ARMORS[id];
+const itemInfo = id => WEAPONS[id] || ARMORS[id];                               // a weapon or an armor (drops are either)
+const pct0 = x => Math.round(x * 100);
+
+/* Weapons and armor cannot be bought: they only drop (each drop is one copy of a weapon or an armor from the stage's table, at the stage's grade).
    Winning a fight by hand is the best way to get one; auto-farming rolls once per hour away.
    manual: chance per won fight (pity: extra chance added per won fight without a drop, bad-luck protection);
    autoPerHour: chance per hour of farming, rolled when you claim. */
-const DROP = { manual: 0.10, pity: 0.15, autoPerHour: 0.12 };
+const DROP = { manual: 0.13, pity: 0.15, autoPerHour: 0.12 };
 
 const CHARGE_SOFT = 0.15;                              // a boss charge hits the whole party for this share of its damage (no barrier any more; simulated: the Bog King is beaten at the recommended level with about 75% health left)
 const FARM_CAP_MIN = 24 * 60;
@@ -243,13 +265,25 @@ const FARM_CAP_MIN = 24 * 60;
 const SAVE_KEY = 'wildlight-expedition-v1';
 function newSave() {
   const heroes = {}, items = {};
-  for (const id of HERO_ORDER) heroes[id] = { lvl: 1, up: 0, weapon: HERO[id].start };
+  for (const id of HERO_ORDER) heroes[id] = { lvl: 1, up: 0, weapon: HERO[id].start, armor: 'garb', armorG: 0 };
   for (const w of Object.keys(WEAPONS)) items[w] = [0, 0, 0, 0, 0];       // items[weapon][grade] = how many copies you own
+  const armors = {};
+  for (const a of ARMOR_IDS) armors[a] = [0, 0, 0, 0, 0];                  // armors[armor][grade] = how many copies you own (worn ones included)
   items.pitchfork[0] = 1;                                                  // Milo starts with his pitchfork; every hero gets their basic weapon when hired
   return {
     gold: 0, lumber: 0, cleared: {}, towers: {}, pity: {}, party: ['milo'], hired: ['milo'],
-    items, heroes, farm: null, daily: { date: '', done: false }, tab: 'map',
+    items, armors, heroes, farm: null, daily: { date: '', done: false }, tab: 'map',
   };
+}
+/* Every hero wears a piece they own, and nobody wears a copy somebody else already wears (a missing piece becomes the plain garb). */
+function sanitizeArmor(sv) {
+  const used = {};
+  for (const id of HERO_ORDER) {
+    const h = sv.heroes[id], a = h.armor, g = Math.max(0, Math.min(GRADES.length - 1, Number(h.armorG) || 0)), key = a + ':' + g;
+    if (a !== 'garb' && (!ARMORS[a] || (used[key] || 0) >= ((sv.armors[a] || [])[g] || 0))) { h.armor = 'garb'; h.armorG = 0; continue; }
+    h.armorG = a === 'garb' ? 0 : g;
+    if (a !== 'garb') used[key] = (used[key] || 0) + 1;
+  }
 }
 function hydrate(raw) {
   const base = newSave();
@@ -263,6 +297,7 @@ function hydrate(raw) {
     if (!base.party.length) base.party = [base.hired[0]];
     for (const id of HERO_ORDER) base.heroes[id] = Object.assign(newSave().heroes[id], (raw.heroes || {})[id]);
     base.items = Object.assign(newSave().items, raw.items || {});
+    base.armors = Object.assign(newSave().armors, raw.armors || {});
     if (!raw.items) {                       // older save: each crafted weapon becomes one Common copy
       base.items = newSave().items;
       for (const w of Object.keys(raw.crafted || {})) if (raw.crafted[w] && WEAPONS[w]) base.items[w] = [1, 0, 0, 0, 0];
@@ -281,6 +316,8 @@ function hydrate(raw) {
   base.lumber = base.lumber || 0;
   for (const w of Object.keys(WEAPONS)) if (!base.items[w]) base.items[w] = [0, 0, 0, 0, 0];
   base.pity = base.pity || {};
+  for (const a of ARMOR_IDS) if (!Array.isArray(base.armors[a])) base.armors[a] = [0, 0, 0, 0, 0];
+  sanitizeArmor(base);
   base.farmLog = Array.isArray(base.farmLog) ? base.farmLog.slice(0, 30) : [];
   return base;
 }
@@ -347,10 +384,18 @@ const owned = w => bestGrade(w) >= 0;
 const heroGrade = id => Math.max(0, bestGrade(save.heroes[id].weapon));   // a hero always uses the best copy they own
 const gradeTag = g => `<span class="grade" style="--g:${GRADES[g].color}">${GRADES[g].name}</span>`;
 
+/* What the hero's armor gives: hp = extra health share, dr = share of damage not taken (capped). */
+function armorBonus(id) {
+  const s = save.heroes[id], A = ARMORS[s.armor] || ARMORS.garb, m = A.tier ? GRADES[s.armorG || 0].mult : 1;
+  return { hp: A.hp * m, dr: Math.min(0.5, A.dr * m) };
+}
+const wearers = (a, g) => HERO_ORDER.filter(id => save.heroes[id].armor === a && save.heroes[id].armorG === g);
+const freeArmor = (a, g) => ((save.armors[a] || [])[g] || 0) - wearers(a, g).length;
+const armorTotal = a => (save.armors[a] || []).reduce((x, y) => x + y, 0);
 function heroStats(id) {
   const s = save.heroes[id], d = HERO[id];
   const lm = 1 + 0.12 * (s.lvl - 1), um = (1 + 0.15 * s.up) * GRADES[heroGrade(id)].mult;
-  return { maxHp: Math.round(d.hp * lm), atk: d.atk * lm * um, heal: 14 * lm * um, crit: Math.min(0.6, WEAPONS[s.weapon].crit + CRIT.perGrade * heroGrade(id)) };
+  return { maxHp: Math.round(d.hp * lm * (1 + armorBonus(id).hp)), atk: d.atk * lm * um, heal: 14 * lm * um, crit: Math.min(0.6, WEAPONS[s.weapon].crit + CRIT.perGrade * heroGrade(id)) };
 }
 
 /* ---------------------------- farming ------------------------------- */
@@ -362,12 +407,12 @@ function farmGain() {
   const m = farmMult();
   return { mins, full: mins >= FARM_CAP_MIN, gold: Math.floor(mins * st.farm.gold * m), lumber: Math.floor(mins * st.farm.lumber * m) };
 }
-/* Pick one weapon from a stage's weighted drop table and add a Common copy of it. */
+/* Pick one item (a weapon or an armor) from a stage's weighted drop table and add a copy of it at the stage's grade. */
 function dropWeapon(s) {
   const table = s.drops || [], total = table.reduce((a, [, wt]) => a + wt, 0);
   let r = Math.random() * total, pick = table[table.length - 1][0];
   for (const [w, wt] of table) { if ((r -= wt) < 0) { pick = w; break; } }
-  save.items[pick][s.dropGrade || 0]++;
+  (isArmor(pick) ? save.armors : save.items)[pick][s.dropGrade || 0]++;
   return pick;
 }
 function rollManualDrop(s) {
@@ -387,7 +432,7 @@ function rollAutoDrops(s, mins) {
   return found;
 }
 const dropNames = (list, grade = 0) => Object.entries(list.reduce((m, w) => (m[w] = (m[w] || 0) + 1, m), {}))
-  .map(([w, n]) => (grade ? GRADES[grade].name + ' ' : '') + WEAPONS[w].name + (n > 1 ? ` ×${n}` : '')).join(', ');
+  .map(([w, n]) => (grade ? GRADES[grade].name + ' ' : '') + itemInfo(w).name + (n > 1 ? ` ×${n}` : '')).join(', ');
 
 /* Collects farming loot; returns the weapons found (an array) so callers can announce them. */
 function claimFarm(quiet) {
@@ -552,11 +597,11 @@ function dropsHtml(s) {                         // folded by default
   const chips = s.drops.map(([w, wt]) => {
     const chance = rate * wt / total;                                   // the real chance, per fight you win
     const tier = chance >= 0.08 ? 'often' : chance >= 0.04 ? 'sometimes' : 'rarely';   // only used to colour the chip
-    return `<div class="dropchip ${tier}">${itemIcon(w, 'sm')}<div><b>${WEAPONS[w].name}${s.dropGrade ? ' ' + gradeTag(s.dropGrade) : ''}</b><small>${FAMILY[WEAPONS[w].fam]} · about ${pctText(chance)} per win</small></div></div>`;
+    return `<div class="dropchip ${tier}">${itemIcon(w, 'sm')}<div><b>${itemInfo(w).name}${s.dropGrade ? ' ' + gradeTag(s.dropGrade) : ''}</b><small>${isArmor(w) ? 'Armor' : FAMILY[WEAPONS[w].fam]} · about ${pctText(chance)} per win</small></div></div>`;
   }).join('');
-  return `<details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Possible weapon drops</span><em>${s.drops.length}</em></summary>
+  return `<details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Possible weapon and armor drops</span><em>${s.drops.length}</em></summary>
     <div class="dropgrid">${chips}</div>
-    <p class="fine">Chances are per fight you win, on average (every win without a drop makes the next one more likely). Farming rolls once for every full hour away, ${pctText(DROP.autoPerHour)} each (up to 24 hours).</p></details>`;
+    <p class="fine">Chances are per fight you win, on average (every win without a drop makes the next one more likely). Farming rolls a weapon or an armor once for every full hour away, ${pctText(DROP.autoPerHour)} each (up to 24 hours).</p></details>`;
 }
 function stageActions(s, big) {
   if (!isUnlocked(s)) return '';
@@ -607,9 +652,9 @@ function dailyCard() {
 /* The weapon rolls a farming trip has earned so far: one per full hour away, DROP.autoPerHour each, rolled when the loot is claimed. */
 function farmRollText(g) {
   const rolls = Math.min(24, Math.floor(g.mins / 60)), pct = pctText(DROP.autoPerHour);
-  if (g.full) return `Weapon rolls: ${rolls} ready (${pct} each). Claim them!`;
+  if (g.full) return `Gear rolls: ${rolls} ready (${pct} each). Claim them!`;
   const next = Math.max(1, Math.ceil(60 - (g.mins % 60)));
-  return `Weapon roll each hour (${pct}) · ${rolls} earned · next in ${next} min`;
+  return `Gear roll each hour (${pct}) · ${rolls} earned · next in ${next} min`;
 }
 function farmStrip() {
   const cur = save.farm ? STAGE[save.farm.stage] : null;
@@ -624,7 +669,7 @@ function farmStrip() {
     <div class="bar"><i id="farm-bar" style="width:${(g.mins / FARM_CAP_MIN * 100).toFixed(1)}%"></i></div>
     <button class="btn good" data-act="claim" id="claim-btn">Claim</button>
     <p class="fine" id="farm-roll">${farmRollText(g)}</p>
-    <p class="fine">Gathers for up to 24 hours. Weapons are rolled when you claim; fighting by hand has the best chance.</p></div>`;
+    <p class="fine">Gathers for up to 24 hours. Weapons and armor are rolled when you claim; fighting by hand has the best chance.</p></div>`;
 }
 
 /* ------------------------------- regions ------------------------------ */
@@ -760,6 +805,28 @@ function campRow(id) {
   return `<div class="campbar"><span class="tag lock">In camp</span><button class="btn alt small" data-act="toparty" data-arg="${id}" ${full ? 'disabled' : ''}>Join the party</button>${full ? `<span class="hint">The party is full (${MAX_PARTY}): rest someone first.</span>` : ''}</div>`;
 }
 
+/* The folded "Change armor" list of a hero card: the plain garb, and every copy you own that is free (or that this hero wears). */
+function armorPicker(id) {
+  const s = save.heroes[id], key = 'armor-' + id, rows = [];
+  const row = (a, g, note) => {
+    const A = ARMORS[a], m = A.tier ? GRADES[g].mult : 1, on = s.armor === a && s.armorG === g;
+    rows.push(`<button class="weapon ${on ? 'on' : ''}" data-act="equiparmor" data-arg="${id}:${a}:${g}">${itemIcon(a, 'sm')}<span><b>${A.name}</b><small>${A.tier ? `HP +${pct0(A.hp * m)}% · -${pct0(Math.min(0.5, A.dr * m))}% damage.` : A.desc}</small></span>
+      <span class="wmeta">${A.tier ? gradeTag(g) : ''}<small>${note}</small></span></button>`);
+  };
+  row('garb', 0, s.armor === 'garb' ? 'worn' : '');
+  for (const a of ARMOR_IDS) for (let g = GRADES.length - 1; g >= 0; g--) {
+    const mine = s.armor === a && s.armorG === g, free = freeArmor(a, g), other = wearers(a, g).filter(x => x !== id);
+    if (!((save.armors[a] || [])[g] > 0)) continue;
+    if (mine) row(a, g, 'worn');
+    else if (free > 0) row(a, g, free > 1 ? free + ' free' : '');
+    else row(a, g, 'worn by ' + HERO[other[0]].name);
+  }
+  const count = rows.length - 1;
+  return `<details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Change armor</span><em>${count}</em></summary>
+    <div class="weapons">${rows.join('')}</div>
+    <p class="fine">Armor comes from fights and farming. Each copy can be worn by one hero; the hero's outfit changes with it.</p></details>`;
+}
+
 function heroCard(id) {
   const d = HERO[id], s = save.heroes[id], st = heroStats(id), w = WEAPONS[s.weapon];
   const lc = { gold: lvlCost(s.lvl) }, uc = upCost(s.up);
@@ -769,6 +836,8 @@ function heroCard(id) {
   stats.push(['Crit', Math.round(st.crit * 100) + '%']);
   if (w.pierce) stats.push(['Pierce', Math.round(w.pierce * 100) + '%']);
   if (w.shield) stats.push(['Guard', '-' + Math.round(w.shield * 100) + '%']);
+  const ab = armorBonus(id), A = ARMORS[s.armor] || ARMORS.garb;
+  if (ab.dr > 0) stats.push(['Armor', '-' + pct0(ab.dr) + '%']);
   return `<article class="herocard" style="--hc:${HERO_ACCENT[id]}">
     <div class="hhead">
       <canvas class="hport" data-hero="${id}" width="240" height="260"></canvas>
@@ -780,6 +849,7 @@ function heroCard(id) {
     </div>
     <p class="hblurb">${d.blurb}</p>
     <div class="wnow"><span class="wlabel">Weapon</span><b>${w.name}</b>${gradeTag(heroGrade(id))}<span class="wup">${FAMILY[d.family]} +${s.up}</span></div>
+    <div class="wnow"><span class="wlabel">Armor</span><b>${A.name}</b>${A.tier ? gradeTag(s.armorG) : ''}<span class="wup">${A.tier ? `HP +${pct0(ab.hp)}% · -${pct0(ab.dr)}% damage` : 'No bonus'}</span></div>
     <div class="hactions">
       <button class="btn primary sm" data-act="lvl" data-arg="${id}" ${canAfford(lc) ? '' : 'disabled'}>Level up <span class="cost">${costHtml(lc)}</span></button>
       <button class="btn alt" data-act="up" data-arg="${id}" ${canAfford(uc) ? '' : 'disabled'}>Upgrade ${FAMILY_PLURAL[d.family].toLowerCase()} <span class="cost">${costHtml(uc)}</span></button>
@@ -794,6 +864,7 @@ function heroCard(id) {
           <span class="wmeta">${gradeTag(bestGrade(x))}<small>${n > 1 ? `${n} owned` : ''}</small></span></button>`;
       }).join('')}</div>
       <p class="fine">A hero always wields the best grade they own. Merge copies in the Forge.</p></details>
+    ${armorPicker(id)}
   </article>`;
 }
 
@@ -832,7 +903,7 @@ function paintPortraits() {
     const id = cv.dataset.hero, c = cv.getContext('2d'), k = Number(cv.dataset.scale || 2);
     c.clearRect(0, 0, cv.width, cv.height);
     c.save(); c.scale(k, k);
-    drawHero(c, id, cv.width / (2 * k), (cv.height - 10) / k, { weapon: cv.dataset.weapon || save.heroes[id].weapon, t: 0 });
+    drawHero(c, id, cv.width / (2 * k), (cv.height - 10) / k, { weapon: cv.dataset.weapon || save.heroes[id].weapon, armor: save.heroes[id].armor, t: 0 });
     c.restore();
   });
 }
@@ -842,7 +913,7 @@ function paintPortraits() {
 const WIELDER = Object.fromEntries(HERO_ORDER.map(id => [HERO[id].family, id]));
 
 /* Every stage where a weapon can drop, with the grade it drops at and the real chance per won fight (folded). */
-function weaponDropsHtml(w) {
+function weaponDropsHtml(w) {                      // (also used by armor cards: it only reads the stage drop tables)
   const rows = [], rate = dropRatePerWin();
   for (const r of REGIONS) {
     const list = r.stages.map(id => STAGE[id]).filter(s => (s.drops || []).some(([x]) => x === w));
@@ -890,15 +961,46 @@ function weaponCard(w) {
       <div class="wfoot">${foot}</div></div></article>`;
 }
 
+/* An armor in the Forge: grades owned with merge buttons, who wears each copy, and where it drops. Equipping is done on the Party tab. */
+function armorCard(a) {
+  const A = ARMORS[a], items = save.armors[a], total = armorTotal(a);
+  const stat = (g) => `HP +${pct0(A.hp * GRADES[g].mult)}% · -${pct0(Math.min(0.5, A.dr * GRADES[g].mult))}% damage`;
+  if (!total) {
+    const where = STAGES.filter(s => (s.drops || []).some(([x]) => x === a)).map(s => s.name);
+    return `<article class="weaponcard locked"><div class="wport">${itemIcon(a)}</div>
+      <div class="winfo"><div class="wtop"><h4>${A.name}</h4><span class="pill lock"><i class="ico m lock sm"></i>Not found</span></div>
+        <p class="wdesc">${A.desc} <span class="wcrit">${stat(0)}</span></p><p class="fine">Drops at ${where.join(', ')}.</p>${weaponDropsHtml(a)}</div></article>`;
+  }
+  const best = items.reduce((b, n, g) => (n > 0 ? g : b), 0), ready = items.some((n, g) => g < GRADES.length - 1 && freeArmor(a, g) >= MERGE_N);
+  const rows = [];
+  for (let gr = 0; gr < GRADES.length; gr++) {
+    const n = items[gr] || 0;
+    if (!n) continue;
+    const last = gr === GRADES.length - 1, can = !last && freeArmor(a, gr) >= MERGE_N, who = wearers(a, gr);
+    const pips = last ? '' : `<span class="pips" aria-label="${Math.min(n, MERGE_N)} of ${MERGE_N}">${Array.from({ length: MERGE_N }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
+    rows.push(`<div class="mergerow ${can ? 'can' : ''}"><span class="mleft">${gradeTag(gr)}<b>×${n}</b><small>${stat(gr)}</small></span>${
+      last ? '<small>Max grade</small>' : `${pips}<button class="btn ${can ? 'good' : 'alt'} small" data-act="merge" data-arg="${a}:${gr}" ${can ? '' : 'disabled'}>Merge → ${GRADES[gr + 1].name}</button>`}</div>${
+      who.length ? `<p class="fine">Worn by ${who.map(id => HERO[id].name).join(', ')}.</p>` : ''}`);
+  }
+  return `<article class="weaponcard ${ready ? 'ready' : ''}" style="--g:${GRADES[best].color}">
+    <div class="wport">${itemIcon(a)}</div>
+    <div class="winfo"><div class="wtop"><h4>${A.name}</h4>${gradeTag(best)}</div>
+      <p class="wdesc">${A.desc}</p>
+      <div class="mergelist">${rows.join('')}</div>
+      ${weaponDropsHtml(a)}
+      <div class="wfoot"><span class="hint">Wear it from a hero's card on the Party tab.</span></div></div></article>`;
+}
 function renderForge() {
-  const readyCount = Object.keys(WEAPONS).reduce((a, w) => a + save.items[w].filter((n, g) => g < GRADES.length - 1 && n >= MERGE_N).length, 0);
+  const readyCount = Object.keys(WEAPONS).reduce((a, w) => a + save.items[w].filter((n, g) => g < GRADES.length - 1 && n >= MERGE_N).length, 0)
+    + ARMOR_IDS.reduce((a, w) => a + save.armors[w].filter((n, g) => g < GRADES.length - 1 && freeArmor(w, g) >= MERGE_N).length, 0);
   let h = `<div class="strip idle fstrip"><i class="ico m swords"></i><div><b>${readyCount ? `${readyCount} merge${readyCount > 1 ? 's' : ''} ready!` : 'The Forge'}</b>
-    <span>Weapons can't be bought: they drop from fights and farming. Merge ${MERGE_N} copies of the same weapon and grade into one of the next grade (${GRADES.map(x => x.name).join(' → ')}).</span></div></div>`;
+    <span>Weapons and armor can't be bought: they drop from fights and farming. Merge ${MERGE_N} copies of the same weapon and grade into one of the next grade (${GRADES.map(x => x.name).join(' → ')}).</span></div></div>`;
   for (const fam of Object.keys(FAMILY)) {
     const ws = Object.keys(WEAPONS).filter(w => WEAPONS[w].fam === fam);
     h += `<h2 class="sec">${FAMILY_PLURAL[fam]} <small>${HERO[WIELDER[fam]].name}</small></h2>` + `<div class="cgrid">${ws.map(weaponCard).join('')}</div>`;
   }
-  h += `<p class="note">Later areas drop better grades of every weapon, so keep merging.</p>`;
+  h += `<h2 class="sec">Armor <small>any hero can wear it: pick it on the Party tab</small></h2><div class="cgrid">${ARMOR_IDS.map(armorCard).join('')}</div>`;
+  h += `<p class="note">Later areas drop better grades of every weapon and armor, so keep merging.</p>`;
   return h;
 }
 
@@ -1037,10 +1139,18 @@ const actions = {
     if (isHired(id) && owned(w) && WEAPONS[w].fam === HERO[id].family) { save.heroes[id].weapon = w; snd('equip'); persist(); render(); }
   },
   merge(arg) {
-    const [w, gs] = arg.split(':'), gr = Number(gs), items = save.items[w];
+    const [w, gs] = arg.split(':'), gr = Number(gs), items = (isArmor(w) ? save.armors : save.items)[w];
     if (!items || !(gr >= 0 && gr < GRADES.length - 1) || items[gr] < MERGE_N) return;
+    if (isArmor(w) && freeArmor(w, gr) < MERGE_N) { toast('Take the worn ones off first: only copies nobody wears can be merged.'); return; }
     items[gr] -= MERGE_N; items[gr + 1]++;
-    snd('merge'); persist(); toast(`Merged into a ${GRADES[gr + 1].name} ${WEAPONS[w].name}!`); render();
+    snd('merge'); persist(); toast(`Merged into a ${GRADES[gr + 1].name} ${itemInfo(w).name}!`); render();
+  },
+  equiparmor(arg) {
+    const [id, a, gs] = arg.split(':'), g = Number(gs);
+    if (!isHired(id) || !ARMORS[a]) return;
+    if (a !== 'garb' && (save.heroes[id].armor === a && save.heroes[id].armorG === g ? false : freeArmor(a, g) < 1)) { toast('Somebody else wears that one.'); return; }
+    save.heroes[id].armor = a; save.heroes[id].armorG = a === 'garb' ? 0 : g;
+    snd('equip'); persist(); render();
   },
   fight(id) {
     const s = STAGE[id];
@@ -1332,7 +1442,7 @@ function frontHero() { return aliveH()[0]; }
 function hurt(h, dmg, crit) {
   if (h.dead) return;
   const sh = (WEAPONS[save.heroes[h.id].weapon] || {}).shield || 0;          // Sword & shield
-  const d = Math.round(dmg * (1 - sh) * (h.guard > 0 ? 0.6 : 1));          // Iron Guard: 40% less damage
+  const d = Math.round(dmg * (1 - sh) * (1 - armorBonus(h.id).dr) * (h.guard > 0 ? 0.6 : 1));          // armor takes its share off every hit          // Iron Guard: 40% less damage
   h.hp -= d; h.hit = 0.25;
   snd(crit ? 'hurtcrit' : 'hurt');
   floater(h.x, h.y - unitTop(h.id, 70) - 4, crit ? '-' + d + '!' : '-' + d, crit ? '#ff5a3c' : '#ff8a7a', crit);
@@ -1438,7 +1548,7 @@ function rewardsUi(w) {
   const chips = [];
   if (w.gold) chips.push(`<div style="animation-delay:0s,0s"><i class="ico gold"></i>+${fmt(w.gold)}</div>`);
   if (w.lumber) chips.push(`<div style="animation-delay:.12s,0s"><i class="ico lumber"></i>+${fmt(w.lumber)}</div>`);
-  if (w.drop) chips.push(`<div class="vdrop" style="animation-delay:.25s,0s">${itemIcon(w.drop, 'sm')}<span><small>New weapon!</small><b>${(w.dropGrade ? GRADES[w.dropGrade].name + ' ' : '') + WEAPONS[w.drop].name}</b></span></div>`);
+  if (w.drop) chips.push(`<div class="vdrop" style="animation-delay:.25s,0s">${itemIcon(w.drop, 'sm')}<span><small>${isArmor(w.drop) ? 'New armor!' : 'New weapon!'}</small><b>${(w.dropGrade ? GRADES[w.dropGrade].name + ' ' : '') + itemInfo(w.drop).name}</b></span></div>`);
   if (chips.length) fxAdd(`<div class="vrewards">${chips.join('')}</div>`, 1500);
   if (w.gold || w.lumber) snd('coins');
   if (w.drop) setTimeout(() => snd('drop'), 250);
@@ -1457,7 +1567,7 @@ function addRun(r) {
 function dropsText(list) {
   const m = {};
   for (const [w, g] of list) m[g + ':' + w] = (m[g + ':' + w] || 0) + 1;
-  return Object.entries(m).map(([k, n]) => { const [g, w] = k.split(':'); return (Number(g) ? GRADES[g].name + ' ' : '') + WEAPONS[w].name + (n > 1 ? ` ×${n}` : ''); }).join(', ');
+  return Object.entries(m).map(([k, n]) => { const [g, w] = k.split(':'); return (Number(g) ? GRADES[g].name + ' ' : '') + itemInfo(w).name + (n > 1 ? ` ×${n}` : ''); }).join(', ');
 }
 function runLogHtml(now) {
   const t = run;
@@ -1484,7 +1594,7 @@ function showRunSummary() {
   r.innerHTML = `<div class="box rescard win"><div class="rhead"><h2 class="rtitle">Repeat run</h2><p class="rsub2">${B.spec.title} · ${t.wins} fight${t.wins === 1 ? '' : 's'} won</p></div>
     <div class="rbody"><div class="rtiles"><div class="rtile"><i class="ico gold"></i><b class="count" data-to="${t.gold}">+0</b><small>Gold</small></div>
       <div class="rtile"><i class="ico lumber"></i><b class="count" data-to="${t.lumber}">+0</b><small>Lumber</small></div></div>
-      ${t.drops.length ? `<div class="unlockbar"><i class="ico m swords"></i><span><b>Weapons found:</b> ${dropsText(t.drops)}</span></div>` : '<p class="note">No weapons dropped this run.</p>'}
+      ${t.drops.length ? `<div class="unlockbar"><i class="ico m swords"></i><span><b>Found:</b> ${dropsText(t.drops)}</span></div>` : '<p class="note">No weapons dropped this run.</p>'}
       <div class="rbtns"><button class="btn primary" data-act="__close">Back to the village</button><button class="btn alt" data-act="__again"><i class="ico m swords"></i>Fight again</button></div></div></div>`;
   r.hidden = false; repeatUi(); animateCounts(r);
 }
@@ -1519,7 +1629,7 @@ function showFarmReport(e) {
   d.className = 'result dialog'; d.id = 'farm-report';
   d.innerHTML = `<div class="box"><h2>Farm report</h2><p class="note">${STAGE[e.stage].name} · out for ${fmtDur(e.mins)}</p>
     <div class="rtiles"><div class="rtile"><i class="ico gold"></i><b>+${fmt(e.gold)}</b><small>Gold</small></div><div class="rtile"><i class="ico lumber"></i><b>+${fmt(e.lumber)}</b><small>Lumber</small></div></div>
-    ${e.found.length ? `<div class="unlockbar"><i class="ico m swords"></i><span><b>Weapons found:</b> ${dropNames(e.found, e.grade)}</span></div>` : `<p class="note">No weapons this time. You get one roll per full hour away (${pctText(DROP.autoPerHour)} each), so long trips pay best, and fighting by hand has the best chance.</p>`}
+    ${e.found.length ? `<div class="unlockbar"><i class="ico m swords"></i><span><b>Weapons found:</b> ${dropNames(e.found, e.grade)}</span></div>` : `<p class="note">No weapons or armor this time. You get one roll per full hour away (${pctText(DROP.autoPerHour)} each), so long trips pay best, and fighting by hand has the best chance.</p>`}
     <div class="stack"><button class="btn primary" data-act="farmreportok">Nice!</button></div></div>`;
   d.addEventListener('click', ev => { if (ev.target === d) closeFarmReport(); });
   document.body.appendChild(d);
@@ -1540,11 +1650,11 @@ function heroesRow() {
   }).join('')}</div>`;
 }
 function dropCardHtml(w, g) {
-  const W = WEAPONS[w], n = save.items[w][g], ready = g < GRADES.length - 1 && n >= MERGE_N, next = GRADES[g + 1] && GRADES[g + 1].name;
+  const W = itemInfo(w), n = (isArmor(w) ? save.armors : save.items)[w][g], ready = g < GRADES.length - 1 && n >= MERGE_N, next = GRADES[g + 1] && GRADES[g + 1].name;
   const pips = Array.from({ length: MERGE_N }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
   return `<div class="dropcard" style="--g:${GRADES[g].color}">
     <div class="vport big">${itemIcon(w)}</div>
-    <div class="dinfo2"><small>New weapon!</small><b>${W.name}</b>
+    <div class="dinfo2"><small>${isArmor(w) ? 'New armor!' : 'New weapon!'}</small><b>${W.name}</b>
       <div class="dline">${gradeTag(g)}<span class="pips">${pips}</span></div>
       <p>${next ? (ready ? `You have ${n} ${GRADES[g].name} copies: merge them into a ${next} ${W.name}.` : `${n} of ${MERGE_N} copies toward a ${next} ${W.name}.`) : `A ${GRADES[g].name} ${W.name}!`}</p>
       ${ready ? '<button class="btn good small" data-act="__forge">Open Forge</button>' : ''}</div></div>`;
@@ -1572,10 +1682,10 @@ function defeatTips() {
   if (B.spec.enemies.includes('boar')) tips.push({ t: 'The Thornback Boar scrapes the ground before it charges the whole party. Heal up, or use Iron Guard or Bulwark when you see the warning.' });
   const unhired = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0];
   const lvlId = party().find(id => save.gold >= lvlCost(save.heroes[id].lvl));
-  const mergeReady = Object.keys(WEAPONS).some(w => save.items[w].some((n, g) => g < GRADES.length - 1 && n >= MERGE_N));
+  const mergeReady = Object.keys(WEAPONS).some(w => save.items[w].some((n, g) => g < GRADES.length - 1 && n >= MERGE_N)) || ARMOR_IDS.some(a => save.armors[a].some((n, g) => g < GRADES.length - 1 && freeArmor(a, g) >= MERGE_N));
   if (unhired && save.gold >= HERO[unhired].hire) tips.push({ t: `You have enough gold to hire ${HERO[unhired].name}. A bigger party hits harder.`, btn: ['Open Party', '__party'] });
   else if (lvlId) tips.push({ t: `You can afford to level up ${HERO[lvlId].name}.`, btn: ['Open Party', '__party'] });
-  else if (mergeReady) tips.push({ t: 'Some of your weapons can be merged into a stronger grade.', btn: ['Open Forge', '__forge'] });
+  else if (mergeReady) tips.push({ t: 'Some of your weapons or armor can be merged into a stronger grade.', btn: ['Open Forge', '__forge'] });
   if (!tips.length) tips.push({ t: 'Heroes recover fully in the village. Use your skills sooner, or farm some gold and level up.' });
   return tips.slice(0, 2);
 }
@@ -1702,7 +1812,7 @@ function draw() {
   const items = [];
   for (const h of B.heroes) items.push({ y: h.y, f: () => {
     const w = save.heroes[h.id].weapon;
-    drawHero(c, h.id, h.x, h.y, { weapon: w, t: B.t, swing: h.swing, lean: h.draw > 0 ? 1 - h.draw / 0.25 : 0, dead: h.dead, hit: h.hit, });
+    drawHero(c, h.id, h.x, h.y, { weapon: w, armor: save.heroes[h.id].armor, t: B.t, swing: h.swing, lean: h.draw > 0 ? 1 - h.draw / 0.25 : 0, dead: h.dead, hit: h.hit, });
     if (!h.dead) hpBar(c, h.x, h.y - unitTop(h.id, 70) - 8, 34, h.hp / h.maxHp, 'hero');
   } });
   for (const e of B.enemies) items.push({ y: e.y, f: () => {
