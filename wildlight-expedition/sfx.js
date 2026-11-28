@@ -488,6 +488,8 @@
         case 'giant': return smp('giant_voice', { gain: 0.95, rate: r, dur: 0.5 });
         case 'dragon': return smp('roar', { gain: 0.9, dur: 0.55, rate: 0.95 });
         case 'frog': return smp('slime_voice', { gain: 0.9, rate: 0.8 * r, dur: 0.3 });
+        case 'goblin': return smp('beast_voice', { gain: 0.85, rate: 1.35 * r, dur: 0.3 });             // high and cackling (the king is bigger, so lower)
+        case 'orc': return smp('giant_voice', { gain: 0.9, rate: 1.15 * r, dur: 0.45 });
         case 'snake': return smp('hiss', { gain: 0.7, dur: 0.35 });
         case 'bat': return smp('creature_misc', { gain: 0.8, rate: 1.15, dur: 0.3 });
         case 'spirit': case 'hag': return smp('spirit_voice', { gain: 0.85, dur: 0.4 });
@@ -505,6 +507,8 @@
         case 'beast': case 'bat': bite(0.9); smp('body_thud', { gain: 0.35 }); return true;
         case 'insect': return bite(1);
         case 'snake': bite(0.8); smp('hiss', { gain: 0.4, dur: 0.2 }); return true;
+        case 'goblin': smp('clash_knife', { gain: 0.5, dur: 0.12 }); bite(0.7); return true;
+        case 'orc': smp('blade_hit', { gain: 0.8 }); smp('body_thud', { gain: 0.6 }); return true;
         case 'giant': smp('body_thud', { gain: 1 }); thump(0, 85, 0.45, 0.3); return true;
         case 'dragon': bite(0.9); smp('roar', { gain: 0.3, dur: 0.3 }); thump(0, 100, 0.3, 0.2); return true;
         case 'frog': smp('slime_voice', { gain: 0.8, dur: 0.2 }); smp('body_thud', { gain: 0.5 }); return true;
@@ -519,6 +523,7 @@
     mshot: p => {
       switch ((p && p.c) || 'spirit') {
         case 'plant': return smp('bubble', { gain: 0.9 });
+        case 'goblin': return smp('whoosh', { gain: 0.5, dur: 0.25 });                                   // an arrow
         case 'hag': return smp('spirit_voice', { gain: 0.6, dur: 0.3 });
         case 'ice': return smp('magic_frost', { gain: 0.5, dur: 0.3 });
         case 'fire': return smp('magic_fire', { gain: 0.8, dur: 0.4 });

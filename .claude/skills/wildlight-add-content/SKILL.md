@@ -28,7 +28,7 @@ Always copy the closest existing entry and follow it; read the matching CLAUDE.m
 `SKILLS` (hero, name, lvl 3 or 10, cd, mult, desc), `ICON` (24x24 SVG paths), `TAG` (short effect shown on the button), the cast code + its effect kinds in `skills.js`, `wants()` conditions for Auto, `skill_<id>` sounds in `sfx.js`, the keys 1-8 follow the party order. Timers that persist (`B.haste`, `e.stun`, `h.guard`) are ticked in `skillsStep`.
 
 ## Monster or stage
-- Monster: `MON` (`hp`, `armor`, `cd`, `wind`, `dmg`, `tgt` front/back, `scale`, `boss`, `charge`), pictures `assets/monsters/<id>-idle|attack.webp`, `assets/meta.json`, `REGION_ART` in `sprites.js` (so it loads with its region), sounds for its voice and attack in `sfx.js`.
+- Monster: `MON` (`hp`, `armor`, `cd`, `wind`, `dmg`, `tgt` front/back, `scale`, `boss`, `charge`; tricks `heal`, `rage`, `cry` (see CLAUDE.md, Goblin Warrens), also `MON_CAT` / `MON_MAT` for sounds and `HEIGHT` in sprites.js), pictures `assets/monsters/<id>-idle|attack.webp`, `assets/meta.json`, `REGION_ART` in `sprites.js` (so it loads with its region), sounds for its voice and attack in `sfx.js`.
 - Stage: `STAGES` entry (`req`, `enemies` + `waves` for 1-2 heroes, `drops`, `dropGrade`, `farm`, `first` rewards, `power`, `rec`, `sky`), background `assets/bg/<id>.jpg`, `LAYOUT` for new enemy counts, `REGIONS` if it opens a region; run `wildlight-balance`.
 
 ## Always

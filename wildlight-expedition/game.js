@@ -3,11 +3,13 @@
 /* what a monster is, for its sounds (growl, strike, death) */
 const MON_CAT = { brushfang: 'beast', frostwolf: 'beast', barkbear: 'beast', boar: 'giant', snowyeti: 'giant', frostgiant: 'giant', stormdrake: 'dragon',
   hornet: 'insect', beetle: 'insect', bogtoad: 'frog', bogking: 'frog', mireadder: 'snake', mossturtle: 'crab', magmacrab: 'crab',
-  icegolem: 'golem', sentinel: 'golem', cinderbat: 'bat', spitter: 'plant', reedwisp: 'spirit', mistheg: 'hag', rimesprite: 'ice', emberimp: 'fire' };
+  icegolem: 'golem', sentinel: 'golem', cinderbat: 'bat', spitter: 'plant', reedwisp: 'spirit', mistheg: 'hag', rimesprite: 'ice', emberimp: 'fire',
+  gscrapper: 'goblin', garcher: 'goblin', gshaman: 'hag', gking: 'goblin', ogrunt: 'orc', oberserker: 'orc', obrute: 'orc', owarlord: 'orc' };
 const monCat = type => MON_CAT[type] || 'beast';
 /* what a monster is made of, for the sound of the weapon landing on it */
 const MON_MAT = { hornet: 'armored', beetle: 'armored', mossturtle: 'armored', magmacrab: 'armored', stormdrake: 'armored', bogtoad: 'slime', bogking: 'slime',
-  icegolem: 'golem', sentinel: 'golem', spitter: 'plant', reedwisp: 'ghost', mistheg: 'ghost', rimesprite: 'ghost', emberimp: 'ghost' };
+  icegolem: 'golem', sentinel: 'golem', spitter: 'plant', reedwisp: 'ghost', mistheg: 'ghost', rimesprite: 'ghost', emberimp: 'ghost',
+  gking: 'armored', ogrunt: 'armored', obrute: 'armored', owarlord: 'armored' };
 const monMat = type => MON_MAT[type] || 'beast';
 const HEAVY_WEAPONS = ['great', 'falchion', 'longbow', 'crossbow', 'buckler'];
 const snd = (n, a) => { try { if (window.sfx) window.sfx.play(n, a); } catch (e) { /* ignore */ } };
@@ -122,6 +124,16 @@ const MON = {
   cinderbat: { name: 'Cinder Bat', role: 'Pack melee', hp: 36, armor: 0, cd: 1.9, wind: 0.5, dmg: 10, tgt: 'front', scale: 0.95 },
   sentinel: { name: 'Obsidian Sentinel', role: 'Armored melee', hp: 130, armor: 4, cd: 2.8, wind: 0.65, dmg: 12, tgt: 'front', scale: 1.25 },
   stormdrake: { name: 'Storm Drake', role: 'Stage boss', hp: 1200, armor: 1, cd: 2.4, wind: 0.45, dmg: 16, tgt: 'front', scale: 1.8, boss: true, charge: { first: 6, every: 8, wind: 1.3, dmg: 58 } },
+  /* Goblin series (Goblin Warrens). Tricks: the scrappers come in swarms, the shaman heals the others (heal: every N seconds, mult x its own max HP), the king calls a war cry (cry: at = health shares, everyone acts haste x faster for dur seconds). */
+  gscrapper: { name: 'Goblin Scrapper', role: 'Swarm fighter', hp: 30, armor: 0, cd: 1.9, wind: 0.5, dmg: 6, tgt: 'front', scale: 0.95 },
+  garcher: { name: 'Goblin Archer', role: 'Ranged attacker', hp: 36, armor: 0, cd: 2.8, wind: 0.75, dmg: 9, tgt: 'back', scale: 0.95 },
+  gshaman: { name: 'Goblin Shaman', role: 'Healer', hp: 48, armor: 0, cd: 3.2, wind: 0.8, dmg: 8, tgt: 'back', scale: 1, heal: { every: 4.5, mult: 0.9 } },
+  gking: { name: 'Goblin King', role: 'Stage boss', hp: 900, armor: 1, cd: 2.4, wind: 0.45, dmg: 11, tgt: 'front', scale: 1.6, boss: true, charge: { first: 7, every: 9, wind: 1.4, dmg: 55 }, cry: { at: [0.5], haste: 1.5, dur: 8 } },
+  /* Orc series (Orc Highlands). Tricks: the berserker gets faster when hurt (rage: below this health share it acts 1.6x faster), the warlord's war cries speed up the whole warband. */
+  ogrunt: { name: 'Orc Grunt', role: 'Armored melee', hp: 90, armor: 2, cd: 2.5, wind: 0.55, dmg: 11, tgt: 'front', scale: 1.15 },
+  oberserker: { name: 'Orc Berserker', role: 'Frenzied melee', hp: 70, armor: 0, cd: 1.9, wind: 0.5, dmg: 12, tgt: 'front', scale: 1.1, rage: 0.5 },
+  obrute: { name: 'Orc Brute', role: 'Heavy tank', hp: 190, armor: 4, cd: 3.2, wind: 0.7, dmg: 14, tgt: 'front', scale: 1.35 },
+  owarlord: { name: 'Orc Warlord', role: 'Stage boss', hp: 1300, armor: 2, cd: 2.6, wind: 0.5, dmg: 15, tgt: 'front', scale: 1.85, boss: true, charge: { first: 7, every: 9, wind: 1.3, dmg: 60 }, cry: { at: [0.7, 0.35], haste: 1.4, dur: 7 } },
 };
 
 /* Critical hits. A weapon's crit chance (plus 1% per grade of the best copy) and the monsters' crit chance are rolled on every hit;
@@ -148,6 +160,10 @@ const REGIONS = [
     pins: [[0.20, 0.70], [0.45, 0.62], [0.70, 0.50]], towerPos: [0.90, 0.32] },
   { id: 'ember', name: 'Emberwaste', stages: ['cinder', 'quarry', 'magmagate', 'skyreach'], tower: 'skyreach', map: 'map/ember.jpg',
     pins: [[0.14, 0.74], [0.34, 0.64], [0.55, 0.56], [0.76, 0.46]], towerPos: [0.92, 0.34] },
+  { id: 'warrens', name: 'Goblin Warrens', stages: ['scrapheap', 'gobmines', 'kinghall'], tower: 'kinghall', map: 'map/warrens.jpg',
+    pins: [[0.20, 0.72], [0.46, 0.62], [0.72, 0.50]], towerPos: [0.90, 0.34] },
+  { id: 'highlands', name: 'Orc Highlands', stages: ['ridge', 'warcamp', 'throne'], tower: 'throne', map: 'map/highlands.jpg',
+    pins: [[0.18, 0.74], [0.44, 0.64], [0.70, 0.52]], towerPos: [0.91, 0.33] },
 ];
 
 /* Stage power = monster HP and damage multipliers (armor scales with damage); rec = the hero level the area is balanced for
@@ -208,13 +224,41 @@ const STAGES = [
     blurb: 'The Storm Drake circles the last spire. Defeat it to light the final watchtower.', farm: { gold: 246.5, lumber: 72.3 }, best: 'Gold + lumber',
     first: { gold: 48025, lumber: 2307, tower: true }, drops: [['sword', 1], ['bow', 1.5], ['staff', 1.5], ['twin', 3], ['great', 3.5], ['rapier', 2], ['buckler', 2.5], ['longbow', 2.5], ['stormstaff', 2.5], ['heartwood', 2], ['grimoire', 3], ['halberd', 3], ['gauntlets', 3], ['twindaggers', 3]], dropGrade: 3, repeat: { gold: 2307, lumber: 87 }, sky: ['#3a3f5a','#14162a'],
     power: { hp: 10.22, dmg: 3.88, arm: 9.29 }, rec: 25 },
+  /* Goblin Warrens and Orc Highlands: power first = stage total HP and team damage rate divided by the monsters' base values, arm about 0.36 x rec, then tuned by stepped simulations
+   (4 heroes at rec with grade 3 / 4 weapons: every stage is won with 60-100% health left, 3 levels under rec it often loses; see wildlight-balance). */
+  { id: 'scrapheap', name: 'Scrapheap Trail', region: 'warrens', req: 'skyreach', enemies: ['gscrapper', 'gscrapper', 'gscrapper', 'garcher'],
+    blurb: 'Goblin Scrappers swarm out of the junk heaps while an Archer picks targets from a rusty roof.', farm: { gold: 280, lumber: 82 }, best: 'Gold + lumber',
+    first: { gold: 21000, lumber: 1000 }, drops: [['sword', 1.5], ['bow', 1.5], ['staff', 1.5], ['twin', 2.5], ['great', 3], ['rapier', 2], ['buckler', 2], ['longbow', 2.5], ['stormstaff', 2.5], ['heartwood', 2], ['grimoire', 3], ['halberd', 3], ['gauntlets', 3], ['twindaggers', 3], ['saber', 2], ['crossbow', 2]], dropGrade: 3, repeat: { gold: 2700, lumber: 100 }, sky: ['#5a4a2a', '#1c160c'],
+    power: { hp: 78.6, dmg: 7.1, arm: 9.72 }, rec: 27 },
+  { id: 'gobmines', name: 'Glowcap Mines', region: 'warrens', req: 'scrapheap', enemies: ['gscrapper', 'gscrapper', 'garcher', 'gshaman'],
+    blurb: 'A mushroom-lit goblin mine: the Shaman heals the pack, so silence it first.', farm: { gold: 320, lumber: 94 }, best: 'Gold + lumber',
+    first: { gold: 28000, lumber: 1300 }, drops: [['sword', 1.5], ['bow', 1.5], ['staff', 1.5], ['twin', 2.5], ['great', 3], ['rapier', 2], ['buckler', 2], ['longbow', 2.5], ['stormstaff', 2.5], ['heartwood', 2], ['grimoire', 3], ['halberd', 3], ['gauntlets', 3], ['twindaggers', 3], ['saber', 2], ['crossbow', 2]], dropGrade: 3, repeat: { gold: 3300, lumber: 120 }, sky: ['#2c5a3a', '#0e1c14'],
+    power: { hp: 62, dmg: 7.2, arm: 10.44 }, rec: 29 },
+  { id: 'kinghall', name: "Goblin King's Hall", region: 'warrens', req: 'gobmines', enemies: ['gking', 'gshaman', 'gscrapper'], boss: true,
+    blurb: 'The Goblin King rules a hall of loot. His war cry whips the whole warren into a frenzy.', farm: { gold: 360, lumber: 106 }, best: 'Gold + lumber',
+    first: { gold: 90000, lumber: 4200, tower: true }, drops: [['sword', 1.5], ['bow', 1.5], ['staff', 1.5], ['twin', 2.5], ['great', 3], ['rapier', 2], ['buckler', 2], ['longbow', 2.5], ['stormstaff', 2.5], ['heartwood', 2], ['grimoire', 3], ['halberd', 3], ['gauntlets', 3], ['twindaggers', 3], ['saber', 2], ['crossbow', 2]], dropGrade: 3, repeat: { gold: 4000, lumber: 150 }, sky: ['#4a3a2a', '#150f0a'],
+    power: { hp: 18.9, dmg: 8.6, arm: 11.16 }, rec: 31 },
+  { id: 'ridge', name: "Raider's Ridge", region: 'highlands', req: 'kinghall', enemies: ['ogrunt', 'ogrunt', 'oberserker', 'oberserker'],
+    blurb: 'Orc raiders hold the ridge. A Berserker fights faster the more it bleeds.', farm: { gold: 420, lumber: 124 }, best: 'Gold + lumber',
+    first: { gold: 40000, lumber: 1900 }, drops: [['sword', 1.5], ['bow', 1.5], ['staff', 1.5], ['twin', 2.5], ['great', 3], ['rapier', 2], ['buckler', 2], ['longbow', 2.5], ['stormstaff', 2.5], ['heartwood', 2], ['grimoire', 3], ['halberd', 3], ['gauntlets', 3], ['twindaggers', 3], ['saber', 2], ['crossbow', 2]], dropGrade: 4, repeat: { gold: 4800, lumber: 170 }, sky: ['#5a3a30', '#1c0f0c'],
+    power: { hp: 45, dmg: 3.5, arm: 11.88 }, rec: 33 },
+  { id: 'warcamp', name: 'Warcamp Gate', region: 'highlands', req: 'ridge', enemies: ['ogrunt', 'oberserker', 'obrute', 'ogrunt'],
+    blurb: 'Drums thunder behind the gate of the orc war camp. A Brute stands in the way.', farm: { gold: 480, lumber: 141 }, best: 'Gold + lumber',
+    first: { gold: 54000, lumber: 2500 }, drops: [['sword', 1.5], ['bow', 1.5], ['staff', 1.5], ['twin', 2.5], ['great', 3], ['rapier', 2], ['buckler', 2], ['longbow', 2.5], ['stormstaff', 2.5], ['heartwood', 2], ['grimoire', 3], ['halberd', 3], ['gauntlets', 3], ['twindaggers', 3], ['saber', 2], ['crossbow', 2]], dropGrade: 4, repeat: { gold: 5800, lumber: 200 }, sky: ['#6a2c22', '#1e0c08'],
+    power: { hp: 31, dmg: 5.2, arm: 12.6 }, rec: 35 },
+  { id: 'throne', name: "Warlord's Throne", region: 'highlands', req: 'warcamp', enemies: ['owarlord', 'obrute', 'oberserker'], boss: true,
+    blurb: 'The Orc Warlord calls war cry after war cry. Break his warband to light the last watchtower.', farm: { gold: 540, lumber: 159 }, best: 'Gold + lumber',
+    first: { gold: 170000, lumber: 8000, tower: true }, drops: [['sword', 1.5], ['bow', 1.5], ['staff', 1.5], ['twin', 2.5], ['great', 3], ['rapier', 2], ['buckler', 2], ['longbow', 2.5], ['stormstaff', 2.5], ['heartwood', 2], ['grimoire', 3], ['halberd', 3], ['gauntlets', 3], ['twindaggers', 3], ['saber', 2], ['crossbow', 2]], dropGrade: 4, repeat: { gold: 7000, lumber: 250 }, sky: ['#5a2a2a', '#180a0a'],
+    power: { hp: 17.3, dmg: 6.3, arm: 13.32 }, rec: 37 },
 ];
 /* Armor drops from the same table as weapons (about a third of all drops): the early areas give leather, the middle ones chainmail, the last ones plate. */
 const ARMOR_DROPS = {
   path: [['leatherarmor', 4]], hollow: [['leatherarmor', 5]], crossing: [['leatherarmor', 6]],
   mirewood: [['leatherarmor', 4], ['chainmail', 2]], causeway: [['leatherarmor', 3], ['chainmail', 3]], toadking: [['leatherarmor', 2], ['chainmail', 5]],
   frostfall: [['leatherarmor', 2], ['chainmail', 5]], glimmer: [['chainmail', 6], ['platearmor', 1.5]], rimecrown: [['chainmail', 5], ['platearmor', 3]],
-  cinder: [['chainmail', 4], ['platearmor', 4]], quarry: [['chainmail', 3], ['platearmor', 5]], magmagate: [['chainmail', 3], ['platearmor', 6]], skyreach: [['chainmail', 2], ['platearmor', 8]],
+  cinder: [['chainmail', 4], ['platearmor', 4]],
+  scrapheap: [['chainmail', 4], ['platearmor', 5]], gobmines: [['chainmail', 3], ['platearmor', 6]], kinghall: [['chainmail', 2], ['platearmor', 9]],
+  ridge: [['chainmail', 2], ['platearmor', 8]], warcamp: [['chainmail', 1.5], ['platearmor', 9]], throne: [['chainmail', 1], ['platearmor', 11]], quarry: [['chainmail', 3], ['platearmor', 5]], magmagate: [['chainmail', 3], ['platearmor', 6]], skyreach: [['chainmail', 2], ['platearmor', 8]],
 };
 for (const s of STAGES) s.drops = (s.drops || []).concat(ARMOR_DROPS[s.id] || []);
 const STAGE = Object.fromEntries(STAGES.map(s => [s.id, s]));
@@ -508,7 +552,7 @@ function render() {
   startMapLoop();
   const chipRow = $('.regions'), chipOn = chipRow && chipRow.querySelector('.on');      // keep the active region chip in view
   if (chipOn) chipRow.scrollLeft = chipOn.offsetLeft - (chipRow.clientWidth - chipOn.offsetWidth) / 2;
-  if (typeof window.ensureRegion === 'function') window.ensureRegion(featuredStage().region);        // the next fight's art, ahead of time
+  if (typeof window.ensureRegion === 'function') { window.ensureRegion(featuredStage().region); window.ensureRegion(selStage().region); const ds = STAGES.find(x => x.enemies.includes(dailyMonster())); if (ds) window.ensureRegion(ds.region); }        // the next fight's art, ahead of time, the art of the adventure you are looking at and of the daily bounty's monster
 }
 
 /* ------------------------------ map --------------------------------- */
@@ -1437,7 +1481,8 @@ function startBattle(spec) {
     const d = MON[type], pw = spec.power || { hp: 1, dmg: 1 }, hp = Math.round(d.hp * (spec.hpMult || 1) * pw.hp * (typeof skillHp === 'function' ? skillHp(spec.rec) : 1));
     B.enemies.push({ type, hp, maxHp: hp, x: slots[i][0], y: slots[i][1], cd: d.cd * (0.35 + 0.5 * Math.random() + i * 0.08),
       state: 'idle', kind: null, wt: 0, wd: 0, lunge: 0, lungeDur: 0.35, lungeDist: 0, flash: 0, dead: false, fade: 0,
-      chargeT: d.charge ? d.charge.first : 0, dmgMult: pw.dmg, armMult: pw.arm || pw.dmg });
+      chargeT: d.charge ? d.charge.first : 0, dmgMult: pw.dmg, armMult: pw.arm || pw.dmg,
+      healT: d.heal ? d.heal.every * 0.7 : 0, haste: 0, hasteMul: 1, cryN: 0, raged: false });
   });
   B.intro = INTRO; B.introDone = false;
   B.heroes.forEach(h => { h.hx = h.x; });
@@ -1506,8 +1551,13 @@ function step(dt) {
     e.flash = Math.max(0, e.flash - dt);
     e.lunge = Math.max(0, e.lunge - dt);
     if (!aliveH().length) continue;
-    const sp = e.stun > 0 ? 0 : e.chill > 0 ? 0.55 : 1;                                      // chilled by a frost wand: acts slower
+    let sp = e.stun > 0 ? 0 : e.chill > 0 ? 0.55 : 1;                                        // chilled by a frost wand: acts slower
+    if (d.rage && !e.raged && e.hp / e.maxHp < d.rage) { e.raged = true; floater(e.x, e.y - unitTop(e.type, 62 * d.scale) - 10, 'Enraged!', '#ff7a5a', true); snd('mwind', { c: monCat(e.type), s: d.scale * 1.3 }); }
+    while (d.cry && e.cryN < d.cry.at.length && e.hp / e.maxHp <= d.cry.at[e.cryN]) { e.cryN++; warCry(e, d); }
+    if (e.haste > 0) e.haste -= dt;
+    sp *= (e.raged ? 1.6 : 1) * (e.haste > 0 ? e.hasteMul : 1);                                 // the berserker's rage and a war cry make a monster act faster
     if (e.state === 'idle') {
+      if (d.heal) { e.healT -= dt * sp; if (e.healT <= 0) e.healT = healAlly(e, d) ? d.heal.every : 1; }
       e.cd -= dt * sp;
       if (d.charge) e.chargeT -= dt * sp;
       if (d.charge && e.chargeT <= 0) startWind(e, 'charge');
@@ -1523,6 +1573,26 @@ function step(dt) {
 
   if (!aliveE().length) endBattle('win');
   else if (!aliveH().length) endBattle('lose');
+}
+
+/* A goblin shaman heals the most wounded monster (itself excluded) for a share of its own max HP. Returns false when nobody needs it. */
+function healAlly(e, d) {
+  const cand = aliveE().filter(a => a !== e && a.hp < a.maxHp * 0.9).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+  if (!cand) return false;
+  const amt = Math.round(e.maxHp * d.heal.mult);
+  cand.hp = Math.min(cand.maxHp, cand.hp + amt);
+  snd('healfx', 'staff');
+  floater(cand.x, cand.y - unitTop(cand.type, 56 * MON[cand.type].scale) - 4, '+' + amt, '#8ff0a4');
+  B.fx.push({ k: 'burst', x: cand.x, y: cand.y - 24, kind: 'leaf', n: 8, life: 0.8 });
+  e.lungeDur = 0.3; e.lunge = 0.3; e.lungeDist = 6;
+  return true;
+}
+/* A boss's war cry (at the health shares in MON[].cry.at): every monster acts faster for a while. */
+function warCry(e, d) {
+  for (const o of aliveE()) { o.haste = d.cry.dur; o.hasteMul = d.cry.haste; }
+  floater(e.x, e.y - unitTop(e.type, 62 * d.scale) - 14, 'War cry!', '#ffd24a', true);
+  B.fx.push({ k: 'ring', x: e.x, y: e.y - 20, t: 0, life: 0.6, c: '#ffb347' });
+  snd('warn'); snd('mwind', { c: monCat(e.type), s: d.scale * 1.4 });
 }
 
 function fxStep(dt) {
@@ -1998,6 +2068,10 @@ function draw() {
     if (e.chill > 0 && !e.dead) {                                           // frozen: a pale blue glow and a few ice crystals
       const sc = MON[e.type].scale, hh = unitTop(e.type, 56 * sc);
       c.save(); c.globalAlpha = Math.min(0.5, e.chill * 0.4); c.fillStyle = '#9fd8ff'; ell(c, e.x, e.y - hh * 0.5, 22 * sc, hh * 0.55); c.fill(); c.restore();
+    }
+    if (!e.dead && (e.raged || e.haste > 0)) {                               // a red glow while enraged, a golden one under a war cry
+      const sc = MON[e.type].scale, hh = unitTop(e.type, 56 * sc);
+      c.save(); c.globalAlpha = 0.14 + 0.08 * Math.sin(B.t * 10); c.fillStyle = e.raged ? '#ff4a3a' : '#ffc84a'; ell(c, e.x, e.y - hh * 0.5, 24 * sc, hh * 0.55); c.fill(); c.restore();
     }
     if (!e.dead) {
       const sc = MON[e.type].scale;
