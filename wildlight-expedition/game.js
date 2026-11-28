@@ -479,6 +479,7 @@ function fmtShort(n) {
 function hud() {
   $('#gold').textContent = fmtShort(save.gold);
   $('#lumber').textContent = fmtShort(save.lumber);
+  tabBadges();
 }
 let toastTimer = 0;
 function toast(msg) {
@@ -617,10 +618,19 @@ function difficulty(s) {
   const [cls, txt] = r >= 1.15 ? ['easy', 'Easy'] : r >= 0.95 ? ['fair', 'Fair fight'] : r >= 0.75 ? ['risky', 'Risky'] : ['hard', 'Too strong: level up first'];
   return { cls, txt, lv: Math.floor(lv), pct: Math.max(6, Math.min(100, Math.round(r * 70))) };
 }
+/* When the adventure is Risky or Too strong: a one-tap fix, the party member furthest behind (the lowest level) goes up a level right here. */
+function levelFixHtml(d) {
+  if (d.cls !== 'risky' && d.cls !== 'hard') return '';
+  const id = party().slice().sort((a, b) => save.heroes[a].lvl - save.heroes[b].lvl)[0];
+  if (!id) return '';
+  const lv = save.heroes[id].lvl, cost = lvlCost(lv), can = save.gold >= cost;
+  return `<div class="dfix"><span>${can ? `<b>${firstName(id)}</b> is behind: Lv ${lv} → ${lv + 1}` : `<b>${firstName(id)}</b> needs ${fmt(cost)} gold for Lv ${lv + 1}`}</span>
+    <button class="btn good small" data-act="lvl" data-arg="${id}" ${can ? '' : 'disabled'}>${can ? `Level up <span class="cost">${costHtml({ gold: cost })}</span>` : `Need ${fmt(cost - save.gold)}`}</button></div>`;
+}
 function difficultyHtml(s) {
   const d = difficulty(s);
   return `<div class="diff ${d.cls}"><div class="dtop"><span class="dlabel">Danger</span><b>${d.txt}</b><small>Your party Lv ${d.lv} · recommended Lv ${s.rec}</small></div>
-    <div class="dbar"><i style="width:${d.pct}%"></i><u></u></div></div>`;
+    <div class="dbar"><i style="width:${d.pct}%"></i><u></u></div>${levelFixHtml(d)}</div>`;
 }
 /* the loot to hunt for: the most likely armor first, then the most likely weapons */
 function lootRow(s) {
@@ -661,23 +671,22 @@ function adventureCard(s) {
     </div></article>`;
 }
 
-/* ---- what to do next: up to three nudges that point at something useful ---- */
-function nudgeList() {
-  const out = [], g = farmGain();
-  if (g && g.mins >= 60 && (g.gold > 0 || g.lumber > 0)) out.push({ icon: 'tent', text: g.full ? 'Your camp is full: claim it' : 'Your camp has loot waiting', btn: 'Claim', act: 'claim' });
+/* ---- reasons to look at another tab: a small dot on its tab button (never on the tab you are on) ---- */
+function mergeReadyAny() {
   const top = GRADES.length - 1;
-  const merge = Object.keys(WEAPONS).some(w => save.items[w].some((n, k) => k < top && n >= MERGE_N)) || ARMOR_IDS.some(a => save.armors[a].some((n, k) => k < top && freeArmor(a, k) >= MERGE_N));
-  if (merge) out.push({ icon: 'swords', text: 'Weapons or armor are ready to merge', btn: 'Forge', act: 'tab', arg: 'forge' });
-  const lv = party().find(id => save.gold >= lvlCost(save.heroes[id].lvl));
-  if (lv) out.push({ icon: 'swords', text: `${firstName(lv)} can level up (${fmt(lvlCost(save.heroes[lv].lvl))} gold)`, btn: 'Party', act: 'tab', arg: 'party' });
-  const un = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0];
-  if (un && save.gold >= HERO[un].hire) out.push({ icon: 'swords', text: `You can hire ${HERO[un].name}`, btn: 'Hire', act: 'tab', arg: 'party' });
-  return out.slice(0, 3);
+  return Object.keys(WEAPONS).some(w => save.items[w].some((n, k) => k < top && n >= MERGE_N)) || ARMOR_IDS.some(a => save.armors[a].some((n, k) => k < top && freeArmor(a, k) >= MERGE_N));
 }
-function nudgesHtml() {
-  const list = nudgeList();
-  if (!list.length) return '';
-  return `<div class="nudges"><h2 class="sec">Good to know</h2>${list.map(n => `<div class="nudge"><i class="ico m ${n.icon}"></i><span>${n.text}</span><button class="btn alt small" data-act="${n.act}" ${n.arg ? `data-arg="${n.arg}"` : ''}>${n.btn}</button></div>`).join('')}</div>`;
+const needsLevels = () => { const s = nextStage() || featuredStage(), c = difficulty(s).cls; return c === 'risky' || c === 'hard'; };       // the next adventure is not safe yet
+const canLevelAny = () => party().some(id => save.gold >= lvlCost(save.heroes[id].lvl));
+const canHireNow = () => { const un = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0]; return !!un && save.gold >= HERO[un].hire; };
+function tabBadges() {
+  const want = { party: (needsLevels() && canLevelAny()) || canHireNow(), forge: mergeReadyAny() };         // Party: you need levels and can pay for one, or you can hire; Forge: a merge is possible
+  document.querySelectorAll('#tabs button').forEach(b => {
+    const on = !!want[b.dataset.arg] && save.tab !== b.dataset.arg;
+    let d = b.querySelector('.tdot');
+    if (on && !d) { d = document.createElement('i'); d.className = 'tdot'; d.setAttribute('aria-hidden', 'true'); b.appendChild(d); }
+    else if (!on && d) d.remove();
+  });
 }
 
 /* ---- the road: the stops of the region you are looking at, tap one to see it ---- */
@@ -775,7 +784,7 @@ function renderMap() {
   let h = `<div class="vgrid"><div class="vcol"><div class="vg o1">${map}${regionChips()}</div>`;
   h += `<div class="vg o2"><h2 class="sec">${title}</h2>${adventureCard(sel)}</div>`;
   h += `<div class="vg o6">${journeyHtml(reg, sel)}</div></div>`;
-  h += `<div class="vcol"><div class="vg o3">${nudgesHtml()}</div><div class="vg o4">${farmStrip()}${farmLogCard()}</div><div class="vg o5">${dailyCard()}${window.pwaCard ? window.pwaCard() : ''}</div>`;   // pwaCard: "Install the game" (pwa.js)
+  h += `<div class="vcol"><div class="vg o4">${farmStrip()}${farmLogCard()}</div><div class="vg o5">${dailyCard()}${window.pwaCard ? window.pwaCard() : ''}</div>`;   // pwaCard: "Install the game" (pwa.js)
   h += '<div class="vg o7">';
   if (!next) h += '<p class="note">Every watchtower is lit. More areas will open in a later version.</p>';
   if (TEST_PERIOD) h += `<div class="card testtools"><div class="row between"><h3>Test tools</h3><span class="tag">Test period</span></div>
