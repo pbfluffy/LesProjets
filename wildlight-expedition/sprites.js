@@ -110,10 +110,11 @@
   function motion(w, p) {
     const m = { dx: 0, dy: 0, rot: 0, sx: 1, sy: 1, ghost: 0 }, W = (typeof WEAPONS !== 'undefined' && WEAPONS[w]) || {}, fam = W.fam;
     if (DASH[w]) {                                            // step, step, strike, back
-      const s1 = ease(seg(p, 0, 0.3)), s2 = ease(seg(p, 0.3, 0.6)), back = ease(seg(p, 0.74, 1));
+      const s1 = ease(seg(p, 0, 0.36)), s2 = ease(seg(p, 0.4, 0.74)), back = ease(seg(p, 0.82, 1));         // step (0 - 0.36), a beat, step again (0.4 - 0.74) and strike, hold, back
       m.dx = DASH[w] * ((s1 * 0.5 + s2 * 0.5) * (1 - back));
-      m.dy = 3.5 * (Math.sin(Math.PI * seg(p, 0, 0.3)) + Math.sin(Math.PI * seg(p, 0.3, 0.6)));            // a little hop with each step
-      m.rot = 0.07 * ease(seg(p, 0.45, 0.62)) * (1 - back); m.ghost = 0.24 * (Math.sin(Math.PI * seg(p, 0, 0.3)) + Math.sin(Math.PI * seg(p, 0.3, 0.6)));
+      const hop1 = Math.sin(Math.PI * seg(p, 0, 0.36)), hop2 = Math.sin(Math.PI * seg(p, 0.4, 0.74));
+      m.dy = 4.5 * (hop1 + hop2);                                                                            // a clear little hop with each step
+      m.rot = 0.07 * ease(seg(p, 0.6, 0.74)) * (1 - back); m.ghost = 0.26 * (hop1 + hop2);
     } else if (HEAVY[w]) {                                    // wind up and slam
       const k = HEAVY[w], back = pulse(p, 0, 0.42), slam = pulse(p, 0.3, 0.85);
       m.dx = -5 * k * back + 11 * k * slam; m.rot = -0.1 * k * back + 0.13 * k * slam; m.dy = 2 * back * k; m.sy = 1 - 0.07 * slam * k; m.sx = 1 + 0.06 * slam * k;
@@ -149,7 +150,7 @@
   function drawHeroSprite(c, id, x, y, o) {
     const m = meta.data && meta.data[id];
     if (!m) return false;
-    const sw = o.swing || 0, attacking = id === 'tavi' ? ((o.lean || 0) > 0.2 || sw > 0.7) : DASH[o.weapon] ? (sw > 0.1 && sw < 0.72) : sw > 0.3;       // a short weapon walks in with the standing picture and strikes on the second step
+    const sw = o.swing || 0, attacking = id === 'tavi' ? ((o.lean || 0) > 0.2 || sw > 0.7) : DASH[o.weapon] ? (sw > 0.1 && sw < 0.6) : sw > 0.3;       // a short weapon walks the first step in the standing picture and strikes (attack picture) on the second step
     const files = HERO_FILES[id] || [], kind = attacking ? 'attack' : 'idle';
     const pick = w => files.includes(w) && (get(heroPath(id, w, kind)) || get(heroPath(id, w, 'idle')));
     const near = (typeof WEAPONS !== 'undefined' && WEAPONS[o.weapon] && WEAPONS[o.weapon].pose) || o.weapon;     // the nearest older picture, if a new one is missing

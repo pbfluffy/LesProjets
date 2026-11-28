@@ -281,7 +281,7 @@ const GRADES = [
   { name: 'Legendary', mult: 2.30, color: '#f6bf4f' },
 ];
 const MERGE_N = 3;
-const DASH_RATE = 2.2, DASH_HIT = 0.27;       // weapons with dash: true are too short to reach from where the hero stands, so the hero steps in twice (sprites.js motion): the swing lasts 1/DASH_RATE s and the hit lands DASH_HIT s in
+const DASH_RATE = 1.8, DASH_HIT = 0.4;        // weapons with dash: true are too short to reach from where the hero stands, so the hero steps in twice (sprites.js motion): the swing lasts 1/DASH_RATE s (0.56) and the hit lands DASH_HIT s in, on the second step
 
 /* Armor: one piece per hero (the hero's outfit changes with it, see sprites.js). It drops like a weapon (the same stage tables, the same grade) and merges in the Forge.
    Any hero can wear any armor, but a copy is worn by one hero at a time. hp / dr are the bonus of a Common copy (more health, less damage taken);
