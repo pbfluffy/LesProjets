@@ -831,7 +831,7 @@ function renderMap() {
   h += `<div class="vcol"><div class="vg o4">${farmStrip()}${farmLogCard()}</div><div class="vg o5">${dailyCard()}${window.pwaCard ? window.pwaCard() : ''}</div>`;   // pwaCard: "Install the game" (pwa.js)
   h += '<div class="vg o7">';
   if (!next) h += '<p class="note">Every watchtower is lit. More areas will open in a later version.</p>';
-  if (TEST_PERIOD) h += `<div class="card testtools"><div class="row between"><h3>Test tools</h3><span class="tag">Test period</span></div>
+  if (devMode()) h += `<div class="card testtools"><div class="row between"><h3>Test tools</h3><span class="tag">Test period</span></div>
     <p class="sub">Want to start over? This wipes your progress and begins a brand-new game.</p>
     <button class="btn danger" data-act="resetask">Reset game data</button>
     <p class="sub" style="margin-top:12px">Testing the new areas? These shortcuts help:</p>
@@ -1190,9 +1190,28 @@ function renderForge() {
 }
 
 /* ------------------------------ test tools --------------------------------- */
-// While the game is being tested, the Map tab has a "Reset game data" button. Set TEST_PERIOD to false (or delete this block,
-// the card in renderMap and the three reset actions) when the game launches.
+// While the game is being tested, the Map tab has a "Test tools" card with a "Reset game data" button, but only in developer mode (see devMode below). Set TEST_PERIOD to false
+// (or delete this block, the card in renderMap and the four test actions) when the game launches.
 const TEST_PERIOD = true;
+
+/* Developer mode: the test tools (Reset game data, unlock everything, free gold) are for the owner, not for players. Turn it on with ?dev=1 at the end of the game's address
+   (?dev=0 turns it off) or by tapping the "Wildlight" title 7 times within a few seconds (again to turn it off). It is a flag in this browser's localStorage: it keeps the card away
+   from players, it is not a security feature (the tools only change the player's own save). */
+const DEV_KEY = 'wl-dev';
+const devMode = () => { try { return TEST_PERIOD && localStorage.getItem(DEV_KEY) === '1'; } catch (e) { return false; } };
+function setDevMode(on) { try { if (on) localStorage.setItem(DEV_KEY, '1'); else localStorage.removeItem(DEV_KEY); } catch (e) { /* ignore */ } }
+(function devEntry() {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.has('dev')) { setDevMode(q.get('dev') !== '0'); q.delete('dev'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); }
+  } catch (e) { /* ignore */ }
+  const brand = document.querySelector('.brand');
+  let taps = [];
+  if (brand) brand.addEventListener('click', () => {
+    const now = Date.now(); taps = taps.filter(t => now - t < 3500); taps.push(now);
+    if (taps.length >= 7) { taps = []; const on = !devMode(); setDevMode(on); toast(on ? 'Developer tools are on.' : 'Developer tools are off.'); if (save.tab === 'map') render(); }
+  });
+})();
 
 /* Which build is this? deploy.yml stamps the commit into the ?v= of the script links and the build time into <meta name="build">.
    During the test period a small corner label shows both, so a stale cached copy is easy to tell from the new one. */
@@ -1372,13 +1391,13 @@ const actions = {
   },
   region(id) { if (REGION[id]) { uiStage = stageFrontier(REGION[id]); render(); } },
   testunlock() {                                          // test period: open every area (the last one stays to fight for its first-clear reward)
-    if (!TEST_PERIOD) return;
+    if (!devMode()) return;
     STAGES.slice(0, -1).forEach(s => { save.cleared[s.id] = true; if (s.first.tower) save.towers[s.id] = true; });
     persist(); toast('All areas unlocked.'); render();
   },
-  testgold() { if (!TEST_PERIOD) return; save.gold += 10000; save.lumber += 2000; persist(); toast('Added 10,000 gold and 2,000 lumber.'); render(); },
-  resetask() { if (TEST_PERIOD) showResetDialog(); },
-  resetdo() { if (TEST_PERIOD) resetGame(); },
+  testgold() { if (!devMode()) return; save.gold += 10000; save.lumber += 2000; persist(); toast('Added 10,000 gold and 2,000 lumber.'); render(); },
+  resetask() { if (devMode()) showResetDialog(); },
+  resetdo() { if (devMode()) resetGame(); },
   resetcancel() { closeResetDialog(); },
   resinfo(kind) { showResInfo(kind); },
   closeinfo() { closeResInfo(); },
