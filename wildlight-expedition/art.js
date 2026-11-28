@@ -1597,8 +1597,9 @@ function artBattleGround(c,battle) {
     const progress = scrape ? artClamp(e.wt/e.wd) : e.lunge/e.lungeDur;
     const pulse = .74 + .26*Math.sin(battle.t*20);
     c.save();
-    c.translate(132,e.y + 4);
-    c.scale((e.x + 6 - 132)/170,1);
+    const lx = battle.cam ? camPt(132,0)[0] : 132;
+    c.translate(lx,e.y + 4);
+    c.scale((e.x + 6 - lx)/170,1);
     c.globalAlpha = scrape ? (.32 + .67*progress)*pulse : progress*.84;
     artPlace(c,artLane);
     for (let i=0; i<4; i++) {
@@ -1689,7 +1690,8 @@ function drawBarrier(c, t, frac) {
   const strength=artClamp(frac);
   const pulse=.79+Math.sin(t*8)*.13;
   c.save();
-  c.translate(95,168);
+  const bp = typeof barPos === 'function' ? barPos() : [95,168];
+  c.translate(bp[0],bp[1]);
   c.scale(.93+.07*strength,1);
   c.globalAlpha *= pulse * Math.min(1,strength*5);
   artPlace(c,artBarrierLight);

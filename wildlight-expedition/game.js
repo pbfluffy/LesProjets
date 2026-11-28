@@ -1125,11 +1125,30 @@ function bonusWin(m) {
 let B = null;
 const cv = $('#stage'), ctx = cv.getContext('2d');
 
+/* Phone in portrait: the battle gets a tall, zoomed view instead of the wide 400 x 260 one. The game still thinks in the 400 x 260 space;
+   B.cam = { x, y, w, h } is the window of that space that is shown, and units are spread out for it (camPt). */
+const CAM_W = 340, CAM_BOTTOM = 272, CAM_SCALE = 3.6;
+function makeCam() {
+  const iw = window.innerWidth, ih = window.innerHeight;
+  if (iw >= 720 || ih < iw * 1.2) return null;
+  const sw = Math.min(480, iw - 20), avail = ih - 345, ratio = Math.max(0.86, Math.min(1.25, avail / sw)), h = Math.round(CAM_W * ratio);
+  return { x: 0, y: CAM_BOTTOM - h, w: CAM_W, h };
+}
+const camPt = (x, y, foe) => [foe ? 205 + (x - 250) * 0.8 : 52 + (x - 58), 208 + (y - 195) * 1.8];      // heroes keep their spacing, monsters are packed a little closer
+const viewRect = () => (B && B.cam ? [B.cam.x, B.cam.y, B.cam.w, B.cam.h] : [0, 0, 400, 260]);
+function camSet(c) {
+  const m = B && B.cam;
+  if (m) { const k = cv.width / m.w; c.setTransform(k, 0, 0, k, -m.x * k, -m.y * k); }
+  else c.setTransform(cv.width / 400, 0, 0, cv.height / 260, 0, 0);
+}
+const barPos = () => (B && B.cam ? camPt(95, 168) : [95, 168]);               // where the barrier stands (round the heroes)
+
 function startBattle(spec) {
-  const slots = LAYOUT[spec.enemies.length] || LAYOUT[4];
-  B = { spec, t: 0, over: false, result: null, endT: 0, heroes: [], enemies: [], fx: [], later: [], bar: { t: 0, cd: 0 }, last: 0, raf: 0 };
+  const cam = makeCam(), mp = p => (cam ? camPt(p[0], p[1]) : p), mpf = p => (cam ? camPt(p[0], p[1], true) : p);
+  const slots = (LAYOUT[spec.enemies.length] || LAYOUT[4]).map(mpf);
+  B = { spec, cam, t: 0, over: false, result: null, endT: 0, heroes: [], enemies: [], fx: [], later: [], bar: { t: 0, cd: 0 }, last: 0, raf: 0 };
   party().forEach((id, i, all) => {
-    const st = heroStats(id), spot = all.length === 1 ? [108, 184] : SLOTS[i];
+    const st = heroStats(id), spot = mp(all.length === 1 ? [108, 184] : SLOTS[i]);
     B.heroes.push({ id, hp: st.maxHp, maxHp: st.maxHp, cd: 0.4 + Math.random() * 0.4, draw: 0, swing: 0, heal: 2.5, dead: false, hit: 0, x: spot[0], y: spot[1] });
   });
   spec.enemies.forEach((type, i) => {
@@ -1142,6 +1161,9 @@ function startBattle(spec) {
   B.heroes.forEach(h => { h.hx = h.x; });
   B.enemies.forEach(e => { e.hx = e.x; });
   $('#battle-title').textContent = spec.title;
+  cv.width = cam ? Math.round(cam.w * CAM_SCALE) : 800; cv.height = cam ? Math.round(cam.h * CAM_SCALE) : 520;
+  cv.style.aspectRatio = cam ? cam.w + ' / ' + cam.h : '';
+  $('#battle').classList.toggle('cam', !!cam);
   $('#result').hidden = true;
   $('#battle').hidden = false;
   document.body.style.overflow = 'hidden';
@@ -1157,7 +1179,8 @@ function raiseBarrier() {
   if (!B || B.over || B.bar.t > 0 || B.bar.cd > 0) return;
   B.bar.t = BAR_DUR; B.bar.cd = BAR_CD;
   snd('barrier');
-  B.fx.push({ k: 'ring', x: 95, y: 178, t: 0, life: 0.5, c: '#7cc8ff' });
+  const bp = barPos();
+  B.fx.push({ k: 'ring', x: bp[0], y: bp[1] + 10, t: 0, life: 0.5, c: '#7cc8ff' });
 }
 
 function loop(ts) {
@@ -1336,7 +1359,7 @@ function strike(e) {
   if (kind === 'charge') {
     e.lungeDur = 0.55; e.lunge = 0.55; e.lungeDist = e.x - 150;
     later(0.2, () => {
-      if (B.bar.t > 0) { snd('block'); floater(95, 110, 'Blocked!', '#7cc8ff'); B.fx.push({ k: 'ring', x: 95, y: 178, t: 0, life: 0.5, c: '#7cc8ff' }); }
+      if (B.bar.t > 0) { snd('block'); const bp = barPos(); floater(bp[0], bp[1] - 58, 'Blocked!', '#7cc8ff'); B.fx.push({ k: 'ring', x: bp[0], y: bp[1] + 10, t: 0, life: 0.5, c: '#7cc8ff' }); }
       else { snd('mhit', { c: monCat(e.type), s: d.scale * 1.4 }); for (const h of aliveH()) hurt(h, d.charge.dmg * e.dmgMult); }
     });
     e.chargeT = d.charge.every;
@@ -1686,7 +1709,7 @@ function hpBar(c, x, y, w, frac, kind) {
 
 function draw() {
   const c = ctx;
-  c.setTransform(cv.width / 400, 0, 0, cv.height / 260, 0, 0);
+  camSet(c);
   c.filter = 'none'; c.globalAlpha = 1;
   drawBackground(c);
 
@@ -1769,7 +1792,7 @@ function draw() {
       c.globalAlpha = 1;
     }
   }
-  if (warn) { c.fillStyle = `rgba(255,60,40,${0.06 + 0.05 * Math.sin(B.t * 16)})`; c.fillRect(0, 0, 400, 260); }
+  if (warn) { c.fillStyle = `rgba(255,60,40,${0.06 + 0.05 * Math.sin(B.t * 16)})`; c.fillRect(...viewRect()); }
 }
 
 /* ----------------------------- boot --------------------------------- */

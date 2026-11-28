@@ -116,7 +116,7 @@
         dmg(tg, S.mult, i, 0, 1, 'twindaggers'); if (i === 2) winCheck();
       });
     } else if (id === 'smoke') {
-      fx({ k: 'smoke', x: 270, y: 190, life: 1.4 }); fx({ k: 'burst', x: h.x, y: h.y - 24, kind: 'dust', n: 10, life: 0.6 });
+      const sp = B.cam ? camPt(270, 190, true) : [270, 190]; fx({ k: 'smoke', x: sp[0], y: sp[1], life: 1.4 }); fx({ k: 'burst', x: h.x, y: h.y - 24, kind: 'dust', n: 10, life: 0.6 });
       for (const e of foes) { e.stun = 3; fx({ k: 'burst', x: e.x, y: e.y - 34, kind: 'dust', n: 6, life: 0.7 }); }
     } else if (id === 'fireball') {
       const tg = foes.reduce((a, b) => (b.hp > a.hp ? b : a)), p = centerOf(tg);
@@ -320,7 +320,7 @@
           else if (f.kind === 'ember') { c.fillStyle = Math.random() < 0.5 ? '#ffb347' : '#ff6a2e'; c.beginPath(); c.arc(0, 0, 2.4 * (1 - k * 0.5), 0, 7); c.fill(); }
           else if (f.kind === 'dust') { c.fillStyle = 'rgba(205,180,140,.7)'; c.beginPath(); c.arc(0, 0, 2.5 * (1 + k), 0, 7); c.fill(); }
           else { c.fillStyle = f.c || '#ffe58a'; c.fillRect(-1.5, -4, 3, 8); c.fillRect(-4, -1.5, 8, 3); }
-          c.setTransform(cv.width / 400, 0, 0, cv.height / 260, 0, 0);
+          camSet(c);
         }
         c.restore(); return true;
       }
@@ -372,7 +372,7 @@
         c.fillStyle = '#fff6d0'; c.beginPath(); c.arc(x, y, r * 0.5, 0, 7); c.fill();
         c.restore(); return true;
       }
-      case 'flash': { c.save(); c.globalAlpha = f.a * a; c.fillStyle = '#fff'; c.fillRect(0, 0, 400, 260); c.restore(); return true; }
+      case 'flash': { c.save(); c.globalAlpha = f.a * a; c.fillStyle = '#fff'; c.fillRect(...viewRect()); c.restore(); return true; }
       case 'proj': {
         if (f.kind !== 'zap' && f.kind !== 'shard' && f.kind !== 'leaf' && f.kind !== 'fire') return false;
         const q = Math.min(1, f.t / f.dur), x = f.x0 + (f.x1 - f.x0) * q, y = f.y0 + (f.y1 - f.y0) * q - (f.kind === 'zap' ? 0 : Math.sin(q * Math.PI) * 14);

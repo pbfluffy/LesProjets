@@ -209,3 +209,10 @@ The sound engine follows the guide; the numbers are starting points to tune by e
 - `motion(weapon, p)` in `sprites.js` gives every weapon its own attack movement (p = 0..1 over the quarter-second `swing`): heavy weapons (greatsword, halberd, wood axe, club, falchion) wind up and slam, spears / rapier / pitchfork pull back and jab,
   daggers, sabers, twin blades and hand wraps dart forward once per hit (with a faint motion trail), gauntlets throw one heavy punch, the buckler bashes, swords cut forward, staves and tomes make the caster rise and lean back. Tavi keeps the bow draw lean.
 - `IDLE` gives each hero their own breathing and posture: Tobin slow and deep, Rook restless, Elric hovers, Maren planted, Milo shifting his weight. A hit knocks the hero back a little.
+
+## Phone battle view (portrait)
+- On a phone in portrait (`innerWidth < 720`, height > 1.2 x width) `startBattle` builds `B.cam = { x, y, w, h }` (`makeCam` in `game.js`): a tall window of the 400 x 260 battle space, 340 wide, bottom at y 272, height from the free screen height
+  (ratio 0.86 to 1.25). The canvas is then 3.6 pixels per unit, `#stage` gets that `aspect-ratio` inline and `#battle` the class `cam` (the skills sit under the scene, the barrier stays at the bottom).
+  Units are placed with `camPt(x, y, foe)` (heroes keep their spacing, monsters pack closer, rows are spread vertically). `camSet(c)` sets the canvas transform, `viewRect()` is the shown rectangle (full screen flashes),
+  `barPos()` is the barrier centre (art.js `drawBarrier`, the block ring and text). `sprites.js drawBackground` draws the picture to cover the window, bottom anchored. PC / wide screens keep `B.cam = null` and the old view.
+  Any new fixed coordinate in a battle effect should go through `camPt` / `barPos` / `viewRect`.
