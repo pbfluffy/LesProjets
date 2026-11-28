@@ -669,12 +669,14 @@ function levelFixHtml(d) {
   if (!id) return '';
   const lv = save.heroes[id].lvl, cost = lvlCost(lv), can = save.gold >= cost;
   return `<div class="dfix"><span>${can ? `<b>${firstName(id)}</b> is behind: Lv ${lv} → ${lv + 1}` : `<b>${firstName(id)}</b> needs ${fmt(cost)} gold for Lv ${lv + 1}`}</span>
-    <button class="btn good small" data-act="lvl" data-arg="${id}" ${can ? '' : 'disabled'}>${can ? `Level up <span class="cost">${costHtml({ gold: cost })}</span>` : `Need ${fmt(cost - save.gold)}`}</button></div>`;
+    <button class="btn good small" data-act="lvl" data-arg="${id}" ${can ? '' : 'disabled'}>${can ? `Level up <span class="cost">${costHtml({ gold: cost })}</span>` : `<span class="cost"><b class="short"><i class="ico gold"></i>${fmt(cost - save.gold)}</b></span> more`}</button></div>`;
 }
 function difficultyHtml(s) {
-  const d = difficulty(s);
+  const d = difficulty(s), size = Math.max(1, partySize());
+  const aim = Math.ceil(0.95 * s.rec), more = Math.ceil((0.95 * s.rec - partyLevel()) * size);           // average level for a fair fight, and the level-ups still missing across the party
+  const goal = (d.cls === 'risky' || d.cls === 'hard') && more > 0 ? `<p class="dgoal">Reach about Lv ${aim} for a fair fight: ${more} more level-up${more > 1 ? 's' : ''} across your party.</p>` : '';
   return `<div class="diff ${d.cls}"><div class="dtop"><span class="dlabel">Danger</span><b>${d.txt}</b><small>Your party Lv ${d.lv} · recommended Lv ${s.rec}</small></div>
-    <div class="dbar"><i style="width:${d.pct}%"></i><u></u></div>${levelFixHtml(d)}</div>`;
+    <div class="dbar"><i style="width:${d.pct}%"></i><u></u></div>${goal}${levelFixHtml(d)}</div>`;
 }
 /* the loot to hunt for: the most likely armor first, then the most likely weapons */
 function lootRow(s) {
@@ -706,9 +708,9 @@ function adventureCard(s) {
     </div>
     <div class="sbody">
       ${open ? difficultyHtml(s) : `<span class="rec mid">Recommended Lv <b>${s.rec}</b></span>`}
-      ${reward}
       ${cta}
       ${open && !cleared ? '<p class="fine">Clear it to send your party farming here.</p>' : ''}
+      ${reward}
       ${lootRow(s)}
       ${open ? partyMini() : ''}
       ${dropsHtml(s)}
@@ -822,13 +824,12 @@ function renderMap() {
       ? `<div class="map placeholder" role="img" aria-label="Loading the village map"><span>Loading the village…</span></div>`
       : mapSvg();
 
-  // Groups (.vg) keep the phone order (map, adventure, good to know, camp, bounty, road, notes); on a wide screen CSS puts them in two columns (.vcol).
+  // Groups (.vg) keep the phone order (map, adventure, camp, bounty, road, notes); on a wide screen two columns (.vcol): map and adventure on the left, camp, bounty and road on the right.
   const sel = selStage(), reg = REGION[sel.region], next = nextStage();
   const title = sel === next ? 'Next adventure' : save.cleared[sel.id] ? 'Replay or farm' : 'Adventure';
   let h = `<div class="vgrid"><div class="vcol"><div class="vg o1">${map}${regionChips()}</div>`;
-  h += `<div class="vg o2"><h2 class="sec">${title}</h2>${adventureCard(sel)}</div>`;
-  h += `<div class="vg o6">${journeyHtml(reg, sel)}</div></div>`;
-  h += `<div class="vcol"><div class="vg o4">${farmStrip()}${farmLogCard()}</div><div class="vg o5">${dailyCard()}${window.pwaCard ? window.pwaCard() : ''}</div>`;   // pwaCard: "Install the game" (pwa.js)
+  h += `<div class="vg o2"><h2 class="sec">${title}</h2>${adventureCard(sel)}</div></div>`;
+  h += `<div class="vcol"><div class="vg o4">${farmStrip()}${farmLogCard()}</div><div class="vg o5">${dailyCard()}${window.pwaCard ? window.pwaCard() : ''}</div><div class="vg o6">${journeyHtml(reg, sel)}</div>`;   // pwaCard: "Install the game" (pwa.js)
   h += '<div class="vg o7">';
   if (!next) h += '<p class="note">Every watchtower is lit. More areas will open in a later version.</p>';
   if (devMode()) h += `<div class="card testtools"><div class="row between"><h3>Test tools</h3><span class="tag">Test period</span></div>
@@ -1209,21 +1210,22 @@ function setDevMode(on) { try { if (on) localStorage.setItem(DEV_KEY, '1'); else
   let taps = [];
   if (brand) brand.addEventListener('click', () => {
     const now = Date.now(); taps = taps.filter(t => now - t < 3500); taps.push(now);
-    if (taps.length >= 7) { taps = []; const on = !devMode(); setDevMode(on); toast(on ? 'Developer tools are on.' : 'Developer tools are off.'); if (save.tab === 'map') render(); }
+    if (taps.length >= 7) { taps = []; const on = !devMode(); setDevMode(on); toast(on ? 'Developer tools are on.' : 'Developer tools are off.'); paintVer(); if (save.tab === 'map') render(); }
   });
 })();
 
 /* Which build is this? deploy.yml stamps the commit into the ?v= of the script links and the build time into <meta name="build">.
-   During the test period a small corner label shows both, so a stale cached copy is easy to tell from the new one. */
+   In developer mode a small corner label shows both, so a stale cached copy is easy to tell from the new one. */
 function parseBuild(src, stamp) {
   const m = /[?&]v=([^&#]+)/.exec(src || '');
   return { sha: m ? m[1] : 'dev', time: stamp && !stamp.startsWith('__') ? stamp : '' };
 }
 const BUILD = parseBuild(document.currentScript && document.currentScript.src, (document.querySelector('meta[name=build]') || {}).content);
-if (TEST_PERIOD) {
+function paintVer() {                                                   // only in developer mode, so players never see it
   const verEl = $('#ver');
-  if (verEl) verEl.textContent = `v ${BUILD.sha}${BUILD.time ? ' · ' + BUILD.time : ''}`;
+  if (verEl) verEl.textContent = devMode() ? `v ${BUILD.sha}${BUILD.time ? ' · ' + BUILD.time : ''}` : '';
 }
+paintVer();
 
 function closeResetDialog() { const d = document.getElementById('reset-dialog'); if (d) d.remove(); }
 function showResetDialog() {

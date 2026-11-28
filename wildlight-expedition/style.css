@@ -794,3 +794,7 @@ body.sheet-open{overflow:hidden}
 @keyframes tdotpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
 @media(prefers-reduced-motion:reduce){.tdot{animation:none}}
 @media(min-width:720px){.tdot{left:auto;right:14px;top:16px}}
+.dgoal{margin:0;font-size:12.5px;color:#d5ccaa}
+.dfix .btn:disabled{background:#26322b;color:#a9b3a6;border:1px solid #3f5042;box-shadow:none;opacity:1;cursor:default}
+.dfix .btn:disabled .cost b{color:#d9c58a}
+.ver:empty{display:none}
