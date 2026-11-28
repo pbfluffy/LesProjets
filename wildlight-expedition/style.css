@@ -828,3 +828,38 @@ body.sheet-open{overflow:hidden}
 .pmtxt{margin-left:18px}
 .slot.full{overflow:hidden;background:none;border:2px solid #c4ae72}
 .slot.full .face{width:100%;height:100%;border:0;box-shadow:none}
+
+/* ---- settings sheet and first-time tutorial ---- */
+#set-btn{background:#2c3b32;color:#f3deb0;border-color:#5c644d}
+#set-btn svg{display:block}
+.setdlg .box.setbox{max-width:420px;max-height:min(86vh,720px);display:flex;flex-direction:column;padding:16px 16px 14px;text-align:left}
+.sethead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.sethead h2{margin:0}
+.setx{width:36px;height:36px;border-radius:50%;border:1px solid #6d6f55;background:#26352d;color:#f3deb0;font:400 24px/1 system-ui,sans-serif;cursor:pointer}
+.setbody{overflow:auto;-webkit-overflow-scrolling:touch;padding-right:2px}
+.setsec{padding:12px 0;border-top:1px solid #4a5a4c}
+.setsec:first-child{border-top:0}
+.setsec h3{margin:0 0 8px;font:700 15px var(--heading,Georgia,serif);color:#f4dfb2}
+.setsec .note{margin:0 0 10px;font-size:13px;color:#cfd6c6;line-height:1.45}
+.setsec .btn.small{width:100%}
+.setsec details{margin:6px 0;border:1px solid #4a5a4c;border-radius:10px;background:#1c2822}
+.setsec summary{padding:10px 12px;cursor:pointer;font-weight:700;font-size:13.5px;color:#e8dcb6}
+.credit{list-style:none;margin:0;padding:0 12px 8px;color:#d6dccd;font-size:12.5px}
+.credit li{margin:0;padding:7px 0;border-top:1px solid #33433a;overflow-wrap:anywhere}
+.credit small{display:block;color:#a9b3a6;margin-top:2px}
+.credit a{color:#9ccbe8}
+.dangerzone .btn.danger{width:100%}
+.tut{position:fixed;inset:0;z-index:90}
+.tut.plain{background:rgba(8,14,11,.82)}
+.tutring{position:fixed;border-radius:14px;border:2px solid #f5da9e;box-shadow:0 0 0 100vmax rgba(8,14,11,.8),0 0 18px #f5da9e;pointer-events:none;animation:tutpulse 1.4s ease-in-out infinite}
+.tutring[hidden]{display:none}
+@keyframes tutpulse{0%,100%{border-color:#f5da9e}50%{border-color:#fff4cf}}
+.tutcard{position:fixed;left:50%;width:calc(100% - 28px);transform:translateX(-50%);background:linear-gradient(#36493e,#222f29);border:1px solid #8d805d;border-radius:16px;padding:16px 16px 14px;box-shadow:0 12px 45px #0d1311b0;text-align:left}
+.tutcard h2{margin:0 0 6px;font:700 20px var(--heading,Georgia,serif);color:#f5da9e}
+.tutcard p{margin:0 0 14px;font-size:14.5px;line-height:1.5;color:#e6e9dc}
+.tutfoot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tutdots{display:flex;gap:6px}
+.tutdots i{width:8px;height:8px;border-radius:50%;background:#55655a}
+.tutdots i.on{background:#f5da9e}
+.tutbtns{display:flex;gap:8px}
+@media(prefers-reduced-motion:reduce){.tutring{animation:none}}
