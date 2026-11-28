@@ -42,7 +42,11 @@
   const HERO_PNG = [];                 // every hero picture is a WebP now (the first three heroes used PNG before the simple-outfit redraw)
   /* Armor is drawn over the hero as a transparent layer with the same canvas as the hero pictures (idle and attack, one per tier). 'garb' is the base outfit: no layer. */
   const ARMOR_TIERS = ['leatherarmor', 'chainmail', 'platearmor'];
-  const armorPath = (id, a, p) => `armor/${id}-${a}-${p}.webp`;
+  const armorPath = (id, a, p, w) => `armor/${id}-${a}${w ? '-' + w : ''}-${p}.webp`;            // with w: the layer made for that weapon's picture
+  /* The generic layers (no weapon in the name) fit the hero's FIRST weapon. The other weapons' attack pictures stand differently, so each has its own layers (v15 art);
+     until a weapon's own layer exists the armor is left out during that attack instead of floating in the wrong place. */
+  const ARMOR_FIT = { bren: ['twin', 'great', 'falchion', 'saber', 'rapier', 'buckler'], tavi: ['shortbow', 'longbow', 'crossbow'], iona: ['heartwood', 'stormstaff', 'frostwand'],
+    milo: ['woodaxe'], rook: ['twindaggers'], elric: ['grimoire'], maren: ['halberd'], tobin: ['gauntlets'] };
   const heroPath = (id, w, p) => `heroes/${id}-${w}-${p}.${HERO_PNG.includes(w) ? 'png' : 'webp'}`;
 
   function load(path) {
@@ -143,7 +147,8 @@
     const files = HERO_FILES[id] || [], kind = attacking ? 'attack' : 'idle';
     const pick = w => files.includes(w) && (get(heroPath(id, w, kind)) || get(heroPath(id, w, 'idle')));
     const near = (typeof WEAPONS !== 'undefined' && WEAPONS[o.weapon] && WEAPONS[o.weapon].pose) || o.weapon;     // the nearest older picture, if a new one is missing
-    const im = pick(o.weapon) || pick(near) || pick(files[0]);
+    const pw = [o.weapon, near, files[0]].find(w => pick(w));                                                 // the weapon whose picture is drawn
+    const im = pw ? pick(pw) : null;
     if (!im) return false;
     const t = o.t || 0, phase = PHASE[id] || 0;
 
@@ -164,15 +169,21 @@
       }
       if (o.hit > 0) c.translate(-Math.min(1, o.hit / 0.25) * 4 + (Math.random() - 0.5) * 2.2, 0);     // knocked back a little
     }
-    if (mv && mv.ghost > 0.02) {                                      // a motion trail behind very fast attacks
-      c.save(); c.globalAlpha = mv.ghost; c.translate(-9, 0); stand(c, im, m, HEIGHT[id], 0, 0, false); c.restore();
+    let layer = null;
+    if (ARMOR_TIERS.includes(o.armor)) {
+      layer = get(armorPath(id, o.armor, kind, pw));                                               // made for this weapon's picture
+      if (!layer && (kind === 'idle' || pw === files[0])) layer = get(armorPath(id, o.armor, kind)) || get(armorPath(id, o.armor, 'idle'));       // the generic layer (first weapon; standing pictures)
+    }
+    const putLayer = flash => {                                       // the armor, placed exactly like the hero picture
+      if (!layer) return;
+      const sc = (HEIGHT[id] / m.figureH) / im.naturalHeight, dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
+      c.drawImage(flash ? flashOf(layer) : layer, -m.feetX * dw, -m.feetY * dh, dw, dh);
+    };
+    if (mv && mv.ghost > 0.02) {                                      // a motion trail behind very fast attacks (with the armor, like the hero)
+      c.save(); c.globalAlpha = mv.ghost; c.translate(-9, 0); stand(c, im, m, HEIGHT[id], 0, 0, false); putLayer(false); c.restore();
     }
     stand(c, im, m, HEIGHT[id], 0, 0, o.hit > 0.12 && !o.dead);
-    const layer = ARMOR_TIERS.includes(o.armor) && (get(armorPath(id, o.armor, kind)) || get(armorPath(id, o.armor, 'idle')));
-    if (layer) {                                                      // the armor, placed exactly like the hero picture
-      const s = (HEIGHT[id] / m.figureH) / im.naturalHeight, dw = im.naturalWidth * s, dh = im.naturalHeight * s;
-      c.drawImage(o.hit > 0.12 && !o.dead ? flashOf(layer) : layer, -m.feetX * dw, -m.feetY * dh, dw, dh);
-    }
+    putLayer(o.hit > 0.12 && !o.dead);
     c.restore();
     return true;
   }
@@ -376,6 +387,9 @@
     warrens: { mon: ['gscrapper', 'garcher', 'gshaman', 'gking'], bg: ['scrapheap', 'gobmines', 'kinghall'] },
     highlands: { mon: ['ogrunt', 'oberserker', 'obrute', 'owarlord'], bg: ['ridge', 'warcamp', 'throne'] },
   };
+  /* the skill buttons' painted icons and the hero portraits next to them (skills.js) */
+  const SKILL_ART = [...['whirlwind', 'ironguard', 'arrowrain', 'snipe', 'bloom', 'storm', 'hardswing', 'rally', 'backstab', 'smoke', 'fireball', 'meteor', 'lance', 'bulwark', 'ironpalm', 'innerpeace'].map(id => `skills/${id}.webp`),
+    ...['milo', 'bren', 'tavi', 'iona', 'rook', 'elric', 'maren', 'tobin'].map(id => `ui/hero-${id}.webp`)];
   const MAP_PATHS = ['map/map.jpg', 'map/mire.jpg', 'map/frost.jpg', 'map/ember.jpg', 'map/warrens.jpg', 'map/highlands.jpg', 'map/tower-unlit.png', 'map/tower-lit.png',
     'map/marker-locked.png', 'map/marker-open.png', 'map/marker-cleared.png', 'map/camp.png'];
   window.regionArt = { vale: 'loading', mire: 'idle', frost: 'idle', ember: 'idle', warrens: 'idle', highlands: 'idle' };       // idle | loading | ready
@@ -388,9 +402,10 @@
   window.monIdleUrl = id => url(monPaths(id)[0]);                 // the picture of a monster for the home cards
   /* Every picture of the game (used by pwa.js so the installed app can run offline). */
   window.artUrls = () => Object.values(REGION_ART).flatMap(a => [...a.mon.flatMap(monPaths), ...a.bg.map(b => `bg/${b}.jpg`)])
-    .concat(MAP_PATHS, ['meta.json', 'sfx/index.json', 'sfx/pack.bin', 'music/village1.mp3', 'music/village2.mp3', 'music/fight.mp3', 'music/boss.mp3'], (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff']).map(w => `items/${w}.png`),
+    .concat(MAP_PATHS, ['meta.json', 'sfx/index.json', 'sfx/pack.bin', ...SKILL_ART, 'music/village1.mp3', 'music/village2.mp3', 'music/fight.mp3', 'music/boss.mp3'], (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff']).map(w => `items/${w}.png`),
       Object.entries(HERO_FILES).flatMap(([id, ws]) => ws.flatMap(w => ['idle', 'attack'].map(p => heroPath(id, w, p)))),
       Object.keys(HERO_FILES).flatMap(id => ARMOR_TIERS.flatMap(a => ['idle', 'attack'].map(p => armorPath(id, a, p)))),
+      Object.entries(ARMOR_FIT).flatMap(([id, ws]) => ws.flatMap(w => ARMOR_TIERS.map(a => armorPath(id, a, 'attack', w)))),
       ['garb', ...ARMOR_TIERS.map(a => a)].map(a => `items/${a === 'garb' ? 'garb' : a}.png`)).map(url);
   window.ensureRegion = id => {
     if (!REGION_ART[id] || !meta.data) return Promise.resolve(false);
@@ -430,8 +445,10 @@
     for (const [id, weapons] of Object.entries(HERO_FILES))
       for (const w of weapons) for (const pose of ['idle', 'attack']) paths.push(heroPath(id, w, pose));
     for (const w of (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff'])) paths.push(`items/${w}.png`);
-    for (const a of ['garb', ...ARMOR_TIERS]) paths.push(`items/${a}.png`);                                   // armor pictures (forge, hero cards, drops)
-    for (const id of Object.keys(HERO_FILES)) for (const a of ARMOR_TIERS) for (const pose of ['idle', 'attack']) paths.push(armorPath(id, a, pose));       // weapon pictures (drop lists, forge, rewards)
+    for (const a of ['garb', ...ARMOR_TIERS]) paths.push(`items/${a}.png`);
+    for (const p of SKILL_ART) paths.push(p);                                                                  // skill icons and hero portraits (battle buttons, hero sheet)                                   // armor pictures (forge, hero cards, drops)
+    for (const id of Object.keys(HERO_FILES)) for (const a of ARMOR_TIERS) for (const pose of ['idle', 'attack']) paths.push(armorPath(id, a, pose));
+    for (const [id, ws] of Object.entries(ARMOR_FIT)) for (const w of ws) for (const a of ARMOR_TIERS) paths.push(armorPath(id, a, 'attack', w));       // weapon pictures (drop lists, forge, rewards)
     await Promise.all([...paths.map(load), window.ensureRegion('vale')]);
 
     window.drawHero = drawHero;
