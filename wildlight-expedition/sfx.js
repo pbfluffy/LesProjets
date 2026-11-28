@@ -178,7 +178,6 @@
     hurt: () => { thump(0, 130, 0.3, 0.15); noise({ type: 'lowpass', f: 500, to: 220, dur: 0.1, vol: 0.1 }); },                     // player damage: a soft low warning thud, unlike an enemy impact
     hurtcrit: () => { thump(0, 115, 0.45, 0.2); thump(0, 55, 0.35, 0.25); noise({ type: 'lowpass', f: 600, to: 200, dur: 0.14, vol: 0.12 }); },
     block: () => { thump(0, 160, 0.3, 0.1); crack(0, 0.12, 2500); steel(900, 0, 0.16, 0.16); },                                          // a compact hollow metal clank
-    barrier: () => { thump(0, 95, 0.28, 0.3); [C5, G5, C6, E6].forEach((f, i) => tone({ f, at: i * 0.045, dur: 0.5, vol: 0.075, type: 'sine', a: 0.12, nojit: true })); swish(0, 300, 2300, 0.3, 0.14); },
     warn: () => { growl(58, 0, 0.5, 0.3); taiko(0, 0.34); taiko(0.25, 0.4); },                                                           // boss telegraph: a distinct pulse before the hit, 300-600 ms
     /* results */
     victory: () => {
@@ -481,7 +480,6 @@
     hurt: () => { smp('cloth', { gain: 0.6 }); thump(0, 130, 0.25, 0.14); return true; },
     hurtcrit: () => { smp('cloth', { gain: 0.8, rate: 0.9 }); thump(0, 115, 0.4, 0.2); thump(0, 55, 0.3, 0.25); return true; },
     herodown: () => { smp('cloth', { gain: 0.9, rate: 0.8 }); thump(0, 100, 0.4, 0.3); chime(G5, 0.08, 0.06, 0.6); chime(C5, 0.2, 0.06, 0.8); return true; },
-    barrier: () => { smp('magic_tele', { gain: 0.5, dur: 0.4, rate: 1.1 }); thump(0, 95, 0.25, 0.3); swish(0, 300, 2300, 0.3, 0.1); return true; },
     warn: () => { smp('roar', { gain: 0.9, dur: 0.5, rate: 0.9 }); taiko(0, 0.34); taiko(0.25, 0.4); return true; },
     mwind: p => {
       const c = (p && p.c) || 'beast', r = 1 / Math.sqrt((p && p.s) || 1);

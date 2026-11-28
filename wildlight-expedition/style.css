@@ -56,11 +56,6 @@ button.btn:not(.alt):not(:disabled) .cost b.short{color:#8a1d0a}
 .warn.on{animation:pulse .5s infinite alternate}
 @keyframes pulse{from{opacity:.55}to{opacity:1}}
 #stage{margin-top:auto}
-.barrier{position:relative;isolation:isolate;margin-top:auto;width:100%;max-width:480px;height:64px;border-radius:16px;border:2px solid #5fa8d8;background:#16324a;color:#e9f6ff;font:800 18px inherit;font-family:inherit;overflow:hidden;cursor:pointer}
-.barrier #barrier-fill{position:absolute;inset:0;background:#2f7fb8;transform-origin:left;transform:scaleX(1);transition:none}
-.barrier #barrier-label{position:relative}
-.barrier.cool{border-color:#3b5568;color:#9fb6c6}
-.barrier.cool #barrier-fill{background:#25465f}
 .hint{color:var(--dim);font-size:13px}
 .result{position:absolute;inset:0;z-index:30;background:rgba(8,14,11,.88);display:flex;align-items:center;justify-content:center;padding:20px}
 .result[hidden]{display:none}
@@ -113,18 +108,6 @@ button:focus-visible{outline:2px solid #f6d28d;outline-offset:3px}
 #stage{border:1px solid #94816a;border-radius:15px;box-shadow:0 0 0 2px #342e2e,0 8px 24px #0b1713a8}
 .warn{width:100%;max-width:480px;min-height:28px;display:grid;place-items:center;border:1px solid transparent;font:700 12px/1.16 system-ui,sans-serif;color:#ffe2a7}
 .warn.on{border-color:#b16b52;border-radius:7px;background:linear-gradient(90deg,#542c38,#763e3a 50%,#542c38);text-shadow:0 1px #361f28}
-.barrier{
-  height:62px;border:1px solid #a5b7a2;border-radius:12px;background:#293d46;color:#f3f7e7;
-  font:700 19px/1.2 var(--heading);letter-spacing:.015em;
-  box-shadow:inset 0 1px #d0e4c27d,0 4px 14px #0f1b18a3;
-}
-.barrier #barrier-fill{background:linear-gradient(180deg,#668f97,#396577 58%,#2f5367);box-shadow:inset 0 1px #d4f0db80,inset 0 -5px #253f5457}
-.barrier #barrier-label{z-index:1;text-shadow:0 1px 3px #1a3c4b}
-.barrier::before,.barrier::after{content:"";position:absolute;z-index:1;top:calc(50% - 4px);width:6px;height:6px;border:1px solid #d0d6b0;transform:rotate(45deg);pointer-events:none}
-.barrier::before{left:16px}
-.barrier::after{right:16px}
-.barrier.cool{border-color:#708584;color:#d5e5dd;background:#263a42}
-.barrier.cool #barrier-fill{background:linear-gradient(#496e76,#385662);box-shadow:inset 0 1px #a3c9c161}
 .hint{color:#c6c6af;font-size:12px;text-align:center}
 .result .box{background:linear-gradient(#36493e,#222f29);border-color:#8d805d;box-shadow:0 12px 45px #0d1311b0}
 .result h2{font-family:var(--heading);color:#f5da9e}
@@ -490,13 +473,12 @@ html,body{overscroll-behavior-y:none}
 .vg{display:flex;flex-direction:column;gap:12px}
 .vg:empty{display:none}
 .vg.o1{order:1}.vg.o2{order:2}.vg.o3{order:3}.vg.o4{order:4}.vg.o5{order:5}
-.h-key{display:none}
 
 @media (min-width:720px){
   #app,.tabs{max-width:720px}
   .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;align-items:start}
   #battle{--bw:min(960px,100%,max(480px,calc((100vh - 370px)*1.538)))}
-  .battle-top,.arena,.barrier,.runlog{max-width:var(--bw)}
+  .battle-top,.arena,.runlog{max-width:var(--bw)}
   .result .box{max-width:420px}
 }
 
@@ -519,17 +501,14 @@ html,body{overscroll-behavior-y:none}
 
 /* mouse and keyboard devices: hover feedback and the keyboard hint */
 @media (hover:hover) and (pointer:fine){
-  .h-touch{display:none}
-  .h-key{display:inline}
   button{transition:filter .12s,transform .12s,background-color .12s,border-color .12s}
   button.btn:not(:disabled):hover{filter:brightness(1.1);transform:translateY(-1px)}
   button.btn:not(:disabled):active{transform:none;filter:brightness(.95)}
   button.ghost:hover,.rchip:hover,.coin:hover,.acct:hover{filter:brightness(1.2)}
   .tabs button:hover:not(.on){color:var(--text)}
   .weapon:hover,details.region summary:hover,.stagerow:hover,.stagecard:hover{filter:brightness(1.08)}
-  .barrier:hover{filter:brightness(1.12)}
   .pwa-x:hover{background:rgba(255,255,255,.08)}
-  .coin,.rchip,.weapon,details.region summary,.stagerow,.barrier{cursor:pointer}
+  .coin,.rchip,.weapon,details.region summary,.stagerow{cursor:pointer}
 }
 
 /* ---- repeat fights and farm log ---- */
@@ -616,21 +595,24 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 @media(max-width:359px){.top{padding-left:10px;padding-right:10px}.purse{gap:6px}.coin{padding:4px 8px}}
 
 /* ---- hero skills in a fight ---- */
-.skills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;width:100%;max-width:480px}
+.skills{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:100%;max-width:480px}
 .skills[hidden]{display:none}
-.skill{position:relative;width:54px;height:54px;border-radius:15px;border:2px solid var(--hc,#c4ae72);background:#18271f;color:var(--hc,#c4ae72);display:grid;place-items:center;padding:0;overflow:hidden;cursor:pointer;font:inherit;transition:transform .1s,box-shadow .2s}
-.skill svg{position:relative;z-index:1}
-.skill .cd{position:absolute;inset:0;background:rgba(6,12,9,.72);transform-origin:bottom;transform:scaleY(var(--cd,1));pointer-events:none}
-.skill small{position:absolute;z-index:2;top:2px;left:5px;font:800 10px system-ui,sans-serif;color:#f3deb0;text-shadow:0 1px 2px #000}
-.skill .lv{position:absolute;z-index:2;bottom:2px;left:0;right:0;text-align:center;font:700 9px system-ui,sans-serif;font-style:normal;color:#f3deb0;opacity:0;text-shadow:0 1px 2px #000}
+.skill{position:relative;min-width:0;border-radius:14px;border:2px solid var(--hc,#c4ae72);background:#18271f;color:var(--hc,#c4ae72);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:7px 3px 6px;overflow:hidden;cursor:pointer;font:inherit;transition:transform .1s,box-shadow .2s}
+.skill svg{position:relative;z-index:1;flex:none}
+.skill .cd{position:absolute;inset:0;background:rgba(6,12,9,.62);transform-origin:bottom;transform:scaleY(var(--cd,1));pointer-events:none}
+.skill .sk-name{position:relative;z-index:2;max-width:100%;font:700 11px/1.2 system-ui,sans-serif;color:#f3deb0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px #000}
+.skill .sk-st{position:relative;z-index:2;font:700 10.5px/1.2 system-ui,sans-serif;color:var(--hc);font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000}
+.skill small{display:none;position:absolute;z-index:2;top:3px;left:6px;font:800 10px system-ui,sans-serif;color:#f3deb0;text-shadow:0 1px 2px #000}
 .skill.ready{box-shadow:0 0 0 2px color-mix(in srgb,var(--hc) 45%,transparent),0 0 14px color-mix(in srgb,var(--hc) 60%,transparent);animation:skillpulse 1.2s ease-in-out infinite alternate}
 .skill.ready:active{transform:scale(.94)}
-.skill.locked,.skill.dead{opacity:.45;cursor:default}
-.skill.locked .lv{opacity:1}
+.skill.cooling .sk-st{color:#e6dcc0}
+.skill.locked,.skill.dead{opacity:.55;cursor:default}
+.skill.locked .sk-st,.skill.dead .sk-st{color:#cfc7ab}
 @keyframes skillpulse{from{filter:brightness(1)}to{filter:brightness(1.25)}}
 #auto-skill[hidden]{display:none}
 #auto-skill.on{background:#2f5d3a;border-color:#6cc37c;color:#e6ffe9}
-@media(min-width:720px){.skills{max-width:var(--bw)}}
+@media(min-width:720px){.skills{max-width:var(--bw);grid-template-columns:repeat(auto-fit,minmax(88px,112px));justify-content:center}}
+@media (hover:hover) and (pointer:fine){.skill small{display:block}}
 @media(prefers-reduced-motion:reduce){.skill.ready{animation:none}}
 .skilllist{display:flex;flex-direction:column;gap:8px;padding:2px 12px 6px}
 .skillrow{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;background:#18241d;border:1px solid #3a4e3f;color:var(--hc,#f3deb0)}
@@ -645,7 +627,6 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 .wdrow span{flex:1;min-width:0}
 .wdrow em{font-style:normal;font-size:10px;margin-left:4px;padding:0 6px;border-radius:6px;background:#4a2a22;color:#f2b8a8}
 .wdrow b{color:#fff1cf;min-width:38px;text-align:right}
-@media(max-width:420px){.skill{width:48px;height:48px;border-radius:13px}.skills{gap:6px}}
 
 /* ---- sound settings panel ---- */
 .soundpop{position:fixed;top:60px;right:10px;z-index:80;width:min(290px,calc(100vw - 20px));padding:12px 14px 14px;border-radius:14px;background:var(--card);border:1px solid var(--line);box-shadow:0 12px 30px #000b}
@@ -667,7 +648,7 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 .wdrow .ico{vertical-align:-3px;margin-right:2px}
 .wdrow b{min-width:0;text-align:left}
 .wdrow .wdgo{justify-self:end}
-/* battle: nothing in the column may shrink (the barrier was squashed on a PC); when the window is too short the battle screen scrolls instead */
+/* battle: nothing in the column may shrink (the controls were squashed on a PC); when the window is too short the battle screen scrolls instead */
 #battle>*{flex:none}
 
 @media(min-width:720px){.runlog{max-width:var(--bw)}}
@@ -677,12 +658,12 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 .campbar .hint{flex:1 1 100%;text-align:left}
 .vheroes{flex-wrap:wrap}
 
-/* ---- phone in portrait: a tall, zoomed battle view (B.cam in game.js) fills the screen; the skills sit right under it and the barrier at the bottom, in thumb reach ---- */
+/* ---- phone in portrait: a tall, zoomed battle view (B.cam in game.js) fills the screen; the skills sit right under it, in thumb reach ---- */
 #battle.cam{gap:8px}
 #battle.cam .arena{margin-top:0}
 #battle.cam .warn{min-height:22px}
-#battle.cam .barrier{margin-top:auto;height:68px}
 #battle.cam .battle-top{gap:8px}
 #battle.cam #battle-title{min-width:0;font-size:clamp(18px,5.4vw,27px)}
 #battle.cam .bt-btns{flex:none;display:flex;gap:6px}
 #battle.cam .battle-top .ghost{padding:7px 10px}
+.skill .sk-name.long{font-size:10px;letter-spacing:-.01em}

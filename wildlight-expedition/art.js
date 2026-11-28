@@ -6,7 +6,6 @@
  * Optional hooks for the game:
  * drawHpBar(c, x, y, w, frac, kind) — kind is 'hero' or 'enemy'
  * drawFx(c, f, t) — returns true for a handled B.fx entry, otherwise false
- * drawBarrier(c, t, frac) — frac is the remaining duration, 0–1
  * drawHit(c, x, y, age) — age is elapsed seconds since impact
  */
 const artInk = '#241e25';
@@ -1666,44 +1665,6 @@ function drawHpBar(c, x, y, w, frac, kind) {
     const fill=artRaster(artHealthLevels[kind==='enemy' ? 1 : 0]);
     c.drawImage(fill,0,0,fill.width*level,fill.height,x-w/2,y+.65,w*level,4);
   }
-}
-
-const artBarrierLight = artBake(-106,-88,212,176,c=>{
-  c.save();
-  c.scale(1,.82);
-  const g=c.createRadialGradient(0,0,28,0,0,101);
-  g.addColorStop(0,'#9ce8ff00');
-  g.addColorStop(.59,'#6bbdfa0e');
-  g.addColorStop(.90,'#81dafa33');
-  g.addColorStop(1,'#adf3ffaa');
-  artOval(c,0,0,100,100,g);
-  c.restore();
-  c.beginPath(); c.ellipse(0,0,100,82,0,0,artTau);
-  c.strokeStyle='#69a8e69a'; c.lineWidth=4; c.stroke();
-  c.strokeStyle='#c0f2ffdd'; c.lineWidth=1.1; c.stroke();
-  c.beginPath(); c.ellipse(0,0,96,78,0,Math.PI*.91,Math.PI*1.72);
-  c.strokeStyle='#ecfdffad'; c.lineWidth=.9; c.stroke();
-},2);
-const artBarrierRune = new Path2D('M0 -3 2.6 0 0 3 -2.6 0Z M0 -1 1 0 0 1 -1 0Z');
-
-function drawBarrier(c, t, frac) {
-  const strength=artClamp(frac);
-  const pulse=.79+Math.sin(t*8)*.13;
-  c.save();
-  const bp = typeof barPos === 'function' ? barPos() : [95,168];
-  c.translate(bp[0],bp[1]);
-  c.scale(.93+.07*strength,1);
-  c.globalAlpha *= pulse * Math.min(1,strength*5);
-  artPlace(c,artBarrierLight);
-  for (let i=0;i<12;i++) {
-    const a=i*artTau/12+t*.48;
-    c.save();
-    c.translate(Math.cos(a)*98,Math.sin(a)*80);
-    c.rotate(a);
-    artFill(c,artBarrierRune,i%3 ? '#adeaffb0' : '#e4fdff');
-    c.restore();
-  }
-  c.restore();
 }
 
 const artPetal = new Path2D('M0 2.4 C-1.6 .6 -5.6 -.6 -3.8 -2.2 C-2.6 -3.2 -.9 -1.8 0 -.75 C1.1 -2.3 3.1 -3.25 3.8 -1.7 C4.9 .2 1.6 1.6 0 2.4Z');
