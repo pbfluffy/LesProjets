@@ -13,7 +13,7 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, telegr
 - Weapons can NOT be bought. Each weapon is an item: `save.items[weapon][grade]` counts copies. Fights and farming drop Common copies from the
   stage's weighted `drops` table (`dropWeapon`). `MERGE_N` (3) copies of the same weapon and grade merge in the Forge into one of the next grade
   (`GRADES` in `game.js`: Common → Legendary, each with a damage/heal multiplier). A hero uses the best grade owned.
-- Drop chances (`DROP` in `game.js`): `manual` per won fight (+`pity` per fight without a drop), and a lower `autoPerHour` rolled per farmed hour on claim.
+- Drop chances (`DROP` in `game.js`): `manual` per won fight (+`pity` per fight without a drop), and `autoPerHour` (12%) rolled for every full farmed hour (max 24) when the loot is claimed, about 3 weapons per full day. The farming card on the Map tab shows the rolls earned so far and the time to the next one (`farmRollText`).
 - Old saves migrate in `hydrate()`: crafted weapons and known recipes both become one Common copy.
 - Art loading: `sprites.js` publishes `window.spriteState` (`map` / `units`: loading, ready, failed). While `loading`, `game.js` shows a placeholder
   (never the drawn fallback art), and fights wait until the heroes and monsters are ready. Map art loads first and in parallel with `meta.json`.

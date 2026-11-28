@@ -231,10 +231,10 @@ const GRADES = [
 const MERGE_N = 3;
 
 /* Weapons cannot be bought: they only drop (each drop is one Common copy of a weapon from the stage's table).
-   Winning a fight by hand is the best way to get one; auto-farming finds them more rarely.
+   Winning a fight by hand is the best way to get one; auto-farming rolls once per hour away.
    manual: chance per won fight (pity: extra chance added per won fight without a drop, bad-luck protection);
    autoPerHour: chance per hour of farming, rolled when you claim. */
-const DROP = { manual: 0.10, pity: 0.15, autoPerHour: 0.06 };
+const DROP = { manual: 0.10, pity: 0.15, autoPerHour: 0.12 };
 
 const CHARGE_SOFT = 0.15;                              // a boss charge hits the whole party for this share of its damage (no barrier any more; simulated: the Bog King is beaten at the recommended level with about 75% health left)
 const FARM_CAP_MIN = 24 * 60;
@@ -556,7 +556,7 @@ function dropsHtml(s) {                         // folded by default
   }).join('');
   return `<details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Possible weapon drops</span><em>${s.drops.length}</em></summary>
     <div class="dropgrid">${chips}</div>
-    <p class="fine">Chances are per fight you win, on average (every win without a drop makes the next one more likely). Farming finds weapons more rarely, about ${pctText(DROP.autoPerHour)} per hour.</p></details>`;
+    <p class="fine">Chances are per fight you win, on average (every win without a drop makes the next one more likely). Farming rolls once for every full hour away, ${pctText(DROP.autoPerHour)} each (up to 24 hours).</p></details>`;
 }
 function stageActions(s, big) {
   if (!isUnlocked(s)) return '';
@@ -604,6 +604,13 @@ function dailyCard() {
     <div class="dinfo"><b>Daily hunt</b><span>${MON[dm].name} ${resChip('gold', dr.gold)}${resChip('lumber', dr.lumber)}</span></div>
     ${done ? '<span class="pill ok"><i class="ico m check sm"></i>Done today</span>' : '<button class="btn small" data-act="bonus">Hunt</button>'}</div>`;
 }
+/* The weapon rolls a farming trip has earned so far: one per full hour away, DROP.autoPerHour each, rolled when the loot is claimed. */
+function farmRollText(g) {
+  const rolls = Math.min(24, Math.floor(g.mins / 60)), pct = pctText(DROP.autoPerHour);
+  if (g.full) return `Weapon rolls: ${rolls} ready (${pct} each). Claim them!`;
+  const next = Math.max(1, Math.ceil(60 - (g.mins % 60)));
+  return `Weapon roll each hour (${pct}) · ${rolls} earned · next in ${next} min`;
+}
 function farmStrip() {
   const cur = save.farm ? STAGE[save.farm.stage] : null;
   if (!cur) {
@@ -616,7 +623,8 @@ function farmStrip() {
     <div class="gains" id="farm-gain">${resChip('gold', g.gold)}${resChip('lumber', g.lumber)}</div>
     <div class="bar"><i id="farm-bar" style="width:${(g.mins / FARM_CAP_MIN * 100).toFixed(1)}%"></i></div>
     <button class="btn good" data-act="claim" id="claim-btn">Claim</button>
-    <p class="fine">Gathers for up to 24 hours. Weapons can drop too, but rarely, so fight by hand for the best chance.</p></div>`;
+    <p class="fine" id="farm-roll">${farmRollText(g)}</p>
+    <p class="fine">Gathers for up to 24 hours. Weapons are rolled when you claim; fighting by hand has the best chance.</p></div>`;
 }
 
 /* ------------------------------- regions ------------------------------ */
@@ -723,6 +731,7 @@ function tickFarm() {
   $('#farm-bar').style.width = (g.mins / FARM_CAP_MIN * 100).toFixed(1) + '%';
   const m = Math.floor(g.mins), hh = Math.floor(m / 60);
   $('#farm-time').textContent = g.full ? 'Full: claim it!' : `Out ${hh}h ${m % 60}m`;
+  const fr = $('#farm-roll'); if (fr) { const t = farmRollText(g); if (fr.textContent !== t) fr.textContent = t; }
   const cb = $('#claim-btn');
   if (cb) { const any = g.gold > 0 || g.lumber > 0; cb.disabled = !any; cb.classList.toggle('ready', any); }
 }
@@ -1510,7 +1519,7 @@ function showFarmReport(e) {
   d.className = 'result dialog'; d.id = 'farm-report';
   d.innerHTML = `<div class="box"><h2>Farm report</h2><p class="note">${STAGE[e.stage].name} · out for ${fmtDur(e.mins)}</p>
     <div class="rtiles"><div class="rtile"><i class="ico gold"></i><b>+${fmt(e.gold)}</b><small>Gold</small></div><div class="rtile"><i class="ico lumber"></i><b>+${fmt(e.lumber)}</b><small>Lumber</small></div></div>
-    ${e.found.length ? `<div class="unlockbar"><i class="ico m swords"></i><span><b>Weapons found:</b> ${dropNames(e.found, e.grade)}</span></div>` : '<p class="note">No weapons this time. Long trips have a better chance, and fighting by hand has the best.</p>'}
+    ${e.found.length ? `<div class="unlockbar"><i class="ico m swords"></i><span><b>Weapons found:</b> ${dropNames(e.found, e.grade)}</span></div>` : `<p class="note">No weapons this time. You get one roll per full hour away (${pctText(DROP.autoPerHour)} each), so long trips pay best, and fighting by hand has the best chance.</p>`}
     <div class="stack"><button class="btn primary" data-act="farmreportok">Nice!</button></div></div>`;
   d.addEventListener('click', ev => { if (ev.target === d) closeFarmReport(); });
   document.body.appendChild(d);
