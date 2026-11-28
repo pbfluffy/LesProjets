@@ -22,21 +22,21 @@ const snd = (n, a) => { try { if (window.sfx) window.sfx.play(n, a); } catch (e)
 
 /* ---------------------------- data ---------------------------------- */
 const HERO = {
-  milo: { hire: 0, name: 'Milo Dunn', role: 'Villager · Beginner', family: 'tool', start: 'pitchfork', row: 'front', hp: 70, atk: 5.5,
+  milo: { hire: 0, name: 'Milo Dunn', role: 'Villager · Beginner', family: 'tool', start: 'pitchfork', row: 'front', spec: 'hp', hp: 70, atk: 5.5,
           blurb: 'A farmhand with a pitchfork and a lot of heart. Not strong yet, but he grows with every level.' },
-  bren: { hire: 200, name: 'Bren Alder', role: 'Guardian · Front line', family: 'sword', start: 'sword', row: 'front', tank: true, hp: 120, atk: 8,
+  bren: { hire: 200, name: 'Bren Alder', role: 'Guardian · Front line', family: 'sword', start: 'sword', row: 'front', spec: 'hp', tank: true, hp: 120, atk: 8,
           blurb: 'Stands in front and takes most melee hits.' },
-  tavi: { hire: 500, name: 'Tavi Reed', role: 'Archer · Ranged damage', family: 'bow', start: 'bow', row: 'back', draws: true, hp: 70, atk: 7,
+  tavi: { hire: 500, name: 'Tavi Reed', role: 'Archer · Ranged damage', family: 'bow', start: 'bow', row: 'back', spec: 'spd', draws: true, hp: 70, atk: 7,
           blurb: 'Fires from behind the front line. A quick backward lean before each shot.' },
-  iona: { hire: 1200, name: 'Iona Moss', role: 'Herbalist · Healing', family: 'staff', start: 'staff', row: 'back', hp: 70, atk: 4,
+  iona: { hire: 1200, name: 'Iona Moss', role: 'Herbalist · Healing', family: 'staff', start: 'staff', row: 'back', spec: 'atk', hp: 70, atk: 4,
           blurb: 'Casts bolts from the back and heals the weakest ally. A ring of petals shows who was healed.' },
-  rook: { hire: 3000, name: 'Rook', role: 'Rogue · Quick crits', family: 'dagger', start: 'dagger', row: 'front', hp: 80, atk: 8.5,
+  rook: { hire: 3000, name: 'Rook', role: 'Rogue · Quick crits', family: 'dagger', start: 'dagger', row: 'front', spec: 'crit', hp: 80, atk: 8.5,
           blurb: 'Fast hands and a sharp eye for weak spots: he crits a lot, but a few hits will put him down.' },
-  elric: { hire: 8000, name: 'Elric Vane', role: 'Mage · Spell damage', family: 'tome', start: 'tome', row: 'back', hp: 60, atk: 9,
+  elric: { hire: 8000, name: 'Elric Vane', role: 'Mage · Spell damage', family: 'tome', start: 'tome', row: 'back', spec: 'atk', hp: 60, atk: 9,
           blurb: 'A scholar who burns monsters from the back line. Fragile, but his spells hit hard.' },
-  maren: { hire: 20000, name: 'Maren Ashe', role: 'Lancer · Long reach', family: 'spear', start: 'spear', row: 'front', tank: true, hp: 115, atk: 9,
+  maren: { hire: 20000, name: 'Maren Ashe', role: 'Lancer · Long reach', family: 'spear', start: 'spear', row: 'front', spec: 'spd', tank: true, hp: 115, atk: 9,
           blurb: 'Her spear reaches past the first monster. Steady and hard to move.' },
-  tobin: { hire: 50000, name: 'Brother Tobin', role: 'Monk · Sturdy brawler', family: 'fist', start: 'wraps', row: 'front', hp: 150, atk: 8,
+  tobin: { hire: 50000, name: 'Brother Tobin', role: 'Monk · Sturdy brawler', family: 'fist', start: 'wraps', row: 'front', spec: 'crit', hp: 150, atk: 8,
           blurb: 'Takes a beating and hits back with both fists.' },
 };
 const HERO_ORDER = ['milo', 'bren', 'tavi', 'iona', 'rook', 'elric', 'maren', 'tobin'];
@@ -288,9 +288,9 @@ const DASH_RATE = 1.5, DASH_HIT = 0.43;       // weapons with dash: true are too
    better grades multiply them by GRADES[g].mult. 'garb' is the plain outfit every hero starts with (no bonus, never runs out). */
 const ARMORS = {
   garb:         { name: "Traveler's garb", tier: 0, hp: 0, dr: 0, starter: true, desc: 'Plain travelling clothes. Every hero starts with them.' },
-  leatherarmor: { name: 'Leather armor', tier: 1, hp: 0.15, dr: 0.04, desc: 'Light and quiet: a little more health and a little less damage.' },
-  chainmail:    { name: 'Chainmail', tier: 2, hp: 0.30, dr: 0.09, desc: 'Steel rings over the chest: much tougher than leather.' },
-  platearmor:   { name: 'Plate armor', tier: 3, hp: 0.50, dr: 0.15, desc: 'Heavy plates and pauldrons: the best protection there is.' },
+  leatherarmor: { name: 'Leather armor', tier: 1, hp: 0.12, dr: 0.03, desc: 'Light and quiet: a little more health and a little less damage.' },
+  chainmail:    { name: 'Chainmail', tier: 2, hp: 0.22, dr: 0.06, desc: 'Steel rings over the chest: much tougher than leather.' },
+  platearmor:   { name: 'Plate armor', tier: 3, hp: 0.35, dr: 0.10, desc: 'Heavy plates and pauldrons: the best protection there is.' },
 };
 const ARMOR_IDS = Object.keys(ARMORS).filter(a => !ARMORS[a].starter);          // the pieces that drop and merge
 const isArmor = id => !!ARMORS[id];
@@ -310,7 +310,7 @@ const FARM_CAP_MIN = 24 * 60;
 const SAVE_KEY = 'wildlight-expedition-v1';
 function newSave() {
   const heroes = {}, items = {};
-  for (const id of HERO_ORDER) heroes[id] = { lvl: 1, up: 0, weapon: HERO[id].start, armor: 'garb', armorG: 0 };
+  for (const id of HERO_ORDER) heroes[id] = { lvl: 1, up: 0, tr: { hp: 0, crit: 0, spd: 0 }, weapon: HERO[id].start, armor: 'garb', armorG: 0 };
   for (const w of Object.keys(WEAPONS)) items[w] = [0, 0, 0, 0, 0];       // items[weapon][grade] = how many copies you own
   const armors = {};
   for (const a of ARMOR_IDS) armors[a] = [0, 0, 0, 0, 0];                  // armors[armor][grade] = how many copies you own (worn ones included)
@@ -318,6 +318,7 @@ function newSave() {
   return {
     gold: 0, lumber: 0, cleared: {}, towers: {}, pity: {}, party: ['milo'], hired: ['milo'],
     items, armors, heroes, farm: null, daily: { date: '', done: false }, tab: 'map',
+    stats: { wins: 0, kills: 0, bosses: 0, drops: 0, merges: 0, skills: 0 }, ach: {},                // play counters and achievements (achievements.js)
   };
 }
 /* Every hero wears a piece they own, and nobody wears a copy somebody else already wears (a missing piece becomes the plain garb). */
@@ -337,7 +338,7 @@ function hydrate(rawIn) {
     /* a damaged or hand-edited save (cloud or local) must not crash the game: these fields have to be plain objects and the money a number */
     const obj = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
     raw = Object.assign({}, raw, { heroes: obj(raw.heroes), cleared: obj(raw.cleared) });
-    for (const k of ['items', 'armors', 'crafted', 'recipes', 'pity']) if (raw[k] != null) raw[k] = obj(raw[k]);
+    for (const k of ['items', 'armors', 'crafted', 'recipes', 'pity', 'stats', 'ach']) if (raw[k] != null) raw[k] = obj(raw[k]);
     for (const k of ['gold', 'lumber', 'iron']) if (raw[k] != null && !Number.isFinite(Number(raw[k]))) delete raw[k]; else if (raw[k] != null) raw[k] = Number(raw[k]);
     Object.assign(base, raw);
     const legacy = ['bren', 'tavi', 'iona'];                                // saves from before the roster: the heroes of the party were hired
@@ -349,6 +350,9 @@ function hydrate(rawIn) {
     for (const id of HERO_ORDER) {
       base.heroes[id] = Object.assign(newSave().heroes[id], (raw.heroes || {})[id]);
       if (base.heroes[id].row !== 'front' && base.heroes[id].row !== 'back') delete base.heroes[id].row;      // the chosen line, else the hero's own
+      const hh = base.heroes[id], t0 = hh.tr && typeof hh.tr === 'object' ? hh.tr : {}, ci = v => Math.max(0, Math.min(TRAIN_MAX, Math.floor(Number(v)) || 0));
+      hh.tr = { hp: ci(t0.hp), crit: ci(t0.crit), spd: ci(t0.spd) };                                       // trained levels are whole numbers 0..10
+      hh.up = Math.max(0, Math.floor(Number(hh.up)) || 0);
     }
     base.items = Object.assign(newSave().items, raw.items || {});
     base.armors = Object.assign(newSave().armors, raw.armors || {});
@@ -368,6 +372,9 @@ function hydrate(rawIn) {
     delete base.iron;
   }
   base.lumber = base.lumber || 0;
+  const st0 = base.stats && typeof base.stats === 'object' ? base.stats : {}, a0 = base.ach && typeof base.ach === 'object' ? base.ach : {};
+  base.stats = {}; for (const k of ['wins', 'kills', 'bosses', 'drops', 'merges', 'skills']) base.stats[k] = Math.max(0, Math.floor(Number(st0[k])) || 0);
+  base.ach = {}; for (const [k, v] of Object.entries(a0)) if (v === 1 || v === 2) base.ach[k] = v;       // 1 = done, 2 = reward taken
   for (const w of Object.keys(WEAPONS)) if (!base.items[w]) base.items[w] = [0, 0, 0, 0, 0];
   base.pity = base.pity || {};
   for (const a of ARMOR_IDS) if (!Array.isArray(base.armors[a])) base.armors[a] = [0, 0, 0, 0, 0];
@@ -436,7 +443,21 @@ const encounterFor = s => {
   return s.enemies.slice(0, size === 1 ? Math.ceil(n / 2) : n - 1);
 };
 const lvlCost = l => 40 * l;
-const upCost = u => ({ gold: 80 * (u + 1), lumber: 6 * (u + 1) });
+const upCost = u => ({ gold: 80 * (u + 1), lumber: 6 * (u + 1) });          // u = levels already trained in all four stats of that hero
+/* Training: four stats per hero. Power is the old weapon upgrade (save.heroes[id].up), the others live in save.heroes[id].tr. Each hero has one specialty
+   that grows 1.5x per level (HERO[id].spec), so two heroes with the same gear still end up different. Every level costs more, whichever stat it goes into. */
+const TRAIN_KEYS = ['atk', 'hp', 'crit', 'spd'];
+const TRAIN = {
+  atk:  { name: 'Power', per: 0.15, what: pc => `+${pc}% damage and healing` },
+  hp:   { name: 'Vitality', per: 0.08, what: pc => `+${pc}% health` },
+  crit: { name: 'Precision', per: 0.02, what: pc => `+${pc}% critical chance` },
+  spd:  { name: 'Haste', per: 0.04, what: pc => `+${pc}% attack speed` },
+};
+const TRAIN_MAX = 10;
+const trLv = (id, k) => (k === 'atk' ? save.heroes[id].up : ((save.heroes[id].tr || {})[k] || 0));
+const trTotal = id => TRAIN_KEYS.reduce((a, k) => a + trLv(id, k), 0);
+const trPer = (id, k) => TRAIN[k].per * (HERO[id].spec === k ? 1.5 : 1);
+const trSpent = id => { let g = 0, l = 0; for (let t = 0; t < trTotal(id); t++) { g += upCost(t).gold; l += upCost(t).lumber; } return { gold: g, lumber: l }; };
 const canAfford = c => save.gold >= (c.gold || 0) && save.lumber >= (c.lumber || 0);
 const pay = c => { save.gold -= c.gold || 0; save.lumber -= c.lumber || 0; };
 const bestGrade = w => { const a = save.items[w] || []; for (let g = GRADES.length - 1; g >= 0; g--) if (a[g] > 0) return g; return -1; };
@@ -454,8 +475,9 @@ const freeArmor = (a, g) => ((save.armors[a] || [])[g] || 0) - wearers(a, g).len
 const armorTotal = a => (save.armors[a] || []).reduce((x, y) => x + y, 0);
 function heroStats(id) {
   const s = save.heroes[id], d = HERO[id];
-  const lm = 1 + 0.12 * (s.lvl - 1), um = (1 + 0.15 * s.up) * GRADES[heroGrade(id)].mult;
-  return { maxHp: Math.round(d.hp * lm * (1 + armorBonus(id).hp)), atk: d.atk * lm * um, heal: 14 * lm * um, crit: Math.min(0.6, WEAPONS[s.weapon].crit + CRIT.perGrade * heroGrade(id)) };
+  const lm = 1 + 0.12 * (s.lvl - 1), um = (1 + trPer(id, 'atk') * s.up) * GRADES[heroGrade(id)].mult;
+  return { maxHp: Math.round(d.hp * lm * (1 + armorBonus(id).hp) * (1 + trPer(id, 'hp') * trLv(id, 'hp'))), atk: d.atk * lm * um, heal: 14 * lm * um,
+    crit: Math.min(0.6, WEAPONS[s.weapon].crit + CRIT.perGrade * heroGrade(id) + trPer(id, 'crit') * trLv(id, 'crit')), spd: 1 + trPer(id, 'spd') * trLv(id, 'spd') };
 }
 
 /* ---------------------------- farming ------------------------------- */
@@ -473,6 +495,7 @@ function dropWeapon(s) {
   let r = Math.random() * total, pick = table[table.length - 1][0];
   for (const [w, wt] of table) { if ((r -= wt) < 0) { pick = w; break; } }
   (isArmor(pick) ? save.armors : save.items)[pick][s.dropGrade || 0]++;
+  if (window.ach) ach.count('drops');
   return pick;
 }
 function rollManualDrop(s) {
@@ -558,6 +581,7 @@ const gainText = g => [g.gold ? `${fmt(g.gold)} gold` : '', g.lumber ? `${fmt(g.
 
 function render() {
   hud();
+  if (window.ach) ach.check();                                                    // newly reached achievements
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.arg === save.tab));
   const sheet = $('.fsheet'), sheetTop = sheet ? sheet.scrollTop : 0;                          // an open sheet keeps its scroll position when it is redrawn
   $('#view').innerHTML = ({ map: renderMap, party: renderParty, forge: renderForge })[save.tab]();
@@ -673,8 +697,17 @@ const selStage = () => (uiStage && STAGE[uiStage]) || featuredStage();
 const stageFrontier = r => (!regionUnlocked(r) ? r.stages[0] : r.stages.find(id => isUnlocked(STAGE[id]) && !save.cleared[id]) || r.stages[r.stages.length - 1]);
 
 /* How dangerous: the party's average level against the level the stage was balanced for (the bar's tick is the recommended level). */
+/* Power level of a hero: the level a hero with starter gear and no training would need to be as strong (sqrt of damage x effective health, so weapon grade, armor and training count).
+   A hero with plain gear has power level = level. The Danger meter uses the party's average. */
+const heroP0 = id => { const d = HERO[id], w = WEAPONS[d.start]; return Math.sqrt(d.atk * w.hits.reduce((a, b) => a + b, 0) / w.int * d.hp); };
+const powerLevel = id => {
+  const st = heroStats(id), dr = armorBonus(id).dr, lv = save.heroes[id].lvl;
+  const raw = 1 + (Math.sqrt(heroDps(id) * st.maxHp / (1 - dr)) / heroP0(id) - 1) / 0.12;
+  return Math.max(lv, lv + 0.5 * (raw - lv));                        // gear and training count for half: simulations showed the meter was too generous with the full value
+};
+const partyPower = () => { const ids = party(); return ids.length ? ids.reduce((a, id) => a + powerLevel(id), 0) / ids.length : 1; };
 function difficulty(s) {
-  const lv = partyLevel(), r = lv / s.rec;
+  const lv = partyPower(), r = lv / s.rec;
   const [cls, txt] = r >= 1.15 ? ['easy', 'Easy'] : r >= 0.95 ? ['fair', 'Fair fight'] : r >= 0.75 ? ['risky', 'Risky'] : ['hard', 'Too strong: level up first'];
   return { cls, txt, lv: Math.floor(lv), pct: Math.max(6, Math.min(100, Math.round(r * 70))) };
 }
@@ -687,12 +720,18 @@ function levelFixHtml(d) {
   return `<div class="dfix"><span>${can ? `<b>${firstName(id)}</b> is behind: Lv ${lv} → ${lv + 1}` : `<b>${firstName(id)}</b> needs ${fmt(cost)} gold for Lv ${lv + 1}`}</span>
     <button class="btn good small" data-act="lvl" data-arg="${id}" ${can ? '' : 'disabled'}>${can ? `Level up <span class="cost">${costHtml({ gold: cost })}</span>` : `<span class="cost"><b class="short"><i class="ico gold"></i>${fmt(cost - save.gold)}</b></span> more`}</button></div>`;
 }
+/* From the middle areas on, plain garb loses fights that armor wins (simulations: Cinder Fields, Glowcap Mines, Warlord's Throne). */
+function garbHint(s) {
+  if (s.rec < 18) return '';
+  const bare = party().filter(id => save.heroes[id].armor === 'garb');
+  return bare.length ? `<p class="dgoal">${bare.length === 1 ? `${firstName(bare[0])} wears` : `${bare.length} heroes wear`} plain garb. Armor matters a lot here: put some on in the Party tab.</p>` : '';
+}
 function difficultyHtml(s) {
   const d = difficulty(s), size = Math.max(1, partySize());
-  const aim = Math.ceil(0.95 * s.rec), more = Math.ceil((0.95 * s.rec - partyLevel()) * size);           // average level for a fair fight, and the level-ups still missing across the party
+  const aim = Math.ceil(0.95 * s.rec), more = Math.ceil((0.95 * s.rec - partyPower()) * size);           // average level for a fair fight, and the level-ups still missing across the party
   const goal = (d.cls === 'risky' || d.cls === 'hard') && more > 0 ? `<p class="dgoal">Reach about Lv ${aim} for a fair fight: ${more} more level-up${more > 1 ? 's' : ''} across your party.</p>` : '';
-  return `<div class="diff ${d.cls}"><div class="dtop"><span class="dlabel">Danger</span><b>${d.txt}</b><small>Your party Lv ${d.lv} · recommended Lv ${s.rec}</small></div>
-    <div class="dbar"><i style="width:${d.pct}%"></i><u></u></div>${goal}${levelFixHtml(d)}</div>`;
+  return `<div class="diff ${d.cls}"><div class="dtop"><span class="dlabel">Danger</span><b>${d.txt}</b><small>Party power Lv ${d.lv} · recommended Lv ${s.rec}</small></div>
+    <div class="dbar"><i style="width:${d.pct}%"></i><u></u></div>${goal}${garbHint(s)}${levelFixHtml(d)}</div>`;
 }
 /* the loot to hunt for: the most likely armor first, then the most likely weapons */
 function lootRow(s) {
@@ -829,9 +868,9 @@ const stageArt = s => artIsReady() && regionReady(s.region);        // this stag
 /* A hint about how the party compares with the area (recommended level is what the area was balanced for). */
 function partyLevel() { return party().reduce((a, id) => a + save.heroes[id].lvl, 0) / partySize(); }
 function recBadge(s) {
-  const lv = partyLevel(), gap = s.rec - lv;
+  const lv = partyPower(), gap = s.rec - lv;
   const [cls, txt] = gap <= 0 ? ['ok', 'Ready'] : gap <= 2 ? ['mid', 'Close'] : ['hard', 'Too strong: level up first'];
-  return `<span class="rec ${cls}">Recommended Lv <b>${s.rec}</b><i>·</i>Your party Lv <b>${Math.floor(lv)}</b><em>${txt}</em></span>`;
+  return `<span class="rec ${cls}">Recommended Lv <b>${s.rec}</b><i>·</i>Party power Lv <b>${Math.floor(lv)}</b><em>${txt}</em></span>`;
 }
 
 function renderMap() {
@@ -849,6 +888,7 @@ function renderMap() {
   h += `<div class="vg o2"><h2 class="sec">${title}</h2>${adventureCard(sel)}</div></div>`;
   h += `<div class="vcol"><div class="vg o4">${farmStrip()}${farmLogCard()}</div><div class="vg o5">${dailyCard()}${window.pwaCard ? window.pwaCard() : ''}</div><div class="vg o6">${journeyHtml(reg, sel)}</div>`;   // pwaCard: "Install the game" (pwa.js)
   h += '<div class="vg o7">';
+  if (window.ach) h += ach.card();
   if (!next) h += '<p class="note">Every watchtower is lit. More areas will open in a later version.</p>';
   if (devMode()) h += `<div class="card testtools"><div class="row between"><h3>Test tools</h3><span class="tag">Test period</span></div>
     <p class="sub">Want to start over? This wipes your progress and begins a brand-new game.</p>
@@ -906,17 +946,18 @@ setInterval(tickFarm, 1000);
 const HERO_ACCENT = { milo: '#c9b27a', bren: '#c98a2b', tavi: '#4c9a5c', iona: '#b69ce0', rook: '#4fa6a0', elric: '#7078d8', maren: '#c8504a', tobin: '#e08a2c' };
 const heroDps = id => {
   const w = WEAPONS[save.heroes[id].weapon], st = heroStats(id);
-  return st.atk * w.hits.reduce((a, b) => a + b, 0) / w.int;
+  return st.atk * w.hits.reduce((a, b) => a + b, 0) * st.spd / w.int;
 };
 
 /* The Party tab is a list of compact hero rows (portrait, name, level, HP, damage per second, weapon and armor icons); tapping a row opens that hero's sheet with the
    full details, the two equipment slots (tap a slot to see what the hero can put on there), level up, upgrades, camp and skills. uiHero is only screen state. */
-let uiHero = { open: null, slot: null };
+let uiHero = { open: null, slot: null, rt: null };
 const heroStatList = id => {
   const st = heroStats(id), w = WEAPONS[save.heroes[id].weapon], ab = armorBonus(id);
   const stats = [['HP', st.maxHp], ['Damage/s', heroDps(id).toFixed(1)]];
   if (w.heal) stats.push(['Heal', Math.round(st.heal * (w.healMult || 1))]);
   stats.push(['Crit', Math.round(st.crit * 100) + '%']);
+  if (st.spd > 1) stats.push(['Speed', '+' + Math.round((st.spd - 1) * 100) + '%']);
   if (w.pierce) stats.push(['Pierce', Math.round(w.pierce * 100) + '%']);
   if (w.shield) stats.push(['Guard', '-' + Math.round(w.shield * 100) + '%']);
   if (ab.dr > 0) stats.push(['Armor', '-' + pct0(ab.dr) + '%']);
@@ -929,7 +970,26 @@ function partyStrip() {
   const next = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0], camp = hired().length - act.length;
   return `<div class="strip idle pstrip"><div class="slots">${slots}</div>
     <div><b>Your party · ${act.length} of ${MAX_PARTY}</b>
-    <span>${next ? `Hire more heroes with gold: ${HERO[next].name} costs ${fmt(HERO[next].hire)}.` : 'Everyone has joined you.'}${camp > 0 ? ` ${camp} resting in camp.` : ''}</span>${act.length > 1 ? '<button type="button" class="btn alt small posbtn" data-act="formation">Positions</button>' : ''}</div></div>`;
+    <span>${next ? `Hire more heroes with gold: ${HERO[next].name} costs ${fmt(HERO[next].hire)}.` : 'Everyone has joined you.'}${camp > 0 ? ` ${camp} resting in camp.` : ''}</span><div class="pbtns">${act.length > 1 ? '<button type="button" class="btn alt small posbtn" data-act="formation">Positions</button>' : ''}<button type="button" class="btn alt small posbtn" data-act="autoequip">Auto-equip</button></div></div></div>`;
+}
+/* Auto-equip: each hero takes the best weapon they own, then the best armor pieces go to the front line first, then the rest of the party, then the camp. */
+function autoEquip() {
+  const before = JSON.stringify(HERO_ORDER.map(id => [save.heroes[id].weapon, save.heroes[id].armor, save.heroes[id].armorG]));
+  for (const id of hired()) {
+    const h = save.heroes[id], cands = Object.keys(WEAPONS).filter(w => WEAPONS[w].fam === HERO[id].family && owned(w)), keep = h.weapon;
+    const value = w => { h.weapon = w; const v = heroDps(id) + (WEAPONS[w].heal ? heroStats(id).heal * (WEAPONS[w].healMult || 1) / 4 : 0); h.weapon = keep; return v; };
+    let best = keep, bv = value(keep) * 1.01;                                  // only change for a real gain
+    for (const w of cands) { const v = value(w); if (v > bv) { best = w; bv = v; } }
+    h.weapon = best;
+  }
+  const pool = [];
+  for (const a of ARMOR_IDS) (save.armors[a] || []).forEach((n, g) => { const m = GRADES[g].mult, A = ARMORS[a]; for (let i = 0; i < n; i++) pool.push({ a, g, v: (1 + A.hp * m) / (1 - Math.min(0.5, A.dr * m)) }); });
+  pool.sort((x, y) => y.v - x.v);
+  const order = [...party(), ...hired().filter(id => !inParty(id))];
+  for (const id of HERO_ORDER) { save.heroes[id].armor = 'garb'; save.heroes[id].armorG = 0; }
+  order.forEach((id, i) => { const p = pool[i]; if (p) { save.heroes[id].armor = p.a; save.heroes[id].armorG = p.g; } });
+  sanitizeArmor(save);
+  return before !== JSON.stringify(HERO_ORDER.map(id => [save.heroes[id].weapon, save.heroes[id].armor, save.heroes[id].armorG]));
 }
 /* Positions menu: who stands in the front line (monsters' melee attacks hit the first hero there) and who in the back line (ranged monsters aim there). */
 function formHtml() {
@@ -1002,6 +1062,19 @@ function armorPickRows(id) {
   return rows.join('') + '<p class="fine">Armor comes from fights and farming. A copy is worn by one hero at a time; you can take it from another hero, who goes back to the plain garb.</p>';
 }
 
+/* The Training card of a hero's sheet: four stats, one is the hero's specialty. */
+function trainHtml(id) {
+  const c = upCost(trTotal(id)), can = canAfford(c), spent = trSpent(id), anyTrained = trTotal(id) > 0, ask = uiHero.rt === id;
+  const rows = TRAIN_KEYS.map(k => {
+    const lv = trLv(id, k), per = trPer(id, k), full = lv >= TRAIN_MAX, spec = HERO[id].spec === k;
+    const per1 = Math.round(per * 1000) / 10;
+    return `<div class="trow ${spec ? 'spec' : ''}"><div class="trname"><b>${TRAIN[k].name} <em class="trl">${lv}/${TRAIN_MAX}</em>${spec ? ' <i class="spectag">Specialty</i>' : ''}</b>
+      <small>${TRAIN[k].what(per1)} per level</small>${lv ? `<small class="now">Now ${TRAIN[k].what(Math.round(per * lv * 1000) / 10)}</small>` : ''}</div>
+      <button class="btn ${spec ? 'primary' : 'alt'} small" data-act="train" data-arg="${id}:${k}" ${can && !full ? '' : 'disabled'}>${full ? 'Max' : `+1 <span class="cost">${costHtml(c)}</span>`}</button></div>`;
+  }).join('');
+  return `<div class="train"><h4>Training <small>every level costs more, in any stat</small></h4>${rows}
+    ${anyTrained ? `<button type="button" class="btn alt small trreset" data-act="trainreset" data-arg="${id}">${ask ? `Tap again: refund ${fmt(Math.floor(spent.gold * 0.7))} gold and ${fmt(Math.floor(spent.lumber * 0.7))} lumber` : 'Reset training (70% refund)'}</button>` : ''}</div>`;
+}
 function heroSheet(id) {
   const d = HERO[id], s = save.heroes[id], st = heroStats(id), w = WEAPONS[s.weapon], A = ARMORS[s.armor] || ARMORS.garb, ab = armorBonus(id);
   const lc = { gold: lvlCost(s.lvl) }, uc = upCost(s.up), pickW = uiHero.slot === 'weapon', pickA = uiHero.slot === 'armor';
@@ -1018,15 +1091,15 @@ function heroSheet(id) {
       </div>
       <p class="hblurb">${d.blurb}</p>
       <div class="hslots">
-        ${slot('weapon', s.weapon, 'Weapon', w.name, gradeTag(heroGrade(id)), `${FAMILY[d.family]} +${s.up} · Crit ${Math.round(st.crit * 100)}%`, pickW)}
+        ${slot('weapon', s.weapon, 'Weapon', w.name, gradeTag(heroGrade(id)), `${FAMILY[d.family]} · Power +${s.up} · Crit ${Math.round(st.crit * 100)}%`, pickW)}
         ${pickW ? `<div class="weapons hpick">${weaponPickRows(id)}</div>` : ''}
         ${slot('armor', s.armor, 'Armor', A.name, A.tier ? gradeTag(s.armorG) : '', A.tier ? `HP +${pct0(ab.hp)}% · -${pct0(ab.dr)}% damage` : 'No bonus: tap to choose armor', pickA)}
         ${pickA ? `<div class="weapons hpick">${armorPickRows(id)}</div>` : ''}
       </div>
       <div class="hactions">
         <button class="btn primary sm" data-act="lvl" data-arg="${id}" ${canAfford(lc) ? '' : 'disabled'}>Level up <span class="cost">${costHtml(lc)}</span></button>
-        <button class="btn alt" data-act="up" data-arg="${id}" ${canAfford(uc) ? '' : 'disabled'}>Upgrade ${FAMILY_PLURAL[d.family].toLowerCase()} <span class="cost">${costHtml(uc)}</span></button>
       </div>
+      ${trainHtml(id)}
       ${campRow(id)}
       ${typeof skillsCardHtml === 'function' ? skillsCardHtml(id) : ''}
     </div></div>`;
@@ -1305,7 +1378,7 @@ const RESOURCES = {
     use: () => [
       `Hire more heroes in the Party tab: ${(() => { const n = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0]; return n ? `${HERO[n].name} costs ${fmt(HERO[n].hire)} gold` : 'everyone has joined you'; })()}.`,
       `Level up your heroes in the Party tab (${lvlCost(1)} gold at level 1, more for each level).`,
-      `Upgrade a weapon family in the Party tab (it also needs lumber): the first upgrade costs ${upCost(0).gold} gold.`,
+      `Train a hero's stats in the Party tab (it also needs lumber): the first level costs ${upCost(0).gold} gold.`,
     ],
   },
   lumber: {
@@ -1318,7 +1391,7 @@ const RESOURCES = {
       ];
     },
     use: () => [
-      `Upgrade a weapon family in the Party tab. Every upgrade makes all of that hero's weapons stronger. The first costs ${upCost(0).lumber} lumber (and ${upCost(0).gold} gold).`,
+      `Train a hero in the Party tab: Power, Vitality, Precision or Haste. The first level costs ${upCost(0).lumber} lumber (and ${upCost(0).gold} gold).`,
       "Weapons themselves can't be bought: they drop from fights, and you merge copies in the Forge.",
     ],
   },
@@ -1387,6 +1460,11 @@ const actions = {
     if (!(save.items[d.start] || []).some(n => n > 0)) save.items[d.start][0] = 1;                      // their basic weapon comes with them
     snd('hire'); persist(); toast(inParty(id) ? `${d.name} joins your party!` : `${d.name} waits in camp: your party is full.`); render();
   },
+  autoequip() {
+    if (B) return;
+    const changed = autoEquip();
+    persist(); toast(changed ? 'Best gear equipped: weapons by damage, armor to the front line first.' : 'Everyone already wears the best gear you own.'); render();
+  },
   formation() { if (!B) showFormation(); },
   formclose() { closeFormation(); },
   formrow(id) {                                              // change line: front <-> back
@@ -1417,11 +1495,21 @@ const actions = {
     if (!canAfford(c)) return;
     pay(c); save.heroes[id].lvl++; snd('levelup'); persist(); render();
   },
-  up(id) {
-    if (!isHired(id)) return;
-    const c = upCost(save.heroes[id].up);
-    if (!canAfford(c)) return;
-    pay(c); save.heroes[id].up++; snd('upgrade'); persist(); render();
+  train(arg) {
+    const [id, k] = String(arg).split(':');
+    if (!isHired(id) || !TRAIN[k]) return;
+    const lv = trLv(id, k), c = upCost(trTotal(id));
+    if (lv >= TRAIN_MAX || !canAfford(c)) { snd('nope'); return; }
+    pay(c);
+    if (k === 'atk') save.heroes[id].up++; else { save.heroes[id].tr = save.heroes[id].tr || {}; save.heroes[id].tr[k] = lv + 1; }
+    uiHero.rt = null; snd('upgrade'); persist(); render();
+  },
+  trainreset(id) {
+    if (!isHired(id) || trTotal(id) === 0) return;
+    if (uiHero.rt !== id) { uiHero.rt = id; render(); return; }                      // first tap asks, the second one does it
+    const sp = trSpent(id); save.gold += Math.floor(sp.gold * 0.7); save.lumber += Math.floor(sp.lumber * 0.7);
+    save.heroes[id].up = 0; save.heroes[id].tr = { hp: 0, crit: 0, spd: 0 };
+    uiHero.rt = null; persist(); toast('Training reset. 70% of the gold and lumber came back.'); render();
   },
   equip(arg) {
     const [id, w] = arg.split(':');
@@ -1431,7 +1519,7 @@ const actions = {
     const [w, gs] = arg.split(':'), gr = Number(gs), items = (isArmor(w) ? save.armors : save.items)[w];
     if (!items || !(gr >= 0 && gr < GRADES.length - 1) || items[gr] < MERGE_N) return;
     if (isArmor(w) && freeArmor(w, gr) < MERGE_N) { toast('Take the worn ones off first: only copies nobody wears can be merged.'); return; }
-    items[gr] -= MERGE_N; items[gr + 1]++;
+    items[gr] -= MERGE_N; items[gr + 1]++; if (window.ach) ach.count('merges');
     snd('merge'); persist(); toast(`Merged into a ${GRADES[gr + 1].name} ${itemInfo(w).name}!`); render();
   },
   equiparmor(arg) {
@@ -1476,7 +1564,7 @@ const actions = {
     endBattle('retreat');
   },
 };
-const OWN_SOUND = new Set(['skill', 'autoskill', 'tab', 'region', 'retreat', 'lvl', 'up', 'hire', 'equip', 'merge', 'claim', 'farm', 'fight', 'bonus', 'repeat', 'sound',
+const OWN_SOUND = new Set(['skill', 'autoskill', 'tab', 'region', 'retreat', 'lvl', 'train', 'hire', 'equip', 'merge', 'claim', 'farm', 'fight', 'bonus', 'repeat', 'sound',
   '__again', '__repeat', '__close', 'pwainstall']);          // these play a sound of their own (or the game does it for them)
 document.addEventListener('click', e => {
   if (e.target.closest && e.target.closest('summary')) snd('tick');                  // folding a list open or closed
@@ -1621,7 +1709,7 @@ function step(dt) {
     if (h.draw > 0) { h.draw -= dt; if (h.draw <= 0) fireHero(h, st, w); continue; }
     h.cd -= dt * (B.haste > 0 ? 1.3 : 1);
     if (h.cd <= 0 && aliveE().length) {
-      h.cd = w.int;
+      h.cd = w.int / st.spd;                                          // Haste training shortens the wait
       if (HERO[h.id].draws && w.ranged) h.draw = 0.25; else fireHero(h, st, w);
     }
   }
@@ -1751,7 +1839,7 @@ function hitEnemy(e, raw, i, pierce, critChance, wid) {          // wid: the wea
     if (crit) snd('crit', fam === 'staff' ? 'magic' : HEAVY_WEAPONS.includes(wid) ? 'heavy' : 'light');
   }
   floater(e.x + (i || 0) * 8, e.y - unitTop(e.type, 56 * MON[e.type].scale) - 4, crit ? '-' + d + '!' : '-' + d, crit ? '#ffd24a' : '#fff', crit);
-  if (e.hp <= 0) { e.hp = 0; e.dead = true; snd('mdie', { c: monCat(e.type), s: MON[e.type].scale }); }
+  if (e.hp <= 0) { if (!e.dead && window.ach) { ach.count('kills'); if (MON[e.type].boss) ach.count('bosses'); } e.hp = 0; e.dead = true; snd('mdie', { c: monCat(e.type), s: MON[e.type].scale }); }
 }
 
 function startWind(e, kind) {
@@ -1813,6 +1901,7 @@ function strike(e) {
 function endBattle(result) {
   if (!B || B.over) return;
   B.over = true; B.result = result;
+  if (result === 'win' && window.ach) ach.count('wins');
   B.endT = B.t + (result === 'retreat' ? 0 : 0.9);
   if (result === 'win' || result === 'lose') outroUi(result);
   if (result === 'retreat') { if (run && run.wins) showRunSummary(); else closeBattle(); }

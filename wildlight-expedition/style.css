@@ -866,7 +866,8 @@ body.sheet-open{overflow:hidden}
 
 /* ---- Positions menu (front line / back line) ---- */
 .pstrip>div:last-child{min-width:0}
-.pstrip .posbtn{display:block;margin-top:8px;padding:6px 14px;font-size:12.5px;max-width:100%}
+.pstrip .pbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pstrip .posbtn{padding:6px 12px;font-size:12.5px;max-width:100%}
 .formdlg .box.formbox{max-width:440px;max-height:min(90vh,760px);overflow:auto;text-align:left;padding:16px}
 .formbox .note{margin:0 0 10px;font-size:13px;color:#cfd6c6;line-height:1.45}
 .fwarn{margin:0 0 10px;padding:9px 11px;border-radius:10px;background:#4a3a1c;border:1px solid #a47f31;color:#f5dfa2;font-size:13px;line-height:1.4}
@@ -885,3 +886,46 @@ body.sheet-open{overflow:hidden}
 .fbtns{display:flex;gap:5px;flex:none}
 .fbtns .btn{padding:6px 9px;min-width:34px}
 .formbox>.btn.primary{width:100%}
+
+/* ---- hero training card ---- */
+.train{margin:12px 0 4px;padding:10px;border-radius:12px;border:1px solid #4a5a4c;background:#1c2822}
+.train h4{margin:0 0 6px;font:700 15px var(--heading,Georgia,serif);color:#f4dfb2;display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.train h4 small{font:500 11px system-ui,sans-serif;color:#a9b3a6}
+.trow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #33433a}
+.trow:first-of-type{border-top:0}
+.trow.spec .trname b{color:#f6d98f}
+.trname{display:flex;flex-direction:column;gap:1px;min-width:0}
+.trname b{font-size:14px;color:#f3e7c4}
+.trname small{font-size:11.5px;color:#a9b3a6}
+.trl{font-style:normal;font-weight:700;font-size:12.5px;color:#d9c58a;margin-left:4px}
+.trname small.now{color:#9fd3a4}
+.trow .btn.small{padding:6px 10px;min-width:74px}
+.spectag{display:inline-block;background:#6b5522;color:#ffe9a8;font-style:normal;font-weight:700;font-size:10px;line-height:1.4;padding:1px 7px;border-radius:8px;vertical-align:middle;margin-left:4px}
+.trreset{width:100%;margin-top:8px}
+
+/* ---- achievements ---- */
+.achcard{display:flex;align-items:center;gap:12px;width:100%;margin:10px 0;padding:12px 14px;text-align:left;cursor:pointer;color:inherit;font:inherit;position:relative}
+.achtrophy{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#5b4a1f;color:#ffe08a;font-size:20px;border:2px solid #c9a24a}
+.achtxt{flex:1;display:flex;flex-direction:column;gap:2px}
+.achtxt b{font:700 15px var(--heading,Georgia,serif);color:#f4dfb2}
+.achtxt small{font-size:12.5px;color:#b8c2b4}
+.achdot{width:10px;height:10px;border-radius:50%;background:#f2b84b;box-shadow:0 0 8px #f2b84b;flex:none}
+.achdlg .box.achbox{max-width:460px;max-height:min(90vh,780px);overflow:auto;text-align:left;padding:16px}
+.achbox .note{margin:0 0 10px;font-size:13px;color:#cfd6c6}
+.astats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.astat{padding:8px 4px;border-radius:10px;background:#1c2822;border:1px solid #3a4a3f;text-align:center}
+.astat b{display:block;font:700 17px var(--heading,Georgia,serif);color:#f4dfb2}
+.astat small{font-size:10.5px;color:#a9b3a6}
+.agroup{margin:14px 0 4px;font:700 14px var(--heading,Georgia,serif);color:#e8d29a}
+.ach{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #33433a}
+.ach.done .atext b{color:#9fd3a4}
+.atext{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.atext b{font-size:14px;color:#f3e7c4}
+.atext small{font-size:12px;color:#a9b3a6}
+.abar{height:6px;border-radius:3px;background:#0e1713;overflow:hidden;margin-top:3px}
+.abar i{display:block;height:100%;background:#c9a24a}
+.aprog{font-size:11px!important}
+.areward{flex:none;text-align:right;font-size:12.5px;color:#d9c58a;white-space:nowrap}
+.areward .ico{vertical-align:-3px;margin:0 2px 0 4px}
+.achall{width:100%;margin-bottom:6px}
+.achdone{width:100%;margin-top:14px}

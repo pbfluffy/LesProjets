@@ -75,6 +75,7 @@
     const st = heroStats(h.id), foes = aliveE();
     if (!foes.length && id !== 'bloom' && id !== 'innerpeace' && id !== 'bulwark' && id !== 'rally') return false;
     B.skillCd[id] = S.cd;
+    if (window.ach) ach.count('skills');
     h.swing = 1;
     snd('skill_' + id);
     floater(h.x, h.y - unitTop(h.id, 70) - 18, S.name + '!', '#ffe9a8', true);
