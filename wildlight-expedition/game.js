@@ -47,7 +47,7 @@ const FAMILY_PLURAL = { tool: 'Tools', sword: 'Swords', dagger: 'Daggers', spear
 const WEAPONS = {
   sword: { name: 'Standard sword', fam: 'sword', hits: [1], int: 1.0, starter: true,
            desc: 'Steady attacks with balanced speed and damage.' },
-  twin:  { name: 'Twin swords', fam: 'sword', hits: [0.55, 0.55], int: 0.85,
+  twin:  { name: 'Twin swords', fam: 'sword', hits: [0.55, 0.55], int: 0.85, dash: true,
            desc: 'Two quick strikes per attack against one monster.' },
   great: { name: 'Greatsword', fam: 'sword', hits: [1.7], int: 1.9, splash: 0.6,
            desc: 'Slow, heavy swings that also hit nearby monsters.' },
@@ -81,9 +81,9 @@ const WEAPONS = {
                 desc: 'Slow, heavy chops.' },
   club:       { name: 'Club', fam: 'tool', hits: [1.2], int: 1.2, pose: 'woodaxe',
                 desc: 'A gnarled club that hits a bit harder than a pitchfork.' },
-  dagger:     { name: 'Dagger', fam: 'dagger', hits: [0.7], int: 0.6, starter: true,
+  dagger:     { name: 'Dagger', fam: 'dagger', hits: [0.7], int: 0.6, starter: true, dash: true,
                 desc: 'Very quick stabs.' },
-  twindaggers: { name: 'Twin daggers', fam: 'dagger', hits: [0.45, 0.45], int: 0.7,
+  twindaggers: { name: 'Twin daggers', fam: 'dagger', hits: [0.45, 0.45], int: 0.7, dash: true,
                 desc: 'Two quick cuts per attack.' },
   tome:       { name: 'Apprentice tome', fam: 'tome', hits: [1], int: 1.3, ranged: true, starter: true,
                 desc: 'Throws small bursts of fire from its pages.' },
@@ -93,7 +93,7 @@ const WEAPONS = {
                 desc: 'Reaches past the first monster: the one behind it takes 60%.' },
   halberd:    { name: 'Halberd', fam: 'spear', hits: [1.6], int: 1.7, splash: 0.5,
                 desc: 'A wide sweep that hits every monster for half damage.' },
-  wraps:      { name: 'Hand wraps', fam: 'fist', hits: [0.45, 0.45], int: 0.8, starter: true,
+  wraps:      { name: 'Hand wraps', fam: 'fist', hits: [0.45, 0.45], int: 0.8, starter: true, dash: true,
                 desc: 'Two quick punches.' },
   gauntlets:  { name: 'Iron gauntlets', fam: 'fist', hits: [1.2], int: 1.0, shield: 0.1,
                 desc: 'Heavy punches, and 10% less damage taken.' },
@@ -281,6 +281,7 @@ const GRADES = [
   { name: 'Legendary', mult: 2.30, color: '#f6bf4f' },
 ];
 const MERGE_N = 3;
+const DASH_RATE = 2.2, DASH_HIT = 0.27;       // weapons with dash: true are too short to reach from where the hero stands, so the hero steps in twice (sprites.js motion): the swing lasts 1/DASH_RATE s and the hit lands DASH_HIT s in
 
 /* Armor: one piece per hero (the hero's outfit changes with it, see sprites.js). It drops like a weapon (the same stage tables, the same grade) and merges in the Forge.
    Any hero can wear any armor, but a copy is worn by one hero at a time. hp / dr are the bonus of a Common copy (more health, less damage taken);
@@ -1554,7 +1555,7 @@ function step(dt) {
   for (const h of B.heroes) {
     if (h.dead) continue;
     h.hit = Math.max(0, h.hit - dt);
-    h.swing = Math.max(0, h.swing - dt * 4);
+    h.swing = Math.max(0, h.swing - dt * (WEAPONS[save.heroes[h.id].weapon].dash ? DASH_RATE : 4));
     const st = heroStats(h.id), w = WEAPONS[save.heroes[h.id].weapon];
     if (w.heal) {
       h.heal -= dt;
@@ -1647,10 +1648,11 @@ function fireHero(h, st, w) {
   if (!t) return;
   h.swing = 1;
   const wid = save.heroes[h.id].weapon;
-  snd(w.ranged ? (w.fam === 'bow' ? 'release' : 'cast') : 'swing', wid);                      // every weapon has its own swing, shot or cast
+  const lag = w.dash ? DASH_HIT : 0;                                                          // a short weapon first steps in twice, then strikes
+  if (lag) later(lag - 0.05, () => snd('swing', wid)); else snd(w.ranged ? (w.fam === 'bow' ? 'release' : 'cast') : 'swing', wid);                      // every weapon has its own swing, shot or cast
   if (!w.ranged) {
     w.hits.forEach((m, i) => {
-      later(i * 0.12, () => {
+      later(lag + i * 0.12, () => {
         if (t.dead) return;
         hitEnemy(t, st.atk * m, i, w.pierce, st.crit, wid);
         if (w.behind) { const o = aliveE().find(x => x !== t); if (o) { B.mute = true; hitEnemy(o, st.atk * m * w.behind, i, w.pierce, st.crit, wid); B.mute = false; } }       // a spear reaches past the first monster
