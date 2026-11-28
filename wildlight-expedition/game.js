@@ -687,9 +687,11 @@ function lootRow(s) {
   const icons = picks.map(([x, w]) => `<span class="lootitem" title="${itemInfo(x).name} · about ${pctText(rate * w / total)} per win">${itemIcon(x, 'sm')}${isArmor(x) ? '<i>armor</i>' : ''}</span>`).join('');
   return `<div class="lootrow"><b>Loot</b><span class="lootlist">${icons}</span><small>${t.length > picks.length ? `+${t.length - picks.length}` : ''}${s.dropGrade ? gradeTag(s.dropGrade) : ''}</small></div>`;
 }
+/* A round face of a hero: the painted portrait (assets/ui/hero-<id>.webp) over the hero's initial, which shows while the picture is missing. */
+const heroFace = id => `<span class="face" style="--hc:${HERO_ACCENT[id]}" title="${HERO[id].name}"><b>${HERO[id].name.replace(/^Brother /, '')[0]}</b><img src="${assetSrc(`ui/hero-${id}.webp`)}" alt="" onerror="this.remove()"></span>`;
 function partyMini() {
   const act = party();
-  return `<button class="pmini" data-act="tab" data-arg="party"><span class="pminis">${act.map(id => `<canvas class="mport" data-hero="${id}" data-scale="0.5" width="46" height="52"></canvas>`).join('')}</span>
+  return `<button class="pmini" data-act="tab" data-arg="party"><span class="pminis">${act.map(heroFace).join('')}</span>
     <span class="pmtxt"><b>Your party</b><small>${act.map(firstName).join(', ')}</small></span><i class="chev">›</i></button>`;
 }
 function adventureCard(s) {
@@ -907,7 +909,7 @@ const heroStatList = id => {
 
 function partyStrip() {
   const act = party(), slots = Array.from({ length: MAX_PARTY }, (_, i) => act[i]
-    ? `<span class="slot full" title="${HERO[act[i]].name}"><canvas class="slotport" data-hero="${act[i]}" data-scale="0.42" width="40" height="44"></canvas></span>` : '<span class="slot" title="Free place">+</span>').join('');
+    ? `<span class="slot full">${heroFace(act[i])}</span>` : '<span class="slot" title="Free place">+</span>').join('');
   const next = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0], camp = hired().length - act.length;
   return `<div class="strip idle pstrip"><div class="slots">${slots}</div>
     <div><b>Your party · ${act.length} of ${MAX_PARTY}</b>
@@ -1479,7 +1481,7 @@ const CAM_W = 340, CAM_BOTTOM = 272, CAM_SCALE = 3.6;
 function makeCam() {
   const iw = window.innerWidth, ih = window.innerHeight;
   if (!iw || !ih || iw >= 720 || ih < iw * 1.2) return null;
-  const sw = Math.min(480, iw - 20), avail = ih - 330, ratio = Math.max(0.86, Math.min(1.35, avail / sw)), h = Math.round(CAM_W * ratio);
+  const sw = Math.min(480, iw - 20), rows = Math.ceil(Math.max(1, partySize()) / 2), avail = ih - (150 + 142 * rows + 8 * (rows - 1)), ratio = Math.max(0.86, Math.min(1.35, avail / sw)), h = Math.round(CAM_W * ratio);          // the skill cards (two heroes per row) take the space under the scene
   return { x: 0, y: CAM_BOTTOM - h, w: CAM_W, h };
 }
 const camPt = (x, y, foe) => [foe ? 205 + (x - 250) * 0.8 : 52 + (x - 58), 208 + (y - 195) * 1.8];      // heroes keep their spacing, monsters are packed a little closer

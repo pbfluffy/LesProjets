@@ -206,19 +206,34 @@
   };
 
   /* ------------------------------ the button row ------------------------------ */
+  const au = p => (typeof window.assetUrl === 'function' ? window.assetUrl(p) : 'assets/' + p);
+  /* the painted icon (assets/skills/<id>.webp); the drawn SVG shows when the picture is missing */
+  const iconHtml = (id, px) => `<span class="sk-ico"><img src="${au('skills/' + id + '.webp')}" alt="" onerror="this.remove()"><svg viewBox="0 0 24 24" width="${px}" height="${px}" aria-hidden="true">${ICON[id]}</svg></span>`;
+  const skillBtn = (id, i) => `<button class="skill" data-act="skill" data-arg="${id}" data-id="${id}" title="${SKILLS[id].name}: ${SKILLS[id].desc}" aria-label="${HERO[SKILLS[id].hero].name}: ${SKILLS[id].name}">
+      ${iconHtml(id, 26)}<b class="sk-name${SKILLS[id].name.length > 12 ? ' long' : ''}">${SKILLS[id].name}</b><span class="sk-st"></span><i class="cd"></i><small>${i + 1}</small></button>`;
+  /* A hero's card: round portrait in the hero's colour, the name, a health bar, then that hero's two skill buttons, so it is clear who a skill belongs to. */
   function buildBar() {
     const bar = document.getElementById('skills');
     if (!bar) return;
-    const col = typeof HERO_ACCENT !== 'undefined' ? HERO_ACCENT : {};
-    bar.innerHTML = slots().map((id, i) => `<button class="skill" data-act="skill" data-arg="${id}" data-id="${id}" style="--hc:${col[SKILLS[id].hero]}" title="${SKILLS[id].name}: ${SKILLS[id].desc}" aria-label="${SKILLS[id].name}">
-      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">${ICON[id]}</svg><b class="sk-name${SKILLS[id].name.length > 12 ? ' long' : ''}">${SKILLS[id].name}</b><span class="sk-st"></span><i class="cd"></i><small>${i + 1}</small></button>`).join('');
+    const col = typeof HERO_ACCENT !== 'undefined' ? HERO_ACCENT : {}, ids = slots(), heroes = [...new Set(ids.map(id => SKILLS[id].hero))];
+    bar.innerHTML = heroes.map(hid => `<div class="sgroup" data-hero="${hid}" style="--hc:${col[hid]}">
+      <div class="sghead"><span class="sgport"><canvas data-hero="${hid}" data-scale="0.4" width="38" height="42"></canvas><img src="${au('ui/hero-' + hid + '.webp')}" alt="" onload="this.parentNode.classList.add('img')" onerror="this.remove()"></span>
+        <span class="sgname"><b>${firstName(hid)}</b><i class="sghp"><u></u></i></span><em class="sgst"></em></div>
+      <div class="sgbtns">${ids.filter(id => SKILLS[id].hero === hid).map(id => skillBtn(id, ids.indexOf(id))).join('')}</div></div>`).join('');
     bar.hidden = !bar.children.length || !B.spec.repeatable;
+    if (typeof paintPortraits === 'function') paintPortraits();                   // the drawn portraits (until the painted ones have loaded)
   }
   window.clearSkillBar = () => { const bar = document.getElementById('skills'); if (bar) { bar.innerHTML = ''; bar.hidden = true; } };
   window.skillsUi = function () {
     const bar = document.getElementById('skills');
     if (!bar || bar.hidden || !B) return;
-    for (const b of bar.children) {
+    for (const g of bar.children) {                                        // a card per hero: health bar, fallen state
+      const h0 = B.heroes.find(x => x.id === g.dataset.hero), hp = h0 ? Math.max(0, h0.hp / h0.maxHp) : 0, dead0 = !h0 || h0.dead;
+      g.classList.toggle('dead', dead0);
+      const bar2 = g.querySelector('.sghp u'); if (bar2) { bar2.style.width = (hp * 100).toFixed(0) + '%'; bar2.style.background = hp > 0.5 ? '#6cc37c' : hp > 0.25 ? '#f2b84b' : '#e5604f'; }
+      const gs = g.querySelector('.sgst'); if (gs && g.lastDead !== dead0) { g.lastDead = dead0; gs.textContent = dead0 ? 'Fallen' : ''; }
+    }
+    for (const b of bar.querySelectorAll('.skill')) {
       const id = b.dataset.id, S = SKILLS[id], cd = B.skillCd[id] || 0, h = heroOf(id), ok = unlocked(id), dead = !h || h.dead;
       b.classList.toggle('locked', !ok); b.classList.toggle('dead', ok && dead);
       b.classList.toggle('ready', ok && !dead && cd <= 0 && !B.over);
@@ -244,7 +259,7 @@
     const ids = ORDER.filter(id => SKILLS[id].hero === hero), lv = save.heroes[hero].lvl, key = 'skills-' + hero;
     return `<details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Skills</span><em>${ids.filter(id => lv >= SKILLS[id].lvl).length} of ${ids.length}</em></summary>
       <div class="skilllist">${ids.map(id => { const S = SKILLS[id], on = lv >= S.lvl;
-        return `<div class="skillrow ${on ? '' : 'off'}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">${ICON[id]}</svg><div><b>${S.name}</b>${on ? '' : `<span class="tag lock">Level ${S.lvl}</span>`}<p>${S.desc} Ready again after ${S.cd} seconds.</p></div></div>`; }).join('')}</div>
+        return `<div class="skillrow ${on ? '' : 'off'}">${iconHtml(id, 22)}<div><b>${S.name}</b>${on ? '' : `<span class="tag lock">Level ${S.lvl}</span>`}<p>${S.desc} Ready again after ${S.cd} seconds.</p></div></div>`; }).join('')}</div>
       <p class="fine">In a fight your skills sit under the scene (keys 1 to 8): each button shows the skill name, what it does and when it is ready. "Auto" casts them for you.</p></details>`;
   };
 
