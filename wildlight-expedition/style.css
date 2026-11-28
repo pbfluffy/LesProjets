@@ -676,3 +676,13 @@ details.farmlog .sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px
 .campbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 14px 0}
 .campbar .hint{flex:1 1 100%;text-align:left}
 .vheroes{flex-wrap:wrap}
+
+/* ---- phone in portrait: a tall, zoomed battle view (B.cam in game.js) fills the screen; the skills sit right under it and the barrier at the bottom, in thumb reach ---- */
+#battle.cam{gap:8px}
+#battle.cam .arena{margin-top:0}
+#battle.cam .warn{min-height:22px}
+#battle.cam .barrier{margin-top:auto;height:68px}
+#battle.cam .battle-top{gap:8px}
+#battle.cam #battle-title{min-width:0;font-size:clamp(18px,5.4vw,27px)}
+#battle.cam .bt-btns{flex:none;display:flex;gap:6px}
+#battle.cam .battle-top .ghost{padding:7px 10px}

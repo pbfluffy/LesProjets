@@ -226,14 +226,24 @@
   function drawBackground(c) {
     const battle = typeof B === 'undefined' ? null : B;
     const im = get(`bg/${(battle && battle.spec && battle.spec.bg) || 'path'}.jpg`) || get('bg/path.jpg');
-    if (!im) { if (vec.bg) vec.bg(c); return; }
-    cover(c, im, 400, 260, 1);
+    const cam = battle && battle.cam;
+    if (!im) {
+      if (!vec.bg) return;
+      if (!cam) { vec.bg(c); return; }
+      const s = Math.max(cam.w / 400, cam.h / 260);
+      c.save(); c.translate(cam.x + (cam.w - 400 * s) / 2, cam.y + cam.h - 260 * s); c.scale(s, s); vec.bg(c); c.restore(); return;
+    }
+    if (cam) {                                                       // portrait phone: the picture fills the tall window, anchored at the bottom
+      const k = Math.max(cam.w / im.naturalWidth, cam.h / im.naturalHeight), dw = im.naturalWidth * k, dh = im.naturalHeight * k;
+      c.drawImage(im, cam.x + (cam.w - dw) / 2, cam.y + cam.h - dh, dw, dh);
+    } else cover(c, im, 400, 260, 1);
     const t = battle ? battle.t : 0;
     // drifting light motes for a little life
     c.save();
     c.globalCompositeOperation = 'lighter';
     for (const m of motes) {
-      const px = (m.x + t * 6 * m.s) % 420 - 10, py = m.y + Math.sin(t * 0.8 + m.p) * 6;
+      let px = (m.x + t * 6 * m.s) % 420 - 10, py = m.y + Math.sin(t * 0.8 + m.p) * 6;
+      if (cam) { px = cam.x + px * cam.w / 400; py = cam.y + cam.h * 0.3 + (py - 40) * 1.4; }
       c.fillStyle = `rgba(255,240,190,${0.10 + 0.08 * Math.sin(t * 1.6 + m.p)})`;
       c.beginPath(); c.arc(px, py, 1.1 * m.s, 0, Math.PI * 2); c.fill();
     }
