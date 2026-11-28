@@ -111,8 +111,10 @@
   const handPaths = () => HAND_PICS.flatMap(([id, w]) => ['attackR', 'attackL'].flatMap(p => [heroPath(id, w, p), ...ARMOR_TIERS.map(a => armorPath(id, a, p, w))]));
   const ease = x => x * x * (3 - 2 * x);
   const seg = (p, a, b) => Math.max(0, Math.min(1, (p - a) / (b - a)));
-  function motion(w, p, dist) {
-    const m = { dx: 0, dy: 0, rot: 0, sx: 1, sy: 1, ghost: 0 }, W = (typeof WEAPONS !== 'undefined' && WEAPONS[w]) || {}, fam = W.fam;
+  /* a newer weapon moves like the older one it is modelled on (WEAPONS[w].like) */
+  const likeW = w => (typeof WEAPONS !== 'undefined' && WEAPONS[w] && WEAPONS[w].like) || w;
+  function motion(w0, p, dist) {
+    const w = likeW(w0), m = { dx: 0, dy: 0, rot: 0, sx: 1, sy: 1, ghost: 0 }, W = (typeof WEAPONS !== 'undefined' && WEAPONS[w0]) || {}, fam = W.fam;
     if (DASH[w]) {                                            // step, step, strike, back
       const s1 = ease(seg(p, 0, 0.34)), s2 = ease(seg(p, 0.38, 0.64)), back = ease(seg(p, 0.88, 1));         // step (0 - 0.34), a beat, step again (0.38 - 0.64) and strike (the first hit at 0.64, the second at about 0.82), back
       m.dx = (dist || DASH[w]) * ((s1 * 0.5 + s2 * 0.5) * (1 - back));
@@ -154,7 +156,7 @@
   function drawHeroSprite(c, id, x, y, o) {
     const m = meta.data && meta.data[id];
     if (!m) return false;
-    const sw = o.swing || 0, attacking = id === 'tavi' ? ((o.lean || 0) > 0.2 || sw > 0.7) : DASH[o.weapon] ? (sw > 0.1 && sw < 0.6) : sw > 0.3;       // a short weapon walks the first step in the standing picture and strikes (attack picture) on the second step
+    const sw = o.swing || 0, attacking = id === 'tavi' ? ((o.lean || 0) > 0.2 || sw > 0.7) : DASH[likeW(o.weapon)] ? (sw > 0.1 && sw < 0.6) : sw > 0.3;       // a short weapon walks the first step in the standing picture and strikes (attack picture) on the second step
     const files = HERO_FILES[id] || [], hand = attacking && HANDS[o.weapon] ? (1 - sw < 0.74 ? 'R' : 'L') : '', kind = attacking ? 'attack' : 'idle';       // twin weapons: right hand, then left
     const pick = w => files.includes(w) && ((hand && get(heroPath(id, w, 'attack' + hand))) || get(heroPath(id, w, kind)) || get(heroPath(id, w, 'idle')));
     const near = (typeof WEAPONS !== 'undefined' && WEAPONS[o.weapon] && WEAPONS[o.weapon].pose) || o.weapon;     // the nearest older picture, if a new one is missing
