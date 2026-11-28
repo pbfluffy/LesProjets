@@ -929,3 +929,6 @@ body.sheet-open{overflow:hidden}
 .areward .ico{vertical-align:-3px;margin:0 2px 0 4px}
 .achall{width:100%;margin-bottom:6px}
 .achdone{width:100%;margin-top:14px}
+
+/* buttons stacked in a dialog keep their own height (the primary button had a row flex-basis of 170px that made it tall in a column) */
+.stack>.btn{flex:0 0 auto}
