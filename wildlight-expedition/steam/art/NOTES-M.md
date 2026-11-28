@@ -1,0 +1,6 @@
+﻿# Steam art, section M
+
+- **Main capsule** — 616 × 353 PNG. The unresized illustration is 1659 × 948. The working ImageGen prompt used the original cast and Storm Drake sprites, the Emberwaste scenery, and a quiet upper-left sky. It placed Bren raising his sword, Tavi drawing his bow, Iona lighting her staff green, and Elric casting fire below the drake. A second pass brought the drake's wing tips and the party's boots inside the frame.
+- **Vertical capsule** — 374 × 448 PNG. The unresized illustration is 1146 × 1372. The working ImageGen prompt used the cast sprites and Pinewood Vale references for a dusk portrait of Maren and Bren, with Iona and Tavi behind them and Milo in front. A second pass moved the lit watchtower down and right so the roof and lantern gallery show below the title.
+- **Finishing and review** — Cropped to the target ratios and resized with Lanczos. Composited the supplied transparent logo at 50% and 80% of the respective widths. Checked both finished PNGs at 1× and inspected faces, hands, and weapons in the masters. Both logos and all hero faces are inside their safe areas.
+- **Remaining weaknesses** — The main drake's outer wing is close to the right edge. In the vertical capsule, the distant tower reads mainly by its roof and amber windows at 1×.
