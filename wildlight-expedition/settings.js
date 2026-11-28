@@ -40,7 +40,7 @@
       <button type="button" class="btn alt small" data-set="mute">${s.isMuted() ? 'Turn sound on' : 'Mute all'}</button></section>` : '';
     dlg.innerHTML = `<div class="box setbox"><div class="sethead"><h2>Settings</h2><button type="button" class="setx" data-set="close" aria-label="Close settings">×</button></div>
       <div class="setbody">${sound}
-      <section class="setsec"><h3>Help</h3><button type="button" class="btn alt small" data-set="tutorial">How to play</button></section>
+      <section class="setsec"><h3>Help</h3><button type="button" class="btn alt small" data-set="tutorial">How to play</button><button type="button" class="btn alt small" data-set="ach" style="margin-top:8px">Achievements and stats</button></section>
       <section class="setsec"><h3>Credits</h3>
         <p class="note">Wildlight Expedition is an independent game. The painted pictures (heroes, monsters, maps, items) were made with AI image generation tools and checked and edited by the developer. The music and sound effects are free CC0 recordings from OpenGameArt.org, listed here with thanks (no credit is required, it is given anyway).</p>
         <details><summary>Music</summary><ul class="credit">${MUSIC.map(m => `<li><b>${esc(m[0])}</b> by ${esc(m[1])}<small>${esc(m[3])} · <a href="${m[2]}" target="_blank" rel="noopener noreferrer">${m[2].replace('https://', '')}</a></small></li>`).join('')}</ul></details>
@@ -54,6 +54,7 @@
       if (a === 'close') close();
       else if (a === 'mute' && s) { s.setMuted(!s.isMuted()); b.textContent = s.isMuted() ? 'Turn sound on' : 'Mute all'; }
       else if (a === 'tutorial') { close(); if (window.tutorial) window.tutorial.start(true); }
+      else if (a === 'ach') { close(); if (window.ach) window.ach.open(); }
       else if (a === 'reset') { if (typeof showResetDialog === 'function') showResetDialog(); }
     });
     dlg.addEventListener('input', e => { const k = e.target.dataset && e.target.dataset.vol; if (k && s) s.setVolume(k, e.target.value / 100); });
