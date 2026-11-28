@@ -38,7 +38,10 @@
     tobin: ['wraps', 'gauntlets'],
   };
   const PHASE = { bren: 0, tavi: 1.3, iona: 2.6, milo: 3.9, rook: 5.2, elric: 6.5, maren: 7.8, tobin: 9.1 };
-  const HERO_PNG = ['sword', 'twin', 'great', 'bow', 'staff'];
+  const HERO_PNG = [];                 // every hero picture is a WebP now (the first three heroes used PNG before the simple-outfit redraw)
+  /* Armor is drawn over the hero as a transparent layer with the same canvas as the hero pictures (idle and attack, one per tier). 'garb' is the base outfit: no layer. */
+  const ARMOR_TIERS = ['leatherarmor', 'chainmail', 'platearmor'];
+  const armorPath = (id, a, p) => `armor/${id}-${a}-${p}.webp`;
   const heroPath = (id, w, p) => `heroes/${id}-${w}-${p}.${HERO_PNG.includes(w) ? 'png' : 'webp'}`;
 
   function load(path) {
@@ -164,6 +167,11 @@
       c.save(); c.globalAlpha = mv.ghost; c.translate(-9, 0); stand(c, im, m, HEIGHT[id], 0, 0, false); c.restore();
     }
     stand(c, im, m, HEIGHT[id], 0, 0, o.hit > 0.12 && !o.dead);
+    const layer = ARMOR_TIERS.includes(o.armor) && (get(armorPath(id, o.armor, kind)) || get(armorPath(id, o.armor, 'idle')));
+    if (layer) {                                                      // the armor, placed exactly like the hero picture
+      const s = (HEIGHT[id] / m.figureH) / im.naturalHeight, dw = im.naturalWidth * s, dh = im.naturalHeight * s;
+      c.drawImage(o.hit > 0.12 && !o.dead ? flashOf(layer) : layer, -m.feetX * dw, -m.feetY * dh, dw, dh);
+    }
     c.restore();
     return true;
   }
@@ -377,8 +385,10 @@
   window.monIdleUrl = id => url(monPaths(id)[0]);                 // the picture of a monster for the home cards
   /* Every picture of the game (used by pwa.js so the installed app can run offline). */
   window.artUrls = () => Object.values(REGION_ART).flatMap(a => [...a.mon.flatMap(monPaths), ...a.bg.map(b => `bg/${b}.jpg`)])
-    .concat(MAP_PATHS, ['meta.json', 'sfx/index.json', 'sfx/pack.bin'], (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff']).map(w => `items/${w}.png`),
-      Object.entries(HERO_FILES).flatMap(([id, ws]) => ws.flatMap(w => ['idle', 'attack'].map(p => heroPath(id, w, p))))).map(url);
+    .concat(MAP_PATHS, ['meta.json', 'sfx/index.json', 'sfx/pack.bin', 'music/village1.mp3', 'music/village2.mp3', 'music/fight.mp3', 'music/boss.mp3'], (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff']).map(w => `items/${w}.png`),
+      Object.entries(HERO_FILES).flatMap(([id, ws]) => ws.flatMap(w => ['idle', 'attack'].map(p => heroPath(id, w, p)))),
+      Object.keys(HERO_FILES).flatMap(id => ARMOR_TIERS.flatMap(a => ['idle', 'attack'].map(p => armorPath(id, a, p)))),
+      ['garb', ...ARMOR_TIERS.map(a => a)].map(a => `items/${a === 'garb' ? 'garb' : a}.png`)).map(url);
   window.ensureRegion = id => {
     if (!REGION_ART[id] || !meta.data) return Promise.resolve(false);
     if (window.regionArt[id] === 'ready') return Promise.resolve(true);
@@ -416,7 +426,9 @@
     const paths = [];
     for (const [id, weapons] of Object.entries(HERO_FILES))
       for (const w of weapons) for (const pose of ['idle', 'attack']) paths.push(heroPath(id, w, pose));
-    for (const w of (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff'])) paths.push(`items/${w}.png`);       // weapon pictures (drop lists, forge, rewards)
+    for (const w of (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff'])) paths.push(`items/${w}.png`);
+    for (const a of ['garb', ...ARMOR_TIERS]) paths.push(`items/${a}.png`);                                   // armor pictures (forge, hero cards, drops)
+    for (const id of Object.keys(HERO_FILES)) for (const a of ARMOR_TIERS) for (const pose of ['idle', 'attack']) paths.push(armorPath(id, a, pose));       // weapon pictures (drop lists, forge, rewards)
     await Promise.all([...paths.map(load), window.ensureRegion('vale')]);
 
     window.drawHero = drawHero;
