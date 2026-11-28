@@ -24,7 +24,8 @@
   /* Logical height (in the 400x260 battle space) of each standing idle figure, feet to head. */
   const HEIGHT = { milo: 90, bren: 98, tavi: 98, iona: 94, rook: 92, elric: 96, maren: 101, tobin: 100, brushfang: 46, beetle: 54, spitter: 66, boar: 130,
     bogtoad: 44, reedwisp: 58, mossturtle: 46, bogking: 130, frostwolf: 48, icegolem: 78, frostgiant: 150, emberimp: 54, magmacrab: 38, stormdrake: 96,
-    hornet: 40, barkbear: 62, mireadder: 36, mistheg: 60, rimesprite: 50, snowyeti: 82, cinderbat: 44, sentinel: 80 };
+    hornet: 40, barkbear: 62, mireadder: 36, mistheg: 60, rimesprite: 50, snowyeti: 82, cinderbat: 44, sentinel: 80,
+    gscrapper: 48, garcher: 52, gshaman: 56, gking: 120, ogrunt: 106, oberserker: 108, obrute: 134, owarlord: 156 };
 
   // Every weapon has its own picture of the hero (idle + attack). The first five are PNG, the newer ones WebP.
   const HERO_FILES = {
@@ -372,10 +373,12 @@
     mire:  { mon: ['bogtoad', 'reedwisp', 'mossturtle', 'bogking', 'mireadder', 'mistheg'], bg: ['mirewood', 'causeway', 'toadking'] },
     frost: { mon: ['frostwolf', 'icegolem', 'frostgiant', 'rimesprite', 'snowyeti'], bg: ['frostfall', 'glimmer', 'rimecrown'] },
     ember: { mon: ['emberimp', 'magmacrab', 'stormdrake', 'cinderbat', 'sentinel'], bg: ['cinder', 'quarry', 'magmagate', 'skyreach'] },
+    warrens: { mon: ['gscrapper', 'garcher', 'gshaman', 'gking'], bg: ['scrapheap', 'gobmines', 'kinghall'] },
+    highlands: { mon: ['ogrunt', 'oberserker', 'obrute', 'owarlord'], bg: ['ridge', 'warcamp', 'throne'] },
   };
-  const MAP_PATHS = ['map/map.jpg', 'map/mire.jpg', 'map/frost.jpg', 'map/ember.jpg', 'map/tower-unlit.png', 'map/tower-lit.png',
+  const MAP_PATHS = ['map/map.jpg', 'map/mire.jpg', 'map/frost.jpg', 'map/ember.jpg', 'map/warrens.jpg', 'map/highlands.jpg', 'map/tower-unlit.png', 'map/tower-lit.png',
     'map/marker-locked.png', 'map/marker-open.png', 'map/marker-cleared.png', 'map/camp.png'];
-  window.regionArt = { vale: 'loading', mire: 'idle', frost: 'idle', ember: 'idle' };       // idle | loading | ready
+  window.regionArt = { vale: 'loading', mire: 'idle', frost: 'idle', ember: 'idle', warrens: 'idle', highlands: 'idle' };       // idle | loading | ready
   const regionLoads = {};
 
   // Only the first four monsters are PNG; every newer one is WebP (meta.json says so too, but it may not have loaded yet on the first screen).

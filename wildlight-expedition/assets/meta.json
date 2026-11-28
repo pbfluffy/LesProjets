@@ -244,5 +244,69 @@
     "feetX": 0.5,
     "feetY": 0.97461,
     "figureH": 0.88085938
+  },
+  "gscrapper": {
+    "frameW": 1002,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.80078,
+    "ext": "webp"
+  },
+  "garcher": {
+    "frameW": 532,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.80078,
+    "ext": "webp"
+  },
+  "gshaman": {
+    "frameW": 572,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.80078,
+    "ext": "webp"
+  },
+  "gking": {
+    "frameW": 822,
+    "frameH": 640,
+    "feetX": 0.5,
+    "feetY": 0.975,
+    "figureH": 0.77969,
+    "ext": "webp"
+  },
+  "ogrunt": {
+    "frameW": 440,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.80078,
+    "ext": "webp"
+  },
+  "oberserker": {
+    "frameW": 596,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.80078,
+    "ext": "webp"
+  },
+  "obrute": {
+    "frameW": 582,
+    "frameH": 512,
+    "feetX": 0.5,
+    "feetY": 0.97461,
+    "figureH": 0.80078,
+    "ext": "webp"
+  },
+  "owarlord": {
+    "frameW": 742,
+    "frameH": 640,
+    "feetX": 0.5,
+    "feetY": 0.975,
+    "figureH": 0.77969,
+    "ext": "webp"
   }
 }
