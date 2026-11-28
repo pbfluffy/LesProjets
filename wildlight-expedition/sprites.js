@@ -102,10 +102,19 @@
   const pulse = (p, a, b) => (p <= a || p >= b ? 0 : Math.sin((p - a) / (b - a) * Math.PI));
   const HEAVY = { great: 1, halberd: 1, woodaxe: 0.9, falchion: 0.6, club: 0.7 };
   const THRUST = { spear: 13, rapier: 11, pitchfork: 9 };
-  const QUICK = { dagger: 1, twindaggers: 2, saber: 3, twin: 2 };
+  const QUICK = { saber: 3 };
+  /* Short weapons (dash: true in WEAPONS) are used up close: the hero steps in twice (how far, in picture units), strikes on the second step, then slides back. */
+  const DASH = { dagger: 56, twindaggers: 64, twin: 60, wraps: 50 };
+  const ease = x => x * x * (3 - 2 * x);
+  const seg = (p, a, b) => Math.max(0, Math.min(1, (p - a) / (b - a)));
   function motion(w, p) {
     const m = { dx: 0, dy: 0, rot: 0, sx: 1, sy: 1, ghost: 0 }, W = (typeof WEAPONS !== 'undefined' && WEAPONS[w]) || {}, fam = W.fam;
-    if (HEAVY[w]) {                                           // wind up and slam
+    if (DASH[w]) {                                            // step, step, strike, back
+      const s1 = ease(seg(p, 0, 0.3)), s2 = ease(seg(p, 0.3, 0.6)), back = ease(seg(p, 0.74, 1));
+      m.dx = DASH[w] * ((s1 * 0.5 + s2 * 0.5) * (1 - back));
+      m.dy = 3.5 * (Math.sin(Math.PI * seg(p, 0, 0.3)) + Math.sin(Math.PI * seg(p, 0.3, 0.6)));            // a little hop with each step
+      m.rot = 0.07 * ease(seg(p, 0.45, 0.62)) * (1 - back); m.ghost = 0.24 * (Math.sin(Math.PI * seg(p, 0, 0.3)) + Math.sin(Math.PI * seg(p, 0.3, 0.6)));
+    } else if (HEAVY[w]) {                                    // wind up and slam
       const k = HEAVY[w], back = pulse(p, 0, 0.42), slam = pulse(p, 0.3, 0.85);
       m.dx = -5 * k * back + 11 * k * slam; m.rot = -0.1 * k * back + 0.13 * k * slam; m.dy = 2 * back * k; m.sy = 1 - 0.07 * slam * k; m.sx = 1 + 0.06 * slam * k;
     } else if (THRUST[w]) {                                   // pull back, then a long jab
@@ -114,9 +123,6 @@
     } else if (QUICK[w]) {                                    // fast darting cuts, one hop per hit
       const n = QUICK[w], hop = Math.abs(Math.sin(p * n * Math.PI));
       m.dx = 5.5 * hop; m.dy = 2.2 * hop; m.rot = 0.05 * hop; m.ghost = 0.22 * hop;
-    } else if (w === 'wraps') {                               // two jabs
-      const hop = Math.abs(Math.sin(p * 2 * Math.PI));
-      m.dx = 6 * hop; m.rot = 0.04 * hop; m.sy = 1 - 0.02 * hop; m.ghost = 0.16 * hop;
     } else if (w === 'gauntlets') {                           // a heavy straight punch
       const back = pulse(p, 0, 0.3), hit = pulse(p, 0.25, 0.75);
       m.dx = -3 * back + 10 * hit; m.sx = 1 + 0.06 * hit; m.sy = 1 - 0.05 * hit; m.rot = 0.05 * hit;
@@ -143,7 +149,7 @@
   function drawHeroSprite(c, id, x, y, o) {
     const m = meta.data && meta.data[id];
     if (!m) return false;
-    const attacking = id === 'tavi' ? ((o.lean || 0) > 0.2 || (o.swing || 0) > 0.7) : (o.swing || 0) > 0.3;
+    const sw = o.swing || 0, attacking = id === 'tavi' ? ((o.lean || 0) > 0.2 || sw > 0.7) : DASH[o.weapon] ? (sw > 0.1 && sw < 0.72) : sw > 0.3;       // a short weapon walks in with the standing picture and strikes on the second step
     const files = HERO_FILES[id] || [], kind = attacking ? 'attack' : 'idle';
     const pick = w => files.includes(w) && (get(heroPath(id, w, kind)) || get(heroPath(id, w, 'idle')));
     const near = (typeof WEAPONS !== 'undefined' && WEAPONS[o.weapon] && WEAPONS[o.weapon].pose) || o.weapon;     // the nearest older picture, if a new one is missing
