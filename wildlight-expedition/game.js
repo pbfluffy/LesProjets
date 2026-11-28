@@ -1000,10 +1000,9 @@ function weaponDropsHtml(w) {                      // (also used by armor cards:
 function weaponCard(w) {
   const W = WEAPONS[w], items = save.items[w], total = items.reduce((a, b) => a + b, 0), who = WIELDER[W.fam], hero = HERO[who];
   if (!total) {
-    const where = STAGES.filter(s => (s.drops || []).some(([x]) => x === w)).map(s => s.name);
     return `<article class="weaponcard locked"><div class="wport">${itemIcon(w)}</div>
       <div class="winfo"><div class="wtop"><h4>${W.name}</h4><span class="pill lock"><i class="ico m lock sm"></i>Not found</span></div>
-        <p class="wdesc">${W.desc} <span class="wcrit">Crit ${Math.round(W.crit * 100)}%</span></p><p class="fine">Drops at ${where.join(', ')}.</p>${weaponDropsHtml(w)}</div></article>`;
+        <p class="wdesc">${W.desc} <span class="wcrit">Crit ${Math.round(W.crit * 100)}%</span></p>${weaponDropsHtml(w)}</div></article>`;
   }
   const best = bestGrade(w), ready = items.some((n, g) => g < GRADES.length - 1 && n >= MERGE_N);
   const rows = [];
@@ -1033,10 +1032,9 @@ function armorCard(a) {
   const A = ARMORS[a], items = save.armors[a], total = armorTotal(a);
   const stat = (g) => `HP +${pct0(A.hp * GRADES[g].mult)}% · -${pct0(Math.min(0.5, A.dr * GRADES[g].mult))}% damage`;
   if (!total) {
-    const where = STAGES.filter(s => (s.drops || []).some(([x]) => x === a)).map(s => s.name);
     return `<article class="weaponcard locked"><div class="wport">${itemIcon(a)}</div>
       <div class="winfo"><div class="wtop"><h4>${A.name}</h4><span class="pill lock"><i class="ico m lock sm"></i>Not found</span></div>
-        <p class="wdesc">${A.desc} <span class="wcrit">${stat(0)}</span></p><p class="fine">Drops at ${where.join(', ')}.</p>${weaponDropsHtml(a)}</div></article>`;
+        <p class="wdesc">${A.desc} <span class="wcrit">${stat(0)}</span></p>${weaponDropsHtml(a)}</div></article>`;
   }
   const best = items.reduce((b, n, g) => (n > 0 ? g : b), 0), ready = items.some((n, g) => g < GRADES.length - 1 && freeArmor(a, g) >= MERGE_N);
   const rows = [];
@@ -1112,19 +1110,25 @@ function renderForge() {
   const chip = (key, label, extra, cls, style) => `<button class="fchip ${f === key ? 'on' : ''} ${cls || ''}" data-act="forgefilter" data-arg="${key}" ${style ? `style="${style}"` : ''}>${label}${extra ? `<small>${extra}</small>` : ''}</button>`;
   const real = items.filter(i => !i.garb), owned = list => list.filter(i => i.total > 0 && !i.garb).length;
   let h = `<div class="strip idle fstrip"><i class="ico m swords"></i><div><b>${readyN ? `${readyN} merge${readyN > 1 ? 's' : ''} ready!` : 'The Forge'}</b>
-    <span>Tap an item for its details. ${MERGE_N} copies of one grade merge into 1 of the next (${GRADES.map(x => x.name).join(' → ')}).</span></div></div>`;
+    <span>Tap an item for its details. ${MERGE_N} copies of one grade merge into 1 of the next.</span></div>${readyN ? '<button class="btn good small" data-act="mergeall">Merge all</button>' : ''}</div>`;
   h += '<div class="fchips">' + (readyN ? chip('ready', 'Ready', readyN, 'ready') : '') + chip('all', 'All', owned(items) + '/' + real.length)
     + chip('armor', 'Armor', owned(items.filter(i => i.armor)) + '/' + ARMOR_IDS.length)
-    + HERO_ORDER.map(id => { const l = items.filter(i => !i.armor && i.group === id); return chip(id, `<i class="dot"></i>${firstName(id)}`, owned(l) + '/' + l.length, '', `--hc:${HERO_ACCENT[id]}`); }).join('') + '</div>';
+    + HERO_ORDER.map(id => { const l = items.filter(i => !i.armor && i.group === id); return chip(id, `<i class="dot"></i>${firstName(id)}`, owned(l) + '/' + l.length, isHired(id) ? '' : 'off', `--hc:${HERO_ACCENT[id]}`); }).join('') + '</div>';
   const groups = [...Object.keys(FAMILY).map(fam => ({ key: WIELDER[fam], title: FAMILY_PLURAL[fam], sub: HERO[WIELDER[fam]].name })), { key: 'armor', title: 'Armor', sub: 'any hero can wear it' }];
   let any = false;
   for (const g of groups) {
-    const list = items.filter(i => (g.key === 'armor' ? i.armor : !i.armor && i.group === g.key) && forgeShown(i, f))
+    let list = items.filter(i => (g.key === 'armor' ? i.armor : !i.armor && i.group === g.key) && forgeShown(i, f))
       .sort((x, y) => (y.ready - x.ready) || ((y.total > 0) - (x.total > 0)));              // ready to merge first, then what you own, then what is still missing
     if (!list.length) continue;
     any = true;
+    let more = '';
+    if (f === 'all') {                                                                       // the missing ones become one line
+      const miss = list.filter(i => i.total === 0);
+      list = list.filter(i => i.total > 0);
+      if (miss.length) more = `<button class="fmissing" data-act="forgefilter" data-arg="${g.key}"><i class="ico m lock sm"></i>${miss.length} not found yet: ${miss.slice(0, 3).map(i => itemInfo(i.id).name).join(', ')}${miss.length > 3 ? '…' : ''}<span>see ›</span></button>`;
+    }
     const sub = g.key === 'armor' && HERO[f] ? `${firstName(f)} wears ${ARMORS[save.heroes[f].armor].name}` : g.sub;
-    h += `<h2 class="sec">${g.title} <small>${sub}</small></h2><div class="ftiles">${list.map(i => forgeTile(i, HERO[f] ? f : null)).join('')}</div>`;
+    h += `<h2 class="sec">${g.title} <small>${sub}</small></h2>${list.length ? `<div class="ftiles">${list.map(i => forgeTile(i, HERO[f] ? f : null)).join('')}</div>` : ''}${more}`;
   }
   if (!any) h += '<p class="note">Nothing here yet.</p>';
   h += `<p class="note">Later areas drop better grades of every weapon and armor, so keep merging.</p>`;
@@ -1237,6 +1241,13 @@ const actions = {
   forgefilter(f) { uiForge.filter = f; uiForge.open = null; render(); const r = document.querySelector('.fchips .on'); if (r) r.scrollIntoView({ inline: 'center', block: 'nearest' }); },
   forgeopen(id) { if (itemInfo(id)) { uiForge.open = id; render(); } },
   forgeclose() { uiForge.open = null; render(); },
+  mergeall() {                                                       // every merge that is possible, lowest grades first (armor: only copies nobody wears)
+    let n = 0; const top = GRADES.length - 1;
+    for (const w of Object.keys(WEAPONS)) { const it = save.items[w]; for (let g = 0; g < top; g++) while (it[g] >= MERGE_N) { it[g] -= MERGE_N; it[g + 1]++; n++; } }
+    for (const a of ARMOR_IDS) { const it = save.armors[a]; for (let g = 0; g < top; g++) while (freeArmor(a, g) >= MERGE_N) { it[g] -= MERGE_N; it[g + 1]++; n++; } }
+    if (!n) return;
+    snd('merge'); persist(); toast(`Merged ${n} time${n > 1 ? 's' : ''}.`); render();
+  },
   sound() { if (window.sfx) window.sfx.togglePanel(); },
   claim() { claimFarm(false); render(); },
   farm(id) {

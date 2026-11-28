@@ -781,3 +781,10 @@ body.sheet-open{overflow:hidden}
 .jinfo b em{font:700 10px system-ui,sans-serif;font-style:normal;margin-left:6px;padding:1px 6px;border-radius:6px;background:#642c25;color:#ffb8a8;text-transform:uppercase}
 .jinfo small{color:var(--dim);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(min-width:720px){.hlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}}
+.fchip.off{opacity:.6}
+.fmissing{display:flex;align-items:center;gap:8px;width:100%;margin-top:8px;padding:9px 12px;border-radius:12px;border:1px dashed #4d5b48;background:#18241d;color:#b9b39a;font:600 12.5px system-ui,sans-serif;text-align:left;cursor:pointer}
+.fmissing .ico{flex:none}
+.fmissing span{margin-left:auto;color:#bda96f;white-space:nowrap}
+.fstrip .btn.small{flex:none}
+.fstrip>div{flex:1;min-width:0}
+.fstrip .btn.good{width:auto;margin-top:0;padding:10px 14px;flex:none}
