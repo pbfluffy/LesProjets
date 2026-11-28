@@ -24,7 +24,6 @@
 <p class="sub">All pictures are AI-generated with Codex image generation (see <code>art-brief-steam.md</code>) and checked by looking. The dashed pink frames show the safe area each brief asked for; tick the box to show them. Sizes below are the real file sizes; wide pictures are shown at a reduced zoom (the page says the zoom).</p>
 <div class="bar">
   <label><input type="checkbox" id="safe"> show safe areas</label>
-  <label><input type="checkbox" id="small"> show capsules at 1x only</label>
 </div>
 <div class="sheet" id="sheet"></div>
 <script>
@@ -77,5 +76,4 @@ for (const a of ART) {
   sheet.appendChild(s);
 }
 document.getElementById('safe').onchange = e => document.body.classList.toggle('show-safe', e.target.checked);
-document.getElementById('small').onchange = e => { document.querySelectorAll('.box img').forEach(i => { i.style.maxWidth = e.target.checked ? 'none' : ''; }); };
 </script>
