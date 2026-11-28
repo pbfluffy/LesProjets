@@ -1000,6 +1000,7 @@ function forgeItems() {
     const items = save.items[w], who = WIELDER[fam], total = items.reduce((x, y) => x + y, 0);
     list.push({ id: w, armor: false, group: who, total, best: total ? bestGrade(w) : -1, ready: items.some((n, g) => g < top && n >= MERGE_N), used: isHired(who) && save.heroes[who].weapon === w ? 1 : 0 });
   }
+  list.push({ id: 'garb', armor: true, garb: true, group: 'armor', total: 1, best: 0, ready: false, used: HERO_ORDER.filter(id => save.heroes[id].armor === 'garb').length });   // the plain outfit: always yours, lets a hero take armor off
   for (const a of ARMOR_IDS) {
     const items = save.armors[a], total = armorTotal(a);
     list.push({ id: a, armor: true, group: 'armor', total, best: total ? items.reduce((b, n, g) => (n > 0 ? g : b), 0) : -1, ready: items.some((n, g) => g < top && freeArmor(a, g) >= MERGE_N),
@@ -1007,41 +1008,46 @@ function forgeItems() {
   }
   return list;
 }
-const forgeShown = (it, f) => f === 'all' || (f === 'ready' && it.ready) || (f === 'armor' && it.armor) || (!it.armor && it.group === f);
-function forgeTile(it) {
-  const info = itemInfo(it.id), has = it.total > 0;
+const forgeShown = (it, f) => f === 'all' || (f === 'ready' && it.ready) || (f === 'armor' && it.armor) || (!it.armor && it.group === f) || (it.armor && !!HERO[f]);          // a hero's filter shows their weapons and the armor they can wear
+function forgeTile(it, hero) {                                  // hero = the hero filter in use: the check mark then means "this hero wears it"
+  const info = itemInfo(it.id), has = it.total > 0, used = hero && it.armor ? (save.heroes[hero].armor === it.id ? 1 : 0) : (it.garb ? 0 : it.used);
   return `<button class="ftile ${has ? '' : 'locked'} ${it.ready ? 'ready' : ''}" style="--g:${has ? GRADES[it.best].color : '#53635a'}" data-act="forgeopen" data-arg="${it.id}" aria-label="${info.name}">
     ${it.ready ? '<i class="fbadge">Merge</i>' : ''}${has && it.total > 1 ? `<i class="fcount">×${it.total}</i>` : ''}
     <span class="ficon">${itemIcon(it.id)}</span><b class="fname">${info.name}</b>
-    <span class="fmeta">${has ? gradeTag(it.best) : '<i class="ico m lock sm"></i>Not found'}${it.used ? '<em class="fworn" title="In use">✓</em>' : ''}</span></button>`;
+    <span class="fmeta">${it.garb ? '<small>Starter</small>' : has ? gradeTag(it.best) : '<i class="ico m lock sm"></i>Not found'}${used ? '<em class="fworn" title="In use">✓</em>' : ''}</span></button>`;
 }
 /* The armor sheet also lists the heroes, so a piece can be put on from the Forge (the best copy nobody wears). */
 function armorWearRow(a) {
   const btns = hired().map(id => {
     const mine = save.heroes[id].armor === a;
-    let g = -1;
-    for (let k = GRADES.length - 1; k >= 0; k--) if (freeArmor(a, k) > 0) { g = k; break; }
+    let g = a === 'garb' ? 0 : -1;                                // the plain garb never runs out
+    for (let k = GRADES.length - 1; k >= 0 && g < 0; k--) if (freeArmor(a, k) > 0) g = k;
     const label = firstName(id);
     return mine ? `<button class="btn good small" disabled>✓ ${label}</button>`
       : `<button class="btn alt small" data-act="equiparmor" data-arg="${id}:${a}:${g}" ${g < 0 ? 'disabled' : ''}>${label}</button>`;
   }).join('');
   return `<div class="wearrow"><span class="wlabel">Put on</span><div class="wearbtns">${btns}</div></div>`;
 }
+function garbCard() {
+  const A = ARMORS.garb, who = hired().filter(id => save.heroes[id].armor === 'garb');
+  return `<article class="weaponcard"><div class="wport">${itemIcon('garb')}</div><div class="winfo"><div class="wtop"><h4>${A.name}</h4></div>
+    <p class="wdesc">${A.desc} It gives no bonus; put it on to take armor off.</p>${who.length ? `<p class="fine">Worn by ${who.map(id => HERO[id].name).join(', ')}.</p>` : ''}</div></article>`;
+}
 function forgeSheet(id) {
   const arm = isArmor(id);
   return `<div class="fsheet-wrap"><div class="fsheet-back" data-act="forgeclose"></div>
     <div class="fsheet" role="dialog" aria-label="${itemInfo(id).name}"><button class="fsheet-x" data-act="forgeclose" aria-label="Close">×</button>
-      ${arm ? armorCard(id) : weaponCard(id)}${arm && armorTotal(id) ? armorWearRow(id) : ''}</div></div>`;
+      ${id === 'garb' ? garbCard() : arm ? armorCard(id) : weaponCard(id)}${arm && (id === 'garb' || armorTotal(id)) ? armorWearRow(id) : ''}</div></div>`;
 }
 function renderForge() {
   const items = forgeItems(), readyN = items.filter(i => i.ready).length;
   if (uiForge.filter === 'ready' && !readyN) uiForge.filter = 'all';
   const f = uiForge.filter;
   const chip = (key, label, extra, cls, style) => `<button class="fchip ${f === key ? 'on' : ''} ${cls || ''}" data-act="forgefilter" data-arg="${key}" ${style ? `style="${style}"` : ''}>${label}${extra ? `<small>${extra}</small>` : ''}</button>`;
-  const owned = list => list.filter(i => i.total > 0).length;
+  const real = items.filter(i => !i.garb), owned = list => list.filter(i => i.total > 0 && !i.garb).length;
   let h = `<div class="strip idle fstrip"><i class="ico m swords"></i><div><b>${readyN ? `${readyN} merge${readyN > 1 ? 's' : ''} ready!` : 'The Forge'}</b>
     <span>Tap an item for its details. ${MERGE_N} copies of one grade merge into 1 of the next (${GRADES.map(x => x.name).join(' → ')}).</span></div></div>`;
-  h += '<div class="fchips">' + (readyN ? chip('ready', 'Ready', readyN, 'ready') : '') + chip('all', 'All', owned(items) + '/' + items.length)
+  h += '<div class="fchips">' + (readyN ? chip('ready', 'Ready', readyN, 'ready') : '') + chip('all', 'All', owned(items) + '/' + real.length)
     + chip('armor', 'Armor', owned(items.filter(i => i.armor)) + '/' + ARMOR_IDS.length)
     + HERO_ORDER.map(id => { const l = items.filter(i => !i.armor && i.group === id); return chip(id, `<i class="dot"></i>${firstName(id)}`, owned(l) + '/' + l.length, '', `--hc:${HERO_ACCENT[id]}`); }).join('') + '</div>';
   const groups = [...Object.keys(FAMILY).map(fam => ({ key: WIELDER[fam], title: FAMILY_PLURAL[fam], sub: HERO[WIELDER[fam]].name })), { key: 'armor', title: 'Armor', sub: 'any hero can wear it' }];
@@ -1051,7 +1057,8 @@ function renderForge() {
       .sort((x, y) => (y.ready - x.ready) || ((y.total > 0) - (x.total > 0)));              // ready to merge first, then what you own, then what is still missing
     if (!list.length) continue;
     any = true;
-    h += `<h2 class="sec">${g.title} <small>${g.sub}</small></h2><div class="ftiles">${list.map(forgeTile).join('')}</div>`;
+    const sub = g.key === 'armor' && HERO[f] ? `${firstName(f)} wears ${ARMORS[save.heroes[f].armor].name}` : g.sub;
+    h += `<h2 class="sec">${g.title} <small>${sub}</small></h2><div class="ftiles">${list.map(i => forgeTile(i, HERO[f] ? f : null)).join('')}</div>`;
   }
   if (!any) h += '<p class="note">Nothing here yet.</p>';
   h += `<p class="note">Later areas drop better grades of every weapon and armor, so keep merging.</p>`;
