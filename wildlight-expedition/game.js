@@ -127,7 +127,7 @@ const MON = {
   /* Goblin series (Goblin Warrens). Tricks: the scrappers come in swarms, the shaman heals the others (heal: every N seconds, mult x its own max HP), the king calls a war cry (cry: at = health shares, everyone acts haste x faster for dur seconds). */
   gscrapper: { name: 'Goblin Scrapper', role: 'Swarm fighter', hp: 30, armor: 0, cd: 1.9, wind: 0.5, dmg: 6, tgt: 'front', scale: 0.95 },
   garcher: { name: 'Goblin Archer', role: 'Ranged attacker', hp: 36, armor: 0, cd: 2.8, wind: 0.75, dmg: 9, tgt: 'back', scale: 0.95 },
-  gshaman: { name: 'Goblin Shaman', role: 'Healer', hp: 48, armor: 0, cd: 3.2, wind: 0.8, dmg: 8, tgt: 'back', scale: 1, heal: { every: 4.5, mult: 0.9 } },
+  gshaman: { name: 'Goblin Shaman', role: 'Healer', hp: 48, armor: 0, cd: 3.2, wind: 0.8, dmg: 8, tgt: 'back', scale: 1, heal: { every: 4.5, mult: 0.1 } },
   gking: { name: 'Goblin King', role: 'Stage boss', hp: 900, armor: 1, cd: 2.4, wind: 0.45, dmg: 11, tgt: 'front', scale: 1.6, boss: true, charge: { first: 7, every: 9, wind: 1.4, dmg: 55 }, cry: { at: [0.5], haste: 1.5, dur: 8 } },
   /* Orc series (Orc Highlands). Tricks: the berserker gets faster when hurt (rage: below this health share it acts 1.6x faster), the warlord's war cries speed up the whole warband. */
   ogrunt: { name: 'Orc Grunt', role: 'Armored melee', hp: 90, armor: 2, cd: 2.5, wind: 0.55, dmg: 11, tgt: 'front', scale: 1.15 },
@@ -1401,7 +1401,7 @@ const actions = {
     persist(); toast('All areas unlocked.'); render();
   },
   testgold() { if (!devMode()) return; save.gold += 10000; save.lumber += 2000; persist(); toast('Added 10,000 gold and 2,000 lumber.'); render(); },
-  resetask() { if (devMode()) showResetDialog(); },
+  resetask() { showResetDialog(); },
   resetdo() { if (devMode()) resetGame(); },
   resetcancel() { closeResetDialog(); },
   resinfo(kind) { showResInfo(kind); },
