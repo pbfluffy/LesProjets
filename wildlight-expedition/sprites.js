@@ -105,16 +105,20 @@
   const QUICK = { saber: 3 };
   /* Short weapons (dash: true in WEAPONS) are used up close: the hero steps in twice (how far, in picture units), strikes on the second step, then slides back. */
   const DASH = { dagger: 56, twindaggers: 64, twin: 60, wraps: 50 };
+  /* Twin weapons strike with the right hand first, then the left: pictures <hero>-<weapon>-attackR / attackL (the plain attack picture is the fallback). */
+  const HANDS = { twin: 1, twindaggers: 1, wraps: 1 };
+  const HAND_PICS = [];                       // [hero, weapon] pairs that have right-hand / left-hand attack pictures (heroes/<hero>-<weapon>-attackR|attackL and armor layers); empty until that art exists: [['bren','twin'],['rook','twindaggers'],['tobin','wraps']]
+  const handPaths = () => HAND_PICS.flatMap(([id, w]) => ['attackR', 'attackL'].flatMap(p => [heroPath(id, w, p), ...ARMOR_TIERS.map(a => armorPath(id, a, p, w))]));
   const ease = x => x * x * (3 - 2 * x);
   const seg = (p, a, b) => Math.max(0, Math.min(1, (p - a) / (b - a)));
-  function motion(w, p) {
+  function motion(w, p, dist) {
     const m = { dx: 0, dy: 0, rot: 0, sx: 1, sy: 1, ghost: 0 }, W = (typeof WEAPONS !== 'undefined' && WEAPONS[w]) || {}, fam = W.fam;
     if (DASH[w]) {                                            // step, step, strike, back
-      const s1 = ease(seg(p, 0, 0.36)), s2 = ease(seg(p, 0.4, 0.74)), back = ease(seg(p, 0.82, 1));         // step (0 - 0.36), a beat, step again (0.4 - 0.74) and strike, hold, back
-      m.dx = DASH[w] * ((s1 * 0.5 + s2 * 0.5) * (1 - back));
-      const hop1 = Math.sin(Math.PI * seg(p, 0, 0.36)), hop2 = Math.sin(Math.PI * seg(p, 0.4, 0.74));
+      const s1 = ease(seg(p, 0, 0.34)), s2 = ease(seg(p, 0.38, 0.64)), back = ease(seg(p, 0.88, 1));         // step (0 - 0.34), a beat, step again (0.38 - 0.64) and strike (the first hit at 0.64, the second at about 0.82), back
+      m.dx = (dist || DASH[w]) * ((s1 * 0.5 + s2 * 0.5) * (1 - back));
+      const hop1 = Math.sin(Math.PI * seg(p, 0, 0.34)), hop2 = Math.sin(Math.PI * seg(p, 0.38, 0.64));
       m.dy = 4.5 * (hop1 + hop2);                                                                            // a clear little hop with each step
-      m.rot = 0.07 * ease(seg(p, 0.6, 0.74)) * (1 - back); m.ghost = 0.26 * (hop1 + hop2);
+      m.rot = 0.07 * ease(seg(p, 0.5, 0.64)) * (1 - back); m.ghost = 0.26 * (hop1 + hop2);
     } else if (HEAVY[w]) {                                    // wind up and slam
       const k = HEAVY[w], back = pulse(p, 0, 0.42), slam = pulse(p, 0.3, 0.85);
       m.dx = -5 * k * back + 11 * k * slam; m.rot = -0.1 * k * back + 0.13 * k * slam; m.dy = 2 * back * k; m.sy = 1 - 0.07 * slam * k; m.sx = 1 + 0.06 * slam * k;
@@ -151,8 +155,8 @@
     const m = meta.data && meta.data[id];
     if (!m) return false;
     const sw = o.swing || 0, attacking = id === 'tavi' ? ((o.lean || 0) > 0.2 || sw > 0.7) : DASH[o.weapon] ? (sw > 0.1 && sw < 0.6) : sw > 0.3;       // a short weapon walks the first step in the standing picture and strikes (attack picture) on the second step
-    const files = HERO_FILES[id] || [], kind = attacking ? 'attack' : 'idle';
-    const pick = w => files.includes(w) && (get(heroPath(id, w, kind)) || get(heroPath(id, w, 'idle')));
+    const files = HERO_FILES[id] || [], hand = attacking && HANDS[o.weapon] ? (1 - sw < 0.74 ? 'R' : 'L') : '', kind = attacking ? 'attack' : 'idle';       // twin weapons: right hand, then left
+    const pick = w => files.includes(w) && ((hand && get(heroPath(id, w, 'attack' + hand))) || get(heroPath(id, w, kind)) || get(heroPath(id, w, 'idle')));
     const near = (typeof WEAPONS !== 'undefined' && WEAPONS[o.weapon] && WEAPONS[o.weapon].pose) || o.weapon;     // the nearest older picture, if a new one is missing
     const pw = [o.weapon, near, files[0]].find(w => pick(w));                                                 // the weapon whose picture is drawn
     const im = pw ? pick(pw) : null;
@@ -171,15 +175,16 @@
       if (o.brace) c.scale(1.05, 0.93);
       if (id === 'tavi') { if ((o.lean || 0) > 0) c.translate(-(o.lean) * 2.5, 0); c.rotate(-(o.lean || 0) * 0.03); }     // lean back while drawing the bow
       else if ((o.swing || 0) > 0) {
-        mv = motion(o.weapon, 1 - Math.min(1, o.swing));
+        mv = motion(o.weapon, 1 - Math.min(1, o.swing), o.dash);
         c.translate(mv.dx, -mv.dy); c.rotate(mv.rot); c.scale(mv.sx, mv.sy);
       }
       if (o.hit > 0) c.translate(-Math.min(1, o.hit / 0.25) * 4 + (Math.random() - 0.5) * 2.2, 0);     // knocked back a little
     }
     let layer = null;
     if (ARMOR_TIERS.includes(o.armor)) {
-      layer = get(armorPath(id, o.armor, kind, pw));                                               // made for this weapon's picture
-      if (!layer && (kind === 'idle' || pw === files[0])) layer = get(armorPath(id, o.armor, kind)) || get(armorPath(id, o.armor, 'idle'));       // the generic layer (first weapon; standing pictures)
+      const poseKey = hand && get(heroPath(id, pw, 'attack' + hand)) ? 'attack' + hand : kind;     // the right-hand / left-hand picture has its own layers
+      layer = get(armorPath(id, o.armor, poseKey, pw));                                            // made for this weapon's picture
+      if (!layer && poseKey === kind && (kind === 'idle' || pw === files[0])) layer = get(armorPath(id, o.armor, kind)) || get(armorPath(id, o.armor, 'idle'));       // the generic layer (first weapon; standing pictures)
     }
     const putLayer = flash => {                                       // the armor, placed exactly like the hero picture
       if (!layer) return;
@@ -412,7 +417,7 @@
     .concat(MAP_PATHS, ['meta.json', 'sfx/index.json', 'sfx/pack.bin', ...SKILL_ART, 'music/village1.mp3', 'music/village2.mp3', 'music/fight.mp3', 'music/boss.mp3'], (typeof WEAPONS !== 'undefined' ? Object.keys(WEAPONS) : ['sword', 'twin', 'great', 'bow', 'staff']).map(w => `items/${w}.png`),
       Object.entries(HERO_FILES).flatMap(([id, ws]) => ws.flatMap(w => ['idle', 'attack'].map(p => heroPath(id, w, p)))),
       Object.keys(HERO_FILES).flatMap(id => ARMOR_TIERS.flatMap(a => ['idle', 'attack'].map(p => armorPath(id, a, p)))),
-      Object.entries(ARMOR_FIT).flatMap(([id, ws]) => ws.flatMap(w => ARMOR_TIERS.map(a => armorPath(id, a, 'attack', w)))),
+      Object.entries(ARMOR_FIT).flatMap(([id, ws]) => ws.flatMap(w => ARMOR_TIERS.map(a => armorPath(id, a, 'attack', w)))), handPaths(),
       ['garb', ...ARMOR_TIERS.map(a => a)].map(a => `items/${a === 'garb' ? 'garb' : a}.png`)).map(url);
   window.ensureRegion = id => {
     if (!REGION_ART[id] || !meta.data) return Promise.resolve(false);
@@ -455,7 +460,8 @@
     for (const a of ['garb', ...ARMOR_TIERS]) paths.push(`items/${a}.png`);
     for (const p of SKILL_ART) paths.push(p);                                                                  // skill icons and hero portraits (battle buttons, hero sheet)                                   // armor pictures (forge, hero cards, drops)
     for (const id of Object.keys(HERO_FILES)) for (const a of ARMOR_TIERS) for (const pose of ['idle', 'attack']) paths.push(armorPath(id, a, pose));
-    for (const [id, ws] of Object.entries(ARMOR_FIT)) for (const w of ws) for (const a of ARMOR_TIERS) paths.push(armorPath(id, a, 'attack', w));       // weapon pictures (drop lists, forge, rewards)
+    for (const [id, ws] of Object.entries(ARMOR_FIT)) for (const w of ws) for (const a of ARMOR_TIERS) paths.push(armorPath(id, a, 'attack', w));
+    paths.push(...handPaths());       // weapon pictures (drop lists, forge, rewards)
     await Promise.all([...paths.map(load), window.ensureRegion('vale')]);
 
     window.drawHero = drawHero;

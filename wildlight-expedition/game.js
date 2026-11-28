@@ -281,7 +281,7 @@ const GRADES = [
   { name: 'Legendary', mult: 2.30, color: '#f6bf4f' },
 ];
 const MERGE_N = 3;
-const DASH_RATE = 1.8, DASH_HIT = 0.4;        // weapons with dash: true are too short to reach from where the hero stands, so the hero steps in twice (sprites.js motion): the swing lasts 1/DASH_RATE s (0.56) and the hit lands DASH_HIT s in, on the second step
+const DASH_RATE = 1.5, DASH_HIT = 0.43;       // weapons with dash: true are too short to reach from where the hero stands, so the hero steps in twice (sprites.js motion) until they are next to the monster: the swing lasts 1/DASH_RATE s (0.67) and the first hit lands DASH_HIT s in, on the second step
 
 /* Armor: one piece per hero (the hero's outfit changes with it, see sprites.js). It drops like a weapon (the same stage tables, the same grade) and merges in the Forge.
    Any hero can wear any armor, but a copy is worn by one hero at a time. hp / dr are the bonus of a Common copy (more health, less damage taken);
@@ -1643,6 +1643,13 @@ function doHeal(h, st) {
   return true;
 }
 
+/* How far a short-weapon hero steps in: up to the monster they attack, stopping a weapon's length away (the picture units the motion uses). */
+function dashDist(h) {
+  const t = firstEnemy();
+  if (!t) return 56;
+  return Math.max(24, Math.min(130, t.x - h.x - (50 + 22 * MON[t.type].scale)));
+}
+
 function fireHero(h, st, w) {
   const t = firstEnemy();
   if (!t) return;
@@ -2073,7 +2080,7 @@ function draw() {
   const items = [];
   for (const h of B.heroes) items.push({ y: h.y, f: () => {
     const w = save.heroes[h.id].weapon;
-    drawHero(c, h.id, h.x, h.y, { weapon: w, armor: save.heroes[h.id].armor, t: B.t, swing: h.swing, lean: h.draw > 0 ? 1 - h.draw / 0.25 : 0, dead: h.dead, hit: h.hit, });
+    drawHero(c, h.id, h.x, h.y, { weapon: w, armor: save.heroes[h.id].armor, t: B.t, swing: h.swing, lean: h.draw > 0 ? 1 - h.draw / 0.25 : 0, dead: h.dead, hit: h.hit, dash: WEAPONS[w].dash ? dashDist(h) : 0 });
     if (!h.dead) hpBar(c, h.x, h.y - unitTop(h.id, 70) - 8, 34, h.hp / h.maxHp, 'hero');
   } });
   for (const e of B.enemies) items.push({ y: e.y, f: () => {
