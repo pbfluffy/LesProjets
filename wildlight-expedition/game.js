@@ -498,8 +498,10 @@ const gainText = g => [g.gold ? `${fmt(g.gold)} gold` : '', g.lumber ? `${fmt(g.
 function render() {
   hud();
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.arg === save.tab));
+  const sheet = $('.fsheet'), sheetTop = sheet ? sheet.scrollTop : 0;                          // an open sheet keeps its scroll position when it is redrawn
   $('#view').innerHTML = ({ map: renderMap, party: renderParty, forge: renderForge })[save.tab]();
-  document.body.classList.toggle('sheet-open', save.tab === 'forge' && !!uiForge.open);        // the Forge detail sheet is open: do not scroll the page behind it
+  document.body.classList.toggle('sheet-open', (save.tab === 'forge' && !!uiForge.open) || (save.tab === 'party' && !!uiHero.open));        // a detail sheet is open: do not scroll the page behind it
+  const sheet2 = $('.fsheet'); if (sheet2 && sheetTop) sheet2.scrollTop = sheetTop;
   paintPortraits();
   tickFarm();
   startMapLoop();
@@ -604,52 +606,103 @@ function dropsHtml(s) {                         // folded by default
     <div class="dropgrid">${chips}</div>
     <p class="fine">Chances are per fight you win, on average (every win without a drop makes the next one more likely). Farming rolls a weapon or an armor once for every full hour away, ${pctText(DROP.autoPerHour)} each (up to 24 hours).</p></details>`;
 }
-function stageActions(s, big) {
-  if (!isUnlocked(s)) return '';
-  const cleared = !!save.cleared[s.id], farming = save.farm && save.farm.stage === s.id;
-  const fight = big ? (s.boss && !cleared ? 'Challenge boss' : cleared ? 'Fight again' : 'Fight') : 'Fight';
-  let h = `<button class="btn ${big ? 'primary' : ''}" data-act="fight" data-arg="${s.id}"><i class="ico m swords"></i>${fight}</button>`;
-  if (cleared) h += `<button class="btn alt" data-act="farm" data-arg="${s.id}" ${farming ? 'disabled' : ''}><i class="ico m tent"></i>${farming ? 'Farming here' : big ? 'Send party to farm' : 'Farm'}</button>`;
-  else if (big) h += '<span class="hint">Clear it to send your party farming here.</span>';
-  return h;
-}
-function bestFor(s) {
-  const kinds = [/gold/i.test(s.best) && 'gold', /lumber/i.test(s.best) && 'lumber'].filter(Boolean);
-  return `Best for ${kinds.map(k => `<span class="res"><i class="ico ${k}"></i>${k === 'gold' ? 'Gold' : 'Lumber'}</span>`).join('')}`;
-}
+/* ---- the adventure card: the stage you are looking at (the next one by default; tap a pin on the map or a stop on the road to look at another) ---- */
+let uiStage = null;
+const selStage = () => (uiStage && STAGE[uiStage]) || featuredStage();
+const stageFrontier = r => (!regionUnlocked(r) ? r.stages[0] : r.stages.find(id => isUnlocked(STAGE[id]) && !save.cleared[id]) || r.stages[r.stages.length - 1]);
 
-function featuredCard(s) {
-  return `<article class="stagecard">
+/* How dangerous: the party's average level against the level the stage was balanced for (the bar's tick is the recommended level). */
+function difficulty(s) {
+  const lv = partyLevel(), r = lv / s.rec;
+  const [cls, txt] = r >= 1.15 ? ['easy', 'Easy'] : r >= 0.95 ? ['fair', 'Fair fight'] : r >= 0.75 ? ['risky', 'Risky'] : ['hard', 'Too strong: level up first'];
+  return { cls, txt, lv: Math.floor(lv), pct: Math.max(6, Math.min(100, Math.round(r * 70))) };
+}
+function difficultyHtml(s) {
+  const d = difficulty(s);
+  return `<div class="diff ${d.cls}"><div class="dtop"><span class="dlabel">Danger</span><b>${d.txt}</b><small>Your party Lv ${d.lv} · recommended Lv ${s.rec}</small></div>
+    <div class="dbar"><i style="width:${d.pct}%"></i><u></u></div></div>`;
+}
+/* the loot to hunt for: the most likely armor first, then the most likely weapons */
+function lootRow(s) {
+  const t = (s.drops || []).slice().sort((a, b) => b[1] - a[1]);
+  if (!t.length) return '';
+  const total = (s.drops || []).reduce((a, [, w]) => a + w, 0), rate = dropRatePerWin(), arm = t.find(([x]) => isArmor(x));
+  const picks = [arm, ...t.filter(p => p !== arm)].filter(Boolean).slice(0, 4);
+  const icons = picks.map(([x, w]) => `<span class="lootitem" title="${itemInfo(x).name} · about ${pctText(rate * w / total)} per win">${itemIcon(x, 'sm')}${isArmor(x) ? '<i>armor</i>' : ''}</span>`).join('');
+  return `<div class="lootrow"><b>Loot</b><span class="lootlist">${icons}</span><small>${t.length > picks.length ? `+${t.length - picks.length}` : ''}${s.dropGrade ? gradeTag(s.dropGrade) : ''}</small></div>`;
+}
+function partyMini() {
+  const act = party();
+  return `<button class="pmini" data-act="tab" data-arg="party"><span class="pminis">${act.map(id => `<canvas class="mport" data-hero="${id}" data-scale="0.5" width="46" height="52"></canvas>`).join('')}</span>
+    <span class="pmtxt"><b>Your party</b><small>${act.map(firstName).join(', ')}</small></span><i class="chev">›</i></button>`;
+}
+function adventureCard(s) {
+  const open = isUnlocked(s), cleared = !!save.cleared[s.id], farming = save.farm && save.farm.stage === s.id, prev = STAGES[stageNo(s) - 2];
+  const reward = cleared
+    ? `<div class="advrew"><b>Each win</b>${resChip('gold', s.repeat.gold)}${resChip('lumber', s.repeat.lumber)}</div>`
+    : `<div class="advrew first"><b>First clear</b>${resChip('gold', s.first.gold)}${resChip('lumber', s.first.lumber)}${s.first.tower ? '<span class="advtower"><i class="ico m flame sm"></i>relights the watchtower</span>' : ''}</div>`;
+  const fight = s.boss && !cleared ? 'Challenge the boss' : cleared ? 'Fight again' : 'Fight';
+  const cta = open
+    ? `<div class="actions"><button class="btn primary big" data-act="fight" data-arg="${s.id}"><i class="ico m swords"></i>${fight}</button>${cleared ? `<button class="btn alt" data-act="farm" data-arg="${s.id}" ${farming ? 'disabled' : ''}><i class="ico m tent"></i>${farming ? 'Farming here' : 'Send party to farm'}</button>` : ''}</div>`
+    : `<p class="advlock"><i class="ico m lock sm"></i>Clear ${prev ? prev.name : 'the stage before'} to open this adventure.</p>`;
+  return `<article class="stagecard adv">
     <div class="banner" style="${stageBg(s)}">
       <div class="bhead"><span class="num">${stageNo(s)}</span>${stagePill(s)}</div>
       <div class="bfoot"><div><h3>${s.name}</h3><p>${s.blurb}</p></div><div class="foes">${foesHtml(s)}</div></div>
     </div>
     <div class="sbody">
-      ${recBadge(s)}
-      ${save.cleared[s.id] ? `<div class="bestfor">${bestFor(s)}</div>` : ''}
+      ${open ? difficultyHtml(s) : `<span class="rec mid">Recommended Lv <b>${s.rec}</b></span>`}
+      ${reward}
+      ${cta}
+      ${open && !cleared ? '<p class="fine">Clear it to send your party farming here.</p>' : ''}
+      ${lootRow(s)}
+      ${open ? partyMini() : ''}
       ${dropsHtml(s)}
-      <div class="actions">${stageActions(s, true)}</div>
     </div></article>`;
 }
-function stageRow(s) {
-  const open = isUnlocked(s), prev = STAGES[stageNo(s) - 2];
-  return `<article class="stagerow ${open ? '' : 'locked'}">
-    <div class="thumb" style="${stageBg(s)}"><span>${stageNo(s)}</span></div>
-    <div class="rinfo">
-      <div class="rtop"><h4>${s.name}</h4>${stagePill(s)}</div>
-      <div class="rsub">${open ? `${foesText(s)} · Lv ${s.rec}` : `Clear ${prev.name} to unlock`}</div>
-      ${open ? `<div class="ractions">${stageActions(s, false)}</div>` : ''}
-    </div>
-    ${open ? dropsHtml(s) : ''}
-  </article>`;
+
+/* ---- what to do next: up to three nudges that point at something useful ---- */
+function nudgeList() {
+  const out = [], g = farmGain();
+  if (g && g.mins >= 60 && (g.gold > 0 || g.lumber > 0)) out.push({ icon: 'tent', text: g.full ? 'Your camp is full: claim it' : 'Your camp has loot waiting', btn: 'Claim', act: 'claim' });
+  const top = GRADES.length - 1;
+  const merge = Object.keys(WEAPONS).some(w => save.items[w].some((n, k) => k < top && n >= MERGE_N)) || ARMOR_IDS.some(a => save.armors[a].some((n, k) => k < top && freeArmor(a, k) >= MERGE_N));
+  if (merge) out.push({ icon: 'swords', text: 'Weapons or armor are ready to merge', btn: 'Forge', act: 'tab', arg: 'forge' });
+  const lv = party().find(id => save.gold >= lvlCost(save.heroes[id].lvl));
+  if (lv) out.push({ icon: 'swords', text: `${firstName(lv)} can level up (${fmt(lvlCost(save.heroes[lv].lvl))} gold)`, btn: 'Party', act: 'tab', arg: 'party' });
+  const un = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0];
+  if (un && save.gold >= HERO[un].hire) out.push({ icon: 'swords', text: `You can hire ${HERO[un].name}`, btn: 'Hire', act: 'tab', arg: 'party' });
+  return out.slice(0, 3);
 }
+function nudgesHtml() {
+  const list = nudgeList();
+  if (!list.length) return '';
+  return `<div class="nudges"><h2 class="sec">Good to know</h2>${list.map(n => `<div class="nudge"><i class="ico m ${n.icon}"></i><span>${n.text}</span><button class="btn alt small" data-act="${n.act}" ${n.arg ? `data-arg="${n.arg}"` : ''}>${n.btn}</button></div>`).join('')}</div>`;
+}
+
+/* ---- the road: the stops of the region you are looking at, tap one to see it ---- */
+function journeyRow(s, sel) {
+  const open = isUnlocked(s), cleared = !!save.cleared[s.id];
+  return `<button class="jrow ${open ? '' : 'locked'} ${cleared ? 'done' : ''} ${sel ? 'on' : ''}" data-act="pickstage" data-arg="${s.id}">
+    <span class="jnode">${cleared ? '✓' : open ? stageNo(s) : '<i class="ico m lock sm"></i>'}</span>
+    <span class="jinfo"><b>${s.name}${s.boss ? ' <em>boss</em>' : ''}</b><small>${open ? `${foesText(s)} · Lv ${s.rec}` : 'Locked'}</small></span>${stagePill(s)}</button>`;
+}
+function journeyHtml(r, sel) {
+  const boss = STAGE[r.tower], lit = !!save.cleared[r.tower];
+  return `<h2 class="sec">${r.name} <small>${regionCleared(r)} of ${r.stages.length} cleared</small></h2>
+    <div class="journey">${r.stages.map(id => journeyRow(STAGE[id], STAGE[id] === sel)).join('')}</div>
+    <p class="note">${lit ? `The ${r.name} watchtower is lit.` : `Beat the boss at ${boss.name} to relight the ${r.name} watchtower.`}</p>`;
+}
+
 function dailyCard() {
   const dm = dailyMonster(), dr = dailyReward(dm), done = dailyDone();
+  const left = Math.max(1, Math.ceil((new Date().setHours(24, 0, 0, 0) - Date.now()) / 3600000));
   return `<div class="daily ${done ? 'done' : ''}">
     <span class="dthumb">${artIsReady() && monArtReady(dm) ? `<img src="${monSrc(dm)}" alt="" onerror="this.remove()">` : ''}</span>
-    <div class="dinfo"><b>Daily hunt</b><span>${MON[dm].name} ${resChip('gold', dr.gold)}${resChip('lumber', dr.lumber)}</span></div>
+    <div class="dinfo"><b>Daily bounty</b><span>${MON[dm].name} ${resChip('gold', dr.gold)}${resChip('lumber', dr.lumber)}</span><span class="muted">${done ? 'Back tomorrow' : `Ends in ${left} h`}</span></div>
     ${done ? '<span class="pill ok"><i class="ico m check sm"></i>Done today</span>' : '<button class="btn small" data-act="bonus">Hunt</button>'}</div>`;
 }
+
 /* The weapon rolls a farming trip has earned so far: one per full hour away, DROP.autoPerHour each, rolled when the loot is claimed. */
 function farmRollText(g) {
   const rolls = Math.min(24, Math.floor(g.mins / 60)), pct = pctText(DROP.autoPerHour);
@@ -669,20 +722,14 @@ function farmStrip() {
     <div class="gains" id="farm-gain">${resChip('gold', g.gold)}${resChip('lumber', g.lumber)}</div>
     <div class="bar"><i id="farm-bar" style="width:${(g.mins / FARM_CAP_MIN * 100).toFixed(1)}%"></i></div>
     <button class="btn good" data-act="claim" id="claim-btn">Claim</button>
-    <p class="fine" id="farm-roll">${farmRollText(g)}</p>
-    <p class="fine">Gathers for up to 24 hours. Weapons and armor are rolled when you claim; fighting by hand has the best chance.</p></div>`;
+    <p class="fine" id="farm-roll">${farmRollText(g)}</p></div>`;
 }
 
 /* ------------------------------- regions ------------------------------ */
-// The map shows one region at a time (a painted map per region). Which one: the region of the stage the player should do next,
-// unless they tapped another region's chip (remembered until that "next stage" changes).
-let uiRegion = null;
+// The map shows one region at a time (a painted map per region): the region of the adventure you are looking at (the next stage by default; a region chip, a flag on the map or a stop on the road picks another).
 const regionUnlocked = r => isUnlocked(STAGE[r.stages[0]]);
 const regionCleared = r => r.stages.filter(id => save.cleared[id]).length;
-function currentRegion() {
-  const f = featuredStage();
-  return uiRegion && uiRegion.at === f.id ? REGION[uiRegion.id] : REGION[f.region];
-}
+function currentRegion() { return REGION[selStage().region]; }          // the region of the adventure you are looking at
 function regionChips() {
   const cur = currentRegion();
   return `<div class="regions" role="tablist">${REGIONS.map(r => {
@@ -716,31 +763,21 @@ function recBadge(s) {
 
 function renderMap() {
   // art.js paints the map on a canvas (animated); the SVG is the fallback when drawMap is missing.
-  let h = typeof drawMap === 'function'
-    ? `<canvas id="map-canvas" class="map" width="1080" height="450" role="img" aria-label="Village map"></canvas>`
+  const map = typeof drawMap === 'function'
+    ? `<canvas id="map-canvas" class="map" width="1080" height="450" role="img" aria-label="Village map: tap a flag to look at that adventure"></canvas>`
     : artState('map') === 'loading'
       ? `<div class="map placeholder" role="img" aria-label="Loading the village map"><span>Loading the village…</span></div>`
       : mapSvg();
 
-  // Groups (.vg) keep the phone order (map, farm strip, next up, daily, roads); on a wide screen CSS puts them in two columns (.vcol).
-  const feat = featuredStage(), allDone = !nextStage();
-  h = `<div class="vgrid"><div class="vcol"><div class="vg o1">${h}${regionChips()}</div>`;
-  const colA2 = `<div class="vg o3"><h2 class="sec">${allDone ? 'Farm &amp; replay' : 'Next up'}</h2>` + featuredCard(feat) + '</div></div>';
-  h += colA2 + `<div class="vcol"><div class="vg o2">${farmStrip()}${farmLogCard()}</div><div class="vg o4">${dailyCard()}${window.pwaCard ? window.pwaCard() : ''}</div>`;   // pwaCard: "Install the game" (pwa.js)
-  h += '<div class="vg o5">';
-  const nClear = STAGES.filter(s => save.cleared[s.id]).length;
-  h += `<h2 class="sec">Roads <small>${nClear} of ${STAGES.length} cleared</small></h2>`;
-  for (const r of REGIONS) {
-    const rows = r.stages.map(id => STAGE[id]).filter(s => s !== feat);
-    if (!rows.length) continue;
-    const key = 'region-' + r.id, locked = !regionUnlocked(r), defOpen = !locked && REGION[feat.region] === r;
-    const open = defOpen ? !uiClosed.has(key) : uiOpen.has(key);
-    h += `<details class="region ${locked ? 'locked' : ''}" data-key="${key}" data-defopen="${defOpen ? 1 : 0}" ${open ? 'open' : ''}>
-      <summary><span class="rname">${locked ? '<i class="ico m lock sm"></i>' : ''}${r.name}</span><em>${regionCleared(r)} of ${r.stages.length}</em></summary>
-      <div class="rlist">${rows.map(stageRow).join('')}</div></details>`;
-  }
-  const nextBoss = STAGES.find(s => s.boss && !save.cleared[s.id]);
-  h += `<p class="note">${nextBoss ? `Beat the boss at ${nextBoss.name} to relight the ${REGION[nextBoss.region].name} watchtower.` : 'Every watchtower is lit. More areas will open in a later version.'}</p>`;
+  // Groups (.vg) keep the phone order (map, adventure, good to know, camp, bounty, road, notes); on a wide screen CSS puts them in two columns (.vcol).
+  const sel = selStage(), reg = REGION[sel.region], next = nextStage();
+  const title = sel === next ? 'Next adventure' : save.cleared[sel.id] ? 'Replay or farm' : 'Adventure';
+  let h = `<div class="vgrid"><div class="vcol"><div class="vg o1">${map}${regionChips()}</div>`;
+  h += `<div class="vg o2"><h2 class="sec">${title}</h2>${adventureCard(sel)}</div>`;
+  h += `<div class="vg o6">${journeyHtml(reg, sel)}</div></div>`;
+  h += `<div class="vcol"><div class="vg o3">${nudgesHtml()}</div><div class="vg o4">${farmStrip()}${farmLogCard()}</div><div class="vg o5">${dailyCard()}${window.pwaCard ? window.pwaCard() : ''}</div>`;   // pwaCard: "Install the game" (pwa.js)
+  h += '<div class="vg o7">';
+  if (!next) h += '<p class="note">Every watchtower is lit. More areas will open in a later version.</p>';
   if (TEST_PERIOD) h += `<div class="card testtools"><div class="row between"><h3>Test tools</h3><span class="tag">Test period</span></div>
     <p class="sub">Want to start over? This wipes your progress and begins a brand-new game.</p>
     <button class="btn danger" data-act="resetask">Reset game data</button>
@@ -757,6 +794,15 @@ function startMapLoop() {
   if (!cvs || typeof drawMap !== 'function') return;
   const c = cvs.getContext('2d');
   const t0 = performance.now();
+  if (!cvs.dataset.tap) {                                             // tap a flag to look at that adventure
+    cvs.dataset.tap = '1';
+    cvs.addEventListener('click', ev => {
+      const r = cvs.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * 360, y = (ev.clientY - r.top) / r.height * 150;
+      let best = null, bd = 30;
+      for (const p of mapState(currentRegion()).pins) { const d = Math.hypot(p.x * 360 - x, p.y * 150 - y); if (d < bd) { bd = d; best = p.id; } }
+      if (best) actions.pickstage(best);
+    });
+  }
   const frame = now => {
     if (!cvs.isConnected) return;
     if (!B) {
@@ -791,9 +837,23 @@ const heroDps = id => {
   return st.atk * w.hits.reduce((a, b) => a + b, 0) / w.int;
 };
 
+/* The Party tab is a list of compact hero rows (portrait, name, level, HP, damage per second, weapon and armor icons); tapping a row opens that hero's sheet with the
+   full details, the two equipment slots (tap a slot to see what the hero can put on there), level up, upgrades, camp and skills. uiHero is only screen state. */
+let uiHero = { open: null, slot: null };
+const heroStatList = id => {
+  const st = heroStats(id), w = WEAPONS[save.heroes[id].weapon], ab = armorBonus(id);
+  const stats = [['HP', st.maxHp], ['Damage/s', heroDps(id).toFixed(1)]];
+  if (w.heal) stats.push(['Heal', Math.round(st.heal * (w.healMult || 1))]);
+  stats.push(['Crit', Math.round(st.crit * 100) + '%']);
+  if (w.pierce) stats.push(['Pierce', Math.round(w.pierce * 100) + '%']);
+  if (w.shield) stats.push(['Guard', '-' + Math.round(w.shield * 100) + '%']);
+  if (ab.dr > 0) stats.push(['Armor', '-' + pct0(ab.dr) + '%']);
+  return stats;
+};
+
 function partyStrip() {
   const act = party(), slots = Array.from({ length: MAX_PARTY }, (_, i) => act[i]
-    ? `<span class="slot full" title="${HERO[act[i]].name}">${HERO[act[i]].name[0]}</span>` : '<span class="slot" title="Free place">+</span>').join('');
+    ? `<span class="slot full" title="${HERO[act[i]].name}"><canvas class="slotport" data-hero="${act[i]}" data-scale="0.42" width="40" height="44"></canvas></span>` : '<span class="slot" title="Free place">+</span>').join('');
   const next = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire)[0], camp = hired().length - act.length;
   return `<div class="strip idle pstrip"><div class="slots">${slots}</div>
     <div><b>Your party · ${act.length} of ${MAX_PARTY}</b>
@@ -806,67 +866,72 @@ function campRow(id) {
   return `<div class="campbar"><span class="tag lock">In camp</span><button class="btn alt small" data-act="toparty" data-arg="${id}" ${full ? 'disabled' : ''}>Join the party</button>${full ? `<span class="hint">The party is full (${MAX_PARTY}): rest someone first.</span>` : ''}</div>`;
 }
 
-/* The folded "Change armor" list of a hero card: the plain garb, and every copy you own that is free (or that this hero wears). */
-function armorPicker(id) {
-  const s = save.heroes[id], key = 'armor-' + id, rows = [];
-  const row = (a, g, note) => {
-    const A = ARMORS[a], m = A.tier ? GRADES[g].mult : 1, on = s.armor === a && s.armorG === g;
-    rows.push(`<button class="weapon ${on ? 'on' : ''}" data-act="equiparmor" data-arg="${id}:${a}:${g}">${itemIcon(a, 'sm')}<span><b>${A.name}</b><small>${A.tier ? `HP +${pct0(A.hp * m)}% · -${pct0(Math.min(0.5, A.dr * m))}% damage.` : A.desc}</small></span>
-      <span class="wmeta">${A.tier ? gradeTag(g) : ''}<small>${note}</small></span></button>`);
-  };
-  row('garb', 0, s.armor === 'garb' ? 'worn' : '');
-  for (const a of ARMOR_IDS) for (let g = GRADES.length - 1; g >= 0; g--) {
-    const mine = s.armor === a && s.armorG === g, free = freeArmor(a, g), other = wearers(a, g).filter(x => x !== id);
-    if (!((save.armors[a] || [])[g] > 0)) continue;
-    if (mine) row(a, g, 'worn');
-    else if (free > 0) row(a, g, free > 1 ? free + ' free' : '');
-    else row(a, g, 'worn by ' + HERO[other[0]].name);
-  }
-  const count = rows.length - 1;
-  return `<details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Change armor</span><em>${count}</em></summary>
-    <div class="weapons">${rows.join('')}</div>
-    <p class="fine">Armor comes from fights and farming. Each copy can be worn by one hero; the hero's outfit changes with it.</p></details>`;
+function heroRow(id) {
+  const d = HERO[id], s = save.heroes[id], st = heroStats(id), w = WEAPONS[s.weapon], A = ARMORS[s.armor] || ARMORS.garb, camp = !inParty(id);
+  const eq = (icon, name, color) => `<span class="heq" style="--g:${color}" title="${name}">${itemIcon(icon, 'sm')}</span>`;
+  return `<button class="hrow ${camp ? 'camp' : ''}" style="--hc:${HERO_ACCENT[id]}" data-act="heroopen" data-arg="${id}">
+    <canvas class="hrport" data-hero="${id}" data-scale="0.6" width="64" height="72"></canvas>
+    <span class="hmain"><span class="hrow1"><b>${d.name}</b><em class="lvl">Lv ${s.lvl}</em>${camp ? '<em class="tag lock">Camp</em>' : ''}</span>
+      <span class="hrow2">${d.role}</span><span class="hrow3">HP <b>${st.maxHp}</b> · Damage <b>${heroDps(id).toFixed(1)}</b>/s</span></span>
+    <span class="hequip">${eq(s.weapon, w.name, GRADES[heroGrade(id)].color)}${eq(s.armor, A.name, A.tier ? GRADES[s.armorG].color : '#6b7a66')}</span><i class="chev">›</i></button>`;
 }
 
-function heroCard(id) {
-  const d = HERO[id], s = save.heroes[id], st = heroStats(id), w = WEAPONS[s.weapon];
-  const lc = { gold: lvlCost(s.lvl) }, uc = upCost(s.up);
-  const key = 'weapons-' + id, owned_ = Object.keys(WEAPONS).filter(x => WEAPONS[x].fam === d.family && owned(x));
-  const stats = [['HP', st.maxHp], ['Damage/s', heroDps(id).toFixed(1)]];
-  if (w.heal) stats.push(['Heal', Math.round(st.heal * (w.healMult || 1))]);
-  stats.push(['Crit', Math.round(st.crit * 100) + '%']);
-  if (w.pierce) stats.push(['Pierce', Math.round(w.pierce * 100) + '%']);
-  if (w.shield) stats.push(['Guard', '-' + Math.round(w.shield * 100) + '%']);
-  const ab = armorBonus(id), A = ARMORS[s.armor] || ARMORS.garb;
-  if (ab.dr > 0) stats.push(['Armor', '-' + pct0(ab.dr) + '%']);
-  return `<article class="herocard" style="--hc:${HERO_ACCENT[id]}">
-    <div class="hhead">
-      <canvas class="hport" data-hero="${id}" width="240" height="260"></canvas>
-      <div class="hinfo">
-        <div class="hname"><h3>${d.name}</h3><span class="lvl">Lv ${s.lvl}</span></div>
-        <p class="hrole">${d.role}</p>
-        <div class="stats">${stats.map(([k, v]) => `<span class="stat"><em>${k}</em><b>${v}</b></span>`).join('')}</div>
+/* The lists a hero can choose from when a slot is open in the sheet. */
+function weaponPickRows(id) {
+  const d = HERO[id], s = save.heroes[id];
+  return Object.keys(WEAPONS).filter(x => WEAPONS[x].fam === d.family && owned(x)).map(x => {
+    const n = save.items[x].reduce((a, b) => a + b, 0);
+    return `<button class="weapon ${s.weapon === x ? 'on' : ''}" data-act="equip" data-arg="${id}:${x}">
+      ${itemIcon(x, 'sm')}<span><b>${WEAPONS[x].name}</b><small>${WEAPONS[x].desc} Crit ${Math.round(WEAPONS[x].crit * 100)}%.</small></span>
+      <span class="wmeta">${gradeTag(bestGrade(x))}<small>${n > 1 ? `${n} owned` : ''}</small></span></button>`;
+  }).join('') + '<p class="fine">A hero always wields the best grade they own. Merge copies in the Forge.</p>';
+}
+function armorPickRows(id) {
+  const s = save.heroes[id], rows = [];
+  const row = (a, g, act, note, on) => {
+    const A = ARMORS[a], m = A.tier ? GRADES[g].mult : 1;
+    rows.push(`<button class="weapon ${on ? 'on' : ''}" ${on ? 'disabled' : `data-act="${act}" data-arg="${id}:${a}:${g}"`}>${itemIcon(a, 'sm')}<span><b>${A.name}</b><small>${A.tier ? `HP +${pct0(A.hp * m)}% · -${pct0(Math.min(0.5, A.dr * m))}% damage.` : A.desc}</small></span>
+      <span class="wmeta">${A.tier ? gradeTag(g) : ''}<small>${note}</small></span></button>`);
+  };
+  row('garb', 0, 'equiparmor', s.armor === 'garb' ? 'worn' : '', s.armor === 'garb');
+  for (const a of ARMOR_IDS) for (let g = GRADES.length - 1; g >= 0; g--) {
+    if (!((save.armors[a] || [])[g] > 0)) continue;
+    const mine = s.armor === a && s.armorG === g, free = freeArmor(a, g), other = wearers(a, g).filter(x => x !== id);
+    if (mine) row(a, g, '', 'worn', true);
+    else if (free > 0) row(a, g, 'equiparmor', free > 1 ? free + ' free' : '', false);
+    else row(a, g, 'takearmor', 'take it from ' + firstName(other[0]), false);
+  }
+  return rows.join('') + '<p class="fine">Armor comes from fights and farming. A copy is worn by one hero at a time; you can take it from another hero, who goes back to the plain garb.</p>';
+}
+
+function heroSheet(id) {
+  const d = HERO[id], s = save.heroes[id], st = heroStats(id), w = WEAPONS[s.weapon], A = ARMORS[s.armor] || ARMORS.garb, ab = armorBonus(id);
+  const lc = { gold: lvlCost(s.lvl) }, uc = upCost(s.up), pickW = uiHero.slot === 'weapon', pickA = uiHero.slot === 'armor';
+  const slot = (kind, icon, label, name, tag, note, on) => `<button class="hslot ${on ? 'on' : ''}" data-act="heroslot" data-arg="${kind}">${itemIcon(icon, 'sm')}<span class="hsinfo"><em>${label}</em><b>${name}</b><small>${note}</small></span>${tag}<i class="chev">${on ? '⌃' : '›'}</i></button>`;
+  return `<div class="fsheet-wrap hsheet"><div class="fsheet-back" data-act="heroclose"></div>
+    <div class="fsheet" role="dialog" aria-label="${d.name}" style="--hc:${HERO_ACCENT[id]}"><button class="fsheet-x" data-act="heroclose" aria-label="Close">×</button>
+      <div class="hhead">
+        <canvas class="hport" data-hero="${id}" width="240" height="260"></canvas>
+        <div class="hinfo">
+          <div class="hname"><h3>${d.name}</h3><span class="lvl">Lv ${s.lvl}</span></div>
+          <p class="hrole">${d.role}</p>
+          <div class="stats">${heroStatList(id).map(([k, v]) => `<span class="stat"><em>${k}</em><b>${v}</b></span>`).join('')}</div>
+        </div>
       </div>
-    </div>
-    <p class="hblurb">${d.blurb}</p>
-    <div class="wnow"><span class="wlabel">Weapon</span><b>${w.name}</b>${gradeTag(heroGrade(id))}<span class="wup">${FAMILY[d.family]} +${s.up}</span></div>
-    <div class="wnow"><span class="wlabel">Armor</span><b>${A.name}</b>${A.tier ? gradeTag(s.armorG) : ''}<span class="wup">${A.tier ? `HP +${pct0(ab.hp)}% · -${pct0(ab.dr)}% damage` : 'No bonus'}</span></div>
-    <div class="hactions">
-      <button class="btn primary sm" data-act="lvl" data-arg="${id}" ${canAfford(lc) ? '' : 'disabled'}>Level up <span class="cost">${costHtml(lc)}</span></button>
-      <button class="btn alt" data-act="up" data-arg="${id}" ${canAfford(uc) ? '' : 'disabled'}>Upgrade ${FAMILY_PLURAL[d.family].toLowerCase()} <span class="cost">${costHtml(uc)}</span></button>
-    </div>
-    ${campRow(id)}
-    ${typeof skillsCardHtml === 'function' ? skillsCardHtml(id) : ''}
-    <details class="drops" data-key="${key}" ${uiOpen.has(key) ? 'open' : ''}><summary><span>Change weapon</span><em>${owned_.length}</em></summary>
-      <div class="weapons">${owned_.map(x => {
-        const n = save.items[x].reduce((a, b) => a + b, 0);
-        return `<button class="weapon ${s.weapon === x ? 'on' : ''}" data-act="equip" data-arg="${id}:${x}">
-          ${itemIcon(x, 'sm')}<span><b>${WEAPONS[x].name}</b><small>${WEAPONS[x].desc} Crit ${Math.round(WEAPONS[x].crit * 100)}%.</small></span>
-          <span class="wmeta">${gradeTag(bestGrade(x))}<small>${n > 1 ? `${n} owned` : ''}</small></span></button>`;
-      }).join('')}</div>
-      <p class="fine">A hero always wields the best grade they own. Merge copies in the Forge.</p></details>
-    ${armorPicker(id)}
-  </article>`;
+      <p class="hblurb">${d.blurb}</p>
+      <div class="hslots">
+        ${slot('weapon', s.weapon, 'Weapon', w.name, gradeTag(heroGrade(id)), `${FAMILY[d.family]} +${s.up} · Crit ${Math.round(st.crit * 100)}%`, pickW)}
+        ${pickW ? `<div class="weapons hpick">${weaponPickRows(id)}</div>` : ''}
+        ${slot('armor', s.armor, 'Armor', A.name, A.tier ? gradeTag(s.armorG) : '', A.tier ? `HP +${pct0(ab.hp)}% · -${pct0(ab.dr)}% damage` : 'No bonus: tap to choose armor', pickA)}
+        ${pickA ? `<div class="weapons hpick">${armorPickRows(id)}</div>` : ''}
+      </div>
+      <div class="hactions">
+        <button class="btn primary sm" data-act="lvl" data-arg="${id}" ${canAfford(lc) ? '' : 'disabled'}>Level up <span class="cost">${costHtml(lc)}</span></button>
+        <button class="btn alt" data-act="up" data-arg="${id}" ${canAfford(uc) ? '' : 'disabled'}>Upgrade ${FAMILY_PLURAL[d.family].toLowerCase()} <span class="cost">${costHtml(uc)}</span></button>
+      </div>
+      ${campRow(id)}
+      ${typeof skillsCardHtml === 'function' ? skillsCardHtml(id) : ''}
+    </div></div>`;
 }
 
 function recruitCard(id) {
@@ -890,10 +955,11 @@ function recruitCard(id) {
 function renderParty() {
   const act = party(), camp = hired().filter(id => !inParty(id));
   let h = partyStrip();
-  h += `<h2 class="sec">Party <small>${act.length} of ${MAX_PARTY}</small></h2><div class="cgrid">` + act.map(heroCard).join('') + '</div>';
-  if (camp.length) h += `<h2 class="sec">In camp <small>resting: they level up and keep their weapons</small></h2><div class="cgrid">` + camp.map(heroCard).join('') + '</div>';
+  h += `<h2 class="sec">Party <small>${act.length} of ${MAX_PARTY} · tap a hero</small></h2><div class="hlist">` + act.map(heroRow).join('') + '</div>';
+  if (camp.length) h += `<h2 class="sec">In camp <small>resting: they level up and keep their gear</small></h2><div class="hlist">` + camp.map(heroRow).join('') + '</div>';
   const rec = HERO_ORDER.filter(id => !isHired(id)).sort((a, b) => HERO[a].hire - HERO[b].hire);
   if (rec.length) h += `<h2 class="sec">Recruit <small>pay with gold</small></h2><div class="cgrid">` + rec.map(recruitCard).join('') + '</div>';
+  if (uiHero.open && isHired(uiHero.open)) h += heroSheet(uiHero.open);
   return h;
 }
 
@@ -1154,7 +1220,20 @@ function showResInfo(kind) {
 
 /* ----------------------------- actions ------------------------------ */
 const actions = {
-  tab(t) { save.tab = t; uiForge.open = null; persist(true); render(); },
+  tab(t) { save.tab = t; uiForge.open = null; uiHero.open = null; uiHero.slot = null; persist(true); render(); },
+  pickstage(id) { if (STAGE[id]) { uiStage = id; render(); const c = document.querySelector('.stagecard.adv'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
+  heroopen(id) { if (isHired(id)) { uiHero = { open: id, slot: null }; render(); } },
+  heroclose() { uiHero.open = null; uiHero.slot = null; render(); },
+  heroslot(k) { uiHero.slot = uiHero.slot === k ? null : k; render(); },
+  takearmor(arg) {                                                   // wear a copy another hero wears: they go back to the plain garb
+    const [id, a, gs] = arg.split(':'), g = Number(gs);
+    if (!isHired(id) || !ARMORS[a] || a === 'garb') return;
+    const other = wearers(a, g).find(x => x !== id);
+    if (!other || !((save.armors[a] || [])[g] > 0)) return;
+    save.heroes[other].armor = 'garb'; save.heroes[other].armorG = 0;
+    save.heroes[id].armor = a; save.heroes[id].armorG = g;
+    uiHero.slot = null; snd('equip'); persist(); toast(`${HERO[id].name} takes it from ${HERO[other].name}.`); render();
+  },
   forgefilter(f) { uiForge.filter = f; uiForge.open = null; render(); const r = document.querySelector('.fchips .on'); if (r) r.scrollIntoView({ inline: 'center', block: 'nearest' }); },
   forgeopen(id) { if (itemInfo(id)) { uiForge.open = id; render(); } },
   forgeclose() { uiForge.open = null; render(); },
@@ -1201,7 +1280,7 @@ const actions = {
   },
   equip(arg) {
     const [id, w] = arg.split(':');
-    if (isHired(id) && owned(w) && WEAPONS[w].fam === HERO[id].family) { save.heroes[id].weapon = w; snd('equip'); persist(); render(); }
+    if (isHired(id) && owned(w) && WEAPONS[w].fam === HERO[id].family) { save.heroes[id].weapon = w; uiHero.slot = null; snd('equip'); persist(); render(); }
   },
   merge(arg) {
     const [w, gs] = arg.split(':'), gr = Number(gs), items = (isArmor(w) ? save.armors : save.items)[w];
@@ -1215,7 +1294,7 @@ const actions = {
     if (!isHired(id) || !ARMORS[a]) return;
     if (a !== 'garb' && (save.heroes[id].armor === a && save.heroes[id].armorG === g ? false : freeArmor(a, g) < 1)) { toast('Somebody else wears that one.'); return; }
     save.heroes[id].armor = a; save.heroes[id].armorG = a === 'garb' ? 0 : g;
-    snd('equip'); persist(); render();
+    uiHero.slot = null; snd('equip'); persist(); render();
   },
   fight(id) {
     const s = STAGE[id];
@@ -1227,7 +1306,7 @@ const actions = {
     const m = dailyMonster(), s = STAGES.filter(isUnlocked).find(x => x.enemies.includes(m));
     withRegionArt(s.region, () => startBattle({ title: `Bonus hunt: ${MON[m].name}`, sky: s.sky, enemies: [m], hpMult: (MON[m].boss ? 1 : 1.5) * partyScale(), power: s.power, bg: s.id, rec: s.rec, onWin: () => bonusWin(m) }));
   },
-  region(id) { if (REGION[id]) { uiRegion = { id, at: featuredStage().id }; render(); } },
+  region(id) { if (REGION[id]) { uiStage = stageFrontier(REGION[id]); render(); } },
   testunlock() {                                          // test period: open every area (the last one stays to fight for its first-clear reward)
     if (!TEST_PERIOD) return;
     STAGES.slice(0, -1).forEach(s => { save.cleared[s.id] = true; if (s.first.tower) save.towers[s.id] = true; });
@@ -1266,6 +1345,7 @@ document.addEventListener('keydown', e => {
   if (B && /^[1-8]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey && typeof castSkillSlot === 'function') castSkillSlot(Number(e.key) - 1);
   if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName || '')) { const off = window.sfx && window.sfx.toggleMute(); toast(off ? 'Sound off' : 'Sound on'); }
   if (e.key === 'Escape' && uiForge.open) { actions.forgeclose(); return; }
+  if (e.key === 'Escape' && uiHero.open) { actions.heroclose(); return; }
   if (e.key === 'Escape') {
     const dlg = document.getElementById('reset-dialog'), res = document.getElementById('result');
     if (dlg || document.getElementById('res-info') || document.getElementById('farm-report')) { closeResInfo(); closeResetDialog(); closeFarmReport(); }
@@ -1281,7 +1361,7 @@ function stageWin(s) {
   const r = { title: s.name, sub: 'Stage cleared', gold: 0, lumber: 0, first: false, tower: false, unlock: null, drop: null, again: true };
   if (!save.cleared[s.id]) {
     save.cleared[s.id] = true;
-    r.first = true; r.sub = 'First clear!';
+    r.first = true; r.sub = 'First clear!'; uiStage = null;          // the map then shows the next adventure
     r.gold = s.first.gold; r.lumber = s.first.lumber;
     if (s.first.tower) { save.towers[s.id] = true; r.tower = true; r.regionName = regionOf(s).name; }
     const nxt = STAGES.find(x => x.req === s.id);

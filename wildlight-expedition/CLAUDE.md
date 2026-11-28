@@ -36,8 +36,7 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, telegr
   the script links and the Bangkok build time into `<meta name="build">`; locally it reads `v dev`. If the label is older than the latest deploy, you are looking at a cached copy.
 
 ## Home screen (Map tab) cards
-- Order (`renderMap` in `game.js`): map, farming strip (only when the party is out; loot, glowing Claim), **Next up** = ONE big stage card for the first unlocked,
-  uncleared stage (once everything is cleared: the farmed stage, headed "Farm & replay"), the daily hunt row, then every other stage as a compact row.
+- Order (`renderMap`, phone): map + region chips, the **adventure card**, "Good to know" nudges, camp (farming strip), the daily bounty, the road of the current region, notes and test tools. See "Map and Party redesign" at the end of this file.
 - Stage details that are not needed at a glance, like the possible weapon drops, are folded (`<details class="drops">`). Closed by default; which ones the player opened is
   kept in `uiOpen` across redraws. Drop tiers (Often / Sometimes / Rarely) come from the stage's drop weights.
 - Stage cards use the painted `bg/<stage>.jpg` and the monsters' idle sprites (via `window.assetUrl` from `sprites.js`); until the art has loaded they show a colour gradient.
@@ -47,7 +46,7 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, telegr
   `partySize()` are the helpers. Saves from before hiring have no `party` and keep all three heroes (`hydrate()`); Reset game data starts a new solo game.
 - Fights and farming scale with the party size so a small party is not punished: `partyScale()` multiplies monster HP (0.55 / 0.8 / 1 / 1.7 for four heroes), `encounterFor(stage)` picks smaller packs
   (`waves` on the stage, used for 1 or 2 heroes), and `farmMult()` gathers 0.6x / 0.8x / 1x / 1.2x. Checked by simulation: the first two stages are winnable at every size and the boss is beatable at every size at its recommended level.
-- Party tab: party strip with slots, a card per hero (stats, level up, weapon family upgrade, folded "Change weapon"), then Recruit cards. Forge tab (see "Forge layout" below): item tiles grouped by hero, merge-ready banner,
+- Party tab: party strip with portraits, compact hero rows (tap one for the hero sheet: stats, weapon and armor slots, level up, upgrades, camp, skills), then Recruit cards. Forge tab (see "Forge layout" below): item tiles grouped by hero, merge-ready banner,
   copy pips, Equip button; weapons the player has not found are dimmed with where they drop.
 
 ## Result screens
@@ -63,7 +62,7 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, telegr
 
 ## Regions, areas and power
 - 13 stages in 4 regions (`REGIONS` / `STAGES` in `game.js`): Pinewood Vale (3, boss Boar King), Mirewood (3, Toadking), Frostpeak (3, Rimecrown), Emberwaste (4, final boss Storm Drake). Each region has a painted
-  map (`assets/map/`), its own watchtower (lit by the region's boss) and unlocks when the previous region's boss is cleared. The home screen shows one region at a time: chips switch regions, the Roads list is grouped per region (folded `<details class="region">`).
+  map (`assets/map/`), its own watchtower (lit by the region's boss) and unlocks when the previous region's boss is cleared. The home screen shows one region at a time: chips switch regions, the road list (`journeyHtml`) shows the stops of that region only.
 - The block between `const MON = {` and `const LAYOUT = {` (monsters, regions, stages) was generated from a table; edit it by hand or regenerate, but keep the shape (`stage.power = {hp, dmg, arm}`, `rec`, `first`, `drops`, `dropGrade`, `farm`, `bg`).
 - Difficulty: monster HP x `power.hp` x `partyScale()`, damage x `power.dmg`, armor x `power.arm` (a hit is never below 25% of raw). `rec` is the recommended party level; the stage card shows it next to the party's level (`recBadge`).
   Balanced by simulation: a regular area leaves about 60% party HP at `rec`, bosses are about 60 s fights; 2+ levels under `rec` usually loses. Bosses use `charge` telegraphs (a warning line and a red lane); the charge hits the whole party for `CHARGE_SOFT` (15%) of its damage. There is no barrier any more (removed on request): it was a button that blocked the charge. Simulated with the party at `rec`: the Bog King is won with about 75% health left, one level under `rec` it often loses.
@@ -81,7 +80,7 @@ Semi-idle fantasy RPG (design brief: three heroes, Pinewood Trail stages, telegr
 - The phone layout is the base; everything else is `@media` at the end of `style.css`. Map / Party / Forge markup is grouped for it: `.vgrid > .vcol > .vg.oN` (Map) and `.cgrid` (card lists). On a phone those wrappers are `display:contents`
   (and `.vg.oN` keep the phone order with `order`), so the phone layout is unchanged.
 - 720px and up (tablet): the column grows to 720px, card lists become 2 columns, the battle arena grows (`--bw`, limited by the window height so the skills stay on screen).
-- 1000px and up (PC): the tab bar moves into the header (centered), the Map becomes two columns (map, chips and Next up on the left; farm strip, daily hunt, install card and Roads on the right), card lists use 3 columns.
+- 1000px and up (PC): the tab bar moves into the header (centered), the Map becomes two columns (map, chips, the adventure card and the road on the left; nudges, camp, daily bounty and the install card on the right), card lists use 3 columns.
 - Mouse devices (`hover:hover` and `pointer:fine`): hover feedback on buttons/cards and the keyboard hint in battle. Keys: 1-8 = skills, Esc = retreat (or close a dialog), 1 / 2 / 3 = Map / Party / Forge.
 - Check changes at 320, 375, 768, 1000 and 1280 px wide.
 
@@ -236,3 +235,12 @@ The sound engine follows the guide; the numbers are starting points to tune by e
 - The Forge is a grid of small tiles, not a list of cards (it was ~6,800 px tall on a phone, now ~2,400): `forgeItems()` lists every weapon (grouped by the hero who wields the family) and armor with its owned count, best grade, merge-ready flag and in-use flag; `forgeTile(it)` draws one (icon, name, best grade, `×n`, a green "Merge" badge when 3 copies of a grade can merge, ✓ when a hero uses it, dimmed "Not found" when missing).
 - Filter chips on top (`uiForge.filter`, not saved): Ready (only when something can merge), All, Armor, and one per hero with owned/total counts. A hero's chip shows that hero's weapons AND an Armor group (the plain garb, then every armor; the check mark means this hero wears it, the heading says what they wear). The garb tile (`garbCard`) is how a hero takes armor off. Inside a group the order is ready to merge, then owned, then missing.
 - Tapping a tile opens `forgeSheet(id)`: a bottom sheet (a centred dialog from 720 px) with the full card (`weaponCard` / `armorCard`: grades, merge buttons, equip, where it drops) and, for armor, the "Put on" row (`armorWearRow`). Actions `forgeopen`, `forgeclose`, `forgefilter`; Esc closes; `body.sheet-open` stops the page scrolling behind it. Merging or equipping re-renders the Forge with the sheet still open.
+
+## Map and Party redesign
+- **Adventure card** (`adventureCard(s)`, `uiStage` = the stage being looked at, default the next uncleared stage = `selStage()`): painted banner with the monsters, a **Danger** meter (`difficulty(s)`: party average level against `rec`; Easy / Fair fight / Risky / Too strong, the tick on the bar is the recommended level), the reward
+  (first clear incl. "relights the watchtower", or each win), the big Fight / Challenge the boss button (and Send party to farm once cleared), the **loot to hunt** (`lootRow`: the likeliest armor first, then weapons, with the stage grade), the party portraits (tap = Party tab) and the folded drop list.
+  A locked stage can be looked at too (teaser: monsters, loot) but not fought. Tap a flag on the map (`mapState` pins, click handler in `startMapLoop`), a region chip (`stageFrontier`) or a stop on the road (`pickstage`) to look at another adventure; the first clear of a stage resets `uiStage` so the map moves on to the next one.
+- **Good to know** (`nudgeList`, up to 3): camp loot waiting (1 h or more), weapons or armor ready to merge, a hero you can afford to level up, a hero you can afford to hire; each has a button to the right tab. **Daily bounty** shows the time left today. The camp strip lost its long explanation (the gear roll line stays).
+- **Party**: `heroRow(id)` = portrait with its armor, name, level, role, HP, damage per second, weapon and armor icons (ringed in the grade colour); camp heroes are dimmed with a Camp tag. `heroSheet(id)` (`uiHero = { open, slot }`, actions `heroopen`, `heroclose`, `heroslot`) is a bottom sheet like the Forge's:
+  stats, the **weapon slot** and **armor slot** (tap one to open its list in place: `weaponPickRows`, `armorPickRows`), Level up / Upgrade, Rest in camp / Join the party and Skills. An armor copy another hero wears shows "take it from <hero>" (`takearmor`: that hero goes back to the garb).
+  Esc closes a sheet; an open sheet keeps its scroll position when the tab redraws (`render`).
